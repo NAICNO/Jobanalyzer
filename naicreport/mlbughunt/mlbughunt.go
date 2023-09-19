@@ -21,6 +21,8 @@
 package mlbughunt
 
 import (
+	"encoding/json"
+
 	"fmt"
 	"os"
 	"path"
@@ -48,6 +50,7 @@ type bughuntJob struct {
 
 func MlBughunt(progname string, args []string) error {
 	progOpts := util.NewStandardOptions(progname + "ml-bughunt")
+	jsonOutput := progOpts.Container.Bool("json", false, "Format output as JSON")
 	err := progOpts.Parse(args)
 	if err != nil {
 		return err
@@ -80,19 +83,56 @@ func MlBughunt(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
 	}
 
-	writeBughuntReport(state, logs)
+	events := createBughuntReport(state, logs)
+	if *jsonOutput {
+		bytes, err := json.Marshal(events)
+		if err != nil {
+			return err
+		}
+		fmt.Print(string(bytes))
+	} else {
+		writeBughuntReport(events)
+	}
 
 	return jobstate.WriteJobState(progOpts.DataPath, bughuntFilename, state)
 }
 
-func writeBughuntReport(state map[jobstate.JobKey]*jobstate.JobState, logs map[jobstate.JobKey]*bughuntJob) {
-	reports := make([]*util.JobReport, 0)
+type perEvent struct {
+	Host              string `json:"hostname"`
+	Id                uint32 `json:"id"`
+	User              string `json:"user"`
+	Cmd               string `json:"cmd"`
+	StartedOnOrBefore string `json:"started-on-or-before"`
+	FirstViolation    string `json:"first-violation"`
+	LastSeen          string `json:"last-seen"`
+}
+
+func createBughuntReport(state map[jobstate.JobKey]*jobstate.JobState, logs map[jobstate.JobKey]*bughuntJob) []*perEvent {
+	events := make([]*perEvent, 0)
 	for k, j := range state {
 		if !j.IsReported {
 			j.IsReported = true
 			loggedJob, _ := logs[k]
-			report := fmt.Sprintf(
-				`New pointless job detected (zombie, defunct, or hung) on host "%s":
+			events = append(events,
+				&perEvent{
+					Host:              j.Host,
+					Id:                j.Id,
+					User:              loggedJob.user,
+					Cmd:               loggedJob.cmd,
+					StartedOnOrBefore: j.StartedOnOrBefore.Format(util.DateTimeFormat),
+					FirstViolation:    j.FirstViolation.Format(util.DateTimeFormat),
+					LastSeen:          j.LastSeen.Format(util.DateTimeFormat),
+				})
+		}
+	}
+	return events
+}
+
+func writeBughuntReport(events []*perEvent) {
+	reports := make([]*util.JobReport, 0)
+	for _, e := range events {
+		fmt.Sprintf(
+			`New pointless job detected (zombie, defunct, or hung) on host "%s":
   Job#: %d
   User: %s
   Command: %s
@@ -100,15 +140,13 @@ func writeBughuntReport(state map[jobstate.JobKey]*jobstate.JobState, logs map[j
   Violation first detected: %s
   Last seen: %s
 `,
-				j.Host,
-				j.Id,
-				loggedJob.user,
-				loggedJob.cmd,
-				j.StartedOnOrBefore.Format(util.DateTimeFormat),
-				j.FirstViolation.Format(util.DateTimeFormat),
-				j.LastSeen.Format(util.DateTimeFormat))
-			reports = append(reports, &util.JobReport{Id: k.Id, Host: k.Host, Report: report})
-		}
+			e.Host,
+			e.Id,
+			e.User,
+			e.Cmd,
+			e.StartedOnOrBefore,
+			e.FirstViolation,
+			e.LastSeen)
 	}
 
 	util.SortReports(reports)

@@ -15,7 +15,7 @@
 //  - we don't want to report jobs redundantly, so there will have to be persistent state
 //  - we don't want the state to grow without bound
 //
-// Report format:
+// Report format (when not JSON):
 //
 //     New CPU hog detected (uses a lot of CPU and no GPU) on host "XX":
 //       Job#: n
@@ -31,6 +31,7 @@
 package mlcpuhog
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"os"
@@ -69,6 +70,7 @@ type cpuhogState struct {
 
 func MlCpuhog(progname string, args []string) error {
 	progOpts := util.NewStandardOptions(progname + "ml-cpuhog")
+	jsonOutput := progOpts.Container.Bool("json", false, "Format output as JSON")
 	err := progOpts.Parse(args)
 	if err != nil {
 		return err
@@ -101,22 +103,67 @@ func MlCpuhog(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
 	}
 
-	writeCpuhogReport(hogState, logs)
+	events := createCpuhogReport(hogState, logs)
+	if *jsonOutput {
+		bytes, err := json.Marshal(events)
+		if err != nil {
+			return err
+		}
+		fmt.Print(string(bytes))
+	} else {
+		writeCpuhogReport(events)
+	}
 
 	return jobstate.WriteJobState(progOpts.DataPath, cpuhogFilename, hogState)
 }
 
-func writeCpuhogReport(
-	hogState map[jobstate.JobKey]*jobstate.JobState,
-	logs map[jobstate.JobKey]*cpuhogState) {
+type perEvent struct {
+	Host              string `json:"hostname"`
+	Id                uint32 `json:"id"`
+	User              string `json:"user"`
+	Cmd               string `json:"cmd"`
+	StartedOnOrBefore string `json:"started-on-or-before"`
+	FirstViolation    string `json:"first-violation"`
+	CpuPeak           uint32 `json:"cpu-peak"`
+	RCpuAvg           uint32 `json:"rcpu-avg"`
+	RCpuPeak          uint32 `json:"rcpu-peak"`
+	RMemAvg           uint32 `json:"rmem-avg"`
+	RMemPeak          uint32 `json:"rmem-peak"`
+}
 
-	reports := make([]*util.JobReport, 0)
+func createCpuhogReport(
+	hogState map[jobstate.JobKey]*jobstate.JobState,
+	logs map[jobstate.JobKey]*cpuhogState) []*perEvent {
+
+	events := make([]*perEvent, 0)
 	for k, jobState := range hogState {
 		if !jobState.IsReported {
 			jobState.IsReported = true
 			job, _ := logs[k]
-			report := fmt.Sprintf(
-				`New CPU hog detected (uses a lot of CPU and no GPU) on host "%s":
+			events = append(events,
+				&perEvent{
+					Host:              jobState.Host,
+					Id:                jobState.Id,
+					User:              job.user,
+					Cmd:               job.cmd,
+					StartedOnOrBefore: jobState.StartedOnOrBefore.Format(util.DateTimeFormat),
+					FirstViolation:    jobState.FirstViolation.Format(util.DateTimeFormat),
+					CpuPeak:           uint32(job.cpuPeak / 100),
+					RCpuAvg:           uint32(job.rcpuAvg),
+					RCpuPeak:          uint32(job.rcpuPeak),
+					RMemAvg:           uint32(job.rmemAvg),
+					RMemPeak:          uint32(job.rmemPeak),
+				})
+		}
+	}
+	return events
+}
+
+func writeCpuhogReport(events []*perEvent) {
+	reports := make([]*util.JobReport, 0)
+	for _, e := range events {
+		report := fmt.Sprintf(
+			`New CPU hog detected (uses a lot of CPU and no GPU) on host "%s":
   Job#: %d
   User: %s
   Command: %s
@@ -128,19 +175,18 @@ func writeCpuhogReport(
     Memory utilization avg/peak = %d%%, %d%%
 
 `,
-				jobState.Host,
-				jobState.Id,
-				job.user,
-				job.cmd,
-				jobState.StartedOnOrBefore.Format(util.DateTimeFormat),
-				jobState.FirstViolation.Format(util.DateTimeFormat),
-				uint32(job.cpuPeak/100),
-				uint32(job.rcpuAvg),
-				uint32(job.rcpuPeak),
-				uint32(job.rmemAvg),
-				uint32(job.rmemPeak))
-			reports = append(reports, &util.JobReport{Id: k.Id, Host: k.Host, Report: report})
-		}
+			e.Host,
+			e.Id,
+			e.User,
+			e.Cmd,
+			e.StartedOnOrBefore,
+			e.FirstViolation,
+			e.CpuPeak,
+			e.RCpuAvg,
+			e.RCpuPeak,
+			e.RMemAvg,
+			e.RMemPeak)
+		reports = append(reports, &util.JobReport{Id: e.Id, Host: e.Host, Report: report})
 	}
 
 	util.SortReports(reports)
