@@ -61,7 +61,7 @@ func MlDeadweight(progname string, args []string) error {
 		return err
 	}
 
-	logs, err := readDeadweightLogFiles(progOpts.DataPath, progOpts.From, progOpts.To)
+	logs, err := readDeadweightLogFiles(progOpts.DataPath, progOpts.From, progOpts.To, progOpts.Verbose)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,10 @@ type perEvent struct {
 	LastSeen          string `json:"last-seen"`
 }
 
-func createDeadweightReport(state map[jobstate.JobKey]*jobstate.JobState, logs map[jobstate.JobKey]*deadweightJob) []*perEvent {
+func createDeadweightReport(
+     state map[jobstate.JobKey]*jobstate.JobState,
+     logs map[jobstate.JobKey]*deadweightJob,
+) []*perEvent {
 	events := make([]*perEvent, 0)
 	for k, j := range state {
 		if !j.IsReported {
@@ -157,10 +160,17 @@ func writeDeadweightReport(events []*perEvent) {
 	}
 }
 
-func readDeadweightLogFiles(dataPath string, from, to time.Time) (map[jobstate.JobKey]*deadweightJob, error) {
+func readDeadweightLogFiles(
+     dataPath string,
+     from, to time.Time,
+     verbose bool,
+) (map[jobstate.JobKey]*deadweightJob, error) {
 	files, err := storage.EnumerateFiles(dataPath, from, to, "deadweight.csv")
 	if err != nil {
 		return nil, err
+	}
+	if verbose {
+		fmt.Fprintf(os.Stderr, "%d files\n", len(files))
 	}
 
 	jobs := make(map[jobstate.JobKey]*deadweightJob)
@@ -173,7 +183,8 @@ func readDeadweightLogFiles(dataPath string, from, to time.Time) (map[jobstate.J
 		for _, r := range records {
 			success := true
 			tag := storage.GetString(r, "tag", &success)
-			success = success && tag == "deadweight"
+			// Old files used "bughunt" for the tag
+			success = success && (tag == "deadweight" || tag == "bughunt")
 			now := storage.GetDateTime(r, "now", &success)
 			id := storage.GetJobMark(r, "jobm", &success)
 			user := storage.GetString(r, "user", &success)
