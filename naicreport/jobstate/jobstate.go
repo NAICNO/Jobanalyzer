@@ -19,6 +19,10 @@ import (
 // Information about CPU hogs stored in the persistent state.  Other data that are needed for
 // generating the report can be picked up from the log data for the job ID.
 
+type JobDatabase struct {
+	Active map[JobKey]*JobState
+}
+
 type JobState struct {
 	Id                uint32
 	Host              string
@@ -42,7 +46,7 @@ type JobKey struct {
 // If this returns an error, it is the error returned from storage.ReadFreeCSV, see that for more
 // information.  No new errors are generated here.
 
-func ReadJobState(dataPath, filename string) (map[JobKey]*JobState, error) {
+func ReadJobState(dataPath, filename string) (*JobDatabase, error) {
 	stateFilename := path.Join(dataPath, filename)
 	stateCsv, err := storage.ReadFreeCSV(stateFilename)
 	if err != nil {
@@ -71,17 +75,17 @@ func ReadJobState(dataPath, filename string) (map[JobKey]*JobState, error) {
 			IsReported: isReported,
 		}
 	}
-	return state, nil
+	return &JobDatabase { Active: state }, nil
 }
 
-func ReadJobStateOrEmpty(dataPath, filename string) (map[JobKey]*JobState, error) {
-	state, err := ReadJobState(dataPath, filename)
+func ReadJobStateOrEmpty(dataPath, filename string) (*JobDatabase, error) {
+	db, err := ReadJobState(dataPath, filename)
 	if err == nil {
-		return state, nil
+		return db, nil
 	}
 	_, isPathErr := err.(*os.PathError)
 	if isPathErr {
-		return make(map[JobKey]*JobState), nil
+		return &JobDatabase { Active: make(map[JobKey]*JobState) }, nil
 	}
 	return nil, err
 }
@@ -89,12 +93,12 @@ func ReadJobStateOrEmpty(dataPath, filename string) (map[JobKey]*JobState, error
 // If state does not have the job then add it.  In either case set its LastSeen field to lastSeen.
 // Return true if added, false if not.
 
-func EnsureJob(state map[JobKey]*JobState, id uint32, host string,
+func EnsureJob(db *JobDatabase, id uint32, host string,
 	started, firstViolation, lastSeen time.Time) bool {
 	k := JobKey{Id: id, Host: host}
-	v, found := state[k]
+	v, found := db.Active[k]
 	if !found {
-		state[k] = &JobState {
+		db.Active[k] = &JobState {
 			Id: id,
 				Host: host,
 				StartedOnOrBefore: started,
@@ -111,16 +115,16 @@ func EnsureJob(state map[JobKey]*JobState, id uint32, host string,
 // Purge already-reported jobs from the state if they haven't been seen since before the given
 // date, this is to reduce the risk of being confused by jobs whose IDs are reused.
 
-func PurgeJobsBefore(state map[JobKey]*JobState, purgeDate time.Time) int {
+func PurgeJobsBefore(db *JobDatabase, purgeDate time.Time) int {
 	dead := make([]JobKey, 0)
-	for k, jobState := range state {
+	for k, jobState := range db.Active {
 		if jobState.LastSeen.Before(purgeDate) && jobState.IsReported {
 			dead = append(dead, k)
 		}
 	}
 	deleted := 0
 	for _, k := range dead {
-		delete(state, k)
+		delete(db.Active, k)
 		deleted++
 	}
 	return deleted
@@ -132,9 +136,9 @@ func PurgeJobsBefore(state map[JobKey]*JobState, purgeDate time.Time) int {
 //
 // TODO: It's possible this should rename the existing state file as a .bak file.
 
-func WriteJobState(dataPath, filename string, data map[JobKey]*JobState) error {
+func WriteJobState(dataPath, filename string, db *JobDatabase) error {
 	output_records := make([]map[string]string, 0)
-	for _, r := range data {
+	for _, r := range db.Active {
 		m := make(map[string]string)
 		m["id"] = strconv.FormatUint(uint64(r.Id), 10)
 		m["host"] = r.Host

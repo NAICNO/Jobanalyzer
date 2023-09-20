@@ -123,11 +123,12 @@ type perEvent struct {
 }
 
 func createCpuhogReport(
-	hogState map[jobstate.JobKey]*jobstate.JobState,
-	logs map[jobstate.JobKey]*cpuhogState) []*perEvent {
+	hogState *jobstate.JobDatabase,
+	logs     map[jobstate.JobKey]*cpuhogState,
+) []*perEvent {
 
 	events := make([]*perEvent, 0)
-	for k, jobState := range hogState {
+	for k, jobState := range hogState.Active {
 		if !jobState.IsReported {
 			jobState.IsReported = true
 			job, _ := logs[k]

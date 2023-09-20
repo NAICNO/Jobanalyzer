@@ -109,11 +109,11 @@ type perEvent struct {
 }
 
 func createDeadweightReport(
-	state map[jobstate.JobKey]*jobstate.JobState,
-	logs map[jobstate.JobKey]*deadweightJob,
+	db    *jobstate.JobDatabase,
+	logs  map[jobstate.JobKey]*deadweightJob,
 ) []*perEvent {
 	events := make([]*perEvent, 0)
-	for k, j := range state {
+	for k, j := range db.Active {
 		if !j.IsReported {
 			j.IsReported = true
 			loggedJob, _ := logs[k]
