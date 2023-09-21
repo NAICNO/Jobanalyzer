@@ -70,7 +70,7 @@ func MlDeadweight(progname string, args []string) error {
 
 	candidates := 0
 	for _, job := range logs {
-		if jobstate.EnsureJob(state, job.id, job.host, job.start, now, job.lastSeen) {
+		if jobstate.EnsureJob(state, job.id, job.host, job.start, now, job.lastSeen, false /* FIXME */) {
 			candidates++
 		}
 	}
