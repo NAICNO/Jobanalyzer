@@ -55,7 +55,7 @@ func MlDeadweight(progname string, args []string) error {
 		return err
 	}
 
-	state, err := jobstate.ReadJobStateOrEmpty(progOpts.DataPath, deadweightFilename)
+	state, err := jobstate.ReadJobDatabaseOrEmpty(progOpts.DataPath, deadweightFilename)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func MlDeadweight(progname string, args []string) error {
 		writeDeadweightReport(events)
 	}
 
-	return jobstate.WriteJobState(progOpts.DataPath, deadweightFilename, state)
+	return jobstate.WriteJobDatabase(progOpts.DataPath, deadweightFilename, state)
 }
 
 type perEvent struct {

@@ -66,7 +66,7 @@ func MlCpuhog(progname string, args []string) error {
 		return err
 	}
 
-	hogState, err := jobstate.ReadJobStateOrEmpty(progOpts.DataPath, cpuhogFilename)
+	hogState, err := jobstate.ReadJobDatabaseOrEmpty(progOpts.DataPath, cpuhogFilename)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func MlCpuhog(progname string, args []string) error {
 		writeCpuhogReport(events)
 	}
 
-	return jobstate.WriteJobState(progOpts.DataPath, cpuhogFilename, hogState)
+	return jobstate.WriteJobDatabase(progOpts.DataPath, cpuhogFilename, hogState)
 }
 
 type perEvent struct {

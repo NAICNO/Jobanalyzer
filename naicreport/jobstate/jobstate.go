@@ -23,6 +23,10 @@ type JobDatabase struct {
 	Active map[JobKey]*JobState
 }
 
+func NewJobDatabase() *JobDatabase {
+	return &JobDatabase { Active: make(map[JobKey]*JobState) }
+}
+
 type JobState struct {
 	Id                uint32
 	Host              string
@@ -46,7 +50,7 @@ type JobKey struct {
 // If this returns an error, it is the error returned from storage.ReadFreeCSV, see that for more
 // information.  No new errors are generated here.
 
-func ReadJobState(dataPath, filename string) (*JobDatabase, error) {
+func ReadJobDatabase(dataPath, filename string) (*JobDatabase, error) {
 	stateFilename := path.Join(dataPath, filename)
 	stateCsv, err := storage.ReadFreeCSV(stateFilename)
 	if err != nil {
@@ -78,14 +82,14 @@ func ReadJobState(dataPath, filename string) (*JobDatabase, error) {
 	return &JobDatabase { Active: state }, nil
 }
 
-func ReadJobStateOrEmpty(dataPath, filename string) (*JobDatabase, error) {
-	db, err := ReadJobState(dataPath, filename)
+func ReadJobDatabaseOrEmpty(dataPath, filename string) (*JobDatabase, error) {
+	db, err := ReadJobDatabase(dataPath, filename)
 	if err == nil {
 		return db, nil
 	}
 	_, isPathErr := err.(*os.PathError)
 	if isPathErr {
-		return &JobDatabase { Active: make(map[JobKey]*JobState) }, nil
+		return NewJobDatabase(), nil
 	}
 	return nil, err
 }
@@ -136,7 +140,7 @@ func PurgeJobsBefore(db *JobDatabase, purgeDate time.Time) int {
 //
 // TODO: It's possible this should rename the existing state file as a .bak file.
 
-func WriteJobState(dataPath, filename string, db *JobDatabase) error {
+func WriteJobDatabase(dataPath, filename string, db *JobDatabase) error {
 	output_records := make([]map[string]string, 0)
 	for _, r := range db.Active {
 		m := make(map[string]string)

@@ -9,7 +9,7 @@ import (
 )
 
 func TestWriteState(t *testing.T) {
-	s := make(map[JobKey]*JobState)
+	s := NewJobDatabase()
 	s1 := &JobState{
 		Id:                10,
 		Host:              "hello",
@@ -18,13 +18,13 @@ func TestWriteState(t *testing.T) {
 		LastSeen:          time.Date(2023, 9, 11, 15, 37, 0, 0, time.UTC),
 		IsReported:        false,
 	}
-	s[JobKey{Id: s1.Id, Host: s1.Host}] = s1
+	s.Active[JobKey{Id: s1.Id, Host: s1.Host}] = s1
 
 	td_name, err := os.MkdirTemp(os.TempDir(), "naicreport")
 	if err != nil {
 		t.Fatalf("MkdirTemp failed %q", err)
 	}
-	err = WriteJobState(td_name, "jobstate.csv", s)
+	err = WriteJobDatabase(td_name, "jobstate.csv", s)
 	if err != nil {
 		t.Fatalf("Could not write: %q", err)
 	}
@@ -47,14 +47,14 @@ func TestWriteState(t *testing.T) {
 
 	// Second test: read it as state and make sure the contents look good
 
-	newState, err := ReadJobState(td_name, "jobstate.csv")
+	newState, err := ReadJobDatabase(td_name, "jobstate.csv")
 	if err != nil {
-		t.Fatalf("ReadJobState failed %q", err)
+		t.Fatalf("ReadJobDatabase failed %q", err)
 	}
-	if len(newState) != 1 {
+	if len(newState.Active) != 1 {
 		t.Fatalf("Bad contents")
 	}
-	for k, v := range newState {
+	for k, v := range newState.Active {
 		if k.Id != s1.Id || k.Host != s1.Host {
 			t.Fatalf("Bad key %q", k)
 		}
