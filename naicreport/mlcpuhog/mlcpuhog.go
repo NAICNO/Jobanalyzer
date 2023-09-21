@@ -195,15 +195,15 @@ func readCpuhogLogFiles(
 	if err != nil {
 		return nil, err
 	}
+	if verbose {
+		fmt.Fprintf(os.Stderr, "%d files\n", len(files))
+	}
 
 	jobs := make(map[jobstate.JobKey]*cpuhogState)
 	for _, filePath := range files {
 		records, err := storage.ReadFreeCSV(path.Join(dataPath, filePath))
 		if err != nil {
 			continue
-		}
-		if verbose {
-			fmt.Fprintf(os.Stderr, "%d files\n", len(files))
 		}
 
 		for _, r := range records {
