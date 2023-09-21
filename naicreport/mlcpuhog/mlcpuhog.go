@@ -82,25 +82,16 @@ func MlCpuhog(progname string, args []string) error {
 
 	now := time.Now().UTC()
 
-	/*
-		for _, x := range logs {
-			fmt.Println(x.host)
-			for _, j := range x.jobs {
-				fmt.Printf("%v %v %v\n", j.id, j.lastSeen, j.expired)
-			}
-		}
-	*/
-
-	candidates := 0
+	new_jobs := 0
 	for _, hostrec := range logs {
 		for _, job := range hostrec.jobs {
 			if jobstate.EnsureJob(hogState, job.id, job.host, job.start, now, job.lastSeen, job.expired, job) {
-				candidates++
+				new_jobs++
 			}
 		}
 	}
 	if progOpts.Verbose {
-		fmt.Fprintf(os.Stderr, "%d new jobs\n", candidates)
+		fmt.Fprintf(os.Stderr, "%d new jobs\n", new_jobs)
 	}
 
 	purgeDate := util.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
