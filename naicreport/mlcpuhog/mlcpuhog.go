@@ -65,10 +65,19 @@ func MlCpuhog(progname string, args []string) error {
 	if err != nil {
 		return err
 	}
+	if progOpts.Verbose {
+		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(hogState.Active), len(hogState.Expired))
+	}
 
 	logs, err := readCpuhogLogFiles(progOpts.DataPath, progOpts.From, progOpts.To, progOpts.Verbose)
 	if err != nil {
 		return err
+	}
+	if progOpts.Verbose {
+		fmt.Fprintf(os.Stderr, "%d hosts in log\n", len(logs))
+		for _, l := range logs {
+			fmt.Fprintf(os.Stderr, " %s: %d records\n", l.host, len(l.jobs));
+		}
 	}
 
 	now := time.Now().UTC()
@@ -85,19 +94,19 @@ func MlCpuhog(progname string, args []string) error {
 	candidates := 0
 	for _, hostrec := range logs {
 		for _, job := range hostrec.jobs {
-			if jobstate.EnsureJob(hogState, job.id, job.host, job.start, now, job.lastSeen, job.expired) {
+			if jobstate.EnsureJob(hogState, job.id, job.host, job.start, now, job.lastSeen, job.expired, job) {
 				candidates++
 			}
 		}
 	}
 	if progOpts.Verbose {
-		fmt.Fprintf(os.Stderr, "%d candidates\n", candidates)
+		fmt.Fprintf(os.Stderr, "%d new jobs\n", candidates)
 	}
 
 	purgeDate := util.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
 	purged := jobstate.PurgeJobsBefore(hogState, purgeDate)
 	if progOpts.Verbose {
-		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
+		fmt.Fprintf(os.Stderr, "%d jobs purged\n", purged)
 	}
 
 	events := createCpuhogReport(hogState, logs)
@@ -134,31 +143,36 @@ func createCpuhogReport(
 ) []*perEvent {
 
 	events := make([]*perEvent, 0)
-	// FIXME: expired jobs too
-	for k, jobState := range hogState.Active {
+	for _, jobState := range hogState.Active {
 		if !jobState.IsReported {
 			jobState.IsReported = true
-
-			//job, _ := logs[k]
-			var job *cpuhogJob	// FIXME
-			k = k
-			events = append(events,
-				&perEvent{
-					Host:              jobState.Host,
-					Id:                jobState.Id,
-					User:              job.user,
-					Cmd:               job.cmd,
-					StartedOnOrBefore: jobState.StartedOnOrBefore.Format(util.DateTimeFormat),
-					FirstViolation:    jobState.FirstViolation.Format(util.DateTimeFormat),
-					CpuPeak:           uint32(job.cpuPeak / 100),
-					RCpuAvg:           uint32(job.rcpuAvg),
-					RCpuPeak:          uint32(job.rcpuPeak),
-					RMemAvg:           uint32(job.rmemAvg),
-					RMemPeak:          uint32(job.rmemPeak),
-				})
+			events = append(events, makeEvent(jobState))
+		}
+	}
+	for _, jobState := range hogState.Expired {
+		if !jobState.IsReported {
+			jobState.IsReported = true
+			events = append(events, makeEvent(jobState))
 		}
 	}
 	return events
+}
+
+func makeEvent(jobState *jobstate.JobState) *perEvent {
+	job := jobState.Aux.(*cpuhogJob)
+	return &perEvent{
+		Host:              jobState.Host,
+		Id:                jobState.Id,
+		User:              job.user,
+		Cmd:               job.cmd,
+		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(util.DateTimeFormat),
+		FirstViolation:    jobState.FirstViolation.Format(util.DateTimeFormat),
+		CpuPeak:           uint32(job.cpuPeak / 100),
+		RCpuAvg:           uint32(job.rcpuAvg),
+		RCpuPeak:          uint32(job.rcpuPeak),
+		RMemAvg:           uint32(job.rmemAvg),
+		RMemPeak:          uint32(job.rmemPeak),
+	}
 }
 
 func writeCpuhogReport(events []*perEvent) {

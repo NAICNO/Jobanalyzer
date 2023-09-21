@@ -38,6 +38,7 @@ type JobState struct {
 	FirstViolation    time.Time
 	LastSeen          time.Time
 	IsReported        bool
+	Aux               any  // in-memory value
 }
 
 // On the ML nodes, (job#, host) identifies a job uniquely because job#s are not coordinated across
@@ -115,7 +116,7 @@ func ReadJobDatabaseOrEmpty(dataPath, filename string) (*JobDatabase, error) {
 // Return true if added, false if not.
 
 func EnsureJob(db *JobDatabase, id uint32, host string,
-	started, firstViolation, lastSeen time.Time, expired bool) bool {
+	started, firstViolation, lastSeen time.Time, expired bool, aux any) bool {
 	job := &JobState{
 		Id:                id,
 		Host:              host,
@@ -123,16 +124,16 @@ func EnsureJob(db *JobDatabase, id uint32, host string,
 		FirstViolation:    firstViolation,
 		LastSeen:          lastSeen,
 		IsReported:        false,
+		Aux:               aux,
 	}
 	if expired {
 		k := ExpiredJobKey{Id: id, Host: host, LastSeen: lastSeen}
-		_, found := db.Expired[k]
+		v, found := db.Expired[k]
 		if !found {
 			db.Expired[k] = job
 			return true
-		} else {
-			return false
 		}
+		v.Aux = aux
 	} else {
 		k := JobKey{Id: id, Host: host}
 		v, found := db.Active[k]
@@ -141,6 +142,7 @@ func EnsureJob(db *JobDatabase, id uint32, host string,
 			return true
 		}
 		v.LastSeen = lastSeen
+		v.Aux = aux
 	}
 	return false
 }
@@ -187,7 +189,7 @@ func WriteJobDatabase(dataPath, filename string, db *JobDatabase) error {
 	for _, r := range db.Expired {
 		output_records = append(output_records, makeMap(r, true))
 	}
-	fields := []string{"id", "host", "startedOnOrBefore", "firstViolation", "lastSeen", "isReported"}
+	fields := []string{"id", "host", "startedOnOrBefore", "firstViolation", "lastSeen", "isReported", "isExpired"}
 	stateFilename := path.Join(dataPath, filename)
 	err := storage.WriteFreeCSV(stateFilename, fields, output_records)
 	if err != nil {
