@@ -19,7 +19,7 @@ func TestReadLogFiles(t *testing.T) {
 	dataPath := path.Join(wd, "../../sonar_test_data0")
 	from := time.Date(2023, 9, 3, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2023, 9, 4, 0, 0, 0, 0, time.UTC)
-	jobLog, err := readLogFiles(dataPath, from, to)
+	jobLog, err := readCpuhogLogFiles(dataPath, from, to, false)
 	if err != nil {
 		t.Fatalf("Could not read: %q", err)
 	}
@@ -49,7 +49,7 @@ func TestReadLogFiles(t *testing.T) {
 
 	from = time.Date(2023, 9, 6, 0, 0, 0, 0, time.UTC)
 	to = time.Date(2023, 9, 8, 0, 0, 0, 0, time.UTC)
-	jobLog, err = readLogFiles(dataPath, from, to)
+	jobLog, err = readCpuhogLogFiles(dataPath, from, to, false)
 	if err != nil {
 		t.Fatalf("Could not read: %q", err)
 	}
