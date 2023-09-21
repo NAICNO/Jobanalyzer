@@ -1,22 +1,21 @@
-// The ml-nodes deadweight analysis runs every 12h (at least - currently it runs every 2 hours, for
-// testing purposes), examining data from the previous 24h, and will append information about
-// zombies, defunct processes and other dead weight to a daily log.  This generates a fair amount of
+// The ml-nodes deadweight analysis runs fairly often (see next) and examines data from a larger
+// time window than its running interval, and will append information about zombies, defunct
+// processes and other dead weight to a daily log.  The schedule generates a fair amount of
 // redundancy under normal circumstances.
 //
-// The present component runs occasionally (tbd) and filters / resolves the redundancy and creates
+// The analysis MUST run often enough for a job ID on a given host never to become reused between
+// two consecutive analysis runs.
+//
+// The present component runs occasionally and filters / resolves the redundancy and creates
 // formatted reports about new problems.  For this it maintains state about what it's already seen
 // and reported.
 //
 // Requirements:
 //
 //  - a job that appears in the deadweight log is dead weight and should be reported
-//  - the report is (for now) some textual output of the form shown below
+//  - the report is (for now) just textual output to be emailed
 //  - we don't want to report jobs redundantly, so there will have to be persistent state
 //  - we don't want the state to grow without bound
-//
-// Report format:
-//
-//  (tbd)
 
 package mldeadweight
 
@@ -61,7 +60,8 @@ func MlDeadweight(progname string, args []string) error {
 		return err
 	}
 
-	logs, err := readDeadweightLogFiles(progOpts.DataPath, progOpts.From, progOpts.To, progOpts.Verbose)
+	logs, err := readDeadweightLogFiles(progOpts.DataPath, progOpts.From, progOpts.To,
+		progOpts.Verbose)
 	if err != nil {
 		return err
 	}
@@ -109,8 +109,8 @@ type perEvent struct {
 }
 
 func createDeadweightReport(
-     state map[jobstate.JobKey]*jobstate.JobState,
-     logs map[jobstate.JobKey]*deadweightJob,
+	state map[jobstate.JobKey]*jobstate.JobState,
+	logs map[jobstate.JobKey]*deadweightJob,
 ) []*perEvent {
 	events := make([]*perEvent, 0)
 	for k, j := range state {
@@ -161,9 +161,9 @@ func writeDeadweightReport(events []*perEvent) {
 }
 
 func readDeadweightLogFiles(
-     dataPath string,
-     from, to time.Time,
-     verbose bool,
+	dataPath string,
+	from, to time.Time,
+	verbose bool,
 ) (map[jobstate.JobKey]*deadweightJob, error) {
 	files, err := storage.EnumerateFiles(dataPath, from, to, "deadweight.csv")
 	if err != nil {

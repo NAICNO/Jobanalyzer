@@ -1,10 +1,14 @@
 # Crontab to run on ml4.  This runs sonar every five minutes and captures its output, but in addition
-# it runs various analysis jobs at various intervals.  (In an ideal world, the analysis would be run on
-# some other system than the ML nodes.)
+# it runs various analysis jobs at various intervals.
+#
+# As noted in the scripts for cpuhog and deadweight, these MUST be run often enough for job IDs not
+# to become reused between consecutive runs.  Here we run them every 2 hours because that is affordable
+# and generates data that are certain to be good.
 #
 # For now, we perform data collection on the hour (see also jobanalyzer.cron), and then stagger analysis
 # 5 minutes after data collection, report generation 5 minutes after that, and finally upload 5 minutes
 # after that again.
+
 0-59/5 * * * * $HOME/sonar/sonar.sh
 5 0-23/2 * * * $HOME/sonar/cpuhog.sh
 5 0-23/2 * * * $HOME/sonar/deadweight.sh

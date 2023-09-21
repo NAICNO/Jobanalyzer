@@ -1,8 +1,11 @@
-// The ml-nodes cpuhog analysis runs every 12h (at least - currently it runs every 2 hours, for
-// testing purposes), examining data from the previous 24h, and will append information about CPU
-// hogs to a daily log.  This generates a fair amount of redundancy under normal circumstances.
+// The ml-nodes cpuhog analysis runs fairly often (see next) and examines data from a larger time
+// window than its running interval, and will append information about CPU hogs to a daily log.  The
+// schedule generates a fair amount of redundancy under normal circumstances.
 //
-// The present component runs occasionally (tbd) and filters / resolves the redundancy and creates
+// The analysis MUST run often enough for a job ID on a given host never to become reused between
+// two consecutive analysis runs.
+//
+// The present component runs occasionally and filters / resolves the redundancy and creates
 // formatted reports about new violations.  For this it maintains state about what it's already seen
 // and reported.
 //
@@ -11,22 +14,9 @@
 // Requirements:
 //
 //  - a job that appears in the cpuhog log is a cpu hog and should be reported
-//  - the report is (for now) some textual output of the form shown below
+//  - the report is (for now) some textual output to be emailed
 //  - we don't want to report jobs redundantly, so there will have to be persistent state
 //  - we don't want the state to grow without bound
-//
-// Report format (when not JSON):
-//
-//     New CPU hog detected (uses a lot of CPU and no GPU) on host "XX":
-//       Job#: n
-//       User: username
-//       Command: command name
-//       Violation first detected: <date>  // this is the timestamp of the earliest record
-//       Started on or before: <date>      // this is the start-time in the earliest record
-//       Observed data:
-//          CPU peak = n cores
-//          CPU utilization avg/peak = n%, m%
-//          Memory utilization avg/peak = n%, m%
 
 package mlcpuhog
 
@@ -81,7 +71,7 @@ func MlCpuhog(progname string, args []string) error {
 		return err
 	}
 
-	logs, err := readLogFiles(progOpts.DataPath, progOpts.From, progOpts.To)
+	logs, err := readCpuhogLogFiles(progOpts.DataPath, progOpts.From, progOpts.To, progOpts.Verbose)
 	if err != nil {
 		return err
 	}
@@ -196,7 +186,11 @@ func writeCpuhogReport(events []*perEvent) {
 	}
 }
 
-func readLogFiles(dataPath string, from, to time.Time) (map[jobstate.JobKey]*cpuhogState, error) {
+func readCpuhogLogFiles(
+	dataPath string,
+	from, to time.Time,
+	verbose bool,
+) (map[jobstate.JobKey]*cpuhogState, error) {
 	files, err := storage.EnumerateFiles(dataPath, from, to, "cpuhog.csv")
 	if err != nil {
 		return nil, err
@@ -207,6 +201,9 @@ func readLogFiles(dataPath string, from, to time.Time) (map[jobstate.JobKey]*cpu
 		records, err := storage.ReadFreeCSV(path.Join(dataPath, filePath))
 		if err != nil {
 			continue
+		}
+		if verbose {
+			fmt.Fprintf(os.Stderr, "%d files\n", len(files))
 		}
 
 		for _, r := range records {
