@@ -1,4 +1,4 @@
-// The ml-nodes bughunt analysis runs every 12h (at least - currently it runs every 2 hours, for
+// The ml-nodes deadweight analysis runs every 12h (at least - currently it runs every 2 hours, for
 // testing purposes), examining data from the previous 24h, and will append information about
 // zombies, defunct processes and other dead weight to a daily log.  This generates a fair amount of
 // redundancy under normal circumstances.
@@ -9,7 +9,7 @@
 //
 // Requirements:
 //
-//  - a job that appears in the bughunt log is a bug and should be reported
+//  - a job that appears in the deadweight log is dead weight and should be reported
 //  - the report is (for now) some textual output of the form shown below
 //  - we don't want to report jobs redundantly, so there will have to be persistent state
 //  - we don't want the state to grow without bound
@@ -18,7 +18,7 @@
 //
 //  (tbd)
 
-package mlbughunt
+package mldeadweight
 
 import (
 	"encoding/json"
@@ -34,10 +34,10 @@ import (
 )
 
 const (
-	bughuntFilename = "bughunt-state.csv"
+	deadweightFilename = "deadweight-state.csv"
 )
 
-type bughuntJob struct {
+type deadweightJob struct {
 	id        uint32
 	host      string
 	user      string
@@ -48,20 +48,20 @@ type bughuntJob struct {
 	end       time.Time
 }
 
-func MlBughunt(progname string, args []string) error {
-	progOpts := util.NewStandardOptions(progname + "ml-bughunt")
+func MlDeadweight(progname string, args []string) error {
+	progOpts := util.NewStandardOptions(progname + "ml-deadweight")
 	jsonOutput := progOpts.Container.Bool("json", false, "Format output as JSON")
 	err := progOpts.Parse(args)
 	if err != nil {
 		return err
 	}
 
-	state, err := jobstate.ReadJobStateOrEmpty(progOpts.DataPath, bughuntFilename)
+	state, err := jobstate.ReadJobStateOrEmpty(progOpts.DataPath, deadweightFilename)
 	if err != nil {
 		return err
 	}
 
-	logs, err := readBughuntLogFiles(progOpts.DataPath, progOpts.From, progOpts.To)
+	logs, err := readDeadweightLogFiles(progOpts.DataPath, progOpts.From, progOpts.To, progOpts.Verbose)
 	if err != nil {
 		return err
 	}
@@ -78,12 +78,13 @@ func MlBughunt(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d candidates\n", candidates)
 	}
 
-	purged := jobstate.PurgeDeadJobs(state, progOpts.To)
+	purgeDate := util.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
+	purged := jobstate.PurgeJobsBefore(state, purgeDate)
 	if progOpts.Verbose {
 		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
 	}
 
-	events := createBughuntReport(state, logs)
+	events := createDeadweightReport(state, logs)
 	if *jsonOutput {
 		bytes, err := json.Marshal(events)
 		if err != nil {
@@ -91,10 +92,10 @@ func MlBughunt(progname string, args []string) error {
 		}
 		fmt.Print(string(bytes))
 	} else {
-		writeBughuntReport(events)
+		writeDeadweightReport(events)
 	}
 
-	return jobstate.WriteJobState(progOpts.DataPath, bughuntFilename, state)
+	return jobstate.WriteJobState(progOpts.DataPath, deadweightFilename, state)
 }
 
 type perEvent struct {
@@ -107,7 +108,10 @@ type perEvent struct {
 	LastSeen          string `json:"last-seen"`
 }
 
-func createBughuntReport(state map[jobstate.JobKey]*jobstate.JobState, logs map[jobstate.JobKey]*bughuntJob) []*perEvent {
+func createDeadweightReport(
+     state map[jobstate.JobKey]*jobstate.JobState,
+     logs map[jobstate.JobKey]*deadweightJob,
+) []*perEvent {
 	events := make([]*perEvent, 0)
 	for k, j := range state {
 		if !j.IsReported {
@@ -128,10 +132,10 @@ func createBughuntReport(state map[jobstate.JobKey]*jobstate.JobState, logs map[
 	return events
 }
 
-func writeBughuntReport(events []*perEvent) {
+func writeDeadweightReport(events []*perEvent) {
 	reports := make([]*util.JobReport, 0)
 	for _, e := range events {
-		fmt.Sprintf(
+		report := fmt.Sprintf(
 			`New pointless job detected (zombie, defunct, or hung) on host "%s":
   Job#: %d
   User: %s
@@ -147,6 +151,7 @@ func writeBughuntReport(events []*perEvent) {
 			e.StartedOnOrBefore,
 			e.FirstViolation,
 			e.LastSeen)
+		reports = append(reports, &util.JobReport{Id: e.Id, Host: e.Host, Report: report})
 	}
 
 	util.SortReports(reports)
@@ -155,13 +160,20 @@ func writeBughuntReport(events []*perEvent) {
 	}
 }
 
-func readBughuntLogFiles(dataPath string, from, to time.Time) (map[jobstate.JobKey]*bughuntJob, error) {
-	files, err := storage.EnumerateFiles(dataPath, from, to, "bughunt.csv")
+func readDeadweightLogFiles(
+     dataPath string,
+     from, to time.Time,
+     verbose bool,
+) (map[jobstate.JobKey]*deadweightJob, error) {
+	files, err := storage.EnumerateFiles(dataPath, from, to, "deadweight.csv")
 	if err != nil {
 		return nil, err
 	}
+	if verbose {
+		fmt.Fprintf(os.Stderr, "%d files\n", len(files))
+	}
 
-	jobs := make(map[jobstate.JobKey]*bughuntJob)
+	jobs := make(map[jobstate.JobKey]*deadweightJob)
 	for _, filePath := range files {
 		records, err := storage.ReadFreeCSV(path.Join(dataPath, filePath))
 		if err != nil {
@@ -171,7 +183,8 @@ func readBughuntLogFiles(dataPath string, from, to time.Time) (map[jobstate.JobK
 		for _, r := range records {
 			success := true
 			tag := storage.GetString(r, "tag", &success)
-			success = success && tag == "bughunt"
+			// Old files used "bughunt" for the tag
+			success = success && (tag == "deadweight" || tag == "bughunt")
 			now := storage.GetDateTime(r, "now", &success)
 			id := storage.GetJobMark(r, "jobm", &success)
 			user := storage.GetString(r, "user", &success)
@@ -197,7 +210,7 @@ func readBughuntLogFiles(dataPath string, from, to time.Time) (map[jobstate.JobK
 			} else {
 				firstSeen := now
 				lastSeen := now
-				jobs[key] = &bughuntJob{
+				jobs[key] = &deadweightJob{
 					id,
 					host,
 					user,

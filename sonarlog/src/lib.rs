@@ -20,7 +20,7 @@
 ///
 /// There is an important invariant on the raw log records:
 ///
-/// - no two records in a stream will have the same timestamp
+/// - no two records in a single stream will have the same timestamp
 ///
 /// This library has as its fundamental task to reconstruct the set of sample streams from the raw
 /// logs and provide utilities to manipulate that set.  This task breaks down into a number of

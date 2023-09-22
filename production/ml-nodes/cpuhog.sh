@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#
+# Run sonalyze for the `cpuhog` use case and capture its output in a
+# file appropriate for the current time and system.
 
 sonar_dir=$HOME/sonar
 sonar_data_dir=$sonar_dir/data

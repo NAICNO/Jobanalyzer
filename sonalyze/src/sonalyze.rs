@@ -1,36 +1,25 @@
-// `sonalize` -- Analyze `sonar` log files
-//
-// See MANUAL.md for a manual, or run with --help for brief help.
-
-// TODO - Backlog / discussion
-//
-// Feature: Maybe `--at` as a way of specifying time, this would be a shorthand combining --from and
-// --to with the same values, it is handy for selecting a specific day (but only that, and maybe too
-// special purpose).  Perhaps a better feature is --duration, allowing eg --from=2w --duration=1w,
-// or --from=yyyy-mm-dd --duration=1d.
-//
-// Testing: Selftest cases everywhere, but esp for the argument parsers and filterers, and for the
-// json reader.
-//
-//
-// Quirks
-//
-// Having the absence of --user mean "only $LOGNAME" can be confusing -- though it's the right thing
-// for a use case where somebody is looking only at her own jobs.
-//
-// The --from and --to values are used *both* for filtering files in the directory tree of logs
-// (where it is used to generate directory names to search) *and* for filtering individual records
-// in the log files.  Things can become a confusing if the log records do not have dates
-// corresponding to the directories they are located in.  This is mostly a concern for testing;
-// production data will have a sane mapping.
-//
-// Some filtering options select *records* (from, to, host, user, exclude) and some select *jobs*
-// (the rest of them), and this can be confusing.  For user and exclude this does not matter (modulo
-// setuid or similar personality changes).  The user might expect that from/to/host would select
-// jobs instead of records, s.t. if a job ran in the time interval (had samples in the interval)
-// then the entire job should be displayed, including data about it outside the interval.  Ditto,
-// that if a job ran on a selected host then its work on all hosts should be displayed.  But it just
-// ain't so.
+/// `sonalize` -- Analyze `sonar` log files
+///
+/// See MANUAL.md for a manual, or run with --help for brief help.
+///
+/// Quirks
+///
+/// Having the absence of --user mean "only $LOGNAME" can be confusing -- though it's the right
+/// thing for a use case where somebody is looking only at her own jobs.
+///
+/// The --from and --to values are used *both* for filtering files in the directory tree of logs
+/// (where it is used to generate directory names to search) *and* for filtering individual records
+/// in the log files.  Things can become a confusing if the log records do not have dates
+/// corresponding to the directories they are located in.  This is mostly a concern for testing;
+/// production data will have a sane mapping.
+///
+/// Some filtering options select *records* (from, to, host, user, exclude) and some select *jobs*
+/// (the rest of them), and this can be confusing.  For user and exclude this does not matter
+/// (modulo setuid or similar personality changes).  The user might expect that from/to/host would
+/// select jobs instead of records, s.t. if a job ran in the time interval (had samples in the
+/// interval) then the entire job should be displayed, including data about it outside the interval.
+/// Ditto, that if a job ran on a selected host then its work on all hosts should be displayed.  But
+/// it just ain't so.
 
 mod format;
 mod jobs;

@@ -7,9 +7,9 @@
 # after that again.
 0-59/5 * * * * $HOME/sonar/sonar.sh
 5 0-23/2 * * * $HOME/sonar/cpuhog.sh
-5 0-23/2 * * * $HOME/sonar/bughunt.sh
+5 0-23/2 * * * $HOME/sonar/deadweight.sh
 10 0-23/12 * * * $HOME/sonar/cpuhog-report.sh
-10 0-23/12 * * * $HOME/sonar/bughunt-report.sh
+10 0-23/12 * * * $HOME/sonar/deadweight-report.sh
 10 0-23 * * * $HOME/sonar/webload-1h.sh
 15 0-23 * * * $HOME/sonar/upload-data.sh
 10 0 1-31 * * $HOME/sonar/webload-24h.sh

@@ -10,12 +10,14 @@ Analyze `sonar` log files and print information about jobs or systems.
 sonalyze operation [options] [-- logfile ...]
 ```
 
-where `operation` is `jobs` or `load`.
+where `operation` is `jobs`, `load`, or `help`.
 
 The `jobs` operation prints information about jobs, collected from the sonar records.
 
 The `load` operation prints information about the load on the systems, collected from the sonar
 records.
+
+The `help` operation prints high-level usage information.
 
 Run `sonalyze <operation> help` to get help about options for the specific operation.
 
@@ -277,6 +279,11 @@ instant is 5800/19200, ie 30%.
   Format the output for `load` according to `format`, which is a comma-separated list of keywords,
   see OUTPUT FORMAT below.
 
+`--compact`
+
+  Do not print any output for empty time slots.  The default is to print a record for every time
+  slot in the requested range.
+
 
 ## MISC EXAMPLES
 
@@ -316,9 +323,26 @@ name is used: `--host ml[1-4,8]` will select ML nodes 1, 2, 3, 4, and 8.
 
 ## SYSTEM CONFIGURATION FILES
 
-The system configuration files are JSON files providing the details for each host.
+The system configuration files are JSON files providing the details for each host.  See
+[`ml-nodes.json`](../production/ml-nodes/ml-nodes.json) for an example.
 
-(To be documented.  See ../ml-nodes.json for an example.)
+The format is an array containing objects `[{...}, {...}, ...]`, each object describing
+one host or node.  The fields are:
+
+* `hostname`: the fully qualified domain name for the host
+* `description`: human-readable text summarizing CPUs, RAM, GPUS, and VRAM
+* `cpu_cores`: integer, the total number accounting for hyperthreads too
+* `mem_gb`: integer
+* `gpu_cards`: integer
+* `gpumem_gb`: integer, the total amount of memory across all cards
+
+There's an assumption here that all CPUs and GPUs on a system are of the same type.  More fields can
+easily be added.
+
+The description should be useful, because sometimes it's the only datum that's shown to a user, eg:
+```
+"2x14 Intel Xeon Gold 5120 (hyperthreaded), 128GB, 4x NVIDIA RTX 2080 Ti @ 11GB"
+```
 
 ## OUTPUT FORMAT
 
@@ -329,7 +353,7 @@ below) there are some general ones:
 * `csv` forces CSV-format output, the default is fixed-column layout
 * `csvnamed` forces CSV-format output with each field prefixed by `<fieldname>=`
 * `header` forces a header to be printed, default for fixed-column
-* `noheader` forces a header not to be printed, default for csv and csvnamed
+* `noheader` forces a header not to be printed, default for `csv` and `csvnamed`
 * `tag:something` forces a field `tag` to be printed for each record with the value `something`
 
 ### Jobs

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+# Run sonar and capture its output in a file appropriate for the current time and system.
 
 set -euf -o pipefail
 

@@ -1,5 +1,5 @@
-// Generic formatting code for a set of data extracted from a data structure to be presented
-// columnar or as csv, with or without a header, with or without named fields.
+/// Generic formatting code for a set of data extracted from a data structure to be presented
+/// columnar or as csv, with or without a header, with or without named fields.
 
 use csv;
 use std::collections::{HashMap, HashSet};

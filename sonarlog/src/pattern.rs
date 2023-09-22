@@ -1,6 +1,7 @@
 /// Qua the pattern grammar in hosts.rs, `expand_element` syntax checks and expands the
 /// number ranges of an "element" nonterminal and returns the vector of the expanded strings.  Each
 /// string may still be suffixed by '*'.
+
 use anyhow::{bail, Result};
 use std::str::FromStr;
 

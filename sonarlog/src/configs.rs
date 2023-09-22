@@ -11,7 +11,7 @@
 ///   gpumem_gb - integer, the amount of gpu memory in gigabytes across all cards
 ///   gpumem_pct - bool, optional, expressing a preference for the GPU memory reading
 ///
-/// See ../ml-systems.json for an example.
+/// See ../../production/ml-nodes/ml-nodes.json for an example.
 
 use anyhow::{bail, Result};
 use serde_json::Value;
@@ -33,11 +33,11 @@ pub struct System {
     pub gpumem_pct: bool,
 }
 
-// Returns a map from host name to config info, or an error message.
-
-// Since the input is human-generated, may vary a bit over time, and have optional fields, I've
-// opted to use the generic JSON parser followed by explicit decoding of the fields, rather than a
-// (derived) strongly-typed parser.
+/// Returns a map from host name to config info, or an error message.
+///
+/// Since the input is human-generated, may vary a bit over time, and have optional fields, I've
+/// opted to use the generic JSON parser followed by explicit decoding of the fields, rather than a
+/// (derived) strongly-typed parser.
 
 pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
     let file = File::open(path::Path::new(filename))?;

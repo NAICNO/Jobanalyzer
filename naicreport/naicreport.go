@@ -1,3 +1,5 @@
+// Superstructure for stateful naic reporting.
+//
 // Run `naicreport help` for help.
 
 package main
@@ -6,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"naicreport/mlbughunt"
+	"naicreport/mldeadweight"
 	"naicreport/mlcpuhog"
 	"naicreport/mlwebload"
 )
@@ -20,8 +22,8 @@ func main() {
 	case "help":
 		toplevelUsage(0)
 
-	case "ml-bughunt":
-		err = mlbughunt.MlBughunt(os.Args[0], os.Args[2:])
+	case "ml-deadweight":
+		err = mldeadweight.MlDeadweight(os.Args[0], os.Args[2:])
 
 	case "ml-cpuhog":
 		err = mlcpuhog.MlCpuhog(os.Args[0], os.Args[2:])
@@ -44,8 +46,8 @@ func toplevelUsage(code int) {
 	fmt.Fprintf(os.Stderr, "where <verb> is one of\n\n")
 	fmt.Fprintf(os.Stderr, "  help\n")
 	fmt.Fprintf(os.Stderr, "    Print help\n\n")
-	fmt.Fprintf(os.Stderr, "  ml-bughunt\n")
-	fmt.Fprintf(os.Stderr, "    Analyze the bughunt logs and generate a report of new violations\n\n")
+	fmt.Fprintf(os.Stderr, "  ml-deadweight\n")
+	fmt.Fprintf(os.Stderr, "    Analyze the deadweight logs and generate a report of new violations\n\n")
 	fmt.Fprintf(os.Stderr, "  ml-cpuhog\n")
 	fmt.Fprintf(os.Stderr, "    Analyze the cpuhog logs and generate a report of new violations\n\n")
 	fmt.Fprintf(os.Stderr, "  ml-webload\n")

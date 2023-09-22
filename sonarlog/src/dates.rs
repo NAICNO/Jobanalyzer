@@ -1,10 +1,12 @@
 /// Date and time utilities for sonarlog.
-// Not all of these are obvious exports from sonarlog but they are useful and there's no real win
-// (yet) from breaking them out as a separate library.
-//
-// TODO: As noted in parse_timestamp() and now() below, timestamps may carry subsecond data.  They
-// may need to be truncated for proper comparison results, or perhaps the subsecond data should be
-// cleared on timestamp creation.
+///
+/// Not all of these are obvious exports from sonarlog but they are useful and there's no real win
+/// (yet) from breaking them out as a separate library.
+///
+/// TODO: As noted in parse_timestamp() and now() below, timestamps may carry subsecond data.  They
+/// may need to be truncated for proper comparison results, or perhaps the subsecond data should be
+/// cleared on timestamp creation.
+
 use anyhow::{bail, Result};
 use chrono::{DateTime, Datelike, Duration, NaiveDate, Timelike, Utc};
 

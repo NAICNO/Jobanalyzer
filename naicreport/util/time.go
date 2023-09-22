@@ -1,3 +1,5 @@
+// Sundry date and time utilities.
+
 package util
 
 import (

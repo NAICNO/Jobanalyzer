@@ -9,9 +9,9 @@ set -euf -o pipefail
 sonar_dir=$HOME/sonar
 sonar_data_dir=$sonar_dir/data
 
-# This updates $sonar_data_dir/bughunt-state.csv; just nuke that file
+# This updates $sonar_data_dir/deadweight-state.csv; just nuke that file
 # if you want to start the analysis from scratch.
 #
 # Typical running time on ML nodes: 10-20ms
 
-$sonar_dir/naicreport ml-bughunt -data-path $sonar_data_dir -from 2w
+$sonar_dir/naicreport ml-deadweight -data-path $sonar_data_dir -from 2w

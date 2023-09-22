@@ -1,3 +1,5 @@
+// Options parser for naicreport, with standard options predefined
+//
 // TODO: allow -f and -t as abbreviations for --from and --to since sonalyze allows this.  How?  The
 // syntax may still not be quite compatible, sonalyze allows eg -f1d which would not work here.
 
@@ -51,7 +53,8 @@ func NewStandardOptions(progname string) *StandardOptions {
 	}
 	opts.Container = flag.NewFlagSet(progname, flag.ExitOnError)
 	opts.Container.StringVar(&opts.DataPath, "data-path", "", "Root directory of data store (required)")
-	opts.Container.StringVar(&opts.FromStr, "from", "1d", "Start of log window, yyyy-mm-dd or Nd (days ago) or Nw (weeks ago)")
+	opts.Container.StringVar(&opts.FromStr, "from", "1d",
+		"Start of log window, yyyy-mm-dd or Nd (days ago) or Nw (weeks ago)")
 	opts.Container.StringVar(&opts.ToStr, "to", "", "End of log window, ditto")
 	opts.Container.BoolVar(&opts.Verbose, "v", false, "Verbose (debugging) output")
 	return &opts

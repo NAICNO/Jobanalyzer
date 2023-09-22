@@ -1,8 +1,8 @@
-// Compute system load aggregates from a set of log entries.
-
-// TODO:
-//
-// - For some listings it may be desirable to print a heading?
+/// Compute system load aggregates from a set of log entries.
+///
+/// TODO:
+///
+/// - For some listings it may be desirable to print a heading?
 
 use crate::format;
 use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};

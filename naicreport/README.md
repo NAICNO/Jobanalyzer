@@ -13,8 +13,8 @@ commands, expressed as verb arguments to `naicreport` itself, here are the ones 
   `../production/sonalyze/ml-nodes/cpuhog.sh` script and will report new offending jobs to a Proper
   Authority.
 
-- `naicreport ml-bughunt <options>` will digest the `bughunt.csv` logs produced by the
-  `../production/sonalyze/ml-nodes/bughunt.sh` script and will report new offending processes to a
+- `naicreport ml-deadweight <options>` will digest the `deadweight.csv` logs produced by the
+  `../production/sonalyze/ml-nodes/deadweight.sh` script and will report new offending processes to a
   Proper Authority.
 
 - `naicreport ml-webload <options>` will (for now) invoke `sonalyze` on the `sonar` logs and will

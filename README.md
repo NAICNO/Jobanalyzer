@@ -2,34 +2,45 @@
 
 Jobanalyzer: Easy-to-use resource usage reporting and analyses.
 
+## Overview
 
-## Architectural overview
+Jobanalyzer is a set of tools providing the following types of services:
 
-We use [`sonar`](https://github.com/NordicHPC/sonar) as a general system sampler.  Sonar runs
-periodically (typically every 5m or so, by means of `cron`) on all interesting hosts, samples the
-hosts' state when it runs, and writes raw sample data to files in a directory tree.  These samples
-need postprocessing and additional context to make much sense.  See `production/sonar` for
-instructions about how to set up and run sonar.
+- for admins: monitoring of current and historical utilization, as well as usage patterns
+- for users: first-level analyses of computation patterns, with a view to appropriate system 
+  use and scalability - cpu use, gpu use, communication use
 
-We use `sonarlog` (in this repository) to ingest, contextualize, enrich, tidy up, and filter the
-Sonar logs.  Sonarlog produces "sample streams", which are clean, self-consistent, and
-chronologically sensible per-process or per-process-cluster sample data.  Sonarlog runs as a
-component of `sonalyze`, see next.
+The tool set is expected to grow over time.
 
-We use `sonalyze` (in this repository) to aggregate, query, and format the sample streams.  See
-[sonalyze/MANUAL.md](sonalyze/MANUAL.md) for instructions about how to run it, and below for some
-sample use cases.
+Current tools are based on a system sampler, and provide information based on collected samples.
+See [DESIGN.md](DESIGN.md) for more information on the technical architecture and its
+implementation.
 
-There are many options available to Sonalyze to make it or Sonarlog select time windows, sample
-records, jobs, and output formats.  See the manual.
 
-Built on top of Sonalyze there are shell scripts that run periodically to run Sonalyze on the Sonar
-logs and to produce further logs.  These scripts are in `production/sonalyze` and correspond in some
-cases directly to use cases in the list below.
+### Admins
 
-Finally, there is (or, there will be) a tool `naicreport` that ingests the logs produced by the
-latter shell scripts and produces user-friendly reports and data, for further incorporation in
-emails, plots, and so on.  (More to follow.)
+Admins will come to Jobanalyzer via [its web interface](https://axis-of-eval.org/naic).  The current
+interface is bare-bones and consists only of a node-centric load dashboard, allowing the current and
+historical load of each node to be examined.  Only the UiO ML nodes are currently represented.
+
+Data for the web interface are produced firstly by periodic analysis by the low-level `sonalyze`
+tool and secondly by the higher-level `naicreport` tool, and the results of these analyses are
+uploaded periodically to the server.
+
+The web interface will be extended with dashboards for alerts for jobs that are using the system
+inappropriately ("cpu hogs") and jobs that are terminated but hanging around anyway and are holding
+onto system resources ("dead weight").  (Currently those alerts are emailed.)
+
+
+### Users
+
+Users will currently come to Jobanalyzer via its command line interface (there is room here for a
+web interface or other GUI but that's down the road).  The primary interface is via the low-level
+`sonalyze` tool.  This tool can be hard to use effectively, but does serve many use cases as
+described below.
+
+In practice, it is likely that common use cases for users should be packaged up and provided
+directly via the higher-level `naicreport` tool.
 
 
 ## Sample use cases
@@ -42,8 +53,13 @@ that this may be multiple tools, not a single tool.
 The section headings below are the names for these use cases referenced elsewhere, including in
 code when appropriate.
 
+Below, there are examples of how `sonalyze` is used to address the use cases by querying the system
+sample data.  Remember that there are higher-level interfaces than this.
 
-### `cpuhog`
+
+### Admin use cases
+
+#### `cpuhog`
 
 This is an automatic monitoring and offloading use case.
 
@@ -76,7 +92,7 @@ sonalyze load --job=12345
 
 which will show hourly data for the job over the last 24h (or add `--from 2d` for the last 48h, etc).
 
-### `bughunt`
+#### `deadweight`
 
 This is an automatic or manual monitoring use case.
 
@@ -91,17 +107,7 @@ job:
 sonalyze jobs --zombie
 ```
 
-### `thin_pipe`
-
-This is an automatic or manual monitoring use case.
-
->User X runs a job on several nodes of a supercomputer and the jobs communicate heavily, but the
->communication does not use the best conduit available (say, uses Ethernet and not InfiniBand).  X
->or admins should be alerted to the problem so that X can change the code to use a better conduit.
-
-There is currently no support for this (no logging of communication bandwidth in sonar).
-
-### `current_utilization`
+#### `current_utilization`
 
 This is a manual monitoring use case.
 
@@ -121,7 +127,7 @@ Or filter by host name:
 sonalyze load --last --host=ml[6-8]
 ```
 
-### `historical_utilization`
+#### `historical_utilization`
 
 This is a manual monitoring use case.
 
@@ -145,6 +151,8 @@ averages for the last three days:
 ```
 sonalyze load --from=3d --fmt=rcpu,rgpu --config-file=ml-systems.json
 ```
+
+### User use cases
 
 ### `verify_gpu_use`
 
@@ -236,6 +244,17 @@ and it's now fairly obvious that the system is not maxed out.
 
 Other tools (`perf` and so on) should then be brought to bear on the root causes for why the system
 is not maxed out.
+
+### `thin_pipe`
+
+This is an automatic or manual monitoring use case.
+
+>User X runs a job on several nodes of a supercomputer and the jobs communicate heavily, but the
+>communication does not use the best conduit available (say, uses Ethernet and not InfiniBand).  X
+>or admins should be alerted to the problem so that X can change the code to use a better conduit.
+
+There is currently no support for this (no logging of communication bandwidth in sonar).
+
 
 ## Non-use cases (probably)
 

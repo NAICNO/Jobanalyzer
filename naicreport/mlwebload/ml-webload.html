@@ -1,5 +1,7 @@
 <!--
 
+Simple presentation of system JSON data.
+    
 TODO:
 
 UX
@@ -47,28 +49,6 @@ Functionality
     <script>
       var my_chart = null;
 
-      function remove_trailing_zeroes(data) {
-	  while (data.length > 0 && data[data.length-1] == 0) {
-	      data.pop()
-	  }
-      }
-
-      function remove_leading_zeroes(labels, datas) {
-	  for (;;) {
-	      // Check that everyone has a zero element at the beginning, otherwise
-	      // we're done
-	      for ( let i=0 ; i < datas.length ; i++ ) {
-		  if (datas[i].length == 0 || datas[i][0] != 0) {
-		      return
-		  }
-	      }
-	      labels.shift()
-	      for ( let i=0 ; i < datas.length ; i++ ) {
-		  datas[i].shift()
-	      }
-	  }
-      }
-
       function plotit(json_data, chart_name) {
 	  // json_data has these fields
 	  //   date - string - the time the data was generated
@@ -94,15 +74,6 @@ Functionality
 	  let rmem_data = json_data.rmem.map(d => d.y)
 	  let rgpu_data = json_data.rgpu.map(d => Math.min(d.y, 100))
 	  let rgpumem_data = json_data.rgpumem.map(d => Math.min(d.y, 100))
-
-	  // Trailing zeroes are normally not useful, they more frequenly show up as a result
-	  // of the way data are obtained or summarized than as a result of truly idle systems.
-	  remove_trailing_zeroes(rcpu_data)
-	  remove_trailing_zeroes(rmem_data)
-	  remove_trailing_zeroes(rgpu_data)
-	  remove_trailing_zeroes(rgpumem_data)
-
-	  remove_leading_zeroes(labels, [rcpu_data, rmem_data, rgpu_data, rgpumem_data])
 
 	  // Scale the chart.  Mostly this is now for the sake of rmem_data, whose values routinely
 	  // go over 100%.

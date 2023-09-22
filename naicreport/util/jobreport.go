@@ -1,4 +1,4 @@
-// Shared functionality for a multi-line report that is to be sorted by job key
+// Shared functionality for a multi-line report that is to be sorted by job key.
 
 package util
 

@@ -98,7 +98,8 @@ func MlCpuhog(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d candidates\n", candidates)
 	}
 
-	purged := jobstate.PurgeDeadJobs(hogState, progOpts.To)
+	purgeDate := util.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
+	purged := jobstate.PurgeJobsBefore(hogState, purgeDate)
 	if progOpts.Verbose {
 		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
 	}
