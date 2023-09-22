@@ -24,9 +24,9 @@ import (
 
 	"fmt"
 	"os"
-	"path"
 	"time"
 
+	"naicreport/joblog"
 	"naicreport/jobstate"
 	"naicreport/storage"
 	"naicreport/util"
@@ -35,17 +35,6 @@ import (
 const (
 	deadweightFilename = "deadweight-state.csv"
 )
-
-type deadweightJob struct {
-	id        uint32
-	host      string
-	user      string
-	cmd       string
-	firstSeen time.Time
-	lastSeen  time.Time
-	start     time.Time
-	end       time.Time
-}
 
 func MlDeadweight(progname string, args []string) error {
 	progOpts := util.NewStandardOptions(progname + "ml-deadweight")
@@ -59,23 +48,41 @@ func MlDeadweight(progname string, args []string) error {
 	if err != nil {
 		return err
 	}
+	if progOpts.Verbose {
+		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(state.Active), len(state.Expired))
+	}
 
-	logs, err := readDeadweightLogFiles(progOpts.DataPath, progOpts.From, progOpts.To,
-		progOpts.Verbose)
+	logs, err := joblog.ReadJoblogFiles[*deadweightJob](
+		progOpts.DataPath,
+		"deadweight.csv",
+		progOpts.From,
+		progOpts.To,
+		progOpts.Verbose,
+		parseDeadweightRecord,
+		integrateDeadweightRecords,
+	)
 	if err != nil {
 		return err
+	}
+	if progOpts.Verbose {
+		fmt.Fprintf(os.Stderr, "%d hosts in log\n", len(logs))
+		for _, l := range logs {
+			fmt.Fprintf(os.Stderr, " %s: %d records\n", l.Host, len(l.Jobs));
+		}
 	}
 
 	now := time.Now().UTC()
 
-	candidates := 0
-	for _, job := range logs {
-		if jobstate.EnsureJob(state, job.id, job.host, job.start, now, job.lastSeen, false /* FIXME */, nil /* FIXME */) {
-			candidates++
+	new_jobs := 0
+	for _, hostrec := range logs {
+		for _, job := range hostrec.Jobs {
+			if jobstate.EnsureJob(state, job.id, job.host, job.start, now, job.lastSeen, job.expired, job) {
+				new_jobs++
+			}
 		}
 	}
 	if progOpts.Verbose {
-		fmt.Fprintf(os.Stderr, "%d candidates\n", candidates)
+		fmt.Fprintf(os.Stderr, "%d new jobs\n", new_jobs)
 	}
 
 	purgeDate := util.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
@@ -110,26 +117,35 @@ type perEvent struct {
 
 func createDeadweightReport(
 	db    *jobstate.JobDatabase,
-	logs  map[jobstate.JobKey]*deadweightJob,
+	logs  []*joblog.JobsByHost[*deadweightJob],
 ) []*perEvent {
 	events := make([]*perEvent, 0)
-	for k, j := range db.Active {
-		if !j.IsReported {
-			j.IsReported = true
-			loggedJob, _ := logs[k]
-			events = append(events,
-				&perEvent{
-					Host:              j.Host,
-					Id:                j.Id,
-					User:              loggedJob.user,
-					Cmd:               loggedJob.cmd,
-					StartedOnOrBefore: j.StartedOnOrBefore.Format(util.DateTimeFormat),
-					FirstViolation:    j.FirstViolation.Format(util.DateTimeFormat),
-					LastSeen:          j.LastSeen.Format(util.DateTimeFormat),
-				})
+	for _, jobState := range db.Active {
+		if !jobState.IsReported {
+			jobState.IsReported = true
+			events = append(events, makeEvent(jobState))
+		}
+	}
+	for _, jobState := range db.Expired {
+		if !jobState.IsReported {
+			jobState.IsReported = true
+			events = append(events, makeEvent(jobState))
 		}
 	}
 	return events
+}
+
+func makeEvent(jobState *jobstate.JobState) *perEvent {
+	job := jobState.Aux.(*deadweightJob)
+	return &perEvent{
+		Host:              jobState.Host,
+		Id:                jobState.Id,
+		User:              job.user,
+		Cmd:               job.cmd,
+		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(util.DateTimeFormat),
+		FirstViolation:    jobState.FirstViolation.Format(util.DateTimeFormat),
+		LastSeen:          jobState.LastSeen.Format(util.DateTimeFormat),
+	}
 }
 
 func writeDeadweightReport(events []*perEvent) {
@@ -160,71 +176,74 @@ func writeDeadweightReport(events []*perEvent) {
 	}
 }
 
-func readDeadweightLogFiles(
-	dataPath string,
-	from, to time.Time,
-	verbose bool,
-) (map[jobstate.JobKey]*deadweightJob, error) {
-	files, err := storage.EnumerateFiles(dataPath, from, to, "deadweight.csv")
-	if err != nil {
-		return nil, err
-	}
-	if verbose {
-		fmt.Fprintf(os.Stderr, "%d files\n", len(files))
-	}
+// deadweightJob implements joblog.Job
 
-	jobs := make(map[jobstate.JobKey]*deadweightJob)
-	for _, filePath := range files {
-		records, err := storage.ReadFreeCSV(path.Join(dataPath, filePath))
-		if err != nil {
-			continue
-		}
-
-		for _, r := range records {
-			success := true
-			tag := storage.GetString(r, "tag", &success)
-			// Old files used "bughunt" for the tag
-			success = success && (tag == "deadweight" || tag == "bughunt")
-			now := storage.GetDateTime(r, "now", &success)
-			id := storage.GetJobMark(r, "jobm", &success)
-			user := storage.GetString(r, "user", &success)
-			host := storage.GetString(r, "host", &success)
-			cmd := storage.GetString(r, "cmd", &success)
-			start := storage.GetDateTime(r, "start", &success)
-			end := storage.GetDateTime(r, "end", &success)
-			// TODO: duration
-
-			if !success {
-				continue
-			}
-
-			key := jobstate.JobKey{Id: id, Host: host}
-			if r, present := jobs[key]; present {
-				// id, user, and host are fixed - host b/c this is the view of a job on the ml nodes
-				// TODO: cmd can change b/c of sonalyze's view on the job.
-				r.firstSeen = util.MinTime(r.firstSeen, now)
-				r.lastSeen = util.MaxTime(r.lastSeen, now)
-				r.start = util.MinTime(r.start, start)
-				r.end = util.MaxTime(r.end, end)
-				// TODO: Duration
-			} else {
-				firstSeen := now
-				lastSeen := now
-				jobs[key] = &deadweightJob{
-					id,
-					host,
-					user,
-					cmd,
-					firstSeen,
-					lastSeen,
-					start,
-					end,
-					// TODO: duration
-				}
-			}
-
-		}
-	}
-
-	return jobs, nil
+type deadweightJob struct {
+	id        uint32
+	host      string
+	user      string
+	cmd       string
+	firstSeen time.Time
+	lastSeen  time.Time
+	start     time.Time
+	end       time.Time
+	expired   bool
 }
+
+func (s *deadweightJob) Id() uint32 {
+	return s.id
+}
+func (s *deadweightJob) SetId(id uint32) {
+	s.id = id
+}
+func (s *deadweightJob) Host() string {
+	return s.host
+}
+func (s *deadweightJob) LastSeen() time.Time {
+	return s.lastSeen
+}
+func (s *deadweightJob) IsExpired() bool {
+	return s.expired
+}
+func (s *deadweightJob) SetExpired(flag bool) {
+	s.expired = flag
+}
+
+func integrateDeadweightRecords(record, other *deadweightJob) {
+	record.firstSeen = util.MinTime(record.firstSeen, other.firstSeen)
+	record.lastSeen = util.MaxTime(record.lastSeen, other.lastSeen)
+	record.start = util.MinTime(record.start, other.start)
+	record.end = util.MaxTime(record.end, other.end)
+}
+
+func parseDeadweightRecord(r map[string]string) (*deadweightJob, bool) {
+	success := true
+	tag := storage.GetString(r, "tag", &success)
+	// Old files used "bughunt" for the tag
+	success = success && (tag == "deadweight" || tag == "bughunt")
+	now := storage.GetDateTime(r, "now", &success)
+	id := storage.GetJobMark(r, "jobm", &success)
+	user := storage.GetString(r, "user", &success)
+	cmd := storage.GetString(r, "cmd", &success)
+	host := storage.GetString(r, "host", &success)
+	start := storage.GetDateTime(r, "start", &success)
+	end := storage.GetDateTime(r, "end", &success)
+
+	if !success {
+		return nil, false
+	}
+	firstSeen := now
+	lastSeen := now
+	return &deadweightJob{
+		id,
+		host,
+		user,
+		cmd,
+		firstSeen,
+		lastSeen,
+		start,
+		end,
+		false,
+	}, true
+}
+
