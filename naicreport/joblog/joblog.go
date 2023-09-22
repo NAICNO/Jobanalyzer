@@ -4,7 +4,8 @@
 // The output of ReadJoblogFiles is a list of hosts, and for each host a list of individual jobs for
 // that host (the former sorted ascending by name, the latter descending by LastSeen() timestamp).
 // Notably job IDs may be reused in this list: it's a fact of life.  But they are still different
-// jobs.
+// jobs.  Within the list, `IsExpired` is false for the first (most recent) record that has each job
+// ID, and true for all subsequent records with that ID.
 //
 // We can assume that the log records can be ingested and partitioned by host and then bucketed by
 // timestamp and the buckets sorted, and if a job ID is present in two consecutive buckets in the
@@ -61,10 +62,11 @@ func ReadJoblogFiles[T Job](
 	// true if we want some stderr diagnostics
 	verbose bool,
 
-	// parse a single csv string->string map
+	// Parse a single csv string->string map.  This must set LastSeen=timestamp, IsExpired=false,
+	// and then other fields as required by integrateRecords.
 	parseLogRecord func(map[string]string) (T, bool),
 
-	// integrate values from b into a, updating a in-place
+	// Integrate values from b into a, updating a in-place
 	integrateRecords func(a, b T),
 
 ) ([]*JobsByHost[T], error) {

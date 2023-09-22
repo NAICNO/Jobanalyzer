@@ -209,11 +209,6 @@ func writeCpuhogReport(events []*perEvent) {
 	}
 }
 
-// Log ingestion and representation
-//
-// The cpuhogJob has a field 'expired' which will be false for the first record that has each job ID
-// and true for all subsequent records with that ID.
-//
 // cpuhogJob implements joblog.Job
 
 type cpuhogJob struct {
@@ -265,8 +260,6 @@ func integrateCpuhogRecords(record, probe *cpuhogJob) {
 	record.rmemAvg = math.Max(record.rmemAvg, probe.rmemAvg)
 	record.rmemPeak = math.Max(record.rmemPeak, probe.rmemPeak)
 }
-
-// This always sets firstSeen = lastSeen = timestamp, and expired = false.
 
 func parseCpuhogRecord(r map[string]string) (*cpuhogJob, bool) {
 	success := true
