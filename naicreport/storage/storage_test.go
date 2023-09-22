@@ -22,7 +22,7 @@ func TestEnumerateFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EnumerateFiles returned error %q", err)
 	}
-	if !same(files, []string {
+	if !same(files, []string{
 		"2023/05/30/ml8.hpc.uio.no.csv",
 		"2023/05/31/ml8.hpc.uio.no.csv",
 		"2023/06/01/ml8.hpc.uio.no.csv",
@@ -92,13 +92,13 @@ func TestWriteFreeCSV(t *testing.T) {
 	}
 
 	filename := path.Join(td_name, "test_write")
-	contents := []map[string]string	{
-		map[string]string { "abra": "10", "zappa": "5", "cadabra": "20" },
-		map[string]string { "zappa": "1", "cadabra": "3", "abra": "2" },
+	contents := []map[string]string{
+		map[string]string{"abra": "10", "zappa": "5", "cadabra": "20"},
+		map[string]string{"zappa": "1", "cadabra": "3", "abra": "2"},
 	}
 	err = WriteFreeCSV(
 		filename,
-		[]string { "zappa", "abra", "cadabra" },
+		[]string{"zappa", "abra", "cadabra"},
 		contents)
 	if err != nil {
 		t.Fatalf("WriteFreeCSV failed %q", err)
@@ -132,108 +132,108 @@ func same(a []string, b []string) bool {
 
 func TestFieldGetters(t *testing.T) {
 	success := true
-	if GetString(map[string]string { "hi": "ho" }, "hi", &success) != "ho" || !success {
+	if GetString(map[string]string{"hi": "ho"}, "hi", &success) != "ho" || !success {
 		t.Fatalf("Failed GetString #1")
 	}
-	GetString(map[string]string { "hi": "ho" }, "hum", &success)
+	GetString(map[string]string{"hi": "ho"}, "hum", &success)
 	if success {
 		t.Fatalf("Failed GetString #2")
 	}
 
 	success = true
-	if GetJobMark(map[string]string {"fixit": "107<"}, "fixit", &success) != 107 || !success {
+	if GetJobMark(map[string]string{"fixit": "107<"}, "fixit", &success) != 107 || !success {
 		t.Fatalf("Failed GetJobMark #1")
 	}
-	if GetJobMark(map[string]string {"fixit": "107>"}, "fixit", &success) != 107 || !success {
+	if GetJobMark(map[string]string{"fixit": "107>"}, "fixit", &success) != 107 || !success {
 		t.Fatalf("Failed GetJobMark #2")
 	}
-	if GetJobMark(map[string]string {"fixit": "107!"}, "fixit", &success) != 107 || !success {
+	if GetJobMark(map[string]string{"fixit": "107!"}, "fixit", &success) != 107 || !success {
 		t.Fatalf("Failed GetJobMark #3")
 	}
-	if GetJobMark(map[string]string {"fixit": "107"}, "fixit", &success) != 107 || !success {
+	if GetJobMark(map[string]string{"fixit": "107"}, "fixit", &success) != 107 || !success {
 		t.Fatalf("Failed GetJobMark #4")
 	}
-	GetJobMark(map[string]string {"fixit": "107"}, "flux", &success)
+	GetJobMark(map[string]string{"fixit": "107"}, "flux", &success)
 	if success {
 		t.Fatalf("Failed GetJobMark #5")
 	}
 	success = true
-	GetJobMark(map[string]string {"fixit": "107+"}, "fixit", &success)
+	GetJobMark(map[string]string{"fixit": "107+"}, "fixit", &success)
 	if success {
 		t.Fatalf("Failed GetJobMark #6")
 	}
 
 	success = true
-	if GetUint32(map[string]string {"fixit": "107"}, "fixit", &success) != 107 || !success {
+	if GetUint32(map[string]string{"fixit": "107"}, "fixit", &success) != 107 || !success {
 		t.Fatalf("Failed GetUint32 #1")
 	}
-	GetUint32(map[string]string {"fixit": "107"}, "flux", &success)
+	GetUint32(map[string]string{"fixit": "107"}, "flux", &success)
 	if success {
 		t.Fatalf("Failed GetUint32 #2")
 	}
 	success = true
-	GetUint32(map[string]string {"fixit": "107+"}, "fixit", &success)
+	GetUint32(map[string]string{"fixit": "107+"}, "fixit", &success)
 	if success {
 		t.Fatalf("Failed GetUint32 #3")
 	}
 
 	success = true
-	if GetBool(map[string]string {"fixit": "TRUE"}, "fixit", &success) != true || !success {
+	if GetBool(map[string]string{"fixit": "TRUE"}, "fixit", &success) != true || !success {
 		t.Fatalf("Failed GetBool #1")
 	}
-	GetBool(map[string]string {"fixit": "TRUE"}, "flux", &success)
+	GetBool(map[string]string{"fixit": "TRUE"}, "flux", &success)
 	if success {
 		t.Fatalf("Failed GetBool #2")
 	}
 	success = true
-	GetBool(map[string]string {"fixit": "TRUISH"}, "fixit", &success)
+	GetBool(map[string]string{"fixit": "TRUISH"}, "fixit", &success)
 	if success {
 		t.Fatalf("Failed GetBool #3")
 	}
 
 	success = true
-	if GetFloat64(map[string]string {"oops": "10"}, "oops", &success) != 10 || !success {
+	if GetFloat64(map[string]string{"oops": "10"}, "oops", &success) != 10 || !success {
 		t.Fatalf("Failed GetFloat64 #1")
 	}
-	if GetFloat64(map[string]string {"oops": "-13.5e7"}, "oops", &success) != -13.5e7 || !success {
+	if GetFloat64(map[string]string{"oops": "-13.5e7"}, "oops", &success) != -13.5e7 || !success {
 		t.Fatalf("Failed GetFloat64 #2")
 	}
-	GetFloat64(map[string]string {"oops": "1"}, "w", &success)
+	GetFloat64(map[string]string{"oops": "1"}, "w", &success)
 	if success {
 		t.Fatalf("Failed GetFloat64 #3")
 	}
 	success = true
-	GetFloat64(map[string]string {"oops": "-13.5f7"}, "oops", &success)
+	GetFloat64(map[string]string{"oops": "-13.5f7"}, "oops", &success)
 	if success {
 		t.Fatalf("Failed GetFloat64 #4")
 	}
 
 	success = true
-	if GetDateTime(map[string]string {"now": "2023-09-12 08:37"}, "now", &success) !=
+	if GetDateTime(map[string]string{"now": "2023-09-12 08:37"}, "now", &success) !=
 		time.Date(2023, 9, 12, 8, 37, 0, 0, time.UTC) || !success {
 		t.Fatalf("Failed GetDateTime #1")
 	}
-	GetDateTime(map[string]string {"now": "2023-09-12 08:37"}, "then", &success)
+	GetDateTime(map[string]string{"now": "2023-09-12 08:37"}, "then", &success)
 	if success {
 		t.Fatalf("Failed GetDateTime #2")
 	}
 	success = true
-	GetDateTime(map[string]string {"now": "2023-09-12T08:37"}, "now", &success)
+	GetDateTime(map[string]string{"now": "2023-09-12T08:37"}, "now", &success)
 	if success {
 		t.Fatalf("Failed GetDateTime #3")
 	}
 
 	success = true
-	if GetRFC3339(map[string]string {"now": "2023-09-12T08:37:00Z"}, "now", &success) !=
+	if GetRFC3339(map[string]string{"now": "2023-09-12T08:37:00Z"}, "now", &success) !=
 		time.Date(2023, 9, 12, 8, 37, 0, 0, time.UTC) || !success {
 		t.Fatalf("Failed GetRFC3339 #1")
 	}
-	GetRFC3339(map[string]string {"now": "2023-09-12 08:37"}, "then", &success)
+	GetRFC3339(map[string]string{"now": "2023-09-12 08:37"}, "then", &success)
 	if success {
 		t.Fatalf("Failed GetRFC3339 #2")
 	}
 	success = true
-	GetRFC3339(map[string]string {"now": "2023-09-12 08:37Z"}, "now", &success)
+	GetRFC3339(map[string]string{"now": "2023-09-12 08:37Z"}, "now", &success)
 	if success {
 		t.Fatalf("Failed GetRFC3339 #3")
 	}

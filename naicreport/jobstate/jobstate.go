@@ -38,7 +38,7 @@ type JobState struct {
 	FirstViolation    time.Time
 	LastSeen          time.Time
 	IsReported        bool
-	Aux               any  // in-memory value
+	Aux               any // in-memory value
 }
 
 // On the ML nodes, (job#, host) identifies a job uniquely because job#s are not coordinated across

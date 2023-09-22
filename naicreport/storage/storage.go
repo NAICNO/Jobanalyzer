@@ -16,9 +16,9 @@ import (
 	"io/fs"
 	"os"
 	"path"
-	"time"
 	"strconv"
 	"strings"
+	"time"
 
 	"naicreport/util"
 )
@@ -38,7 +38,7 @@ func EnumerateFiles(data_path string, from time.Time, to time.Time, pattern stri
 	filesys := os.DirFS(data_path)
 	result := []string{}
 	for from.Before(to) {
-		probe_fn := fmt.Sprintf("%4d/%02d/%02d/%s", from.Year(), from.Month(), from.Day(), pattern);
+		probe_fn := fmt.Sprintf("%4d/%02d/%02d/%s", from.Year(), from.Month(), from.Day(), pattern)
 		matches, err := fs.Glob(filesys, probe_fn)
 		if err != nil {
 			return nil, err
@@ -72,7 +72,7 @@ func ReadFreeCSV(filename string) ([]map[string]string, error) {
 // This will propagate any errors from the reader; if the reader can't error out (other than EOF),
 // then no errors will be returned.
 
-func ParseFreeCSV(input io.Reader)  ([]map[string]string, error) {
+func ParseFreeCSV(input io.Reader) ([]map[string]string, error) {
 	rdr := csv.NewReader(input)
 	// Rows arbitrarily wide, and possibly uneven.
 	rdr.FieldsPerRecord = -1
@@ -86,7 +86,7 @@ func ParseFreeCSV(input io.Reader)  ([]map[string]string, error) {
 			return nil, err
 		}
 		m := make(map[string]string)
-		for _, f := range(fields) {
+		for _, f := range fields {
 			ix := strings.IndexByte(f, '=')
 			if ix == -1 {
 				// Illegal syntax, just drop the field.
@@ -115,7 +115,7 @@ func WriteFreeCSV(filename string, fields []string, data []map[string]string) er
 		r := []string{}
 		for _, field_name := range fields {
 			if field_value, present := row[field_name]; present {
-				r = append(r, field_name + "=" + field_value)
+				r = append(r, field_name+"="+field_value)
 			}
 		}
 		if len(r) > 0 {

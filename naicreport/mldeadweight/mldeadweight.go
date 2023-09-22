@@ -67,7 +67,7 @@ func MlDeadweight(progname string, args []string) error {
 	if progOpts.Verbose {
 		fmt.Fprintf(os.Stderr, "%d hosts in log\n", len(logs))
 		for _, l := range logs {
-			fmt.Fprintf(os.Stderr, " %s: %d records\n", l.Host, len(l.Jobs));
+			fmt.Fprintf(os.Stderr, " %s: %d records\n", l.Host, len(l.Jobs))
 		}
 	}
 
@@ -116,8 +116,8 @@ type perEvent struct {
 }
 
 func createDeadweightReport(
-	db    *jobstate.JobDatabase,
-	logs  []*joblog.JobsByHost[*deadweightJob],
+	db *jobstate.JobDatabase,
+	logs []*joblog.JobsByHost[*deadweightJob],
 ) []*perEvent {
 	events := make([]*perEvent, 0)
 	for _, jobState := range db.Active {
@@ -212,17 +212,16 @@ func parseDeadweightRecord(r map[string]string) (*deadweightJob, bool) {
 	}
 
 	return &deadweightJob{
-		GenericJob: joblog.GenericJob {
-			Id: id,
-			Host: host,
+		GenericJob: joblog.GenericJob{
+			Id:       id,
+			Host:     host,
 			LastSeen: timestamp,
-			Expired: false,
+			Expired:  false,
 		},
-		user: user,
-		cmd: cmd,
+		user:      user,
+		cmd:       cmd,
 		firstSeen: timestamp,
-		start: start,
-		end: end,
+		start:     start,
+		end:       end,
 	}, true
 }
-

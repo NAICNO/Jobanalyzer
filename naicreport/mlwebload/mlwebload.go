@@ -19,12 +19,12 @@ import (
 )
 
 type systemConfig struct {
-	Hostname string    `json:"hostname"`
+	Hostname    string `json:"hostname"`
 	Description string `json:"description"`
-	CpuCores int       `json:"cpu_cores"`
-	MemGB int          `json:"mem_gb"`
-	GpuCards int       `json:"gpu_cards"`
-	GpuMemGB int       `json:"gpumem_gb"`
+	CpuCores    int    `json:"cpu_cores"`
+	MemGB       int    `json:"mem_gb"`
+	GpuCards    int    `json:"gpu_cards"`
+	GpuMemGB    int    `json:"gpumem_gb"`
 }
 
 func MlWebload(progname string, args []string) error {
@@ -53,7 +53,7 @@ func MlWebload(progname string, args []string) error {
 	if err != nil {
 		return err
 	}
-		
+
 	// Assemble sonalyze arguments and run it, collecting its output
 
 	arguments := []string{
@@ -61,7 +61,7 @@ func MlWebload(progname string, args []string) error {
 		"--data-path", progOpts.DataPath,
 		"--config-file", configFilename,
 		"--fmt=csvnamed," + sonalyzeFormat,
-	};
+	}
 	if progOpts.HaveFrom {
 		arguments = append(arguments, "--from", progOpts.FromStr)
 	}
@@ -121,20 +121,20 @@ func writePlots(outputPath, tag, bucketing string, configInfo []*systemConfig, o
 	// configInfo may be nil
 
 	type perPoint struct {
-		X string   `json:"x"`
-		Y float64  `json:"y"`
+		X string  `json:"x"`
+		Y float64 `json:"y"`
 	}
 
 	type perHost struct {
-		Date string          `json:"date"`
-		Hostname string      `json:"hostname"`
-		Tag string           `json:"tag"`
-		Bucketing string     `json:"bucketing"`
-		Rcpu []perPoint      `json:"rcpu"`
-		Rgpu []perPoint      `json:"rgpu"`
-		Rmem []perPoint      `json:"rmem"`
-		Rgpumem []perPoint   `json:"rgpumem"`
-		System *systemConfig `json:"system"`
+		Date      string        `json:"date"`
+		Hostname  string        `json:"hostname"`
+		Tag       string        `json:"tag"`
+		Bucketing string        `json:"bucketing"`
+		Rcpu      []perPoint    `json:"rcpu"`
+		Rgpu      []perPoint    `json:"rgpu"`
+		Rmem      []perPoint    `json:"rmem"`
+		Rgpumem   []perPoint    `json:"rgpumem"`
+		System    *systemConfig `json:"system"`
 	}
 
 	// Use the same timestamp for all records
@@ -159,10 +159,10 @@ func writePlots(outputPath, tag, bucketing string, configInfo []*systemConfig, o
 		rgpumemData := make([]perPoint, 0)
 		for _, d := range hd.data {
 			ts := d.datetime.Format("01-02 15:04")
-			rcpuData = append(rcpuData, perPoint { ts, d.rcpu })
-			rgpuData = append(rgpuData, perPoint { ts, d.rgpu })
-			rmemData = append(rmemData, perPoint { ts, d.rmem })
-			rgpumemData = append(rgpumemData, perPoint { ts, d.rgpumem })
+			rcpuData = append(rcpuData, perPoint{ts, d.rcpu})
+			rgpuData = append(rgpuData, perPoint{ts, d.rgpu})
+			rmemData = append(rmemData, perPoint{ts, d.rmem})
+			rgpumemData = append(rgpumemData, perPoint{ts, d.rgpumem})
 		}
 		var system *systemConfig
 		if configInfo != nil {
@@ -173,16 +173,16 @@ func writePlots(outputPath, tag, bucketing string, configInfo []*systemConfig, o
 				}
 			}
 		}
-		bytes, err := json.Marshal(perHost {
-		    Date: now,
-			Hostname: hd.hostname,
-			Tag: tag,
+		bytes, err := json.Marshal(perHost{
+			Date:      now,
+			Hostname:  hd.hostname,
+			Tag:       tag,
 			Bucketing: bucketing,
-			Rcpu: rcpuData,
-			Rgpu: rgpuData,
-			Rmem: rmemData,
-			Rgpumem: rgpumemData,
-			System: system,
+			Rcpu:      rcpuData,
+			Rgpu:      rgpuData,
+			Rmem:      rmemData,
+			Rgpumem:   rgpumemData,
+			System:    system,
 		})
 		if err != nil {
 			return err
@@ -203,21 +203,21 @@ const (
 
 type datum struct {
 	datetime time.Time
-	cpu float64
-	mem float64
-	gpu float64
-	gpumem float64
-	gpus []uint32				// nil for "unknown"
-	rcpu float64
-	rmem float64
-	rgpu float64
-	rgpumem float64
-	hostname string				// redundant but maybe useful
+	cpu      float64
+	mem      float64
+	gpu      float64
+	gpumem   float64
+	gpus     []uint32 // nil for "unknown"
+	rcpu     float64
+	rmem     float64
+	rgpu     float64
+	rgpumem  float64
+	hostname string // redundant but maybe useful
 }
 
 type hostData struct {
 	hostname string
-	data []*datum
+	data     []*datum
 }
 
 // The output from sonalyze is sorted first by host, then by increasing time.  Thus it's fine to
@@ -241,26 +241,26 @@ func parseOutput(output string) ([]*hostData, error) {
 		}
 		if newHost != curHost {
 			if curData != nil {
-				allData = append(allData, &hostData { hostname: curHost, data: curData })
+				allData = append(allData, &hostData{hostname: curHost, data: curData})
 			}
 			curData = make([]*datum, 0)
 			curHost = newHost
 		}
-		newDatum := &datum {
+		newDatum := &datum{
 			datetime: storage.GetDateTime(row, "datetime", &success),
-			cpu: storage.GetFloat64(row, "cpu", &success),
-			mem: storage.GetFloat64(row, "mem", &success),
-			gpu: storage.GetFloat64(row, "gpu", &success),
-			gpumem: storage.GetFloat64(row, "gpumem", &success),
-			gpus: nil,
-			rcpu: storage.GetFloat64(row, "rcpu", &success),
-			rmem: storage.GetFloat64(row, "rmem", &success),
-			rgpu: storage.GetFloat64(row, "rgpu", &success),
-			rgpumem: storage.GetFloat64(row, "rgpumem", &success),
+			cpu:      storage.GetFloat64(row, "cpu", &success),
+			mem:      storage.GetFloat64(row, "mem", &success),
+			gpu:      storage.GetFloat64(row, "gpu", &success),
+			gpumem:   storage.GetFloat64(row, "gpumem", &success),
+			gpus:     nil,
+			rcpu:     storage.GetFloat64(row, "rcpu", &success),
+			rmem:     storage.GetFloat64(row, "rmem", &success),
+			rgpu:     storage.GetFloat64(row, "rgpu", &success),
+			rgpumem:  storage.GetFloat64(row, "rgpumem", &success),
 			hostname: newHost,
 		}
 		gpuRepr := storage.GetString(row, "gpus", &success)
-		var gpuData []uint32		// Unknown set
+		var gpuData []uint32 // Unknown set
 		if gpuRepr != "unknown" {
 			gpuData = make([]uint32, 0) // Empty set
 			if gpuRepr != "none" {
@@ -279,7 +279,7 @@ func parseOutput(output string) ([]*hostData, error) {
 		curData = append(curData, newDatum)
 	}
 	if curData != nil {
-		allData = append(allData, &hostData { hostname: curHost, data: curData })
+		allData = append(allData, &hostData{hostname: curHost, data: curData})
 	}
 
 	return allData, nil

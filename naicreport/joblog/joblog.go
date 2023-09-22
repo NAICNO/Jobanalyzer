@@ -45,10 +45,10 @@ type Job interface {
 // simpler if we could make use of a GenericJob always being embedded in the concrete type of Job.)
 
 type GenericJob struct {
-	Id uint32
-	Host string
+	Id       uint32
+	Host     string
 	LastSeen time.Time
-	Expired bool
+	Expired  bool
 }
 
 func (s *GenericJob) GetId() uint32 {
@@ -82,7 +82,7 @@ type bucket_t[T Job] []T
 type bucketList_t[T Job] []bucket_t[T]
 
 func ReadJoblogFiles[T Job](
-    // root of data directory
+	// root of data directory
 	dataPath string,
 
 	// filename without a path, eg "cpuhog.csv"
