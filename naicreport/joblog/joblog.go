@@ -30,12 +30,42 @@ import (
 // The jobs being read from the logs satisfy this interface
 
 type Job interface {
-	Id() uint32
+	GetId() uint32
 	SetId(id uint32)
-	Host() string
-	LastSeen() time.Time
+	GetHost() string
+	GetLastSeen() time.Time
 	IsExpired() bool
 	SetExpired(flag bool)
+}
+
+// GenericJob implements Job and can be used as an embedded field by clients when that makes sense,
+// but there are no dependencies in this package about its use.  (Though things might be a little
+// simpler if we could make use of a GenericJob always being embedded in the concrete type of Job.)
+
+type GenericJob struct {
+	Id uint32
+	Host string
+	LastSeen time.Time
+	Expired bool
+}
+
+func (s *GenericJob) GetId() uint32 {
+	return s.Id
+}
+func (s *GenericJob) SetId(id uint32) {
+	s.Id = id
+}
+func (s *GenericJob) GetHost() string {
+	return s.Host
+}
+func (s *GenericJob) GetLastSeen() time.Time {
+	return s.LastSeen
+}
+func (s *GenericJob) IsExpired() bool {
+	return s.Expired
+}
+func (s *GenericJob) SetExpired(flag bool) {
+	s.Expired = flag
 }
 
 // Host is redundantly stored in the Jobs field: the value is always the same in JobsByHost and in
@@ -98,7 +128,7 @@ func ReadJoblogFiles[T Job](
 			if len(bucket) == 0 {
 				bucket = append(bucket, parsed)
 				last := bucket[len(bucket)-1]
-				if last.Host() != parsed.Host() || last.LastSeen() != parsed.LastSeen() {
+				if last.GetHost() != parsed.GetHost() || last.GetLastSeen() != parsed.GetLastSeen() {
 					bucketList = append(bucketList, bucket)
 					bucket = make(bucket_t[T], 0)
 				}
@@ -112,7 +142,7 @@ func ReadJoblogFiles[T Job](
 
 	// Sort host list by ascending name
 	sort.Slice(bucketList, func(i, j int) bool {
-		return bucketList[i][0].Host() < bucketList[j][0].Host()
+		return bucketList[i][0].GetHost() < bucketList[j][0].GetHost()
 	})
 
 	// Collect runs for the same host and process them
@@ -121,8 +151,8 @@ func ReadJoblogFiles[T Job](
 	result := make([]*JobsByHost[T], 0)
 	for bucketListIx < bucketListLim {
 		endIx := bucketListIx + 1
-		host := bucketList[bucketListIx][0].Host()
-		for endIx < bucketListLim && host == bucketList[endIx][0].Host() {
+		host := bucketList[bucketListIx][0].GetHost()
+		for endIx < bucketListLim && host == bucketList[endIx][0].GetHost() {
 			endIx++
 		}
 		result = append(result,
@@ -150,7 +180,7 @@ func processLogRecordsForHost[T Job](
 
 	// Sort the buckets by descending time
 	sort.Slice(buckets, func(i, j int) bool {
-		return buckets[i][0].LastSeen().After(buckets[j][0].LastSeen())
+		return buckets[i][0].GetLastSeen().After(buckets[j][0].GetLastSeen())
 	})
 
 	// Merge buckets that have the same timestamp
@@ -159,7 +189,7 @@ func processLogRecordsForHost[T Job](
 	for bucketIdx < len(buckets) {
 		bucket := buckets[bucketIdx]
 		probeIdx := bucketIdx + 1
-		for probeIdx < len(buckets) && buckets[probeIdx][0].LastSeen() == bucket[0].LastSeen() {
+		for probeIdx < len(buckets) && buckets[probeIdx][0].GetLastSeen() == bucket[0].GetLastSeen() {
 			bucket = append(bucket, buckets[probeIdx]...)
 			probeIdx++
 		}
@@ -189,7 +219,7 @@ func processLogRecordsForHost[T Job](
 	results := make([]T, 0)
 	for bucketIdx, bucket := range buckets {
 		for _, record := range bucket {
-			if record.Id() == deletedMark {
+			if record.GetId() == deletedMark {
 				continue
 			}
 
@@ -197,7 +227,7 @@ func processLogRecordsForHost[T Job](
 			for _, probeBucket := range buckets[bucketIdx+1:] {
 				any := false
 				for _, probe := range probeBucket {
-					if probe.Id() == record.Id() {
+					if probe.GetId() == record.GetId() {
 						any = true
 						probe.SetId(deletedMark)
 
@@ -218,12 +248,12 @@ func processLogRecordsForHost[T Job](
 	}
 
 	sort.Slice(results, func(i, j int) bool {
-		return results[i].LastSeen().After(results[j].LastSeen())
+		return results[i].GetLastSeen().After(results[j].GetLastSeen())
 	})
 
 	for jobIdx, job := range results {
 		for _, otherJob := range results[jobIdx+1:] {
-			if otherJob.Id() == job.Id() {
+			if otherJob.GetId() == job.GetId() {
 				otherJob.SetExpired(true)
 			}
 		}

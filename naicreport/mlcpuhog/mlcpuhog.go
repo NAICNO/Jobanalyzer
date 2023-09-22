@@ -92,7 +92,7 @@ func MlCpuhog(progname string, args []string) error {
 	new_jobs := 0
 	for _, hostrec := range logs {
 		for _, job := range hostrec.Jobs {
-			if jobstate.EnsureJob(hogState, job.id, job.host, job.start, now, job.lastSeen, job.expired, job) {
+			if jobstate.EnsureJob(hogState, job.Id, job.Host, job.start, now, job.LastSeen, job.Expired, job) {
 				new_jobs++
 			}
 		}
@@ -212,15 +212,12 @@ func writeCpuhogReport(events []*perEvent) {
 // cpuhogJob implements joblog.Job
 
 type cpuhogJob struct {
-	id        uint32    // job id
-	host      string    // a single host name, since ml nodes
+	joblog.GenericJob
 	user      string    // user's login name
 	cmd       string    // ???
 	firstSeen time.Time // timestamp of record in which job is first seen
-	lastSeen  time.Time // ditto the record in which the job is last seen
 	start     time.Time // the start field of the first record for the job
 	end       time.Time // the end field of the last record for the job
-	expired   bool      // false iff this is the latest for this id on this host
 	cpuPeak   float64   // this and the following are the Max across all
 	gpuPeak   float64   //   records seen for the job, this is necessary
 	rcpuAvg   float64   //     as sonalyze will have a limited window in which
@@ -229,28 +226,9 @@ type cpuhogJob struct {
 	rmemPeak  float64   //
 }
 
-func (s *cpuhogJob) Id() uint32 {
-	return s.id
-}
-func (s *cpuhogJob) SetId(id uint32) {
-	s.id = id
-}
-func (s *cpuhogJob) Host() string {
-	return s.host
-}
-func (s *cpuhogJob) LastSeen() time.Time {
-	return s.lastSeen
-}
-func (s *cpuhogJob) IsExpired() bool {
-	return s.expired
-}
-func (s *cpuhogJob) SetExpired(flag bool) {
-	s.expired = flag
-}
-
 func integrateCpuhogRecords(record, probe *cpuhogJob) {
+	record.LastSeen = util.MaxTime(record.LastSeen, probe.LastSeen)
 	record.firstSeen = util.MinTime(record.firstSeen, probe.firstSeen)
-	record.lastSeen = util.MaxTime(record.lastSeen, probe.lastSeen)
 	record.start = util.MinTime(record.start, probe.start)
 	record.end = util.MaxTime(record.end, probe.end)
 	record.cpuPeak = math.Max(record.cpuPeak, probe.cpuPeak)
@@ -284,24 +262,23 @@ func parseCpuhogRecord(r map[string]string) (*cpuhogJob, bool) {
 		return nil, false
 	}
 
-	firstSeen := timestamp
-	lastSeen := timestamp
-
 	return &cpuhogJob{
-		id,
-		host,
-		user,
-		cmd,
-		firstSeen,
-		lastSeen,
-		start,
-		end,
-		false,
-		cpuPeak,
-		gpuPeak,
-		rcpuAvg,
-		rcpuPeak,
-		rmemAvg,
-		rmemPeak,
+		GenericJob: joblog.GenericJob {
+			Id: id,
+			Host: host,
+			LastSeen: timestamp,
+			Expired: false,
+		},
+		user: user,
+		cmd: cmd,
+		firstSeen: timestamp,
+		start: start,
+		end: end,
+		cpuPeak: cpuPeak,
+		gpuPeak: gpuPeak,
+		rcpuAvg: rcpuAvg,
+		rcpuPeak: rcpuPeak,
+		rmemAvg: rmemAvg,
+		rmemPeak: rmemPeak,
 	}, true
 }

@@ -76,7 +76,7 @@ func MlDeadweight(progname string, args []string) error {
 	new_jobs := 0
 	for _, hostrec := range logs {
 		for _, job := range hostrec.Jobs {
-			if jobstate.EnsureJob(state, job.id, job.host, job.start, now, job.lastSeen, job.expired, job) {
+			if jobstate.EnsureJob(state, job.Id, job.Host, job.start, now, job.LastSeen, job.Expired, job) {
 				new_jobs++
 			}
 		}
@@ -179,39 +179,17 @@ func writeDeadweightReport(events []*perEvent) {
 // deadweightJob implements joblog.Job
 
 type deadweightJob struct {
-	id        uint32
-	host      string
+	joblog.GenericJob
 	user      string
 	cmd       string
 	firstSeen time.Time
-	lastSeen  time.Time
 	start     time.Time
 	end       time.Time
-	expired   bool
-}
-
-func (s *deadweightJob) Id() uint32 {
-	return s.id
-}
-func (s *deadweightJob) SetId(id uint32) {
-	s.id = id
-}
-func (s *deadweightJob) Host() string {
-	return s.host
-}
-func (s *deadweightJob) LastSeen() time.Time {
-	return s.lastSeen
-}
-func (s *deadweightJob) IsExpired() bool {
-	return s.expired
-}
-func (s *deadweightJob) SetExpired(flag bool) {
-	s.expired = flag
 }
 
 func integrateDeadweightRecords(record, other *deadweightJob) {
 	record.firstSeen = util.MinTime(record.firstSeen, other.firstSeen)
-	record.lastSeen = util.MaxTime(record.lastSeen, other.lastSeen)
+	record.LastSeen = util.MaxTime(record.LastSeen, other.LastSeen)
 	record.start = util.MinTime(record.start, other.start)
 	record.end = util.MaxTime(record.end, other.end)
 }
@@ -221,7 +199,7 @@ func parseDeadweightRecord(r map[string]string) (*deadweightJob, bool) {
 	tag := storage.GetString(r, "tag", &success)
 	// Old files used "bughunt" for the tag
 	success = success && (tag == "deadweight" || tag == "bughunt")
-	now := storage.GetDateTime(r, "now", &success)
+	timestamp := storage.GetDateTime(r, "now", &success)
 	id := storage.GetJobMark(r, "jobm", &success)
 	user := storage.GetString(r, "user", &success)
 	cmd := storage.GetString(r, "cmd", &success)
@@ -232,18 +210,19 @@ func parseDeadweightRecord(r map[string]string) (*deadweightJob, bool) {
 	if !success {
 		return nil, false
 	}
-	firstSeen := now
-	lastSeen := now
+
 	return &deadweightJob{
-		id,
-		host,
-		user,
-		cmd,
-		firstSeen,
-		lastSeen,
-		start,
-		end,
-		false,
+		GenericJob: joblog.GenericJob {
+			Id: id,
+			Host: host,
+			LastSeen: timestamp,
+			Expired: false,
+		},
+		user: user,
+		cmd: cmd,
+		firstSeen: timestamp,
+		start: start,
+		end: end,
 	}, true
 }
 
