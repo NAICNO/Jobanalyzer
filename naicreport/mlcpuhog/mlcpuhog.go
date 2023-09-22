@@ -40,10 +40,9 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path"
-	"sort"
 	"time"
 
+	"naicreport/joblog"
 	"naicreport/jobstate"
 	"naicreport/storage"
 	"naicreport/util"
@@ -69,14 +68,22 @@ func MlCpuhog(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(hogState.Active), len(hogState.Expired))
 	}
 
-	logs, err := readCpuhogLogFiles(progOpts.DataPath, progOpts.From, progOpts.To, progOpts.Verbose)
+	logs, err := joblog.ReadJoblogFiles[*cpuhogJob](
+		progOpts.DataPath,
+		"cpuhog.csv",
+		progOpts.From,
+		progOpts.To,
+		progOpts.Verbose,
+		parseCpuhogRecord,
+		integrateCpuhogRecords,
+	)
 	if err != nil {
 		return err
 	}
 	if progOpts.Verbose {
 		fmt.Fprintf(os.Stderr, "%d hosts in log\n", len(logs))
 		for _, l := range logs {
-			fmt.Fprintf(os.Stderr, " %s: %d records\n", l.host, len(l.jobs));
+			fmt.Fprintf(os.Stderr, " %s: %d records\n", l.Host, len(l.Jobs));
 		}
 	}
 
@@ -84,7 +91,7 @@ func MlCpuhog(progname string, args []string) error {
 
 	new_jobs := 0
 	for _, hostrec := range logs {
-		for _, job := range hostrec.jobs {
+		for _, job := range hostrec.Jobs {
 			if jobstate.EnsureJob(hogState, job.id, job.host, job.start, now, job.lastSeen, job.expired, job) {
 				new_jobs++
 			}
@@ -130,7 +137,7 @@ type perEvent struct {
 
 func createCpuhogReport(
 	hogState *jobstate.JobDatabase,
-	logs []*cpuhogJobsByHost,
+	logs []*joblog.JobsByHost[*cpuhogJob],
 ) []*perEvent {
 
 	events := make([]*perEvent, 0)
@@ -202,19 +209,12 @@ func writeCpuhogReport(events []*perEvent) {
 	}
 }
 
-// The output of this algorithm is a list of hosts, and for each host a list of individual jobs for
-// that host (the former sorted ascending by name, the latter descending by lastSeen timestamp).
-// Notably job IDs may be reused in this list: fact of life.  But they are still different jobs.
-//
-// We are going to assume that the log records can be ingested and partitioned by host and then
-// bucketed by timestamp and the buckets sorted, and if a job ID is present in two consecutive
-// buckets in the list of buckets then it's the same job, and otherwise those are two different jobs
-// with a reused ID.  The assumption is valid because there is a requirement stated above, and in
-// the shell scripts and cron jobs, that the analysis producing our input runs often enough for the
-// assumption to hold.
+// Log ingestion and representation
 //
 // The cpuhogJob has a field 'expired' which will be false for the first record that has each job ID
 // and true for all subsequent records with that ID.
+//
+// cpuhogJob implements joblog.Job
 
 type cpuhogJob struct {
 	id        uint32    // job id
@@ -234,200 +234,41 @@ type cpuhogJob struct {
 	rmemPeak  float64   //
 }
 
-type cpuhogJobsByHost struct {
-	host string
-	jobs []*cpuhogJob
+func (s *cpuhogJob) Id() uint32 {
+	return s.id
+}
+func (s *cpuhogJob) SetId(id uint32) {
+	s.id = id
+}
+func (s *cpuhogJob) Host() string {
+	return s.host
+}
+func (s *cpuhogJob) LastSeen() time.Time {
+	return s.lastSeen
+}
+func (s *cpuhogJob) IsExpired() bool {
+	return s.expired
+}
+func (s *cpuhogJob) SetExpired(flag bool) {
+	s.expired = flag
 }
 
-type bucket_t []*cpuhogJob
-type bucketList_t []bucket_t
-
-func readCpuhogLogFiles(
-	dataPath string,
-	from, to time.Time,
-	verbose bool,
-) ([]*cpuhogJobsByHost, error) {
-	files, err := storage.EnumerateFiles(dataPath, from, to, "cpuhog.csv")
-	if err != nil {
-		return nil, err
-	}
-	if verbose {
-		fmt.Fprintf(os.Stderr, "%d files\n", len(files))
-	}
-
-	// Collect all the buckets, there will be many entries in this list for the same host
-	bucketList := make(bucketList_t, 0)
-	for _, filePath := range files {
-		records, err := storage.ReadFreeCSV(path.Join(dataPath, filePath))
-		if err != nil {
-			continue
-		}
-
-		// By design, all jobs in a (host, time) bucket are consecutive in a single file.
-
-		bucket := make(bucket_t, 0)
-		for _, unparsed := range records {
-			parsed := parseRecord(unparsed)
-			if parsed == nil {
-				continue
-			}
-
-			if len(bucket) == 0 {
-				bucket = append(bucket, parsed)
-				last := bucket[len(bucket)-1]
-				if last.host != parsed.host || last.lastSeen != parsed.lastSeen {
-					bucketList = append(bucketList, bucket)
-					bucket = make(bucket_t, 0)
-				}
-				bucket = append(bucket, parsed)
-			}
-		}
-		if len(bucket) > 0 {
-			bucketList = append(bucketList, bucket)
-		}
-	}
-
-	// Sort host list by ascending name
-	sort.Slice(bucketList, func(i, j int) bool {
-		return bucketList[i][0].host < bucketList[j][0].host
-	})
-
-	// Collect runs for the same host and process them
-	bucketListIx := 0
-	bucketListLim := len(bucketList)
-	result := make([]*cpuhogJobsByHost, 0)
-	for bucketListIx < bucketListLim {
-		endIx := bucketListIx + 1
-		host := bucketList[bucketListIx][0].host
-		for endIx < bucketListLim && host == bucketList[endIx][0].host {
-			endIx++
-		}
-		result = append(result,
-			&cpuhogJobsByHost{
-				host: host,
-				jobs: processRecordsForHost(bucketList[bucketListIx:endIx]),
-			})
-		bucketListIx = endIx
-	}
-
-	return result, nil
-}
-
-// Each entry in `buckets` is a bucket of records with the same timestamp.  All hosts in all buckets
-// are the same (and can be ignored).
-//
-// On return, the jobs are sorted descending by lastSeen, and `expired` is set for all but the first
-// job with a given ID.
-
-func processRecordsForHost(buckets bucketList_t) []*cpuhogJob {
-	const deletedRecordMark = math.MaxUint32
-
-	// Sort the buckets by descending time
-	sort.Slice(buckets, func(i, j int) bool {
-		return buckets[i][0].lastSeen.After(buckets[j][0].lastSeen)
-	})
-
-	// Merge buckets that have the same timestamp
-	newBuckets := make(bucketList_t, 0)
-	bucketIdx := 0
-	for bucketIdx < len(buckets) {
-		bucket := buckets[bucketIdx]
-		probeIdx := bucketIdx + 1
-		for probeIdx < len(buckets) && buckets[probeIdx][0].lastSeen == bucket[0].lastSeen {
-			bucket = append(bucket, buckets[probeIdx]...)
-			probeIdx++
-		}
-		newBuckets = append(newBuckets, bucket)
-		bucketIdx = probeIdx
-	}
-	buckets = newBuckets
-
-	/*
-		for _, b := range buckets {
-			fmt.Println("==========")
-			for _, r := range b {
-				fmt.Printf("%v %v %v\n", r.host, r.id, r.lastSeen)
-			}
-		}
-	*/
-
-	// Now there is a bucket for each time the report was run, and the bucket list is sorted
-	// descending by lastSeen timestamp.  No two buckets have the same timestamp.  Then (ignoring
-	// the specific values of the timestamps) if a job ID appears in records in consecutive buckets
-	// it is the same job, and those records should be merged into one; a gap in the bucket list for
-	// a job ID signifies that the next time the ID is encountered it is a different job.
-	//
-	// This might be most easily implemented by the following per-host algorithm:
-	//
-	//  - start with the first bucket
-	//  - pick a job, and remove it from the bucket
-	//  - advance
-	//  - while the next bucket has the same job
-	//    - remove the job from that bucket and integrate the data
-	//    - advance
-	//  - push the integrated job
-	//  - repeat until the first bucket is empty
-	//  - discard the empty bucket and start over until the list of buckets is empty
-
-	results := make([]*cpuhogJob, 0)
-	for bucketIdx, bucket := range buckets {
-		for _, record := range bucket {
-			if record.id == deletedRecordMark {
-				continue
-			}
-
-		probeLoop:
-			for _, probeBucket := range buckets[bucketIdx+1:] {
-				any := false
-				for _, probe := range probeBucket {
-					if probe.id == record.id {
-						any = true
-						probe.id = deletedRecordMark
-
-						// Integrate probe into record
-						record.firstSeen = util.MinTime(record.firstSeen, probe.firstSeen)
-						record.lastSeen = util.MaxTime(record.lastSeen, probe.lastSeen)
-						record.start = util.MinTime(record.start, probe.start)
-						record.end = util.MaxTime(record.end, probe.end)
-						record.cpuPeak = math.Max(record.cpuPeak, probe.cpuPeak)
-						record.gpuPeak = math.Max(record.gpuPeak, probe.gpuPeak)
-						record.rcpuAvg = math.Max(record.rcpuAvg, probe.rcpuAvg)
-						record.rcpuPeak = math.Max(record.rcpuPeak, probe.rcpuPeak)
-						record.rmemAvg = math.Max(record.rmemAvg, probe.rmemAvg)
-						record.rmemPeak = math.Max(record.rmemPeak, probe.rmemPeak)
-
-						// At most one hit per probeBucket
-						continue probeLoop
-					}
-				}
-
-				// If no hit then we're done with this job
-				if !any {
-					break probeLoop
-				}
-			}
-			results = append(results, record)
-		}
-	}
-
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].lastSeen.After(results[j].lastSeen)
-	})
-
-	for jobIdx, job := range results {
-		for _, otherJob := range results[jobIdx+1:] {
-			if otherJob.id == job.id {
-				otherJob.expired = true
-			}
-		}
-	}
-
-	return results
+func integrateCpuhogRecords(record, probe *cpuhogJob) {
+	record.firstSeen = util.MinTime(record.firstSeen, probe.firstSeen)
+	record.lastSeen = util.MaxTime(record.lastSeen, probe.lastSeen)
+	record.start = util.MinTime(record.start, probe.start)
+	record.end = util.MaxTime(record.end, probe.end)
+	record.cpuPeak = math.Max(record.cpuPeak, probe.cpuPeak)
+	record.gpuPeak = math.Max(record.gpuPeak, probe.gpuPeak)
+	record.rcpuAvg = math.Max(record.rcpuAvg, probe.rcpuAvg)
+	record.rcpuPeak = math.Max(record.rcpuPeak, probe.rcpuPeak)
+	record.rmemAvg = math.Max(record.rmemAvg, probe.rmemAvg)
+	record.rmemPeak = math.Max(record.rmemPeak, probe.rmemPeak)
 }
 
 // This always sets firstSeen = lastSeen = timestamp, and expired = false.
 
-func parseRecord(r map[string]string) *cpuhogJob {
+func parseCpuhogRecord(r map[string]string) (*cpuhogJob, bool) {
 	success := true
 
 	tag := storage.GetString(r, "tag", &success)
@@ -447,7 +288,7 @@ func parseRecord(r map[string]string) *cpuhogJob {
 	end := storage.GetDateTime(r, "end", &success)
 
 	if !success {
-		return nil
+		return nil, false
 	}
 
 	firstSeen := timestamp
@@ -469,5 +310,5 @@ func parseRecord(r map[string]string) *cpuhogJob {
 		rcpuPeak,
 		rmemAvg,
 		rmemPeak,
-	}
+	}, true
 }
