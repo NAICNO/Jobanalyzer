@@ -8,7 +8,7 @@ import (
 )
 
 type TestFile struct {
-	Dir string
+	Dir  string
 	Name string
 	Data []byte
 }
@@ -19,7 +19,7 @@ type TestFile struct {
 /// be no directory.
 
 func PopulateTestData(tag string, data ...TestFile) (string, error) {
-	tempdir, err := os.MkdirTemp("", tag + "_test")
+	tempdir, err := os.MkdirTemp("", tag+"_test")
 	if err != nil {
 		return "", err
 	}
@@ -37,4 +37,3 @@ func PopulateTestData(tag string, data ...TestFile) (string, error) {
 	}
 	return tempdir, nil
 }
-

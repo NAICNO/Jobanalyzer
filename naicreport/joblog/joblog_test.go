@@ -13,9 +13,9 @@ import (
 func TestReadLogFiles(t *testing.T) {
 	dataPath, err := util.PopulateTestData(
 		"joblog",
-		util.TestFile { "2023/09/03", "jobdata.csv", []byte(file_2023_09_03) },
-		util.TestFile { "2023/09/06", "jobdata.csv", []byte(file_2023_09_06) },
-		util.TestFile { "2023/09/07", "jobdata.csv", []byte(file_2023_09_07) },
+		util.TestFile{"2023/09/03", "jobdata.csv", []byte(file_2023_09_03)},
+		util.TestFile{"2023/09/06", "jobdata.csv", []byte(file_2023_09_06)},
+		util.TestFile{"2023/09/07", "jobdata.csv", []byte(file_2023_09_07)},
 	)
 	defer os.RemoveAll(dataPath)
 	if err != nil {
@@ -90,7 +90,7 @@ func TestReadLogFiles(t *testing.T) {
 	}
 
 	// For Job 2712710 there is a gap in the timeline on sept 7 at 1200 so there should be two records.
-	
+
 	xs = findJobsByHostAndId(jobLog, "ml6", 2712710)
 	if len(xs) != 2 {
 		t.Fatalf("Did not find exactly two records for (%s,%d): %d", "ml6", 2712710, len(xs))
