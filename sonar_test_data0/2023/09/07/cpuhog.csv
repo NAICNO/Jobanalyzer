@@ -21,5 +21,3 @@ now=2023-09-07 14:00,jobm=2712710,user=hermanno,duration=0d23h55m,host=ml6,cpu-p
 now=2023-09-07 14:00,jobm=3043187,user=poyenyt,duration=0d 0h20m,host=ml6,cpu-peak=1519,gpu-peak=0,rcpu-avg=5,rcpu-peak=24,rmem-avg=3,rmem-peak=3,start=2023-09-07 07:50,end=2023-09-07 08:10,cmd=python3.9,tag=cpuhog
 now=2023-09-07 14:00,jobm=3129396,user=poyenyt,duration=0d 0h55m,host=ml6,cpu-peak=3756,gpu-peak=0,rcpu-avg=13,rcpu-peak=59,rmem-avg=3,rmem-peak=3,start=2023-09-07 13:00,end=2023-09-07 13:55,cmd=python3.9,tag=cpuhog
 now=2023-09-07 21:27,jobm=3043187,user=poyenyt,duration=0d 0h20m,host=ml6,cpu-peak=1519,gpu-peak=0,rcpu-avg=5,rcpu-peak=24,rmem-avg=3,rmem-peak=3,start=2023-09-07 07:50,end=2023-09-07 08:10,cmd=python3.9,tag=cpuhog
-now=2023-09-07 21:27,jobm=3043187,user=poyenyt,duration=0d 0h20m,host=ml6,cpu-peak=1519,gpu-peak=0,rcpu-avg=5,rcpu-peak=24,rmem-avg=3,rmem-peak=3,start=2023-09-07 07:50,end=2023-09-07 08:10,cmd=python3.9,tag=cpuhog
-now=2023-09-07 21:27,jobm=3043187,user=poyenyt,duration=0d 0h20m,host=ml6,cpu-peak=1519,gpu-peak=0,rcpu-avg=5,rcpu-peak=24,rmem-avg=3,rmem-peak=3,start=2023-09-07 07:50,end=2023-09-07 08:10,cmd=python3.9,tag=cpuhog

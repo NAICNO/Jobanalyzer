@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"os"
 
-	"naicreport/mldeadweight"
 	"naicreport/mlcpuhog"
+	"naicreport/mldeadweight"
 	"naicreport/mlwebload"
 )
 

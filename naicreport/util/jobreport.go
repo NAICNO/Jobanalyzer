@@ -7,8 +7,8 @@ import (
 )
 
 type JobReport struct {
-	Id uint32
-	Host string
+	Id     uint32
+	Host   string
 	Report string
 }
 

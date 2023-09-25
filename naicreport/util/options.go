@@ -24,14 +24,14 @@ import (
 
 type StandardOptions struct {
 	Container *flag.FlagSet
-	DataPath string
-	HaveFrom bool
-	From time.Time
-	FromStr string
-	HaveTo bool
-	To time.Time
-	ToStr string
-	Verbose bool
+	DataPath  string
+	HaveFrom  bool
+	From      time.Time
+	FromStr   string
+	HaveTo    bool
+	To        time.Time
+	ToStr     string
+	Verbose   bool
 }
 
 // The idea is that the program calls NewStandardOptions to get a structure with standard options
@@ -40,16 +40,16 @@ type StandardOptions struct {
 // that the parsing of everything is properly integrated.
 
 func NewStandardOptions(progname string) *StandardOptions {
-	opts := StandardOptions {
+	opts := StandardOptions{
 		Container: nil,
-		DataPath: "",
-		HaveFrom: false,
-		From: time.Now(),
-		FromStr: "",
-		HaveTo: false,
-		To: time.Now(),
-		ToStr: "",
-		Verbose: false,
+		DataPath:  "",
+		HaveFrom:  false,
+		From:      time.Now(),
+		FromStr:   "",
+		HaveTo:    false,
+		To:        time.Now(),
+		ToStr:     "",
+		Verbose:   false,
 	}
 	opts.Container = flag.NewFlagSet(progname, flag.ExitOnError)
 	opts.Container.StringVar(&opts.DataPath, "data-path", "", "Root directory of data store (required)")
@@ -147,4 +147,3 @@ func matchWhen(s string) (time.Time, error) {
 	}
 	return time.Now(), errors.New("Bad time specification")
 }
-

@@ -9,7 +9,7 @@ import (
 
 func TestOptionsDataPath(t *testing.T) {
 	opt := NewStandardOptions("hi")
-	err := opt.Parse([]string{"--data-path","ho/hum"})
+	err := opt.Parse([]string{"--data-path", "ho/hum"})
 	if err != nil {
 		t.Fatalf("Failed data path #1: %v", err)
 	}
@@ -19,7 +19,7 @@ func TestOptionsDataPath(t *testing.T) {
 	}
 
 	opt = NewStandardOptions("hi")
-	err = opt.Parse([]string{"--data-path","/ho/hum"})
+	err = opt.Parse([]string{"--data-path", "/ho/hum"})
 	if err != nil {
 		t.Fatalf("Failed data path #1")
 	}
