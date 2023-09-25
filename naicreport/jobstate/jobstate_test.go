@@ -39,7 +39,7 @@ func TestWriteState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadAll failed %q", err)
 	}
-	expect := "id=10,host=hello,startedOnOrBefore=2023-06-14T16:00:00Z,firstViolation=2023-06-15T10:20:30Z,lastSeen=2023-09-11T15:37:00Z,isReported=false\n"
+	expect := "id=10,host=hello,startedOnOrBefore=2023-06-14T16:00:00Z,firstViolation=2023-06-15T10:20:30Z,lastSeen=2023-09-11T15:37:00Z,isReported=false,isExpired=false\n"
 	if string(all) != expect {
 		t.Fatalf("File contents wrong %q", all)
 	}
