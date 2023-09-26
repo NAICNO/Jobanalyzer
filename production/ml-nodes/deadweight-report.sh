@@ -8,10 +8,14 @@ set -euf -o pipefail
 
 sonar_dir=$HOME/sonar
 sonar_data_dir=$sonar_dir/data
+load_report_path=$sonar_data_dir/load-reports
 
-# This updates $sonar_data_dir/deadweight-state.csv; just nuke that file
+mkdir -p ${load_report_path}
+
+# These update $sonar_data_dir/deadweight-state.csv; just nuke that file
 # if you want to start the analysis from scratch.
 #
-# Typical running time on ML nodes: 10-20ms
+# Typical running time per invocation on ML nodes: 10-20ms
 
-$sonar_dir/naicreport ml-deadweight -data-path $sonar_data_dir -from 2w
+$sonar_dir/naicreport ml-deadweight -data-path $sonar_data_dir -from 4w
+$sonar_dir/naicreport ml-deadweight -data-path $sonar_data_dir -from 4w -json > $load_report_path/deadweight-report.json
