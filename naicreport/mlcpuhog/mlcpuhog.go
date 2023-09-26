@@ -60,12 +60,12 @@ func MlCpuhog(progname string, args []string) error {
 		return err
 	}
 
-	hogState, err := jobstate.ReadJobDatabaseOrEmpty(progOpts.DataPath, cpuhogFilename)
+	db, err := jobstate.ReadJobDatabaseOrEmpty(progOpts.DataPath, cpuhogFilename)
 	if err != nil {
 		return err
 	}
 	if progOpts.Verbose {
-		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(hogState.Active), len(hogState.Expired))
+		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(db.Active), len(db.Expired))
 	}
 
 	logs, err := joblog.ReadJoblogFiles[*cpuhogJob](
@@ -92,7 +92,7 @@ func MlCpuhog(progname string, args []string) error {
 	new_jobs := 0
 	for _, hostrec := range logs {
 		for _, job := range hostrec.Jobs {
-			if jobstate.EnsureJob(hogState, job.Id, job.Host, job.start, now, job.LastSeen, job.Expired, job) {
+			if jobstate.EnsureJob(db, job.Id, job.Host, job.start, now, job.LastSeen, job.Expired, job) {
 				new_jobs++
 			}
 		}
@@ -102,26 +102,26 @@ func MlCpuhog(progname string, args []string) error {
 	}
 
 	purgeDate := util.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
-	purged := jobstate.PurgeJobsBefore(hogState, purgeDate)
+	purged := jobstate.PurgeJobsBefore(db, purgeDate)
 	if progOpts.Verbose {
 		fmt.Fprintf(os.Stderr, "%d jobs purged\n", purged)
 	}
 
-	events := createCpuhogReport(hogState, logs)
 	if *jsonOutput {
-		bytes, err := json.Marshal(events)
+		perJobReports := createCpuhogReport(db, logs, true)
+		bytes, err := json.Marshal(perJobReports)
 		if err != nil {
 			return err
 		}
 		fmt.Print(string(bytes))
 	} else {
-		writeCpuhogReport(events)
+		writeCpuhogReport(createCpuhogReport(db, logs, false))
 	}
 
-	return jobstate.WriteJobDatabase(progOpts.DataPath, cpuhogFilename, hogState)
+	return jobstate.WriteJobDatabase(progOpts.DataPath, cpuhogFilename, db)
 }
 
-type perEvent struct {
+type perJobReport struct {
 	Host              string `json:"hostname"`
 	Id                uint32 `json:"id"`
 	User              string `json:"user"`
@@ -133,32 +133,31 @@ type perEvent struct {
 	RCpuPeak          uint32 `json:"rcpu-peak"`
 	RMemAvg           uint32 `json:"rmem-avg"`
 	RMemPeak          uint32 `json:"rmem-peak"`
+	jobState          *jobstate.JobState
 }
 
 func createCpuhogReport(
-	hogState *jobstate.JobDatabase,
+	db *jobstate.JobDatabase,
 	logs []*joblog.JobsByHost[*cpuhogJob],
-) []*perEvent {
-
-	events := make([]*perEvent, 0)
-	for _, jobState := range hogState.Active {
-		if !jobState.IsReported {
-			jobState.IsReported = true
-			events = append(events, makeEvent(jobState))
+	allJobs bool,
+) []*perJobReport {
+	perJobReports := []*perJobReport{}
+	for _, jobState := range db.Active {
+		if allJobs || !jobState.IsReported {
+			perJobReports = append(perJobReports, makePerJobReport(jobState))
 		}
 	}
-	for _, jobState := range hogState.Expired {
-		if !jobState.IsReported {
-			jobState.IsReported = true
-			events = append(events, makeEvent(jobState))
+	for _, jobState := range db.Expired {
+		if allJobs || !jobState.IsReported {
+			perJobReports = append(perJobReports, makePerJobReport(jobState))
 		}
 	}
-	return events
+	return perJobReports
 }
 
-func makeEvent(jobState *jobstate.JobState) *perEvent {
+func makePerJobReport(jobState *jobstate.JobState) *perJobReport {
 	job := jobState.Aux.(*cpuhogJob)
-	return &perEvent{
+	return &perJobReport{
 		Host:              jobState.Host,
 		Id:                jobState.Id,
 		User:              job.user,
@@ -170,12 +169,14 @@ func makeEvent(jobState *jobstate.JobState) *perEvent {
 		RCpuPeak:          uint32(job.rcpuPeak),
 		RMemAvg:           uint32(job.rmemAvg),
 		RMemPeak:          uint32(job.rmemPeak),
+		jobState:          jobState,
 	}
 }
 
-func writeCpuhogReport(events []*perEvent) {
-	reports := make([]*util.JobReport, 0)
-	for _, e := range events {
+func writeCpuhogReport(perJobReports []*perJobReport) {
+	reports := []*util.JobReport{}
+	for _, r := range perJobReports {
+		r.jobState.IsReported = true
 		report := fmt.Sprintf(
 			`New CPU hog detected (uses a lot of CPU and no GPU) on host "%s":
   Job#: %d
@@ -189,18 +190,18 @@ func writeCpuhogReport(events []*perEvent) {
     Memory utilization avg/peak = %d%%, %d%%
 
 `,
-			e.Host,
-			e.Id,
-			e.User,
-			e.Cmd,
-			e.StartedOnOrBefore,
-			e.FirstViolation,
-			e.CpuPeak,
-			e.RCpuAvg,
-			e.RCpuPeak,
-			e.RMemAvg,
-			e.RMemPeak)
-		reports = append(reports, &util.JobReport{Id: e.Id, Host: e.Host, Report: report})
+			r.Host,
+			r.Id,
+			r.User,
+			r.Cmd,
+			r.StartedOnOrBefore,
+			r.FirstViolation,
+			r.CpuPeak,
+			r.RCpuAvg,
+			r.RCpuPeak,
+			r.RMemAvg,
+			r.RMemPeak)
+		reports = append(reports, &util.JobReport{Id: r.Id, Host: r.Host, Report: report})
 	}
 
 	util.SortReports(reports)
