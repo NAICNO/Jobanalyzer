@@ -120,7 +120,7 @@ func createDeadweightReport(
 	logs []*joblog.JobsByHost[*deadweightJob],
 	allJobs bool,
 ) []*perJobReport {
-	perJobReports := []*perJobReport{}
+	perJobReports := make([]*perJobReport, 0, len(db.Active) + len(db.Expired))
 	for _, jobState := range db.Active {
 		if allJobs || !jobState.IsReported {
 			perJobReports = append(perJobReports, makePerJobReport(jobState))
@@ -144,11 +144,12 @@ func makePerJobReport(jobState *jobstate.JobState) *perJobReport {
 		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(util.DateTimeFormat),
 		FirstViolation:    jobState.FirstViolation.Format(util.DateTimeFormat),
 		LastSeen:          jobState.LastSeen.Format(util.DateTimeFormat),
+		jobState:          jobState,
 	}
 }
 
 func writeDeadweightReport(perJobReports []*perJobReport) {
-	reports := make([]*util.JobReport, 0)
+	reports := make([]*util.JobReport, 0, len(perJobReports))
 	for _, r := range perJobReports {
 		r.jobState.IsReported = true
 		report := fmt.Sprintf(

@@ -140,7 +140,7 @@ func createCpuhogReport(
 	logs []*joblog.JobsByHost[*cpuhogJob],
 	allJobs bool,
 ) []*perJobReport {
-	perJobReports := []*perJobReport{}
+	perJobReports := make([]*perJobReport, 0, len(db.Active) + len(db.Expired))
 	for _, jobState := range db.Active {
 		if allJobs || !jobState.IsReported {
 			perJobReports = append(perJobReports, makePerJobReport(jobState))
@@ -173,7 +173,7 @@ func makePerJobReport(jobState *jobstate.JobState) *perJobReport {
 }
 
 func writeCpuhogReport(perJobReports []*perJobReport) {
-	reports := []*util.JobReport{}
+	reports := make([]*util.JobReport, 0, len(perJobReports))
 	for _, r := range perJobReports {
 		r.jobState.IsReported = true
 		report := fmt.Sprintf(
