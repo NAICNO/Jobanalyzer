@@ -108,8 +108,7 @@ func MlCpuhog(progname string, args []string) error {
 	}
 
 	if *jsonOutput {
-		perJobReports := createCpuhogReport(db, logs, true)
-		bytes, err := json.Marshal(perJobReports)
+		bytes, err := json.Marshal(createCpuhogReport(db, logs, true))
 		if err != nil {
 			return err
 		}
