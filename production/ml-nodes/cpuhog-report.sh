@@ -2,7 +2,7 @@
 
 # Meta-analysis job to run on one node every 12h.  This job prints a
 # report on stdout, which will be emailed to the job owner by cron if
-# nothing else is set up.
+# nothing else is set up, and it generates a json file for upload.
 
 set -euf -o pipefail
 
