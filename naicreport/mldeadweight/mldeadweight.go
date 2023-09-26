@@ -96,7 +96,7 @@ func MlDeadweight(progname string, args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Print(string(bytes))
+		fmt.Println(string(bytes))
 	} else {
 		writeDeadweightReport(createDeadweightReport(db, logs, false))
 	}
