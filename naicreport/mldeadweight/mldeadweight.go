@@ -44,12 +44,12 @@ func MlDeadweight(progname string, args []string) error {
 		return err
 	}
 
-	state, err := jobstate.ReadJobDatabaseOrEmpty(progOpts.DataPath, deadweightFilename)
+	db, err := jobstate.ReadJobDatabaseOrEmpty(progOpts.DataPath, deadweightFilename)
 	if err != nil {
 		return err
 	}
 	if progOpts.Verbose {
-		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(state.Active), len(state.Expired))
+		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(db.Active), len(db.Expired))
 	}
 
 	logs, err := joblog.ReadJoblogFiles[*deadweightJob](
@@ -76,7 +76,7 @@ func MlDeadweight(progname string, args []string) error {
 	new_jobs := 0
 	for _, hostrec := range logs {
 		for _, job := range hostrec.Jobs {
-			if jobstate.EnsureJob(state, job.Id, job.Host, job.start, now, job.LastSeen, job.Expired, job) {
+			if jobstate.EnsureJob(db, job.Id, job.Host, job.start, now, job.LastSeen, job.Expired, job) {
 				new_jobs++
 			}
 		}
@@ -86,26 +86,25 @@ func MlDeadweight(progname string, args []string) error {
 	}
 
 	purgeDate := util.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
-	purged := jobstate.PurgeJobsBefore(state, purgeDate)
+	purged := jobstate.PurgeJobsBefore(db, purgeDate)
 	if progOpts.Verbose {
 		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
 	}
 
-	events := createDeadweightReport(state, logs)
 	if *jsonOutput {
-		bytes, err := json.Marshal(events)
+		bytes, err := json.Marshal(createDeadweightReport(db, logs, true))
 		if err != nil {
 			return err
 		}
-		fmt.Print(string(bytes))
+		fmt.Println(string(bytes))
 	} else {
-		writeDeadweightReport(events)
+		writeDeadweightReport(createDeadweightReport(db, logs, false))
 	}
 
-	return jobstate.WriteJobDatabase(progOpts.DataPath, deadweightFilename, state)
+	return jobstate.WriteJobDatabase(progOpts.DataPath, deadweightFilename, db)
 }
 
-type perEvent struct {
+type perJobReport struct {
 	Host              string `json:"hostname"`
 	Id                uint32 `json:"id"`
 	User              string `json:"user"`
@@ -113,31 +112,31 @@ type perEvent struct {
 	StartedOnOrBefore string `json:"started-on-or-before"`
 	FirstViolation    string `json:"first-violation"`
 	LastSeen          string `json:"last-seen"`
+	jobState          *jobstate.JobState
 }
 
 func createDeadweightReport(
 	db *jobstate.JobDatabase,
 	logs []*joblog.JobsByHost[*deadweightJob],
-) []*perEvent {
-	events := make([]*perEvent, 0)
+	allJobs bool,
+) []*perJobReport {
+	perJobReports := make([]*perJobReport, 0, len(db.Active) + len(db.Expired))
 	for _, jobState := range db.Active {
-		if !jobState.IsReported {
-			jobState.IsReported = true
-			events = append(events, makeEvent(jobState))
+		if allJobs || !jobState.IsReported {
+			perJobReports = append(perJobReports, makePerJobReport(jobState))
 		}
 	}
 	for _, jobState := range db.Expired {
-		if !jobState.IsReported {
-			jobState.IsReported = true
-			events = append(events, makeEvent(jobState))
+		if allJobs || !jobState.IsReported {
+			perJobReports = append(perJobReports, makePerJobReport(jobState))
 		}
 	}
-	return events
+	return perJobReports
 }
 
-func makeEvent(jobState *jobstate.JobState) *perEvent {
+func makePerJobReport(jobState *jobstate.JobState) *perJobReport {
 	job := jobState.Aux.(*deadweightJob)
-	return &perEvent{
+	return &perJobReport{
 		Host:              jobState.Host,
 		Id:                jobState.Id,
 		User:              job.user,
@@ -145,12 +144,14 @@ func makeEvent(jobState *jobstate.JobState) *perEvent {
 		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(util.DateTimeFormat),
 		FirstViolation:    jobState.FirstViolation.Format(util.DateTimeFormat),
 		LastSeen:          jobState.LastSeen.Format(util.DateTimeFormat),
+		jobState:          jobState,
 	}
 }
 
-func writeDeadweightReport(events []*perEvent) {
-	reports := make([]*util.JobReport, 0)
-	for _, e := range events {
+func writeDeadweightReport(perJobReports []*perJobReport) {
+	reports := make([]*util.JobReport, 0, len(perJobReports))
+	for _, r := range perJobReports {
+		r.jobState.IsReported = true
 		report := fmt.Sprintf(
 			`New pointless job detected (zombie, defunct, or hung) on host "%s":
   Job#: %d
@@ -160,14 +161,14 @@ func writeDeadweightReport(events []*perEvent) {
   Violation first detected: %s
   Last seen: %s
 `,
-			e.Host,
-			e.Id,
-			e.User,
-			e.Cmd,
-			e.StartedOnOrBefore,
-			e.FirstViolation,
-			e.LastSeen)
-		reports = append(reports, &util.JobReport{Id: e.Id, Host: e.Host, Report: report})
+			r.Host,
+			r.Id,
+			r.User,
+			r.Cmd,
+			r.StartedOnOrBefore,
+			r.FirstViolation,
+			r.LastSeen)
+		reports = append(reports, &util.JobReport{Id: r.Id, Host: r.Host, Report: report})
 	}
 
 	util.SortReports(reports)
