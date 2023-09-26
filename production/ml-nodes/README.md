@@ -55,3 +55,22 @@ named `cpuhog.csv` and `deadweight.csv`.
 `naicreport` system; the latter also sometimes uses the raw logs to
 produce reports.)
 
+**TODO: Document the upload script here!**
+
+## UiO setup
+
+The production web server is an nginx instance that runs on a vm on the open internet with static
+address `http://158.39.48.160`.  The user is `ubuntu`; this user has password-less sudo capability
+on the system.
+
+There must not be any secrets on the system that lets anyone on it into other systems.  It is an
+endpoint system.
+
+We use the default nginx setup, so files are in `/var/www/html`.  The files in that directory are
+the files from the `dashboard` directory in this repository, plus a subdirectory called `output`.
+All files and directories should have user.group=`ubuntu.ubuntu`, but this is probably only
+important for the `output` directory.
+
+The access key is in the file `ubuntu-vm.pem` which I'm not going to be including here.  The key
+needs to be located in the `~/.ssh` directory of any user account that will run the `upload-data.sh`
+script documented above.
