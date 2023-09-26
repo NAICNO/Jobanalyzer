@@ -127,6 +127,7 @@ type perJobReport struct {
 	Cmd               string `json:"cmd"`
 	StartedOnOrBefore string `json:"started-on-or-before"`
 	FirstViolation    string `json:"first-violation"`
+	LastSeen          string `json:"last-seen"`
 	CpuPeak           uint32 `json:"cpu-peak"`
 	RCpuAvg           uint32 `json:"rcpu-avg"`
 	RCpuPeak          uint32 `json:"rcpu-peak"`
@@ -163,6 +164,7 @@ func makePerJobReport(jobState *jobstate.JobState) *perJobReport {
 		Cmd:               job.cmd,
 		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(util.DateTimeFormat),
 		FirstViolation:    jobState.FirstViolation.Format(util.DateTimeFormat),
+		LastSeen:          jobState.LastSeen.Format(util.DateTimeFormat),
 		CpuPeak:           uint32(job.cpuPeak / 100),
 		RCpuAvg:           uint32(job.rcpuAvg),
 		RCpuPeak:          uint32(job.rcpuPeak),
@@ -183,6 +185,7 @@ func writeCpuhogReport(perJobReports []*perJobReport) {
   Command: %s
   Started on or before: %s
   Violation first detected: %s
+  Last Seen: %s
   Observed data:
     CPU peak = %d cores
     CPU utilization avg/peak = %d%%, %d%%
@@ -195,6 +198,7 @@ func writeCpuhogReport(perJobReports []*perJobReport) {
 			r.Cmd,
 			r.StartedOnOrBefore,
 			r.FirstViolation,
+			r.LastSeen,
 			r.CpuPeak,
 			r.RCpuAvg,
 			r.RCpuPeak,
