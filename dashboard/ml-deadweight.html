@@ -1,5 +1,6 @@
 <html>
   <head>
+    <link rel=stylesheet type=text/css href="table-style.css"/>
     <title>ML nodes deadweight dashboard</title>
   </head>
   <body>
@@ -7,5 +8,20 @@
     otherwise dead and may be bogging down the system.  The list is
     recomputed at noon and midnight.</p>
     <p> (To be developed.  The data exist but not the presentation.) </p>
+
+    <div id=report></div>
+
+    <script src="render-table.js"></script>
+    <script>
+      var file = "deadweight-report.json";
+      var fields = [{name: "Host", tag: "hostname"},
+		    {name: "User", tag: "user"},
+		    {name: "Job",  tag: "id"},
+		    {name: "Command", tag:"cmd"},
+		    {name: "First seen", tag:"started-on-or-before"},
+		    {name: "Last seen", tag:"last-seen"}]
+      render_table(file, fields, document.getElementById("report"), cmp_string_fields("last-seen", true))
+    </script>
+
   </body>
 </html>

@@ -1,15 +1,37 @@
 <html>
   <head>
+    <link rel=stylesheet type=text/css href="table-style.css"/>
     <title>ML nodes CPU hog dashboard</title>
   </head>
+
   <body>
     <p>The following jobs have used significant CPU time without using
     any GPU time and are probably not appropriate to run on the ML
-    systems.  The list is recomputed at noon and midnight.</p>
+    systems.  The list is recomputed at noon and midnight and goes back four weeks.</p>
 
     <p> (This is a prototype for a more general dashboard that shows jobs that do not use
       system resources allocated to them appropriately.) </p>
 
-    <p> (To be developed.  The data exist but not the presentation.) </p>
+    <div id=report></div>
+
+    <script src="render-table.js"></script>
+    <script>
+      // TODO: last-seen is not present in data
+      // TODO: which fields do we really want to show?
+      // TODO: Sort by something?
+      var file = "cpuhog-report.json";
+      var fields = [{name: "Host", tag: "hostname"},
+		    {name: "User", tag: "user"},
+		    {name: "Job",  tag: "id"},
+		    {name: "Command", tag:"cmd"},
+		    {name: "First seen", tag:"started-on-or-before"},
+		    {name: "Last seen", tag:"last-seen"},
+		    {name: "CPU peak", tag:"cpu-peak"},
+		    {name: "RCPU avg", tag:"rcpu-avg"},
+		    {name: "RCPU peak", tag:"rcpu-peak"},
+		    {name: "RMem avg", tag:"rmem-avg"},
+		    {name: "RMem peak", tag:"rmem-peak"}]
+      render_table(file, fields, document.getElementById("report"))
+    </script>
   </body>
 </html>
