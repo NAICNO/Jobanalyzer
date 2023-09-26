@@ -14,4 +14,5 @@ load_report_path=$data_path/load-reports
 # readable by the web server.
 chmod go+r $load_report_path/*.json
 
-scp -q -i ~/.ssh/axis_of_eval_naic $load_report_path/*.json naic@axis-of-eval.org:/var/www/naic/output
+#scp -q -i ~/.ssh/axis_of_eval_naic $load_report_path/*.json naic@axis-of-eval.org:/var/www/naic/output
+scp -q -i ~/.ssh/ubuntu-vm.pem $load_report_path/*.json ubuntu@158.39.48.160:/var/www/html/output
