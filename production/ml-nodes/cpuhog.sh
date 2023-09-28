@@ -6,11 +6,8 @@
 sonar_dir=$HOME/sonar
 sonar_data_dir=$sonar_dir/data
 
-year=$(date +'%Y')
-month=$(date +'%m')
-day=$(date +'%d')
-
-output_directory=${sonar_data_dir}/${year}/${month}/${day}
+path=$(date +'%Y/%m/%d')
+output_directory=${sonar_data_dir}/${path}
 mkdir -p ${output_directory}
 
 # Report jobs that have used "a lot" of CPU and have run for at least 10 minutes but have not touched the
