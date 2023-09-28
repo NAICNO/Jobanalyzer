@@ -161,7 +161,12 @@ down during a period this is marked clearly and distinguished from zero load.
 
 *A* can select time periods from at least the set last day, last week, or last month.
 
-*Story 2:* Deadweight processes. TODO
+*Story 2:* *A* wants an overview of processes that are stuck (zombie, defunct) or holding onto GPU
+resources (GPU lists them as active but they are dead).
+
+To retrieve these data, *A* goes to the web-based overview dashboard, selects system and time window
+(usually only the last few days are interesting), and gets a textual report of jobs that appear to
+be dead weight and the reason for this.
 
 #### `adm_historical_system_load`
 
@@ -246,6 +251,8 @@ In all cases, *A* does not want to have to poll the dashboard every morning, and
 register to receive an alert by email when the situation arises.  *A* can state this preference in
 his profile on the console.
 
+For some of these use cases, near real time data / alerts is probably desirable - TBD.
+
 *Story 1 (gpuhog):* *U* is occupying and using a lot of GPU resources for a long time (on a system
 without a batch queue).  This creates a situation where the work of one user prevents many other
 users from getting work done.  *A* wants to move *U* to a system that has more GPUs and a batch
@@ -261,24 +268,69 @@ any GPU, on a system reserved for GPU computation.  This creates a situation whe
 user prevents many other users from getting work done.  *A* wants to move *U* to a system without
 GPUs.
 
-*Story 4 (confused):* This is a generalization of *Story 3* but pertains more to systems with batch
+*Story 4 (greedy):* This is a generalization of *Story 3* but pertains more to systems with batch
 queues: *U* has asked for resources but are not using them.  *A* wants to alert *U* to this fact.
+
+*Story 5 (mouse):* An important wrinkle on Story 4 for systems with implicit resource allocation (eg
+the ML nodes) is when a program is in the way because it is *too small* for a system.  ML8 is case
+in point: Everyone wants to use the A100s.  But when a program uses a measly 8GB VRAM, it could run
+on any of the ML nodes, yet when it runs on ML8 it is in the way of programs that could use the 40GB
+provided by those cards.  (And when some of the other ML nodes stand unused, this is Story 1 of
+`adm_unused_capacity` as well.)
 
 
 #### `adm_software_use`
 
-TODO This is the #20 "what software is been used by users" ticket, and also #32 a bit I guess.
+*Story 1:* *A* wants to know which software is being used by the users.  The reason may be that the
+system is being upgraded and *A* doesn't want to upgrade dead software.
 
+*A* should be able to at least run an ad-hoc report generator with a time window argument, it would
+compile a textual report of the names of modules or programs that have been used.
+
+*Story 2:* *A* wants to know which software uses the most resources on a system.  The reason may be
+to see if there is a way of reducing overall system load by upgrading or replacing software.
+
+*A* should be able to run another ad-hoc report generator with a time window argument, it should
+compile a textual report of the names of programs that have been used.
+
+(See issue #20 for more.)
 
 ### "User" user stories
 
 #### `usr_resource_use`
 
-TODO (See `verify_gpu_use` and `verify_resource_use` in README.md)
+*Story 1:* *U* submits an HPC job expecting to use 16 cores and 8GB memory per CPU. Admins complain
+that *U* is wasting resources (the program runs on one core and uses 4GB). In order to debug the
+problem, *U* wants to check which resources the job just finished used.
+
+*U* breaks out the Jobanalyzer command line tool and asks to see the statistics on her last job that
+completed.
+
+*Story 2:* *U* runs an analysis using Pytorch. *U* expects the code to use GPUs. *U* wants to check
+that the code did indeed use the GPU during the last 10 analyses that ran to completion.
+
+*U* again breaks out the command line tool and asks to see the statistics on her last 10 jobs that
+completed.
+
+(For more detail, see the `verify_gpu_use` and `verify_resource_use` use cases in README.md)
 
 #### `usr_scalability`
 
-TODO (See `verify_scalability` and `thin_pipe` in README.md, and there is the #18 "data access bottleneck" and #58 "present inter-node communications volume" use cases)
+*Story 1:* *U* wants to understand a (say) matrix multiplication program written in C++ with an eye to whether
+it will scale to larger systems.
+
+*U* breaks out the command line tool and looks at the statistics for a run of the program, relative
+to the system configuration.  If the program is not using the system effectively then it probably
+will not scale; if it does use all of the system, it might scale.
+
+*Story 2:* *U* runs a job on several nodes of a supercomputer and the jobs communicate heavily, but
+the communication does not use the best conduit available (say, uses Ethernet and not InfiniBand).
+*U* should be alerted to the problem so that *U* can change the code to use a better conduit.
+
+TODO: To be developed.
+
+(For more detail, see the `verify_scalability` and `thin_pipe` use cases in README.md, as well as
+tickets #18 and #58.)
 
 ### "Public and decision-maker" user stories
 
