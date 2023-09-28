@@ -3,7 +3,7 @@
 (Based on discussion in [ticket 92](https://github.com/NAICNO/Jobanalyzer/issues/92) and also older
 sketches and plans.)
 
-The audience for this document is "everyone".
+This document exists primarily to create agreement within the development org.
 
 ## Overall view
 
@@ -137,6 +137,17 @@ systems work this way: the current ML nodes do not have resource allocation, it'
 
 TODO: More work needed.
 
+## Scope
+
+Jobanalyzer should not try to do the job of existing good tools.  For example, `htop` and `nvtop`
+will be better at displaying moment-to-moment load.  A profiler such as `perf` will do better at
+finding bottlenecks in the code.
+
+What we can hope to do is provide high-level, easy-to-use tools that will collect data across time,
+enough to give a view of the systems' utilization and, help with the initial diagnosis of
+scalability issues, help with systems management and load balancing, and report on the systems
+health and use.
+
 ## User stories that will be supported
 
 User stories are given identifier-like names so that they can more easily be referenced elsewhere.
@@ -144,7 +155,7 @@ User stories are given identifier-like names so that they can more easily be ref
 maker.  NAIC management is lumped in with the administrators, mostly.
 
 Unless otherwise stated, we are assuming that there is continual data collection (sampling) on all
-systems.
+systems.  For some use cases, more is needed.
 
 ### "Admin" user stories
 
@@ -273,10 +284,10 @@ queues: *U* has asked for resources but are not using them.  *A* wants to alert 
 
 *Story 5 (mouse):* An important wrinkle on Story 4 for systems with implicit resource allocation (eg
 the ML nodes) is when a program is in the way because it is *too small* for a system.  ML8 is case
-in point: Everyone wants to use the A100s.  But when a program uses a measly 8GB VRAM, it could run
-on any of the ML nodes, yet when it runs on ML8 it is in the way of programs that could use the 40GB
-provided by those cards.  (And when some of the other ML nodes stand unused, this is Story 1 of
-`adm_unused_capacity` as well.)
+in point: Everyone wants to use the fancy A100s.  But when a program uses a measly 8GB VRAM, it
+could likely run on any of the ML nodes, yet when it runs on ML8 it is in the way of programs that
+could use the 40GB provided by those cards.  (And when some of the other ML nodes stand unused, this
+is Story 1 of `adm_unused_capacity` as well.)
 
 
 #### `adm_software_use`
@@ -316,8 +327,8 @@ completed.
 
 #### `usr_scalability`
 
-*Story 1:* *U* wants to understand a (say) matrix multiplication program written in C++ with an eye to whether
-it will scale to larger systems.
+*Story 1:* *U* wants to understand a (say) matrix multiplication program written in C++ with an eye
+to whether it will scale to larger systems.
 
 *U* breaks out the command line tool and looks at the statistics for a run of the program, relative
 to the system configuration.  If the program is not using the system effectively then it probably
@@ -329,9 +340,21 @@ the communication does not use the best conduit available (say, uses Ethernet an
 
 TODO: To be developed.
 
+*Story 3:* Same thing, but for disk I/O.
+
+TODO: To be developed.
+
 (For more detail, see the `verify_scalability` and `thin_pipe` use cases in README.md, as well as
 tickets #18 and #58.)
 
 ### "Public and decision-maker" user stories
 
-TBD
+#### `pub_periodic_reports`
+
+*Story:* *D* wants quarterly and annual reports of how the systems are being used, in order to decide
+whether to provide more money.
+
+*D* asks *A* for this report... and maybe it turns into an admin use case.  Obvious things to want to
+report on is system load, uptime, wait times, projects that were run, projects that were denied(!).
+
+TODO: To be developed.
