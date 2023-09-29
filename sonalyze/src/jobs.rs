@@ -86,6 +86,8 @@ pub fn aggregate_and_print_jobs(
     earliest: Timestamp,
     latest: Timestamp,
 ) -> Result<()> {
+    // These are unmerged, but they are also unfiltered, so there may be data here that are not used
+    // at all in the aggregated jobs.
     let orig_streams = if print_args.breakdown.is_some() {
         Some(streams.clone())
     } else {
@@ -149,26 +151,30 @@ fn attach_breakdown(
     // If the streams in `orig_streams` are unique enough to be in a HashMap then the subset
     // we're creating by job here - the value in this hashmap - will also have unique keys if
     // they reuse the InputStreamKey.
+    //
+    // Note orig_streams may have more streams and jobs than are in jobvec, due to filtering
+    // during aggregation.
 
-    let mut streams_by_job: HashMap<u32, InputStreamSet> = HashMap::new();
+    let mut orig_streams_by_job: HashMap<u32, InputStreamSet> = HashMap::new();
     for (key, streams) in orig_streams.drain() {
         let job_id = streams[0].job_id;
         if job_id == 0 {
             continue;
         }
-        if let Some(iss) = streams_by_job.get_mut(&job_id) {
+        if let Some(iss) = orig_streams_by_job.get_mut(&job_id) {
             iss.insert(key, streams);
         } else {
-            let mut hm = HashMap::new();
-            hm.insert(key, streams);
-            streams_by_job.insert(job_id, hm);
+            let mut iss = InputStreamSet::new();
+            iss.insert(key, streams);
+            orig_streams_by_job.insert(job_id, iss);
         }
     }
 
-    for (job_id, job_streams) in streams_by_job.drain() {
+    for (job_id, orig_job_streams) in orig_streams_by_job.drain() {
         // TODO: This lookup is going to be quadratic
-        let job = jobvec.iter_mut().find(|j| j.job[0].job_id == job_id).unwrap();
-        attach_one_breakdown(system_config, filter_args, kwds, kwdix, job, job_streams, earliest, latest);
+        if let Some(job) = jobvec.iter_mut().find(|j| j.job[0].job_id == job_id) {
+            attach_one_breakdown(system_config, filter_args, kwds, kwdix, job, orig_job_streams, earliest, latest);
+        }
     }
 }
 
@@ -178,7 +184,7 @@ fn attach_one_breakdown(
     kwds: &[&str],
     kwdix: usize,
     job: &mut JobSummary,
-    mut job_streams: InputStreamSet,
+    mut orig_job_streams: InputStreamSet,
     earliest: Timestamp,
     latest: Timestamp,
 ) {
@@ -187,15 +193,15 @@ fn attach_one_breakdown(
     // Partition the streams for the job by host or command.  Again, it's fine to reuse the
     // InputStreamKey as the key for the inner map.
 
-    let mut streams_by_x: HashMap<String, InputStreamSet> = HashMap::new();
-    for (key, streams) in job_streams.drain() {
+    let mut orig_streams_by_x: HashMap<String, InputStreamSet> = HashMap::new();
+    for (key, streams) in orig_job_streams.drain() {
         let k = if kwd == "host" { key.0.clone() } else { key.2.clone() };
-        if let Some(iss) = streams_by_x.get_mut(&k) {
+        if let Some(iss) = orig_streams_by_x.get_mut(&k) {
             iss.insert(key, streams);
         } else {
-            let mut hm = HashMap::new();
-            hm.insert(key.clone(), streams);
-            streams_by_x.insert(k, hm);
+            let mut iss = InputStreamSet::new();
+            iss.insert(key.clone(), streams);
+            orig_streams_by_x.insert(k, iss);
         }
     }
 
@@ -203,11 +209,18 @@ fn attach_one_breakdown(
     // further.
 
     let mut breakdown = vec![];
-    for (_x, x_streams) in streams_by_x {
+    for (_x, x_streams) in orig_streams_by_x {
         let next_streams = if kwdix < kwds.len()-1 { Some(x_streams.clone()) } else { None };
         let mut summaries =
             aggregate_and_filter_jobs(system_config, filter_args, x_streams, earliest, latest);
-        assert!(summaries.len() == 1);
+        if summaries.len() == 0 {
+            // There could be no summaries due to filtering: job_streams are the original unfiltered
+            // streams for the job, but we apply filtering during aggregation
+            continue
+        }
+        if summaries.len() != 1 {
+            panic!("summaries.len() = {}", summaries.len())
+        }
         let mut summary = summaries.pop().unwrap();
         if let Some(orig_x_streams) = next_streams {
             attach_one_breakdown(system_config, filter_args, kwds, kwdix+1, &mut summary, orig_x_streams, earliest, latest);
@@ -343,7 +356,7 @@ fn aggregate_and_filter_jobs(
 
     // Select streams and synthesize a merged stream, and then aggregate and print it.
 
-    let mut jobs = 
+    let mut jobs =
         if filter_args.batch {
             sonarlog::merge_by_job(streams)
         } else {
@@ -402,7 +415,7 @@ fn aggregate_job(
     let gpumem_peak = job.iter().fold(0.0, |acc, jr| f64::max(acc, jr.gpumem_gb));
     let mut rgpumem_avg = 0.0;
     let mut rgpumem_peak = 0.0;
-    
+
     if let Some(confs) = system_config {
         if let Some(conf) = confs.get(host) {
             let cpu_cores = conf.cpu_cores as f64;
