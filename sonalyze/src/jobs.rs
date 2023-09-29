@@ -86,6 +86,8 @@ pub fn aggregate_and_print_jobs(
     earliest: Timestamp,
     latest: Timestamp,
 ) -> Result<()> {
+    // These are unmerged, but they are also unfiltered, so there may be data here that are not used
+    // at all in the aggregated jobs.
     let orig_streams = if print_args.breakdown.is_some() {
         Some(streams.clone())
     } else {
@@ -149,6 +151,9 @@ fn attach_breakdown(
     // If the streams in `orig_streams` are unique enough to be in a HashMap then the subset
     // we're creating by job here - the value in this hashmap - will also have unique keys if
     // they reuse the InputStreamKey.
+    //
+    // Note orig_streams may have more streams and jobs than are in jobvec, due to filtering
+    // during aggregation.
 
     let mut streams_by_job: HashMap<u32, InputStreamSet> = HashMap::new();
     for (key, streams) in orig_streams.drain() {
@@ -159,16 +164,17 @@ fn attach_breakdown(
         if let Some(iss) = streams_by_job.get_mut(&job_id) {
             iss.insert(key, streams);
         } else {
-            let mut hm = HashMap::new();
-            hm.insert(key, streams);
-            streams_by_job.insert(job_id, hm);
+            let mut iss = InputStreamSet::new();
+            iss.insert(key, streams);
+            streams_by_job.insert(job_id, iss);
         }
     }
 
     for (job_id, job_streams) in streams_by_job.drain() {
         // TODO: This lookup is going to be quadratic
-        let job = jobvec.iter_mut().find(|j| j.job[0].job_id == job_id).unwrap();
-        attach_one_breakdown(system_config, filter_args, kwds, kwdix, job, job_streams, earliest, latest);
+        if let Some(job) = jobvec.iter_mut().find(|j| j.job[0].job_id == job_id) {
+            attach_one_breakdown(system_config, filter_args, kwds, kwdix, job, job_streams, earliest, latest);
+        }
     }
 }
 
@@ -193,9 +199,9 @@ fn attach_one_breakdown(
         if let Some(iss) = streams_by_x.get_mut(&k) {
             iss.insert(key, streams);
         } else {
-            let mut hm = HashMap::new();
-            hm.insert(key.clone(), streams);
-            streams_by_x.insert(k, hm);
+            let mut iss = InputStreamSet::new();
+            iss.insert(key.clone(), streams);
+            streams_by_x.insert(k, iss);
         }
     }
 
@@ -207,7 +213,14 @@ fn attach_one_breakdown(
         let next_streams = if kwdix < kwds.len()-1 { Some(x_streams.clone()) } else { None };
         let mut summaries =
             aggregate_and_filter_jobs(system_config, filter_args, x_streams, earliest, latest);
-        assert!(summaries.len() == 1);
+        if summaries.len() == 0 {
+            // There could be no summaries due to filtering: job_streams are the original unfiltered
+            // streams for the job, but we apply filtering during aggregation
+            continue
+        }
+        if summaries.len() != 1 {
+            panic!("summaries.len() = {}", summaries.len())
+        }
         let mut summary = summaries.pop().unwrap();
         if let Some(orig_x_streams) = next_streams {
             attach_one_breakdown(system_config, filter_args, kwds, kwdix+1, &mut summary, orig_x_streams, earliest, latest);
