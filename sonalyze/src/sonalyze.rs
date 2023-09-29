@@ -58,7 +58,13 @@ enum Commands {
 #[derive(Args, Debug)]
 pub struct JobArgs {
     #[command(flatten)]
-    input_args: InputArgs,
+    source_args: SourceArgs,
+
+    #[command(flatten)]
+    host_args: HostInputFilterArgs,
+
+    #[command(flatten)]
+    input_args: JobAndLoadInputArgs,
 
     #[command(flatten)]
     filter_args: JobFilterAndAggregationArgs,
@@ -73,7 +79,13 @@ pub struct JobArgs {
 #[derive(Args, Debug)]
 pub struct LoadArgs {
     #[command(flatten)]
-    input_args: InputArgs,
+    source_args: SourceArgs,
+
+    #[command(flatten)]
+    host_args: HostInputFilterArgs,
+
+    #[command(flatten)]
+    input_args: JobAndLoadInputArgs,
 
     #[command(flatten)]
     filter_args: LoadFilterAndAggregationArgs,
@@ -86,7 +98,35 @@ pub struct LoadArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct InputArgs {
+pub struct SourceArgs {
+    /// Select the root directory for log files [default: $SONAR_ROOT]
+    #[arg(long)]
+    data_path: Option<String>,
+
+    /// Select records by this time and later.  Format can be YYYY-MM-DD, or Nd or Nw
+    /// signifying N days or weeks ago [default: 1d, ie 1 day ago]
+    #[arg(long, short, value_parser = parse_time_start_of_day)]
+    from: Option<Timestamp>,
+
+    /// Select records by this time and earlier.  Format can be YYYY-MM-DD, or Nd or Nw
+    /// signifying N days or weeks ago [default: now]
+    #[arg(long, short, value_parser = parse_time_end_of_day)]
+    to: Option<Timestamp>,
+
+    /// Log file names (overrides --data-path)
+    #[arg(last = true)]
+    logfiles: Vec<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct HostInputFilterArgs {
+    /// Select records for this host name (repeatable) [default: all]
+    #[arg(long)]
+    host: Vec<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct JobAndLoadInputArgs {
     /// Select the root directory for log files [default: $SONAR_ROOT]
     #[arg(long)]
     data_path: Option<String>,
@@ -120,10 +160,6 @@ pub struct InputArgs {
     /// signifying N days or weeks ago [default: now]
     #[arg(long, short, value_parser = parse_time_end_of_day)]
     to: Option<Timestamp>,
-
-    /// Select records for this host name (repeatable) [default: all]
-    #[arg(long)]
-    host: Vec<String>,
 
     /// File containing JSON data with system information, for when we want to print or use system-relative values [default: none]
     #[arg(long)]
@@ -290,7 +326,7 @@ pub struct LoadPrintArgs {
     #[arg(long)]
     last: bool,
 
-    /// Select fields for the output [default: see MANUAL.md]
+    /// Select fields and format for the output [default: see MANUAL.md]
     #[arg(long)]
     fmt: Option<String>,
 
@@ -309,7 +345,7 @@ pub struct JobPrintArgs {
     #[arg(long, short)]
     numjobs: Option<usize>,
 
-    /// Select fields for the output [default: see MANUAL.md]
+    /// Select fields and format for the output [default: see MANUAL.md]
     #[arg(long)]
     fmt: Option<String>,
 }
@@ -484,38 +520,43 @@ fn main() {
 fn sonalyze() -> Result<()> {
     let cli = Cli::parse();
 
-    let input_args = match cli.command {
-        Commands::Jobs(ref jobs_args) => &jobs_args.input_args,
-        Commands::Load(ref load_args) => &load_args.input_args,
-    };
-
     let meta_args = match cli.command {
         Commands::Jobs(ref jobs_args) => &jobs_args.meta_args,
         Commands::Load(ref load_args) => &load_args.meta_args,
     };
 
-    // Validate and regularize input parameters from switches and defaults.
+    let include_hosts = {
+        let host_args = match cli.command {
+            Commands::Jobs(ref jobs_args) => &jobs_args.host_args,
+            Commands::Load(ref load_args) => &load_args.host_args,
+        };
+
+        // Included host set, empty means "all"
+        let mut hosts = HostFilter::new();
+        for host in &host_args.host {
+            hosts.insert(host)?;
+        }
+        hosts
+    };
 
     let (
         from,
         to,
-        include_hosts,
-        include_jobs,
-        include_users,
-        exclude_users,
-        include_commands,
-        exclude_commands,
-        system_config,
         logfiles,
     ) = {
+        let source_args = match cli.command {
+            Commands::Jobs(ref jobs_args) => &jobs_args.source_args,
+            Commands::Load(ref load_args) => &load_args.source_args,
+        };
+
         // Included date range.  These are used both for file names and for records.
 
-        let from = if let Some(x) = input_args.from {
+        let from = if let Some(x) = source_args.from {
             x
         } else {
             sonarlog::now() - chrono::Duration::days(1)
         };
-        let to = if let Some(x) = input_args.to {
+        let to = if let Some(x) = source_args.to {
             x
         } else {
             sonarlog::now()
@@ -524,14 +565,71 @@ fn sonalyze() -> Result<()> {
             bail!("The --from time is greater than the --to time");
         }
 
-        // Included host set, empty means "all"
+        // Data path, if present.
 
-        let include_hosts = {
-            let mut hosts = HostFilter::new();
-            for host in &input_args.host {
-                hosts.insert(host)?;
+        let data_path = if source_args.data_path.is_some() {
+            source_args.data_path.clone()
+        } else if let Ok(val) = env::var("SONAR_ROOT") {
+            Some(val)
+        } else if let Ok(val) = env::var("HOME") {
+            Some(val + "/sonar_logs")
+        } else {
+            None
+        };
+
+        // Log files, filtered by host and time range.
+        //
+        // If the log files are provided on the command line then there will be no filtering by host
+        // name on the file name.  This is by design.
+
+        let logfiles = if source_args.logfiles.len() > 0 {
+            source_args.logfiles.clone()
+        } else {
+            if meta_args.verbose {
+                eprintln!("Data path: {:?}", data_path);
             }
-            hosts
+            if data_path.is_none() {
+                bail!("No data path");
+            }
+            let maybe_logfiles =
+                sonarlog::find_logfiles(&data_path.unwrap(), &include_hosts, from, to);
+            if let Err(ref msg) = maybe_logfiles {
+                bail!("{msg}");
+            }
+            maybe_logfiles.unwrap()
+        };
+
+        if meta_args.verbose {
+            eprintln!("Log files: {:?}", logfiles);
+        }
+
+        (
+            from,
+            to,
+            logfiles,
+        )
+    };
+
+    #[allow(unreachable_patterns)]
+    let jobs_or_load = match cli.command {
+        Commands::Jobs(_) => true,
+        Commands::Load(_) => true,
+        _ => false,
+    };
+
+    let (
+        include_jobs,
+        include_users,
+        exclude_users,
+        include_commands,
+        exclude_commands,
+        system_config
+    ) = if jobs_or_load {
+        #[allow(unreachable_patterns)]
+        let input_args = match cli.command {
+            Commands::Jobs(ref jobs_args) => &jobs_args.input_args,
+            Commands::Load(ref load_args) => &load_args.input_args,
+            _ => panic!("Unexpected"),
         };
 
         // Included job numbers, empty means "all"
@@ -618,7 +716,7 @@ fn sonalyze() -> Result<()> {
         };
 
         // Excluded commands.
-        
+
         let mut exclude_commands = {
             let mut excluded = HashSet::<String>::new();
             if input_args.exclude_command.len() > 0 {
@@ -637,18 +735,6 @@ fn sonalyze() -> Result<()> {
         exclude_commands.insert("tmux".to_string());
         exclude_commands.insert("systemd".to_string());
 
-        // Data path, if present.
-
-        let data_path = if input_args.data_path.is_some() {
-            input_args.data_path.clone()
-        } else if let Ok(val) = env::var("SONAR_ROOT") {
-            Some(val)
-        } else if let Ok(val) = env::var("HOME") {
-            Some(val + "/sonar_logs")
-        } else {
-            None
-        };
-
         // System configuration, if specified.
 
         let system_config = if let Some(ref config_filename) = input_args.config_file {
@@ -657,43 +743,22 @@ fn sonalyze() -> Result<()> {
             None
         };
 
-        // Log files, filtered by host and time range.
-        //
-        // If the log files are provided on the command line then there will be no filtering by host
-        // name on the file name.  This is by design.
-
-        let logfiles = if input_args.logfiles.len() > 0 {
-            input_args.logfiles.clone()
-        } else {
-            if meta_args.verbose {
-                eprintln!("Data path: {:?}", data_path);
-            }
-            if data_path.is_none() {
-                bail!("No data path");
-            }
-            let maybe_logfiles =
-                sonarlog::find_logfiles(&data_path.unwrap(), &include_hosts, from, to);
-            if let Err(ref msg) = maybe_logfiles {
-                bail!("{msg}");
-            }
-            maybe_logfiles.unwrap()
-        };
-
-        if meta_args.verbose {
-            eprintln!("Log files: {:?}", logfiles);
-        }
-
         (
-            from,
-            to,
-            include_hosts,
             include_jobs,
             include_users,
             exclude_users,
             include_commands,
             exclude_commands,
             system_config,
-            logfiles,
+        )
+    } else {
+        (
+            HashSet::<usize>::new(),  // include_jobs
+            HashSet::<String>::new(), // include_users
+            HashSet::<String>::new(), // exclude_users
+            HashSet::<String>::new(), // include_commands
+            HashSet::<String>::new(), // exclude_commands
+            None,                     // system_config
         )
     };
 
@@ -712,10 +777,10 @@ fn sonalyze() -> Result<()> {
     };
 
     let (entries, earliest, latest, records_read) = sonarlog::read_logfiles(&logfiles)?;
-    let streams = sonarlog::postprocess_log(entries, &filter, &system_config);
 
     match cli.command {
         Commands::Load(ref load_args) => {
+            let streams = sonarlog::postprocess_log(entries, &filter, &system_config);
             load::aggregate_and_print_load(
                 &mut io::stdout(),
                 &system_config,
@@ -729,6 +794,7 @@ fn sonalyze() -> Result<()> {
             )
         }
         Commands::Jobs(ref job_args) => {
+            let streams = sonarlog::postprocess_log(entries, &filter, &system_config);
             if meta_args.verbose {
                 eprintln!("Number of samples read: {}", records_read);
                 let numrec = streams
