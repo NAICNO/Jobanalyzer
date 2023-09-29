@@ -183,7 +183,7 @@ fn attach_one_breakdown(
     job: &mut JobSummary,
     mut orig_job_streams: InputStreamSet,
     bounds: &Timebounds,
-) {
+) -> bool {
     let kwd = kwds[kwdix];
 
     // Partition the streams for the job by host or command.  Again, it's fine to reuse the
@@ -204,6 +204,9 @@ fn attach_one_breakdown(
     // Aggregate the accumulated streams, and if necessary, descend another level to break down
     // further.
 
+    // The problem with this is that if you do breakdown=host,command and it's all on one host then
+    // we bail too soon.  It's only when we have descended to the bottom that we know for sure.
+    let mut will_attach = orig_streams_by_x.len() > 1;
     let mut breakdown = vec![];
     for (_x, x_streams) in orig_streams_by_x {
         let next_streams = if kwdix < kwds.len()-1 { Some(x_streams.clone()) } else { None };
@@ -219,12 +222,15 @@ fn attach_one_breakdown(
         }
         let mut summary = summaries.pop().unwrap();
         if let Some(orig_x_streams) = next_streams {
-            attach_one_breakdown(system_config, filter_args, kwds, kwdix+1, &mut summary, orig_x_streams, bounds);
+            will_attach = attach_one_breakdown(system_config, filter_args, kwds, kwdix+1, &mut summary, orig_x_streams, bounds) || will_attach;
         }
         breakdown.push(summary);
     }
-    let tag = kwd.to_string();
-    job.breakdown = Some((tag, breakdown));
+    if will_attach {
+        let tag = kwd.to_string();
+        job.breakdown = Some((tag, breakdown));
+    }
+    return will_attach;
 }
 
 // A sample stream is a quadruple (host, command, job-related-id, record-list).  A stream is only
