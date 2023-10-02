@@ -195,4 +195,19 @@ machine learning problem.
 
 * Open XDMod seems like a comprehensive tool but may be dependent on having a job queue.
 
-
+* Slurm has a `seff` tool that prints general usage and efficiency statistics, this example is from
+  Sabry:
+  ```
+9274022 is the jobid
+sabryr@SAGA 27-09-2023]$ seff 9274022
+Job ID: 9274022
+Cluster: saga
+User/Group: sabryr/sabryr
+State: COMPLETED (exit code 0)
+Cores: 1
+CPU Utilized: 00:00:07
+CPU Efficiency: 63.64% of 00:00:11 core-walltime
+Job Wall-clock time: 00:00:11
+Memory Utilized: 4.00 KB
+Memory Efficiency: 0.00% of 1.00 GB
+  ```

@@ -308,16 +308,32 @@ compile a textual report of the names of programs that have been used.
 
 ### "User" user stories
 
+The "user" user stories are all very similar - the user runs a job and needs to find out what the
+utilization was.  The difference between the stories is the focus the user has: whether it's just
+for information, to examine hardware usage, to resolve performance problems, to examine scalability,
+or to assess the appropriateness of running the program on the system in question.  As such these
+user stories are also very close to the `adm_misfits` stories, but coming from the user perspective,
+not that of the admin.
+
 #### `usr_resource_use`
 
-*Story 1:* *U* submits an HPC job expecting to use 16 cores and 8GB memory per CPU. Admins complain
+*Story 1:* *U* submits an HPC job and wants to assess how the job used the available hardware,
+without having any particular focus on anything in particular.  This is frequently the first thing
+one does after porting a code to a new machine.
+
+*U* breaks out the Jobanalyzer command line tool and asks to see the statistics on her last job that
+completed.  There is probably a predefined, named query that will apply the most appropriate
+options.  (Sabry brings up the similarity to the Slurm `seff` command, see the "Other tools" section
+of [DESIGN.md](DESIGN.md).)
+
+*Story 2:* *U* submits an HPC job expecting to use 16 cores and 8GB memory per CPU. Admins complain
 that *U* is wasting resources (the program runs on one core and uses 4GB). In order to debug the
 problem, *U* wants to check which resources the job just finished used.
 
 *U* breaks out the Jobanalyzer command line tool and asks to see the statistics on her last job that
 completed.
 
-*Story 2:* *U* runs an analysis using Pytorch. *U* expects the code to use GPUs. *U* wants to check
+*Story 3:* *U* runs an analysis using Pytorch. *U* expects the code to use GPUs. *U* wants to check
 that the code did indeed use the GPU during the last 10 analyses that ran to completion.
 
 *U* again breaks out the command line tool and asks to see the statistics on her last 10 jobs that
