@@ -21,118 +21,53 @@ Functionality
 -->
 
 <html>
-  <body onload="reload()">
-
-    <select id=ml_node name="ML Node" onchange="reload()">
-      <option value="ml1">ml1.hpc.uio.no</option>
-      <option value="ml2">ml2.hpc.uio.no</option>
-      <option value="ml3">ml3.hpc.uio.no</option>
-      <option value="ml4">ml4.hpc.uio.no</option>
-      <option value="ml6">ml6.hpc.uio.no</option>
-      <option value="ml7">ml7.hpc.uio.no</option>
-      <option value="ml8">ml8.hpc.uio.no</option>
-    </select>
-
-    <select id=frequency name="Frequency" onchange="reload()">
-      <option value="daily">Daily, by hour</option>
-      <option value="weekly">Weekly, by hour</option>
-      <option value="monthly">Monthly, by day</option>
-      <option value="quarterly">Quarterly, by day</option>
-    </select>
-
-    <div>
-      <canvas id="ml_chart"></canvas>
-    </div>
-
+  <head>
+    <title>NAIC ML-Nodes dashboard</title>
+    <script>
+      var systems = [{text: "ml1.hpc.uio.no", value: "ml1"},
+		     {text: "ml2.hpc.uio.no", value: "ml2"},
+		     {text: "ml3.hpc.uio.no", value: "ml3"},
+		     {text: "ml4.hpc.uio.no", value: "ml4"},
+		     {text: "ml6.hpc.uio.no", value: "ml6"},
+		     {text: "ml7.hpc.uio.no", value: "ml7"},
+		     {text: "ml8.hpc.uio.no", value: "ml8"}]
+      var times = [{text: "Daily, by hour", value: "daily"},
+		   {text: "Weekly, by hour", value: "weekly"},
+		   {text: "Monthly, by day", value: "monthly"},
+		   {text: "Quarterly, by day", value: "quarterly"}]
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    <script src="dashboard.js"></script>
     <script>
       var my_chart = null;
 
-      function plotit(json_data, chart_name) {
-	  // json_data has these fields
-	  //   date - string - the time the data was generated
-	  //   hostname - string - FQDN (ideally) of the host
-	  //   tag - string - usually "daily", "weekly", "monthly", "quarterly"
-	  //   bucketing - string - "hourly" or "daily"
-	  //   rcpu - array of per_point_data
-	  //   rgpu - same
-	  //   rmem - same
-	  //   rgpumem - same
-	  //   system - system descriptor, see further down
-	  //
-	  // per_point_data has two fields
-	  //   x - usually a string - a label
-	  //   y - the value
-
-	  // Some of the following data cleanup could move to the generating side.
-
-	  // Clamp GPU data to get rid of occasional garbage, it's probably OK to do this even
-	  // if it's not ideal.
-	  let labels = json_data.rcpu.map(d => d.x)
-	  let rcpu_data = json_data.rcpu.map(d => d.y)	  
-	  let rmem_data = json_data.rmem.map(d => d.y)
-	  let rgpu_data = json_data.rgpu.map(d => Math.min(d.y, 100))
-	  let rgpumem_data = json_data.rgpumem.map(d => Math.min(d.y, 100))
-
-	  // Scale the chart.  Mostly this is now for the sake of rmem_data, whose values routinely
-	  // go over 100%.
-	  let maxval = Math.max(Math.max(...rcpu_data),
-				Math.max(...rmem_data),
-				Math.max(...rgpu_data),
-				Math.max(...rgpumem_data),
-			        100)
-
-	  const ctx = document.getElementById(chart_name);
-	  my_chart = new Chart(ctx, {
-	      type: 'line',
-	      data: {
-		  labels,
-		  datasets: [
-		      { label: 'CPU%', data: rcpu_data, borderWidth: 2 },
-		      { label: 'RAM%', data: rmem_data, borderWidth: 2 },
-		      { label: 'GPU%', data: rgpu_data, borderWidth: 2 },
-		      { label: 'VRAM%', data: rgpumem_data, borderWidth: 2 },
-		  ]
-	      },
-	      options: {
-		  scales: {
-		      x: {
-			  beginAtZero: true,
-		      },
-		      y: {
-			  beginAtZero: true,
-			  // Add a little padding at the top, not sure what's a good amount
-			  // but 10 is about the least we can do.
-			  max: Math.floor((maxval + 10) / 10) * 10,
-		      }
-		  }
-	      }
-	  })
-
-          if ("system" in json_data) {
-	      // This is a json object with these fields:
-	      //  - hostname: FQDN
-	      //  - description: human-readable text string
-	      //  - cpu_cores: num cores altogether (so, 2x14 hyperthreaded = 2x14x2 = 56)
-	      //  - mem_gb: gb of main memory
-	      //  - gpu_cards: num cards
-	      //  - gpumem_gb: total amount of gpu memory
-	      // Really the description says it all so probably enough to print that
-	      document.getElementById("system_description").innerText =
-		  json_data.system.hostname + ": " + json_data.system.description
-	  }
+      function setup() {
+	  populateDropdown(document.getElementById("ml_node"), systems)
+	  populateDropdown(document.getElementById("frequency"), times)
+	  reload()
       }
 
       function reload() {
-	  if (my_chart != null)
-	      my_chart.destroy()
 	  let nodename = document.getElementById("ml_node").value
 	  let frequency = document.getElementById("frequency").value
+	  let chart_node = document.getElementById("ml_chart");
+	  let desc_node = document.getElementById("system_description")
 	  let filename = nodename + ".hpc.uio.no-" + frequency + ".json"
-	  fetch("output/" + filename).then((response) => response.json()).then(data => plotit(data, 'ml_chart'))
+
+	  fetch("output/" + filename).then((response) => response.json()).then(function (json_data) {
+	      if (my_chart != null)
+		  my_chart.destroy()
+	      my_chart = plot_system(json_data, chart_node, desc_node)
+	  })
       }
     </script>
+  </head>
+  <body onload="setup()">
+
+    <select id=ml_node name="ML Node" onchange="reload()"></select>
+    <select id=frequency name="Frequency" onchange="reload()"></select>
+
+    <div><canvas id="ml_chart"></canvas></div>
 
     <div>&nbsp;</div>
     <div>Data are relative to all system resources (e.g., 100% CPU
