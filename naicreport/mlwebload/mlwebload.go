@@ -37,6 +37,7 @@ func MlWebload(progname string, args []string) error {
 	tagPtr := progOpts.Container.String("tag", "", "Tag for output files")
 	hourlyPtr := progOpts.Container.Bool("hourly", true, "Bucket data hourly")
 	dailyPtr := progOpts.Container.Bool("daily", false, "Bucket data daily")
+	nonePtr := progOpts.Container.Bool("none", false, "Do not bucket data")
 	err := progOpts.Parse(args)
 	if err != nil {
 		return err
@@ -68,17 +69,22 @@ func MlWebload(progname string, args []string) error {
 	if progOpts.HaveTo {
 		arguments = append(arguments, "--to", progOpts.ToStr)
 	}
-	// This isn't completely clean but it's good enough for not-insane users.
-	// We can use flag.Visit() to do a better job.  This is true in general.
+
+	// This handling of bucketing isn't completely clean but it's good enough for not-insane users.
+	// We can use flag.Visit() to do a better job, if we want.
+
 	var bucketing string
-	if *dailyPtr {
+	if *nonePtr {
+		arguments = append(arguments, "--none")
+		bucketing = "none"
+	} else if *dailyPtr {
 		arguments = append(arguments, "--daily")
 		bucketing = "daily"
 	} else if *hourlyPtr {
 		arguments = append(arguments, "--hourly")
 		bucketing = "hourly"
 	} else {
-		return errors.New("One of --daily or --hourly is required")
+		return errors.New("One of --daily, --hourly, or --none is required")
 	}
 
 	cmd := exec.Command(sonalyzePath, arguments...)
