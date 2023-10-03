@@ -9,6 +9,7 @@
 # HOME is not set on moneypenny, so set it.  But this is the same value as on the ML nodes.
 HOME=/itf-fi-ml/home/larstha
 
+2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/webload-5m-and-upload.sh
 5 0-23/2 * * * $HOME/sonar/cpuhog.sh
 5 0-23/2 * * * $HOME/sonar/deadweight.sh
 10 0-23/12 * * * $HOME/sonar/cpuhog-report.sh
