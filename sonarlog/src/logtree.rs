@@ -1,10 +1,11 @@
 /// Enumerate log files in a log tree; read sets of files.
 
-use crate::{dates, epoch, now, parse_logfile, HostFilter, LogEntry, Timestamp};
+use crate::{dates, parse_logfile, HostFilter, LogEntry, Timestamp};
 
 use anyhow::{bail, Result};
 use core::cmp::{max, min};
 use std::boxed::Box;
+use std::collections::HashMap;
 use std::path;
 
 /// Create a set of plausible log file names within a directory tree, for a date range and a set of
@@ -95,11 +96,23 @@ pub fn find_logfiles(
     Ok(filenames)
 }
 
+/// Timebounds is a map from host name to earliest and latest time seen for the host.  For
+/// synthesized (merged) hosts it maps the merged host name to the earliest and latest times seen
+/// for all the merged streams for all those hosts.
+
+pub type Timebounds = HashMap::<String, Timebound>;
+
+#[derive(Clone)]
+pub struct Timebound {
+    pub earliest: Timestamp,
+    pub latest: Timestamp
+}
+
 /// Read all the files into an array and return some basic information about the data.
 ///
 /// Returns error on I/O error and discards illegal records silently.
 
-pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timestamp, Timestamp)>
+pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timebounds)>
 {
     let mut entries = Vec::<Box<LogEntry>>::new();
 
@@ -108,10 +121,17 @@ pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timesta
         parse_logfile(file, &mut entries)?;
     }
 
-    let earliest = entries.iter().fold(now(), |acc, x| min(acc, x.timestamp));
-    let latest = entries.iter().fold(epoch(), |acc, x| max(acc, x.timestamp));
-
-    Ok((entries, earliest, latest))
+    let mut bounds = Timebounds::new();
+    for e in &entries {
+        let h = &e.hostname;
+        if let Some(v) = bounds.get_mut(h) {
+            v.earliest = min(v.earliest, e.timestamp);
+            v.latest = max(v.latest, e.timestamp);
+        } else {
+            bounds.insert(h.to_string(), Timebound { earliest: e.timestamp, latest: e.timestamp });
+        }
+    }
+    Ok((entries, bounds))
 }
 
 #[test]

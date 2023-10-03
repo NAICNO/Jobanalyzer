@@ -14,10 +14,10 @@ CHECK running_ml4 "ml4,1269178" "$output"
 
 # This ends before the last record on that host and should be completed
 output=$($SONALYZE jobs -u- --host ml8 --min-samples=1 -f 2023-10-03 --fmt=csv,host,job --completed -- running_and_completed.csv)
-CHECK completed_ml8 "ml8,90548" "$output" "jobanalyzer#118"
+CHECK completed_ml8 "ml8,90548" "$output"
 
 # This ends at the same time as the last record on that host and should be running
 output=$($SONALYZE jobs -u- --host ml8 --min-samples=1 -f 2023-10-03 --fmt=csv,host,job --running -- running_and_completed.csv)
-CHECK running_ml8 "ml8,2092901" "$output" "jobanalyzer#118"
+CHECK running_ml8 "ml8,2092901" "$output"
 
 

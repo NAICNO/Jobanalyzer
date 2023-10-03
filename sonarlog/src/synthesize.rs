@@ -1,8 +1,10 @@
 /// Helpers for merging sample streams.
 
-use crate::{hosts, empty_gpuset, union_gpuset, merge_gpu_status, GpuStatus, LogEntry, InputStreamSet, Timestamp};
+use crate::{hosts, empty_gpuset, epoch, union_gpuset, merge_gpu_status, now,
+            GpuStatus, LogEntry, InputStreamSet, Timestamp, Timebound, Timebounds};
 
 use std::boxed::Box;
+use std::cmp::{max,min};
 use std::collections::{HashMap, HashSet};
 use std::iter::Iterator;
 
@@ -72,8 +74,12 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
 ///
 /// The command name for synthesized data collects all the commands that went into the synthesized stream.
 /// The host name for synthesized data collects all the hosts that went into the synthesized stream.
+///
+/// This must also merge the metadata from the different hosts: the time bounds.  For a merged stream,
+/// the "earliest" time is the min across the earliest times for the different host streams that go
+/// into the merged stream, and the "latest" time is the max across the latest times ditto.
 
-pub fn merge_by_job(mut streams: InputStreamSet) -> MergedSampleStreams {
+pub fn merge_by_job(mut streams: InputStreamSet, bounds: &Timebounds) -> (MergedSampleStreams, Timebounds) {
     // The value is a set of command names, a set of host names, and a vector of the individual streams.
     let mut collections: HashMap<u32, (HashSet<String>, HashSet<String>, Vec<Vec<Box<LogEntry>>>)> =
         HashMap::new();
@@ -88,25 +94,38 @@ pub fn merge_by_job(mut streams: InputStreamSet) -> MergedSampleStreams {
             let id = v[0].job_id;
             if id == 0 {
                 zero.push(v);
+            } else if let Some((cmds, hosts, vs)) = collections.get_mut(&id) {
+                cmds.insert(cmd);
+                hosts.insert(host);
+                vs.push(v);
             } else {
-                let key = id;
-                if let Some((cmds, hosts, vs)) = collections.get_mut(&key) {
-                    cmds.insert(cmd);
-                    hosts.insert(host);
-                    vs.push(v);
-                } else {
-                    let mut cmds = HashSet::new();
-                    cmds.insert(cmd);
-                    let mut hosts = HashSet::new();
-                    hosts.insert(host);
-                    collections.insert(key, (cmds, hosts, vec![v]));
-                }
+                let mut cmds = HashSet::new();
+                cmds.insert(cmd);
+                let mut hosts = HashSet::new();
+                hosts.insert(host);
+                collections.insert(id, (cmds, hosts, vec![v]));
             }
         });
 
+    let mut new_bounds = HashMap::new();
+    for z in zero.iter() {
+        let hn = &z[0].hostname;
+        if !new_bounds.contains_key(hn) {
+            let probe = bounds.get(hn).expect("Host should be in bounds");
+            new_bounds.insert(hn.clone(), probe.clone());
+        }
+    }
     let mut vs : MergedSampleStreams = zero;
-    for (job_id, (mut cmds, mut hosts, streams)) in collections.drain() {
-        let hostname = hosts::combine_hosts(hosts.drain().collect::<Vec<String>>());
+    for (job_id, (mut cmds, hosts, streams)) in collections.drain() {
+        let hostname = hosts::combine_hosts(hosts.iter().map(|x| x.clone()).collect::<Vec<String>>());
+        if !new_bounds.contains_key(&hostname) {
+            assert!(hosts.len() > 0);
+	    let (earliest, latest) = hosts.iter().fold((now(), epoch()), |(acc_e, acc_l), hn| {
+                let probe = bounds.get(hn).expect("Host should be in bounds");
+                (min(acc_e, probe.earliest), max(acc_l, probe.latest))
+            });
+            new_bounds.insert(hostname.clone(), Timebound { earliest, latest });
+        }
         let cmdname = cmds.drain().collect::<Vec<String>>().join(",");
         // Any user from any record is fine.  There should be an invariant that no stream is empty,
         // so this should always be safe.
@@ -114,7 +133,7 @@ pub fn merge_by_job(mut streams: InputStreamSet) -> MergedSampleStreams {
         vs.push(merge_streams(hostname, cmdname, user, job_id, streams));
     }
 
-    vs
+    (vs, new_bounds)
 }
 
 /// Merge streams that have the same host (across jobs) into synthesized data.
