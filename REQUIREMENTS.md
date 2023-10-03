@@ -171,7 +171,8 @@ system-relative cpu, main memory, gpu, and gpu memory usage.  (TBD: queue length
 down during a period this is marked clearly and distinguished from zero load.
 
 *A* can select time periods from the set last 6 hours (moment-by-moment data), last day (hourly data),
-last week (hourly data), or last month (daily data).
+last week (hourly data), or last month (daily data).  Moment-by-moment data are as fresh as possible,
+hourly data are at most an hour out of date, and daily data at most a day out of date.
 
 *Story 2:* *A* wants an overview of processes that are stuck (zombie, defunct) or holding onto GPU
 resources (GPU lists them as active but they are dead).
