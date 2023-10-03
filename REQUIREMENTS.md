@@ -170,7 +170,8 @@ systems, all nodes are selected and aggregate data are shown.  The quantities pl
 system-relative cpu, main memory, gpu, and gpu memory usage.  (TBD: queue length) If a system is
 down during a period this is marked clearly and distinguished from zero load.
 
-*A* can select time periods from at least the set last day, last week, or last month.
+*A* can select time periods from the set last 6 hours (moment-by-moment data), last day (hourly data),
+last week (hourly data), or last month (daily data).
 
 *Story 2:* *A* wants an overview of processes that are stuck (zombie, defunct) or holding onto GPU
 resources (GPU lists them as active but they are dead).
