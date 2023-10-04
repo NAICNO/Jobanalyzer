@@ -18,7 +18,7 @@
 ///   record anyway (as CSV is line-oriented).  This is a reasonable assumption but I've found no
 ///   documentation that guarantees it.
 
-use crate::{parse_timestamp, LogEntry, Timestamp};
+use crate::{parse_timestamp, GpuStatus, LogEntry, Timestamp};
 
 use anyhow::Result;
 use serde::Deserialize;
@@ -85,6 +85,15 @@ pub fn union_gpuset(lhs: &mut GpuSet, rhs: &GpuSet) {
     }
 }
 
+pub fn merge_gpu_status(lhs: GpuStatus, rhs: GpuStatus) -> GpuStatus {
+    match (lhs, rhs) {
+        (v, w) if v == w => v,
+        (v, GpuStatus::Ok) => v,
+        (GpuStatus::Ok, v) => v,
+        (_, _) => GpuStatus::UnknownFailure,
+    }
+}
+
 /// Parse a log file into a set of LogEntry structures, and append to `entries` in the order
 /// encountered.  Entries are boxed so that later processing won't copy these increasingly large
 /// structures all the time.  Return an error in the case of I/O errors, but silently drop records
@@ -132,6 +141,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                 let mut gpu_pct: Option<f64> = None;
                 let mut gpumem_pct: Option<f64> = None;
                 let mut gpumem_gb: Option<f64> = None;
+                let mut gpu_status: Option<GpuStatus> = None;
                 let mut cputime_sec: Option<f64> = None;
                 let mut rolledup: Option<u32> = None;
 
@@ -272,6 +282,19 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                 continue 'outer;
                             }
                             (gpumem_gb, failed) = get_f64(&field[7..], 1.0 / (1024.0 * 1024.0));
+                        } else if field.starts_with("gpufail=") {
+                            if gpu_status.is_some() {
+                                continue 'outer;
+                            }
+                            let val;
+                            (val, failed) = get_u32(&field[8..]);
+                            if !failed {
+                                match val {
+                                    Some(0u32) => {}
+                                    Some(1u32) => { gpu_status = Some(GpuStatus::UnknownFailure) }
+                                    _ => { gpu_status = Some(GpuStatus::UnknownFailure) }
+                                }
+                            }
                         } else if field.starts_with("cputime_sec=") {
                             if cputime_sec.is_some() {
                                 continue 'outer;
@@ -330,6 +353,9 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                 if gpumem_gb.is_none() {
                     gpumem_gb = Some(0.0)
                 }
+                if gpu_status.is_none() {
+                    gpu_status = Some(GpuStatus::Ok)
+                }
                 if cputime_sec.is_none() {
                     cputime_sec = Some(0.0);
                 }
@@ -354,6 +380,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                     gpu_pct: gpu_pct.unwrap(),
                     gpumem_pct: gpumem_pct.unwrap(),
                     gpumem_gb: gpumem_gb.unwrap(),
+                    gpu_status: gpu_status.unwrap(),
                     cputime_sec: cputime_sec.unwrap(),
                     rolledup: rolledup.unwrap(),
                     // Computed fields
@@ -384,6 +411,7 @@ pub fn empty_logentry(t: Timestamp, hostname: &str) -> Box<LogEntry> {
         gpu_pct: 0.0,
         gpumem_pct: 0.0,
         gpumem_gb: 0.0,
+        gpu_status: GpuStatus::Ok,
         cputime_sec: 0.0,
         rolledup: 0,
         cpu_util_pct: 0.0,

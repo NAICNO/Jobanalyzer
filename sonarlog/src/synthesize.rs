@@ -1,6 +1,6 @@
 /// Helpers for merging sample streams.
 
-use crate::{hosts, empty_gpuset, union_gpuset, LogEntry, InputStreamSet, Timestamp};
+use crate::{hosts, empty_gpuset, union_gpuset, merge_gpu_status, GpuStatus, LogEntry, InputStreamSet, Timestamp};
 
 use std::boxed::Box;
 use std::collections::{HashMap, HashSet};
@@ -334,6 +334,7 @@ fn sum_records(
     // this one.  So we add one for each in the list + the others rolled into each of those,
     // and subtract one at the end to maintain the invariant.
     let rolledup = selected.iter().fold(0, |acc, x| acc + x.rolledup + 1) - 1;
+    let gpu_status = selected.iter().fold(GpuStatus::Ok, |acc, x| merge_gpu_status(acc, x.gpu_status));
     let mut gpus = empty_gpuset();
     for s in selected {
         union_gpuset(&mut gpus, &s.gpus);
@@ -355,6 +356,7 @@ fn sum_records(
         gpu_pct,
         gpumem_pct,
         gpumem_gb,
+        gpu_status,
         cputime_sec,
         rolledup,
         cpu_util_pct
