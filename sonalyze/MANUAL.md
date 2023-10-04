@@ -10,12 +10,15 @@ Analyze `sonar` log files and print information about jobs or systems.
 sonalyze operation [options] [-- logfile ...]
 ```
 
-where `operation` is `jobs`, `load`, `parse`, `metadata`, or `help`.
+where `operation` is `jobs`, `load`, `uptime`, `parse`, `metadata`, or `help`.
 
 The `jobs` operation prints information about jobs, collected from the sonar records.
 
 The `load` operation prints information about the load on the systems, collected from the sonar
 records.
+
+The `uptime` operation prints information about when systems and their components were up
+or down, collected from sonar records.
 
 The `parse` and `metadata` operations are for testing, mainly: They perform low-level operations on
 the sonar logs and print the results.
@@ -291,6 +294,26 @@ instant is 5800/19200, ie 30%.
   Do not print any output for empty time slots.  The default is to print a record for every time
   slot in the requested range.
 
+### Uptime printing options
+
+`--interval=<interval>`
+
+  This required argument specifies to the sampling interval used by sonar in minutes, though it is
+  currently useful to choose an interval about 1 minute shorter than sonar here.  It is used to
+  determine whether there are any gaps in the system timeline, indicating system downtime.
+
+`--only-down`
+
+  Show only records for when the system or its components were down.  The default is to show all records.
+
+`--only-up`
+
+  Show only records for when the system or its components were up.  The default is to show all records.
+
+`--fmt=<format>`
+
+  Format the output for `uptime` according to `format`, which is a comma-separated list of keywords,
+  see OUTPUT FORMAT below.
 
 ## MISC EXAMPLES
 
