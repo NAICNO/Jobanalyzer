@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-# Upload generated reports to a web server
+# Upload generated reports to a web server.
+#
+# NOTE!  If upload logic needs to change here, also consider webload-5m.sh, which performs
+# its own upload.
 
 # We need globbing, stay away from -f
 set -eu -o pipefail
