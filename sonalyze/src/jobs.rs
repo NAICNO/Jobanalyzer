@@ -4,7 +4,7 @@ use crate::prjobs;
 use crate::{JobFilterAndAggregationArgs, JobPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
-use sonarlog::{self, is_empty_gpuset, LogEntry, InputStreamSet, Timestamp};
+use sonarlog::{self, is_empty_gpuset, merge_gpu_status, GpuStatus, LogEntry, InputStreamSet, Timestamp};
 use std::boxed::Box;
 use std::collections::HashMap;
 use std::io;
@@ -39,6 +39,7 @@ pub struct JobAggregate {
     pub days: i64,
 
     pub uses_gpu: bool, // True if there's reason to believe a GPU was ever used by the job
+    pub gpu_status: GpuStatus,
 
     pub cpu_avg: f64,   // Average CPU utilization, 1 core == 100%
     pub cpu_peak: f64,  // Peak CPU utilization ditto
@@ -395,6 +396,7 @@ fn aggregate_job(
     let minutes = ((duration as f64) / 60.0).round() as i64;
 
     let uses_gpu = job.iter().any(|jr| !is_empty_gpuset(&jr.gpus));
+    let gpu_status = job.iter().fold(GpuStatus::Ok, |acc, jr| merge_gpu_status(acc, jr.gpu_status));
 
     let cpu_avg = job.iter().fold(0.0, |acc, jr| acc + jr.cpu_util_pct) / (job.len() as f64);
     let cpu_peak = job.iter().fold(0.0, |acc, jr| f64::max(acc, jr.cpu_util_pct));
@@ -455,6 +457,7 @@ fn aggregate_job(
         hours: (minutes / 60) % 24, // fractional days
         days: minutes / (60 * 24),  // full days
         uses_gpu,
+        gpu_status,
         cpu_avg: cpu_avg.ceil(),
         cpu_peak: cpu_peak.ceil(),
         rcpu_avg: rcpu_avg.ceil(),

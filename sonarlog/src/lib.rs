@@ -174,6 +174,16 @@ pub use logclean::InputStreamKey;
 
 pub use logclean::InputStreamSet;
 
+/// GPU Status value
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum GpuStatus {
+    Ok = 0,
+    UnknownFailure = 1,
+}
+
+pub use logfile::merge_gpu_status;
+
 /// The LogEntry structure holds slightly processed data from a log record: Percentages have been
 /// normalized to the range [0.0,1.0] (except that the CPU and GPU percentages are sums across
 /// multiple cores/cards and the sums may exceed 1.0), and memory sizes have been normalized to GB.
@@ -245,6 +255,9 @@ pub struct LogEntry {
     /// Note this is not always reliable in its raw form (see Sonar documentation).  The logclean
     /// module will tidy this up if presented with an appropriate system configuration.
     pub gpumem_gb: f64,
+
+    /// Status of GPUs, as seen by sonar at the time.
+    pub gpu_status: GpuStatus,
 
     /// Accumulated CPU time for the process since the start, including time for any of its children
     /// that have terminated.

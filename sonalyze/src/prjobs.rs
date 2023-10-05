@@ -114,6 +114,7 @@ pub fn print_jobs(
         formatters.insert("rgpumem-avg".to_string(), &format_rgpumem_avg);
         formatters.insert("rgpumem-peak".to_string(), &format_rgpumem_peak);
         formatters.insert("gpus".to_string(), &format_gpus);
+        formatters.insert("gpufail".to_string(), &format_gpufail);
         formatters.insert("cmd".to_string(), &format_command);
         formatters.insert("host".to_string(), &format_host);
         formatters.insert("now".to_string(), &format_now);
@@ -338,6 +339,10 @@ fn format_rgpumem_avg(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> Stri
 
 fn format_rgpumem_peak(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
     format!("{}", a.rgpumem_peak)
+}
+
+fn format_gpufail(JobSummary {aggregate: a, ..}: LogDatum, _: LogCtx) -> String {
+    format!("{}", a.gpu_status as i32)
 }
 
 fn format_command(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {

@@ -15,7 +15,7 @@
 
 export SONALYZE=$(pwd)/../sonalyze/target/debug/sonalyze
 export NAICREPORT=$(pwd)/../naicreport/naicreport
-for dir in sonalyze ; do
+for dir in sonarlog sonalyze ; do
     for test in $(find $dir -name '*.sh'); do
 	( cd $(dirname $test); ./$(basename $test) )
     done
