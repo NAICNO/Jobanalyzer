@@ -127,10 +127,6 @@ pub struct HostInputFilterArgs {
 
 #[derive(Args, Debug)]
 pub struct JobAndLoadInputArgs {
-    /// Select the root directory for log files [default: $SONAR_ROOT]
-    #[arg(long)]
-    data_path: Option<String>,
-
     /// Include this user, "-" for all (repeatable) [default: command dependent]
     #[arg(long, short)]
     user: Vec<String>,
@@ -151,23 +147,9 @@ pub struct JobAndLoadInputArgs {
     #[arg(long, short)]
     job: Vec<String>,
 
-    /// Select records by this time and later.  Format can be YYYY-MM-DD, or Nd or Nw
-    /// signifying N days or weeks ago [default: 1d, ie 1 day ago]
-    #[arg(long, short, value_parser = parse_time_start_of_day)]
-    from: Option<Timestamp>,
-
-    /// Select records by this time and earlier.  Format can be YYYY-MM-DD, or Nd or Nw
-    /// signifying N days or weeks ago [default: now]
-    #[arg(long, short, value_parser = parse_time_end_of_day)]
-    to: Option<Timestamp>,
-
     /// File containing JSON data with system information, for when we want to print or use system-relative values [default: none]
     #[arg(long)]
     config_file: Option<String>,
-
-    /// Log file names (overrides --data-path)
-    #[arg(last = true)]
-    logfiles: Vec<String>,
 }
 
 #[derive(Args, Debug)]
