@@ -4,7 +4,7 @@ use crate::prjobs;
 use crate::{JobFilterAndAggregationArgs, JobPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
-use sonarlog::{self, LogEntry, InputStreamSet, Timestamp};
+use sonarlog::{self, is_empty_gpuset, LogEntry, InputStreamSet, Timestamp};
 use std::boxed::Box;
 use std::collections::HashMap;
 use std::io;
@@ -394,7 +394,7 @@ fn aggregate_job(
     let duration = (last - first).num_seconds();
     let minutes = ((duration as f64) / 60.0).round() as i64;
 
-    let uses_gpu = job.iter().any(|jr| jr.gpus.is_some());
+    let uses_gpu = job.iter().any(|jr| !is_empty_gpuset(&jr.gpus));
 
     let cpu_avg = job.iter().fold(0.0, |acc, jr| acc + jr.cpu_util_pct) / (job.len() as f64);
     let cpu_peak = job.iter().fold(0.0, |acc, jr| f64::max(acc, jr.cpu_util_pct));

@@ -43,8 +43,20 @@ pub fn empty_gpuset() -> GpuSet {
     Some(HashSet::new())
 }
 
+pub fn is_empty_gpuset(s: &GpuSet) -> bool {
+    if let Some(set) = s {
+        set.is_empty()
+    } else {
+        false
+    }
+}
+
 pub fn unknown_gpuset() -> GpuSet {
     None
+}
+
+pub fn is_unknown_gpuset(s: &GpuSet) -> bool {
+    s.is_none()
 }
 
 pub fn singleton_gpuset(maybe_device: Option<u32>) -> GpuSet {
@@ -438,6 +450,16 @@ fn get_gpus_from_list(s: &str) -> (Option<GpuSet>, bool) {
             }
         }
     }
+}
+
+#[test]
+fn test_gpuset() {
+    assert!(is_empty_gpuset(&empty_gpuset()));
+    assert!(!is_empty_gpuset(&unknown_gpuset()));
+    assert!(!is_empty_gpuset(&singleton_gpuset(Some(1))));
+    let mut s = unknown_gpuset();
+    adjoin_gpuset(&mut s, 1);
+    assert!(is_unknown_gpuset(&s));
 }
 
 #[test]

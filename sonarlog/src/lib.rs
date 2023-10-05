@@ -107,9 +107,17 @@ pub use logfile::GpuSet;
 
 pub use logfile::empty_gpuset;
 
+// Test if a GpuSet is known to be the empty set (not unknown).
+
+pub use logfile::is_empty_gpuset;
+
 // Create a GpuSet with unknown contents.
 
 pub use logfile::unknown_gpuset;
+
+// Test if a GpuSet is known to be the unknown set.
+
+pub use logfile::is_unknown_gpuset;
 
 // Create a GpuSet that is either None or Some({a}), depending on input.
 

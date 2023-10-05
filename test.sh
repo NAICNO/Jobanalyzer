@@ -9,3 +9,4 @@
 ( cd naicreport/storage ; go test )
 ( cd naicreport ; go build )
 ( cd naicreport ; ./naicreport help 2&> /dev/null )
+( cd tests ; ./run_tests.sh )
