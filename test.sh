@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Run this manually whenever desired.  It runs all tests.
 
 ( cd sonarlog ; cargo test )
 ( cd sonalyze ; cargo test ; cargo build )
