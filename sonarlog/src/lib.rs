@@ -131,6 +131,10 @@ pub use logfile::adjoin_gpuset;
 
 pub use logfile::union_gpuset;
 
+// Convert to "unknown" or "none" or a list of numbers.
+
+pub use logfile::gpuset_to_string;
+
 // Return an empty Box<LogEntry> with the given time and host.  The user and command fields are "_zero_",
 // so that we can recognize it; other fields are generally zero.
 

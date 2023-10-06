@@ -1,0 +1,3 @@
+v=0.7.0,time=2023-10-04T09:40:01+02:00,host=ml4.hpc.uio.no,cores=64,user=nissen,job=1269178,cmd=python,cpu%=1714.2,cpukib=273864972,cputime_sec=10192
+v=0.7.0,time=2023-10-04T09:40:01+02:00,host=ml4.hpc.uio.no,cores=64,user=satan,job=1269177,cmd=python2,cpu%=1714.2,cpukib=273864972,cputime_sec=10192
+v=0.7.0,time=2023-10-04T09:40:01+02:00,host=ml4.hpc.uio.no,cores=64,user=zappa,job=1269179,cmd=python3,cpu%=1714.2,cpukib=273864972,cputime_sec=10192

@@ -1,0 +1,4 @@
+v=0.7.0,time=2023-10-04T00:00:02+02:00,host=ml8.hpc.uio.no,cores=192,user=einarvid,job=2092901,pid=0,cmd=python3,cpu%=581.8,cpukib=564340340,gpus=none,gpu%=0,gpumem%=0,gpukib=0,cputime_sec=163683,rolledup=125
+v=0.7.0,time=2023-10-04T00:02:02+02:00,host=ml8.hpc.uio.no,cores=192,user=saeedes,job=90548,pid=90548,cmd=python3,cpu%=2.7,cpukib=3110564,gpus=none,gpu%=0,gpumem%=0,gpukib=0,cputime_sec=698
+v=0.7.0,time=2023-10-04T09:40:01+02:00,host=ml4.hpc.uio.no,cores=64,user=einarvid,job=1269178,pid=0,cmd=python3,cpu%=1714.2,cpukib=273864972,gpus=none,gpu%=0,gpumem%=0,gpukib=0,cputime_sec=10192,rolledup=69
+v=0.7.0,time=2023-10-04T00:05:02+02:00,host=ml8.hpc.uio.no,cores=192,user=einarvid,job=2092901,pid=0,cmd=python3,cpu%=575.6,cpukib=533437312,gpus=none,gpu%=0,gpumem%=0,gpukib=0,cputime_sec=171546,rolledup=118

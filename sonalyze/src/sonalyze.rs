@@ -24,6 +24,7 @@
 mod format;
 mod jobs;
 mod load;
+mod parse;
 mod prjobs;
 
 use anyhow::{bail, Result};
@@ -49,14 +50,17 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// Print information about jobs
-    Jobs(JobArgs),
+    Jobs(JobCmdArgs),
 
     /// Print information about system load
-    Load(LoadArgs),
+    Load(LoadCmdArgs),
+
+    /// Parse the Sonar logs, apply source/host filtering, and print raw, comma-separated values
+    Parse(ParseCmdArgs),
 }
 
 #[derive(Args, Debug)]
-pub struct JobArgs {
+pub struct JobCmdArgs {
     #[command(flatten)]
     source_args: SourceArgs,
 
@@ -77,7 +81,7 @@ pub struct JobArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct LoadArgs {
+pub struct LoadCmdArgs {
     #[command(flatten)]
     source_args: SourceArgs,
 
@@ -92,6 +96,21 @@ pub struct LoadArgs {
 
     #[command(flatten)]
     print_args: LoadPrintArgs,
+
+    #[command(flatten)]
+    meta_args: MetaArgs,
+}
+
+#[derive(Args, Debug)]
+pub struct ParseCmdArgs {
+    #[command(flatten)]
+    source_args: SourceArgs,
+
+    #[command(flatten)]
+    host_args: HostInputFilterArgs,
+
+    #[command(flatten)]
+    print_args: ParsePrintArgs,
 
     #[command(flatten)]
     meta_args: MetaArgs,
@@ -131,15 +150,15 @@ pub struct JobAndLoadInputArgs {
     #[arg(long, short)]
     user: Vec<String>,
 
-    /// Exclude records where the user name matches this string (repeatable) [default: none]
+    /// Exclude records where the user name equals this string (repeatable) [default: none]
     #[arg(long)]
     exclude_user: Vec<String>,
 
-    /// Select records with this command name matches this string (repeatable) [default: all]
+    /// Select records with this command name equals this string (repeatable) [default: all]
     #[arg(long)]
     command: Vec<String>,
 
-    /// Exclude records where the command name matches this string (repeatable) [default: none]
+    /// Exclude records where the command name equals this string (repeatable) [default: none]
     #[arg(long)]
     exclude_command: Vec<String>,
 
@@ -333,12 +352,19 @@ pub struct JobPrintArgs {
 }
 
 #[derive(Args, Debug, Default)]
+pub struct ParsePrintArgs {
+    /// Select fields and format for the output [default: see MANUAL.md]
+    #[arg(long)]
+    fmt: Option<String>,
+}
+
+#[derive(Args, Debug, Default)]
 pub struct MetaArgs {
     /// Print useful statistics about the input to stderr, then terminate
     #[arg(long, short, default_value_t = false)]
     verbose: bool,
 
-    /// Turn off default filtering, and print unformatted data (for developers)
+    /// Print unformatted and/or debug-formatted data (for developers)
     #[arg(long, default_value_t = false)]
     raw: bool,
 }
@@ -505,12 +531,14 @@ fn sonalyze() -> Result<()> {
     let meta_args = match cli.command {
         Commands::Jobs(ref jobs_args) => &jobs_args.meta_args,
         Commands::Load(ref load_args) => &load_args.meta_args,
+        Commands::Parse(ref parse_args) => &parse_args.meta_args,
     };
 
     let include_hosts = {
         let host_args = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.host_args,
             Commands::Load(ref load_args) => &load_args.host_args,
+            Commands::Parse(ref parse_args) => &parse_args.host_args,
         };
 
         // Included host set, empty means "all"
@@ -529,6 +557,7 @@ fn sonalyze() -> Result<()> {
         let source_args = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.source_args,
             Commands::Load(ref load_args) => &load_args.source_args,
+            Commands::Parse(ref parse_args) => &parse_args.source_args,
         };
 
         // Included date range.  These are used both for file names and for records.
@@ -796,6 +825,14 @@ fn sonalyze() -> Result<()> {
                 streams,
                 earliest,
                 latest,
+            )
+        }
+        Commands::Parse(ref parse_args) => {
+            parse::print_parsed_data(
+                &mut io::stdout(),
+                &parse_args.print_args,
+                meta_args,
+                entries,
             )
         }
     }
