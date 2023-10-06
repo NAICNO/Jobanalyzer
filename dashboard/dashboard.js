@@ -86,7 +86,9 @@ function plot_system(json_data, chart_node, desc_node) {
 function populateDropdown(dd, vals) {
     for ( let { text, value } of vals ) {
 	let opt = document.createElement("OPTION")
-	opt.label = text
+        // Firefox is happy with .label or .innerText here but Chrome insists on innerText.
+        // Works with Safari too.
+	opt.innerText = text
 	opt.value = value
 	dd.appendChild(opt)
     }
