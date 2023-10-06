@@ -85,6 +85,25 @@ pub fn union_gpuset(lhs: &mut GpuSet, rhs: &GpuSet) {
     }
 }
 
+pub fn gpuset_to_string(gpus: &GpuSet) -> String {
+    if let Some(gpus) = gpus {
+        if gpus.is_empty() {
+            "none".to_string()
+        } else {
+            let mut term = "";
+            let mut s = String::new();
+            for x in gpus {
+                s += term;
+                term = ",";
+                s += &x.to_string();
+            }
+            s
+        }
+    } else {
+        "unknown".to_string()
+    }
+}
+
 pub fn merge_gpu_status(lhs: GpuStatus, rhs: GpuStatus) -> GpuStatus {
     match (lhs, rhs) {
         (v, w) if v == w => v,

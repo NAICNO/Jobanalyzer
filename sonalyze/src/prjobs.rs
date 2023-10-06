@@ -8,7 +8,7 @@ use crate::{JobPrintArgs, MetaArgs};
 use crate::jobs::{JobSummary, LIVE_AT_START, LIVE_AT_END, LEVEL_SHIFT, LEVEL_MASK};
 
 use anyhow::{bail,Result};
-use sonarlog::{self, now, Timestamp};
+use sonarlog::{self, empty_gpuset, gpuset_to_string, now, union_gpuset, Timestamp};
 use std::collections::{HashMap, HashSet};
 use std::io;
 use std::ops::Add;
@@ -239,21 +239,15 @@ fn format_host(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
 }
 
 fn format_gpus(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
-    // As for hosts, it's OK to do this for presentation.
-    let mut gpus = HashSet::<u32>::new();
+    // As for hosts, it's OK to do create this set only for the presentation.
+    //
+    // If the gpu set is "unknown" in any of the job records then the result is also "unknown", this
+    // is probably OK.  We could instead have kept it as "unknown+1,2,3" but this seems unnecessary.
+    let mut gpus = empty_gpuset();
     for j in job {
-        if let Some(ref x) = j.gpus {
-            gpus.extend(x);
-        }
+        union_gpuset(&mut gpus, &j.gpus);
     }
-    let mut term = "";
-    let mut s = String::new();
-    for x in gpus {
-        s += term;
-        term = ",";
-        s += &x.to_string();
-    }
-    s
+    gpuset_to_string(&gpus)
 }
 
 fn format_duration(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {

@@ -1,6 +1,8 @@
 #!/bin/bash
 #
-# Run this manually whenever desired.  It runs all tests.
+# This compiles all programs, runs all module tests, then runs all regression and blackbox tests.
+#
+# To just run the regression and blackbox tests: cd tests ; ./run_tests.sh
 
 ( cd sonarlog ; cargo test )
 ( cd sonalyze ; cargo test ; cargo build )
