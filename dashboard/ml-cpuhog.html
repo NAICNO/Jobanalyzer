@@ -11,9 +11,6 @@
     any GPU time and are probably not appropriate to run on the ML
     systems.  The list is recomputed at noon and midnight and goes back four weeks.</p>
 
-    <p> (This is a prototype for a more general dashboard that shows jobs that do not use
-      system resources allocated to them appropriately.) </p>
-
     <div id=report></div>
 
     <script src="render-table.js"></script>
@@ -33,7 +30,7 @@
 		    {name: "RCPU peak", tag:"rcpu-peak"},
 		    {name: "RMem avg", tag:"rmem-avg"},
 		    {name: "RMem peak", tag:"rmem-peak"}]
-      render_table(file, fields, document.getElementById("report"))
+      render_table(file, fields, document.getElementById("report"), cmp_string_fields("last-seen", true))
     </script>
   </body>
 </html>
