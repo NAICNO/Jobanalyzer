@@ -583,7 +583,7 @@ fn sonalyze() -> Result<()> {
         } else if let Ok(val) = env::var("SONAR_ROOT") {
             Some(val)
         } else if let Ok(val) = env::var("HOME") {
-            Some(val + "/sonar_logs")
+            Some(val + "/sonar/data")
         } else {
             None
         };
