@@ -66,28 +66,12 @@ pub fn aggregate_and_print_load(
         PrintOpt::All // Default
     };
 
-    let mut formatters: HashMap<String, &dyn Fn(&Box<LogEntry>, LoadCtx) -> String> = HashMap::new();
-    formatters.insert("datetime".to_string(), &format_datetime);
-    formatters.insert("date".to_string(), &format_date);
-    formatters.insert("time".to_string(), &format_time);
-    formatters.insert("cpu".to_string(), &format_cpu);
-    formatters.insert("rcpu".to_string(), &format_rcpu);
-    formatters.insert("mem".to_string(), &format_mem);
-    formatters.insert("rmem".to_string(), &format_rmem);
-    formatters.insert("gpu".to_string(), &format_gpu);
-    formatters.insert("rgpu".to_string(), &format_rgpu);
-    formatters.insert("gpumem".to_string(), &format_gpumem);
-    formatters.insert("rgpumem".to_string(), &format_rgpumem);
-    formatters.insert("gpus".to_string(), &format_gpus);
-    formatters.insert("now".to_string(), &format_now);
-    formatters.insert("host".to_string(), &format_host);
-
+    let (formatters, aliases) = my_formatters();
     let spec = if let Some(ref fmt) = print_args.fmt {
         fmt
     } else {
-        "date,time,cpu,mem,gpu,gpumem,gpumask"
+        FMT_DEFAULTS
     };
-    let aliases = HashMap::new();
     let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
     let opts = format::standard_options(&others);
     let relative = fields.iter().any(|x| match *x {
@@ -163,6 +147,39 @@ pub fn aggregate_and_print_load(
     }
 
     Ok(())
+}
+
+pub fn fmt_help() -> format::Help {
+    let (formatters, aliases) = my_formatters();
+    format::Help {
+        fields: formatters.iter().map(|(k, _)| k.clone()).collect::<Vec<String>>(),
+        aliases: aliases.iter().map(|(k,v)| (k.clone(), v.clone())).collect::<Vec<(String, Vec<String>)>>(),
+        defaults: FMT_DEFAULTS.to_string(),
+    }
+}
+
+const FMT_DEFAULTS: &str = "date,time,cpu,mem,gpu,gpumem,gpumask";
+
+fn my_formatters() -> (HashMap<String, &'static dyn Fn(&Box<LogEntry>, LoadCtx) -> String>,
+                       HashMap<String, Vec<String>>) {
+    let mut formatters: HashMap<String, &'static dyn Fn(&Box<LogEntry>, LoadCtx) -> String> = HashMap::new();
+    let aliases: HashMap<String, Vec<String>> = HashMap::new();
+    formatters.insert("datetime".to_string(), &format_datetime);
+    formatters.insert("date".to_string(), &format_date);
+    formatters.insert("time".to_string(), &format_time);
+    formatters.insert("cpu".to_string(), &format_cpu);
+    formatters.insert("rcpu".to_string(), &format_rcpu);
+    formatters.insert("mem".to_string(), &format_mem);
+    formatters.insert("rmem".to_string(), &format_rmem);
+    formatters.insert("gpu".to_string(), &format_gpu);
+    formatters.insert("rgpu".to_string(), &format_rgpu);
+    formatters.insert("gpumem".to_string(), &format_gpumem);
+    formatters.insert("rgpumem".to_string(), &format_rgpumem);
+    formatters.insert("gpus".to_string(), &format_gpus);
+    formatters.insert("now".to_string(), &format_now);
+    formatters.insert("host".to_string(), &format_host);
+
+    (formatters, aliases)
 }
 
 fn insert_missing_records(

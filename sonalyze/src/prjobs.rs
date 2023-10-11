@@ -90,57 +90,15 @@ pub fn print_jobs(
                 .unwrap();
         });
     } else if numselected > 0 {
-        let mut formatters: HashMap<String, &dyn Fn(LogDatum, LogCtx) -> String> = HashMap::new();
-        formatters.insert("jobm".to_string(), &format_jobm_id);
-        formatters.insert("job".to_string(), &format_job_id);
-        formatters.insert("user".to_string(), &format_user);
-        formatters.insert("duration".to_string(), &format_duration);
-        formatters.insert("start".to_string(), &format_start);
-        formatters.insert("end".to_string(), &format_end);
-        formatters.insert("cpu-avg".to_string(), &format_cpu_avg);
-        formatters.insert("cpu-peak".to_string(), &format_cpu_peak);
-        formatters.insert("rcpu-avg".to_string(), &format_rcpu_avg);
-        formatters.insert("rcpu-peak".to_string(), &format_rcpu_peak);
-        formatters.insert("mem-avg".to_string(), &format_mem_avg);
-        formatters.insert("mem-peak".to_string(), &format_mem_peak);
-        formatters.insert("rmem-avg".to_string(), &format_rmem_avg);
-        formatters.insert("rmem-peak".to_string(), &format_rmem_peak);
-        formatters.insert("gpu-avg".to_string(), &format_gpu_avg);
-        formatters.insert("gpu-peak".to_string(), &format_gpu_peak);
-        formatters.insert("rgpu-avg".to_string(), &format_rgpu_avg);
-        formatters.insert("rgpu-peak".to_string(), &format_rgpu_peak);
-        formatters.insert("gpumem-avg".to_string(), &format_gpumem_avg);
-        formatters.insert("gpumem-peak".to_string(), &format_gpumem_peak);
-        formatters.insert("rgpumem-avg".to_string(), &format_rgpumem_avg);
-        formatters.insert("rgpumem-peak".to_string(), &format_rgpumem_peak);
-        formatters.insert("gpus".to_string(), &format_gpus);
-        formatters.insert("gpufail".to_string(), &format_gpufail);
-        formatters.insert("cmd".to_string(), &format_command);
-        formatters.insert("host".to_string(), &format_host);
-        formatters.insert("now".to_string(), &format_now);
-        formatters.insert("level".to_string(), &format_level);
-
-        let mut aliases: HashMap<String, Vec<String>> = HashMap::new();
-        aliases.insert("std".to_string(), vec!["jobm".to_string(),
-                                               "user".to_string(),
-                                               "duration".to_string(),
-                                               "host".to_string()]);
-        aliases.insert("cpu".to_string(), vec!["cpu-avg".to_string(), "cpu-peak".to_string()]);
-        aliases.insert("rcpu".to_string(), vec!["rcpu-avg".to_string(), "rcpu-peak".to_string()]);
-        aliases.insert("mem".to_string(), vec!["mem-avg".to_string(), "mem-peak".to_string()]);
-        aliases.insert("rmem".to_string(), vec!["rmem-avg".to_string(), "rmem-peak".to_string()]);
-        aliases.insert("gpu".to_string(), vec!["gpu-avg".to_string(), "gpu-peak".to_string()]);
-        aliases.insert("rgpu".to_string(), vec!["rgpu-avg".to_string(), "rgpu-peak".to_string()]);
-        aliases.insert("gpumem".to_string(), vec!["gpumem-avg".to_string(), "gpumem-peak".to_string()]);
-        aliases.insert("rgpumem".to_string(), vec!["rgpumem-avg".to_string(), "rgpumem-peak".to_string()]);
-
+        let (formatters, aliases) = my_formatters();
         let spec = if let Some(ref fmt) = print_args.fmt {
             fmt
         } else {
             if print_args.breakdown.is_some() {
+                // FIXME
                 "level,std,cpu,mem,gpu,gpumem,cmd"
             } else {
-                "std,cpu,mem,gpu,gpumem,cmd"
+                FMT_DEFAULTS
             }
         };
         let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
@@ -169,6 +127,67 @@ pub fn print_jobs(
     }
 
     Ok(())
+}
+
+pub fn fmt_help() -> format::Help {
+    let (formatters, aliases) = my_formatters();
+    format::Help {
+        fields: formatters.iter().map(|(k, _)| k.clone()).collect::<Vec<String>>(),
+        aliases: aliases.iter().map(|(k,v)| (k.clone(), v.clone())).collect::<Vec<(String, Vec<String>)>>(),
+        defaults: FMT_DEFAULTS.to_string(),
+    }
+}
+
+const FMT_DEFAULTS: &str = "std,cpu,mem,gpu,gpumem,cmd";
+
+fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String>,
+                       HashMap<String, Vec<String>>) {
+    let mut formatters: HashMap<String, &dyn Fn(LogDatum, LogCtx) -> String> = HashMap::new();
+    let mut aliases: HashMap<String, Vec<String>> = HashMap::new();
+
+    formatters.insert("jobm".to_string(), &format_jobm_id);
+    formatters.insert("job".to_string(), &format_job_id);
+    formatters.insert("user".to_string(), &format_user);
+    formatters.insert("duration".to_string(), &format_duration);
+    formatters.insert("start".to_string(), &format_start);
+    formatters.insert("end".to_string(), &format_end);
+    formatters.insert("cpu-avg".to_string(), &format_cpu_avg);
+    formatters.insert("cpu-peak".to_string(), &format_cpu_peak);
+    formatters.insert("rcpu-avg".to_string(), &format_rcpu_avg);
+    formatters.insert("rcpu-peak".to_string(), &format_rcpu_peak);
+    formatters.insert("mem-avg".to_string(), &format_mem_avg);
+    formatters.insert("mem-peak".to_string(), &format_mem_peak);
+    formatters.insert("rmem-avg".to_string(), &format_rmem_avg);
+    formatters.insert("rmem-peak".to_string(), &format_rmem_peak);
+    formatters.insert("gpu-avg".to_string(), &format_gpu_avg);
+    formatters.insert("gpu-peak".to_string(), &format_gpu_peak);
+    formatters.insert("rgpu-avg".to_string(), &format_rgpu_avg);
+    formatters.insert("rgpu-peak".to_string(), &format_rgpu_peak);
+    formatters.insert("gpumem-avg".to_string(), &format_gpumem_avg);
+    formatters.insert("gpumem-peak".to_string(), &format_gpumem_peak);
+    formatters.insert("rgpumem-avg".to_string(), &format_rgpumem_avg);
+    formatters.insert("rgpumem-peak".to_string(), &format_rgpumem_peak);
+    formatters.insert("gpus".to_string(), &format_gpus);
+    formatters.insert("gpufail".to_string(), &format_gpufail);
+    formatters.insert("cmd".to_string(), &format_command);
+    formatters.insert("host".to_string(), &format_host);
+    formatters.insert("now".to_string(), &format_now);
+    formatters.insert("level".to_string(), &format_level);
+
+    aliases.insert("std".to_string(), vec!["jobm".to_string(),
+                                           "user".to_string(),
+                                           "duration".to_string(),
+                                           "host".to_string()]);
+    aliases.insert("cpu".to_string(), vec!["cpu-avg".to_string(), "cpu-peak".to_string()]);
+    aliases.insert("rcpu".to_string(), vec!["rcpu-avg".to_string(), "rcpu-peak".to_string()]);
+    aliases.insert("mem".to_string(), vec!["mem-avg".to_string(), "mem-peak".to_string()]);
+    aliases.insert("rmem".to_string(), vec!["rmem-avg".to_string(), "rmem-peak".to_string()]);
+    aliases.insert("gpu".to_string(), vec!["gpu-avg".to_string(), "gpu-peak".to_string()]);
+    aliases.insert("rgpu".to_string(), vec!["rgpu-avg".to_string(), "rgpu-peak".to_string()]);
+    aliases.insert("gpumem".to_string(), vec!["gpumem-avg".to_string(), "gpumem-peak".to_string()]);
+    aliases.insert("rgpumem".to_string(), vec!["rgpumem-avg".to_string(), "rgpumem-peak".to_string()]);
+
+    (formatters, aliases)
 }
 
 fn expand_subjobs(level: u32, breakdown: Option<(String, Vec<JobSummary>)>, selected: &mut Vec<JobSummary>) {

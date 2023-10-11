@@ -7,6 +7,41 @@ use json;
 use std::collections::{HashMap, HashSet};
 use std::io;
 
+pub struct Help {
+    pub fields: Vec<String>,
+    pub aliases: Vec<(String, Vec<String>)>,
+    pub defaults: String,
+}
+
+pub fn maybe_help<F>(fmt: &Option<String>, f: F) -> bool
+where
+    F: Fn() -> Help
+{
+    if let Some(ref s) = fmt {
+        if s.as_str() == "help" || s.starts_with("help") {
+            let mut help = f();
+            println!("Syntax:\n  --fmt=(field|alias|control),...");
+            println!("\nFields:");
+            help.fields.sort();
+            for f in help.fields {
+                println!("  {f}");
+            }
+            if help.aliases.len() > 0 {
+                println!("\nAliases:");
+                for (name, mut fields) in help.aliases {
+                    fields.sort();
+                    let explication = (&fields).join(",");
+                    println!("  {name} --> {explication}");
+                }
+            }
+            println!("\nDefaults:\n  {}", help.defaults);
+            println!("\nControl:\n  csv\n  csvnamed  \n  fixed\n  json\n  header\n  noheader");
+            return true;
+        }
+    }
+    return false;
+}
+
 /// Return a vector of the known fields in `spec` wrt the formatters, and a HashSet of any other
 /// strings found in `spec`
 

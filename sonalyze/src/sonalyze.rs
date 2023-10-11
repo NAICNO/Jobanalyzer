@@ -528,6 +528,14 @@ fn main() {
 fn sonalyze() -> Result<()> {
     let cli = Cli::parse();
 
+    if match cli.command {
+        Commands::Jobs(ref jobs_args) => format::maybe_help(&jobs_args.print_args.fmt, &prjobs::fmt_help),
+        Commands::Load(ref load_args) => format::maybe_help(&load_args.print_args.fmt, &load::fmt_help),
+        Commands::Parse(ref parse_args) => format::maybe_help(&parse_args.print_args.fmt, &parse::fmt_help),
+    } {
+        return Ok(())
+    }
+
     let meta_args = match cli.command {
         Commands::Jobs(ref jobs_args) => &jobs_args.meta_args,
         Commands::Load(ref load_args) => &load_args.meta_args,
