@@ -15,22 +15,22 @@ CHECK () {
     local expected=$2
     local got=$3
     local knownbug=$4
-    if [[ $output != $expected ]]; then
+    if [[ "$output" != "$expected" ]]; then
 	if [[ $knownbug != "" ]]; then
 	    echo "FAILED " $name ": KNOWN BUG $knownbug"
-	    echo " EXPECTED " $expected
-	    echo " GOT      " $output
+	    echo " EXPECTED $expected"
+	    echo " GOT      $output"
 	    SOFT_ERRORS=$((SOFT_ERRORS + 1))
 	else
 	    echo "FAILED " $name
-	    echo "EXPECTED " $expected
-	    echo "GOT " $output
+	    echo "EXPECTED $expected"
+	    echo "GOT      $output"
 	    HARD_ERRORS=$((HARD_ERRORS + 1))
 	fi
     elif [[ $knownbug != "" ]]; then
 	echo "UNEXPECTED SUCCESS " $name ": KNOWN BUG $knownbug"
-	echo " EXPECTED " $expected
-	echo " GOT      " $output
+	echo " EXPECTED $expected"
+	echo " GOT      $output"
 	HARD_ERRORS=$((HARD_ERRORS + 1))
     else
 	echo "$name: OK"

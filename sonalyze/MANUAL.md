@@ -352,7 +352,8 @@ below) there are some general ones:
 
 * `csv` forces CSV-format output, the default is fixed-column layout
 * `csvnamed` forces CSV-format output with each field prefixed by `<fieldname>=`
-* `header` forces a header to be printed, default for fixed-column
+* `json` forces JSON-format output (without any header, ever)
+* `header` forces a header to be printed for CSV; this is the default for fixed-column
 * `noheader` forces a header not to be printed, default for `csv` and `csvnamed`
 * `tag:something` forces a field `tag` to be printed for each record with the value `something`
 

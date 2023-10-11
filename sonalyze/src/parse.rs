@@ -53,13 +53,14 @@ pub fn print_parsed_data(
     } else {
         "job,user,cmd"
     };
-    let (fields, _others) = format::parse_fields(spec, &formatters, &aliases);
-    let opts = format::FormatOptions {
-        tag: None,
-        header: false,
-        csv: true,
-        named: false
-    };
+    let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
+    let mut opts = format::standard_options(&others);
+    // `parse` defaults to headerless un-named csv.  Would be more elegant to pass defaults to
+    // standard_options, not hack it in afterwards.
+    if !opts.fixed && !opts.csv && !opts.json {
+        opts.csv = true;
+        opts.header = false;
+    }
     if fields.len() > 0 {
         format::format_data(output, &fields, &formatters, &opts, entries, &false);
     }
