@@ -447,7 +447,11 @@ fn get_u32(s: &str) -> (Option<u32>, bool) {
 
 fn get_f64(s: &str, scale: f64) -> (Option<f64>, bool) {
     if let Ok(n) = f64::from_str(s) {
-        (Some(n * scale), false)
+        if f64::is_infinite(n) {
+            (None, true)
+        } else {
+            (Some(n * scale), false)
+        }
     } else {
         (None, true)
     }
