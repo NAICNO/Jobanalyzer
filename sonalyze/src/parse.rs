@@ -18,7 +18,40 @@ pub fn print_parsed_data(
         return Ok(())
     }
 
-    let mut formatters: HashMap<String, &dyn Fn(&Box<LogEntry>, LogCtx) -> String> = HashMap::new();
+    let (formatters, aliases) = my_formatters();
+    let spec = if let Some(ref fmt) = print_args.fmt {
+        fmt
+    } else {
+        FMT_DEFAULTS
+    };
+    let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
+    let mut opts = format::standard_options(&others);
+    // `parse` defaults to headerless un-named csv.  Would be more elegant to pass defaults to
+    // standard_options, not hack it in afterwards.
+    if !opts.fixed && !opts.csv && !opts.json {
+        opts.csv = true;
+        opts.header = false;
+    }
+    if fields.len() > 0 {
+        format::format_data(output, &fields, &formatters, &opts, entries, &false);
+    }
+    Ok(())
+}
+
+pub fn fmt_help() -> format::Help {
+    let (formatters, aliases) = my_formatters();
+    format::Help {
+        fields: formatters.iter().map(|(k, _)| k.clone()).collect::<Vec<String>>(),
+        aliases: aliases.iter().map(|(k,v)| (k.clone(), v.clone())).collect::<Vec<(String, Vec<String>)>>(),
+        defaults: FMT_DEFAULTS.to_string(),
+    }
+}
+
+const FMT_DEFAULTS : &str = "job,user,cmd";
+
+fn my_formatters() -> (HashMap<String, &'static dyn Fn(&Box<LogEntry>, LogCtx) -> String>,
+                       HashMap<String, Vec<String>>) {
+    let mut formatters: HashMap<String, &'static dyn Fn(&Box<LogEntry>, LogCtx) -> String> = HashMap::new();
     let mut aliases: HashMap<String, Vec<String>> = HashMap::new();
     formatters.insert("version".to_string(), &format_version);
     formatters.insert("time".to_string(), &format_time);
@@ -48,23 +81,7 @@ pub fn print_parsed_data(
                         "gpu_status".to_string(),"cputime_sec".to_string(),
                         "rolledup".to_string(),"cpu_util_pct".to_string()]);
 
-    let spec = if let Some(ref fmt) = print_args.fmt {
-        fmt
-    } else {
-        "job,user,cmd"
-    };
-    let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
-    let mut opts = format::standard_options(&others);
-    // `parse` defaults to headerless un-named csv.  Would be more elegant to pass defaults to
-    // standard_options, not hack it in afterwards.
-    if !opts.fixed && !opts.csv && !opts.json {
-        opts.csv = true;
-        opts.header = false;
-    }
-    if fields.len() > 0 {
-        format::format_data(output, &fields, &formatters, &opts, entries, &false);
-    }
-    Ok(())
+    (formatters, aliases)
 }
 
 type LogDatum<'a> = &'a Box<LogEntry>;

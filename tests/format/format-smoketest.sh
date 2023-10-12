@@ -1,3 +1,7 @@
+# This just tests that --fmt=help works and produces at least the syntax help.
+output=$($SONALYZE parse --fmt=help | grep -e "--fmt")
+CHECK format_help "  --fmt=(field|alias|control),..." "$output"
+
 output=$($SONALYZE parse --from 2023-10-04 --fmt=csv,host,user,job,gpus -- format-smoketest.csv)
 CHECK format_csv "ml4.hpc.uio.no,einarvid,1269178,none" "$output"
 
