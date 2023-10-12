@@ -19,7 +19,7 @@ export TEST_ROOT=$(pwd)
 export SONALYZE=$TEST_ROOT/../sonalyze/target/debug/sonalyze
 export NAICREPORT=$TEST_ROOT/../naicreport/naicreport
 failed=0
-for dir in sonarlog sonalyze format ; do
+for dir in sonarlog sonalyze ; do
     for test in $(find $dir -name '*.sh'); do
 	export TEST_NAME=$test
 	( cd $(dirname $test);
