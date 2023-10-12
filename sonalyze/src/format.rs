@@ -35,7 +35,7 @@ where
                 }
             }
             println!("\nDefaults:\n  {}", help.defaults);
-            println!("\nControl:\n  csv\n  csvnamed  \n  fixed\n  json\n  header\n  noheader");
+            println!("\nControl:\n  csv\n  csvnamed  \n  fixed\n  json\n  header\n  noheader\n  tag:<tagvalue>");
             return true;
         }
     }
