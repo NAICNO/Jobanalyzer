@@ -189,6 +189,9 @@ fn test_expansion() {
 /// list of decimal numbers or ranges of numbers a-b.  This fits the typical host naming on a
 /// supercomputer, which is <name>-<number> or <name><number>.  But note the <name> may also contain
 /// digits.
+///
+/// The input is a set and combine_hosts is a function on that set: that is, inputs [x,y] and [y,x]
+/// will yield the same output (and this is important for some consumers).
 
 pub fn combine_hosts(mut hosts: Vec<String>) -> String {
     // Sort lexicographically
