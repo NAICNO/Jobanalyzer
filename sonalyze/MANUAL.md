@@ -21,6 +21,9 @@ The `help` operation prints high-level usage information.
 
 Run `sonalyze <operation> help` to get help about options for the specific operation.
 
+All the verbs take a `--fmt` option to control the output; run with `--fmt=help` to get help on
+formatting options.
+
 ### Overall operation
 
 The program operates by phases:
@@ -346,22 +349,28 @@ The description should be useful, because sometimes it's the only datum that's s
 
 ## OUTPUT FORMAT
 
-The `--fmt` switch controls the format for the command through a list of keywords.  Each keyword
-adds a column to the output.  In addition to the keywords that are command-specific (and listed
-below) there are some general ones:
+The `--fmt` switch controls the format for the command output through a list of field names and
+control keywords.  Each field name adds a column to the output; field names are specific to the
+command.  In addition to the field names there are control keywords that determine the output
+format:
 
+* `fixed` forces human-readable output in fixed-width columns with a header
 * `csv` forces CSV-format output, the default is fixed-column layout
 * `csvnamed` forces CSV-format output with each field prefixed by `<fieldname>=`
 * `json` forces JSON-format output (without any header, ever)
-* `header` forces a header to be printed for CSV; this is the default for fixed-column
-* `noheader` forces a header not to be printed, default for `csv` and `csvnamed`
+* `header` forces a header to be printed for CSV; this is the default for fixed-column output
+   (and a no-op for JSON)
+* `noheader` forces a header not to be printed, default for `csv`, `csvnamed`, and `json`
 * `tag:something` forces a field `tag` to be printed for each record with the value `something`
 
-### Jobs
+Run with `--fmt=help` to get help on formatting syntax, field names, aliases, and controls, as
+well as a description of the default fields printed.
+
+### Field names for `jobs`
 
 Output records are sorted in order of increasing start time of the job.
 
-The formatting keywords for the `jobs` command are
+The default format is `fixed`.  The field names for the `jobs` command are at least these:
 
 * `now` is the current time on the format `YYYY-MM-DD HH:MM`
 * `job` is a number
@@ -384,18 +393,15 @@ The formatting keywords for the `jobs` command are
    command names, all command names are printed.
 * `cpu` is an abbreviation for `cpu-avg,cpu-peak`, `mem` an abbreviation for `mem-avg,mem-peak`, and so on,
   for `gpu`, `gpumem`, `rcpu`, `rmem`, `rgpu`, and `rgpumem`
-* `std` is an abbreviation for `jobm,user,duration,host`
+* `std` is an abbreviation for the set of default fields
 
-The default keyword set is `std,cpu,mem,gpu,gpumem,cmd`.
+### Field names for `load`
 
-### Systems
-
-Output records are sorted in ...
+Output records are sorted in TBD order.
 
 The host name is printed on a separate line before the data for each host.
 
-The formatting keywords for the `load` command are as follows, all fields pertain to the records or summary
-records, except `now`:
+The default format is `fixed`.  The field for the `load` command are as follows:
 
 * `date` (`YYYY-MM-DD`)
 * `time` (`HH:MM`)
@@ -409,5 +415,3 @@ records, except `now`:
 * `rgpumem` (percentage, 100=all memory on all cards)
 * `gpus` (list of GPUs)
 * `now` is the current time on the format `YYYY-MM-DD HH:MM`
-
-The default keyword set is `date,time,cpu,mem,gpu,gpumem,gpus`.
