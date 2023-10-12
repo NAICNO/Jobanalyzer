@@ -4,6 +4,7 @@
 #
 # To just run the regression and blackbox tests: cd tests ; ./run_tests.sh
 
+set -o errexit
 ( cd sonarlog ; cargo test )
 ( cd sonalyze ; cargo test ; cargo build )
 ( cd sonalyze ; target/debug/sonalyze help > /dev/null )
