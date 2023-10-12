@@ -99,7 +99,7 @@ pub fn find_logfiles(
 ///
 /// Returns error on I/O error and discards illegal records silently.
 
-pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timestamp, Timestamp, usize)>
+pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timestamp, Timestamp)>
 {
     let mut entries = Vec::<Box<LogEntry>>::new();
 
@@ -107,12 +107,11 @@ pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timesta
     for file in logfiles {
         parse_logfile(file, &mut entries)?;
     }
-        
-    let num_read = entries.len();
+
     let earliest = entries.iter().fold(now(), |acc, x| min(acc, x.timestamp));
     let latest = entries.iter().fold(epoch(), |acc, x| max(acc, x.timestamp));
 
-    Ok((entries, earliest, latest, num_read))
+    Ok((entries, earliest, latest))
 }
 
 #[test]
