@@ -2,34 +2,56 @@
 #
 # Harness for running a bunch of tests that include their own test data.
 #
-# The way to run this is to first build all the executables (perhaps with the ../test.sh script,
-# which actually runs this script) then run this script in its directory.  It will find *.sh in
-# specific subdirectories, cd to those directories, and then run those scripts.  Each script runs
-# one or more tests and can count on running in its directory.  It will find that $SONALYZE and
-# $NAICREPORT points to the appropriate executables.
+# The way to run this is to first build all the executables (perhaps with the ../run_tests.sh
+# script, which actually runs this script) then run this script in its directory.  It will find *.sh
+# in specific subdirectories, cd to those directories, and then run those scripts with prefix and
+# suffix scripts loaded along with them, see below.  Each script runs one or more tests and can
+# count on running in its directory.
 #
-# Each script will do whatever and then pass the name of the test, the expected output, and the
-# actual output to the CHECK function.  The latter is defined in prefix.sh in this directory.  That
-# file is automatically included as a prefix in every test, and suffix.sh is included as a suffix.
-# See eg sonalyze/jobs/aggregate_gpu.sh.
+# This script defines the following variables that the test can depend on:
+#
+#   TEST_ROOT - the root directory of the test suite
+#   TEST_NAME - the file name of the test being run
+#   SONALYZE - the name of the sonalyze executable, typically a debug build
+#   NAICREPORT - the name of the naicreport executable
+#
+# Each script will do whatever and then pass the name of the test (interpreted in the context of
+# TEST_NAME), the expected output, and the actual output to the CHECK function.  The latter is
+# defined in prefix.sh in this directory.  When all the tests have run, code in the suffix.sh file
+# in this directory will compute the necessary error codes and signal those.
+#
+# See any test file in any subdirectory for examples.
 #
 # TODO: accept command line arguments with test names to match, for filtering.
 
 export TEST_ROOT=$(pwd)
 export SONALYZE=$TEST_ROOT/../sonalyze/target/debug/sonalyze
 export NAICREPORT=$TEST_ROOT/../naicreport/naicreport
-failed=0
+hard_failed=0
+soft_failed=0
 for dir in sonarlog sonalyze ; do
     for test in $(find $dir -name '*.sh'); do
 	export TEST_NAME=$test
 	( cd $(dirname $test);
 	  bash -c "source $TEST_ROOT/prefix.sh; source $(basename $test); source $TEST_ROOT/suffix.sh "	)
-	if (( $? != 0 )); then
-	    failed=$((failed+1))
+	exitcode=$?
+	if (( exitcode != 0 )); then
+	    if (( exitcode == 2 )); then
+		soft_failed=$((soft_failed+1))
+	    else
+		hard_failed=$((hard_failed+1))
+	    fi
 	fi
     done
 done
-if (( failed > 0 )); then
-    echo "FAILED TEST FILES: " $failed
-    exit 1
+
+# Exit with an error code only if there were any hard errors.
+
+if (( soft_failed > 0 || hard_failed > 0 )); then
+    echo "FAILED TEST FILES: " $((soft_failed + hard_failed))
+    echo "  TOTAL FILES WITH HARD ERRORS: " $hard_failed
+    echo "  TOTAL FILES WITH SOFT ERRORS: " $soft_failed
+    if ((hard_failed > 0)); then
+	exit 1
+    fi
 fi
