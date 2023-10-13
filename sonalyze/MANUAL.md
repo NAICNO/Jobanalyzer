@@ -63,7 +63,8 @@ are per-operation, as outlined directly below.
 
 ### Input filter options
 
-All filters are optional.  Records must pass all specified filters.
+All filters are optional.  Records must pass all specified filters.  Not all filters are available with
+all commands; see the online help text.
 
 `-u <username>`, `--user=<username>`
 

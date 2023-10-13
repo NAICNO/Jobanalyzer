@@ -753,9 +753,8 @@ fn sonalyze() -> Result<()> {
             exclude_commands.insert("tmux".to_string());
             exclude_commands.insert("systemd".to_string());
 
-            // For now, always skip sonar heartbeat records.  It's probably OK to filter only by command
-            // name, since we're currently doing full-command-name matching.
-
+            // Skip heartbeat records.  It's probably OK to filter only by command name, since we're
+            // currently doing full-command-name matching.
             exclude_commands.insert("_heartbeat_".to_string());
 
             // System configuration, if specified.

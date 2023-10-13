@@ -49,9 +49,9 @@ pub fn fmt_help() -> format::Help {
 
 const FMT_DEFAULTS : &str = "job,user,cmd";
 
-fn my_formatters() -> (HashMap<String, &'static dyn Fn(&Box<LogEntry>, LogCtx) -> String>,
+fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String>,
                        HashMap<String, Vec<String>>) {
-    let mut formatters: HashMap<String, &'static dyn Fn(&Box<LogEntry>, LogCtx) -> String> = HashMap::new();
+    let mut formatters: HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String> = HashMap::new();
     let mut aliases: HashMap<String, Vec<String>> = HashMap::new();
     formatters.insert("version".to_string(), &format_version);
     formatters.insert("time".to_string(), &format_time);

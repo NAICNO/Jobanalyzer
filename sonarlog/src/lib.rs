@@ -2,7 +2,7 @@
 /// can be found in them and extracted from them, and the various fields have specific and
 /// documented meanings.  Log records are found in *log files*, which are in turn present in *log
 /// trees* in the file system.
-/// 
+///
 /// Though a log tree is usually coded in such a way that the location and name of a file indicates
 /// the origin (host) and time ranges of the records within it, this is an assumption that is only
 /// used by this library when filtering the files to examine in a log tree.  Once a log file is

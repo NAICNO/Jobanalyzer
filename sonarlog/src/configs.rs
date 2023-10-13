@@ -72,7 +72,9 @@ pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
                     }
                 }
                 let key = sys.hostname.clone();
-                // TODO: Test for duplicates
+                if m.contains_key(&key) {
+                    bail!("System info for host {key} already defined");
+                }
                 m.insert(key, sys);
             } else {
                 bail!("Expected an object value")
@@ -87,8 +89,10 @@ pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
 fn grab_usize(fields: &serde_json::Map<String, Value>, name: &str) -> Result<usize> {
     if let Some(Value::Number(cores)) = fields.get(name) {
         if let Some(n) = cores.as_u64() {
-            // TODO: Assert it fits in usize
-            Ok(n as usize)
+            match usize::try_from(n) {
+                Ok(n) => { Ok(n) }
+                Err(_e) => { bail!("Field '{name}' must have unsigned integer value") }
+            }
         } else {
             bail!("Field '{name}' must have unsigned integer value")
         }
@@ -97,9 +101,12 @@ fn grab_usize(fields: &serde_json::Map<String, Value>, name: &str) -> Result<usi
     }
 }
 
+// Basic whitebox tests that the reading works.  Error conditions are tested blackbox, see
+// tests/sonalyze/config-file.sh.
+
 #[test]
 fn test_config() {
-    let conf = read_from_json("../sonar_test_data0/test_config.json").unwrap();
+    let conf = read_from_json("../tests/sonarlog/whitebox-config.json").unwrap();
     assert!(conf.len() == 2);
     let c0 = conf.get("ml1.hpc.uio.no").unwrap();
     let c1 = conf.get("ml8.hpc.uio.no").unwrap();
@@ -109,11 +116,3 @@ fn test_config() {
     assert!(c1.gpumem_gb == 160);
     assert!(conf.get("ml2.hpc.uio.no").is_none());
 }
-
-// TODO: Test various failure modes
-//
-// - duplicate host name
-// - missing field
-// - open error
-// - parse error
-// - bad layout

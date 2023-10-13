@@ -160,9 +160,9 @@ pub fn fmt_help() -> format::Help {
 
 const FMT_DEFAULTS: &str = "date,time,cpu,mem,gpu,gpumem,gpumask";
 
-fn my_formatters() -> (HashMap<String, &'static dyn Fn(&Box<LogEntry>, LoadCtx) -> String>,
+fn my_formatters() -> (HashMap<String, &'static dyn Fn(LoadDatum, LoadCtx) -> String>,
                        HashMap<String, Vec<String>>) {
-    let mut formatters: HashMap<String, &'static dyn Fn(&Box<LogEntry>, LoadCtx) -> String> = HashMap::new();
+    let mut formatters: HashMap<String, &'static dyn Fn(LoadDatum, LoadCtx) -> String> = HashMap::new();
     let aliases: HashMap<String, Vec<String>> = HashMap::new();
     formatters.insert("datetime".to_string(), &format_datetime);
     formatters.insert("date".to_string(), &format_date);

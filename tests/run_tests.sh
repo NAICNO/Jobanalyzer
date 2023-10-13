@@ -55,3 +55,5 @@ if (( soft_failed > 0 || hard_failed > 0 )); then
 	exit 1
     fi
 fi
+echo ""
+echo "SUCCESS.  Regression tests succeeded with no unknown failures."
