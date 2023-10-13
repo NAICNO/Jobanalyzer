@@ -17,10 +17,10 @@ load_report_path=$data_path/load-reports
 # readable by the web server.
 chmod go+r $load_report_path/*.json
 
-#scp -q -i ~/.ssh/axis_of_eval_naic $load_report_path/*.json naic@axis-of-eval.org:/var/www/naic/output
+#scp -C -q -i ~/.ssh/axis_of_eval_naic $load_report_path/*.json naic@axis-of-eval.org:/var/www/naic/output
 
 # StrictHostKeyChecking has to be disabled here because this is not an interactive script,
 # and the VM has not been configured to respond in such a way that the value in known_hosts
 # will bypass the interactive prompt.
-scp -q -o StrictHostKeyChecking=no -i $sonar_dir/ubuntu-vm.pem $load_report_path/*.json ubuntu@158.39.48.160:/var/www/html/output
+scp -C -q -o StrictHostKeyChecking=no -i $sonar_dir/ubuntu-vm.pem $load_report_path/*.json ubuntu@158.39.48.160:/var/www/html/output
 

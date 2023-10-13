@@ -28,4 +28,4 @@ chmod go+r $load_report_path/*-minutely.json
 # StrictHostKeyChecking has to be disabled here because this is not an interactive script,
 # and the VM has not been configured to respond in such a way that the value in known_hosts
 # will bypass the interactive prompt.
-scp -q -o StrictHostKeyChecking=no -i $sonar_dir/ubuntu-vm.pem $load_report_path/*-minutely.json ubuntu@158.39.48.160:/var/www/html/output
+scp -C -q -o StrictHostKeyChecking=no -i $sonar_dir/ubuntu-vm.pem $load_report_path/*-minutely.json ubuntu@158.39.48.160:/var/www/html/output
