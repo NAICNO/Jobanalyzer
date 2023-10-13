@@ -184,15 +184,17 @@ fn format_fixed_width<'a>(
     // Header
     if opts.header {
         let mut i = 0;
+        let mut s = "".to_string();
         for kwd in fields {
             let w = widths[i];
-            output.write(format!("{:w$}  ", kwd).as_bytes()).unwrap();
+            s += format!("{:w$}  ", kwd).as_str();
             i += 1;
         }
         if opts.tag.is_some() {
             let w = widths[i];
-            output.write(format!("{:w$}  ", "tag").as_bytes()).unwrap();
+            s += format!("{:w$}  ", "tag").as_str();
         }
+        output.write(s.trim_end().as_bytes()).unwrap();
         output.write(b"\n").unwrap();
     }
 
@@ -200,19 +202,17 @@ fn format_fixed_width<'a>(
     let mut row = 0;
     while row < cols[0].len() {
         let mut col = 0;
+        let mut s = "".to_string();
         while col < fields.len() {
             let w = widths[col];
-            output
-                .write(format!("{:w$}  ", cols[col][row]).as_bytes())
-                .unwrap();
+            s += format!("{:w$}  ", cols[col][row]).as_str();
             col += 1;
         }
         if let Some(ref tag) = opts.tag {
             let w = widths[col];
-            output
-                .write(format!("{:w$}  ", tag).as_bytes())
-                .unwrap();
+            s += format!("{:w$}  ", tag).as_str();
         }
+        output.write(s.trim_end().as_bytes()).unwrap();
         output.write(b"\n").unwrap();
         row += 1;
     }
