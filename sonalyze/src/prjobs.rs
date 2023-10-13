@@ -431,19 +431,19 @@ fn test_format_jobs() {
     c.flush().unwrap();
     let contents = c.get();
     let expected =
-"jobm      user      duration  host  cpu-avg  cpu-peak  mem-avg  mem-peak  gpu-avg  gpu-peak  gpumem-avg  gpumem-peak  cmd            
-4079<     root      1d16h55m  ml8   1        4         1        1         0        0         0           0            tuned          
-4093!     zabbix    1d17h 0m  ml8   1        5         1        1         0        0         0           0            zabbix_agentd  
-585616<   larsbent  0d 0h45m  ml8   75       745       194      199       72       84        16          26           python         
-1649588<  riccarsi  0d 3h20m  ml8   4        140       127      155       38       44        2           2            python         
-2381069<  einarvid  1d16h55m  ml8   1        2         4        4         0        0         0           0            mongod         
-1592463   larsbent  0d 2h45m  ml8   28       929       92       116       76       89        20          37           python         
-1593746   larsbent  0d 2h45m  ml8   74       2498      21       29        52       71        2           3            python         
-1921146   riccarsi  0d20h50m  ml8   1        97        104      115       38       42        2           2            python         
-1939269   larsbent  0d 3h 0m  ml8   5        168       116      132       79       92        19          33           python         
-1940843   larsbent  0d 3h 0m  ml8   6        203       47       62        46       58        2           3            python         
-2126454   riccarsi  0d 6h45m  ml8   2        99        149      149       57       59        2           3            python         
-2447150   larsbent  0d20h35m  ml8   1        173       18       19        0        0         1           1            python         
+"jobm      user      duration  host  cpu-avg  cpu-peak  mem-avg  mem-peak  gpu-avg  gpu-peak  gpumem-avg  gpumem-peak  cmd
+4079<     root      1d16h55m  ml8   1        4         1        1         0        0         0           0            tuned
+4093!     zabbix    1d17h 0m  ml8   1        5         1        1         0        0         0           0            zabbix_agentd
+585616<   larsbent  0d 0h45m  ml8   75       745       194      199       72       84        16          26           python
+1649588<  riccarsi  0d 3h20m  ml8   4        140       127      155       38       44        2           2            python
+2381069<  einarvid  1d16h55m  ml8   1        2         4        4         0        0         0           0            mongod
+1592463   larsbent  0d 2h45m  ml8   28       929       92       116       76       89        20          37           python
+1593746   larsbent  0d 2h45m  ml8   74       2498      21       29        52       71        2           3            python
+1921146   riccarsi  0d20h50m  ml8   1        97        104      115       38       42        2           2            python
+1939269   larsbent  0d 3h 0m  ml8   5        168       116      132       79       92        19          33           python
+1940843   larsbent  0d 3h 0m  ml8   6        203       47       62        46       58        2           3            python
+2126454   riccarsi  0d 6h45m  ml8   2        99        149      149       57       59        2           3            python
+2447150   larsbent  0d20h35m  ml8   1        173       18       19        0        0         1           1            python
 ";
     assert!(expected == contents);
 }
