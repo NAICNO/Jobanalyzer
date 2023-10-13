@@ -50,6 +50,9 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Print information about the program
+    Version,
+
     /// Print information about jobs
     Jobs(JobCmdArgs),
 
@@ -540,11 +543,30 @@ fn main() {
 fn sonalyze() -> Result<()> {
     let cli = Cli::parse();
 
+    if let Commands::Version = cli.command {
+        // Syntax:
+        //  - components of the version string are space-separated but there are spaces nowhere else
+        //  - the keyword "sonalyze" is always the first component
+        //  - other components are in random order
+        //  - every component is keyword(value)
+        //  - "version" carries a semver
+        //  - "features" carries a comma-separated list of enabled features
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "untagged_sonar_data")] {
+                println!("sonalyze version(0.1.0) features(untagged_sonar_data)");
+            } else {
+                println!("sonalyze version(0.1.0) features()");
+            }
+        }
+        return Ok(())
+    }
+
     if match cli.command {
         Commands::Jobs(ref jobs_args) => format::maybe_help(&jobs_args.print_args.fmt, &prjobs::fmt_help),
         Commands::Load(ref load_args) => format::maybe_help(&load_args.print_args.fmt, &load::fmt_help),
         Commands::Parse(ref parse_args) => format::maybe_help(&parse_args.print_args.fmt, &parse::fmt_help),
         Commands::Metadata(ref parse_args) => format::maybe_help(&parse_args.print_args.fmt, &metadata::fmt_help),
+        Commands::Version => false,
     } {
         return Ok(())
     }
@@ -553,6 +575,7 @@ fn sonalyze() -> Result<()> {
         Commands::Jobs(ref jobs_args) => &jobs_args.meta_args,
         Commands::Load(ref load_args) => &load_args.meta_args,
         Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.meta_args,
+        Commands::Version => panic!("Unexpected"),
     };
 
     let include_hosts = {
@@ -560,6 +583,7 @@ fn sonalyze() -> Result<()> {
             Commands::Jobs(ref jobs_args) => &jobs_args.host_args,
             Commands::Load(ref load_args) => &load_args.host_args,
             Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.host_args,
+            Commands::Version => panic!("Unexpected"),
         };
 
         // Included host set, empty means "all"
@@ -579,6 +603,7 @@ fn sonalyze() -> Result<()> {
             Commands::Jobs(ref jobs_args) => &jobs_args.source_args,
             Commands::Load(ref load_args) => &load_args.source_args,
             Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.source_args,
+            Commands::Version => panic!("Unexpected"),
         };
 
         // Included date range.  These are used both for file names and for records.
@@ -643,6 +668,9 @@ fn sonalyze() -> Result<()> {
     };
 
     match cli.command {
+        Commands::Version => {
+            panic!("Unexpected");
+        }
         Commands::Jobs(_) | Commands::Load(_) => {
             let input_args = match cli.command {
                 Commands::Jobs(ref jobs_args) => &jobs_args.input_args,
