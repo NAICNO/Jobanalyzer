@@ -12,8 +12,6 @@ use std::io;
 
 #[cfg(all(feature = "untagged_sonar_data", test))]
 use chrono::{Datelike, Timelike};
-#[cfg(all(feature = "untagged_sonar_data", test))]
-use std::io::Write;
 
 /// Bit values for JobAggregate::classification
 
@@ -475,6 +473,9 @@ fn aggregate_job(
     }
 }
 
+// TODO: No reason why this should be whitebox, except that the blackbox tests can't tell if
+// untagged_sonar_data has been enabled or not.  But that should be fixable.
+
 #[cfg(feature = "untagged_sonar_data")]
 #[test]
 fn test_compute_jobs() {
@@ -482,23 +483,21 @@ fn test_compute_jobs() {
 
     // Filter by job ID, we just want the one job
     let filter = |e:&LogEntry| e.job_id == 2447150;
-    let (jobs, _numrec, earliest, latest) = sonarlog::compute_jobs(
+    let (entries, bounds) = sonarlog::read_logfiles(
         &vec![
             "../sonar_test_data0/2023/05/31/ml8.hpc.uio.no.csv".to_string(),
             "../sonar_test_data0/2023/06/01/ml8.hpc.uio.no.csv".to_string(),
         ],
-        &filter,
-        /* merge_across_hosts= */ false,
     )
     .unwrap();
+    let streams = sonarlog::postprocess_log(entries, &filter, &None);
 
-    assert!(jobs.len() == 1);
-    let job = jobs
-        .get(&JobKey::from_parts(
-            /* by_host= */ true,
-            "ml8.hpc.uio.no",
-            2447150,
-        ))
+    assert!(streams.len() == 1);
+    let job = streams
+        .get(&("ml8.hpc.uio.no".to_string(),
+               2447150,
+               "python".to_string())
+        )
         .unwrap();
 
     // First record
@@ -526,14 +525,14 @@ fn test_compute_jobs() {
             && end.second() == 1
     );
 
-    let agg = aggregate_job(&None, job, earliest, latest);
+    let agg = aggregate_job(&None, job, &bounds);
     assert!(agg.classification == 0);
     assert!(agg.first == start);
     assert!(agg.last == end);
     assert!(agg.duration == (end - start).num_seconds());
     assert!(agg.days == 0);
     assert!(agg.hours == 20);
-    assert!(agg.minutes == 34);
+    assert!(agg.minutes == 35);
     assert!(agg.uses_gpu);
     assert!(agg.selected);
     // TODO: Really more here
