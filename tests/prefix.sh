@@ -10,7 +10,7 @@ tr_soft_errors=0
 CHECK () {
     local name="$TEST_NAME: $1"
     local expected="$2"
-    local got="$3"
+    local output="$3"
     local knownbug="$4"
     if [[ "$output" != "$expected" ]]; then
 	if [[ $knownbug != "" ]]; then
