@@ -165,10 +165,30 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                 let mut rolledup: Option<u32> = None;
 
                 if let Ok(t) = parse_timestamp(&record.fields[0]) {
-                    // This is an untagged record, and the cputime_sec field may or may not be
-                    // present in some logs.
+                    // This is an untagged record.  It does not carry a version number and has
+                    // evolved a bit over time.
+                    //
+                    // Old old format (current on Saga as of 2023-10-13)
+                    // 0  timestamp
+                    // 1  hostname
+                    // 2  numcores
+                    // 3  username
+                    // 4  jobid
+                    // 5  command
+                    // 6  cpu_pct
+                    // 7  mem_kib
+                    //
+                    // New old format (what was briefly deployed on the UiO ML nodes)
+                    // 8  gpus bitvector
+                    // 9  gpu_pct
+                    // 10 gpumem_pct
+                    // 11 gpumem_kib
+                    //
+                    // Newer old format (again briefly used on the UiO ML nodes)
+                    // 12 cputime_sec
+
                     if cfg!(feature = "untagged_sonar_data") {
-                        if record.fields.len() != 12 && record.fields.len() != 13 {
+                        if record.fields.len() != 8 && record.fields.len() != 12 && record.fields.len() != 13 {
                             continue 'outer;
                         }
                         let mut failed;
@@ -184,6 +204,11 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                         if failed {
                             continue 'outer;
                         }
+                        // Untagged data do not carry a PID, so use the job ID in its place.  This
+                        // should be mostly OK.  However, sometimes the job ID is also zero, for
+                        // root jobs.  Client code needs to either filter those records or handle
+                        // the problem.
+                        pid = job_id;
                         command = Some(record.fields[5].to_string());
                         (cpu_pct, failed) = get_f64(&record.fields[6], 1.0);
                         if failed {
@@ -193,26 +218,28 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                         if failed {
                             continue 'outer;
                         }
-                        (gpus, failed) = get_gpus_from_bitvector(&record.fields[8]);
-                        if failed {
-                            continue 'outer;
-                        }
-                        (gpu_pct, failed) = get_f64(&record.fields[9], 1.0);
-                        if failed {
-                            continue 'outer;
-                        }
-                        (gpumem_pct, failed) = get_f64(&record.fields[10], 1.0);
-                        if failed {
-                            continue 'outer;
-                        }
-                        (gpumem_gb, failed) = get_f64(&record.fields[11], 1.0 / (1024.0 * 1024.0));
-                        if failed {
-                            continue 'outer;
-                        }
-                        if record.fields.len() == 13 {
-                            (cputime_sec, failed) = get_f64(&record.fields[12], 1.0);
+                        if record.fields.len() == 12 || record.fields.len() == 13 {
+                            (gpus, failed) = get_gpus_from_bitvector(&record.fields[8]);
                             if failed {
                                 continue 'outer;
+                            }
+                            (gpu_pct, failed) = get_f64(&record.fields[9], 1.0);
+                            if failed {
+                                continue 'outer;
+                            }
+                            (gpumem_pct, failed) = get_f64(&record.fields[10], 1.0);
+                            if failed {
+                                continue 'outer;
+                            }
+                            (gpumem_gb, failed) = get_f64(&record.fields[11], 1.0 / (1024.0 * 1024.0));
+                            if failed {
+                                continue 'outer;
+                            }
+                            if record.fields.len() == 13 {
+                                (cputime_sec, failed) = get_f64(&record.fields[12], 1.0);
+                                if failed {
+                                    continue 'outer;
+                                }
                             }
                         }
                     } else {

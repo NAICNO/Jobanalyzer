@@ -11,6 +11,10 @@ edition = "2021"
 name = "sonalyze"
 path = "src/sonalyze.rs"
 
+[features]
+default = []
+untagged_sonar_data = [ "sonarlog/untagged_sonar_data" ]
+
 [dependencies]
 sonarlog = { path = "../sonarlog" }
 chrono = "0.4"

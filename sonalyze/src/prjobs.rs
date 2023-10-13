@@ -13,6 +13,18 @@ use std::collections::{HashMap, HashSet};
 use std::io;
 use std::ops::Add;
 
+#[cfg(all(feature = "untagged_sonar_data", test))]
+use crate::JobFilterAndAggregationArgs;
+
+#[cfg(all(feature = "untagged_sonar_data", test))]
+use crate::jobs::aggregate_and_print_jobs;
+
+#[cfg(all(feature = "untagged_sonar_data", test))]
+use sonarlog::LogEntry;
+
+#[cfg(all(feature = "untagged_sonar_data", test))]
+use std::io::Write;
+
 pub fn print_jobs(
     output: &mut dyn io::Write,
     system_config: &Option<HashMap<String, sonarlog::System>>,
@@ -384,15 +396,14 @@ fn format_command(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
 #[test]
 fn test_format_jobs() {
     let filter = |e:&LogEntry| e.job_id <= 2447150;
-    let (jobs, _numrec, earliest, latest) = sonarlog::compute_jobs(
+    let (entries, bounds) = sonarlog::read_logfiles(
         &vec![
             "../sonar_test_data0/2023/05/31/ml8.hpc.uio.no.csv".to_string(),
             "../sonar_test_data0/2023/06/01/ml8.hpc.uio.no.csv".to_string(),
-        ],
-        &filter,
-        /* merge_across_hosts= */ false,
+        ]
     )
     .unwrap();
+    let streams = sonarlog::postprocess_log(entries, &filter, &None);
 
     let mut filter_args = JobFilterAndAggregationArgs::default();
     // TODO: Annoying and does not scale - surely there's a better way?
@@ -413,27 +424,26 @@ fn test_format_jobs() {
         &filter_args,
         &print_args,
         &meta_args,
-        jobs,
-        earliest,
-        latest,
+        streams,
+        &bounds,
     )
     .unwrap();
     c.flush().unwrap();
     let contents = c.get();
     let expected =
-"jobm      user      duration  cpu-avg  cpu-peak  mem-avg  mem-peak  gpu-avg  gpu-peak  gpumem-avg  gpumem-peak  host  cmd            
-4079<     root      1d16h55m  4        4         1        1         0        0         0           0            ml8   tuned          
-4093!     zabbix    1d17h 0m  5        5         1        1         0        0         0           0            ml8   zabbix_agentd  
-585616<   larsbent  0d 0h45m  933      1273      194      199       72       84        16          26           ml8   python         
-1649588<  riccarsi  0d 3h20m  141      141       127      155       38       44        2           2            ml8   python         
-2381069<  einarvid  1d16h55m  2        2         4        4         0        0         0           0            ml8   mongod         
-1592463   larsbent  0d 2h44m  594      1292      92       116       76       89        20          37           ml8   python         
-1593746   larsbent  0d 2h44m  2701     2834      21       29        52       71        2           3            ml8   python         
-1921146   riccarsi  0d20h50m  143      146       104      115       38       42        2           2            ml8   python         
-1939269   larsbent  0d 2h59m  536      3095      116      132       79       92        19          33           ml8   python         
-1940843   larsbent  0d 2h59m  260      888       47       62        46       58        2           3            ml8   python         
-2126454   riccarsi  0d 6h44m  131      134       149      149       57       59        2           3            ml8   python         
-2447150   larsbent  0d20h34m  163      178       18       19        0        0         1           1            ml8   python         
+"jobm      user      duration  host  cpu-avg  cpu-peak  mem-avg  mem-peak  gpu-avg  gpu-peak  gpumem-avg  gpumem-peak  cmd            
+4079<     root      1d16h55m  ml8   1        4         1        1         0        0         0           0            tuned          
+4093!     zabbix    1d17h 0m  ml8   1        5         1        1         0        0         0           0            zabbix_agentd  
+585616<   larsbent  0d 0h45m  ml8   75       745       194      199       72       84        16          26           python         
+1649588<  riccarsi  0d 3h20m  ml8   4        140       127      155       38       44        2           2            python         
+2381069<  einarvid  1d16h55m  ml8   1        2         4        4         0        0         0           0            mongod         
+1592463   larsbent  0d 2h45m  ml8   28       929       92       116       76       89        20          37           python         
+1593746   larsbent  0d 2h45m  ml8   74       2498      21       29        52       71        2           3            python         
+1921146   riccarsi  0d20h50m  ml8   1        97        104      115       38       42        2           2            python         
+1939269   larsbent  0d 3h 0m  ml8   5        168       116      132       79       92        19          33           python         
+1940843   larsbent  0d 3h 0m  ml8   6        203       47       62        46       58        2           3            python         
+2126454   riccarsi  0d 6h45m  ml8   2        99        149      149       57       59        2           3            python         
+2447150   larsbent  0d20h35m  ml8   1        173       18       19        0        0         1           1            python         
 ";
     assert!(expected == contents);
 }
