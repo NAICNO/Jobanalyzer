@@ -90,6 +90,11 @@ pub use dates::add_day;
 
 pub use logtree::find_logfiles;
 
+// Map from host name to (earliest, latest) time for host.
+
+pub use logtree::Timebound;
+pub use logtree::Timebounds;
+
 // Read a set of logfiles into a vector and compute some simple metadata.
 
 pub use logtree::read_logfiles;

@@ -4,7 +4,8 @@ use crate::prjobs;
 use crate::{JobFilterAndAggregationArgs, JobPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
-use sonarlog::{self, is_empty_gpuset, merge_gpu_status, GpuStatus, LogEntry, InputStreamSet, Timestamp};
+use sonarlog::{self, is_empty_gpuset, merge_gpu_status,
+               GpuStatus, LogEntry, InputStreamSet, Timebound, Timebounds, Timestamp};
 use std::boxed::Box;
 use std::collections::HashMap;
 use std::io;
@@ -84,8 +85,7 @@ pub fn aggregate_and_print_jobs(
     print_args: &JobPrintArgs,
     meta_args: &MetaArgs,
     streams: InputStreamSet,
-    earliest: Timestamp,
-    latest: Timestamp,
+    bounds: &Timebounds,
 ) -> Result<()> {
     // These are unmerged, but they are also unfiltered, so there may be data here that are not used
     // at all in the aggregated jobs.
@@ -96,7 +96,7 @@ pub fn aggregate_and_print_jobs(
     };
 
     let mut jobvec =
-        aggregate_and_filter_jobs(system_config, filter_args, streams, earliest, latest);
+        aggregate_and_filter_jobs(system_config, filter_args, streams, bounds);
 
     if meta_args.verbose {
         eprintln!(
@@ -126,8 +126,7 @@ pub fn aggregate_and_print_jobs(
                          0,
                          &mut jobvec,
                          orig_streams.unwrap(),
-                         earliest,
-                         latest);
+                         bounds);
     }
 
     prjobs::print_jobs(output, system_config, jobvec, print_args, meta_args)
@@ -146,8 +145,7 @@ fn attach_breakdown(
     kwdix: usize,
     jobvec: &mut Vec<JobSummary>,
     mut orig_streams: InputStreamSet,
-    earliest: Timestamp,
-    latest: Timestamp,
+    bounds: &Timebounds,
 ) {
     // If the streams in `orig_streams` are unique enough to be in a HashMap then the subset
     // we're creating by job here - the value in this hashmap - will also have unique keys if
@@ -174,7 +172,7 @@ fn attach_breakdown(
     for (job_id, orig_job_streams) in orig_streams_by_job.drain() {
         // TODO: This lookup is going to be quadratic
         if let Some(job) = jobvec.iter_mut().find(|j| j.job[0].job_id == job_id) {
-            attach_one_breakdown(system_config, filter_args, kwds, kwdix, job, orig_job_streams, earliest, latest);
+            attach_one_breakdown(system_config, filter_args, kwds, kwdix, job, orig_job_streams, bounds);
         }
     }
 }
@@ -186,8 +184,7 @@ fn attach_one_breakdown(
     kwdix: usize,
     job: &mut JobSummary,
     mut orig_job_streams: InputStreamSet,
-    earliest: Timestamp,
-    latest: Timestamp,
+    bounds: &Timebounds,
 ) {
     let kwd = kwds[kwdix];
 
@@ -213,7 +210,7 @@ fn attach_one_breakdown(
     for (_x, x_streams) in orig_streams_by_x {
         let next_streams = if kwdix < kwds.len()-1 { Some(x_streams.clone()) } else { None };
         let mut summaries =
-            aggregate_and_filter_jobs(system_config, filter_args, x_streams, earliest, latest);
+            aggregate_and_filter_jobs(system_config, filter_args, x_streams, bounds);
         if summaries.len() == 0 {
             // There could be no summaries due to filtering: job_streams are the original unfiltered
             // streams for the job, but we apply filtering during aggregation
@@ -224,7 +221,7 @@ fn attach_one_breakdown(
         }
         let mut summary = summaries.pop().unwrap();
         if let Some(orig_x_streams) = next_streams {
-            attach_one_breakdown(system_config, filter_args, kwds, kwdix+1, &mut summary, orig_x_streams, earliest, latest);
+            attach_one_breakdown(system_config, filter_args, kwds, kwdix+1, &mut summary, orig_x_streams, bounds);
         }
         breakdown.push(summary);
     }
@@ -250,8 +247,7 @@ fn aggregate_and_filter_jobs(
     system_config: &Option<HashMap<String, sonarlog::System>>,
     filter_args: &JobFilterAndAggregationArgs,
     streams: InputStreamSet,
-    earliest: Timestamp,
-    latest: Timestamp,
+    bounds: &Timebounds,
 ) -> Vec<JobSummary> {
     // Convert the aggregation filter options to a useful form.
 
@@ -348,7 +344,7 @@ fn aggregate_and_filter_jobs(
                 }
                 && {
                     if filter_args.zombie {
-		        job.iter().any(|x| x.command.contains("<defunct>") || x.user.starts_with("_zombie_"))
+                        job.iter().any(|x| x.command.contains("<defunct>") || x.user.starts_with("_zombie_"))
                     } else {
                         true
                     }
@@ -357,17 +353,17 @@ fn aggregate_and_filter_jobs(
 
     // Select streams and synthesize a merged stream, and then aggregate and print it.
 
-    let mut jobs =
+    let (mut jobs, bounds) =
         if filter_args.batch {
-            sonarlog::merge_by_job(streams)
+            sonarlog::merge_by_job(streams, bounds)
         } else {
-            sonarlog::merge_by_host_and_job(streams)
+            (sonarlog::merge_by_host_and_job(streams), bounds.clone())
         };
     jobs
         .drain(0..)
         .filter(|job| job.len() >= min_samples)
         .map(|job| JobSummary {
-            aggregate: aggregate_job(system_config, &job, earliest, latest),
+            aggregate: aggregate_job(system_config, &job, &bounds),
             job,
             breakdown: None,
         })
@@ -386,8 +382,7 @@ fn aggregate_and_filter_jobs(
 fn aggregate_job(
     system_config: &Option<HashMap<String, sonarlog::System>>,
     job: &[Box<LogEntry>],
-    earliest: Timestamp,
-    latest: Timestamp,
+    bounds: &Timebounds,
 ) -> JobAggregate {
     let first = job[0].timestamp;
     let last = job[job.len() - 1].timestamp;
@@ -443,10 +438,11 @@ fn aggregate_job(
     }
 
     let mut classification = 0;
-    if first == earliest {
+    let Timebound { earliest, latest } = bounds.get(host).expect("Hostname in time bounds");
+    if first == *earliest {
         classification |= LIVE_AT_START;
     }
-    if last == latest {
+    if last == *latest {
         classification |= LIVE_AT_END;
     }
     JobAggregate {

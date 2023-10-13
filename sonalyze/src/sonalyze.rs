@@ -24,6 +24,7 @@
 mod format;
 mod jobs;
 mod load;
+mod metadata;
 mod parse;
 mod prjobs;
 
@@ -33,7 +34,7 @@ use clap::{Args, Parser, Subcommand};
 use sonarlog::{self, HostFilter, LogEntry, Timestamp};
 use std::collections::HashSet;
 use std::env;
-use std::io;
+use std::io::{self, Write};
 use std::num::ParseIntError;
 use std::ops::Add;
 use std::process;
@@ -57,6 +58,9 @@ enum Commands {
 
     /// Parse the Sonar logs, apply source/host filtering, and print raw, comma-separated values
     Parse(ParseCmdArgs),
+
+    /// Parse the Sonar logs, apply source/host filtering, and print metadata
+    Metadata(ParseCmdArgs)
 }
 
 #[derive(Args, Debug)]
@@ -353,6 +357,14 @@ pub struct JobPrintArgs {
 
 #[derive(Args, Debug, Default)]
 pub struct ParsePrintArgs {
+    /// Merge streams that have the same host and job ID (experts only)
+    #[arg(long, default_value_t = false)]
+    merge_by_host_and_job: bool,
+
+    /// Merge streams that have the same job ID, across hosts (experts only)
+    #[arg(long, default_value_t = false)]
+    merge_by_job: bool,
+
     /// Select fields and format for the output [default: see MANUAL.md]
     #[arg(long)]
     fmt: Option<String>,
@@ -532,6 +544,7 @@ fn sonalyze() -> Result<()> {
         Commands::Jobs(ref jobs_args) => format::maybe_help(&jobs_args.print_args.fmt, &prjobs::fmt_help),
         Commands::Load(ref load_args) => format::maybe_help(&load_args.print_args.fmt, &load::fmt_help),
         Commands::Parse(ref parse_args) => format::maybe_help(&parse_args.print_args.fmt, &parse::fmt_help),
+        Commands::Metadata(ref parse_args) => format::maybe_help(&parse_args.print_args.fmt, &metadata::fmt_help),
     } {
         return Ok(())
     }
@@ -539,14 +552,14 @@ fn sonalyze() -> Result<()> {
     let meta_args = match cli.command {
         Commands::Jobs(ref jobs_args) => &jobs_args.meta_args,
         Commands::Load(ref load_args) => &load_args.meta_args,
-        Commands::Parse(ref parse_args) => &parse_args.meta_args,
+        Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.meta_args,
     };
 
     let include_hosts = {
         let host_args = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.host_args,
             Commands::Load(ref load_args) => &load_args.host_args,
-            Commands::Parse(ref parse_args) => &parse_args.host_args,
+            Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.host_args,
         };
 
         // Included host set, empty means "all"
@@ -565,7 +578,7 @@ fn sonalyze() -> Result<()> {
         let source_args = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.source_args,
             Commands::Load(ref load_args) => &load_args.source_args,
-            Commands::Parse(ref parse_args) => &parse_args.source_args,
+            Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.source_args,
         };
 
         // Included date range.  These are used both for file names and for records.
@@ -762,7 +775,7 @@ fn sonalyze() -> Result<()> {
                     && e.timestamp <= to
             };
 
-            let (entries, earliest, latest) = sonarlog::read_logfiles(&logfiles)?;
+            let (entries, bounds) = sonarlog::read_logfiles(&logfiles)?;
             let records_read = entries.len();
             let streams = sonarlog::postprocess_log(entries, &filter, &system_config);
 
@@ -798,20 +811,71 @@ fn sonalyze() -> Result<()> {
                         &job_args.print_args,
                         meta_args,
                         streams,
-                        earliest,
-                        latest,
+                        &bounds,
                     )
                 }
                 _ => panic!("Unexpected"),
             }
         }
         Commands::Parse(ref parse_args) => {
-            let (entries, _, _) = sonarlog::read_logfiles(&logfiles)?;
-            parse::print_parsed_data(
+            let (entries, bounds) = sonarlog::read_logfiles(&logfiles)?;
+            let (old_entries, new_entries) =
+                if parse_args.print_args.merge_by_job  {
+                    let streams = sonarlog::postprocess_log(entries, &|_:&LogEntry| true, &None);
+                    let (entries, _) = sonarlog::merge_by_job(streams, &bounds);
+                    (None, Some(entries))
+                } else if parse_args.print_args.merge_by_host_and_job {
+                    let streams = sonarlog::postprocess_log(entries, &|_:&LogEntry| true, &None);
+                    (None, Some(sonarlog::merge_by_host_and_job(streams)))
+                } else {
+                    (Some(entries), None)
+                };
+            if let Some(mut merged_streams) = new_entries {
+                merged_streams.sort_by(|a, b| {
+                    if a[0].hostname == b[0].hostname {
+                        if a[0].timestamp == b[0].timestamp {
+                            a[0].job_id.cmp(&b[0].job_id)
+                        } else {
+                            a[0].timestamp.cmp(&b[0].timestamp)
+                        }
+                    } else {
+                        a[0].hostname.cmp(&b[0].hostname)
+                    }
+                });
+                for entries in merged_streams {
+                    io::stdout().write(b"*\n").expect("Write should work");
+                    parse::print_parsed_data(
+                        &mut io::stdout(),
+                        &parse_args.print_args,
+                        meta_args,
+                        entries,
+                    )?;
+                }
+                Ok(())
+            } else {
+                parse::print_parsed_data(
+                    &mut io::stdout(),
+                    &parse_args.print_args,
+                    meta_args,
+                    old_entries.unwrap(),
+                )
+            }
+        }
+        Commands::Metadata(ref parse_args) => {
+            let (entries, bounds) = sonarlog::read_logfiles(&logfiles)?;
+            let bounds =
+                if parse_args.print_args.merge_by_job  {
+                    let streams = sonarlog::postprocess_log(entries, &|_:&LogEntry| true, &None);
+                    let (_, bounds) = sonarlog::merge_by_job(streams, &bounds);
+                    bounds
+                } else {
+                    bounds
+                };
+            metadata::print(
                 &mut io::stdout(),
                 &parse_args.print_args,
                 meta_args,
-                entries,
+                bounds,
             )
         }
     }

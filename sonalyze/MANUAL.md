@@ -10,12 +10,15 @@ Analyze `sonar` log files and print information about jobs or systems.
 sonalyze operation [options] [-- logfile ...]
 ```
 
-where `operation` is `jobs`, `load`, or `help`.
+where `operation` is `jobs`, `load`, `parse`, `metadata`, or `help`.
 
 The `jobs` operation prints information about jobs, collected from the sonar records.
 
 The `load` operation prints information about the load on the systems, collected from the sonar
 records.
+
+The `parse` and `metadata` operations are for testing, mainly: They perform low-level operations on
+the sonar logs and print the results.
 
 The `help` operation prints high-level usage information.
 

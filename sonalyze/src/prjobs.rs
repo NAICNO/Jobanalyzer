@@ -172,6 +172,7 @@ fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> Stri
     formatters.insert("cmd".to_string(), &format_command);
     formatters.insert("host".to_string(), &format_host);
     formatters.insert("now".to_string(), &format_now);
+    formatters.insert("classification".to_string(), &format_classification);
     formatters.insert("level".to_string(), &format_level);
 
     aliases.insert("std".to_string(), vec!["jobm".to_string(),
@@ -356,6 +357,10 @@ fn format_rgpumem_peak(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> Str
 
 fn format_gpufail(JobSummary {aggregate: a, ..}: LogDatum, _: LogCtx) -> String {
     format!("{}", a.gpu_status as i32)
+}
+
+fn format_classification(JobSummary {aggregate: a, ..}: LogDatum, _: LogCtx) -> String {
+    format!("0x{:x}", a.classification)
 }
 
 fn format_command(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
