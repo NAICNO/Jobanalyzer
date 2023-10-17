@@ -368,6 +368,10 @@ pub struct ParsePrintArgs {
     #[arg(long, default_value_t = false)]
     merge_by_job: bool,
 
+    /// Clean the job but perform no merging
+    #[arg(long, default_value_t = false)]
+    clean: bool,
+
     /// Select fields and format for the output [default: see MANUAL.md]
     #[arg(long)]
     fmt: Option<String>,
@@ -852,7 +856,10 @@ fn sonalyze() -> Result<()> {
         Commands::Parse(ref parse_args) => {
             let (entries, bounds) = sonarlog::read_logfiles(&logfiles)?;
             let (old_entries, new_entries) =
-                if parse_args.print_args.merge_by_job  {
+                if parse_args.print_args.clean {
+                    let mut streams = sonarlog::postprocess_log(entries, &|_:&LogEntry| true, &None);
+                    (None, Some(streams.drain().map(|(_, v)| v).collect::<Vec<Vec<Box<LogEntry>>>>()))
+                } else if parse_args.print_args.merge_by_job  {
                     let streams = sonarlog::postprocess_log(entries, &|_:&LogEntry| true, &None);
                     let (entries, _) = sonarlog::merge_by_job(streams, &bounds);
                     (None, Some(entries))

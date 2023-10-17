@@ -189,7 +189,7 @@ where
 fn test_postprocess_log_cpu_util_pct() {
     // This file has field names, cputime_sec, pid, and rolledup
     // There are two hosts.
-    let (entries, _) = read_logfiles(&vec!["../sonar_test_data0/2023/06/05/ml4.hpc.uio.no.csv".to_string()]).unwrap();
+    let (entries, _) = read_logfiles(&vec!["../tests/sonarlog/whitebox-logclean.csv".to_string()]).unwrap();
     assert!(entries.len() == 7);
 
     let any = |e:&LogEntry| e.user != "root";

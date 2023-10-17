@@ -1,0 +1,3 @@
+v=0.7.0,time=2023-06-26T18:05:01+02:00,host=ml4.hpc.uio.no,cores=192,user=larsbent,job=1249151,pid=1089,cmd=python,cpu%=1473.7,cpukib=113989888,"gpus=4,1,6",gpu%=39,gpumem%=12,gpukib=2338816,cputime_sec=314
+v=0.7.0,time=2023-06-26T18:15:01+02:00,host=ml4.hpc.uio.no,cores=192,user=larsbent,job=1249151,pid=1090,cmd=python,cpu%=1473.7,cpukib=113989888,"gpus=2,5,6",gpu%=39,gpumem%=12,gpukib=2338816,cputime_sec=9362
+v=0.7.0,time=2023-06-26T18:16:01+02:00,host=ml5.hpc.uio.no,cores=192,user=larsbent,job=1249152,pid=1090,cmd=python,cpu%=128,cpukib=113989888,"gpus=7,4,5",gpu%=39,gpumem%=12,gpukib=2338816,cputime_sec=9362
