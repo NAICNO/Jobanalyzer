@@ -85,14 +85,20 @@ pub fn union_gpuset(lhs: &mut GpuSet, rhs: &GpuSet) {
     }
 }
 
+// For testing, we need a predictable order, so accumulate as numbers and sort
 pub fn gpuset_to_string(gpus: &GpuSet) -> String {
     if let Some(gpus) = gpus {
         if gpus.is_empty() {
             "none".to_string()
         } else {
+            let mut cards = vec![];
+            for g in gpus {
+                cards.push(*g);
+            }
+            cards.sort();
             let mut term = "";
             let mut s = String::new();
-            for x in gpus {
+            for x in cards {
                 s += term;
                 term = ",";
                 s += &x.to_string();
@@ -556,84 +562,5 @@ fn test_get_gpus_from_list() {
     assert!(s2 == unknown_gpuset());
 }
 
-#[test]
-fn test_parse_logfile1() {
-    let mut x = vec![];
+// Other test cases are black-box, see ../../tests/sonarlog
 
-    // No such directory
-    assert!(parse_logfile("../sonar_test_data77/2023/05/31/xyz.csv", &mut x).is_err());
-
-    // No such file
-    assert!(parse_logfile("../sonar_test_data0/2023/05/31/ml2.hpc.uio.no.csv", &mut x).is_err());
-}
-
-#[cfg(feature = "untagged_sonar_data")]
-#[test]
-fn test_parse_logfile2a() {
-    let mut x = vec![];
-
-    // This file has four records, the second has a timestamp that is out of range and the fourth
-    // has a timestamp that is malformed.
-    parse_logfile("../sonar_test_data0/other/bad_timestamp.csv", &mut x).unwrap();
-    assert!(x.len() == 2);
-    assert!(x[0].user == "root");
-    assert!(x[1].user == "riccarsi");
-}
-
-#[test]
-fn test_parse_logfile2b() {
-    let mut x = vec![];
-
-    // This file has four records, the second has a timestamp that is out of range and the fourth
-    // has a timestamp that is malformed.
-    parse_logfile("../sonar_test_data0/other/bad_timestamp_tagged.csv", &mut x).unwrap();
-    assert!(x.len() == 2);
-    assert!(x[0].user == "root");
-    assert!(x[1].user == "riccarsi");
-}
-
-#[cfg(feature = "untagged_sonar_data")]
-#[test]
-fn test_parse_logfile3a() {
-    let mut x = vec![];
-
-    // This file has three records, the second has a GPU mask that is malformed.
-    parse_logfile("../sonar_test_data0/other/bad_gpu_mask.csv", &mut x).unwrap();
-    assert!(x.len() == 2);
-    assert!(x[0].user == "root");
-    assert!(x[1].user == "riccarsi");
-}
-
-#[test]
-fn test_parse_logfile3b() {
-    let mut x = vec![];
-
-    // This file has three records, the second has a GPU set that is malformed.
-    parse_logfile("../sonar_test_data0/other/bad_gpu_set_tagged.csv", &mut x).unwrap();
-    assert!(x.len() == 2);
-    assert!(x[0].user == "root");
-    assert!(x[1].user == "riccarsi");
-}
-
-#[test]
-fn test_parse_logfile5() {
-    let mut x = vec![];
-
-    // Tagged data, including some unknown fields.  These data are brittle, they are also used to
-    // test things in logclean.rs.
-    parse_logfile("../sonar_test_data0/2023/06/05/ml4.hpc.uio.no.csv", &mut x).unwrap();
-    assert!(x.len() == 7);
-    assert!(x[0].user == "zabbix");
-    assert!(x[0].rolledup == 5);
-    assert!(x[0].pid == 0);
-    assert!(x[1].user == "root");
-    assert!(x[2].user == "larsbent");
-    assert!(x[0].timestamp < x[1].timestamp);
-    assert!(x[1].timestamp == x[3].timestamp);
-    // x[2] has a more recent timestamp, it is used to test out-of-order records in logclean.rs
-    assert!(x[3].gpus == Some(HashSet::from([4, 5, 6])));
-    assert!(x[4].rolledup == 0);
-    assert!(x[4].pid == 1089);
-}
-
-// TODO: Obscure test cases, notably I/O error and non-UTF8 input.

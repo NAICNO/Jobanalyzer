@@ -229,13 +229,4 @@ fn test_find_logfiles5() {
     .is_err());
 }
 
-// TODO: test read_logfiles carefully
-//
-// - computation of cpu_util_pct from records that are all jumbled up
-// - application of filtering function
-
-#[test]
-fn test_read_logfiles1() {
-}
-
-// TODO: Test cases for obscure conditions.
+// Other test cases are black-box, see ../../tests/sonarlog.

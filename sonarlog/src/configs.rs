@@ -101,7 +101,7 @@ fn grab_usize(fields: &serde_json::Map<String, Value>, name: &str) -> Result<usi
     }
 }
 
-// Basic whitebox tests that the reading works.  Error conditions are tested blackbox, see
+// Basic whitebox test that the reading works.  Error conditions are tested blackbox, see
 // tests/sonalyze/config-file.sh.
 
 #[test]

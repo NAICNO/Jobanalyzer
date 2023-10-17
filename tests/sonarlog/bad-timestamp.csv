@@ -1,0 +1,4 @@
+v=0.7.0,time=2023-06-22T10:25:01+00:00,host=ml8.hpc.uio.no,cores=192,user=root,job=4079,pid=1,cmd=tuned,cpu=%4.1,memkib=93100
+v=0.7.0,time=2023-06-31T10:25:01+00:00,host=ml8.hpc.uio.no,cores=192,user=zabbix,job=4093,pid=2,cmd=zabbix_agentd,cpu%=5.2,memkib=2664
+v=0.7.0,time=2023-06-22T10:25:01+00:00,host=ml8.hpc.uio.no,cores=192,user=riccarsi,job=2288850,pid=3,cmd=python,cpu%=75.7,memkib=97859048
+v=0.7.0,time=2023-0x-22T10:25:01+00:00,host=ml8.hpc.uio.no,cores=192,user=mateuwa,job=705577,pid=4,cmd=python,cpu%=8553,memkib=271793344

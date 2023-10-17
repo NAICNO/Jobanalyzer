@@ -11,12 +11,17 @@ output=$($SONALYZE jobs -ueinarvid --from 2023-10-04 --fmt=csv,job,rcpu --config
 exitcode=$?
 CHECK_ERR dup_host_config $exitcode "$output" 'info for host .* already defined'
 
-# There are many more error conditions to check, but one is enough to check that
-# error propagation at least works.
-#
-# TODO: Test various failure modes, at least these (see code):
-#
-# - open error
-# - general json parse error (various classes, do we care?)
-# - missing field values
-# - bad data values in known fields
+# Missing field for "cpu_cores"
+output=$($SONALYZE jobs -u- --from 2023-10-04 --fmt=csv,job,rcpu --config-file nocpu-host-config.json -- dummy-data.csv 2>&1)
+exitcode=$?
+CHECK_ERR nocpu_host_config $exitcode "$output" "Field 'cpu_cores' must be present"
+
+# Can't open file
+output=$($SONALYZE jobs -u- --from 2023-10-04 --fmt=csv,job,rcpu --config-file nonexistent-host-config.json -- dummy-data.csv 2>&1)
+exitcode=$?
+CHECK_ERR nocpu_host_config $exitcode "$output" "No such file or directory"
+
+# Bad field value for "cpu_cores"
+output=$($SONALYZE jobs -u- --from 2023-10-04 --fmt=csv,job,rcpu --config-file badcpu-host-config.json -- dummy-data.csv 2>&1)
+exitcode=$?
+CHECK_ERR nocpu_host_config $exitcode "$output" "Field 'cpu_cores' must have unsigned integer value"
