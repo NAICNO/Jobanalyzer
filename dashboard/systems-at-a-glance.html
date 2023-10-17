@@ -44,6 +44,8 @@
 
       function reload() {
 	  let frequency = document.getElementById("frequency").value
+	  let show_data = document.getElementById("show_data").checked
+	  let show_downtime = document.getElementById("show_downtime").checked
 	  for ( let { value } of systems ) {
 	      fetch(`output/${value}.hpc.uio.no-${frequency}.json`).
 		  then((response) => response.json()).
@@ -62,7 +64,7 @@
 			  json_data.rgpu = json_data.rgpu.slice(-72)
 			  json_data.rgpumem = json_data.rgpumem.slice(-72)
 		      }
-		      charts[value] = plot_system(json_data, canvases[value], null)
+		      charts[value] = plot_system(json_data, canvases[value], null, show_data, show_downtime)
 		  })
 	  }
       }
@@ -70,7 +72,11 @@
   </head>
   <body onload="setup()">
     <h1><center>NAIC Overview dashboard</center></h1>
-    <center><select id=frequency name="Frequency" onchange="reload()"></select></center>
+    <center>
+    <select id=frequency name="Frequency" onchange="reload()"></select>
+    <input type=checkbox id=show_data name="Show data" onchange="reload()" checked>Show data</input>
+    <input type=checkbox id=show_downtime name="Show downtime" onchange="reload()">Show downtime</input>
+    </center>
     <div id=charts></div>
   </body>
 </html>

@@ -17,9 +17,10 @@
 //
 // desc_node is usually a DIV
 
-function plot_system(json_data, chart_node, desc_node) {
+function plot_system(json_data, chart_node, desc_node, show_data, show_downtime) {
 
-    // TODO: Some of the following data cleanup could move to the generating side.
+    // TODO: Some of the following data cleanup could move to the generating side, and indeed
+    // this would seriously reduce data volume.  Bug 169.
 
     // Clamp GPU data to get rid of occasional garbage, it's probably OK to do this even
     // if it's not ideal.
@@ -27,6 +28,8 @@ function plot_system(json_data, chart_node, desc_node) {
     let rcpu_data = json_data.rcpu.map(d => d.y)
     let rmem_data = json_data.rmem.map(d => d.y)
     let rgpu_data = json_data.rgpu.map(d => Math.min(d.y, 100))
+    let downhost_data = json_data.downhost ? json_data.downhost.map(d => d.y*15) : null
+    let downgpu_data = json_data.downgpu ? json_data.downgpu.map(d => d.y*30) : null
     let rgpumem_data = json_data.rgpumem.map(d => Math.min(d.y, 100))
 
     // Scale the chart.  Mostly this is now for the sake of rmem_data, whose values routinely
@@ -37,16 +40,26 @@ function plot_system(json_data, chart_node, desc_node) {
 			  Math.max(...rgpumem_data),
 			  100)
 
+    let datasets = []
+    if (show_data) {
+        datasets.push({ label: 'CPU%', data: rcpu_data, borderWidth: 2 },
+	              { label: 'RAM%', data: rmem_data, borderWidth: 2 },
+	              { label: 'GPU%', data: rgpu_data, borderWidth: 2 },
+	              { label: 'VRAM%', data: rgpumem_data, borderWidth: 2 })
+    }
+    if (show_downtime) {
+        if (downhost_data) {
+            datasets.push( { label: "DOWN", data: downhost_data, borderWidth: 3 } )
+        }
+        if (downgpu_data) {
+            datasets.push( { label: "GPU_DOWN", data: downgpu_data, borderWidth: 3 } )
+        }
+    }
     let my_chart = new Chart(chart_node, {
 	type: 'line',
 	data: {
 	    labels,
-	    datasets: [
-		{ label: 'CPU%', data: rcpu_data, borderWidth: 2 },
-		{ label: 'RAM%', data: rmem_data, borderWidth: 2 },
-		{ label: 'GPU%', data: rgpu_data, borderWidth: 2 },
-		{ label: 'VRAM%', data: rgpumem_data, borderWidth: 2 },
-	    ]
+	    datasets
 	},
 	options: {
 	    scales: {
