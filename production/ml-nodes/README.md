@@ -10,9 +10,8 @@ The work is driven by cron, so there are two crontabs:
 - `jobanalyzer.cron` is a user crontab to run on each host other than
   ML4.  It just runs `sonar`.
 
-- `jobanalyzer-ml4.cron` is a user crontab to run on ML4.  It runs
-  `sonar` but also the analysis jobs (it runs on ML4 because nobody
-  uses that node much).
+- `jobanalyzer-moneypenny.cron` is a user crontab to run on Moneypenny, the analysis host.  It runs
+  all the analysis jobs, and it runs on Moneypenny so as not to burden the ML nodes with this task.
 
 The crontabs just run a bunch of shell scripts:
 
@@ -24,8 +23,19 @@ The crontabs just run a bunch of shell scripts:
   logs and look for jobs that either should not be on the ML nodes or
   are stuck and indicate system problems.
 
-The analyses needs to know what the systems look like, so there are
-files for that:
+- `cpuhog-report.sh` and `deadweight-report.sh` are meta-analysis jobs that process the output from
+  `cpuhog.sh` and `deadweight.sh` and produce alerts for problem jobs that have not been seen
+  previously.
+
+- `webload-1h.sh` and `webload-24h.sh` produce load graphs every 1h (for hourly breakdowns over the
+  last day or week) and 24h (for daily breakdowns over the last month and quarter)
+
+- `upload-data.sh` uploads all produced json reports to the web server
+
+- `webload-5m-and-upload.sh` produces and uploads a moment-to-moment load graph for the last 24h.
+  It runs every time sonar runs (roughly) and is its own thing so that it can move less data.
+
+The analyses needs to know what the systems look like, so there are files for that:
 
 - `ml-nodes.json` describes the hardware of the ML nodes, its format
   is documented in `../../sonalyze/MANUAL.md`.
@@ -57,6 +67,8 @@ produce reports.)
 
 **TODO: Document the upload script here!**
 
+**TODO: Document the naicreport state files here!**
+
 ## UiO setup
 
 The production web server is an nginx instance that runs on a vm on the open internet with static
@@ -74,3 +86,27 @@ important for the `output` directory.
 The access key is in the file `ubuntu-vm.pem` which I'm not going to be including here.  The key
 needs to be located in the `~/.ssh` directory of any user account that will run the `upload-data.sh`
 script documented above.
+
+## Staging
+
+(This describes a future architecture, once the system is properly set up for production.)
+
+Recall that production has multiple aspects
+
+- running sonar and producing logs
+- running sonalyze and producing cpuhog and deadweight state
+- running naicreport and producing cpuhog, deadweight, and load reports, and maintaining state
+- uploading data to a data directory on the sever
+- on the server, serving html, js and json
+
+For staging, we use the same web server as for production, but all the files are in
+`/var/www/staging`.
+
+On the ML nodes, there will be a separate user and separate cron jobs producing separate data, and
+everything will be uploaded to the staging directory.  Mostly this will "just work", except:
+
+- jobanalyzer-moneypenny.cron will need to not hardcode the work directory
+- the upload scripts will need to not hardcode the upload path
+
+If there are several developers working independently then they could use multiple staging
+directories.

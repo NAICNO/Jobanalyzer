@@ -376,3 +376,19 @@ whether to provide more money.
 report on is system load, uptime, wait times, projects that were run, projects that were denied(!).
 
 TODO: To be developed.
+
+
+## User stories and use cases that will *NOT* be supported
+
+By and large, these are use cases that are better served by other tools.
+
+* User X is developing new code and sitting at the terminal and wants to view GPU, CPU, and memory
+  usage for the application, which is running.  For this X can already use `nvtop`, `nvitop`,
+  `htop`, and similar applications.
+
+* Admin Y is wondering what the current total load is on the system.  For this Y can use `nvtop`,
+  `nvitop`, `htop`, and similar applications.
+
+* In general, traditional "profiling" use cases during development (finding hotspots in code, etc)
+  are out of bounds for this project.
+

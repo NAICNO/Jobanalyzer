@@ -2,24 +2,25 @@
 
 ## Architectural overview
 
-There is a variety of use cases (see [`README.md`](README.md)) and as a consequence, a fairly
-elaborate architecture.  But in brief, the system is built around a system sampler and a pool of
-samples, with a stack of increasingly user-friendly, stateful, and specialized tools to process
-those samples.
+There is a variety of use cases (see [`README.md`](README.md) and
+[`REQUIREMENTS.md`](REQUIREMENTS.md)) and as a consequence, a fairly elaborate architecture.  But in
+brief, the system is built around a system sampler and a pool of samples, with a stack of
+increasingly user-friendly, stateful, and specialized tools to process those samples.
 
 We use [`sonar`](https://github.com/NordicHPC/sonar) as a general system sampler.  Sonar runs
-periodically (typically every 5m or so, by means of `cron`) on all interesting hosts, and indeed on
-every node in a cluster; it samples the hosts' state when it runs, and writes raw sample data to
-files in a directory tree.  These samples need careful postprocessing and additional context to make
-much sense.
+periodically (currently every 5m or so, currently by means of `cron`) on all interesting hosts, and
+indeed on every node in a cluster; it samples the hosts' state when it runs, and writes raw sample
+data to files in a directory tree.  These samples need careful postprocessing and additional context
+to make much sense.
 
 Sonar is stateless and contextless: it samples the system state, tries to clean up what it can in
 the absence of any context, and appends data to a log file.
 
-We use [`sonarlog`](sonarlog) (in this repository) to ingest, contextualize, enrich, tidy up, and
+We use [`sonarlog`](sonarlog) (currently in this repository, though see [ticket
+25](https://github.com/NAICNO/Jobanalyzer/issues/25)) to ingest, contextualize, enrich, tidy up, and
 filter the Sonar logs.  Sonarlog produces "sample streams", which are clean, self-consistent, and
-chronologically sensible per-process or per-process-cluster sample data.  Sonarlog runs as a component
-of `sonalyze`, see next.
+chronologically sensible per-process or per-process-cluster sample data.  Sonarlog runs as a
+component of `sonalyze`, see next.
 
 We use [`sonalyze`](sonalyze) (in this repository) to aggregate, merge, query, and format the sample
 streams to present meaningful summaries of "jobs".  See [`sonalyze/MANUAL.md`](sonalyze/MANUAL.md)
@@ -59,7 +60,8 @@ Then there are scripts built on top of Naicreport that run it periodically and u
 (all JSON) to a web server.
 
 The web server has simple presentation logic for the JSON data, and always works on whatever data
-have been uploaded - it has no other state.
+have been uploaded - it has no other state, and makes no queries to any other back-end to inspect
+log data.
 
 
 ## Production setup
@@ -88,14 +90,14 @@ added and removed over time and several versions of Sonar to be in use at any ti
 Sonar is written in Rust (a sensible choice, and one made some time ago).  Sonarlog is also written
 in Rust, specifically so that it can be shared between Sonalyze and another tool,
 [`jobgraph`](https://github.com/NordicHPC/jobgraph).  Jobgraph and Sonalyze are also written in Rust
-and Sonarlog can be used as a component of these tools, it is not run standalone.
+and Sonarlog can be used as a component of these tools, it is not currently run standalone.
 
-Sonalyze can produce both human-readable and free CSV output, as different use cases call for
-different formats.
+Sonalyze can produce human-readable, free CSV, traditional CSV, and JSON output, as different use
+cases call for different formats.
 
 Naicreport is written in Go for greater flexibility (the rigidity of Rust's ownership system and
-manual memory management get in the way of getting things done).  Its state files are in free CSV
-form.  It can produce human-readable or JSON output.
+manual memory management get in the way of getting things done).  Its state files are currently in
+free CSV form.  It can produce human-readable or JSON output.
 
 Logic is pushed into Naicreport and Sonalyze when it is sensible and possible; the surrounding shell
 scripts are kept very simple.
@@ -103,7 +105,7 @@ scripts are kept very simple.
 
 ## Various considerations
 
-### Privacy 
+### Privacy
 
 Currently the log files are publically accessible on any system that mounts the disk where the logs
 are stored, and this is by design: all the "user" use cases require this.  However, there are

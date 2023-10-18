@@ -7,29 +7,30 @@ Jobanalyzer: Easy-to-use resource usage reporting and analyses.
 Jobanalyzer is a set of tools providing the following types of services:
 
 - for admins: monitoring of current and historical utilization, as well as usage patterns
-- for users: first-level analyses of computation patterns, with a view to appropriate system 
+- for users: first-level analyses of computation patterns, with a view to appropriate system
   use and scalability - cpu use, gpu use, communication use
 
 The tool set is expected to grow over time.
 
 Current tools are based on a system sampler, and provide information based on collected samples.
 See [DESIGN.md](DESIGN.md) for more information on the technical architecture and its
-implementation.
+implementation.  See [REQUIREMENTS.md](REQUIREMENTS.md) for requirements and a list of specific use
+cases.
 
 
 ### Admins
 
-Admins will come to Jobanalyzer via [its web interface](https://axis-of-eval.org/naic).  The current
-interface is bare-bones and consists only of a node-centric load dashboard, allowing the current and
-historical load of each node to be examined.  Only the UiO ML nodes are currently represented.
+Admins will come to Jobanalyzer via [its web interface](http://http://158.39.48.160/).  The current
+interface is bare-bones and consists of a node-centric load dashboard, allowing the current and
+historical load of each node to be examined, along with some reports of programs that mis-use the
+systems.  Only the UiO ML nodes are currently represented.
 
 Data for the web interface are produced firstly by periodic analysis by the low-level `sonalyze`
 tool and secondly by the higher-level `naicreport` tool, and the results of these analyses are
 uploaded periodically to the server.
 
-The web interface will be extended with dashboards for alerts for jobs that are using the system
-inappropriately ("cpu hogs") and jobs that are terminated but hanging around anyway and are holding
-onto system resources ("dead weight").  (Currently those alerts are emailed.)
+The web interface will be extended with more functional dashboards, including alerts for actionable
+items.  (Currently those alerts are emailed.)
 
 
 ### Users
@@ -44,6 +45,9 @@ directly via the higher-level `naicreport` tool.
 
 
 ## Sample use cases
+
+These use cases are somewhat older, but they are what motivated the current design.  For more
+abstract and up-to-date descriptions, see [REQUIREMENTS.md](REQUIREMENTS.md).
 
 The use cases span a usage spectrum from "pure production" to "partly development" to "systems
 administration".  In principle, the hardware spans the spectrum: personal systems, ML nodes, UiO
@@ -254,17 +258,3 @@ This is an automatic or manual monitoring use case.
 >or admins should be alerted to the problem so that X can change the code to use a better conduit.
 
 There is currently no support for this (no logging of communication bandwidth in sonar).
-
-
-## Non-use cases (probably)
-
-* User X is developing new code and sitting at the terminal and wants to view GPU, CPU, and memory
-  usage for the application, which is running.  For this X can already use `nvtop`, `nvitop`,
-  `htop`, and similar applications.
-
-* Admin Y is wondering what the current total load is on the system.  For this Y can use `nvtop`,
-  `nvitop`, `htop`, and similar applications.
-
-* In general, traditional "profiling" use cases during development (finding hotspots in code, etc)
-  are out of bounds for this project.
-
