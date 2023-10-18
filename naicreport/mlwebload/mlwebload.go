@@ -101,7 +101,6 @@ func MlWebload(progname string, args []string) error {
 		if err != nil {
 			return err
 		}
-		quantizeDowntimeData(downtimeData, loadData)
 	}
 
 	configInfo, err := storage.ReadConfig(configFilename)
@@ -223,127 +222,39 @@ func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHos
 		return
 	}
 
-	downtimeData := findDowntimeDataByHost(dd, ld.host)
-	if downtimeData == nil {
-		return
+	ddix := sort.Search(len(dd), func(i int) bool {
+		return dd[i].host >= ld.host
+	})
+	if ddix == len(dd) {
+		panic(fmt.Sprintf("Unexpected: %v\n%v", ld.host))
 	}
+	downtimeData := dd[ddix].data
 
 	loadData := ld.data
-	downHost = make([]int, 0, len(loadData))
-	downGpu = make([]int, 0, len(loadData))
+	downHost = make([]int, len(loadData))
+	downGpu = make([]int, len(loadData))
 
-	// Walk the loadData array, it is sorted ascending by time and usually has more data points than
-	// the downtimeData and is the arbiter of time.
-
-	hostDown := 0
-	gpuDown := 0
-	ddix := 0
-	for _, ld := range loadData {
-		for ddix < len(downtimeData) && downtimeData[ddix].start.Before(ld.datetime) && downtimeData[ddix].end.Before(ld.datetime) {
-			ddix++
-		}
-		if ddix < len(downtimeData) && downtimeData[ddix].start == ld.datetime {
-			if downtimeData[ddix].device == "host" {
-				hostDown = 1
+	for _, ddval := range downtimeData {
+		loc := sort.Search(len(loadData), func(i int) bool {
+			return loadData[i].datetime.After(ddval.start)
+		})
+		isDevice := ddval.device == "host"
+		for ix := max(loc-1, 0) ; ix < len(loadData) && loadData[ix].datetime.Before(ddval.end) ; ix++ {
+			if isDevice {
+				downHost[ix] = 1
 			} else {
-				gpuDown = 1
-			}
-		}
-		downHost = append(downHost, hostDown)
-		downGpu = append(downGpu, gpuDown)
-		if ddix < len(downtimeData) && downtimeData[ddix].end == ld.datetime {
-			if downtimeData[ddix].device == "host" {
-				hostDown = 0
-			} else {
-				gpuDown = 0
+				downGpu[ix] = 1
 			}
 		}
 	}
-
 	return
 }
 
-func findDowntimeDataByHost(dd []*downtimeDataByHost, host string) []*downtimeDatum {
-	loc := sort.Search(len(dd), func(i int) bool {
-		return dd[i].host >= host
-	})
-	if loc == len(dd) {
-		panic(fmt.Sprintf("Unexpected: %v\n%v", host, dd))
+func max(i, j int) int {
+	if i > j {
+		return i
 	}
-	return dd[loc].data
-}
-
-// The downtime data must be quantized to the resolution of the load report.  This means eg that if
-// the load report is hourly, and the system was down for some fraction of a particular hour, then
-// the downtime is stretched to the beginning of the hour (if downtime started within the window) or
-// to the end of the hour (if downtime ended within the window).  This will look slightly strange in
-// the graph because both downtime and activity will be shown in the same time slot, but is
-// basically the right thing.
-//
-// It is the load report that has the last say on what the time windows are and when the reporting
-// starts and ends.
-//
-// If any data point in downtime falls outside the array it's OK to just discard it, at least for
-// now.  (It may be that this is not the right thing for the rightmost point, where we really want
-// to know if a system is currently down.)
-
-func quantizeDowntimeData(downtimeData []*downtimeDataByHost, loadData []*loadDataByHost) {
-
-	// The inner data of loadData (per host) are already sorted by ascending time, and it can be
-	// binary-searched.
-	//
-	// Basic algorithm:
-	//
-	//  Per host
-	//    For every time point t in {start,end} on the downtime data
-	//      Find a window w on the load data s.t. w.start <= t < t.end
-	//        If t is start, update t to be w.start
-	//        else update t to be w.end (which is the start of the next w)
-
-	for _, dh := range downtimeData {
-		ld := findLoadDataByHost(loadData, dh.host)
-		for _, dd := range dh.data {
-			s1, _ := findLoadDataWindowByTime(ld, dd.start)
-			if s1 == nil {
-				dd.start = time.Unix(0, 0) // Mark as error
-				dd.end = time.Unix(0, 0)
-				continue
-			}
-			_, e2 := findLoadDataWindowByTime(ld, dd.end)
-			if e2 == nil {
-				dd.start = time.Unix(0, 0) // Mark as error
-				dd.end = time.Unix(0, 0)
-				continue
-			}
-			dd.start = s1.datetime
-			dd.end = e2.datetime
-		}
-	}
-}
-
-func findLoadDataByHost(ld []*loadDataByHost, host string) []*loadDatum {
-	loc := sort.Search(len(ld), func(i int) bool {
-		return ld[i].host >= host
-	})
-	if loc == len(ld) {
-		for _, x := range ld {
-			fmt.Printf("%s\n", x.host)
-		}
-		panic(fmt.Sprintf("Unexpected: %s\n%v", host, ld))
-	}
-	return ld[loc].data
-}
-
-func findLoadDataWindowByTime(ld []*loadDatum, t time.Time) (*loadDatum, *loadDatum) {
-	loc := sort.Search(len(ld), func(i int) bool {
-		return !t.After(ld[i].datetime)
-	})
-	// TODO: An argument could be made about the right end point of the timeline here that we should
-	// be able to include it somehow.
-	if loc >= len(ld)-1 {
-		return nil, nil
-	}
-	return ld[loc], ld[loc+1]
+	return j
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
