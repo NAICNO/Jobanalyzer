@@ -128,11 +128,6 @@ func runSonalyze(sonalyzePath string, arguments []string) (string, error) {
 	return stdout.String(), nil
 }
 
-type perPoint struct {
-	X string  `json:"x"`
-	Y float64 `json:"y"`
-}
-
 func writePlots(
 	outputPath, tag, bucketing string,
 	configInfo []*storage.SystemConfig,
@@ -148,12 +143,13 @@ func writePlots(
 		Host      string                `json:"hostname"`
 		Tag       string                `json:"tag"`
 		Bucketing string                `json:"bucketing"`
-		Rcpu      []perPoint            `json:"rcpu"`
-		Rgpu      []perPoint            `json:"rgpu"`
-		Rmem      []perPoint            `json:"rmem"`
-		Rgpumem   []perPoint            `json:"rgpumem"`
-		DownHost  []perPoint            `json:"downhost"`
-		DownGpu   []perPoint            `json:"downgpu"`
+		Labels    []string              `json:"labels"`  // formatted timestamps, for now
+		Rcpu      []float64             `json:"rcpu"`
+		Rgpu      []float64             `json:"rgpu"`
+		Rmem      []float64             `json:"rmem"`
+		Rgpumem   []float64             `json:"rgpumem"`
+		DownHost  []int                 `json:"downhost"`
+		DownGpu   []int                 `json:"downgpu"`
 		System    *storage.SystemConfig `json:"system"`
 	}
 
@@ -173,16 +169,17 @@ func writePlots(
 			return err
 		}
 
-		rcpuData := make([]perPoint, 0)
-		rgpuData := make([]perPoint, 0)
-		rmemData := make([]perPoint, 0)
-		rgpumemData := make([]perPoint, 0)
+		labels := make([]string, 0)
+		rcpuData := make([]float64, 0)
+		rgpuData := make([]float64, 0)
+		rmemData := make([]float64, 0)
+		rgpumemData := make([]float64, 0)
 		for _, d := range hd.data {
-			ts := d.datetime.Format("01-02 15:04")
-			rcpuData = append(rcpuData, perPoint{ts, d.rcpu})
-			rgpuData = append(rgpuData, perPoint{ts, d.rgpu})
-			rmemData = append(rmemData, perPoint{ts, d.rmem})
-			rgpumemData = append(rgpumemData, perPoint{ts, d.rgpumem})
+			labels = append(labels, d.datetime.Format("01-02 15:04"))
+			rcpuData = append(rcpuData, d.rcpu)
+			rgpuData = append(rgpuData, d.rgpu)
+			rmemData = append(rmemData, d.rmem)
+			rgpumemData = append(rgpumemData, d.rgpumem)
 		}
 		downHost, downGpu := generateDowntimeData(hd, downtimeData)
 		var system *storage.SystemConfig
@@ -199,6 +196,7 @@ func writePlots(
 			Host:      hd.host,
 			Tag:       tag,
 			Bucketing: bucketing,
+			Labels:    labels,
 			Rcpu:      rcpuData,
 			Rgpu:      rgpuData,
 			Rmem:      rmemData,
@@ -220,7 +218,7 @@ func writePlots(
 	return nil
 }
 
-func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHost []perPoint, downGpu []perPoint) {
+func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHost []int, downGpu []int) {
 	if dd == nil {
 		return
 	}
@@ -231,14 +229,14 @@ func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHos
 	}
 
 	loadData := ld.data
-	downHost = make([]perPoint, 0, len(loadData))
-	downGpu = make([]perPoint, 0, len(loadData))
+	downHost = make([]int, 0, len(loadData))
+	downGpu = make([]int, 0, len(loadData))
 
 	// Walk the loadData array, it is sorted ascending by time and usually has more data points than
 	// the downtimeData and is the arbiter of time.
 
-	hostDown := 0.0
-	gpuDown := 0.0
+	hostDown := 0
+	gpuDown := 0
 	ddix := 0
 	for _, ld := range loadData {
 		for ddix < len(downtimeData) && downtimeData[ddix].start.Before(ld.datetime) && downtimeData[ddix].end.Before(ld.datetime) {
@@ -251,9 +249,8 @@ func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHos
 				gpuDown = 1
 			}
 		}
-		ts := ld.datetime.Format("01-02 15:04")
-		downHost = append(downHost, perPoint{ts, hostDown})
-		downGpu = append(downGpu, perPoint{ts, gpuDown})
+		downHost = append(downHost, hostDown)
+		downGpu = append(downGpu, gpuDown)
 		if ddix < len(downtimeData) && downtimeData[ddix].end == ld.datetime {
 			if downtimeData[ddix].device == "host" {
 				hostDown = 0

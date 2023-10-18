@@ -59,10 +59,13 @@
 			  // observations.  This is brittle; it would be better to know what the
 			  // interval was, or for the generation to chop the data properly, or to
 			  // interpret the timestamps in the values.
+			  json_data.labels = json_data.labels.slice(-72)
 			  json_data.rcpu = json_data.rcpu.slice(-72)
 			  json_data.rmem = json_data.rmem.slice(-72)
 			  json_data.rgpu = json_data.rgpu.slice(-72)
 			  json_data.rgpumem = json_data.rgpumem.slice(-72)
+			  json_data.downhost = json_data.downhost ? json_data.downhost.slice(-72) : null
+			  json_data.downgpu = json_data.downgpu ? json_data.downgpu.slice(-72) : null
 		      }
 		      charts[value] = plot_system(json_data, canvases[value], null, show_data, show_downtime)
 		  })
