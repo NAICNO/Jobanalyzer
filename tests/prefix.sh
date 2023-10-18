@@ -85,3 +85,13 @@ CHECK_ERR () {
 	echo "$name: OK"
     fi
 }
+
+# FAIL test_name irritant
+
+FAIL () {
+    local name="$TEST_NAME: $1"
+    local irritant="$2"
+    echo "FAILED   $name"
+    echo "IRRITANT $irritant"
+    tr_hard_errors=$((tr_hard_errors + 1))
+}

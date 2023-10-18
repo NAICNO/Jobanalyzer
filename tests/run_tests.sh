@@ -2,6 +2,9 @@
 #
 # Harness for running a bunch of tests that include their own test data.
 #
+# Usage:
+#   run_tests.sh [pattern]
+#
 # The way to run this is to first build all the executables (perhaps with the ../run_tests.sh
 # script, which actually runs this script) then run this script in its directory.  It will find *.sh
 # in specific subdirectories, cd to those directories, and then run those scripts with prefix and
@@ -22,15 +25,22 @@
 #
 # See any test file in any subdirectory for examples.
 #
-# TODO: accept command line arguments with test names to match, for filtering.
+# The pattern is a regex pattern that must match the name of the test filname.
+
+TEST_DIRECTORIES="sonarlog sonalyze naicreport"
 
 export TEST_ROOT=$(pwd)
 export SONALYZE=$TEST_ROOT/../sonalyze/target/debug/sonalyze
 export NAICREPORT=$TEST_ROOT/../naicreport/naicreport
+
+pattern="$1"
 hard_failed=0
 soft_failed=0
-for dir in sonarlog sonalyze ; do
+for dir in $TEST_DIRECTORIES ; do
     for test in $(find $dir -name '*.sh'); do
+        if [[ $pattern != "" && !($test =~ $pattern) ]]; then
+            continue
+        fi
 	export TEST_NAME=$test
 	( cd $(dirname $test);
 	  bash -c "source $TEST_ROOT/prefix.sh; source $(basename $test); source $TEST_ROOT/suffix.sh "	)

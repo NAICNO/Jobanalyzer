@@ -51,9 +51,7 @@ func MlWebload(progname string, args []string) error {
 	// Assemble sonalyze arguments
 
 	loadArguments := loadInitialArgs(configFilename)
-	loadArguments = append(loadArguments, "--data-path", progOpts.DataPath)
 	downtimeArguments := downtimeInitialArgs()
-	downtimeArguments = append(downtimeArguments, "--data-path", progOpts.DataPath)
 	if progOpts.HaveFrom {
 		loadArguments = append(loadArguments, "--from", progOpts.FromStr)
 		downtimeArguments = append(downtimeArguments, "--from", progOpts.FromStr)
@@ -78,6 +76,18 @@ func MlWebload(progname string, args []string) error {
 		bucketing = "hourly"
 	} else {
 		return errors.New("One of --daily, --hourly, or --none is required")
+	}
+
+	// For -- this must come last, so do files last always
+
+	if progOpts.DataFiles != nil {
+		loadArguments = append(loadArguments, "--")
+		loadArguments = append(loadArguments, progOpts.DataFiles...)
+		downtimeArguments = append(downtimeArguments, "--")
+		downtimeArguments = append(downtimeArguments, progOpts.DataFiles...)
+	} else {
+		loadArguments = append(loadArguments, "--data-path", progOpts.DataPath)
+		downtimeArguments = append(downtimeArguments, "--data-path", progOpts.DataPath)
 	}
 
 	// Obtain all the data
@@ -226,7 +236,11 @@ func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHos
 		return dd[i].host >= ld.host
 	})
 	if ddix == len(dd) {
-		panic(fmt.Sprintf("Unexpected: %v\n%v", ld.host))
+		fmt.Fprintf(os.Stderr, "No downtime data for host %s\nHosts are:\n", ld.host)
+		for _, ddval := range dd {
+			fmt.Fprintf(os.Stderr, "  %s\n", ddval.host)
+		}
+		panic("Aborting")
 	}
 	downtimeData := dd[ddix].data
 

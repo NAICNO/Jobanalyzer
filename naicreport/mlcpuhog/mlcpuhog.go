@@ -60,6 +60,12 @@ func MlCpuhog(progname string, args []string) error {
 		return err
 	}
 
+	if progOpts.DataFiles != nil {
+		fmt.Fprintln(os.Stderr, "The -- filename ... operation is not yet implemented for ml-deadweight")
+		os.Exit(1)
+
+	}
+
 	db, err := jobstate.ReadJobDatabaseOrEmpty(progOpts.DataPath, cpuhogFilename)
 	if err != nil {
 		return err
