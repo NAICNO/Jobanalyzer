@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# Script to build things that need to be built.
+
 set -o errexit
 
 echo "======================================================================="
