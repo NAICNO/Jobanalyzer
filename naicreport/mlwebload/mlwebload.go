@@ -6,7 +6,6 @@ package mlwebload
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -236,11 +235,9 @@ func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHos
 		return dd[i].host >= ld.host
 	})
 	if ddix == len(dd) {
-		fmt.Fprintf(os.Stderr, "No downtime data for host %s\nHosts are:\n", ld.host)
-		for _, ddval := range dd {
-			fmt.Fprintf(os.Stderr, "  %s\n", ddval.host)
-		}
-		panic("Aborting")
+		/* This is possible because we run sonalyze uptime with --only-down:
+		   it's possible for there to be no downtime in the time window. */
+		return
 	}
 	downtimeData := dd[ddix].data
 
