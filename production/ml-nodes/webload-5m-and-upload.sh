@@ -17,7 +17,7 @@ load_report_path=$output_path
 
 mkdir -p $output_path
 
-common_options="--sonalyze $sonar_dir/sonalyze --config-file $sonar_dir/ml-nodes.json --output-path $output_path --data-path $data_path"
+common_options="--sonalyze $sonar_dir/sonalyze --config-file $sonar_dir/ml-nodes.json --output-path $output_path --data-path $data_path --with-downtime"
 $sonar_dir/naicreport ml-webload $common_options --tag minutely --none
 
 # The chmod is done here so that we don't have to do it in naicreport or on the server,
@@ -28,4 +28,7 @@ chmod go+r $load_report_path/*-minutely.json
 # StrictHostKeyChecking has to be disabled here because this is not an interactive script,
 # and the VM has not been configured to respond in such a way that the value in known_hosts
 # will bypass the interactive prompt.
-scp -C -q -o StrictHostKeyChecking=no -i $sonar_dir/ubuntu-vm.pem $load_report_path/*-minutely.json ubuntu@158.39.48.160:/var/www/html/output
+if [[ $1 != NOUPLOAD ]]; then
+    scp -C -q -o StrictHostKeyChecking=no -i $sonar_dir/ubuntu-vm.pem $load_report_path/*-minutely.json ubuntu@158.39.48.160:/var/www/html/output
+fi
+

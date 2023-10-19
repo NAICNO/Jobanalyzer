@@ -3,50 +3,75 @@
 //   hostname - string - FQDN (ideally) of the host
 //   tag - string - usually "daily", "weekly", "monthly", "quarterly"
 //   bucketing - string - "hourly" or "daily"
-//   rcpu - array of per_point_data
+//   labels - array of length N of string labels
+//   rcpu - array of length N of data values
 //   rgpu - same
 //   rmem - same
 //   rgpumem - same
+//   downhost - same, or null; values are 0 or 1
+//   downgpu - same, or null; values are 0 or 1
 //   system - system descriptor, see further down
-//
-// per_point_data has two fields
-//   x - usually a string - a label
-//   y - the value
 //
 // chart_node is a CANVAS
 //
 // desc_node is usually a DIV
 
-function plot_system(json_data, chart_node, desc_node) {
-
-    // TODO: Some of the following data cleanup could move to the generating side.
+function plot_system(json_data, chart_node, desc_node, show_data, show_downtime) {
 
     // Clamp GPU data to get rid of occasional garbage, it's probably OK to do this even
     // if it's not ideal.
-    let labels = json_data.rcpu.map(d => d.x)
-    let rcpu_data = json_data.rcpu.map(d => d.y)
-    let rmem_data = json_data.rmem.map(d => d.y)
-    let rgpu_data = json_data.rgpu.map(d => Math.min(d.y, 100))
-    let rgpumem_data = json_data.rgpumem.map(d => Math.min(d.y, 100))
+    let labels = json_data.labels
+    let rcpu_data = json_data.rcpu
+    let rmem_data = json_data.rmem
+    let rgpu_data = json_data.rgpu.map(d => Math.min(d, 100))
+    let rgpumem_data = json_data.rgpumem
+
+    // Downtime data are flags indicating that the host or gpu was down during specific periods -
+    // during the hour / day starting with at the start time of the bucket.  To represent that in
+    // the current plot, we carry each nonzero value forward to the next slot too, to get a
+    // horizontal line covering the entire bucket.  This is far from pretty because we then get
+    // slopes up to and down from the horizontal line from the preceding and following time slots.
+    // That is bug #171.
+    let downhost_data, downgpu_data
+    if (json_data.downhost) {
+        let dh = json_data.downhost.map(d => d*15)
+        let dg = json_data.downgpu.map(d => d*30)
+        for ( let i=dh.length-1 ; i > 0 ; i-- ) {
+            if (dh[i-1] > 0) {
+                dh[i] = dh[i-1]
+            }
+            if (dg[i-1] > 0 && dh[i] == 0) {
+                dg[i] = dg[i-1]
+            }
+        }
+        downhost_data = dh
+        downgpu_data = dg
+    }
 
     // Scale the chart.  Mostly this is now for the sake of rmem_data, whose values routinely
     // go over 100%.
-    let maxval = Math.max(Math.max(...rcpu_data),
-			  Math.max(...rmem_data),
-			  Math.max(...rgpu_data),
-			  Math.max(...rgpumem_data),
-			  100)
+    let maxval = Math.max(...rcpu_data, ...rmem_data, ...rgpu_data, ...rgpumem_data, 100)
 
+    let datasets = []
+    if (show_data) {
+        datasets.push({ label: 'CPU%', data: rcpu_data, borderWidth: 2 },
+	              { label: 'RAM%', data: rmem_data, borderWidth: 2 },
+	              { label: 'GPU%', data: rgpu_data, borderWidth: 2 },
+	              { label: 'VRAM%', data: rgpumem_data, borderWidth: 2 })
+    }
+    if (show_downtime) {
+        if (downhost_data) {
+            datasets.push( { label: "DOWN", data: downhost_data, borderWidth: 3 } )
+        }
+        if (downgpu_data) {
+            datasets.push( { label: "GPU_DOWN", data: downgpu_data, borderWidth: 3 } )
+        }
+    }
     let my_chart = new Chart(chart_node, {
 	type: 'line',
 	data: {
 	    labels,
-	    datasets: [
-		{ label: 'CPU%', data: rcpu_data, borderWidth: 2 },
-		{ label: 'RAM%', data: rmem_data, borderWidth: 2 },
-		{ label: 'GPU%', data: rgpu_data, borderWidth: 2 },
-		{ label: 'VRAM%', data: rgpumem_data, borderWidth: 2 },
-	    ]
+	    datasets
 	},
 	options: {
 	    scales: {

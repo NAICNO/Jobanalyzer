@@ -25,6 +25,7 @@ import (
 type StandardOptions struct {
 	Container *flag.FlagSet
 	DataPath  string
+	DataFiles []string			// For -- filename ...
 	HaveFrom  bool
 	From      time.Time
 	FromStr   string
@@ -43,6 +44,7 @@ func NewStandardOptions(progname string) *StandardOptions {
 	opts := StandardOptions{
 		Container: nil,
 		DataPath:  "",
+		DataFiles: nil,
 		HaveFrom:  false,
 		From:      time.Now(),
 		FromStr:   "",
@@ -66,11 +68,24 @@ func (s *StandardOptions) Parse(args []string) error {
 		return err
 	}
 
-	// Clean the DataPath and make it absolute.
-
-	s.DataPath, err = CleanPath(s.DataPath, "-data-path")
-	if err != nil {
-		return err
+	// Figure out files
+	if s.DataPath == "" {
+		// Rest arguments are file names to process.  The "--" is optional as it happens.
+		files := []string{}
+		for _, f := range s.Container.Args() {
+			fn, err := CleanPath(f, "--")
+			if err != nil {
+				return err
+			}
+			files = append(files, fn)
+		}
+		s.DataFiles = files
+	} else {
+		// Clean the DataPath and make it absolute.
+		s.DataPath, err = CleanPath(s.DataPath, "-data-path")
+		if err != nil {
+			return err
+		}
 	}
 
 	// Figure out the date range.  From has a sane default so always parse; To has no default so

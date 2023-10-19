@@ -50,6 +50,8 @@ Functionality
       function reload() {
 	  let nodename = document.getElementById("ml_node").value
 	  let frequency = document.getElementById("frequency").value
+	  let show_data = document.getElementById("show_data").checked
+	  let show_downtime = document.getElementById("show_downtime").checked
 	  let chart_node = document.getElementById("ml_chart");
 	  let desc_node = document.getElementById("system_description")
 	  let filename = nodename + ".hpc.uio.no-" + frequency + ".json"
@@ -57,7 +59,7 @@ Functionality
 	  fetch("output/" + filename).then((response) => response.json()).then(function (json_data) {
 	      if (my_chart != null)
 		  my_chart.destroy()
-	      my_chart = plot_system(json_data, chart_node, desc_node)
+	      my_chart = plot_system(json_data, chart_node, desc_node, show_data, show_downtime)
 	  })
       }
     </script>
@@ -66,6 +68,8 @@ Functionality
 
     <select id=ml_node name="ML Node" onchange="reload()"></select>
     <select id=frequency name="Frequency" onchange="reload()"></select>
+    <input type=checkbox id=show_data name="Show data" onchange="reload()" checked>Show data</input>
+    <input type=checkbox id=show_downtime name="Show downtime" onchange="reload()">Show downtime</input>
 
     <div><canvas id="ml_chart"></canvas></div>
 

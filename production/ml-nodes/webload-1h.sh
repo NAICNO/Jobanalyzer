@@ -11,6 +11,6 @@ output_path=$sonar_dir/data/load-reports
 
 mkdir -p $output_path
 
-common_options="--sonalyze $sonar_dir/sonalyze --config-file $sonar_dir/ml-nodes.json --output-path $output_path --data-path $data_path"
+common_options="--sonalyze $sonar_dir/sonalyze --config-file $sonar_dir/ml-nodes.json --output-path $output_path --data-path $data_path --with-downtime"
 $sonar_dir/naicreport ml-webload $common_options --tag daily --hourly
 $sonar_dir/naicreport ml-webload $common_options --tag weekly --hourly --from 7d

@@ -27,6 +27,7 @@ mod load;
 mod metadata;
 mod parse;
 mod prjobs;
+mod uptime;
 
 use anyhow::{bail, Result};
 use chrono::{Datelike, NaiveDate};
@@ -63,7 +64,10 @@ enum Commands {
     Parse(ParseCmdArgs),
 
     /// Parse the Sonar logs, apply source/host filtering, and print metadata
-    Metadata(ParseCmdArgs)
+    Metadata(ParseCmdArgs),
+
+    /// Print information about system uptime
+    Uptime(UptimeCmdArgs),
 }
 
 #[derive(Args, Debug)]
@@ -118,6 +122,21 @@ pub struct ParseCmdArgs {
 
     #[command(flatten)]
     print_args: ParsePrintArgs,
+
+    #[command(flatten)]
+    meta_args: MetaArgs,
+}
+
+#[derive(Args, Debug)]
+pub struct UptimeCmdArgs {
+    #[command(flatten)]
+    source_args: SourceArgs,
+
+    #[command(flatten)]
+    host_args: HostInputFilterArgs,
+
+    #[command(flatten)]
+    print_args: UptimePrintArgs,
 
     #[command(flatten)]
     meta_args: MetaArgs,
@@ -358,6 +377,25 @@ pub struct JobPrintArgs {
     fmt: Option<String>,
 }
 
+#[derive(Args, Debug)]
+pub struct UptimePrintArgs {
+    /// The maximum sampling interval in minutes (before any randomization) seen in the data
+    #[arg(long)]
+    interval: usize,
+
+    /// Show only times when systems are up
+    #[arg(long, default_value_t = false)]
+    only_up: bool,
+
+    /// Show only times when systems are down
+    #[arg(long, default_value_t = false)]
+    only_down: bool,
+
+    /// Select fields and format for the output [default: see MANUAL.md]
+    #[arg(long)]
+    fmt: Option<String>,
+}
+
 #[derive(Args, Debug, Default)]
 pub struct ParsePrintArgs {
     /// Merge streams that have the same host and job ID (experts only)
@@ -571,6 +609,7 @@ fn sonalyze() -> Result<()> {
         Commands::Parse(ref parse_args) => format::maybe_help(&parse_args.print_args.fmt, &parse::fmt_help),
         Commands::Metadata(ref parse_args) => format::maybe_help(&parse_args.print_args.fmt, &metadata::fmt_help),
         Commands::Version => false,
+        Commands::Uptime(ref uptime_args) => format::maybe_help(&uptime_args.print_args.fmt, &uptime::fmt_help),
     } {
         return Ok(())
     }
@@ -580,6 +619,7 @@ fn sonalyze() -> Result<()> {
         Commands::Load(ref load_args) => &load_args.meta_args,
         Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.meta_args,
         Commands::Version => panic!("Unexpected"),
+        Commands::Uptime(ref uptime_args) => &uptime_args.meta_args,
     };
 
     let include_hosts = {
@@ -588,6 +628,7 @@ fn sonalyze() -> Result<()> {
             Commands::Load(ref load_args) => &load_args.host_args,
             Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.host_args,
             Commands::Version => panic!("Unexpected"),
+            Commands::Uptime(ref uptime_args) => &uptime_args.host_args,
         };
 
         // Included host set, empty means "all"
@@ -608,6 +649,7 @@ fn sonalyze() -> Result<()> {
             Commands::Load(ref load_args) => &load_args.source_args,
             Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.source_args,
             Commands::Version => panic!("Unexpected"),
+            Commands::Uptime(ref uptime_args) => &uptime_args.source_args,
         };
 
         // Included date range.  These are used both for file names and for records.
@@ -915,6 +957,18 @@ fn sonalyze() -> Result<()> {
                 &parse_args.print_args,
                 meta_args,
                 bounds,
+            )
+        },
+        Commands::Uptime(ref uptime_args) => {
+            let (entries, _) = sonarlog::read_logfiles(&logfiles)?;
+            uptime::aggregate_and_print_uptime(
+                &mut io::stdout(),
+                &include_hosts,
+                from,
+                to,
+                &uptime_args.print_args,
+                meta_args,
+                entries,
             )
         }
     }

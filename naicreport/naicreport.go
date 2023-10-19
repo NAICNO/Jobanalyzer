@@ -42,7 +42,7 @@ func main() {
 
 func toplevelUsage(code int) {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "  %s <verb> <option> ...\n\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "  %s <verb> <option> ... [-- filename ...]\n\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "where <verb> is one of\n\n")
 	fmt.Fprintf(os.Stderr, "  help\n")
 	fmt.Fprintf(os.Stderr, "    Print help\n\n")
@@ -52,6 +52,7 @@ func toplevelUsage(code int) {
 	fmt.Fprintf(os.Stderr, "    Analyze the cpuhog logs and generate a report of new violations\n\n")
 	fmt.Fprintf(os.Stderr, "  ml-webload\n")
 	fmt.Fprintf(os.Stderr, "    Run sonalyze to generate plottable (JSON) load reports\n\n")
-	fmt.Fprintf(os.Stderr, "All verbs accept -h to print verb-specific help\n")
+	fmt.Fprintf(os.Stderr, "All verbs accept -h to print verb-specific help.\n")
+	fmt.Fprintf(os.Stderr, "Explicit filenames override any --data-path argument, when sensible.\n")
 	os.Exit(code)
 }

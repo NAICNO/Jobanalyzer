@@ -6,10 +6,11 @@ package mlwebload
 import (
 	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
 	"os"
 	"os/exec"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -17,15 +18,6 @@ import (
 	"naicreport/storage"
 	"naicreport/util"
 )
-
-type systemConfig struct {
-	Hostname    string `json:"hostname"`
-	Description string `json:"description"`
-	CpuCores    int    `json:"cpu_cores"`
-	MemGB       int    `json:"mem_gb"`
-	GpuCards    int    `json:"gpu_cards"`
-	GpuMemGB    int    `json:"gpumem_gb"`
-}
 
 func MlWebload(progname string, args []string) error {
 	// Parse and sanitize options
@@ -38,6 +30,7 @@ func MlWebload(progname string, args []string) error {
 	hourlyPtr := progOpts.Container.Bool("hourly", true, "Bucket data hourly")
 	dailyPtr := progOpts.Container.Bool("daily", false, "Bucket data daily")
 	nonePtr := progOpts.Container.Bool("none", false, "Do not bucket data")
+	downtimePtr := progOpts.Container.Bool("with-downtime", false, "Include downtime data")
 	err := progOpts.Parse(args)
 	if err != nil {
 		return err
@@ -55,19 +48,17 @@ func MlWebload(progname string, args []string) error {
 		return err
 	}
 
-	// Assemble sonalyze arguments and run it, collecting its output
+	// Assemble sonalyze arguments
 
-	arguments := []string{
-		"load",
-		"--data-path", progOpts.DataPath,
-		"--config-file", configFilename,
-		"--fmt=csvnamed," + sonalyzeFormat,
-	}
+	loadArguments := loadInitialArgs(configFilename)
+	downtimeArguments := downtimeInitialArgs()
 	if progOpts.HaveFrom {
-		arguments = append(arguments, "--from", progOpts.FromStr)
+		loadArguments = append(loadArguments, "--from", progOpts.FromStr)
+		downtimeArguments = append(downtimeArguments, "--from", progOpts.FromStr)
 	}
 	if progOpts.HaveTo {
-		arguments = append(arguments, "--to", progOpts.ToStr)
+		loadArguments = append(loadArguments, "--to", progOpts.ToStr)
+		downtimeArguments = append(downtimeArguments, "--to", progOpts.ToStr)
 	}
 
 	// This handling of bucketing isn't completely clean but it's good enough for not-insane users.
@@ -75,83 +66,111 @@ func MlWebload(progname string, args []string) error {
 
 	var bucketing string
 	if *nonePtr {
-		arguments = append(arguments, "--none")
+		loadArguments = append(loadArguments, "--none")
 		bucketing = "none"
 	} else if *dailyPtr {
-		arguments = append(arguments, "--daily")
+		loadArguments = append(loadArguments, "--daily")
 		bucketing = "daily"
 	} else if *hourlyPtr {
-		arguments = append(arguments, "--hourly")
+		loadArguments = append(loadArguments, "--hourly")
 		bucketing = "hourly"
 	} else {
 		return errors.New("One of --daily, --hourly, or --none is required")
 	}
 
+	// For -- this must come last, so do files last always
+
+	if progOpts.DataFiles != nil {
+		loadArguments = append(loadArguments, "--")
+		loadArguments = append(loadArguments, progOpts.DataFiles...)
+		downtimeArguments = append(downtimeArguments, "--")
+		downtimeArguments = append(downtimeArguments, progOpts.DataFiles...)
+	} else {
+		loadArguments = append(loadArguments, "--data-path", progOpts.DataPath)
+		downtimeArguments = append(downtimeArguments, "--data-path", progOpts.DataPath)
+	}
+
+	// Obtain all the data
+
+	loadOutput, err := runSonalyze(sonalyzePath, loadArguments)
+	if err != nil {
+		return err
+	}
+	loadData, err := parseLoadOutput(loadOutput)
+	if err != nil {
+		return err
+	}
+
+	var downtimeData []*downtimeDataByHost
+	if *downtimePtr {
+		downtimeOutput, err := runSonalyze(sonalyzePath, downtimeArguments)
+		if err != nil {
+			return err
+		}
+		downtimeData, err = parseDowntimeOutput(downtimeOutput)
+		if err != nil {
+			return err
+		}
+	}
+
+	configInfo, err := storage.ReadConfig(configFilename)
+	if err != nil {
+		return err
+	}
+
+	// Convert selected fields to JSON
+
+	downtimeData = downtimeData
+	return writePlots(outputPath, *tagPtr, bucketing, configInfo, loadData, downtimeData)
+}
+
+func runSonalyze(sonalyzePath string, arguments []string) (string, error) {
 	cmd := exec.Command(sonalyzePath, arguments...)
 	var stdout strings.Builder
 	var stderr strings.Builder
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
-		return errors.Join(err, errors.New(stderr.String()))
+		return "", errors.Join(err, errors.New(stderr.String()))
 	}
-
-	// Interpret the output from sonalyze
-
-	output, err := parseOutput(stdout.String())
-	if err != nil {
-		return err
-	}
-
-	// Get the system config if possible
-
-	var configInfo []*systemConfig
-	configFile, err := os.Open(configFilename)
-	if err == nil {
-		bytes, err := io.ReadAll(configFile)
-		if err == nil {
-			err := json.Unmarshal(bytes, &configInfo)
-			if err != nil {
-				configInfo = nil
-			}
-		}
-	}
-
-	// Convert selected fields to JSON
-
-	return writePlots(outputPath, *tagPtr, bucketing, configInfo, output)
+	return stdout.String(), nil
 }
 
-func writePlots(outputPath, tag, bucketing string, configInfo []*systemConfig, output []*hostData) error {
-	// configInfo may be nil
-
-	type perPoint struct {
-		X string  `json:"x"`
-		Y float64 `json:"y"`
-	}
+func writePlots(
+	outputPath, tag, bucketing string,
+	configInfo []*storage.SystemConfig,
+	loadData []*loadDataByHost,
+	downtimeData []*downtimeDataByHost,
+) error {
+	// configInfo may be nil and this function should still work
+	// downtimeData may be nil, in which case it should be ignored, but if not nil it must have been
+	//  quantized already
 
 	type perHost struct {
-		Date      string        `json:"date"`
-		Hostname  string        `json:"hostname"`
-		Tag       string        `json:"tag"`
-		Bucketing string        `json:"bucketing"`
-		Rcpu      []perPoint    `json:"rcpu"`
-		Rgpu      []perPoint    `json:"rgpu"`
-		Rmem      []perPoint    `json:"rmem"`
-		Rgpumem   []perPoint    `json:"rgpumem"`
-		System    *systemConfig `json:"system"`
+		Date      string                `json:"date"`
+		Host      string                `json:"hostname"`
+		Tag       string                `json:"tag"`
+		Bucketing string                `json:"bucketing"`
+		Labels    []string              `json:"labels"`  // formatted timestamps, for now
+		Rcpu      []float64             `json:"rcpu"`
+		Rgpu      []float64             `json:"rgpu"`
+		Rmem      []float64             `json:"rmem"`
+		Rgpumem   []float64             `json:"rgpumem"`
+		DownHost  []int                 `json:"downhost"`
+		DownGpu   []int                 `json:"downgpu"`
+		System    *storage.SystemConfig `json:"system"`
 	}
 
 	// Use the same timestamp for all records
 	now := time.Now().Format(util.DateTimeFormat)
 
-	for _, hd := range output {
+	for _, hd := range loadData {
 		var basename string
 		if tag == "" {
-			basename = hd.hostname + ".json"
+			basename = hd.host + ".json"
 		} else {
-			basename = hd.hostname + "-" + tag + ".json"
+			basename = hd.host + "-" + tag + ".json"
 		}
 		filename := path.Join(outputPath, basename)
 		output_file, err := os.CreateTemp(path.Dir(filename), "naicreport-webload")
@@ -159,21 +178,23 @@ func writePlots(outputPath, tag, bucketing string, configInfo []*systemConfig, o
 			return err
 		}
 
-		rcpuData := make([]perPoint, 0)
-		rgpuData := make([]perPoint, 0)
-		rmemData := make([]perPoint, 0)
-		rgpumemData := make([]perPoint, 0)
+		labels := make([]string, 0)
+		rcpuData := make([]float64, 0)
+		rgpuData := make([]float64, 0)
+		rmemData := make([]float64, 0)
+		rgpumemData := make([]float64, 0)
 		for _, d := range hd.data {
-			ts := d.datetime.Format("01-02 15:04")
-			rcpuData = append(rcpuData, perPoint{ts, d.rcpu})
-			rgpuData = append(rgpuData, perPoint{ts, d.rgpu})
-			rmemData = append(rmemData, perPoint{ts, d.rmem})
-			rgpumemData = append(rgpumemData, perPoint{ts, d.rgpumem})
+			labels = append(labels, d.datetime.Format("01-02 15:04"))
+			rcpuData = append(rcpuData, d.rcpu)
+			rgpuData = append(rgpuData, d.rgpu)
+			rmemData = append(rmemData, d.rmem)
+			rgpumemData = append(rgpumemData, d.rgpumem)
 		}
-		var system *systemConfig
+		downHost, downGpu := generateDowntimeData(hd, downtimeData)
+		var system *storage.SystemConfig
 		if configInfo != nil {
 			for _, s := range configInfo {
-				if s.Hostname == hd.hostname {
+				if s.Hostname == hd.host {
 					system = s
 					break
 				}
@@ -181,13 +202,16 @@ func writePlots(outputPath, tag, bucketing string, configInfo []*systemConfig, o
 		}
 		bytes, err := json.Marshal(perHost{
 			Date:      now,
-			Hostname:  hd.hostname,
+			Host:      hd.host,
 			Tag:       tag,
 			Bucketing: bucketing,
+			Labels:    labels,
 			Rcpu:      rcpuData,
 			Rgpu:      rgpuData,
 			Rmem:      rmemData,
 			Rgpumem:   rgpumemData,
+			DownHost:  downHost,
+			DownGpu:   downGpu,
 			System:    system,
 		})
 		if err != nil {
@@ -203,11 +227,149 @@ func writePlots(outputPath, tag, bucketing string, configInfo []*systemConfig, o
 	return nil
 }
 
-const (
-	sonalyzeFormat = "datetime,cpu,mem,gpu,gpumem,rcpu,rmem,rgpu,rgpumem,gpus,host"
-)
+func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHost []int, downGpu []int) {
+	if dd == nil {
+		return
+	}
 
-type datum struct {
+	ddix := sort.Search(len(dd), func(i int) bool {
+		return dd[i].host >= ld.host
+	})
+	if ddix == len(dd) {
+		fmt.Fprintf(os.Stderr, "No downtime data for host %s\nHosts are:\n", ld.host)
+		for _, ddval := range dd {
+			fmt.Fprintf(os.Stderr, "  %s\n", ddval.host)
+		}
+		panic("Aborting")
+	}
+	downtimeData := dd[ddix].data
+
+	loadData := ld.data
+	downHost = make([]int, len(loadData))
+	downGpu = make([]int, len(loadData))
+
+	for _, ddval := range downtimeData {
+		loc := sort.Search(len(loadData), func(i int) bool {
+			return loadData[i].datetime.After(ddval.start)
+		})
+		isDevice := ddval.device == "host"
+		for ix := max(loc-1, 0) ; ix < len(loadData) && loadData[ix].datetime.Before(ddval.end) ; ix++ {
+			if isDevice {
+				downHost[ix] = 1
+			} else {
+				downGpu[ix] = 1
+			}
+		}
+	}
+	return
+}
+
+func max(i, j int) int {
+	if i > j {
+		return i
+	}
+	return j
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Handle `sonalyze uptime`.
+
+// TODO: In sonalyze, "start_utc" or something like that should mean a timestamp, not a formatted
+// date.  Then we can just slurp that in here and avoid overhead and complexity.
+
+func downtimeInitialArgs() []string {
+	return []string{
+		"uptime",
+		"--interval", "4",
+		"--only-down",
+		"--fmt=json,device,host,start,end",
+	}
+}
+
+type downtimeDatum struct {
+	device string
+	host   string
+	start  time.Time
+	end    time.Time
+}
+
+type downtimeDataByHost struct {
+	host string
+	data []*downtimeDatum
+}
+
+// In the returned data, the point data in the inner list are sorted by ascending time, and the
+// outer list is sorted by ascending host name.
+
+func parseDowntimeOutput(output string) ([]*downtimeDataByHost, error) {
+	type downtimeRepresentation struct {
+		Device string `json:"device"`
+		Host   string `json:"host"`
+		Start  string `json:"start"`
+		End    string `json:"end"`
+	}
+
+	var rawData []*downtimeRepresentation
+	err := json.Unmarshal([]byte(output), &rawData)
+	if err != nil {
+		return nil, err
+	}
+
+	// The output from `sonalyze downtime` is sorted first by host, then by ascending start time.
+
+	var outerData = make([]*downtimeDataByHost, 0)
+	var innerData = make([]*downtimeDatum, 0)
+	for _, repr := range rawData {
+		// Convert some values
+		start, startErr := time.Parse(util.DateTimeFormat, repr.Start)
+		end, endErr := time.Parse(util.DateTimeFormat, repr.End)
+		if startErr != nil || endErr != nil {
+			continue
+		}
+
+		// Distribute into host-anchored lists
+		if len(innerData) > 0 && innerData[0].host != repr.Host {
+			outerData = append(outerData, &downtimeDataByHost{
+				host: innerData[0].host,
+				data: innerData,
+			})
+			innerData = make([]*downtimeDatum, 0)
+		}
+		innerData = append(innerData, &downtimeDatum{
+			device: repr.Device,
+			host:   repr.Host,
+			start:  start,
+			end:    end,
+		})
+	}
+	if len(innerData) > 0 {
+		outerData = append(outerData, &downtimeDataByHost{
+			host: innerData[0].host,
+			data: innerData,
+		})
+	}
+
+	return outerData, nil
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Handle `sonalyze load`.  Currently this uses csv format but that's not necessary - it's a
+// holdover from an older design.
+
+// TODO: Switch to JSON, probably, and note item higher up about "start_utc" - here we want
+// "datetime_utc" or something like that.
+
+func loadInitialArgs(configFilename string) []string {
+	return []string{
+		"load",
+		"--config-file", configFilename,
+		"--fmt=csvnamed,datetime,cpu,mem,gpu,gpumem,rcpu,rmem,rgpu,rgpumem,gpus,host",
+	}
+}
+
+type loadDatum struct {
 	datetime time.Time
 	cpu      float64
 	mem      float64
@@ -218,26 +380,29 @@ type datum struct {
 	rmem     float64
 	rgpu     float64
 	rgpumem  float64
-	hostname string // redundant but maybe useful
+	host     string // redundant but maybe useful
 }
 
-type hostData struct {
-	hostname string
-	data     []*datum
+type loadDataByHost struct {
+	host string
+	data []*loadDatum
 }
 
-// The output from sonalyze is sorted first by host, then by increasing time.  Thus it's fine to
-// read record-by-record, bucket by host easily, and then assume that data are sorted within host.
+// In the returned data, the point data in the inner list are sorted by ascending time, and the
+// outer list is sorted by ascending host name.
 
-func parseOutput(output string) ([]*hostData, error) {
+func parseLoadOutput(output string) ([]*loadDataByHost, error) {
 	rows, err := storage.ParseFreeCSV(strings.NewReader(output))
 	if err != nil {
 		return nil, err
 	}
 
-	allData := make([]*hostData, 0)
+	// The output from sonalyze is sorted first by host, then by increasing time.  Thus it's fine to
+	// read record-by-record, bucket by host easily, and then assume that data are sorted within host.
 
-	var curData []*datum
+	allData := make([]*loadDataByHost, 0)
+
+	var curData []*loadDatum
 	curHost := ""
 	for _, row := range rows {
 		success := true
@@ -247,12 +412,12 @@ func parseOutput(output string) ([]*hostData, error) {
 		}
 		if newHost != curHost {
 			if curData != nil {
-				allData = append(allData, &hostData{hostname: curHost, data: curData})
+				allData = append(allData, &loadDataByHost{host: curHost, data: curData})
 			}
-			curData = make([]*datum, 0)
+			curData = make([]*loadDatum, 0)
 			curHost = newHost
 		}
-		newDatum := &datum{
+		newDatum := &loadDatum{
 			datetime: storage.GetDateTime(row, "datetime", &success),
 			cpu:      storage.GetFloat64(row, "cpu", &success),
 			mem:      storage.GetFloat64(row, "mem", &success),
@@ -263,7 +428,7 @@ func parseOutput(output string) ([]*hostData, error) {
 			rmem:     storage.GetFloat64(row, "rmem", &success),
 			rgpu:     storage.GetFloat64(row, "rgpu", &success),
 			rgpumem:  storage.GetFloat64(row, "rgpumem", &success),
-			hostname: newHost,
+			host:     newHost,
 		}
 		gpuRepr := storage.GetString(row, "gpus", &success)
 		var gpuData []uint32 // Unknown set
@@ -285,7 +450,7 @@ func parseOutput(output string) ([]*hostData, error) {
 		curData = append(curData, newDatum)
 	}
 	if curData != nil {
-		allData = append(allData, &hostData{hostname: curHost, data: curData})
+		allData = append(allData, &loadDataByHost{host: curHost, data: curData})
 	}
 
 	return allData, nil
