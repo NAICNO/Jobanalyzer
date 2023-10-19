@@ -1,3 +1,20 @@
+function with_systems_and_frequencies(f) {
+    fetch("output/hostnames.json").
+	then((response) => response.json()).
+	then(function (json_data) {
+	    let systems = json_data.map(x => ({text: x, value: x}))
+            let frequencies = [{text: "Daily, by hour", value: "daily"},
+		               {text: "Weekly, by hour", value: "weekly"},
+		               {text: "Monthly, by day", value: "monthly"},
+		               {text: "Quarterly, by day", value: "quarterly"}]
+            f(systems, frequencies)
+        })
+}
+
+function with_chart_data(hostname, frequency, f) {
+    fetch(`output/${hostname}-${frequency}.json`).then((response) => response.json()).then(f)
+}
+
 // json_data has these fields
 //   date - string - the time the data was generated
 //   hostname - string - FQDN (ideally) of the host
