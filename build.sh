@@ -13,3 +13,9 @@ echo " NAICREPORT RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd naicreport ; go build )
 ( cd naicreport ; ./naicreport help 2&> /dev/null )
+
+echo "======================================================================="
+echo " LOGINFO RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd loginfo ; go build )
+( cd loginfo ; ./loginfo help 2&> /dev/null )

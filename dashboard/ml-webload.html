@@ -23,28 +23,17 @@ Functionality
 <html>
   <head>
     <title>NAIC ML-Nodes dashboard</title>
-    <script>
-      var systems = [{text: "ml1.hpc.uio.no", value: "ml1"},
-		     {text: "ml2.hpc.uio.no", value: "ml2"},
-		     {text: "ml3.hpc.uio.no", value: "ml3"},
-		     {text: "ml4.hpc.uio.no", value: "ml4"},
-		     {text: "ml6.hpc.uio.no", value: "ml6"},
-		     {text: "ml7.hpc.uio.no", value: "ml7"},
-		     {text: "ml8.hpc.uio.no", value: "ml8"}]
-      var times = [{text: "Daily, by hour", value: "daily"},
-		   {text: "Weekly, by hour", value: "weekly"},
-		   {text: "Monthly, by day", value: "monthly"},
-		   {text: "Quarterly, by day", value: "quarterly"}]
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="dashboard.js"></script>
     <script>
       var my_chart = null;
 
       function setup() {
-	  populateDropdown(document.getElementById("ml_node"), systems)
-	  populateDropdown(document.getElementById("frequency"), times)
-	  reload()
+	  with_systems_and_frequencies(function (systems, frequencies) {
+	      populateDropdown(document.getElementById("ml_node"), systems)
+	      populateDropdown(document.getElementById("frequency"), frequencies)
+	      reload()
+	  })
       }
 
       function reload() {
@@ -54,9 +43,8 @@ Functionality
 	  let show_downtime = document.getElementById("show_downtime").checked
 	  let chart_node = document.getElementById("ml_chart");
 	  let desc_node = document.getElementById("system_description")
-	  let filename = nodename + ".hpc.uio.no-" + frequency + ".json"
 
-	  fetch("output/" + filename).then((response) => response.json()).then(function (json_data) {
+	  with_chart_data(nodename, frequency, function (json_data) {
 	      if (my_chart != null)
 		  my_chart.destroy()
 	      my_chart = plot_system(json_data, chart_node, desc_node, show_data, show_downtime)

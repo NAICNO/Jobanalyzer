@@ -1,45 +1,37 @@
 <html>
   <head>
     <title>NAIC Overview dashboard</title>
-    <script>
-      var systems = [{text: "ml1.hpc.uio.no", value: "ml1"},
-		     {text: "ml2.hpc.uio.no", value: "ml2"},
-		     {text: "ml3.hpc.uio.no", value: "ml3"},
-		     {text: "ml4.hpc.uio.no", value: "ml4"},
-		     {text: "ml6.hpc.uio.no", value: "ml6"},
-		     {text: "ml7.hpc.uio.no", value: "ml7"},
-		     {text: "ml8.hpc.uio.no", value: "ml8"}]
-      var times = [{text: "Moment-to-moment (last 6h)", value: "minutely"},
-		   {text: "Daily, by hour", value: "daily"},
-		   {text: "Weekly, by hour", value: "weekly"},
-		   {text: "Monthly, by day", value: "monthly"}]
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="dashboard.js"></script>
     <script>
       var canvases = {}
       var charts = {}
+      var systems
+      var frequencies
 
       function setup() {
-	  populateDropdown(document.getElementById("frequency"), times)
-	  let charts_elt = document.getElementById("charts")
-	  for ( let { text, value } of systems ) {
-	      let canvas = document.createElement("CANVAS")
-	      let txt = document.createTextNode(text)
-	      let h2 = document.createElement("H2");
-	      let hr = document.createElement("HR")
-	      h2.appendChild(hr)
-	      let ctr = document.createElement("CENTER");
-	      h2.appendChild(ctr)
-	      ctr.appendChild(txt)
-	      let div = document.createElement("DIV")
-	      div.appendChild(h2)
-	      div.appendChild(canvas)
-	      canvases[value] = canvas
-	      charts_elt.appendChild(div)
-	  }
-
-	  reload()
+	  with_systems_and_frequencies(function (systems_, frequencies_) {
+	      systems = systems_
+	      frequencies = [{text: "Moment-to-moment (last 6h)", value: "minutely"}, ...frequencies_]
+	      populateDropdown(document.getElementById("frequency"), frequencies)
+	      let charts_elt = document.getElementById("charts")
+	      for ( let { text, value } of systems ) {
+		  let canvas = document.createElement("CANVAS")
+		  let txt = document.createTextNode(text)
+		  let h2 = document.createElement("H2");
+		  let hr = document.createElement("HR")
+		  h2.appendChild(hr)
+		  let ctr = document.createElement("CENTER");
+		  h2.appendChild(ctr)
+		  ctr.appendChild(txt)
+		  let div = document.createElement("DIV")
+		  div.appendChild(h2)
+		  div.appendChild(canvas)
+		  canvases[value] = canvas
+		  charts_elt.appendChild(div)
+	      }
+	      reload()
+	  })
       }
 
       function reload() {
@@ -47,28 +39,26 @@
 	  let show_data = document.getElementById("show_data").checked
 	  let show_downtime = document.getElementById("show_downtime").checked
 	  for ( let { value } of systems ) {
-	      fetch(`output/${value}.hpc.uio.no-${frequency}.json`).
-		  then((response) => response.json()).
-		  then(function (json_data) {
-		      if (charts[value] != null) {
-			  charts[value].destroy()
-			  delete charts[value]
-		      }
-		      if (frequency == "minutely") {
-			  // Keep the last 12*6 = 72 observations, assuming 5 minutes between
-			  // observations.  This is brittle; it would be better to know what the
-			  // interval was, or for the generation to chop the data properly, or to
-			  // interpret the timestamps in the values.
-			  json_data.labels = json_data.labels.slice(-72)
-			  json_data.rcpu = json_data.rcpu.slice(-72)
-			  json_data.rmem = json_data.rmem.slice(-72)
-			  json_data.rgpu = json_data.rgpu.slice(-72)
-			  json_data.rgpumem = json_data.rgpumem.slice(-72)
-			  json_data.downhost = json_data.downhost ? json_data.downhost.slice(-72) : null
-			  json_data.downgpu = json_data.downgpu ? json_data.downgpu.slice(-72) : null
-		      }
-		      charts[value] = plot_system(json_data, canvases[value], null, show_data, show_downtime)
-		  })
+	      with_chart_data(value, frequency, function (json_data) {
+		  if (charts[value] != null) {
+		      charts[value].destroy()
+		      delete charts[value]
+		  }
+		  if (frequency == "minutely") {
+		      // Keep the last 12*6 = 72 observations, assuming 5 minutes between
+		      // observations.  This is brittle; it would be better to know what the
+		      // interval was, or for the generation to chop the data properly, or to
+		      // interpret the timestamps in the values.
+		      json_data.labels = json_data.labels.slice(-72)
+		      json_data.rcpu = json_data.rcpu.slice(-72)
+		      json_data.rmem = json_data.rmem.slice(-72)
+		      json_data.rgpu = json_data.rgpu.slice(-72)
+		      json_data.rgpumem = json_data.rgpumem.slice(-72)
+		      json_data.downhost = json_data.downhost ? json_data.downhost.slice(-72) : null
+		      json_data.downgpu = json_data.downgpu ? json_data.downgpu.slice(-72) : null
+		  }
+		  charts[value] = plot_system(json_data, canvases[value], null, show_data, show_downtime)
+	      })
 	  }
       }
     </script>

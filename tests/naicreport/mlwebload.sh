@@ -8,7 +8,14 @@ OUTPUT_DIR=mlwebload-output-dir
 
 rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
-$NAICREPORT ml-webload -sonalyze $SONALYZE -config-file mlwebload-smoketest-cfg.json -output-path $OUTPUT_DIR -tag test -hourly -from 2023-10-09 -to 2023-10-10 -with-downtime -- mlwebload-smoketest.csv
+$NAICREPORT ml-webload \
+            -sonalyze $SONALYZE \
+            -config-file mlwebload-smoketest-cfg.json \
+            -output-path $OUTPUT_DIR \
+            -tag test \
+            -hourly -from 2023-10-09 -to 2023-10-10 \
+            -with-downtime \
+            -- mlwebload-smoketest.csv
 exitcode=$?
 if (( $exitcode != 0 )); then
     FAIL mlwebload_smoketest_setup "Exit code: $exitcode"

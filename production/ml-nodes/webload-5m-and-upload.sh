@@ -2,6 +2,8 @@
 
 # Analysis job to run on one node every 5m.  This job generates the
 # `minutely` load reports for the nodes and uploads them to the server.
+#
+# It also generates a file of hostnames and uploads that.
 
 # This combines webload-1h.sh with upload-data.sh.
 #
@@ -20,6 +22,8 @@ mkdir -p $output_path
 common_options="--sonalyze $sonar_dir/sonalyze --config-file $sonar_dir/ml-nodes.json --output-path $output_path --data-path $data_path --with-downtime"
 $sonar_dir/naicreport ml-webload $common_options --tag minutely --none
 
+$sonar_dir/loginfo hostnames $output_path > $output_path/hostnames.json
+
 # The chmod is done here so that we don't have to do it in naicreport or on the server,
 # and we don't depend on the umask.  But it must be done, or the files may not be
 # readable by the web server.
@@ -29,6 +33,6 @@ chmod go+r $load_report_path/*-minutely.json
 # and the VM has not been configured to respond in such a way that the value in known_hosts
 # will bypass the interactive prompt.
 if [[ $# -eq 0 || $1 != NOUPLOAD ]]; then
-    scp -C -q -o StrictHostKeyChecking=no -i $sonar_dir/ubuntu-vm.pem $load_report_path/*-minutely.json ubuntu@158.39.48.160:/var/www/html/output
+    scp -C -q -o StrictHostKeyChecking=no -i $sonar_dir/ubuntu-vm.pem $load_report_path/*-minutely.json $load_report_path/hostnames.json ubuntu@158.39.48.160:/var/www/html/output
 fi
 
