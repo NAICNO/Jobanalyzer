@@ -132,7 +132,16 @@ pub fn format_data<'a, DataT, FmtT, CtxT>(
     data.iter().for_each(|x| {
         let mut i = 0;
         for kwd in fields {
-            cols[i].push(formatters.get(*kwd).unwrap()(x, ctx));
+            let val = formatters.get(*kwd).unwrap()(x, ctx);
+            if i == 0 {
+                if let Some(f) = formatters.get("*prefix*") {
+                    cols[i].push(f(x, ctx) + &val)
+                } else {
+                    cols[i].push(val)
+                }
+            } else {
+                cols[i].push(val)
+            }
             i += 1;
         }
     });

@@ -102,16 +102,14 @@ pub fn print_jobs(
                 .unwrap();
         });
     } else if numselected > 0 {
-        let (formatters, aliases) = my_formatters();
+        let (mut formatters, aliases) = my_formatters();
+        if print_args.breakdown.is_some() {
+            formatters.insert("*prefix*".to_string(), &format_prefix);
+        }
         let spec = if let Some(ref fmt) = print_args.fmt {
             fmt
         } else {
-            if print_args.breakdown.is_some() {
-                // FIXME
-                "level,std,cpu,mem,gpu,gpumem,cmd"
-            } else {
-                FMT_DEFAULTS
-            }
+            FMT_DEFAULTS
         };
         let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
         let opts = format::standard_options(&others);
@@ -185,7 +183,6 @@ fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> Stri
     formatters.insert("host".to_string(), &format_host);
     formatters.insert("now".to_string(), &format_now);
     formatters.insert("classification".to_string(), &format_classification);
-    formatters.insert("level".to_string(), &format_level);
 
     aliases.insert("std".to_string(), vec!["jobm".to_string(),
                                            "user".to_string(),
@@ -251,7 +248,7 @@ fn format_job_id(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
     format!("{}", job[0].job_id)
 }
 
-fn format_level(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_prefix(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
     let mut s = "".to_string();
     let mut level = (a.classification >> LEVEL_SHIFT) & LEVEL_MASK;
     while level > 0 {
