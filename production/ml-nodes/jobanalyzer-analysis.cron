@@ -1,0 +1,18 @@
+# Crontab to run on the analysis host.  This runs various analysis jobs at various intervals.
+#
+# For now, we perform data collection on the hour (see jobanalyzer.cron), and then stagger analysis
+# 2 minutes after data collection, report generation 1 minute after that, and finally upload 1 minute
+# after that again.  All of these programs are fairly quick so this should usually be OK.
+
+# HOME is not set correctly on our current analysis host (moneypenny), so redefine it.
+
+HOME=/itf-fi-ml/home/larstha
+
+2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/webload-5m-and-upload.sh
+2 0-23/2 * * * $HOME/sonar/cpuhog.sh
+2 0-23/2 * * * $HOME/sonar/deadweight.sh
+3 0-23/12 * * * $HOME/sonar/cpuhog-report.sh
+3 0-23/12 * * * $HOME/sonar/deadweight-report.sh
+3 0-23 * * * $HOME/sonar/webload-1h.sh
+4 0-23 * * * $HOME/sonar/upload-data.sh
+3 0 1-31 * * $HOME/sonar/webload-24h.sh
