@@ -29,10 +29,14 @@ $sonar_dir/loginfo hostnames $output_path > $output_path/hostnames.json
 # readable by the web server.
 chmod go+r $load_report_path/*-minutely.json
 
+source $sonar_dir/upload-config.sh
+
 # StrictHostKeyChecking has to be disabled here because this is not an interactive script,
 # and the VM has not been configured to respond in such a way that the value in known_hosts
 # will bypass the interactive prompt.
 if [[ $# -eq 0 || $1 != NOUPLOAD ]]; then
-    scp -C -q -o StrictHostKeyChecking=no -i $sonar_dir/ubuntu-vm.pem $load_report_path/*-minutely.json $load_report_path/hostnames.json ubuntu@158.39.48.160:/var/www/html/output
+    scp -C -q -o StrictHostKeyChecking=no -i $IDENTITY_FILE_NAME \
+	$load_report_path/*-minutely.json $load_report_path/hostnames.json \
+	$WWWUSER_AND_HOST:$WWWUSER_UPLOAD_PATH
 fi
 

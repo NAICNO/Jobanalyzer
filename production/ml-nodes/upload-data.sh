@@ -2,8 +2,8 @@
 
 # Upload generated reports to a web server.
 #
-# NOTE!  If upload logic needs to change here, also consider webload-5m.sh, which performs
-# its own upload.
+# NOTE!  If upload logic needs to change here, also consider webload-5m-and-upload.sh, which
+# performs its own upload.
 
 # We need globbing, stay away from -f
 set -eu -o pipefail
@@ -17,10 +17,15 @@ load_report_path=$data_path/load-reports
 # readable by the web server.
 chmod go+r $load_report_path/*.json
 
-#scp -C -q -i ~/.ssh/axis_of_eval_naic $load_report_path/*.json naic@axis-of-eval.org:/var/www/naic/output
+source $sonar_dir/upload-config.sh
+
+#scp -C -q -i $IDENTITY_FILE_NAME $load_report_path/*.json $WWWUSER_AND_HOST:$WWWUSER_UPLOAD_PATH
 
 # StrictHostKeyChecking has to be disabled here because this is not an interactive script,
 # and the VM has not been configured to respond in such a way that the value in known_hosts
 # will bypass the interactive prompt.
-scp -C -q -o StrictHostKeyChecking=no -i $sonar_dir/ubuntu-vm.pem $load_report_path/*.json ubuntu@158.39.48.160:/var/www/html/output
+scp -C -q -o StrictHostKeyChecking=no -i $IDENTITY_FILE_NAME \
+    $load_report_path/*.json \
+    $WWWUSER_AND_HOST:$WWWUSER_UPLOAD_PATH
+
 
