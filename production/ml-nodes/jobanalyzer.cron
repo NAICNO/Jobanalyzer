@@ -1,3 +1,3 @@
-# Crontab to run on ml nodes other than ml4.  This just runs sonar every five minutes
-# and captures its output.
+# Crontab to run on compute nodes.  This just runs sonar every five minutes and captures its output.
+
 0-59/5 * * * * $HOME/sonar/sonar.sh
