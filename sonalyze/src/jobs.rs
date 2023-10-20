@@ -10,9 +10,6 @@ use std::boxed::Box;
 use std::collections::HashMap;
 use std::io;
 
-#[cfg(all(feature = "untagged_sonar_data", test))]
-use chrono::{Datelike, Timelike};
-
 /// Bit values for JobAggregate::classification
 
 pub const LIVE_AT_END: u32 = 1;   // Earliest timestamp coincides with earliest record read
@@ -477,69 +474,4 @@ fn aggregate_job(
         selected: true,
         classification,
     }
-}
-
-// TODO: No reason why this should be whitebox, except that the blackbox tests can't tell if
-// untagged_sonar_data has been enabled or not.  But that should be fixable.
-
-#[cfg(feature = "untagged_sonar_data")]
-#[test]
-fn test_compute_jobs() {
-    // job 2447150 crosses files
-
-    // Filter by job ID, we just want the one job
-    let filter = |e:&LogEntry| e.job_id == 2447150;
-    let (entries, bounds) = sonarlog::read_logfiles(
-        &vec![
-            "../sonar_test_data0/2023/05/31/ml8.hpc.uio.no.csv".to_string(),
-            "../sonar_test_data0/2023/06/01/ml8.hpc.uio.no.csv".to_string(),
-        ],
-    )
-    .unwrap();
-    let streams = sonarlog::postprocess_log(entries, &filter, &None);
-
-    assert!(streams.len() == 1);
-    let job = streams
-        .get(&("ml8.hpc.uio.no".to_string(),
-               2447150,
-               "python".to_string())
-        )
-        .unwrap();
-
-    // First record
-    // 2023-06-23T12:25:01.486240376+00:00,ml8.hpc.uio.no,192,larsbent,2447150,python,173,18813976,1000,0,0,833536
-    //
-    // Last record
-    // 2023-06-24T09:00:01.386294752+00:00,ml8.hpc.uio.no,192,larsbent,2447150,python,161,13077760,1000,0,0,833536
-
-    let start = job[0].timestamp;
-    let end = job[job.len() - 1].timestamp;
-    assert!(
-        start.year() == 2023
-            && start.month() == 6
-            && start.day() == 23
-            && start.hour() == 12
-            && start.minute() == 25
-            && start.second() == 1
-    );
-    assert!(
-        end.year() == 2023
-            && end.month() == 6
-            && end.day() == 24
-            && end.hour() == 9
-            && end.minute() == 0
-            && end.second() == 1
-    );
-
-    let agg = aggregate_job(&None, job, &bounds);
-    assert!(agg.classification == 0);
-    assert!(agg.first == start);
-    assert!(agg.last == end);
-    assert!(agg.duration == (end - start).num_seconds());
-    assert!(agg.days == 0);
-    assert!(agg.hours == 20);
-    assert!(agg.minutes == 35);
-    assert!(agg.uses_gpu);
-    assert!(agg.selected);
-    // TODO: Really more here
 }

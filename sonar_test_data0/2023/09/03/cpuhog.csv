@@ -1,1 +1,0 @@
-now=2023-09-03 20:00,jobm=2166356,user=poyenyt,duration=0d 1h40m,host=ml6,cpu-peak=2615,gpu-peak=0,rcpu-avg=3,rcpu-peak=41,rmem-avg=12,rmem-peak=14,start=2023-09-03 15:10,end=2023-09-03 16:50,cmd=python3.9,tag=cpuhog

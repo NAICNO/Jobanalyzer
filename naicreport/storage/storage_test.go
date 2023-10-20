@@ -13,22 +13,22 @@ func TestEnumerateFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getwd failed: %q", err)
 	}
-	root := path.Join(wd, "../../sonar_test_data0")
+	root := path.Join(wd, "../../tests/naicreport/whitebox-tree")
 	files, err := EnumerateFiles(
 		root,
-		time.Date(2023, 5, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2023, 5, 30, 0, 0, 0, 0, time.UTC),
 		time.Date(2023, 7, 31, 0, 0, 0, 0, time.UTC),
-		"ml8*.csv")
+		"a*.csv")
 	if err != nil {
 		t.Fatalf("EnumerateFiles returned error %q", err)
 	}
 	if !same(files, []string{
-		"2023/05/30/ml8.hpc.uio.no.csv",
-		"2023/05/31/ml8.hpc.uio.no.csv",
-		"2023/06/01/ml8.hpc.uio.no.csv",
-		"2023/06/02/ml8.hpc.uio.no.csv",
-		"2023/06/03/ml8.hpc.uio.no.csv",
-		"2023/06/04/ml8.hpc.uio.no.csv",
+		"2023/05/30/a0.csv",
+		"2023/05/31/a1.csv",
+		"2023/06/01/a1.csv",
+		"2023/06/02/a2.csv",
+		"2023/06/04/a4.csv",
+		"2023/06/05/a5.csv",
 	}) {
 		t.Fatalf("EnumerateFiles returned the wrong files %q", files)
 	}
@@ -39,11 +39,11 @@ func TestReadFreeCSV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getwd failed: %q", err)
 	}
-	contents, err := ReadFreeCSV(path.Join(wd, "../../sonar_test_data0/2023/08/15/ml3.hpc.uio.no.csv"))
+	contents, err := ReadFreeCSV(path.Join(wd, "../../tests/naicreport/whitebox-read-free-csv.csv"))
 	if err != nil {
 		t.Fatalf("ReadFreeCSV failed: %q", err)
 	}
-	if len(contents) != 33 {
+	if len(contents) != 2 {
 		t.Fatalf("ReadFreeCSV len failed: %d", len(contents))
 	}
 	// This is the first record:
@@ -75,7 +75,7 @@ func TestReadFreeCSVOpenErr(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getwd failed: %q", err)
 	}
-	_, err = ReadFreeCSV(path.Join(wd, "../../sonar_test_data0/abracadabra.csv"))
+	_, err = ReadFreeCSV(path.Join(wd, "../../tests/naicreport/no-such-file.csv"))
 	if err == nil {
 		t.Fatalf("open succeeded??")
 	}

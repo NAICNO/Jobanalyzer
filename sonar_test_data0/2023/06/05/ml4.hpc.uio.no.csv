@@ -1,7 +1,0 @@
-v=0.7.0,time=2023-06-26T18:00:01+02:00,host=ml4.hpc.uio.no,cores=192,user=zabbix,job=4093,pid=0,cmd=zabbix_agentd,cpu%=4.3,cpukib=2664,cputime_sec=7,rolledup=5
-v=0.7.0,time=2023-06-26T18:05:01+02:00,host=ml4.hpc.uio.no,cores=192,user=root,job=4079,pid=4079,cmd=tuned,cpu%=2.6,cpukib=94704,cputime_sec=0,yabbadabbadoo=37
-v=0.7.0,time=2023-06-26T18:10:01+02:00,host=ml4.hpc.uio.no,cores=192,user=larsbent,job=1249151,pid=1090,cmd=python,cpu%=1473.7,cpukib=113989888,"gpus=4,5,6",gpu%=39,gpumem%=12,gpukib=2338816,cputime_sec=9212
-v=0.7.0,time=2023-06-26T18:05:01+02:00,host=ml4.hpc.uio.no,cores=192,user=larsbent,job=1249151,pid=1090,cmd=python,cpu%=1473.7,cpukib=113989888,"gpus=4,5,6",gpu%=39,gpumem%=12,gpukib=2338816,cputime_sec=8912
-v=0.7.0,time=2023-06-26T18:05:01+02:00,host=ml4.hpc.uio.no,cores=192,user=larsbent,job=1249151,pid=1089,cmd=python,cpu%=1473.7,cpukib=113989888,"gpus=4,5,6",gpu%=39,gpumem%=12,gpukib=2338816,cputime_sec=314
-v=0.7.0,time=2023-06-26T18:15:01+02:00,host=ml4.hpc.uio.no,cores=192,user=larsbent,job=1249151,pid=1090,cmd=python,cpu%=1473.7,cpukib=113989888,"gpus=4,5,6",gpu%=39,gpumem%=12,gpukib=2338816,cputime_sec=9362
-v=0.7.0,time=2023-06-26T18:16:01+02:00,host=ml5.hpc.uio.no,cores=192,user=larsbent,job=1249152,pid=1090,cmd=python,cpu%=128,cpukib=113989888,"gpus=4,5,6",gpu%=39,gpumem%=12,gpukib=2338816,cputime_sec=9362
