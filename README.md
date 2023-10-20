@@ -44,6 +44,15 @@ In practice, it is likely that common use cases for users should be packaged up 
 directly via the higher-level `naicreport` tool.
 
 
+## Setup
+
+Jobanalyzer is a collective of programs running on three systems: compute nodes run `sonar` to
+collect data; analysis nodes run `sonalyze`, `naicreport` and various other programs and scripts to
+produce reports; and web nodes run a web server serving HTML, JS, and data.
+
+See `production/ml-nodes/install-*.sh` for rough instructions about how to set everything up.
+
+
 ## Sample use cases
 
 These use cases are somewhat older, but they are what motivated the current design.  For more
