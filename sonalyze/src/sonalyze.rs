@@ -76,7 +76,7 @@ pub struct JobCmdArgs {
     source_args: SourceArgs,
 
     #[command(flatten)]
-    host_args: HostInputFilterArgs,
+    record_filter_args: RecordFilterArgs,
 
     #[command(flatten)]
     input_args: JobAndLoadInputArgs,
@@ -97,7 +97,7 @@ pub struct LoadCmdArgs {
     source_args: SourceArgs,
 
     #[command(flatten)]
-    host_args: HostInputFilterArgs,
+    record_filter_args: RecordFilterArgs,
 
     #[command(flatten)]
     input_args: JobAndLoadInputArgs,
@@ -118,7 +118,7 @@ pub struct ParseCmdArgs {
     source_args: SourceArgs,
 
     #[command(flatten)]
-    host_args: HostInputFilterArgs,
+    record_filter_args: RecordFilterArgs,
 
     #[command(flatten)]
     print_args: ParsePrintArgs,
@@ -133,7 +133,7 @@ pub struct UptimeCmdArgs {
     source_args: SourceArgs,
 
     #[command(flatten)]
-    host_args: HostInputFilterArgs,
+    record_filter_args: RecordFilterArgs,
 
     #[command(flatten)]
     print_args: UptimePrintArgs,
@@ -164,15 +164,12 @@ pub struct SourceArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct HostInputFilterArgs {
+pub struct RecordFilterArgs {
     /// Select records for this host name (repeatable) [default: all]
     #[arg(long)]
     host: Vec<String>,
-}
 
-#[derive(Args, Debug)]
-pub struct JobAndLoadInputArgs {
-    /// Include this user, "-" for all (repeatable) [default: command dependent]
+    /// Select records with this user, "-" for all (repeatable) [default: command dependent]
     #[arg(long, short)]
     user: Vec<String>,
 
@@ -191,7 +188,10 @@ pub struct JobAndLoadInputArgs {
     /// Select records for this job (repeatable) [default: all]
     #[arg(long, short)]
     job: Vec<String>,
+}
 
+#[derive(Args, Debug)]
+pub struct JobAndLoadInputArgs {
     /// File containing JSON data with system information, for when we want to print or use system-relative values [default: none]
     #[arg(long)]
     config_file: Option<String>,
@@ -622,21 +622,162 @@ fn sonalyze() -> Result<()> {
         Commands::Uptime(ref uptime_args) => &uptime_args.meta_args,
     };
 
-    let include_hosts = {
-        let host_args = match cli.command {
-            Commands::Jobs(ref jobs_args) => &jobs_args.host_args,
-            Commands::Load(ref load_args) => &load_args.host_args,
-            Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.host_args,
+    let (include_hosts, include_jobs, include_users, exclude_users, include_commands, exclude_commands) = {
+        let record_filter_args = match cli.command {
+            Commands::Jobs(ref jobs_args) => &jobs_args.record_filter_args,
+            Commands::Load(ref load_args) => &load_args.record_filter_args,
+            Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.record_filter_args,
             Commands::Version => panic!("Unexpected"),
-            Commands::Uptime(ref uptime_args) => &uptime_args.host_args,
+            Commands::Uptime(ref uptime_args) => &uptime_args.record_filter_args,
         };
 
         // Included host set, empty means "all"
-        let mut hosts = HostFilter::new();
-        for host in &host_args.host {
-            hosts.insert(host)?;
+
+        let mut include_hosts = HostFilter::new();
+        for host in &record_filter_args.host {
+            include_hosts.insert(host)?;
         }
-        hosts
+
+        // Included job numbers, empty means "all"
+
+        let include_jobs = {
+            let mut jobs = HashSet::<usize>::new();
+            for job in &record_filter_args.job {
+                jobs.insert(usize::from_str(job)?);
+            }
+            jobs
+        };
+
+        // Included users.  The default depends on various other switches.
+
+        let (all_users, skip_system_users) =
+            if let Commands::Load(_) = cli.command {
+                // `load` implies `--user=-` b/c we're interested in system effects.
+                (true, false)
+            } else if let Commands::Parse(_) = cli.command {
+                // `parse` implies `--user=-` b/c we're interested in raw data.
+                (true, false)
+            } else if let Commands::Metadata(_) = cli.command {
+                // `metadata` implies `--user=-` b/c we're interested in raw data.
+                (true, false)
+            } else if !record_filter_args.job.is_empty() {
+                // `jobs --job=...` implies `--user=-` b/c the job also implies a user.
+                (true, true)
+            } else if !record_filter_args.exclude_user.is_empty() {
+                // `jobs --exclude-user=...` implies `--user=-` b/c the only sane way to include
+                // many users so that some can be excluded is by also specifying `--users=-`.
+                (true, false)
+            } else if let Commands::Jobs(ref jobs_args) = cli.command {
+                // `jobs --zombie` implies `--user=-` because the use case for `--zombie` is to hunt
+                // across all users.
+                (jobs_args.filter_args.zombie, false)
+            } else {
+                (false, false)
+            };
+
+        let include_users = {
+            let mut users = HashSet::<String>::new();
+            if record_filter_args.user.len() > 0 {
+                // Not the default value
+                if record_filter_args.user.iter().any(|user| user == "-") {
+                    // Everyone, so do nothing
+                } else {
+                    for user in &record_filter_args.user {
+                        users.insert(user.to_string());
+                    }
+                }
+            } else if all_users {
+                // Everyone, so do nothing
+            } else {
+                if let Ok(u) = env::var("LOGNAME") {
+                    users.insert(u);
+                };
+            }
+            users
+        };
+
+        // Excluded users.
+
+        let mut exclude_users = {
+            let mut excluded = HashSet::<String>::new();
+            if record_filter_args.exclude_user.len() > 0 {
+                // Not the default value
+                for user in &record_filter_args.exclude_user {
+                    excluded.insert(user.to_string());
+                }
+            } else {
+                // Nobody
+            }
+            excluded
+        };
+
+        if skip_system_users {
+            exclude_users.insert("root".to_string());
+            exclude_users.insert("zabbix".to_string());
+        }
+
+        // Included commands.
+
+        let (exclude_system_commands, exclude_heartbeat) =
+            match cli.command {
+                Commands::Parse(_) => (false, true),
+                Commands::Metadata(_) => (false, true),
+                Commands::Load(_) => (true, false),
+                Commands::Jobs(_) => (true, false),
+                Commands::Uptime(_) => (false, false),
+                Commands::Version => panic!("Unexpected"),
+            };
+
+        let include_commands = {
+            let mut included = HashSet::<String>::new();
+            if record_filter_args.command.len() > 0 {
+                for command in &record_filter_args.command {
+                    included.insert(command.to_string());
+                }
+            } else {
+                // Every command
+            }
+            included
+        };
+
+        // Excluded commands.
+
+        let mut exclude_commands = {
+            let mut excluded = HashSet::<String>::new();
+            if record_filter_args.exclude_command.len() > 0 {
+                // Not the default value
+                for command in &record_filter_args.exclude_command {
+                    excluded.insert(command.to_string());
+                }
+            } else {
+                // Nobody
+            }
+            excluded
+        };
+
+        if exclude_system_commands {
+            exclude_commands.insert("bash".to_string());
+            exclude_commands.insert("zsh".to_string());
+            exclude_commands.insert("sshd".to_string());
+            exclude_commands.insert("tmux".to_string());
+            exclude_commands.insert("systemd".to_string());
+        }
+
+        // Skip heartbeat records.  It's probably OK to filter only by command name, since we're
+        // currently doing full-command-name matching.
+
+        if exclude_heartbeat {
+            exclude_commands.insert("_heartbeat_".to_string());
+        }
+
+        (
+            include_hosts,
+            include_jobs,
+            include_users,
+            exclude_users,
+            include_commands,
+            exclude_commands
+        )
     };
 
     let (
@@ -713,149 +854,44 @@ fn sonalyze() -> Result<()> {
         )
     };
 
+    // Record filtering logic is the same for all commands.
+
+    let record_filter = |e:&LogEntry| {
+        ((&include_users).is_empty() || (&include_users).contains(&e.user))
+            && ((&include_hosts).is_empty() || (&include_hosts).contains(&e.hostname))
+            && ((&include_jobs).is_empty() || (&include_jobs).contains(&(e.job_id as usize)))
+            && !(&exclude_users).contains(&e.user)
+            && ((&include_commands).is_empty() || (&include_commands).contains(&e.command))
+            && !(&exclude_commands).contains(&e.command)
+            && from <= e.timestamp
+            && e.timestamp <= to
+    };
+
+    // System configuration, if specified.
+
+    let system_config = {
+        let config_filename = match cli.command {
+            Commands::Jobs(ref jobs_args) => &jobs_args.input_args.config_file,
+            Commands::Load(ref load_args) => &load_args.input_args.config_file,
+            _ => &None
+        };
+        if let Some(ref config_filename) = config_filename {
+            Some(sonarlog::read_from_json(&config_filename)?)
+        } else {
+            None
+        }
+    };
+
+    let (mut entries, bounds) = sonarlog::read_logfiles(&logfiles)?;
+
     match cli.command {
         Commands::Version => {
             panic!("Unexpected");
         }
+
         Commands::Jobs(_) | Commands::Load(_) => {
-            let input_args = match cli.command {
-                Commands::Jobs(ref jobs_args) => &jobs_args.input_args,
-                Commands::Load(ref load_args) => &load_args.input_args,
-                _ => panic!("Unexpected"),
-            };
-
-            // Included job numbers, empty means "all"
-
-            let include_jobs = {
-                let mut jobs = HashSet::<usize>::new();
-                for job in &input_args.job {
-                    jobs.insert(usize::from_str(job)?);
-                }
-                jobs
-            };
-
-            // Included users.  The default depends on various other switches.
-
-            let all_users =
-                if let Commands::Load(_) = cli.command {
-                    // `load` implies `--user=-` b/c we're interested in system effects.
-                    true
-                } else if !input_args.job.is_empty() {
-                    // `jobs --job=...` implies `--user=-` b/c the job also implies a user.
-                    true
-                } else if !input_args.exclude_user.is_empty() {
-                    // `jobs --exclude-user=...` implies `--user=-` b/c the only sane way to include
-                    // many users so that some can be excluded is by also specifying `--users=-`.
-                    true
-                } else if let Commands::Jobs(ref jobs_args) = cli.command {
-                    // `jobs --zombie` implies `--user=-` because the use case for `--zombie` is to hunt
-                    // across all users.
-                    jobs_args.filter_args.zombie
-                } else {
-                    false
-                };
-
-            let include_users = {
-                let mut users = HashSet::<String>::new();
-                if input_args.user.len() > 0 {
-                    // Not the default value
-                    if input_args.user.iter().any(|user| user == "-") {
-                        // Everyone, so do nothing
-                    } else {
-                        for user in &input_args.user {
-                            users.insert(user.to_string());
-                        }
-                    }
-                } else if all_users {
-                    // Everyone, so do nothing
-                } else {
-                    if let Ok(u) = env::var("LOGNAME") {
-                        users.insert(u);
-                    };
-                }
-                users
-            };
-
-            // Excluded users.
-
-            let mut exclude_users = {
-                let mut excluded = HashSet::<String>::new();
-                if input_args.exclude_user.len() > 0 {
-                    // Not the default value
-                    for user in &input_args.exclude_user {
-                        excluded.insert(user.to_string());
-                    }
-                } else {
-                    // Nobody
-                }
-                excluded
-            };
-            exclude_users.insert("root".to_string());
-            exclude_users.insert("zabbix".to_string());
-
-            // Included commands.
-
-            let include_commands = {
-                let mut included = HashSet::<String>::new();
-                if input_args.command.len() > 0 {
-                    for command in &input_args.command {
-                        included.insert(command.to_string());
-                    }
-                } else {
-                    // Every command
-                }
-                included
-            };
-
-            // Excluded commands.
-
-            let mut exclude_commands = {
-                let mut excluded = HashSet::<String>::new();
-                if input_args.exclude_command.len() > 0 {
-                    // Not the default value
-                    for command in &input_args.exclude_command {
-                        excluded.insert(command.to_string());
-                    }
-                } else {
-                    // Nobody
-                }
-                excluded
-            };
-            exclude_commands.insert("bash".to_string());
-            exclude_commands.insert("zsh".to_string());
-            exclude_commands.insert("sshd".to_string());
-            exclude_commands.insert("tmux".to_string());
-            exclude_commands.insert("systemd".to_string());
-
-            // Skip heartbeat records.  It's probably OK to filter only by command name, since we're
-            // currently doing full-command-name matching.
-            exclude_commands.insert("_heartbeat_".to_string());
-
-            // System configuration, if specified.
-
-            let system_config = if let Some(ref config_filename) = input_args.config_file {
-                Some(sonarlog::read_from_json(&config_filename)?)
-            } else {
-                None
-            };
-
-            // Input filtering logic is the same for both job and load listing, the only material
-            // difference (handled above) is that the default user set for load listing is "all".
-
-            let filter = |e:&LogEntry| {
-                ((&include_users).is_empty() || (&include_users).contains(&e.user))
-                    && ((&include_hosts).is_empty() || (&include_hosts).contains(&e.hostname))
-                    && ((&include_jobs).is_empty() || (&include_jobs).contains(&(e.job_id as usize)))
-                    && !(&exclude_users).contains(&e.user)
-                    && ((&include_commands).is_empty() || (&include_commands).contains(&e.command))
-                    && !(&exclude_commands).contains(&e.command)
-                    && from <= e.timestamp
-                    && e.timestamp <= to
-            };
-
-            let (entries, bounds) = sonarlog::read_logfiles(&logfiles)?;
             let records_read = entries.len();
-            let streams = sonarlog::postprocess_log(entries, &filter, &system_config);
+            let streams = sonarlog::postprocess_log(entries, &record_filter, &system_config);
 
             match cli.command {
                 Commands::Load(ref load_args) => {
@@ -895,21 +931,21 @@ fn sonalyze() -> Result<()> {
                 _ => panic!("Unexpected"),
             }
         }
+
         Commands::Parse(ref parse_args) => {
-            let (entries, bounds) = sonarlog::read_logfiles(&logfiles)?;
             let (old_entries, new_entries) =
                 if parse_args.print_args.clean {
-                    let mut streams = sonarlog::postprocess_log(entries, &|_:&LogEntry| true, &None);
+                    let mut streams = sonarlog::postprocess_log(entries, &record_filter, &None);
                     (None, Some(streams.drain().map(|(_, v)| v).collect::<Vec<Vec<Box<LogEntry>>>>()))
                 } else if parse_args.print_args.merge_by_job  {
-                    let streams = sonarlog::postprocess_log(entries, &|_:&LogEntry| true, &None);
+                    let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
                     let (entries, _) = sonarlog::merge_by_job(streams, &bounds);
                     (None, Some(entries))
                 } else if parse_args.print_args.merge_by_host_and_job {
-                    let streams = sonarlog::postprocess_log(entries, &|_:&LogEntry| true, &None);
+                    let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
                     (None, Some(sonarlog::merge_by_host_and_job(streams)))
                 } else {
-                    (Some(entries), None)
+                    (Some(entries.drain(0..).filter(|e:&Box<LogEntry>| record_filter(&*e)).collect::<Vec<Box<LogEntry>>>()), None)
                 };
             if let Some(mut merged_streams) = new_entries {
                 merged_streams.sort_by(|a, b| {
@@ -942,14 +978,16 @@ fn sonalyze() -> Result<()> {
                 )
             }
         }
+
         Commands::Metadata(ref parse_args) => {
-            let (entries, bounds) = sonarlog::read_logfiles(&logfiles)?;
             let bounds =
                 if parse_args.print_args.merge_by_job  {
-                    let streams = sonarlog::postprocess_log(entries, &|_:&LogEntry| true, &None);
+                    let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
                     let (_, bounds) = sonarlog::merge_by_job(streams, &bounds);
                     bounds
                 } else {
+                    // Bounds are not affected by filtering, at present, so no need to run the
+                    // filter here.
                     bounds
                 };
             metadata::print(
@@ -959,8 +997,8 @@ fn sonalyze() -> Result<()> {
                 bounds,
             )
         },
+
         Commands::Uptime(ref uptime_args) => {
-            let (entries, _) = sonarlog::read_logfiles(&logfiles)?;
             uptime::aggregate_and_print_uptime(
                 &mut io::stdout(),
                 &include_hosts,

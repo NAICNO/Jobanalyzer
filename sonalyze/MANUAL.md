@@ -36,7 +36,7 @@ The program operates by phases:
 
 * reading any system configuration files
 * computing a set of input log files
-* reading these log files with input filters applied, resulting in a set of input records
+* reading these log files with record filters applied, resulting in a set of input records
 * aggregating data across the input records
 * filtering the aggregated data with the aggregation filters
 * printing the aggregated data with the output filters
@@ -64,30 +64,38 @@ are per-operation, as outlined directly below.
   or print formats that make use of system-relative values (such as `rcpu`).  See the section
   "SYSTEM CONFIGURATION FILES" below.
 
-### Input filter options
+### Record filter options
 
-All filters are optional.  Records must pass all specified filters.  Not all filters are available with
-all commands; see the online help text.
+All filters are optional.  Records must pass all specified filters.  All commands support the record
+filters.
 
 `-u <username>`, `--user=<username>`
 
-  The user name(s), the option can be repeated.  The default for `jobs` is the current user,
-  `$LOGNAME`, except in the case of `--job=`, `--zombie`, or `--exclude-user=`, when the default is
-  everyone.  The default for `load` is everyone.  Use `-` to ask for everyone.
+  The user name(s), the option can be repeated.  Use `-` to ask for everyone.
+
+  The default value for `--user` is the the current user, `$LOGNAME`, but there are several
+  exceptions.  When the command is `load`, or when the `--job` and `--exclude-user` record filters
+  are used, or when the `--zombie` job filter is being used then the default is "everyone".
+
+  Additionally, when the `--job` record filter is used, then users "root" and "zabbix" are excluded.
 
 `--exclude-user=<username>`
 
-  Normally, users `root` and `zabbix` are excluded from the report.  (They don't run jobs usually,
-  but with synthesized jobs they can appear in the log anyway.)  With the exclude option, list
-  *additional* user names to be excluded.  The option can be repeated
+  Request that records with these user names are excluded, in addition to normal exclusions.
+  The option can be repeated.  See above about defaults.
 
 `--command=<command>`
 
   Select only records whose command name matches `<command>` exactly.  This option can be repeated.
 
+  The default value for `--command` is every command for `parse`, `metadata` and `uptime`, and every
+  command except some system commands for `jobs` and `load` (currently `bash`, `zsh`, `sshd`,
+  `tmux`, and `systemd`; this is pretty ad-hoc).
+
 `--exclude-command=<command>`
 
-  Exclude commands matching `<command>` exactly.  This option can be repeated.
+  Exclude commands matching `<command>` exactly, in addition to default exclusions.  This option can
+  be repeated.
 
 `-j <job#>`, `--job=<job#>`
 
@@ -101,7 +109,7 @@ all commands; see the online help text.
 `-t <totime>`, `--to=<totime>`
 
   Select only records with this time stamp and earlier, format is either `YYYY-MM-DD`, `Nd` (N days
-  ago) or `Nw` (N weeks ago).  The default is now.
+  ago) or `Nw` (N weeks ago).  The default is `0d`: now.
 
 `--host=<hostname>`
 
@@ -109,6 +117,7 @@ all commands; see the online help text.
   filtering in the data path and to record filtering within all files processed (as all records also
   contain the host name).  The default is all hosts.  The host name can use wildcards and expansions
   in some ways; see later section.  The option can be repeated.
+
 
 ### Job filtering and aggregation options
 
