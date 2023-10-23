@@ -2,7 +2,7 @@
 
 # General parsing tests.  Records should be seen in order read.  GPU sets should be printed in a
 # predictable order, low-to-high card index.
-output=$($SONALYZE parse --from 2023-06-26 --fmt=csv,user,rolledup,pid,job,time,gpus,cputime_sec -- parse-data.csv)
+output=$($SONALYZE parse --from 2023-06-26 --fmt=csv,user,rolledup,pid,job,localtime,gpus,cputime_sec -- parse-data.csv)
 CHECK parse_file \
       "zabbix,5,0,4093,2023-06-26 16:00,none,7
 root,0,4079,4079,2023-06-26 16:05,none,0
@@ -15,7 +15,7 @@ larsbent,0,1090,1249152,2023-06-26 16:16,\"4,5,7\",9362" \
 
 # Same input but spread across two files.  This tests that read_logfiles
 # in logtree.rs does its job.
-output=$($SONALYZE parse --from 2023-06-26 --fmt=csv,user,rolledup,pid,job,time,gpus,cputime_sec -- parse-data1.csv parse-data2.csv)
+output=$($SONALYZE parse --from 2023-06-26 --fmt=csv,user,rolledup,pid,job,localtime,gpus,cputime_sec -- parse-data1.csv parse-data2.csv)
 CHECK parse_file_multi \
       "zabbix,5,0,4093,2023-06-26 16:00,none,7
 root,0,4079,4079,2023-06-26 16:05,none,0

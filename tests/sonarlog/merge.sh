@@ -5,7 +5,7 @@
 # Merge jobs within hosts but not across hosts.  This leaves the metadata untouched because it is
 # per-host, not per-stream or per-job.
 
-output=$($SONALYZE parse --from 2023-09-01 --merge-by-host-and-job --fmt=host,job,time -- merge.csv)
+output=$($SONALYZE parse --from 2023-09-01 --merge-by-host-and-job --fmt=host,job,localtime -- merge.csv)
 CHECK parse_merge_by_host_and_job \
       '*
 ml1.hpc.uio.no,4052478,2023-09-13 22:00
@@ -60,7 +60,7 @@ CHECK metadata_merge_by_job \
 ml8.hpc.uio.no,2023-09-13 20:00,2023-09-14 01:15" \
       "$output"
 
-output=$($SONALYZE parse --from 2023-09-01 --merge-by-job --fmt=host,job,time,cputime_sec -- merge.csv)
+output=$($SONALYZE parse --from 2023-09-01 --merge-by-job --fmt=host,job,localtime,cputime_sec -- merge.csv)
 CHECK parse_merge_by_job \
       "*
 \"ml1.hpc.uio.no,ml8.hpc.uio.no\",2851773,2023-09-13 20:00,1

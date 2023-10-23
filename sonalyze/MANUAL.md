@@ -457,3 +457,6 @@ The default format is `fixed`.  The field for the `load` command are as follows:
 ### Field names for `parse`, `metadata` and `uptime`
 
 Consult the on-line help for details.
+
+Note that `parse` has an alias `roundtrip` that causes it to print the selected records with a
+format that makes them suitable for input to sonalyze.
