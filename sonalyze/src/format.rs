@@ -35,7 +35,7 @@ where
                 }
             }
             println!("\nDefaults:\n  {}", help.defaults);
-            println!("\nControl:\n  csv\n  csvnamed  \n  fixed\n  json\n  header\n  noheader\n  tag:<tagvalue>");
+            println!("\nControl:\n  csv\n  csvnamed  \n  fixed\n  json\n  header\n  nodefaults\n  noheader\n  tag:<tagvalue>");
             return true;
         }
     }
@@ -81,6 +81,8 @@ pub struct FormatOptions {
     pub fixed: bool,            // fixed output explicitly requested
     pub named: bool,            // csvnamed explicitly requested
     pub header: bool,           // true if nothing requested b/c fixed+header is default
+    pub nodefaults: bool,       // if true and the string returned is "*skip*" and the
+                                //   mode is csv or json then print nothing
 }
 
 pub fn standard_options(others: &HashSet<&str>) -> FormatOptions {
@@ -88,6 +90,7 @@ pub fn standard_options(others: &HashSet<&str>) -> FormatOptions {
     let csv = others.get("csv").is_some() || csvnamed;
     let json = others.get("json").is_some() && !csv;
     let fixed = others.get("fixed").is_some() && !csv &&!json;
+    let nodefaults = others.get("nodefaults").is_some();
     // json gets no header, even if one is requested
     let header =
         (!csv && !json && !others.get("noheader").is_some()) || (csv && others.get("header").is_some());
@@ -104,7 +107,8 @@ pub fn standard_options(others: &HashSet<&str>) -> FormatOptions {
         header,
         tag,
         fixed,
-        named: csvnamed
+        named: csvnamed,
+        nodefaults,
     }
 }
 
@@ -233,7 +237,9 @@ fn format_csv<'a>(
     opts: &FormatOptions,
     cols: Vec<Vec<String>>,
 ) {
-    let mut writer = csv::Writer::from_writer(output);
+    let mut writer = csv::WriterBuilder::new()
+        .flexible(true)
+        .from_writer(output);
 
     if opts.header {
         let mut out_fields = Vec::new();
@@ -251,10 +257,13 @@ fn format_csv<'a>(
         let mut out_fields = Vec::new();
         let mut col = 0;
         while col < fields.len() {
-            if opts.named {
-                out_fields.push(format!("{}={}", fields[col], cols[col][row]));
+            let val = &cols[col][row];
+            if opts.nodefaults && val == "*skip*" {
+                // do nothing
+            } else if opts.named {
+                out_fields.push(format!("{}={}", fields[col], val));
             } else {
-                out_fields.push(format!("{}", cols[col][row]));
+                out_fields.push(format!("{}", val));
             }
             col += 1;
         }
@@ -284,7 +293,12 @@ fn format_json<'a>(
         let mut obj = json::JsonValue::new_object();
         let mut col = 0;
         while col < fields.len() {
-            obj[fields[col]] = cols[col][row].clone().into();
+            let val = &cols[col][row];
+            if opts.nodefaults && val == "*skip*" {
+                // do nothing
+            } else {
+                obj[fields[col]] = val.clone().into();
+            }
             col += 1;
         }
         if let Some(ref tag) = opts.tag {

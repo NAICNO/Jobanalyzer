@@ -2,7 +2,7 @@ use crate::format;
 use crate::{ParsePrintArgs, MetaArgs};
 
 use anyhow::Result;
-use sonarlog::{gpuset_to_string, LogEntry};
+use sonarlog::{is_empty_gpuset, gpuset_to_string, GpuStatus, LogEntry};
 use std::boxed::Box;
 use std::collections::HashMap;
 use std::io;
@@ -32,8 +32,9 @@ pub fn print_parsed_data(
         opts.csv = true;
         opts.header = false;
     }
+
     if fields.len() > 0 {
-        format::format_data(output, &fields, &formatters, &opts, entries, &false);
+        format::format_data(output, &fields, &formatters, &opts, entries, &opts.nodefaults);
     }
     Ok(())
 }
@@ -107,8 +108,12 @@ fn format_user(d: LogDatum, _: LogCtx) -> String {
     d.user.clone()
 }
 
-fn format_pid(d: LogDatum, _: LogCtx) -> String {
-    d.pid.to_string()
+fn format_pid(d: LogDatum, nodefaults: LogCtx) -> String {
+    if *nodefaults && d.pid == 0 {
+        "*skip*".to_string()
+    } else {
+        d.pid.to_string()
+    }
 }
 
 fn format_job(d: LogDatum, _: LogCtx) -> String {
@@ -127,35 +132,67 @@ fn format_mem_gb(d: LogDatum, _: LogCtx) -> String {
     ((d.mem_gb.round()) as isize).to_string()
 }
 
-fn format_gpus(d: LogDatum, _: LogCtx) -> String {
-    gpuset_to_string(&d.gpus)
+fn format_gpus(d: LogDatum, nodefaults: LogCtx) -> String {
+    if *nodefaults && is_empty_gpuset(&d.gpus) {
+        "*skip*".to_string()
+    } else {
+        gpuset_to_string(&d.gpus)
+    }
 }
 
-fn format_gpu_pct(d: LogDatum, _: LogCtx) -> String {
-    d.gpu_pct.to_string()
+fn format_gpu_pct(d: LogDatum, nodefaults: LogCtx) -> String {
+    if *nodefaults && d.gpu_pct == 0.0 {
+        "*skip*".to_string()
+    } else {
+        d.gpu_pct.to_string()
+    }
 }
 
-fn format_gpumem_pct(d: LogDatum, _: LogCtx) -> String {
-    d.gpumem_pct.to_string()
+fn format_gpumem_pct(d: LogDatum, nodefaults: LogCtx) -> String {
+    if *nodefaults && d.gpumem_pct == 0.0 {
+        "*skip*".to_string()
+    } else {
+        d.gpumem_pct.to_string()
+    }
 }
 
-fn format_gpumem_gb(d: LogDatum, _: LogCtx) -> String {
-    ((d.gpumem_gb.round()) as isize).to_string()
+fn format_gpumem_gb(d: LogDatum, nodefaults: LogCtx) -> String {
+    if *nodefaults && d.gpumem_gb.round() == 0.0 {
+        "*skip*".to_string()
+    } else {
+        ((d.gpumem_gb.round()) as isize).to_string()
+    }
 }
 
-fn format_gpu_status(d: LogDatum, _: LogCtx) -> String {
-    (d.gpu_status as i32).to_string()
+fn format_gpu_status(d: LogDatum, nodefaults: LogCtx) -> String {
+    if *nodefaults && d.gpu_status == GpuStatus::Ok {
+        "*skip*".to_string()
+    } else {
+        (d.gpu_status as i32).to_string()
+    }
 }
 
-fn format_cputime_sec(d: LogDatum, _: LogCtx) -> String {
-    d.cputime_sec.to_string()
+fn format_cputime_sec(d: LogDatum, nodefaults: LogCtx) -> String {
+    if *nodefaults && d.cputime_sec == 0.0 {
+        "*skip*".to_string()
+    } else {
+        d.cputime_sec.to_string()
+    }
 }
 
-fn format_rolledup(d: LogDatum, _: LogCtx) -> String {
-    d.rolledup.to_string()
+fn format_rolledup(d: LogDatum, nodefaults: LogCtx) -> String {
+    if *nodefaults && d.rolledup == 0 {
+        "*skip*".to_string()
+    } else {
+        d.rolledup.to_string()
+    }
 }
 
-fn format_cpu_util_pct(d: LogDatum, _: LogCtx) -> String {
-    d.cpu_util_pct.to_string()
+fn format_cpu_util_pct(d: LogDatum, nodefaults: LogCtx) -> String {
+    if *nodefaults && d.cpu_util_pct == 0.0 {
+        "*skip*".to_string()
+    } else {
+        d.cpu_util_pct.to_string()
+    }
 }
 

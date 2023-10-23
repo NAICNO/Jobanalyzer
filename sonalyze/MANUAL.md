@@ -397,6 +397,8 @@ format:
 * `header` forces a header to be printed for CSV; this is the default for fixed-column output
    (and a no-op for JSON)
 * `noheader` forces a header not to be printed, default for `csv`, `csvnamed`, and `json`
+* `nodefaults` applies in some cases with some output forms (notably the `parse` command with
+  csv or JSON output) and causes the suppression of fields that have their default values)
 * `tag:something` forces a field `tag` to be printed for each record with the value `something`
 
 Run with `--fmt=help` to get help on formatting syntax, field names, aliases, and controls, as
@@ -423,7 +425,7 @@ The default format is `fixed`.  The field names for the `jobs` command are at le
 * `rcpu-avg`, ..., `rmem-avg`, ... are available to show relative usage (percentage of full system capacity).
    These require a config file for the system to be provided with the `--config-file` flag.
 * `gpus` is a comma-separated list of device numbers used by the job
-* `host` is a list of the host name(s) running the job (showing only the first element of the FQDN, and 
+* `host` is a list of the host name(s) running the job (showing only the first element of the FQDN, and
   compressed using the same patterns as in HOST NAME PATTERNS above)
 * `cmd` is the command name, as far as is known.  For jobs with multiple processes that have different
    command names, all command names are printed.
@@ -451,3 +453,7 @@ The default format is `fixed`.  The field for the `load` command are as follows:
 * `rgpumem` (percentage, 100=all memory on all cards)
 * `gpus` (list of GPUs)
 * `now` is the current time on the format `YYYY-MM-DD HH:MM`
+
+### Field names for `parse`, `metadata` and `uptime`
+
+Consult the on-line help for details.
