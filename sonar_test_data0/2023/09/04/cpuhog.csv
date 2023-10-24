@@ -1,9 +1,0 @@
-now=2023-09-03 22:00,jobm=2166356,user=poyenyt,duration=0d 1h40m,host=ml6,cpu-peak=2615,gpu-peak=0,rcpu-avg=3,rcpu-peak=41,rmem-avg=12,rmem-peak=14,start=2023-09-03 15:10,end=2023-09-03 16:50,cmd=python3.9,tag=cpuhog
-now=2023-09-04 00:00,jobm=2166356,user=poyenyt,duration=0d 1h40m,host=ml6,cpu-peak=2615,gpu-peak=0,rcpu-avg=3,rcpu-peak=41,rmem-avg=12,rmem-peak=14,start=2023-09-03 15:10,end=2023-09-03 16:50,cmd=python3.9,tag=cpuhog
-now=2023-09-04 02:00,jobm=2166356,user=poyenyt,duration=0d 1h40m,host=ml6,cpu-peak=2615,gpu-peak=0,rcpu-avg=3,rcpu-peak=41,rmem-avg=12,rmem-peak=14,start=2023-09-03 15:10,end=2023-09-03 16:50,cmd=python3.9,tag=cpuhog
-now=2023-09-04 04:00,jobm=2166356,user=poyenyt,duration=0d 1h40m,host=ml6,cpu-peak=2615,gpu-peak=0,rcpu-avg=3,rcpu-peak=41,rmem-avg=12,rmem-peak=14,start=2023-09-03 15:10,end=2023-09-03 16:50,cmd=python3.9,tag=cpuhog
-now=2023-09-04 06:00,jobm=2166356,user=poyenyt,duration=0d 1h40m,host=ml6,cpu-peak=2615,gpu-peak=0,rcpu-avg=3,rcpu-peak=41,rmem-avg=12,rmem-peak=14,start=2023-09-03 15:10,end=2023-09-03 16:50,cmd=python3.9,tag=cpuhog
-now=2023-09-04 08:00,jobm=2166356,user=poyenyt,duration=0d 1h40m,host=ml6,cpu-peak=2615,gpu-peak=0,rcpu-avg=3,rcpu-peak=41,rmem-avg=12,rmem-peak=14,start=2023-09-03 15:10,end=2023-09-03 16:50,cmd=python3.9,tag=cpuhog
-now=2023-09-04 10:00,jobm=2166356,user=poyenyt,duration=0d 1h40m,host=ml6,cpu-peak=2615,gpu-peak=0,rcpu-avg=3,rcpu-peak=41,rmem-avg=12,rmem-peak=14,start=2023-09-03 15:10,end=2023-09-03 16:50,cmd=python3.9,tag=cpuhog
-now=2023-09-04 12:00,jobm=2166356,user=poyenyt,duration=0d 1h40m,host=ml6,cpu-peak=2615,gpu-peak=0,rcpu-avg=3,rcpu-peak=41,rmem-avg=12,rmem-peak=14,start=2023-09-03 15:10,end=2023-09-03 16:50,cmd=python3.9,tag=cpuhog
-now=2023-09-04 14:00,jobm=2166356,user=poyenyt,duration=0d 1h40m,host=ml6,cpu-peak=2615,gpu-peak=0,rcpu-avg=3,rcpu-peak=41,rmem-avg=12,rmem-peak=14,start=2023-09-03 15:10,end=2023-09-03 16:50,cmd=python3.9,tag=cpuhog

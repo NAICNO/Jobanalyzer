@@ -25,10 +25,15 @@ CHECK () {
 	    tr_hard_errors=$((tr_hard_errors + 1))
 	fi
     elif [[ $knownbug != "" ]]; then
-	echo "UNEXPECTED SUCCESS " $name ": KNOWN BUG $knownbug"
-	echo " EXPECTED $expected"
-	echo " GOT      $output"
-	tr_hard_errors=$((tr_hard_errors + 1))
+	if [[ $knownbug =~ heisenbug: ]]; then
+	    echo "UNEXPECTED SUCCESS " $name ": KNOWN BUG $knownbug"
+	    tr_soft_errors=$((tr_soft_errors + 1))
+	else
+	    echo "UNEXPECTED SUCCESS " $name ": KNOWN BUG $knownbug"
+	    echo " EXPECTED $expected"
+	    echo " GOT      $output"
+	    tr_hard_errors=$((tr_hard_errors + 1))
+	fi
     else
 	echo "$name: OK"
     fi

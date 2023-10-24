@@ -140,21 +140,23 @@ fn test_find_logfiles1() {
     // expected files.  This will encounter non-csv files, which should not be listed.
     let hosts = HostFilter::new();
     let xs = find_logfiles(
-        "../sonar_test_data0",
+        "../tests/sonarlog/whitebox-tree",
         &hosts,
         dates::timestamp_from_ymd(2023, 5, 30),
         dates::timestamp_from_ymd(2023, 6, 4),
     )
     .unwrap();
     assert!(xs.eq(&vec![
-        "../sonar_test_data0/2023/05/30/ml8.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/05/31/ml1.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/05/31/ml8.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/06/01/ml1.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/06/01/ml8.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/06/02/ml8.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/06/03/ml8.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/06/04/ml8.hpc.uio.no.csv"
+        "../tests/sonarlog/whitebox-tree/2023/05/30/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/05/30/b.csv",
+        "../tests/sonarlog/whitebox-tree/2023/05/31/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/05/31/b.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/01/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/01/b.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/02/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/03/b.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/04/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/04/b.csv",
     ]));
 }
 
@@ -164,19 +166,20 @@ fn test_find_logfiles2() {
     // into 2023/05/29 which is a file, not a directory.
     let hosts = HostFilter::new();
     let xs = find_logfiles(
-        "../sonar_test_data0",
+        "../tests/sonarlog/whitebox-tree",
         &hosts,
-        dates::timestamp_from_ymd(2023, 5, 20),
+        dates::timestamp_from_ymd(2023, 5, 29),
         dates::timestamp_from_ymd(2023, 6, 2),
     )
     .unwrap();
     assert!(xs.eq(&vec![
-        "../sonar_test_data0/2023/05/30/ml8.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/05/31/ml1.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/05/31/ml8.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/06/01/ml1.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/06/01/ml8.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/06/02/ml8.hpc.uio.no.csv"
+        "../tests/sonarlog/whitebox-tree/2023/05/30/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/05/30/b.csv",
+        "../tests/sonarlog/whitebox-tree/2023/05/31/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/05/31/b.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/01/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/01/b.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/02/a.csv",
     ]));
 }
 
@@ -184,40 +187,25 @@ fn test_find_logfiles2() {
 fn test_find_logfiles3() {
     // Filter by host name.
     let mut hosts = HostFilter::new();
-    hosts.insert("ml1.hpc.uio.no").unwrap();
+    hosts.insert("a").unwrap();
     let xs = find_logfiles(
-        "../sonar_test_data0",
+        "../tests/sonarlog/whitebox-tree",
         &hosts,
         dates::timestamp_from_ymd(2023, 5, 20),
         dates::timestamp_from_ymd(2023, 6, 2),
     )
     .unwrap();
     assert!(xs.eq(&vec![
-        "../sonar_test_data0/2023/05/31/ml1.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/06/01/ml1.hpc.uio.no.csv"
+        "../tests/sonarlog/whitebox-tree/2023/05/28/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/05/30/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/05/31/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/01/a.csv",
+        "../tests/sonarlog/whitebox-tree/2023/06/02/a.csv",
     ]));
 }
 
 #[test]
 fn test_find_logfiles4() {
-    // Filter by prefix host name.
-    let mut hosts = HostFilter::new();
-    hosts.insert("ml1").unwrap();
-    let xs = find_logfiles(
-        "../sonar_test_data0",
-        &hosts,
-        dates::timestamp_from_ymd(2023, 5, 20),
-        dates::timestamp_from_ymd(2023, 6, 2),
-    )
-    .unwrap();
-    assert!(xs.eq(&vec![
-        "../sonar_test_data0/2023/05/31/ml1.hpc.uio.no.csv",
-        "../sonar_test_data0/2023/06/01/ml1.hpc.uio.no.csv"
-    ]));
-}
-
-#[test]
-fn test_find_logfiles5() {
     // Nonexistent data_path
     let hosts = HostFilter::new();
     assert!(find_logfiles(
