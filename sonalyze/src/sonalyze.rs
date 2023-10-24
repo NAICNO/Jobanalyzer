@@ -945,15 +945,11 @@ fn sonalyze() -> Result<()> {
         Commands::Parse(ref parse_args) => {
             let (old_entries, new_entries) = if parse_args.print_args.clean {
                 let mut streams = sonarlog::postprocess_log(entries, &record_filter, &None);
-                (
-                    None,
-                    Some(
-                        streams
-                            .drain()
-                            .map(|(_, v)| v)
-                            .collect::<Vec<Vec<Box<LogEntry>>>>(),
-                    ),
-                )
+                let streams = streams
+                    .drain()
+                    .map(|(_, v)| v)
+                    .collect::<Vec<Vec<Box<LogEntry>>>>();
+                (None, Some(streams))
             } else if parse_args.print_args.merge_by_job {
                 let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
                 let (entries, _) = sonarlog::merge_by_job(streams, &bounds);
@@ -962,15 +958,11 @@ fn sonalyze() -> Result<()> {
                 let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
                 (None, Some(sonarlog::merge_by_host_and_job(streams)))
             } else {
-                (
-                    Some(
-                        entries
-                            .drain(0..)
-                            .filter(|e: &Box<LogEntry>| record_filter(&*e))
-                            .collect::<Vec<Box<LogEntry>>>(),
-                    ),
-                    None,
-                )
+                let streams = entries
+                    .drain(0..)
+                    .filter(|e: &Box<LogEntry>| record_filter(&*e))
+                    .collect::<Vec<Box<LogEntry>>>();
+                (Some(streams), None)
             };
             if let Some(mut merged_streams) = new_entries {
                 merged_streams.sort_by(|a, b| {
