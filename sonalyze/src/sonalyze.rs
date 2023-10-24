@@ -50,23 +50,23 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Print aggregated information about jobs
+    Jobs(JobCmdArgs),
+
+    /// Print aggregated information about system load
+    Load(LoadCmdArgs),
+
+    /// Print aggregated information about system uptime
+    Uptime(UptimeCmdArgs),
+
     /// Print information about the program
     Version,
 
-    /// Print information about jobs
-    Jobs(JobCmdArgs),
-
-    /// Print information about system load
-    Load(LoadCmdArgs),
-
-    /// Parse the Sonar logs, apply source/host filtering, and print raw, comma-separated values
+    /// Parse the Sonar logs, apply source/host filtering, and print values
     Parse(ParseCmdArgs),
 
     /// Parse the Sonar logs, apply source/host filtering, and print metadata
     Metadata(ParseCmdArgs),
-
-    /// Print information about system uptime
-    Uptime(UptimeCmdArgs),
 }
 
 #[derive(Args, Debug)]
@@ -78,7 +78,7 @@ pub struct JobCmdArgs {
     record_filter_args: RecordFilterArgs,
 
     #[command(flatten)]
-    input_args: JobAndLoadInputArgs,
+    config_arg: ConfigFileArg,
 
     #[command(flatten)]
     filter_args: JobFilterAndAggregationArgs,
@@ -99,7 +99,7 @@ pub struct LoadCmdArgs {
     record_filter_args: RecordFilterArgs,
 
     #[command(flatten)]
-    input_args: JobAndLoadInputArgs,
+    config_arg: ConfigFileArg,
 
     #[command(flatten)]
     filter_args: LoadFilterAndAggregationArgs,
@@ -143,7 +143,7 @@ pub struct UptimeCmdArgs {
 
 #[derive(Args, Debug)]
 pub struct SourceArgs {
-    /// Select the root directory for log files [default: $SONAR_ROOT]
+    /// Select the root directory for log files [default: $SONAR_ROOT or $HOME/sonar/data]
     #[arg(long)]
     data_path: Option<String>,
 
@@ -190,7 +190,7 @@ pub struct RecordFilterArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct JobAndLoadInputArgs {
+pub struct ConfigFileArg {
     /// File containing JSON data with system information, for when we want to print or use system-relative values [default: none]
     #[arg(long)]
     config_file: Option<String>,
@@ -883,8 +883,8 @@ fn sonalyze() -> Result<()> {
 
     let system_config = {
         let config_filename = match cli.command {
-            Commands::Jobs(ref jobs_args) => &jobs_args.input_args.config_file,
-            Commands::Load(ref load_args) => &load_args.input_args.config_file,
+            Commands::Jobs(ref jobs_args) => &jobs_args.config_arg.config_file,
+            Commands::Load(ref load_args) => &load_args.config_arg.config_file,
             _ => &None,
         };
         if let Some(ref config_filename) = config_filename {
