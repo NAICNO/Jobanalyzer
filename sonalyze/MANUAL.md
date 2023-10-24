@@ -10,24 +10,23 @@ Analyze `sonar` log files and print information about jobs or systems.
 sonalyze operation [options] [-- logfile ...]
 ```
 
-where `operation` is `jobs`, `load`, `uptime`, `parse`, `metadata`, or `help`.
+where `operation` is `jobs`, `load`, `uptime`, `profile`, `version`, `parse`, `metadata`, or `help`:
 
-The `jobs` operation prints information about jobs, collected from the sonar records.
-
-The `load` operation prints information about the load on the systems, collected from the sonar
-records.
-
-The `uptime` operation prints information about when systems and their components were up
-or down, collected from sonar records.
-
-The `parse` and `metadata` operations are for testing, mainly: They perform low-level operations on
-the sonar logs and print the results.
-
-The `help` operation prints high-level usage information.
+* The `jobs` operation prints information about jobs, collected from the sonar records.
+* The `load` operation prints information about the load on the systems, collected from the sonar
+  records.
+* The `uptime` operation prints information about when systems and their components were up
+  or down, collected from sonar records.
+* The `profile` operation prints information about the behavior of a single job across time.
+* The `parse` and `metadata` operations are for testing, mainly: They perform low-level operations on
+  the sonar logs and print the results.
+* The `version` operation prints machine-readable information about sonalyze and its configuration,
+  useful mostly for testing.
+* The `help` operation prints high-level usage information.
 
 Run `sonalyze <operation> help` to get help about options for the specific operation.
 
-All the verbs take a `--fmt` option to control the output; run with `--fmt=help` to get help on
+All the operations take a `--fmt` option to control the output; run with `--fmt=help` to get help on
 formatting options.
 
 ### Overall operation
@@ -162,7 +161,7 @@ specified filters.
   Select only jobs that have at least / at most `pct` percent (an integer, one full device=100)
   average GPU utilization.  Note that most programs use no more than one accelerator card, and there
   are fewer of these than CPUs, so this number will be below 100 for most jobs.
-   
+
 `--min-gpu-peak=<pct>`, `--max-gpu-peak=<pct>`
 
   Select only jobs that have at least / at most `pct` percent (an integer, one full device=100) peak
@@ -172,7 +171,7 @@ specified filters.
 
   Select only jobs that have at least / at most `pct` percent (an integer, the entire system=100)
   average or peak system-relative GPU utilization.  Requies a system config file.
-  
+
 `--min-gpumem-avg=<pct>`
 
   Select only jobs that have at least `pct` percent (an integer, one full device=100) average GPU
@@ -251,12 +250,12 @@ specified filters.
   on that host) and then a line for each command.  This yields insight into how the different
   commands contribute to the resource use of the job, and how the jobs balance across the different
   hosts.
-  
+
   To make the printout comprehensible, the first field value of each first-level breakdown lines is
   prefixed by `*` and the first field value of each second-level breakdown line is prefixed by `**`
   (in both plain text and csv output forms).  Any consumer must be prepared to handle this, should
   it be exposed to this type of output.
-  
+
 `-n <number-of-jobs>`, `--numjobs=<number-of-jobs>`
 
   Show only the *last* `number-of-jobs` selected jobs per user.  The default is "all".  Selected
@@ -276,7 +275,7 @@ records for the host at that instant, for the cpu, memory, gpu, and gpu memory u
 example, on a system with 192 cores the maximum absolute CPU load is 19200 (because the CPU load
 is a percentage of a core) and if the system has 128GB of RAM then the maximum absolute memory
 load is 128.
-  
+
 The absolute load for a time interval is the average for each of those fields across all the
 absolute loads in the interval.
 
@@ -324,6 +323,13 @@ instant is 5800/19200, ie 30%.
   Format the output for `uptime` according to `format`, which is a comma-separated list of keywords,
   see OUTPUT FORMAT below.
 
+### Profiling printing options
+
+`--fmt=<format>`
+
+  Format the output for `profile` according to `format`, which is a comma-separated list of keywords,
+  see OUTPUT FORMAT below.
+
 ## MISC EXAMPLES
 
 Many examples of usage are with the use cases in [../README.md](../README.md).  Here are some more:
@@ -339,6 +345,12 @@ for the entire time period) that used at least 10 cores worth of CPU on average 
 
 ```
 sonalyze jobs --user=- --from=2w --min-cpu-avg=1000 --no-gpu -- ml8.hpc.uio.no.csv
+```
+
+List all the processes in the given job for the last 24 hours, broken down at each sampler step:
+
+```
+sonalyze profile -j 12345
 ```
 
 ## LOG FILES
@@ -460,3 +472,49 @@ Consult the on-line help for details.
 
 Note that `parse` has an alias `roundtrip` that causes it to print the selected records with a
 format that makes them suitable for input to sonalyze.
+
+## COOKBOOK: CRUDE, HIGH-LEVEL JOB PROFILING
+
+This is based on an actual use case.  Suppose you have a pipeline or complex job of some sort that's
+failing.  In the simplest case, the sonar logs are already there, so can you examine them?
+
+To do this, figure out the job number and then run
+
+```
+$ sonalyze profile -j <job-number>
+```
+
+This will print out summaries of all the samples for the job across its lifetime (there may be a
+significant amount of output).  If the job had multiple commands or processes, each will be listed
+separately for each time step.  (In the future, if the job ran on multiple hosts, it will also be
+broken down across hosts.)
+
+In the less simple case, the sonar logs are not available because sonar was not running (typical for
+a cloud platform or VM, perhaps) or sonar ran with insufficient resolution to allow the problem to be
+diagnosed.
+
+In this case, we run sonar in the background while the job is running to collect appropriate
+samples, here the interval (`-i`) is 30s instead of the sonar default of 5m and we tell the script where
+to find sonar and where to store the output:
+
+```
+$ .../Jobanalyzer/sonard/sonard -i 30 -s .../sonar/target/release/sonar my-logfile.csv &
+```
+
+While that is running, run the job:
+```
+$ my_pipeline
+```
+
+and when the job is done, stop sonar again:
+```
+$ pkill sonard
+```
+
+Now analyze that log:
+```
+$ sonalyze profile -j <job-number> -- my-logfile.csv
+```
+
+Sonar runs in about 100ms; the smallest sensible interval is probably in the vicinity of 5s, but in
+that case there will be a vast amount of output for all but the shortest runs.
