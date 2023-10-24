@@ -30,7 +30,6 @@
 /// denoting an open suffix.
 ///
 /// The formatter will reconstruct a pattern from a set of names (though it will not use wildcards).
-
 use crate::pattern;
 
 use anyhow::Result;
@@ -198,10 +197,10 @@ pub fn combine_hosts(mut hosts: Vec<String>) -> String {
     hosts.sort();
 
     let mut i = 0;
-    let mut others = vec![];    // Uncombinable names to be sorted and appended at end
+    let mut others = vec![]; // Uncombinable names to be sorted and appended at end
     let mut result = String::new();
     while i < hosts.len() {
-        let mut j = i+1;
+        let mut j = i + 1;
         let mut ix = None;
         loop {
             if j == hosts.len() {
@@ -224,17 +223,17 @@ pub fn combine_hosts(mut hosts: Vec<String>) -> String {
             let mut s = prefix + "[";
             let mut k = 0;
             while k < suffixes.len() {
-                let mut m = k+1;
-                while m < suffixes.len() && suffixes[m] == suffixes[k] + (m-k) {
+                let mut m = k + 1;
+                while m < suffixes.len() && suffixes[m] == suffixes[k] + (m - k) {
                     m += 1;
                 }
                 if k > 0 {
                     s += ",";
                 }
-                if m == k+1 {
+                if m == k + 1 {
                     s += &suffixes[k].to_string();
                 } else {
-                    s += &format!("{}-{}", suffixes[k], suffixes[m-1]);
+                    s += &format!("{}-{}", suffixes[k], suffixes[m - 1]);
                 }
                 k = m;
             }
@@ -260,8 +259,14 @@ pub fn combine_hosts(mut hosts: Vec<String>) -> String {
 
 #[test]
 fn test_combine_hosts() {
-    assert!(combine_hosts(vec!["a1".to_string(), "a2".to_string(), "a3".to_string(), "a5".to_string()]) ==
-           "a[1-3,5]".to_string());
+    assert!(
+        combine_hosts(vec![
+            "a1".to_string(),
+            "a2".to_string(),
+            "a3".to_string(),
+            "a5".to_string()
+        ]) == "a[1-3,5]".to_string()
+    );
 }
 
 // Names can be merged if they both end with a digit string and there is a joint prefix before the
@@ -271,7 +276,7 @@ fn test_combine_hosts() {
 fn can_be_merged(a: &str, b: &str) -> Option<usize> {
     let xs = a.as_bytes();
     let mut i = xs.len();
-    while i > 0 && xs[i-1] >= b'0' && xs[i-1] <= b'9' {
+    while i > 0 && xs[i - 1] >= b'0' && xs[i - 1] <= b'9' {
         i -= 1;
     }
     if i == 0 || i == xs.len() {
@@ -279,7 +284,7 @@ fn can_be_merged(a: &str, b: &str) -> Option<usize> {
     }
     let ys = b.as_bytes();
     let mut j = ys.len();
-    while j > 0 && ys[j-1] >= b'0' && ys[j-1] <= b'9' {
+    while j > 0 && ys[j - 1] >= b'0' && ys[j - 1] <= b'9' {
         j -= 1;
     }
     if j == 0 || j == ys.len() {

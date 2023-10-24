@@ -1,5 +1,4 @@
 /// Enumerate log files in a log tree; read sets of files.
-
 use crate::{dates, parse_logfile, HostFilter, LogEntry, Timestamp};
 
 use anyhow::{bail, Result};
@@ -100,20 +99,19 @@ pub fn find_logfiles(
 /// synthesized (merged) hosts it maps the merged host name to the earliest and latest times seen
 /// for all the merged streams for all those hosts.
 
-pub type Timebounds = HashMap::<String, Timebound>;
+pub type Timebounds = HashMap<String, Timebound>;
 
 #[derive(Clone)]
 pub struct Timebound {
     pub earliest: Timestamp,
-    pub latest: Timestamp
+    pub latest: Timestamp,
 }
 
 /// Read all the files into an array and return some basic information about the data.
 ///
 /// Returns error on I/O error and discards illegal records silently.
 
-pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timebounds)>
-{
+pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timebounds)> {
     let mut entries = Vec::<Box<LogEntry>>::new();
 
     // Read all the files
@@ -128,7 +126,13 @@ pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timebou
             v.earliest = min(v.earliest, e.timestamp);
             v.latest = max(v.latest, e.timestamp);
         } else {
-            bounds.insert(h.to_string(), Timebound { earliest: e.timestamp, latest: e.timestamp });
+            bounds.insert(
+                h.to_string(),
+                Timebound {
+                    earliest: e.timestamp,
+                    latest: e.timestamp,
+                },
+            );
         }
     }
     Ok((entries, bounds))

@@ -2,12 +2,11 @@
 ///
 /// Feature: One could imagine other sort orders for the output than least-recently-started-first.
 /// This only matters for the --numjobs switch.
-
 use crate::format;
+use crate::jobs::{JobSummary, LEVEL_MASK, LEVEL_SHIFT, LIVE_AT_END, LIVE_AT_START};
 use crate::{JobPrintArgs, MetaArgs};
-use crate::jobs::{JobSummary, LIVE_AT_START, LIVE_AT_END, LEVEL_SHIFT, LEVEL_MASK};
 
-use anyhow::{bail,Result};
+use anyhow::{bail, Result};
 use sonarlog::{self, empty_gpuset, gpuset_to_string, now, union_gpuset, Timestamp};
 use std::collections::{HashMap, HashSet};
 use std::io;
@@ -35,17 +34,20 @@ pub fn print_jobs(
 
     if let Some(n) = print_args.numjobs {
         let mut counts: HashMap<&str, usize> = HashMap::new();
-        jobvec.iter_mut().rev().for_each(|JobSummary { aggregate, job, .. }| {
-            if let Some(c) = counts.get(&(*job[0].user)) {
-                if *c < n {
-                    counts.insert(&job[0].user, *c + 1);
+        jobvec
+            .iter_mut()
+            .rev()
+            .for_each(|JobSummary { aggregate, job, .. }| {
+                if let Some(c) = counts.get(&(*job[0].user)) {
+                    if *c < n {
+                        counts.insert(&job[0].user, *c + 1);
+                    } else {
+                        aggregate.selected = false;
+                    }
                 } else {
-                    aggregate.selected = false;
+                    counts.insert(&job[0].user, 1);
                 }
-            } else {
-                counts.insert(&job[0].user, 1);
-            }
-        })
+            })
     }
 
     let numselected = jobvec
@@ -102,8 +104,8 @@ pub fn print_jobs(
         let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
         let opts = format::standard_options(&others);
         let relative = fields.iter().any(|x| match *x {
-            "rcpu-avg" | "rcpu-peak" | "rmem-avg" | "rmem-peak" |
-            "rgpu-avg" | "rgpu-peak" | "rgpumem-avg" | "rgpumem-peak" => true,
+            "rcpu-avg" | "rcpu-peak" | "rmem-avg" | "rmem-peak" | "rgpu-avg" | "rgpu-peak"
+            | "rgpumem-avg" | "rgpumem-peak" => true,
             _ => false,
         });
         if relative && system_config.is_none() {
@@ -130,16 +132,24 @@ pub fn print_jobs(
 pub fn fmt_help() -> format::Help {
     let (formatters, aliases) = my_formatters();
     format::Help {
-        fields: formatters.iter().map(|(k, _)| k.clone()).collect::<Vec<String>>(),
-        aliases: aliases.iter().map(|(k,v)| (k.clone(), v.clone())).collect::<Vec<(String, Vec<String>)>>(),
+        fields: formatters
+            .iter()
+            .map(|(k, _)| k.clone())
+            .collect::<Vec<String>>(),
+        aliases: aliases
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect::<Vec<(String, Vec<String>)>>(),
         defaults: FMT_DEFAULTS.to_string(),
     }
 }
 
 const FMT_DEFAULTS: &str = "std,cpu,mem,gpu,gpumem,cmd";
 
-fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String>,
-                       HashMap<String, Vec<String>>) {
+fn my_formatters() -> (
+    HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String>,
+    HashMap<String, Vec<String>>,
+) {
     let mut formatters: HashMap<String, &dyn Fn(LogDatum, LogCtx) -> String> = HashMap::new();
     let mut aliases: HashMap<String, Vec<String>> = HashMap::new();
 
@@ -172,23 +182,56 @@ fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> Stri
     formatters.insert("now".to_string(), &format_now);
     formatters.insert("classification".to_string(), &format_classification);
 
-    aliases.insert("std".to_string(), vec!["jobm".to_string(),
-                                           "user".to_string(),
-                                           "duration".to_string(),
-                                           "host".to_string()]);
-    aliases.insert("cpu".to_string(), vec!["cpu-avg".to_string(), "cpu-peak".to_string()]);
-    aliases.insert("rcpu".to_string(), vec!["rcpu-avg".to_string(), "rcpu-peak".to_string()]);
-    aliases.insert("mem".to_string(), vec!["mem-avg".to_string(), "mem-peak".to_string()]);
-    aliases.insert("rmem".to_string(), vec!["rmem-avg".to_string(), "rmem-peak".to_string()]);
-    aliases.insert("gpu".to_string(), vec!["gpu-avg".to_string(), "gpu-peak".to_string()]);
-    aliases.insert("rgpu".to_string(), vec!["rgpu-avg".to_string(), "rgpu-peak".to_string()]);
-    aliases.insert("gpumem".to_string(), vec!["gpumem-avg".to_string(), "gpumem-peak".to_string()]);
-    aliases.insert("rgpumem".to_string(), vec!["rgpumem-avg".to_string(), "rgpumem-peak".to_string()]);
+    aliases.insert(
+        "std".to_string(),
+        vec![
+            "jobm".to_string(),
+            "user".to_string(),
+            "duration".to_string(),
+            "host".to_string(),
+        ],
+    );
+    aliases.insert(
+        "cpu".to_string(),
+        vec!["cpu-avg".to_string(), "cpu-peak".to_string()],
+    );
+    aliases.insert(
+        "rcpu".to_string(),
+        vec!["rcpu-avg".to_string(), "rcpu-peak".to_string()],
+    );
+    aliases.insert(
+        "mem".to_string(),
+        vec!["mem-avg".to_string(), "mem-peak".to_string()],
+    );
+    aliases.insert(
+        "rmem".to_string(),
+        vec!["rmem-avg".to_string(), "rmem-peak".to_string()],
+    );
+    aliases.insert(
+        "gpu".to_string(),
+        vec!["gpu-avg".to_string(), "gpu-peak".to_string()],
+    );
+    aliases.insert(
+        "rgpu".to_string(),
+        vec!["rgpu-avg".to_string(), "rgpu-peak".to_string()],
+    );
+    aliases.insert(
+        "gpumem".to_string(),
+        vec!["gpumem-avg".to_string(), "gpumem-peak".to_string()],
+    );
+    aliases.insert(
+        "rgpumem".to_string(),
+        vec!["rgpumem-avg".to_string(), "rgpumem-peak".to_string()],
+    );
 
     (formatters, aliases)
 }
 
-fn expand_subjobs(level: u32, breakdown: Option<(String, Vec<JobSummary>)>, selected: &mut Vec<JobSummary>) {
+fn expand_subjobs(
+    level: u32,
+    breakdown: Option<(String, Vec<JobSummary>)>,
+    selected: &mut Vec<JobSummary>,
+) {
     if let Some((tag, mut subjobs)) = breakdown {
         match tag.as_str() {
             "host" => {
@@ -204,7 +247,7 @@ fn expand_subjobs(level: u32, breakdown: Option<(String, Vec<JobSummary>)>, sele
             subjob.breakdown = None;
             subjob.aggregate.classification |= level << LEVEL_SHIFT;
             selected.push(subjob);
-            expand_subjobs(level+1, sub_breakdown, selected);
+            expand_subjobs(level + 1, sub_breakdown, selected);
         }
     }
 }
@@ -212,11 +255,16 @@ fn expand_subjobs(level: u32, breakdown: Option<(String, Vec<JobSummary>)>, sele
 type LogDatum<'a> = &'a JobSummary;
 type LogCtx<'a> = &'a Timestamp;
 
-fn format_user(JobSummary {job, .. }: LogDatum, _: LogCtx) -> String {
+fn format_user(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
     job[0].user.clone()
 }
 
-fn format_jobm_id(JobSummary {aggregate:a, job, ..}: LogDatum, _: LogCtx) -> String {
+fn format_jobm_id(
+    JobSummary {
+        aggregate: a, job, ..
+    }: LogDatum,
+    _: LogCtx,
+) -> String {
     format!(
         "{}{}",
         job[0].job_id,
@@ -232,11 +280,11 @@ fn format_jobm_id(JobSummary {aggregate:a, job, ..}: LogDatum, _: LogCtx) -> Str
     )
 }
 
-fn format_job_id(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
+fn format_job_id(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", job[0].job_id)
 }
 
-fn format_prefix(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_prefix(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     let mut s = "".to_string();
     let mut level = (a.classification >> LEVEL_SHIFT) & LEVEL_MASK;
     while level > 0 {
@@ -246,7 +294,7 @@ fn format_prefix(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
     s
 }
 
-fn format_host(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
+fn format_host(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
     // The hosts are in the jobs only, we aggregate only for presentation
     let mut hosts = HashSet::<String>::new();
     for j in job {
@@ -255,7 +303,7 @@ fn format_host(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
     sonarlog::combine_hosts(hosts.drain().collect::<Vec<String>>())
 }
 
-fn format_gpus(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
+fn format_gpus(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
     // As for hosts, it's OK to do create this set only for the presentation.
     //
     // If the gpu set is "unknown" in any of the job records then the result is also "unknown", this
@@ -267,11 +315,8 @@ fn format_gpus(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
     gpuset_to_string(&gpus)
 }
 
-fn format_duration(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
-    format!(
-        "{:}d{:2}h{:2}m",
-        a.days, a.hours, a.minutes
-    )
+fn format_duration(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    format!("{:}d{:2}h{:2}m", a.days, a.hours, a.minutes)
 }
 
 // An argument could be made that this should be ISO time, at least when the output is CSV, but
@@ -280,87 +325,87 @@ fn format_now(_: LogDatum, t: LogCtx) -> String {
     t.format("%Y-%m-%d %H:%M").to_string()
 }
 
-fn format_start(JobSummary {aggregate: a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_start(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     a.first.format("%Y-%m-%d %H:%M").to_string()
 }
 
-fn format_end(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_end(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     a.last.format("%Y-%m-%d %H:%M").to_string()
 }
 
-fn format_cpu_avg(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_cpu_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.cpu_avg)
 }
 
-fn format_cpu_peak(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_cpu_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.cpu_peak)
 }
 
-fn format_rcpu_avg(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_rcpu_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.rcpu_avg)
 }
 
-fn format_rcpu_peak(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_rcpu_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.rcpu_peak)
 }
 
-fn format_mem_avg(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_mem_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.mem_avg)
 }
 
-fn format_mem_peak(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_mem_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.mem_peak)
 }
 
-fn format_rmem_avg(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_rmem_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.rmem_avg)
 }
 
-fn format_rmem_peak(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_rmem_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.rmem_peak)
 }
 
-fn format_gpu_avg(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_gpu_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.gpu_avg)
 }
 
-fn format_gpu_peak(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_gpu_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.gpu_peak)
 }
 
-fn format_rgpu_avg(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_rgpu_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.rgpu_avg)
 }
 
-fn format_rgpu_peak(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_rgpu_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.rgpu_peak)
 }
 
-fn format_gpumem_avg(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_gpumem_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.gpumem_avg)
 }
 
-fn format_gpumem_peak(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_gpumem_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.gpumem_peak)
 }
 
-fn format_rgpumem_avg(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_rgpumem_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.rgpumem_avg)
 }
 
-fn format_rgpumem_peak(JobSummary {aggregate:a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_rgpumem_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.rgpumem_peak)
 }
 
-fn format_gpufail(JobSummary {aggregate: a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_gpufail(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.gpu_status as i32)
 }
 
-fn format_classification(JobSummary {aggregate: a, ..}: LogDatum, _: LogCtx) -> String {
+fn format_classification(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("0x{:x}", a.classification)
 }
 
-fn format_command(JobSummary {job, ..}: LogDatum, _: LogCtx) -> String {
+fn format_command(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
     let mut names = HashSet::new();
     let mut name = "".to_string();
     for entry in job {

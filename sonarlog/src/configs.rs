@@ -12,7 +12,6 @@
 ///   gpumem_pct - bool, optional, expressing a preference for the GPU memory reading
 ///
 /// See ../../production/ml-nodes/ml-nodes.json for an example.
-
 use anyhow::{bail, Result};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -90,8 +89,10 @@ fn grab_usize(fields: &serde_json::Map<String, Value>, name: &str) -> Result<usi
     if let Some(Value::Number(cores)) = fields.get(name) {
         if let Some(n) = cores.as_u64() {
             match usize::try_from(n) {
-                Ok(n) => { Ok(n) }
-                Err(_e) => { bail!("Field '{name}' must have unsigned integer value") }
+                Ok(n) => Ok(n),
+                Err(_e) => {
+                    bail!("Field '{name}' must have unsigned integer value")
+                }
             }
         } else {
             bail!("Field '{name}' must have unsigned integer value")

@@ -1,7 +1,6 @@
 /// Generic formatting code for a set of data extracted from a data structure to be presented
 /// columnar, as csv, or as json, and (except for json) with or without a header and with or without
 /// named fields.
-
 use csv;
 use json;
 use std::collections::{HashMap, HashSet};
@@ -15,7 +14,7 @@ pub struct Help {
 
 pub fn maybe_help<F>(fmt: &Option<String>, f: F) -> bool
 where
-    F: Fn() -> Help
+    F: Fn() -> Help,
 {
     if let Some(ref s) = fmt {
         if s.as_str() == "help" || s.starts_with("help") {
@@ -76,25 +75,25 @@ where
 
 pub struct FormatOptions {
     pub tag: Option<String>,
-    pub json: bool,             // json explicitly requested
-    pub csv: bool,              // csv or csvnamed explicitly requested
-    pub fixed: bool,            // fixed output explicitly requested
-    pub named: bool,            // csvnamed explicitly requested
-    pub header: bool,           // true if nothing requested b/c fixed+header is default
-    pub nodefaults: bool,       // if true and the string returned is "*skip*" and the
-                                //   mode is csv or json then print nothing
+    pub json: bool,   // json explicitly requested
+    pub csv: bool,    // csv or csvnamed explicitly requested
+    pub fixed: bool,  // fixed output explicitly requested
+    pub named: bool,  // csvnamed explicitly requested
+    pub header: bool, // true if nothing requested b/c fixed+header is default
+    pub nodefaults: bool, // if true and the string returned is "*skip*" and the
+                      //   mode is csv or json then print nothing
 }
 
 pub fn standard_options(others: &HashSet<&str>) -> FormatOptions {
     let csvnamed = others.get("csvnamed").is_some();
     let csv = others.get("csv").is_some() || csvnamed;
     let json = others.get("json").is_some() && !csv;
-    let fixed = others.get("fixed").is_some() && !csv &&!json;
+    let fixed = others.get("fixed").is_some() && !csv && !json;
     let nodefaults = others.get("nodefaults").is_some();
     // json gets no header, even if one is requested
-    let header =
-        (!csv && !json && !others.get("noheader").is_some()) || (csv && others.get("header").is_some());
-    let mut tag : Option<String> = None;
+    let header = (!csv && !json && !others.get("noheader").is_some())
+        || (csv && others.get("header").is_some());
+    let mut tag: Option<String> = None;
     for x in others {
         if x.starts_with("tag:") {
             tag = Some(x[4..].to_string());
@@ -237,9 +236,7 @@ fn format_csv<'a>(
     opts: &FormatOptions,
     cols: Vec<Vec<String>>,
 ) {
-    let mut writer = csv::WriterBuilder::new()
-        .flexible(true)
-        .from_writer(output);
+    let mut writer = csv::WriterBuilder::new().flexible(true).from_writer(output);
 
     if opts.header {
         let mut out_fields = Vec::new();
@@ -309,4 +306,3 @@ fn format_json<'a>(
     }
     output.write(json::stringify(objects).as_bytes()).unwrap();
 }
-

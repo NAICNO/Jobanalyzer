@@ -20,7 +20,6 @@
 /// interval) then the entire job should be displayed, including data about it outside the interval.
 /// Ditto, that if a job ran on a selected host then its work on all hosts should be displayed.  But
 /// it just ain't so.
-
 mod format;
 mod jobs;
 mod load;
@@ -555,21 +554,21 @@ fn test_run_time() {
     assert!(x.num_hours() == 0);
 
     let x = run_time("4h7m").unwrap();
-    assert!(x.num_minutes() == 4*60+7);
+    assert!(x.num_minutes() == 4 * 60 + 7);
     assert!(x.num_minutes() == x.num_seconds() / 60);
     assert!(x.num_hours() == 4);
     assert!(x.num_hours() == x.num_minutes() / 60);
 
     let x = run_time("4h").unwrap();
-    assert!(x.num_minutes() == 4*60);
-    assert!(x.num_seconds() == 4*60*60);
+    assert!(x.num_minutes() == 4 * 60);
+    assert!(x.num_seconds() == 4 * 60 * 60);
 
     let x = run_time("2d4h7m").unwrap();
-    assert!(x.num_minutes() == (2*24 + 4)*60 + 7);
+    assert!(x.num_minutes() == (2 * 24 + 4) * 60 + 7);
 
     let x = run_time("2d").unwrap();
-    assert!(x.num_minutes() == (2*24)*60);
-    assert!(x.num_seconds() == (2*24)*60*60);
+    assert!(x.num_minutes() == (2 * 24) * 60);
+    assert!(x.num_seconds() == (2 * 24) * 60 * 60);
 }
 
 fn main() {
@@ -600,33 +599,54 @@ fn sonalyze() -> Result<()> {
                 println!("sonalyze version(0.1.0) features()");
             }
         }
-        return Ok(())
+        return Ok(());
     }
 
     if match cli.command {
-        Commands::Jobs(ref jobs_args) => format::maybe_help(&jobs_args.print_args.fmt, &prjobs::fmt_help),
-        Commands::Load(ref load_args) => format::maybe_help(&load_args.print_args.fmt, &load::fmt_help),
-        Commands::Parse(ref parse_args) => format::maybe_help(&parse_args.print_args.fmt, &parse::fmt_help),
-        Commands::Metadata(ref parse_args) => format::maybe_help(&parse_args.print_args.fmt, &metadata::fmt_help),
+        Commands::Jobs(ref jobs_args) => {
+            format::maybe_help(&jobs_args.print_args.fmt, &prjobs::fmt_help)
+        }
+        Commands::Load(ref load_args) => {
+            format::maybe_help(&load_args.print_args.fmt, &load::fmt_help)
+        }
+        Commands::Parse(ref parse_args) => {
+            format::maybe_help(&parse_args.print_args.fmt, &parse::fmt_help)
+        }
+        Commands::Metadata(ref parse_args) => {
+            format::maybe_help(&parse_args.print_args.fmt, &metadata::fmt_help)
+        }
         Commands::Version => false,
-        Commands::Uptime(ref uptime_args) => format::maybe_help(&uptime_args.print_args.fmt, &uptime::fmt_help),
+        Commands::Uptime(ref uptime_args) => {
+            format::maybe_help(&uptime_args.print_args.fmt, &uptime::fmt_help)
+        }
     } {
-        return Ok(())
+        return Ok(());
     }
 
     let meta_args = match cli.command {
         Commands::Jobs(ref jobs_args) => &jobs_args.meta_args,
         Commands::Load(ref load_args) => &load_args.meta_args,
-        Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.meta_args,
+        Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => {
+            &parse_args.meta_args
+        }
         Commands::Version => panic!("Unexpected"),
         Commands::Uptime(ref uptime_args) => &uptime_args.meta_args,
     };
 
-    let (include_hosts, include_jobs, include_users, exclude_users, include_commands, exclude_commands) = {
+    let (
+        include_hosts,
+        include_jobs,
+        include_users,
+        exclude_users,
+        include_commands,
+        exclude_commands,
+    ) = {
         let record_filter_args = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.record_filter_args,
             Commands::Load(ref load_args) => &load_args.record_filter_args,
-            Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.record_filter_args,
+            Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => {
+                &parse_args.record_filter_args
+            }
             Commands::Version => panic!("Unexpected"),
             Commands::Uptime(ref uptime_args) => &uptime_args.record_filter_args,
         };
@@ -650,30 +670,29 @@ fn sonalyze() -> Result<()> {
 
         // Included users.  The default depends on various other switches.
 
-        let (all_users, skip_system_users) =
-            if let Commands::Load(_) = cli.command {
-                // `load` implies `--user=-` b/c we're interested in system effects.
-                (true, false)
-            } else if let Commands::Parse(_) = cli.command {
-                // `parse` implies `--user=-` b/c we're interested in raw data.
-                (true, false)
-            } else if let Commands::Metadata(_) = cli.command {
-                // `metadata` implies `--user=-` b/c we're interested in raw data.
-                (true, false)
-            } else if !record_filter_args.job.is_empty() {
-                // `jobs --job=...` implies `--user=-` b/c the job also implies a user.
-                (true, true)
-            } else if !record_filter_args.exclude_user.is_empty() {
-                // `jobs --exclude-user=...` implies `--user=-` b/c the only sane way to include
-                // many users so that some can be excluded is by also specifying `--users=-`.
-                (true, false)
-            } else if let Commands::Jobs(ref jobs_args) = cli.command {
-                // `jobs --zombie` implies `--user=-` because the use case for `--zombie` is to hunt
-                // across all users.
-                (jobs_args.filter_args.zombie, false)
-            } else {
-                (false, false)
-            };
+        let (all_users, skip_system_users) = if let Commands::Load(_) = cli.command {
+            // `load` implies `--user=-` b/c we're interested in system effects.
+            (true, false)
+        } else if let Commands::Parse(_) = cli.command {
+            // `parse` implies `--user=-` b/c we're interested in raw data.
+            (true, false)
+        } else if let Commands::Metadata(_) = cli.command {
+            // `metadata` implies `--user=-` b/c we're interested in raw data.
+            (true, false)
+        } else if !record_filter_args.job.is_empty() {
+            // `jobs --job=...` implies `--user=-` b/c the job also implies a user.
+            (true, true)
+        } else if !record_filter_args.exclude_user.is_empty() {
+            // `jobs --exclude-user=...` implies `--user=-` b/c the only sane way to include
+            // many users so that some can be excluded is by also specifying `--users=-`.
+            (true, false)
+        } else if let Commands::Jobs(ref jobs_args) = cli.command {
+            // `jobs --zombie` implies `--user=-` because the use case for `--zombie` is to hunt
+            // across all users.
+            (jobs_args.filter_args.zombie, false)
+        } else {
+            (false, false)
+        };
 
         let include_users = {
             let mut users = HashSet::<String>::new();
@@ -718,15 +737,14 @@ fn sonalyze() -> Result<()> {
 
         // Included commands.
 
-        let (exclude_system_commands, exclude_heartbeat) =
-            match cli.command {
-                Commands::Parse(_) => (false, false),
-                Commands::Metadata(_) => (false, false),
-                Commands::Load(_) => (true, true),
-                Commands::Jobs(_) => (true, true),
-                Commands::Uptime(_) => (false, false),
-                Commands::Version => panic!("Unexpected"),
-            };
+        let (exclude_system_commands, exclude_heartbeat) = match cli.command {
+            Commands::Parse(_) => (false, false),
+            Commands::Metadata(_) => (false, false),
+            Commands::Load(_) => (true, true),
+            Commands::Jobs(_) => (true, true),
+            Commands::Uptime(_) => (false, false),
+            Commands::Version => panic!("Unexpected"),
+        };
 
         let include_commands = {
             let mut included = HashSet::<String>::new();
@@ -776,19 +794,17 @@ fn sonalyze() -> Result<()> {
             include_users,
             exclude_users,
             include_commands,
-            exclude_commands
+            exclude_commands,
         )
     };
 
-    let (
-        from,
-        to,
-        logfiles,
-    ) = {
+    let (from, to, logfiles) = {
         let source_args = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.source_args,
             Commands::Load(ref load_args) => &load_args.source_args,
-            Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => &parse_args.source_args,
+            Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => {
+                &parse_args.source_args
+            }
             Commands::Version => panic!("Unexpected"),
             Commands::Uptime(ref uptime_args) => &uptime_args.source_args,
         };
@@ -847,16 +863,12 @@ fn sonalyze() -> Result<()> {
             eprintln!("Log files: {:?}", logfiles);
         }
 
-        (
-            from,
-            to,
-            logfiles,
-        )
+        (from, to, logfiles)
     };
 
     // Record filtering logic is the same for all commands.
 
-    let record_filter = |e:&LogEntry| {
+    let record_filter = |e: &LogEntry| {
         ((&include_users).is_empty() || (&include_users).contains(&e.user))
             && ((&include_hosts).is_empty() || (&include_hosts).contains(&e.hostname))
             && ((&include_jobs).is_empty() || (&include_jobs).contains(&(e.job_id as usize)))
@@ -873,7 +885,7 @@ fn sonalyze() -> Result<()> {
         let config_filename = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.input_args.config_file,
             Commands::Load(ref load_args) => &load_args.input_args.config_file,
-            _ => &None
+            _ => &None,
         };
         if let Some(ref config_filename) = config_filename {
             Some(sonarlog::read_from_json(&config_filename)?)
@@ -894,19 +906,17 @@ fn sonalyze() -> Result<()> {
             let streams = sonarlog::postprocess_log(entries, &record_filter, &system_config);
 
             match cli.command {
-                Commands::Load(ref load_args) => {
-                    load::aggregate_and_print_load(
-                        &mut io::stdout(),
-                        &system_config,
-                        &include_hosts,
-                        from,
-                        to,
-                        &load_args.filter_args,
-                        &load_args.print_args,
-                        meta_args,
-                        streams,
-                    )
-                }
+                Commands::Load(ref load_args) => load::aggregate_and_print_load(
+                    &mut io::stdout(),
+                    &system_config,
+                    &include_hosts,
+                    from,
+                    to,
+                    &load_args.filter_args,
+                    &load_args.print_args,
+                    meta_args,
+                    streams,
+                ),
                 Commands::Jobs(ref job_args) => {
                     if meta_args.verbose {
                         eprintln!("Number of samples read: {records_read}");
@@ -933,20 +943,35 @@ fn sonalyze() -> Result<()> {
         }
 
         Commands::Parse(ref parse_args) => {
-            let (old_entries, new_entries) =
-                if parse_args.print_args.clean {
-                    let mut streams = sonarlog::postprocess_log(entries, &record_filter, &None);
-                    (None, Some(streams.drain().map(|(_, v)| v).collect::<Vec<Vec<Box<LogEntry>>>>()))
-                } else if parse_args.print_args.merge_by_job  {
-                    let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
-                    let (entries, _) = sonarlog::merge_by_job(streams, &bounds);
-                    (None, Some(entries))
-                } else if parse_args.print_args.merge_by_host_and_job {
-                    let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
-                    (None, Some(sonarlog::merge_by_host_and_job(streams)))
-                } else {
-                    (Some(entries.drain(0..).filter(|e:&Box<LogEntry>| record_filter(&*e)).collect::<Vec<Box<LogEntry>>>()), None)
-                };
+            let (old_entries, new_entries) = if parse_args.print_args.clean {
+                let mut streams = sonarlog::postprocess_log(entries, &record_filter, &None);
+                (
+                    None,
+                    Some(
+                        streams
+                            .drain()
+                            .map(|(_, v)| v)
+                            .collect::<Vec<Vec<Box<LogEntry>>>>(),
+                    ),
+                )
+            } else if parse_args.print_args.merge_by_job {
+                let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
+                let (entries, _) = sonarlog::merge_by_job(streams, &bounds);
+                (None, Some(entries))
+            } else if parse_args.print_args.merge_by_host_and_job {
+                let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
+                (None, Some(sonarlog::merge_by_host_and_job(streams)))
+            } else {
+                (
+                    Some(
+                        entries
+                            .drain(0..)
+                            .filter(|e: &Box<LogEntry>| record_filter(&*e))
+                            .collect::<Vec<Box<LogEntry>>>(),
+                    ),
+                    None,
+                )
+            };
             if let Some(mut merged_streams) = new_entries {
                 merged_streams.sort_by(|a, b| {
                     if a[0].hostname == b[0].hostname {
@@ -980,34 +1005,26 @@ fn sonalyze() -> Result<()> {
         }
 
         Commands::Metadata(ref parse_args) => {
-            let bounds =
-                if parse_args.print_args.merge_by_job  {
-                    let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
-                    let (_, bounds) = sonarlog::merge_by_job(streams, &bounds);
-                    bounds
-                } else {
-                    // Bounds are not affected by filtering, at present, so no need to run the
-                    // filter here.
-                    bounds
-                };
-            metadata::print(
-                &mut io::stdout(),
-                &parse_args.print_args,
-                meta_args,
-                bounds,
-            )
-        },
-
-        Commands::Uptime(ref uptime_args) => {
-            uptime::aggregate_and_print_uptime(
-                &mut io::stdout(),
-                &include_hosts,
-                from,
-                to,
-                &uptime_args.print_args,
-                meta_args,
-                entries,
-            )
+            let bounds = if parse_args.print_args.merge_by_job {
+                let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
+                let (_, bounds) = sonarlog::merge_by_job(streams, &bounds);
+                bounds
+            } else {
+                // Bounds are not affected by filtering, at present, so no need to run the
+                // filter here.
+                bounds
+            };
+            metadata::print(&mut io::stdout(), &parse_args.print_args, meta_args, bounds)
         }
+
+        Commands::Uptime(ref uptime_args) => uptime::aggregate_and_print_uptime(
+            &mut io::stdout(),
+            &include_hosts,
+            from,
+            to,
+            &uptime_args.print_args,
+            meta_args,
+            entries,
+        ),
     }
 }

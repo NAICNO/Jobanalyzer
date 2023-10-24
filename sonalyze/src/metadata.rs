@@ -1,5 +1,5 @@
 use crate::format;
-use crate::{ParsePrintArgs, MetaArgs};
+use crate::{MetaArgs, ParsePrintArgs};
 
 use anyhow::Result;
 use sonarlog::{Timebounds, Timestamp};
@@ -20,7 +20,7 @@ pub fn print(
 ) -> Result<()> {
     if meta_args.verbose {
         eprintln!("{} source records", bounds.len());
-        return Ok(())
+        return Ok(());
     }
 
     let (formatters, aliases) = my_formatters();
@@ -37,7 +37,14 @@ pub fn print(
         opts.csv = true;
         opts.header = false;
     }
-    let mut data = bounds.drain().map(|(k,v)| Item { host: k, earliest: v.earliest, latest: v.latest }).collect::<Vec<Item>>();
+    let mut data = bounds
+        .drain()
+        .map(|(k, v)| Item {
+            host: k,
+            earliest: v.earliest,
+            latest: v.latest,
+        })
+        .collect::<Vec<Item>>();
     data.sort_by(|a, b| {
         if a.host == b.host {
             a.earliest.cmp(&b.latest)
@@ -54,24 +61,39 @@ pub fn print(
 pub fn fmt_help() -> format::Help {
     let (formatters, aliases) = my_formatters();
     format::Help {
-        fields: formatters.iter().map(|(k, _)| k.clone()).collect::<Vec<String>>(),
-        aliases: aliases.iter().map(|(k,v)| (k.clone(), v.clone())).collect::<Vec<(String, Vec<String>)>>(),
+        fields: formatters
+            .iter()
+            .map(|(k, _)| k.clone())
+            .collect::<Vec<String>>(),
+        aliases: aliases
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect::<Vec<(String, Vec<String>)>>(),
         defaults: FMT_DEFAULTS.to_string(),
     }
 }
 
-const FMT_DEFAULTS : &str = "all";
+const FMT_DEFAULTS: &str = "all";
 
-fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String>,
-                       HashMap<String, Vec<String>>) {
-    let mut formatters: HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String> = HashMap::new();
+fn my_formatters() -> (
+    HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String>,
+    HashMap<String, Vec<String>>,
+) {
+    let mut formatters: HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String> =
+        HashMap::new();
     let mut aliases: HashMap<String, Vec<String>> = HashMap::new();
     formatters.insert("host".to_string(), &format_host);
     formatters.insert("earliest".to_string(), &format_earliest);
     formatters.insert("latest".to_string(), &format_latest);
 
-    aliases.insert("all".to_string(),
-                   vec!["host".to_string(),"earliest".to_string(),"latest".to_string()]);
+    aliases.insert(
+        "all".to_string(),
+        vec![
+            "host".to_string(),
+            "earliest".to_string(),
+            "latest".to_string(),
+        ],
+    );
 
     (formatters, aliases)
 }

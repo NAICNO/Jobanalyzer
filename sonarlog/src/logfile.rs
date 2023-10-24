@@ -17,7 +17,6 @@
 ///   any other parse error, but bad UTF8 is a special case - it will make progress to the end of the
 ///   record anyway (as CSV is line-oriented).  This is a reasonable assumption but I've found no
 ///   documentation that guarantees it.
-
 use crate::{parse_timestamp, GpuStatus, LogEntry, Timestamp};
 
 use anyhow::Result;
@@ -194,7 +193,10 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                     // 12 cputime_sec
 
                     if cfg!(feature = "untagged_sonar_data") {
-                        if record.fields.len() != 8 && record.fields.len() != 12 && record.fields.len() != 13 {
+                        if record.fields.len() != 8
+                            && record.fields.len() != 12
+                            && record.fields.len() != 13
+                        {
                             continue 'outer;
                         }
                         let mut failed;
@@ -237,7 +239,8 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                             if failed {
                                 continue 'outer;
                             }
-                            (gpumem_gb, failed) = get_f64(&record.fields[11], 1.0 / (1024.0 * 1024.0));
+                            (gpumem_gb, failed) =
+                                get_f64(&record.fields[11], 1.0 / (1024.0 * 1024.0));
                             if failed {
                                 continue 'outer;
                             }
@@ -343,8 +346,8 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                             if !failed {
                                 match val {
                                     Some(0u32) => {}
-                                    Some(1u32) => { gpu_status = Some(GpuStatus::UnknownFailure) }
-                                    _ => { gpu_status = Some(GpuStatus::UnknownFailure) }
+                                    Some(1u32) => gpu_status = Some(GpuStatus::UnknownFailure),
+                                    _ => gpu_status = Some(GpuStatus::UnknownFailure),
                                 }
                             }
                         } else if field.starts_with("cputime_sec=") {
@@ -563,4 +566,3 @@ fn test_get_gpus_from_list() {
 }
 
 // Other test cases are black-box, see ../../tests/sonarlog
-

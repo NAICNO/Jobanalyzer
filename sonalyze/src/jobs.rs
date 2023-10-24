@@ -1,20 +1,21 @@
 /// Compute jobs aggregates from a set of log entries.
-
 use crate::prjobs;
 use crate::{JobFilterAndAggregationArgs, JobPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
-use sonarlog::{self, is_empty_gpuset, merge_gpu_status,
-               GpuStatus, LogEntry, InputStreamSet, Timebound, Timebounds, Timestamp};
+use sonarlog::{
+    self, is_empty_gpuset, merge_gpu_status, GpuStatus, InputStreamSet, LogEntry, Timebound,
+    Timebounds, Timestamp,
+};
 use std::boxed::Box;
 use std::collections::HashMap;
 use std::io;
 
 /// Bit values for JobAggregate::classification
 
-pub const LIVE_AT_END: u32 = 1;   // Earliest timestamp coincides with earliest record read
+pub const LIVE_AT_END: u32 = 1; // Earliest timestamp coincides with earliest record read
 pub const LIVE_AT_START: u32 = 2; // Ditto latest/latest
-// Subjob level is eight bits at this offset
+                                  // Subjob level is eight bits at this offset
 pub const LEVEL_SHIFT: u32 = 8;
 pub const LEVEL_MASK: u32 = 255;
 
@@ -68,8 +69,8 @@ pub struct JobAggregate {
 // Convenient package for results from aggregation.
 
 pub struct JobSummary {
-    pub job: Vec<Box<LogEntry>>,            // The records going into this job
-    pub aggregate: JobAggregate,            // Aggregate of those records
+    pub job: Vec<Box<LogEntry>>, // The records going into this job
+    pub aggregate: JobAggregate, // Aggregate of those records
     pub breakdown: Option<(String, Vec<JobSummary>)>, // Components of the job, if requested
 }
 
@@ -90,8 +91,7 @@ pub fn aggregate_and_print_jobs(
         None
     };
 
-    let mut jobvec =
-        aggregate_and_filter_jobs(system_config, filter_args, streams, bounds);
+    let mut jobvec = aggregate_and_filter_jobs(system_config, filter_args, streams, bounds);
 
     if meta_args.verbose {
         eprintln!(
@@ -107,21 +107,29 @@ pub fn aggregate_and_print_jobs(
         let mut other = 0;
         for k in kwds.iter() {
             match k {
-                &"host" => { host += 1; }
-                &"command" => { command += 1; }
-                _ => { other += 1; }
+                &"host" => {
+                    host += 1;
+                }
+                &"command" => {
+                    command += 1;
+                }
+                _ => {
+                    other += 1;
+                }
             }
         }
         if host > 1 || command > 1 || other > 0 {
             bail!("Bad breakdown spec {breakdown}");
         }
-        attach_breakdown(system_config,
-                         filter_args,
-                         &kwds,
-                         0,
-                         &mut jobvec,
-                         orig_streams.unwrap(),
-                         bounds);
+        attach_breakdown(
+            system_config,
+            filter_args,
+            &kwds,
+            0,
+            &mut jobvec,
+            orig_streams.unwrap(),
+            bounds,
+        );
     }
 
     prjobs::print_jobs(output, system_config, jobvec, print_args, meta_args)
@@ -167,7 +175,15 @@ fn attach_breakdown(
     for (job_id, orig_job_streams) in orig_streams_by_job.drain() {
         // TODO: This lookup is going to be quadratic
         if let Some(job) = jobvec.iter_mut().find(|j| j.job[0].job_id == job_id) {
-            attach_one_breakdown(system_config, filter_args, kwds, kwdix, job, orig_job_streams, bounds);
+            attach_one_breakdown(
+                system_config,
+                filter_args,
+                kwds,
+                kwdix,
+                job,
+                orig_job_streams,
+                bounds,
+            );
         }
     }
 }
@@ -188,7 +204,11 @@ fn attach_one_breakdown(
 
     let mut orig_streams_by_x: HashMap<String, InputStreamSet> = HashMap::new();
     for (key, streams) in orig_job_streams.drain() {
-        let k = if kwd == "host" { key.0.clone() } else { key.2.clone() };
+        let k = if kwd == "host" {
+            key.0.clone()
+        } else {
+            key.2.clone()
+        };
         if let Some(iss) = orig_streams_by_x.get_mut(&k) {
             iss.insert(key, streams);
         } else {
@@ -206,20 +226,32 @@ fn attach_one_breakdown(
     let mut will_attach = orig_streams_by_x.len() > 1;
     let mut breakdown = vec![];
     for (_x, x_streams) in orig_streams_by_x {
-        let next_streams = if kwdix < kwds.len()-1 { Some(x_streams.clone()) } else { None };
+        let next_streams = if kwdix < kwds.len() - 1 {
+            Some(x_streams.clone())
+        } else {
+            None
+        };
         let mut summaries =
             aggregate_and_filter_jobs(system_config, filter_args, x_streams, bounds);
         if summaries.len() == 0 {
             // There could be no summaries due to filtering: job_streams are the original unfiltered
             // streams for the job, but we apply filtering during aggregation
-            continue
+            continue;
         }
         if summaries.len() != 1 {
             panic!("summaries.len() = {}", summaries.len())
         }
         let mut summary = summaries.pop().unwrap();
         if let Some(orig_x_streams) = next_streams {
-            will_attach = attach_one_breakdown(system_config, filter_args, kwds, kwdix+1, &mut summary, orig_x_streams, bounds) || will_attach;
+            will_attach = attach_one_breakdown(
+                system_config,
+                filter_args,
+                kwds,
+                kwdix + 1,
+                &mut summary,
+                orig_x_streams,
+                bounds,
+            ) || will_attach;
         }
         breakdown.push(summary);
     }
@@ -287,81 +319,79 @@ fn aggregate_and_filter_jobs(
     let min_rgpumem_avg = filter_args.min_rgpumem_avg as f64;
     let min_rgpumem_peak = filter_args.min_rgpumem_peak as f64;
 
-    let aggregate_filter =
-        |JobSummary { aggregate, job, .. } : &JobSummary| {
-            aggregate.cpu_avg >= min_cpu_avg
-                && aggregate.cpu_peak >= min_cpu_peak
-                && aggregate.cpu_avg <= max_cpu_avg
-                && aggregate.cpu_peak <= max_cpu_peak
-                && aggregate.mem_avg >= min_mem_avg as f64
-                && aggregate.mem_peak >= min_mem_peak as f64
-                && aggregate.gpu_avg >= min_gpu_avg
-                && aggregate.gpu_peak >= min_gpu_peak
-                && aggregate.gpu_avg <= max_gpu_avg
-                && aggregate.gpu_peak <= max_gpu_peak
-                && aggregate.gpumem_avg >= min_gpumem_avg
-                && aggregate.gpumem_peak >= min_gpumem_peak
-                && aggregate.duration >= min_runtime
-                && (system_config.is_none()
-                    || (aggregate.rcpu_avg >= min_rcpu_avg
-                        && aggregate.rcpu_peak >= min_rcpu_peak
-                        && aggregate.rcpu_avg <= max_rcpu_avg
-                        && aggregate.rcpu_peak <= max_rcpu_peak
-                        && aggregate.rmem_avg >= min_rmem_avg
-                        && aggregate.rmem_peak >= min_rmem_peak
-                        && aggregate.rgpu_avg >= min_rgpu_avg
-                        && aggregate.rgpu_peak >= min_rgpu_peak
-                        && aggregate.rgpu_avg <= max_rgpu_avg
-                        && aggregate.rgpu_peak <= max_rgpu_peak
-                        && aggregate.rgpumem_avg >= min_rgpumem_avg
-                        && aggregate.rgpumem_peak >= min_rgpumem_peak))
-                && {
-                    if filter_args.no_gpu {
-                        !aggregate.uses_gpu
-                    } else {
-                        true
-                    }
+    let aggregate_filter = |JobSummary { aggregate, job, .. }: &JobSummary| {
+        aggregate.cpu_avg >= min_cpu_avg
+            && aggregate.cpu_peak >= min_cpu_peak
+            && aggregate.cpu_avg <= max_cpu_avg
+            && aggregate.cpu_peak <= max_cpu_peak
+            && aggregate.mem_avg >= min_mem_avg as f64
+            && aggregate.mem_peak >= min_mem_peak as f64
+            && aggregate.gpu_avg >= min_gpu_avg
+            && aggregate.gpu_peak >= min_gpu_peak
+            && aggregate.gpu_avg <= max_gpu_avg
+            && aggregate.gpu_peak <= max_gpu_peak
+            && aggregate.gpumem_avg >= min_gpumem_avg
+            && aggregate.gpumem_peak >= min_gpumem_peak
+            && aggregate.duration >= min_runtime
+            && (system_config.is_none()
+                || (aggregate.rcpu_avg >= min_rcpu_avg
+                    && aggregate.rcpu_peak >= min_rcpu_peak
+                    && aggregate.rcpu_avg <= max_rcpu_avg
+                    && aggregate.rcpu_peak <= max_rcpu_peak
+                    && aggregate.rmem_avg >= min_rmem_avg
+                    && aggregate.rmem_peak >= min_rmem_peak
+                    && aggregate.rgpu_avg >= min_rgpu_avg
+                    && aggregate.rgpu_peak >= min_rgpu_peak
+                    && aggregate.rgpu_avg <= max_rgpu_avg
+                    && aggregate.rgpu_peak <= max_rgpu_peak
+                    && aggregate.rgpumem_avg >= min_rgpumem_avg
+                    && aggregate.rgpumem_peak >= min_rgpumem_peak))
+            && {
+                if filter_args.no_gpu {
+                    !aggregate.uses_gpu
+                } else {
+                    true
                 }
-                && {
-                    if filter_args.some_gpu {
-                        aggregate.uses_gpu
-                    } else {
-                        true
-                    }
+            }
+            && {
+                if filter_args.some_gpu {
+                    aggregate.uses_gpu
+                } else {
+                    true
                 }
-                && {
-                    if filter_args.completed {
-                        (aggregate.classification & LIVE_AT_END) == 0
-                    } else {
-                        true
-                    }
+            }
+            && {
+                if filter_args.completed {
+                    (aggregate.classification & LIVE_AT_END) == 0
+                } else {
+                    true
                 }
-                && {
-                    if filter_args.running {
-                        (aggregate.classification & LIVE_AT_END) == 1
-                    } else {
-                        true
-                    }
+            }
+            && {
+                if filter_args.running {
+                    (aggregate.classification & LIVE_AT_END) == 1
+                } else {
+                    true
                 }
-                && {
-                    if filter_args.zombie {
-                        job.iter().any(|x| x.command.contains("<defunct>") || x.user.starts_with("_zombie_"))
-                    } else {
-                        true
-                    }
+            }
+            && {
+                if filter_args.zombie {
+                    job.iter()
+                        .any(|x| x.command.contains("<defunct>") || x.user.starts_with("_zombie_"))
+                } else {
+                    true
                 }
-        };
+            }
+    };
 
     // Select streams and synthesize a merged stream, and then aggregate and print it.
 
-    let (mut jobs, bounds) =
-        if filter_args.batch {
-            sonarlog::merge_by_job(streams, bounds)
-        } else {
-            (sonarlog::merge_by_host_and_job(streams), bounds.clone())
-        };
-    jobs
-        .drain(0..)
+    let (mut jobs, bounds) = if filter_args.batch {
+        sonarlog::merge_by_job(streams, bounds)
+    } else {
+        (sonarlog::merge_by_host_and_job(streams), bounds.clone())
+    };
+    jobs.drain(0..)
         .filter(|job| job.len() >= min_samples)
         .map(|job| JobSummary {
             aggregate: aggregate_job(system_config, &job, &bounds),
@@ -392,10 +422,14 @@ fn aggregate_job(
     let minutes = ((duration as f64) / 60.0).round() as i64;
 
     let uses_gpu = job.iter().any(|jr| !is_empty_gpuset(&jr.gpus));
-    let gpu_status = job.iter().fold(GpuStatus::Ok, |acc, jr| merge_gpu_status(acc, jr.gpu_status));
+    let gpu_status = job.iter().fold(GpuStatus::Ok, |acc, jr| {
+        merge_gpu_status(acc, jr.gpu_status)
+    });
 
     let cpu_avg = job.iter().fold(0.0, |acc, jr| acc + jr.cpu_util_pct) / (job.len() as f64);
-    let cpu_peak = job.iter().fold(0.0, |acc, jr| f64::max(acc, jr.cpu_util_pct));
+    let cpu_peak = job
+        .iter()
+        .fold(0.0, |acc, jr| f64::max(acc, jr.cpu_util_pct));
     let mut rcpu_avg = 0.0;
     let mut rcpu_peak = 0.0;
 

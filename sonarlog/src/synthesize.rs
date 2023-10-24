@@ -1,10 +1,11 @@
 /// Helpers for merging sample streams.
-
-use crate::{hosts, empty_gpuset, epoch, union_gpuset, merge_gpu_status, now,
-            GpuStatus, LogEntry, InputStreamSet, Timestamp, Timebound, Timebounds};
+use crate::{
+    empty_gpuset, epoch, hosts, merge_gpu_status, now, union_gpuset, GpuStatus, InputStreamSet,
+    LogEntry, Timebound, Timebounds, Timestamp,
+};
 
 use std::boxed::Box;
-use std::cmp::{max,min};
+use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 use std::iter::Iterator;
 
@@ -29,30 +30,28 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
     // merged and must just be passed on.
     let mut zero: HashMap<String, Vec<Vec<Box<LogEntry>>>> = HashMap::new();
 
-    streams
-        .drain()
-        .for_each(|((host, _, cmd), v)| {
-            let id = v[0].job_id;
-            if id == 0 {
-                if let Some(vs) = zero.get_mut(&host) {
-                    vs.push(v);
-                } else {
-                    zero.insert(host.clone(), vec![v]);
-                }
+    streams.drain().for_each(|((host, _, cmd), v)| {
+        let id = v[0].job_id;
+        if id == 0 {
+            if let Some(vs) = zero.get_mut(&host) {
+                vs.push(v);
             } else {
-                let key = (host, id);
-                if let Some((cmds, vs)) = collections.get_mut(&key) {
-                    cmds.insert(cmd);
-                    vs.push(v);
-                } else {
-                    let mut cmds = HashSet::new();
-                    cmds.insert(cmd);
-                    collections.insert(key, (cmds, vec![v]));
-                }
+                zero.insert(host.clone(), vec![v]);
             }
-        });
+        } else {
+            let key = (host, id);
+            if let Some((cmds, vs)) = collections.get_mut(&key) {
+                cmds.insert(cmd);
+                vs.push(v);
+            } else {
+                let mut cmds = HashSet::new();
+                cmds.insert(cmd);
+                collections.insert(key, (cmds, vec![v]));
+            }
+        }
+    });
 
-    let mut vs : MergedSampleStreams = vec![];
+    let mut vs: MergedSampleStreams = vec![];
     for ((hostname, job_id), (mut cmds, streams)) in collections.drain() {
         if let Some(zeroes) = zero.remove(&hostname) {
             vs.extend(zeroes);
@@ -79,7 +78,10 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
 /// the "earliest" time is the min across the earliest times for the different host streams that go
 /// into the merged stream, and the "latest" time is the max across the latest times ditto.
 
-pub fn merge_by_job(mut streams: InputStreamSet, bounds: &Timebounds) -> (MergedSampleStreams, Timebounds) {
+pub fn merge_by_job(
+    mut streams: InputStreamSet,
+    bounds: &Timebounds,
+) -> (MergedSampleStreams, Timebounds) {
     // The value is a set of command names, a set of host names, and a vector of the individual streams.
     let mut collections: HashMap<u32, (HashSet<String>, HashSet<String>, Vec<Vec<Box<LogEntry>>>)> =
         HashMap::new();
@@ -88,24 +90,22 @@ pub fn merge_by_job(mut streams: InputStreamSet, bounds: &Timebounds) -> (Merged
     // must just be passed on.
     let mut zero: Vec<Vec<Box<LogEntry>>> = vec![];
 
-    streams
-        .drain()
-        .for_each(|((host, _, cmd), v)| {
-            let id = v[0].job_id;
-            if id == 0 {
-                zero.push(v);
-            } else if let Some((cmds, hosts, vs)) = collections.get_mut(&id) {
-                cmds.insert(cmd);
-                hosts.insert(host);
-                vs.push(v);
-            } else {
-                let mut cmds = HashSet::new();
-                cmds.insert(cmd);
-                let mut hosts = HashSet::new();
-                hosts.insert(host);
-                collections.insert(id, (cmds, hosts, vec![v]));
-            }
-        });
+    streams.drain().for_each(|((host, _, cmd), v)| {
+        let id = v[0].job_id;
+        if id == 0 {
+            zero.push(v);
+        } else if let Some((cmds, hosts, vs)) = collections.get_mut(&id) {
+            cmds.insert(cmd);
+            hosts.insert(host);
+            vs.push(v);
+        } else {
+            let mut cmds = HashSet::new();
+            cmds.insert(cmd);
+            let mut hosts = HashSet::new();
+            hosts.insert(host);
+            collections.insert(id, (cmds, hosts, vec![v]));
+        }
+    });
 
     let mut new_bounds = HashMap::new();
     for z in zero.iter() {
@@ -115,12 +115,13 @@ pub fn merge_by_job(mut streams: InputStreamSet, bounds: &Timebounds) -> (Merged
             new_bounds.insert(hn.clone(), probe.clone());
         }
     }
-    let mut vs : MergedSampleStreams = zero;
+    let mut vs: MergedSampleStreams = zero;
     for (job_id, (mut cmds, hosts, streams)) in collections.drain() {
-        let hostname = hosts::combine_hosts(hosts.iter().map(|x| x.clone()).collect::<Vec<String>>());
+        let hostname =
+            hosts::combine_hosts(hosts.iter().map(|x| x.clone()).collect::<Vec<String>>());
         if !new_bounds.contains_key(&hostname) {
             assert!(hosts.len() > 0);
-	    let (earliest, latest) = hosts.iter().fold((now(), epoch()), |(acc_e, acc_l), hn| {
+            let (earliest, latest) = hosts.iter().fold((now(), epoch()), |(acc_e, acc_l), hn| {
                 let probe = bounds.get(hn).expect("Host should be in bounds");
                 (min(acc_e, probe.earliest), max(acc_l, probe.latest))
             });
@@ -151,18 +152,16 @@ pub fn merge_by_host(mut streams: InputStreamSet) -> MergedSampleStreams {
     // The key is the host name.
     let mut collections: HashMap<String, Vec<Vec<Box<LogEntry>>>> = HashMap::new();
 
-    streams
-        .drain()
-        .for_each(|((host, _, _), v)| {
-            // This lumps jobs with job ID 0 in with the others.
-            if let Some(vs) = collections.get_mut(&host) {
-                vs.push(v);
-            } else {
-                collections.insert(host, vec![v]);
-            }
-        });
+    streams.drain().for_each(|((host, _, _), v)| {
+        // This lumps jobs with job ID 0 in with the others.
+        if let Some(vs) = collections.get_mut(&host) {
+            vs.push(v);
+        } else {
+            collections.insert(host, vec![v]);
+        }
+    });
 
-    let mut vs : MergedSampleStreams = vec![];
+    let mut vs: MergedSampleStreams = vec![];
     for (hostname, streams) in collections.drain() {
         let cmdname = "_merged_".to_string();
         let username = "_merged_".to_string();
@@ -279,8 +278,10 @@ fn merge_streams(
             }
             // stream[i] has a value, select this stream if we have no stream or if the value is
             // smaller than the one at the head of the smallest stream.
-            if !have_smallest ||
-                streams[smallest_stream][indices[smallest_stream]].timestamp > streams[i][indices[i]].timestamp {
+            if !have_smallest
+                || streams[smallest_stream][indices[smallest_stream]].timestamp
+                    > streams[i][indices[i]].timestamp
+            {
                 smallest_stream = i;
                 have_smallest = true;
             }
@@ -299,7 +300,7 @@ fn merge_streams(
         // Now select values from all streams (either a value in the time window or the most
         // recent value before the time window) and advance the stream pointers for the ones in
         // the window.
-        let mut selected : Vec<&Box<LogEntry>> = vec![];
+        let mut selected: Vec<&Box<LogEntry>> = vec![];
         for i in 0..streams.len() {
             let s = &streams[i];
             let ix = indices[i];
@@ -308,7 +309,7 @@ fn merge_streams(
                 // Current exists and is in in the time window, pick it up and advance index
                 selected.push(&s[ix]);
                 indices[i] += 1;
-            } else if ix > 0 && ix < lim && s[ix-1].timestamp >= near_past {
+            } else if ix > 0 && ix < lim && s[ix - 1].timestamp >= near_past {
                 // Previous exists and is not last and is in the near past, pick it up.  The
                 // condition is tricky.  ix > 0 guarantees that there is a past record at ix - 1,
                 // while ix < lim says that there is also a future record at ix.
@@ -316,10 +317,10 @@ fn merge_streams(
                 // This is hard to make reliable.  The guard on the time is necessary to avoid
                 // picking up records from a lot of dead processes.  Intra-host it is OK.
                 // Cross-host it depends on sonar runs being more or less synchronized.
-                selected.push(&s[ix-1]);
-            } else if ix > 0 && s[ix-1].timestamp < min_time && s[ix-1].timestamp >= deep_past {
+                selected.push(&s[ix - 1]);
+            } else if ix > 0 && s[ix - 1].timestamp < min_time && s[ix - 1].timestamp >= deep_past {
                 // Previous exists (and is last) and is not in the deep past, pick it up
-                selected.push(&s[ix-1]);
+                selected.push(&s[ix - 1]);
             } else {
                 // Various cases where we don't pick up any data:
                 // - we're at the first position and the record is in the future
@@ -327,7 +328,15 @@ fn merge_streams(
             }
         }
 
-        records.push(sum_records("0.0.0".to_string(), min_time, hostname.clone(), username.clone(), job_id, command.clone(), &selected));
+        records.push(sum_records(
+            "0.0.0".to_string(),
+            min_time,
+            hostname.clone(),
+            username.clone(),
+            job_id,
+            command.clone(),
+            &selected,
+        ));
     }
 
     records
@@ -353,7 +362,9 @@ fn sum_records(
     // this one.  So we add one for each in the list + the others rolled into each of those,
     // and subtract one at the end to maintain the invariant.
     let rolledup = selected.iter().fold(0, |acc, x| acc + x.rolledup + 1) - 1;
-    let gpu_status = selected.iter().fold(GpuStatus::Ok, |acc, x| merge_gpu_status(acc, x.gpu_status));
+    let gpu_status = selected
+        .iter()
+        .fold(GpuStatus::Ok, |acc, x| merge_gpu_status(acc, x.gpu_status));
     let mut gpus = empty_gpuset();
     for s in selected {
         union_gpuset(&mut gpus, &s.gpus);
@@ -378,7 +389,7 @@ fn sum_records(
         gpu_status,
         cputime_sec,
         rolledup,
-        cpu_util_pct
+        cpu_util_pct,
     })
 }
 
@@ -390,7 +401,10 @@ pub fn fold_samples_daily(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
     fold_samples(samples, crate::truncate_to_day)
 }
 
-fn fold_samples<'a>(samples: Vec<Box<LogEntry>>, get_time: fn(Timestamp) -> Timestamp) -> Vec<Box<LogEntry>> {
+fn fold_samples<'a>(
+    samples: Vec<Box<LogEntry>>,
+    get_time: fn(Timestamp) -> Timestamp,
+) -> Vec<Box<LogEntry>> {
     let mut result = vec![];
     let mut i = 0;
     while i < samples.len() {
@@ -409,7 +423,8 @@ fn fold_samples<'a>(samples: Vec<Box<LogEntry>>, get_time: fn(Timestamp) -> Time
             "_merged_".to_string(),
             0,
             "_merged_".to_string(),
-            &bucket);
+            &bucket,
+        );
         let n = bucket.len() as f64;
         r.cpu_pct /= n;
         r.mem_gb /= n;

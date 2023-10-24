@@ -1,8 +1,8 @@
 use crate::format;
-use crate::{ParsePrintArgs, MetaArgs};
+use crate::{MetaArgs, ParsePrintArgs};
 
 use anyhow::Result;
-use sonarlog::{is_empty_gpuset, gpuset_to_string, GpuStatus, LogEntry};
+use sonarlog::{gpuset_to_string, is_empty_gpuset, GpuStatus, LogEntry};
 use std::boxed::Box;
 use std::collections::HashMap;
 use std::io;
@@ -11,11 +11,11 @@ pub fn print_parsed_data(
     output: &mut dyn io::Write,
     print_args: &ParsePrintArgs,
     meta_args: &MetaArgs,
-    entries: Vec<Box<LogEntry>>
+    entries: Vec<Box<LogEntry>>,
 ) -> Result<()> {
     if meta_args.verbose {
         eprintln!("{} source records", entries.len());
-        return Ok(())
+        return Ok(());
     }
 
     let (formatters, aliases) = my_formatters();
@@ -34,7 +34,14 @@ pub fn print_parsed_data(
     }
 
     if fields.len() > 0 {
-        format::format_data(output, &fields, &formatters, &opts, entries, &opts.nodefaults);
+        format::format_data(
+            output,
+            &fields,
+            &formatters,
+            &opts,
+            entries,
+            &opts.nodefaults,
+        );
     }
     Ok(())
 }
@@ -42,17 +49,26 @@ pub fn print_parsed_data(
 pub fn fmt_help() -> format::Help {
     let (formatters, aliases) = my_formatters();
     format::Help {
-        fields: formatters.iter().map(|(k, _)| k.clone()).collect::<Vec<String>>(),
-        aliases: aliases.iter().map(|(k,v)| (k.clone(), v.clone())).collect::<Vec<(String, Vec<String>)>>(),
+        fields: formatters
+            .iter()
+            .map(|(k, _)| k.clone())
+            .collect::<Vec<String>>(),
+        aliases: aliases
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect::<Vec<(String, Vec<String>)>>(),
         defaults: FMT_DEFAULTS.to_string(),
     }
 }
 
-const FMT_DEFAULTS : &str = "job,user,cmd";
+const FMT_DEFAULTS: &str = "job,user,cmd";
 
-fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String>,
-                       HashMap<String, Vec<String>>) {
-    let mut formatters: HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String> = HashMap::new();
+fn my_formatters() -> (
+    HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String>,
+    HashMap<String, Vec<String>>,
+) {
+    let mut formatters: HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String> =
+        HashMap::new();
     let mut aliases: HashMap<String, Vec<String>> = HashMap::new();
     formatters.insert("version".to_string(), &format_version);
     formatters.insert("v".to_string(), &format_version);
@@ -81,23 +97,52 @@ fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> Stri
     formatters.insert("rolledup".to_string(), &format_rolledup);
     formatters.insert("cpu_util_pct".to_string(), &format_cpu_util_pct);
 
-    aliases.insert("all".to_string(),
-                   vec!["version".to_string(),"localtime".to_string(),"host".to_string(),
-                        "cores".to_string(),"user".to_string(),"pid".to_string(),
-                        "job".to_string(),"cmd".to_string(),"cpu_pct".to_string(),
-                        "mem_gb".to_string(),"gpus".to_string(),"gpu_pct".to_string(),
-                        "gpumem_pct".to_string(),"gpumem_gb".to_string(),
-                        "gpu_status".to_string(),"cputime_sec".to_string(),
-                        "rolledup".to_string(),"cpu_util_pct".to_string()]);
+    aliases.insert(
+        "all".to_string(),
+        vec![
+            "version".to_string(),
+            "localtime".to_string(),
+            "host".to_string(),
+            "cores".to_string(),
+            "user".to_string(),
+            "pid".to_string(),
+            "job".to_string(),
+            "cmd".to_string(),
+            "cpu_pct".to_string(),
+            "mem_gb".to_string(),
+            "gpus".to_string(),
+            "gpu_pct".to_string(),
+            "gpumem_pct".to_string(),
+            "gpumem_gb".to_string(),
+            "gpu_status".to_string(),
+            "cputime_sec".to_string(),
+            "rolledup".to_string(),
+            "cpu_util_pct".to_string(),
+        ],
+    );
 
-    aliases.insert("roundtrip".to_string(),
-                   vec!["v".to_string(),"time".to_string(),"host".to_string(),
-                        "cores".to_string(),"user".to_string(),"job".to_string(),
-                        "pid".to_string(),"cmd".to_string(),"cpu%".to_string(),
-                        "cpukib".to_string(),"gpus".to_string(),"gpu%".to_string(),
-                        "gpumem%".to_string(),"gpukib".to_string(),
-                        "gpufail".to_string(),"cputime_sec".to_string(),
-                        "rolledup".to_string()]);
+    aliases.insert(
+        "roundtrip".to_string(),
+        vec![
+            "v".to_string(),
+            "time".to_string(),
+            "host".to_string(),
+            "cores".to_string(),
+            "user".to_string(),
+            "job".to_string(),
+            "pid".to_string(),
+            "cmd".to_string(),
+            "cpu%".to_string(),
+            "cpukib".to_string(),
+            "gpus".to_string(),
+            "gpu%".to_string(),
+            "gpumem%".to_string(),
+            "gpukib".to_string(),
+            "gpufail".to_string(),
+            "cputime_sec".to_string(),
+            "rolledup".to_string(),
+        ],
+    );
 
     (formatters, aliases)
 }
@@ -228,4 +273,3 @@ fn format_cpu_util_pct(d: LogDatum, nodefaults: LogCtx) -> String {
         d.cpu_util_pct.to_string()
     }
 }
-

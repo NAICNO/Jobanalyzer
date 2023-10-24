@@ -25,7 +25,7 @@ import (
 type StandardOptions struct {
 	Container *flag.FlagSet
 	DataPath  string
-	DataFiles []string			// For -- filename ...
+	DataFiles []string // For -- filename ...
 	HaveFrom  bool
 	From      time.Time
 	FromStr   string

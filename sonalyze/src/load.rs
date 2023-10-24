@@ -3,13 +3,14 @@
 /// TODO:
 ///
 /// - For some listings it may be desirable to print a heading?
-
 use crate::format;
 use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
-use sonarlog::{self, add_day, add_hour, empty_logentry, now, truncate_to_day, truncate_to_hour,
-               HostFilter, InputStreamSet, LogEntry, Timestamp};
+use sonarlog::{
+    self, add_day, add_hour, empty_logentry, now, truncate_to_day, truncate_to_hour, HostFilter,
+    InputStreamSet, LogEntry, Timestamp,
+};
 use std::boxed::Box;
 use std::collections::HashMap;
 use std::io;
@@ -47,7 +48,6 @@ pub fn aggregate_and_print_load(
     meta_args: &MetaArgs,
     streams: InputStreamSet,
 ) -> Result<()> {
-
     if meta_args.verbose {
         return Ok(());
     }
@@ -110,23 +110,21 @@ pub fn aggregate_and_print_load(
 
         let ctx = PrintContext {
             sys: sysconf,
-            t: now()
+            t: now(),
         };
 
         if bucket_opt != BucketOpt::None {
-            let by_timeslot =
-                if bucket_opt == BucketOpt::Hourly {
-                    sonarlog::fold_samples_hourly(stream)
-                } else {
-                    sonarlog::fold_samples_daily(stream)
-                };
+            let by_timeslot = if bucket_opt == BucketOpt::Hourly {
+                sonarlog::fold_samples_hourly(stream)
+            } else {
+                sonarlog::fold_samples_daily(stream)
+            };
             if print_opt == PrintOpt::All {
-                let by_timeslot2 =
-                    if print_args.compact {
-                        by_timeslot
-                    } else {
-                        insert_missing_records(by_timeslot, from, to, bucket_opt)
-                    };
+                let by_timeslot2 = if print_args.compact {
+                    by_timeslot
+                } else {
+                    insert_missing_records(by_timeslot, from, to, bucket_opt)
+                };
                 format::format_data(output, &fields, &formatters, &opts, by_timeslot2, &ctx);
             } else {
                 // Invariant: there's always at least one record
@@ -152,17 +150,26 @@ pub fn aggregate_and_print_load(
 pub fn fmt_help() -> format::Help {
     let (formatters, aliases) = my_formatters();
     format::Help {
-        fields: formatters.iter().map(|(k, _)| k.clone()).collect::<Vec<String>>(),
-        aliases: aliases.iter().map(|(k,v)| (k.clone(), v.clone())).collect::<Vec<(String, Vec<String>)>>(),
+        fields: formatters
+            .iter()
+            .map(|(k, _)| k.clone())
+            .collect::<Vec<String>>(),
+        aliases: aliases
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect::<Vec<(String, Vec<String>)>>(),
         defaults: FMT_DEFAULTS.to_string(),
     }
 }
 
 const FMT_DEFAULTS: &str = "date,time,cpu,mem,gpu,gpumem,gpumask";
 
-fn my_formatters() -> (HashMap<String, &'static dyn Fn(LoadDatum, LoadCtx) -> String>,
-                       HashMap<String, Vec<String>>) {
-    let mut formatters: HashMap<String, &'static dyn Fn(LoadDatum, LoadCtx) -> String> = HashMap::new();
+fn my_formatters() -> (
+    HashMap<String, &'static dyn Fn(LoadDatum, LoadCtx) -> String>,
+    HashMap<String, Vec<String>>,
+) {
+    let mut formatters: HashMap<String, &'static dyn Fn(LoadDatum, LoadCtx) -> String> =
+        HashMap::new();
     let aliases: HashMap<String, Vec<String>> = HashMap::new();
     formatters.insert("datetime".to_string(), &format_datetime);
     formatters.insert("date".to_string(), &format_date);
@@ -188,7 +195,7 @@ fn insert_missing_records(
     to: Timestamp,
     bucket_opt: BucketOpt,
 ) -> Vec<Box<LogEntry>> {
-    let (trunc, step) : (fn(Timestamp) -> Timestamp, fn(Timestamp)->Timestamp) =
+    let (trunc, step): (fn(Timestamp) -> Timestamp, fn(Timestamp) -> Timestamp) =
         if bucket_opt == BucketOpt::Hourly {
             (truncate_to_hour, add_hour)
         } else {
@@ -241,7 +248,10 @@ fn format_cpu(d: LoadDatum, _: LoadCtx) -> String {
 
 fn format_rcpu(d: LoadDatum, ctx: LoadCtx) -> String {
     let s = ctx.sys.unwrap();
-    format!("{}", ((d.cpu_util_pct as f64) / (s.cpu_cores as f64)).round())
+    format!(
+        "{}",
+        ((d.cpu_util_pct as f64) / (s.cpu_cores as f64)).round()
+    )
 }
 
 fn format_mem(d: LoadDatum, _: LoadCtx) -> String {
@@ -250,7 +260,10 @@ fn format_mem(d: LoadDatum, _: LoadCtx) -> String {
 
 fn format_rmem(d: LoadDatum, ctx: LoadCtx) -> String {
     let s = ctx.sys.unwrap();
-    format!("{}", ((d.mem_gb as f64) / (s.mem_gb as f64) * 100.0).round())
+    format!(
+        "{}",
+        ((d.mem_gb as f64) / (s.mem_gb as f64) * 100.0).round()
+    )
 }
 
 fn format_gpu(d: LoadDatum, _: LoadCtx) -> String {
@@ -268,7 +281,10 @@ fn format_gpumem(d: LoadDatum, _: LoadCtx) -> String {
 
 fn format_rgpumem(d: LoadDatum, ctx: LoadCtx) -> String {
     let s = ctx.sys.unwrap();
-    format!("{}", ((d.gpumem_gb as f64) / (s.gpumem_gb as f64) * 100.0).round())
+    format!(
+        "{}",
+        ((d.gpumem_gb as f64) / (s.gpumem_gb as f64) * 100.0).round()
+    )
 }
 
 fn format_gpus(d: LoadDatum, _: LoadCtx) -> String {

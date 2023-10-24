@@ -125,7 +125,7 @@ func createDeadweightReport(
 	logs []*joblog.JobsByHost[*deadweightJob],
 	allJobs bool,
 ) []*perJobReport {
-	perJobReports := make([]*perJobReport, 0, len(db.Active) + len(db.Expired))
+	perJobReports := make([]*perJobReport, 0, len(db.Active)+len(db.Expired))
 	for _, jobState := range db.Active {
 		if allJobs || !jobState.IsReported {
 			perJobReports = append(perJobReports, makePerJobReport(jobState))

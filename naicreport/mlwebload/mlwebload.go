@@ -151,7 +151,7 @@ func writePlots(
 		Host      string                `json:"hostname"`
 		Tag       string                `json:"tag"`
 		Bucketing string                `json:"bucketing"`
-		Labels    []string              `json:"labels"`  // formatted timestamps, for now
+		Labels    []string              `json:"labels"` // formatted timestamps, for now
 		Rcpu      []float64             `json:"rcpu"`
 		Rgpu      []float64             `json:"rgpu"`
 		Rmem      []float64             `json:"rmem"`
@@ -250,7 +250,7 @@ func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHos
 			return loadData[i].datetime.After(ddval.start)
 		})
 		isDevice := ddval.device == "host"
-		for ix := max(loc-1, 0) ; ix < len(loadData) && loadData[ix].datetime.Before(ddval.end) ; ix++ {
+		for ix := max(loc-1, 0); ix < len(loadData) && loadData[ix].datetime.Before(ddval.end); ix++ {
 			if isDevice {
 				downHost[ix] = 1
 			} else {

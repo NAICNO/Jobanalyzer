@@ -35,7 +35,6 @@
 /// - Clean up and filter and bucket the log data by stream.
 ///
 /// - Merge and fold sample streams, to create complete views of jobs or systems
-
 mod configs;
 mod dates;
 mod hosts;
@@ -200,7 +199,7 @@ pub use logfile::merge_gpu_status;
 /// Any discrepancies between the documentation in this structure and the documentation for Sonar
 /// (in its top-level README.md) should be considered a bug.
 
-#[derive(Debug, Clone)]         // TODO: Clone needed by a corner case in sonalyze/load
+#[derive(Debug, Clone)] // TODO: Clone needed by a corner case in sonalyze/load
 pub struct LogEntry {
     /// Format "major.minor.bugfix"
     pub version: String,
@@ -277,7 +276,6 @@ pub struct LogEntry {
     pub rolledup: u32,
 
     // Computed fields.  Also see above about pid, gpumem_pct, and gpumem_gb.
-
     /// CPU utilization in percent (100% = one full core) in the time interval since the previous
     /// record for this job.  This is computed by logclean from consecutive `cputime_sec` fields for
     /// records that represent the same job, when the information is available: it requires the

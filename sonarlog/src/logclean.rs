@@ -1,5 +1,4 @@
 /// Postprocess and clean up log data after ingestion.
-
 use crate::{LogEntry, System};
 
 use chrono::Duration;
@@ -57,7 +56,7 @@ pub type InputStreamSet = HashMap<InputStreamKey, Vec<Box<LogEntry>>>;
 /// TODO: JOB_ID_TAG is currently 1e8 because Linux pids are smaller than 1e8, so this guarantees
 /// that there is not a clash with a pid, but it's possible job IDs can be larger than PIDS.
 
-pub const JOB_ID_TAG : u32 = 10000000;
+pub const JOB_ID_TAG: u32 = 10000000;
 
 pub fn postprocess_log<F>(
     mut entries: Vec<Box<LogEntry>>,
@@ -65,28 +64,26 @@ pub fn postprocess_log<F>(
     configs: &Option<HashMap<String, System>>,
 ) -> InputStreamSet
 where
-    F: Fn(&LogEntry) -> bool
+    F: Fn(&LogEntry) -> bool,
 {
-    let mut streams : InputStreamSet = HashMap::new();
+    let mut streams: InputStreamSet = HashMap::new();
 
     // Reconstruct the individual sample streams.  Records for job id 0 are always not rolled up and
     // we'll use the pid, which is unique.  But consumers of the data must be sure to treat job id 0
     // specially.
-    entries
-        .drain(0..)
-        .for_each(|e| {
-            let synthetic_pid = if e.rolledup > 0 {
-                JOB_ID_TAG + e.job_id
-            } else {
-                e.pid
-            };
-            let key = (e.hostname.clone(), synthetic_pid, e.command.clone());
-            if let Some(stream) = streams.get_mut(&key) {
-                stream.push(e);
-            } else {
-                streams.insert(key, vec![e]);
-            }
-        });
+    entries.drain(0..).for_each(|e| {
+        let synthetic_pid = if e.rolledup > 0 {
+            JOB_ID_TAG + e.job_id
+        } else {
+            e.pid
+        };
+        let key = (e.hostname.clone(), synthetic_pid, e.command.clone());
+        if let Some(stream) = streams.get_mut(&key) {
+            stream.push(e);
+        } else {
+            streams.insert(key, vec![e]);
+        }
+    });
 
     // Sort the streams by ascending timestamp.
     streams
@@ -97,86 +94,74 @@ where
     // generation may be delayed due to disk waits, which may be long because network disks may
     // go away.  It should not matter which of the duplicate records we remove here, they should
     // be identical.
-    streams
-        .iter_mut()
-	.for_each(|(_, stream)| {
-            let mut good = 0;
-	    let mut candidate = good+1;
-            while candidate < stream.len() {
-	        while candidate < stream.len() && stream[good].timestamp == stream[candidate].timestamp {
-		    candidate += 1;
-		}
-                if candidate < stream.len() {
-		    good += 1;
-		    stream.swap(good, candidate);
-		    candidate += 1;
-	        }
-	    }
-            stream.truncate(good + 1);
-	});
+    streams.iter_mut().for_each(|(_, stream)| {
+        let mut good = 0;
+        let mut candidate = good + 1;
+        while candidate < stream.len() {
+            while candidate < stream.len() && stream[good].timestamp == stream[candidate].timestamp
+            {
+                candidate += 1;
+            }
+            if candidate < stream.len() {
+                good += 1;
+                stream.swap(good, candidate);
+                candidate += 1;
+            }
+        }
+        stream.truncate(good + 1);
+    });
 
     // For each stream, compute the cpu_util_pct field as the difference in cputime_sec between
     // adjacent records divided by the time difference between them.  The first record instead gets
     // a copy of the cpu_pct field.
-    streams
-        .iter_mut()
-        .for_each(|(_, stream)| {
-            // By construction, every stream is non-empty.
-            stream[0].cpu_util_pct = stream[0].cpu_pct;
-            for i in 1..stream.len() {
-                let dt = ((stream[i].timestamp - stream[i-1].timestamp) as Duration).num_seconds() as f64;
-                let dc = stream[i].cputime_sec - stream[i-1].cputime_sec;
-		// It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
-		// We filter these below.
-                stream[i].cpu_util_pct = (dc / dt) * 100.0;
-            }
-        });
+    streams.iter_mut().for_each(|(_, stream)| {
+        // By construction, every stream is non-empty.
+        stream[0].cpu_util_pct = stream[0].cpu_pct;
+        for i in 1..stream.len() {
+            let dt =
+                ((stream[i].timestamp - stream[i - 1].timestamp) as Duration).num_seconds() as f64;
+            let dc = stream[i].cputime_sec - stream[i - 1].cputime_sec;
+            // It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
+            // We filter these below.
+            stream[i].cpu_util_pct = (dc / dt) * 100.0;
+        }
+    });
 
     // For each stream, clean up the gpumem_pct and gpumem_gb fields based on system information, if
     // available.
     if let Some(confs) = configs {
-        streams
-            .iter_mut()
-            .for_each(|(_, stream)| {
-                if let Some(conf) = confs.get(&stream[0].hostname) {
-                    let cardsize = (conf.gpumem_gb as f64) / (conf.gpu_cards as f64);
-                    for entry in stream {
-                        if conf.gpumem_pct {
-                            entry.gpumem_gb = entry.gpumem_pct * cardsize;
-                        } else {
-                            entry.gpumem_pct = entry.gpumem_gb / cardsize;
-                        }
+        streams.iter_mut().for_each(|(_, stream)| {
+            if let Some(conf) = confs.get(&stream[0].hostname) {
+                let cardsize = (conf.gpumem_gb as f64) / (conf.gpu_cards as f64);
+                for entry in stream {
+                    if conf.gpumem_pct {
+                        entry.gpumem_gb = entry.gpumem_pct * cardsize;
+                    } else {
+                        entry.gpumem_pct = entry.gpumem_gb / cardsize;
                     }
                 }
-            });
+            }
+        });
     }
 
     // Remove elements that don't pass the filter and pack the array.  This preserves ordering.
-    streams
-        .iter_mut()
-        .for_each(|(_, stream)| {
-            let mut dst = 0;
-            for src in 0..stream.len() {
-	        // See comments above re the test for cpu_util_pct
-                if filter(&stream[src]) && stream[src].cpu_util_pct >= 0.0 {
-                    stream.swap(dst, src);
-                    dst += 1;
-                }
+    streams.iter_mut().for_each(|(_, stream)| {
+        let mut dst = 0;
+        for src in 0..stream.len() {
+            // See comments above re the test for cpu_util_pct
+            if filter(&stream[src]) && stream[src].cpu_util_pct >= 0.0 {
+                stream.swap(dst, src);
+                dst += 1;
             }
-            stream.truncate(dst);
-        });
+        }
+        stream.truncate(dst);
+    });
 
     // Some streams may now be empty; remove them.
     let dead = streams
         .iter()
-        .filter_map(|(k, v)| {
-            if v.len() == 0 {
-                Some(k.clone())
-            } else {
-                None
-            }
-        }).
-        collect::<Vec<InputStreamKey>>();
+        .filter_map(|(k, v)| if v.len() == 0 { Some(k.clone()) } else { None })
+        .collect::<Vec<InputStreamKey>>();
 
     for d in dead {
         streams.remove(&d);
@@ -189,16 +174,21 @@ where
 fn test_postprocess_log_cpu_util_pct() {
     // This file has field names, cputime_sec, pid, and rolledup
     // There are two hosts.
-    let (entries, _) = read_logfiles(&vec!["../tests/sonarlog/whitebox-logclean.csv".to_string()]).unwrap();
+    let (entries, _) =
+        read_logfiles(&vec!["../tests/sonarlog/whitebox-logclean.csv".to_string()]).unwrap();
     assert!(entries.len() == 7);
 
-    let any = |e:&LogEntry| e.user != "root";
+    let any = |e: &LogEntry| e.user != "root";
     let streams = postprocess_log(entries, any, &None);
 
     // Filtering removed one entry and grouped the rest into four streams.
     assert!(streams.len() == 4);
 
-    let s1 = streams.get(&("ml4.hpc.uio.no".to_string(), JOB_ID_TAG + 4093, "zabbix_agentd".to_string()));
+    let s1 = streams.get(&(
+        "ml4.hpc.uio.no".to_string(),
+        JOB_ID_TAG + 4093,
+        "zabbix_agentd".to_string(),
+    ));
     assert!(s1.is_some());
     assert!(s1.unwrap().len() == 1);
 

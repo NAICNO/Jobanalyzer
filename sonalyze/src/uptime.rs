@@ -85,7 +85,7 @@ pub fn aggregate_and_print_uptime(
     mut entries: Vec<Box<LogEntry>>,
 ) -> Result<()> {
     if entries.len() == 0 {
-        return Ok(())
+        return Ok(());
     }
 
     // We work by sorting by hostname and timestamp and then scanning the sorted list
@@ -128,14 +128,20 @@ pub fn aggregate_and_print_uptime(
         }
 
         if !include_hosts.is_empty() && !include_hosts.contains(&host_first.hostname) {
-            continue
+            continue;
         }
 
         // If the host is down at the start, push out a record saying so.  Then we start in the "up"
         // state always.
         if !delta_t_le(from_incl, host_first.timestamp, cutoff) {
             if !print_args.only_up {
-                reports.push(new_report("host", &host_first.hostname, "down", from_incl, host_first.timestamp));
+                reports.push(new_report(
+                    "host",
+                    &host_first.hostname,
+                    "down",
+                    from_incl,
+                    host_first.timestamp,
+                ));
             }
         }
 
@@ -145,7 +151,13 @@ pub fn aggregate_and_print_uptime(
         // we'll re-sort later anyway.
         if !delta_t_le(host_last.timestamp, to_excl, cutoff) {
             if !print_args.only_up {
-                reports.push(new_report("host", &host_first.hostname, "down", host_last.timestamp, to_excl));
+                reports.push(new_report(
+                    "host",
+                    &host_first.hostname,
+                    "down",
+                    host_last.timestamp,
+                    to_excl,
+                ));
             }
         }
 
@@ -168,29 +180,33 @@ pub fn aggregate_and_print_uptime(
             // and end are the same value (only one sample between two "down" windows); nothing to
             // be done about that.
             if !print_args.only_down {
-                reports.push(new_report("host",
-                                        &host_first.hostname,
-                                        "up",
-                                        entries[window_start].timestamp,
-                                        entries[j-1].timestamp));
+                reports.push(new_report(
+                    "host",
+                    &host_first.hostname,
+                    "up",
+                    entries[window_start].timestamp,
+                    entries[j - 1].timestamp,
+                ));
             }
 
             // Record this window, we'll need it for the GPU scans later.  (The scans could happen
             // here, but it just makes the code unreadable.)
-            host_up_windows.push((window_start, j-1));
+            host_up_windows.push((window_start, j - 1));
 
             if j > host_end {
-                break
+                break;
             }
 
             // System went down in the window.  The window in which it is down is entirely between
             // these two records.  The fact that there is a following record means it came up again.
             if !print_args.only_up {
-                reports.push(new_report("host",
-                                        &host_first.hostname,
-                                        "down",
-                                        prev_timestamp,
-                                        entries[j].timestamp));
+                reports.push(new_report(
+                    "host",
+                    &host_first.hostname,
+                    "down",
+                    prev_timestamp,
+                    entries[j].timestamp,
+                ));
             }
 
             window_start = j;
@@ -207,13 +223,16 @@ pub fn aggregate_and_print_uptime(
                 i += 1;
             }
             let updown = if gpu_is_up { "up" } else { "down" };
-            if !(updown == "up" && print_args.only_down) &&
-               !(updown == "down" && print_args.only_up) {
-                reports.push(new_report("gpu",
-                                        &entries[host_start].hostname,
-                                        updown,
-                                        entries[start].timestamp,
-                                        entries[min(host_end,i)].timestamp));
+            if !(updown == "up" && print_args.only_down)
+                && !(updown == "down" && print_args.only_up)
+            {
+                reports.push(new_report(
+                    "gpu",
+                    &entries[host_start].hostname,
+                    updown,
+                    entries[start].timestamp,
+                    entries[min(host_end, i)].timestamp,
+                ));
             }
         }
     }
@@ -246,16 +265,24 @@ pub fn aggregate_and_print_uptime(
 pub fn fmt_help() -> format::Help {
     let (formatters, aliases) = my_formatters();
     format::Help {
-        fields: formatters.iter().map(|(k, _)| k.clone()).collect::<Vec<String>>(),
-        aliases: aliases.iter().map(|(k,v)| (k.clone(), v.clone())).collect::<Vec<(String, Vec<String>)>>(),
+        fields: formatters
+            .iter()
+            .map(|(k, _)| k.clone())
+            .collect::<Vec<String>>(),
+        aliases: aliases
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect::<Vec<(String, Vec<String>)>>(),
         defaults: FMT_DEFAULTS.to_string(),
     }
 }
 
-const FMT_DEFAULTS : &str = "device,host,state,start,end";
+const FMT_DEFAULTS: &str = "device,host,state,start,end";
 
-fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String>,
-                       HashMap<String, Vec<String>>) {
+fn my_formatters() -> (
+    HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> String>,
+    HashMap<String, Vec<String>>,
+) {
     let mut formatters: HashMap<String, &dyn Fn(LogDatum, LogCtx) -> String> = HashMap::new();
     let mut aliases: HashMap<String, Vec<String>> = HashMap::new();
     formatters.insert("device".to_string(), &format_device);
@@ -263,9 +290,16 @@ fn my_formatters() -> (HashMap<String, &'static dyn Fn(LogDatum, LogCtx) -> Stri
     formatters.insert("state".to_string(), &format_state);
     formatters.insert("start".to_string(), &format_start);
     formatters.insert("end".to_string(), &format_end);
-    aliases.insert("all".to_string(),
-                   vec!["device".to_string(), "host".to_string(), "state".to_string(),
-                        "start".to_string(), "end".to_string()]);
+    aliases.insert(
+        "all".to_string(),
+        vec![
+            "device".to_string(),
+            "host".to_string(),
+            "state".to_string(),
+            "start".to_string(),
+            "end".to_string(),
+        ],
+    );
 
     (formatters, aliases)
 }
