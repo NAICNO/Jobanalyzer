@@ -720,10 +720,10 @@ fn sonalyze() -> Result<()> {
 
         let (exclude_system_commands, exclude_heartbeat) =
             match cli.command {
-                Commands::Parse(_) => (false, true),
-                Commands::Metadata(_) => (false, true),
-                Commands::Load(_) => (true, false),
-                Commands::Jobs(_) => (true, false),
+                Commands::Parse(_) => (false, false),
+                Commands::Metadata(_) => (false, false),
+                Commands::Load(_) => (true, true),
+                Commands::Jobs(_) => (true, true),
                 Commands::Uptime(_) => (false, false),
                 Commands::Version => panic!("Unexpected"),
             };
