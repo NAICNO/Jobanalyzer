@@ -36,7 +36,7 @@ The program operates by phases:
 
 * reading any system configuration files
 * computing a set of input log files
-* reading these log files with input filters applied, resulting in a set of input records
+* reading these log files with record filters applied, resulting in a set of input records
 * aggregating data across the input records
 * filtering the aggregated data with the aggregation filters
 * printing the aggregated data with the output filters
@@ -64,30 +64,38 @@ are per-operation, as outlined directly below.
   or print formats that make use of system-relative values (such as `rcpu`).  See the section
   "SYSTEM CONFIGURATION FILES" below.
 
-### Input filter options
+### Record filter options
 
-All filters are optional.  Records must pass all specified filters.  Not all filters are available with
-all commands; see the online help text.
+All filters are optional.  Records must pass all specified filters.  All commands support the record
+filters.
 
 `-u <username>`, `--user=<username>`
 
-  The user name(s), the option can be repeated.  The default for `jobs` is the current user,
-  `$LOGNAME`, except in the case of `--job=`, `--zombie`, or `--exclude-user=`, when the default is
-  everyone.  The default for `load` is everyone.  Use `-` to ask for everyone.
+  The user name(s), the option can be repeated.  Use `-` to ask for everyone.
+
+  The default value for `--user` is the the current user, `$LOGNAME`, but there are several
+  exceptions.  When the command is `load`, or when the `--job` and `--exclude-user` record filters
+  are used, or when the `--zombie` job filter is being used then the default is "everyone".
+
+  Additionally, when the `--job` record filter is used, then users "root" and "zabbix" are excluded.
 
 `--exclude-user=<username>`
 
-  Normally, users `root` and `zabbix` are excluded from the report.  (They don't run jobs usually,
-  but with synthesized jobs they can appear in the log anyway.)  With the exclude option, list
-  *additional* user names to be excluded.  The option can be repeated
+  Request that records with these user names are excluded, in addition to normal exclusions.
+  The option can be repeated.  See above about defaults.
 
 `--command=<command>`
 
   Select only records whose command name matches `<command>` exactly.  This option can be repeated.
 
+  The default value for `--command` is every command for `parse`, `metadata` and `uptime`, and every
+  command except some system commands for `jobs` and `load` (currently `bash`, `zsh`, `sshd`,
+  `tmux`, and `systemd`; this is pretty ad-hoc).
+
 `--exclude-command=<command>`
 
-  Exclude commands matching `<command>` exactly.  This option can be repeated.
+  Exclude commands matching `<command>` exactly, in addition to default exclusions.  This option can
+  be repeated.
 
 `-j <job#>`, `--job=<job#>`
 
@@ -101,7 +109,7 @@ all commands; see the online help text.
 `-t <totime>`, `--to=<totime>`
 
   Select only records with this time stamp and earlier, format is either `YYYY-MM-DD`, `Nd` (N days
-  ago) or `Nw` (N weeks ago).  The default is now.
+  ago) or `Nw` (N weeks ago).  The default is `0d`: now.
 
 `--host=<hostname>`
 
@@ -109,6 +117,7 @@ all commands; see the online help text.
   filtering in the data path and to record filtering within all files processed (as all records also
   contain the host name).  The default is all hosts.  The host name can use wildcards and expansions
   in some ways; see later section.  The option can be repeated.
+
 
 ### Job filtering and aggregation options
 
@@ -388,6 +397,8 @@ format:
 * `header` forces a header to be printed for CSV; this is the default for fixed-column output
    (and a no-op for JSON)
 * `noheader` forces a header not to be printed, default for `csv`, `csvnamed`, and `json`
+* `nodefaults` applies in some cases with some output forms (notably the `parse` command with
+  csv or JSON output) and causes the suppression of fields that have their default values)
 * `tag:something` forces a field `tag` to be printed for each record with the value `something`
 
 Run with `--fmt=help` to get help on formatting syntax, field names, aliases, and controls, as
@@ -414,7 +425,7 @@ The default format is `fixed`.  The field names for the `jobs` command are at le
 * `rcpu-avg`, ..., `rmem-avg`, ... are available to show relative usage (percentage of full system capacity).
    These require a config file for the system to be provided with the `--config-file` flag.
 * `gpus` is a comma-separated list of device numbers used by the job
-* `host` is a list of the host name(s) running the job (showing only the first element of the FQDN, and 
+* `host` is a list of the host name(s) running the job (showing only the first element of the FQDN, and
   compressed using the same patterns as in HOST NAME PATTERNS above)
 * `cmd` is the command name, as far as is known.  For jobs with multiple processes that have different
    command names, all command names are printed.
@@ -442,3 +453,10 @@ The default format is `fixed`.  The field for the `load` command are as follows:
 * `rgpumem` (percentage, 100=all memory on all cards)
 * `gpus` (list of GPUs)
 * `now` is the current time on the format `YYYY-MM-DD HH:MM`
+
+### Field names for `parse`, `metadata` and `uptime`
+
+Consult the on-line help for details.
+
+Note that `parse` has an alias `roundtrip` that causes it to print the selected records with a
+format that makes them suitable for input to sonalyze.
