@@ -172,11 +172,12 @@ where
 
 #[test]
 fn test_postprocess_log_cpu_util_pct() {
-    // This file has field names, cputime_sec, pid, and rolledup
-    // There are two hosts.
-    let (entries, _) =
+    // This file has field names, cputime_sec, pid, and rolledup There are two hosts.  One of the
+    // records is invalid: it's missing the user name.
+    let (entries, _, discarded) =
         read_logfiles(&vec!["../tests/sonarlog/whitebox-logclean.csv".to_string()]).unwrap();
     assert!(entries.len() == 7);
+    assert!(discarded == 1);
 
     let any = |e: &LogEntry| e.user != "root";
     let streams = postprocess_log(entries, any, &None);

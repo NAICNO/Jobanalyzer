@@ -109,14 +109,16 @@ pub struct Timebound {
 
 /// Read all the files into an array and return some basic information about the data.
 ///
-/// Returns error on I/O error and discards illegal records silently.
+/// Returns error on I/O error and discards illegal records silently, but returns the number of
+/// records discarded.
 
-pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timebounds)> {
+pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timebounds, usize)> {
     let mut entries = Vec::<Box<LogEntry>>::new();
+    let mut discarded : usize = 0;
 
     // Read all the files
     for file in logfiles {
-        parse_logfile(file, &mut entries)?;
+        discarded += parse_logfile(file, &mut entries)?;
     }
 
     let mut bounds = Timebounds::new();
@@ -135,7 +137,7 @@ pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timebou
             );
         }
     }
-    Ok((entries, bounds))
+    Ok((entries, bounds, discarded))
 }
 
 #[test]
