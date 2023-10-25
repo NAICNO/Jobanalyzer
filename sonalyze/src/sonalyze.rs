@@ -894,7 +894,10 @@ fn sonalyze() -> Result<()> {
         }
     };
 
-    let (mut entries, bounds) = sonarlog::read_logfiles(&logfiles)?;
+    let (mut entries, bounds, discarded) = sonarlog::read_logfiles(&logfiles)?;
+    if meta_args.verbose {
+        eprintln!("Number of records discarded: {discarded}");
+    }
 
     match cli.command {
         Commands::Version => {

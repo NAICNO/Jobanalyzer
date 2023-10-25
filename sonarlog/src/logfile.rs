@@ -121,17 +121,19 @@ pub fn merge_gpu_status(lhs: GpuStatus, rhs: GpuStatus) -> GpuStatus {
 /// Parse a log file into a set of LogEntry structures, and append to `entries` in the order
 /// encountered.  Entries are boxed so that later processing won't copy these increasingly large
 /// structures all the time.  Return an error in the case of I/O errors, but silently drop records
-/// with parse errors.
+/// with parse errors.  Returns the number of discarded records.
 ///
 /// TODO: This should possibly take a Path, not a &str filename.  See comments in logtree.rs.
 ///
 /// TODO: Use Ustr to avoid allocating lots and lots of duplicate strings, both here and elsewhere.
 
-pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Result<()> {
+pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Result<usize> {
     #[derive(Debug, Deserialize)]
     struct LogRecord {
         fields: Vec<String>,
     }
+
+    let mut discarded : usize = 0;
 
     // An error here is going to be an I/O error so always propagate it.
     let mut reader = csv::ReaderBuilder::new()
@@ -146,6 +148,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                     return Err(e.into());
                 }
                 // Otherwise drop the record
+                discarded += 1;
                 continue 'outer;
             }
             Ok(record) => {
@@ -205,11 +208,13 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                         hostname = Some(record.fields[1].to_string());
                         (num_cores, failed) = get_u32(&record.fields[2]);
                         if failed {
+                            discarded += 1;
                             continue 'outer;
                         }
                         user = Some(record.fields[3].to_string());
                         (job_id, failed) = get_u32(&record.fields[4]);
                         if failed {
+                            discarded += 1;
                             continue 'outer;
                         }
                         // Untagged data do not carry a PID, so use the job ID in its place.  This
@@ -220,6 +225,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                         command = Some(record.fields[5].to_string());
                         (cpu_pct, failed) = get_f64(&record.fields[6], 1.0);
                         if failed {
+                            discarded += 1;
                             continue 'outer;
                         }
                         (mem_gb, failed) = get_f64(&record.fields[7], 1.0 / (1024.0 * 1024.0));
@@ -229,30 +235,36 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                         if record.fields.len() == 12 || record.fields.len() == 13 {
                             (gpus, failed) = get_gpus_from_bitvector(&record.fields[8]);
                             if failed {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (gpu_pct, failed) = get_f64(&record.fields[9], 1.0);
                             if failed {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (gpumem_pct, failed) = get_f64(&record.fields[10], 1.0);
                             if failed {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (gpumem_gb, failed) =
                                 get_f64(&record.fields[11], 1.0 / (1024.0 * 1024.0));
                             if failed {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             if record.fields.len() == 13 {
                                 (cputime_sec, failed) = get_f64(&record.fields[12], 1.0);
                                 if failed {
+                                    discarded += 1;
                                     continue 'outer;
                                 }
                             }
                         }
                     } else {
                         // Drop the record on the floor
+                        discarded += 1;
                         continue 'outer;
                     }
                 } else {
@@ -265,80 +277,96 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                         let mut failed = false;
                         if field.starts_with("v=") {
                             if version.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             version = Some(field[2..].to_string())
                         } else if field.starts_with("time=") {
                             if timestamp.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             if let Ok(t) = parse_timestamp(&field[5..]) {
                                 timestamp = Some(t.into());
                             } else {
+                                discarded += 1;
                                 continue 'outer;
                             }
                         } else if field.starts_with("host=") {
                             if hostname.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             hostname = Some(field[5..].to_string())
                         } else if field.starts_with("cores=") {
                             if num_cores.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (num_cores, failed) = get_u32(&field[6..]);
                         } else if field.starts_with("user=") {
                             if user.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             user = Some(field[5..].to_string())
                         } else if field.starts_with("pid=") {
                             if pid.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (pid, failed) = get_u32(&field[4..]);
                         } else if field.starts_with("job=") {
                             if job_id.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (job_id, failed) = get_u32(&field[4..]);
                         } else if field.starts_with("cmd=") {
                             if command.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             command = Some(field[4..].to_string())
                         } else if field.starts_with("cpu%=") {
                             if cpu_pct.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (cpu_pct, failed) = get_f64(&field[5..], 1.0);
                         } else if field.starts_with("cpukib=") {
                             if mem_gb.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (mem_gb, failed) = get_f64(&field[7..], 1.0 / (1024.0 * 1024.0));
                         } else if field.starts_with("gpus=") {
                             if gpus.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (gpus, failed) = get_gpus_from_list(&field[5..]);
                         } else if field.starts_with("gpu%=") {
                             if gpu_pct.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (gpu_pct, failed) = get_f64(&field[5..], 1.0);
                         } else if field.starts_with("gpumem%=") {
                             if gpumem_pct.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (gpumem_pct, failed) = get_f64(&field[8..], 1.0);
                         } else if field.starts_with("gpukib=") {
                             if gpumem_gb.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (gpumem_gb, failed) = get_f64(&field[7..], 1.0 / (1024.0 * 1024.0));
                         } else if field.starts_with("gpufail=") {
                             if gpu_status.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             let val;
@@ -352,11 +380,13 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                             }
                         } else if field.starts_with("cputime_sec=") {
                             if cputime_sec.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (cputime_sec, failed) = get_f64(&field[12..], 1.0);
                         } else if field.starts_with("rolledup=") {
                             if rolledup.is_some() {
+                                discarded += 1;
                                 continue 'outer;
                             }
                             (rolledup, failed) = get_u32(&field[9..]);
@@ -366,6 +396,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                             // `=`).
                         }
                         if failed {
+                            discarded += 1;
                             continue 'outer;
                         }
                     }
@@ -379,6 +410,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                     || user.is_none()
                     || command.is_none()
                 {
+                    discarded += 1;
                     continue 'outer;
                 }
 
@@ -444,7 +476,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
             }
         }
     }
-    Ok(())
+    Ok(discarded)
 }
 
 /// A sensible "zero" LogEntry for use when we need it.  The user name and command are "_zero_" so
