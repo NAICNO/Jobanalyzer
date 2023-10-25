@@ -1,0 +1,9 @@
+now=2023-09-29 16:05,jobm=3959759,user=poyenyt,duration=0d 0h47m,host=ml6,start=2023-09-29 13:20,end=2023-09-29 14:06,"cmd=python3.9,python3.9 <defunct>",tag=deadweight
+now=2023-09-29 18:05,jobm=3959759,user=poyenyt,duration=0d 0h47m,host=ml6,start=2023-09-29 13:20,end=2023-09-29 14:06,"cmd=python3.9,python3.9 <defunct>",tag=deadweight
+now=2023-09-29 20:05,jobm=469167,user=joachipo,duration=0d 4h 5m,host=ml7,start=2023-09-29 14:40,end=2023-09-29 18:45,"cmd=python <defunct>,python",tag=deadweight
+now=2023-09-29 20:05,jobm=3959759,user=poyenyt,duration=0d 0h47m,host=ml6,start=2023-09-29 13:20,end=2023-09-29 14:06,"cmd=python3.9,python3.9 <defunct>",tag=deadweight
+now=2023-09-29 20:05,jobm=516303,user=jonaslsa,duration=0d 2h 0m,host=ml8,start=2023-09-28 20:05,end=2023-09-28 22:05,"cmd=torchrun <defunct>,wave",tag=deadweight
+now=2023-09-29 20:05,jobm=3485500>,user=limeng,duration=1d 0h 0m,host=ml3,start=2023-09-28 20:05,end=2023-09-29 20:05,"cmd=python,python <defunct>",tag=deadweight
+now=2023-09-29 20:05,jobm=2710480>,user=limeng,duration=0d23h55m,host=ml2,start=2023-09-28 20:10,end=2023-09-29 20:05,"cmd=python <defunct>,python",tag=deadweight
+now=2023-09-29 20:05,jobm=2529933>,user=jonaslsa,duration=0d21h55m,host=ml8,start=2023-09-28 22:10,end=2023-09-29 20:05,"cmd=python,wave,torchrun <defunct>",tag=deadweight
+now=2023-09-29 20:05,jobm=3818491,user=limeng,duration=0d 9h20m,host=ml6,start=2023-09-29 07:35,end=2023-09-29 16:55,"cmd=python <defunct>,python",tag=deadweight

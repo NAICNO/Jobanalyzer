@@ -47,6 +47,7 @@ func MlDeadweight(progname string, args []string) error {
 
 	progOpts := util.NewStandardOptions(progname + "ml-deadweight")
 	jsonOutput := progOpts.Container.Bool("json", false, "Format output as JSON")
+	summaryOutput := progOpts.Container.Bool("summary", false, "Format output for testing")
 	stateFileOpt := progOpts.Container.String("state-file", "", "Name of saved-state file (optional)")
 	nowOpt := progOpts.Container.String("now", "", "ISO time to use as the present time (for testing)")
 	err := progOpts.Parse(args)
@@ -141,13 +142,20 @@ func MlDeadweight(progname string, args []string) error {
 	//
 	// Write outputs
 
-	if *jsonOutput {
+	switch {
+	case *jsonOutput:
 		bytes, err := json.Marshal(createDeadweightReport(db, logs, true))
 		if err != nil {
 			return err
 		}
 		fmt.Println(string(bytes))
-	} else {
+	case *summaryOutput:
+		report := createDeadweightReport(db, logs, false)
+		for _, r := range report {
+			r.jobState.IsReported = true;
+			fmt.Printf("%s,%d,%s\n", r.User, r.Id, r.Host)
+		}
+	default:
 		writeDeadweightReport(createDeadweightReport(db, logs, false))
 	}
 
