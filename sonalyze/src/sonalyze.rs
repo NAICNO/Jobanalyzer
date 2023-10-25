@@ -26,6 +26,7 @@ mod load;
 mod metadata;
 mod parse;
 mod prjobs;
+mod profile;
 mod uptime;
 
 use anyhow::{bail, Result};
@@ -59,13 +60,16 @@ enum Commands {
     /// Print aggregated information about system uptime
     Uptime(UptimeCmdArgs),
 
+    /// Print the profile of a particular job
+    Profile(ProfileCmdArgs),
+
     /// Print information about the program
     Version,
 
-    /// Parse the Sonar logs, apply source/host filtering, and print values
+    /// Parse the Sonar logs, apply record filtering, and print values
     Parse(ParseCmdArgs),
 
-    /// Parse the Sonar logs, apply source/host filtering, and print metadata
+    /// Parse the Sonar logs, apply record filtering, and print metadata
     Metadata(ParseCmdArgs),
 }
 
@@ -136,6 +140,22 @@ pub struct UptimeCmdArgs {
 
     #[command(flatten)]
     print_args: UptimePrintArgs,
+
+    #[command(flatten)]
+    meta_args: MetaArgs,
+}
+
+
+#[derive(Args, Debug)]
+pub struct ProfileCmdArgs {
+    #[command(flatten)]
+    source_args: SourceArgs,
+
+    #[command(flatten)]
+    record_filter_args: RecordFilterArgs,
+
+    #[command(flatten)]
+    print_args: ProfilePrintArgs,
 
     #[command(flatten)]
     meta_args: MetaArgs,
@@ -395,6 +415,13 @@ pub struct UptimePrintArgs {
     fmt: Option<String>,
 }
 
+#[derive(Args, Debug)]
+pub struct ProfilePrintArgs {
+    /// Select fields and format for the output [default: see MANUAL.md]
+    #[arg(long)]
+    fmt: Option<String>,
+}
+
 #[derive(Args, Debug, Default)]
 pub struct ParsePrintArgs {
     /// Merge streams that have the same host and job ID (experts only)
@@ -609,28 +636,38 @@ fn sonalyze() -> Result<()> {
         Commands::Load(ref load_args) => {
             format::maybe_help(&load_args.print_args.fmt, &load::fmt_help)
         }
+        Commands::Uptime(ref uptime_args) => {
+            format::maybe_help(&uptime_args.print_args.fmt, &uptime::fmt_help)
+        }
+        Commands::Profile(ref profile_args) => {
+            format::maybe_help(&profile_args.print_args.fmt, &profile::fmt_help)
+        }
+        Commands::Version => false,
         Commands::Parse(ref parse_args) => {
             format::maybe_help(&parse_args.print_args.fmt, &parse::fmt_help)
         }
         Commands::Metadata(ref parse_args) => {
             format::maybe_help(&parse_args.print_args.fmt, &metadata::fmt_help)
         }
-        Commands::Version => false,
-        Commands::Uptime(ref uptime_args) => {
-            format::maybe_help(&uptime_args.print_args.fmt, &uptime::fmt_help)
-        }
     } {
         return Ok(());
+    }
+
+    if let Commands::Profile(ref profile_args) = cli.command {
+        if profile_args.record_filter_args.job.len() != 1 {
+            bail!("Exactly one job number is required by `profile`")
+        }
     }
 
     let meta_args = match cli.command {
         Commands::Jobs(ref jobs_args) => &jobs_args.meta_args,
         Commands::Load(ref load_args) => &load_args.meta_args,
+        Commands::Uptime(ref uptime_args) => &uptime_args.meta_args,
+        Commands::Profile(ref profile_args) => &profile_args.meta_args,
+        Commands::Version => panic!("Unexpected"),
         Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => {
             &parse_args.meta_args
         }
-        Commands::Version => panic!("Unexpected"),
-        Commands::Uptime(ref uptime_args) => &uptime_args.meta_args,
     };
 
     let (
@@ -644,11 +681,12 @@ fn sonalyze() -> Result<()> {
         let record_filter_args = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.record_filter_args,
             Commands::Load(ref load_args) => &load_args.record_filter_args,
+            Commands::Uptime(ref uptime_args) => &uptime_args.record_filter_args,
+            Commands::Profile(ref profile_args) => &profile_args.record_filter_args,
+            Commands::Version => panic!("Unexpected"),
             Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => {
                 &parse_args.record_filter_args
             }
-            Commands::Version => panic!("Unexpected"),
-            Commands::Uptime(ref uptime_args) => &uptime_args.record_filter_args,
         };
 
         // Included host set, empty means "all"
@@ -738,12 +776,13 @@ fn sonalyze() -> Result<()> {
         // Included commands.
 
         let (exclude_system_commands, exclude_heartbeat) = match cli.command {
-            Commands::Parse(_) => (false, false),
-            Commands::Metadata(_) => (false, false),
             Commands::Load(_) => (true, true),
             Commands::Jobs(_) => (true, true),
             Commands::Uptime(_) => (false, false),
+            Commands::Profile(_) => (false, true),
             Commands::Version => panic!("Unexpected"),
+            Commands::Parse(_) => (false, false),
+            Commands::Metadata(_) => (false, false),
         };
 
         let include_commands = {
@@ -802,11 +841,12 @@ fn sonalyze() -> Result<()> {
         let source_args = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.source_args,
             Commands::Load(ref load_args) => &load_args.source_args,
+            Commands::Uptime(ref uptime_args) => &uptime_args.source_args,
+            Commands::Profile(ref profile_args) => &profile_args.source_args,
+            Commands::Version => panic!("Unexpected"),
             Commands::Parse(ref parse_args) | Commands::Metadata(ref parse_args) => {
                 &parse_args.source_args
             }
-            Commands::Version => panic!("Unexpected"),
-            Commands::Uptime(ref uptime_args) => &uptime_args.source_args,
         };
 
         // Included date range.  These are used both for file names and for records.
@@ -943,6 +983,16 @@ fn sonalyze() -> Result<()> {
                 }
                 _ => panic!("Unexpected"),
             }
+        }
+
+        Commands::Profile(ref profile_args) => {
+            let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
+            profile::print(
+                &mut io::stdout(),
+                &profile_args.print_args,
+                meta_args,
+                streams,
+            )
         }
 
         Commands::Parse(ref parse_args) => {

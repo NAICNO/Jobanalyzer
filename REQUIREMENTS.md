@@ -341,7 +341,15 @@ that the code did indeed use the GPU during the last 10 analyses that ran to com
 *U* again breaks out the command line tool and asks to see the statistics on her last 10 jobs that
 completed.
 
-(For more detail, see the `verify_gpu_use` and `verify_resource_use` use cases in README.md)
+*Story 4:* *U* runs a complex pipeline on the ML nodes and observes that it crashes due to apparent
+resource exhaustion.  *U* wants to find out how the individual commands behaved over time.
+
+*U* can run the command line tool and ask to see the per-time-step statistics for the failing job.
+If the detail is insufficient, *U* can first sonar in high-frequency mode in the background while
+the pipeline is running to obtain more detailed data.
+
+(For more detail on some of the cases, see the `verify_gpu_use` and `verify_resource_use` use cases
+in README.md)
 
 #### `usr_scalability`
 

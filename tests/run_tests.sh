@@ -28,12 +28,13 @@
 #
 # The pattern is a regex pattern that must match the name of the test filname.
 
-TEST_DIRECTORIES="sonarlog sonalyze naicreport loginfo"
+TEST_DIRECTORIES="sonarlog sonalyze sonard naicreport loginfo"
 
 export TEST_ROOT=$(pwd)
 export SONALYZE=$TEST_ROOT/../sonalyze/target/debug/sonalyze
 export NAICREPORT=$TEST_ROOT/../naicreport/naicreport
 export LOGINFO=$TEST_ROOT/../loginfo/loginfo
+export SONARD=$TEST_ROOT/../sonard/sonard
 
 pattern="$1"
 hard_failed=0
