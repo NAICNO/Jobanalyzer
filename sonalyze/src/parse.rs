@@ -155,7 +155,7 @@ fn format_version(d: LogDatum, _: LogCtx) -> String {
 }
 
 fn format_time(d: LogDatum, _: LogCtx) -> String {
-    d.timestamp.format("%Y-%m-%dT%H:%MZ").to_string()
+    d.timestamp.format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
 
 fn format_localtime(d: LogDatum, _: LogCtx) -> String {
