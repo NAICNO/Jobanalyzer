@@ -1,0 +1,16 @@
+v=0.7.0,time=2023-10-21T08:35:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119426,cmd=bwa,cpu%=3074.8,cpukib=5728568,cputime_sec=7072
+v=0.7.0,time=2023-10-21T08:40:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119426,cmd=bwa,cpu%=3085.9,cpukib=5734428,cputime_sec=16355
+v=0.7.0,time=2023-10-21T08:45:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119428,cmd=samtools,cpu%=11,cpukib=271861004,cputime_sec=91
+v=0.7.0,time=2023-10-21T08:45:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119426,cmd=bwa,cpu%=3084.5,cpukib=5736004,cputime_sec=25632
+v=0.7.0,time=2023-10-21T08:50:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119426,cmd=bwa,cpu%=3085.6,cpukib=5728200,cputime_sec=34867
+v=0.7.0,time=2023-10-21T08:50:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119428,cmd=samtools,cpu%=11.3,cpukib=271861272,cputime_sec=127
+v=0.7.0,time=2023-10-21T08:55:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119428,cmd=samtools,cpu%=11.2,cpukib=271861408,cputime_sec=160
+v=0.7.0,time=2023-10-21T08:55:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119426,cmd=bwa,cpu%=3087.1,cpukib=5737220,cputime_sec=44145
+v=0.7.0,time=2023-10-21T09:00:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119426,cmd=bwa,cpu%=3085.9,cpukib=5737504,cputime_sec=53386
+v=0.7.0,time=2023-10-21T09:00:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119428,cmd=samtools,cpu%=11.8,cpukib=275007364,cputime_sec=203
+v=0.7.0,time=2023-10-21T09:05:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119428,cmd=samtools,cpu%=11.7,cpukib=275007560,cputime_sec=237
+v=0.7.0,time=2023-10-21T09:05:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119426,cmd=bwa,cpu%=3086.7,cpukib=5737892,cputime_sec=62658
+v=0.7.0,time=2023-10-21T09:10:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119426,cmd=bwa,cpu%=3085.9,cpukib=5738660,cputime_sec=71931
+v=0.7.0,time=2023-10-21T09:10:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119428,cmd=samtools,cpu%=11.5,cpukib=275007712,cputime_sec=266
+v=0.7.0,time=2023-10-21T09:15:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119426,cmd=bwa,cpu%=3086,cpukib=5738800,cputime_sec=81161
+v=0.7.0,time=2023-10-21T09:15:00Z,host=ml9.hpc.uio.no,cores=192,user=pubuduss,job=1119125,pid=1119428,cmd=samtools,cpu%=11.6,cpukib=275010948,cputime_sec=304
