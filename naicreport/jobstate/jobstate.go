@@ -9,7 +9,6 @@ package jobstate
 
 import (
 	"os"
-	"path"
 	"strconv"
 	"time"
 
@@ -61,13 +60,13 @@ type ExpiredJobKey struct {
 // If this returns an error, it is the error returned from storage.ReadFreeCSV, see that for more
 // information.  No new errors are generated here.
 
-func ReadJobDatabase(dataPath, filename string) (*JobDatabase, error) {
-	stateFilename := path.Join(dataPath, filename)
+func ReadJobDatabase(stateFilename string) (*JobDatabase, error, int) {
 	stateCsv, err := storage.ReadFreeCSV(stateFilename)
 	if err != nil {
-		return nil, err
+		return nil, err, 0
 	}
 	db := NewJobDatabase()
+	dropped := 0
 	for _, repr := range stateCsv {
 		success := true
 		id := storage.GetUint32(repr, "id", &success)
@@ -76,11 +75,11 @@ func ReadJobDatabase(dataPath, filename string) (*JobDatabase, error) {
 		firstViolation := storage.GetRFC3339(repr, "firstViolation", &success)
 		lastSeen := storage.GetRFC3339(repr, "lastSeen", &success)
 		isReported := storage.GetBool(repr, "isReported", &success)
-		ignore := false
-		isExpired := storage.GetBool(repr, "isExpired", &ignore)
+		isExpired := storage.GetBool(repr, "isExpired", new(bool))
 
 		if !success {
 			// Bogus record
+			dropped++
 			continue
 		}
 		job := &JobState{
@@ -97,19 +96,19 @@ func ReadJobDatabase(dataPath, filename string) (*JobDatabase, error) {
 			db.Active[JobKey{id, host}] = job
 		}
 	}
-	return db, nil
+	return db, nil, dropped
 }
 
-func ReadJobDatabaseOrEmpty(dataPath, filename string) (*JobDatabase, error) {
-	db, err := ReadJobDatabase(dataPath, filename)
+func ReadJobDatabaseOrEmpty(stateFilename string) (*JobDatabase, error, int) {
+	db, err, dropped := ReadJobDatabase(stateFilename)
 	if err == nil {
-		return db, nil
+		return db, nil, 0
 	}
 	_, isPathErr := err.(*os.PathError)
 	if isPathErr {
-		return NewJobDatabase(), nil
+		return NewJobDatabase(), nil, 0
 	}
-	return nil, err
+	return nil, err, dropped
 }
 
 // If state does not have the job then add it.  In either case set its LastSeen field to lastSeen.
@@ -181,7 +180,7 @@ func PurgeJobsBefore(db *JobDatabase, purgeDate time.Time) int {
 //
 // TODO: It's possible this should rename the existing state file as a .bak file.
 
-func WriteJobDatabase(dataPath, filename string, db *JobDatabase) error {
+func WriteJobDatabase(stateFilename string, db *JobDatabase) error {
 	output_records := make([]map[string]string, 0)
 	for _, r := range db.Active {
 		output_records = append(output_records, makeMap(r, false))
@@ -190,7 +189,6 @@ func WriteJobDatabase(dataPath, filename string, db *JobDatabase) error {
 		output_records = append(output_records, makeMap(r, true))
 	}
 	fields := []string{"id", "host", "startedOnOrBefore", "firstViolation", "lastSeen", "isReported", "isExpired"}
-	stateFilename := path.Join(dataPath, filename)
 	err := storage.WriteFreeCSV(stateFilename, fields, output_records)
 	if err != nil {
 		return err

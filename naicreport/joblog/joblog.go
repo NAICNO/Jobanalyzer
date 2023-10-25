@@ -81,7 +81,7 @@ type JobsByHost[T Job] struct {
 type bucket_t[T Job] []T
 type bucketList_t[T Job] []bucket_t[T]
 
-func ReadJoblogFiles[T Job](
+func FindJoblogFiles(
 	// root of data directory
 	dataPath string,
 
@@ -90,6 +90,22 @@ func ReadJoblogFiles[T Job](
 
 	// the window of time we're interested in
 	from, to time.Time,
+) ([]string, error) {
+	relativeFiles, err := storage.EnumerateFiles(dataPath, from, to, logFilename)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]string, len(relativeFiles))
+	for i, f := range relativeFiles {
+		files[i] = path.Join(dataPath, f)
+	}
+	return files, nil
+}
+
+func ReadJoblogFiles[T Job](
+	// complete paths of the input files
+	files []string,
 
 	// true if we want some stderr diagnostics
 	verbose bool,
@@ -102,10 +118,6 @@ func ReadJoblogFiles[T Job](
 	integrateRecords func(a, b T),
 
 ) ([]*JobsByHost[T], error) {
-	files, err := storage.EnumerateFiles(dataPath, from, to, logFilename)
-	if err != nil {
-		return nil, err
-	}
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%d files\n", len(files))
 	}
@@ -113,7 +125,7 @@ func ReadJoblogFiles[T Job](
 	// Collect all the buckets, there will be many entries in this list for the same host
 	bucketList := make(bucketList_t[T], 0)
 	for _, filePath := range files {
-		records, err := storage.ReadFreeCSV(path.Join(dataPath, filePath))
+		records, err := storage.ReadFreeCSV(filePath)
 		if err != nil {
 			continue
 		}
