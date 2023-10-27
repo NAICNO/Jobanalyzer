@@ -372,7 +372,7 @@ pub struct LoadPrintArgs {
     #[arg(long)]
     last: bool,
 
-    /// Select fields and format for the output [default: see MANUAL.md]
+    /// Select fields and format for the output [default: try --fmt=help]
     #[arg(long)]
     fmt: Option<String>,
 
@@ -393,7 +393,7 @@ pub struct JobPrintArgs {
     #[arg(long, short)]
     numjobs: Option<usize>,
 
-    /// Select fields and format for the output [default: see MANUAL.md]
+    /// Select fields and format for the output [default: try --fmt=help]
     #[arg(long)]
     fmt: Option<String>,
 }
@@ -412,14 +412,14 @@ pub struct UptimePrintArgs {
     #[arg(long, default_value_t = false)]
     only_down: bool,
 
-    /// Select fields and format for the output [default: see MANUAL.md]
+    /// Select fields and format for the output [default: try --fmt=help]
     #[arg(long)]
     fmt: Option<String>,
 }
 
 #[derive(Args, Debug)]
 pub struct ProfilePrintArgs {
-    /// Select fields and format for the output [default: see MANUAL.md]
+    /// Select fields and format for the output [default: try --fmt=help]
     #[arg(long)]
     fmt: Option<String>,
 }
@@ -438,7 +438,7 @@ pub struct ParsePrintArgs {
     #[arg(long, default_value_t = false)]
     clean: bool,
 
-    /// Select fields and format for the output [default: see MANUAL.md]
+    /// Select fields and format for the output [default: try --fmt=help]
     #[arg(long)]
     fmt: Option<String>,
 }
