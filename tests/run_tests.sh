@@ -40,10 +40,17 @@ pattern="$1"
 hard_failed=0
 soft_failed=0
 for dir in $TEST_DIRECTORIES ; do
+    echod=0
     for test in $(find $dir -name '*.sh'); do
         if [[ $pattern != "" && !($test =~ $pattern) ]]; then
             continue
         fi
+	if [[ $echod == 0 ]]; then
+	    echo "----------------------------------------------------"
+	    echo $dir
+	    echo ""
+	    echod=1
+	fi
 	export TEST_NAME=$test
 	( cd $(dirname $test);
 	  bash -c "source $TEST_ROOT/prefix.sh; source $(basename $test); source $TEST_ROOT/suffix.sh "	)

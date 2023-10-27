@@ -21,9 +21,10 @@ package mldeadweight
 
 import (
 	"encoding/json"
-
+	"errors"
 	"fmt"
 	"os"
+	"path"
 	"time"
 
 	"naicreport/joblog"
@@ -36,20 +37,62 @@ const (
 	deadweightFilename = "deadweight-state.csv"
 )
 
+// Se comment in mlcpuhog.go re options logic for --state-file and --now
+
 func MlDeadweight(progname string, args []string) error {
+
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Parse options and establish inputs
+
 	progOpts := util.NewStandardOptions(progname + "ml-deadweight")
 	jsonOutput := progOpts.Container.Bool("json", false, "Format output as JSON")
+	summaryOutput := progOpts.Container.Bool("summary", false, "Format output for testing")
+	stateFileOpt := progOpts.Container.String("state-file", "", "Name of saved-state file (optional)")
+	nowOpt := progOpts.Container.String("now", "", "ISO time to use as the present time (for testing)")
 	err := progOpts.Parse(args)
 	if err != nil {
 		return err
 	}
 
-	if progOpts.DataFiles != nil {
-		fmt.Fprintln(os.Stderr, "The -- filename ... operation is not yet implemented for ml-deadweight")
-		os.Exit(1)
+	var stateFilename string
+	switch {
+	case *stateFileOpt != "":
+		stateFilename = *stateFileOpt
+	case progOpts.DataPath == "":
+		return errors.New("If --state-file is not present then --data-path must be")
+	default:
+		stateFilename = path.Join(progOpts.DataPath, deadweightFilename);
 	}
 
-	db, err := jobstate.ReadJobDatabaseOrEmpty(progOpts.DataPath, deadweightFilename)
+	// progOpts will establish the either-or invariant here
+	var dataFiles []string
+	if progOpts.DataFiles != nil {
+		dataFiles = progOpts.DataFiles
+	} else {
+		files, err := joblog.FindJoblogFiles(progOpts.DataPath, "deadweight.csv", progOpts.From, progOpts.To)
+		if err != nil {
+			return errors.Join(errors.New("Could not enumerate files"), err)
+		}
+		dataFiles = files
+	}
+
+	var now time.Time
+	if *nowOpt != "" {
+		n, err := time.Parse(*nowOpt, util.DateTimeFormat)
+		if err != nil {
+			return errors.Join(errors.New("Argument to --now could not be parsed"), err)
+		}
+		now = n.UTC()
+	} else {
+		now = time.Now().UTC()
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Read inputs
+
+	db, err, _ := jobstate.ReadJobDatabaseOrEmpty(stateFilename)
 	if err != nil {
 		return err
 	}
@@ -58,10 +101,7 @@ func MlDeadweight(progname string, args []string) error {
 	}
 
 	logs, err := joblog.ReadJoblogFiles[*deadweightJob](
-		progOpts.DataPath,
-		"deadweight.csv",
-		progOpts.From,
-		progOpts.To,
+		dataFiles,
 		progOpts.Verbose,
 		parseDeadweightRecord,
 		integrateDeadweightRecords,
@@ -76,7 +116,9 @@ func MlDeadweight(progname string, args []string) error {
 		}
 	}
 
-	now := time.Now().UTC()
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Create the new state
 
 	new_jobs := 0
 	for _, hostrec := range logs {
@@ -96,17 +138,28 @@ func MlDeadweight(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
 	}
 
-	if *jsonOutput {
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Write outputs
+
+	switch {
+	case *jsonOutput:
 		bytes, err := json.Marshal(createDeadweightReport(db, logs, true))
 		if err != nil {
 			return err
 		}
 		fmt.Println(string(bytes))
-	} else {
+	case *summaryOutput:
+		report := createDeadweightReport(db, logs, false)
+		for _, r := range report {
+			r.jobState.IsReported = true;
+			fmt.Printf("%s,%d,%s\n", r.User, r.Id, r.Host)
+		}
+	default:
 		writeDeadweightReport(createDeadweightReport(db, logs, false))
 	}
 
-	return jobstate.WriteJobDatabase(progOpts.DataPath, deadweightFilename, db)
+	return jobstate.WriteJobDatabase(stateFilename, db)
 }
 
 type perJobReport struct {

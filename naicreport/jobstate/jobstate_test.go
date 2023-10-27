@@ -24,7 +24,7 @@ func TestWriteState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MkdirTemp failed %q", err)
 	}
-	err = WriteJobDatabase(td_name, "jobstate.csv", s)
+	err = WriteJobDatabase(path.Join(td_name, "jobstate.csv"), s)
 	if err != nil {
 		t.Fatalf("Could not write: %q", err)
 	}
@@ -47,7 +47,7 @@ func TestWriteState(t *testing.T) {
 
 	// Second test: read it as state and make sure the contents look good
 
-	newState, err := ReadJobDatabase(td_name, "jobstate.csv")
+	newState, err, _ := ReadJobDatabase(path.Join(td_name, "jobstate.csv"))
 	if err != nil {
 		t.Fatalf("ReadJobDatabase failed %q", err)
 	}

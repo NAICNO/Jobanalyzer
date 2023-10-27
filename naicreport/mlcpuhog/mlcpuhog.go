@@ -37,8 +37,10 @@ package mlcpuhog
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
+	"path"
 	"os"
 	"time"
 
@@ -49,24 +51,80 @@ import (
 )
 
 const (
-	cpuhogFilename = "cpuhog-state.csv"
+	cpuhogStateFilename = "cpuhog-state.csv"
+	cpuhogDataFilename = "cpuhog.csv"
 )
 
+// Options logic here and for deadweight:
+//
+// - If `--state-file` is present then that names the state file; otherwise `--data-path` must be present
+//   and we use `${dataPath}/cpuhog-state.csv` as the state file
+//
+// - If `-- filename ...` are present then those are used for input; otherwise `--data-path` must be present
+//   and we enumerate cpuhog.csv files within the dataPath directory
+//
+// - The `--now` option is strictly for testing, everyone else should ignore it.  It parses a time on
+//   the format "YYYY-MM-DD hh:mm" (yes, with the space).
+
 func MlCpuhog(progname string, args []string) error {
+
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Parse options and establish inputs
+
 	progOpts := util.NewStandardOptions(progname + "ml-cpuhog")
 	jsonOutput := progOpts.Container.Bool("json", false, "Format output as JSON")
+	summaryOutput := progOpts.Container.Bool("summary", false, "Format output for testing")
+	stateFileOpt := progOpts.Container.String("state-file", "", "Name of saved-state file (optional)")
+	nowOpt := progOpts.Container.String("now", "", "ISO time to use as the present time (for testing)")
 	err := progOpts.Parse(args)
 	if err != nil {
 		return err
 	}
 
-	if progOpts.DataFiles != nil {
-		fmt.Fprintln(os.Stderr, "The -- filename ... operation is not yet implemented for ml-deadweight")
-		os.Exit(1)
-
+	var stateFilename string
+	switch {
+	case *stateFileOpt != "":
+		stateFilename = *stateFileOpt
+	case progOpts.DataPath == "":
+		return errors.New("If --state-file is not present then --data-path must be")
+	default:
+		stateFilename = path.Join(progOpts.DataPath, cpuhogStateFilename);
 	}
 
-	db, err := jobstate.ReadJobDatabaseOrEmpty(progOpts.DataPath, cpuhogFilename)
+	// progOpts will establish the either-or invariant here
+	var dataFiles []string
+	if progOpts.DataFiles != nil {
+		dataFiles = progOpts.DataFiles
+	} else {
+		files, err := joblog.FindJoblogFiles(
+			progOpts.DataPath,
+			cpuhogDataFilename,
+			progOpts.From,
+			progOpts.To,
+		)
+		if err != nil {
+			return errors.Join(errors.New("Could not enumerate files"), err)
+		}
+		dataFiles = files
+	}
+
+	var now time.Time
+	if *nowOpt != "" {
+		n, err := time.Parse(*nowOpt, util.DateTimeFormat)
+		if err != nil {
+			return errors.Join(errors.New("Argument to --now could not be parsed"), err)
+		}
+		now = n.UTC()
+	} else {
+		now = time.Now().UTC()
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Read inputs
+
+	db, err, _ := jobstate.ReadJobDatabaseOrEmpty(stateFilename)
 	if err != nil {
 		return err
 	}
@@ -75,10 +133,7 @@ func MlCpuhog(progname string, args []string) error {
 	}
 
 	logs, err := joblog.ReadJoblogFiles[*cpuhogJob](
-		progOpts.DataPath,
-		"cpuhog.csv",
-		progOpts.From,
-		progOpts.To,
+		dataFiles,
 		progOpts.Verbose,
 		parseCpuhogRecord,
 		integrateCpuhogRecords,
@@ -93,7 +148,9 @@ func MlCpuhog(progname string, args []string) error {
 		}
 	}
 
-	now := time.Now().UTC()
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Create the new state
 
 	new_jobs := 0
 	for _, hostrec := range logs {
@@ -113,17 +170,28 @@ func MlCpuhog(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d jobs purged\n", purged)
 	}
 
-	if *jsonOutput {
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Write outputs
+
+	switch {
+	case *jsonOutput:
 		bytes, err := json.Marshal(createCpuhogReport(db, logs, true))
 		if err != nil {
 			return err
 		}
 		fmt.Println(string(bytes))
-	} else {
+	case *summaryOutput:
+		report := createCpuhogReport(db, logs, false)
+		for _, r := range report {
+			r.jobState.IsReported = true;
+			fmt.Printf("%s,%d,%s,%d\n", r.User, r.Id, r.Host, r.CpuPeak)
+		}
+	default:
 		writeCpuhogReport(createCpuhogReport(db, logs, false))
 	}
 
-	return jobstate.WriteJobDatabase(progOpts.DataPath, cpuhogFilename, db)
+	return jobstate.WriteJobDatabase(stateFilename, db)
 }
 
 type perJobReport struct {

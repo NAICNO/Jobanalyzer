@@ -26,11 +26,12 @@ func TestReadLogFiles(t *testing.T) {
 
 	from := time.Date(2023, 9, 3, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2023, 9, 4, 0, 0, 0, 0, time.UTC)
+	files, err := FindJoblogFiles(dataPath, "jobdata.csv", from, to)
+	if err != nil {
+		t.Fatalf("Could not enumerate files: %q", err)
+	}
 	jobLog, err := ReadJoblogFiles[*testJob](
-		dataPath,
-		"jobdata.csv",
-		from,
-		to,
+		files,
 		false,
 		parseJobRecord,
 		integrateJobRecords,
@@ -60,11 +61,12 @@ func TestReadLogFiles(t *testing.T) {
 
 	from = time.Date(2023, 9, 6, 0, 0, 0, 0, time.UTC)
 	to = time.Date(2023, 9, 8, 0, 0, 0, 0, time.UTC)
+	files, err = FindJoblogFiles(dataPath, "jobdata.csv", from, to)
+	if err != nil {
+		t.Fatalf("Could not enumerate files: %q", err)
+	}
 	jobLog, err = ReadJoblogFiles(
-		dataPath,
-		"jobdata.csv",
-		from,
-		to,
+		files,
 		false,
 		parseJobRecord,
 		integrateJobRecords,
