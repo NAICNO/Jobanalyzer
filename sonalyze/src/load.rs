@@ -8,8 +8,8 @@ use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
 use sonarlog::{
-    self, add_day, add_hour, empty_logentry, now, truncate_to_day, truncate_to_hour, HostFilter,
-    InputStreamSet, LogEntry, Timestamp,
+    self, add_day, add_hour, empty_logentry, gpuset_to_string, now, truncate_to_day, truncate_to_hour,
+    HostFilter, InputStreamSet, LogEntry, Timestamp,
 };
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -288,27 +288,7 @@ fn format_rgpumem(d: LoadDatum, ctx: LoadCtx) -> String {
 }
 
 fn format_gpus(d: LoadDatum, _: LoadCtx) -> String {
-    if let Some(ref gpus) = d.gpus {
-        if gpus.is_empty() {
-            "none".to_string()
-        } else {
-            let mut gpunums = vec![];
-            for x in gpus {
-                gpunums.push(*x);
-            }
-            gpunums.sort();
-            let mut s = "".to_string();
-            for x in gpunums {
-                if !s.is_empty() {
-                    s += ",";
-                }
-                s += &format!("{}", x)
-            }
-            s
-        }
-    } else {
-        "unknown".to_string()
-    }
+    gpuset_to_string(&d.gpus)
 }
 
 fn format_host(d: LoadDatum, _: LoadCtx) -> String {
