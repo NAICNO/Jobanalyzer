@@ -3,7 +3,10 @@
 /// Feature: One could imagine other sort orders for the output than least-recently-started-first.
 /// This only matters for the --numjobs switch.
 use crate::format;
-use crate::jobs::{JobSummary, LEVEL_MASK, LEVEL_SHIFT, LIVE_AT_END, LIVE_AT_START};
+use crate::jobs::{JobSummary, LIVE_AT_END, LIVE_AT_START};
+/* BREAKDOWN
+ * use crate::jobs::{LEVEL_MASK, LEVEL_SHIFT};
+ */
 use crate::{JobPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
@@ -92,10 +95,12 @@ pub fn print_jobs(
                 .unwrap();
         });
     } else if numselected > 0 {
-        let (mut formatters, aliases) = my_formatters();
-        if print_args.breakdown.is_some() {
-            formatters.insert("*prefix*".to_string(), &format_prefix);
-        }
+        let (/*mut*/ formatters, aliases) = my_formatters();
+        /* BREAKDOWN
+         * if print_args.breakdown.is_some() {
+         *     formatters.insert("*prefix*".to_string(), &format_prefix);
+         * }
+         */
         let spec = if let Some(ref fmt) = print_args.fmt {
             fmt
         } else {
@@ -114,12 +119,16 @@ pub fn print_jobs(
 
         if fields.len() > 0 {
             let mut selected = vec![];
-            for mut job in jobvec.drain(0..) {
+            for /*mut*/ job in jobvec.drain(0..) {
                 if job.aggregate.selected {
-                    let breakdown = job.breakdown;
-                    job.breakdown = None;
+                    /* BREAKDOWN
+                     * let breakdown = job.breakdown;
+                     * job.breakdown = None;
+                     */
                     selected.push(job);
-                    expand_subjobs(1, breakdown, &mut selected);
+                    /* BREAKDOWN
+                     * expand_subjobs(1, breakdown, &mut selected);
+                     */
                 }
             }
             format::format_data(output, &fields, &formatters, &opts, selected, &now());
@@ -227,30 +236,32 @@ fn my_formatters() -> (
     (formatters, aliases)
 }
 
-fn expand_subjobs(
-    level: u32,
-    breakdown: Option<(String, Vec<JobSummary>)>,
-    selected: &mut Vec<JobSummary>,
-) {
-    if let Some((tag, mut subjobs)) = breakdown {
-        match tag.as_str() {
-            "host" => {
-                subjobs.sort_by(|a, b| a.job[0].hostname.cmp(&b.job[0].hostname));
-            }
-            "command" => {
-                subjobs.sort_by(|a, b| a.job[0].command.cmp(&b.job[0].command));
-            }
-            _ => {}
-        }
-        for mut subjob in subjobs {
-            let sub_breakdown = subjob.breakdown;
-            subjob.breakdown = None;
-            subjob.aggregate.classification |= level << LEVEL_SHIFT;
-            selected.push(subjob);
-            expand_subjobs(level + 1, sub_breakdown, selected);
-        }
-    }
-}
+/*
+ * fn expand_subjobs(
+ *     level: u32,
+ *     breakdown: Option<(String, Vec<JobSummary>)>,
+ *     selected: &mut Vec<JobSummary>,
+ * ) {
+ *     if let Some((tag, mut subjobs)) = breakdown {
+ *         match tag.as_str() {
+ *             "host" => {
+ *                 subjobs.sort_by(|a, b| a.job[0].hostname.cmp(&b.job[0].hostname));
+ *             }
+ *             "command" => {
+ *                 subjobs.sort_by(|a, b| a.job[0].command.cmp(&b.job[0].command));
+ *             }
+ *             _ => {}
+ *         }
+ *         for mut subjob in subjobs {
+ *             let sub_breakdown = subjob.breakdown;
+ *             subjob.breakdown = None;
+ *             subjob.aggregate.classification |= level << LEVEL_SHIFT;
+ *             selected.push(subjob);
+ *             expand_subjobs(level + 1, sub_breakdown, selected);
+ *         }
+ *     }
+ * }
+ */
 
 type LogDatum<'a> = &'a JobSummary;
 type LogCtx<'a> = &'a Timestamp;
@@ -284,15 +295,17 @@ fn format_job_id(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", job[0].job_id)
 }
 
-fn format_prefix(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
-    let mut s = "".to_string();
-    let mut level = (a.classification >> LEVEL_SHIFT) & LEVEL_MASK;
-    while level > 0 {
-        s += "*";
-        level -= 1;
-    }
-    s
-}
+/* BREAKDOWN
+ * fn format_prefix(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+ *     let mut s = "".to_string();
+ *     let mut level = (a.classification >> LEVEL_SHIFT) & LEVEL_MASK;
+ *     while level > 0 {
+ *         s += "*";
+ *         level -= 1;
+ *     }
+ *     s
+ * }
+ */
 
 fn format_host(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
     // The hosts are in the jobs only, we aggregate only for presentation
