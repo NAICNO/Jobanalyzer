@@ -4,7 +4,7 @@ rm -f $statefile
 # Populate a state from a cpuhog report.  There will be one section of output for
 # each line in the input.
 
-output=$($NAICREPORT ml-cpuhog --from 2023-10-24 --state-file $statefile --summary -- cpuhog1.csv | sort)
+output=$($NAICREPORT ml-cpuhog --state-file $statefile --summary -- cpuhog1.csv | sort)
 CHECK cpuhog_from_empty_state \
       'daniehh,2974731,ml6,5
 einarvid,1017602,ml7,38
@@ -15,9 +15,9 @@ tsauren,471142,ml8,167' \
       "$output"
 
 # Now update the state from a later report.  Most of the lines will not contribute but there
-# are two new jobs.
+# are two new jobs.  The explicit --to is necessary to prevent old record from being expired.
 
-output=$($NAICREPORT ml-cpuhog --from 2023-10-24 --state-file $statefile --summary -- cpuhog2.csv | sort)
+output=$($NAICREPORT ml-cpuhog --to 2023-10-25 --state-file $statefile --summary -- cpuhog2.csv | sort)
 CHECK cpuhog_from_populated_state \
       'einarvid,2826710,ml2,32
 tsauren,103737,ml8,160' "$output"
