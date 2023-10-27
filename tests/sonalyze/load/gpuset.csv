@@ -1,0 +1,3 @@
+v=0.7.0,time=2023-10-05T12:42:41+02:00,host=ml4,cores=64,user=einarvid,job=1608145,pid=0,cmd=python3,cpu%=158.2,cpukib=346142528,gpus=none,gpu%=0,gpumem%=0,gpukib=0,cputime_sec=3068832,rolledup=76
+v=0.7.0,time=2023-10-05T12:42:41+02:00,host=ml5,cores=64,user=einarvid,job=1608145,pid=0,cmd=python3,cpu%=158.2,cpukib=346142528,gpus=unknown,gpu%=0,gpumem%=0,gpukib=0,cputime_sec=3068832,rolledup=76
+v=0.7.0,time=2023-10-05T12:42:41+02:00,host=ml6,cores=64,user=einarvid,job=1608145,pid=0,cmd=python3,cpu%=158.2,cpukib=346142528,"gpus=1,3",gpu%=0,gpumem%=0,gpukib=0,cputime_sec=3068832,rolledup=76
