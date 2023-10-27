@@ -2,7 +2,10 @@
 use crate::prjobs;
 use crate::{JobFilterAndAggregationArgs, JobPrintArgs, MetaArgs};
 
-use anyhow::{bail, Result};
+/* BREAKDOWN
+ * use anyhow::bail;
+ */
+use anyhow::Result;
 use sonarlog::{
     self, is_empty_gpuset, merge_gpu_status, GpuStatus, InputStreamSet, LogEntry, Timebound,
     Timebounds, Timestamp,
@@ -16,8 +19,10 @@ use std::io;
 pub const LIVE_AT_END: u32 = 1; // Earliest timestamp coincides with earliest record read
 pub const LIVE_AT_START: u32 = 2; // Ditto latest/latest
                                   // Subjob level is eight bits at this offset
-pub const LEVEL_SHIFT: u32 = 8;
-pub const LEVEL_MASK: u32 = 255;
+/* BREAKDOWN
+ * pub const LEVEL_SHIFT: u32 = 8;
+ * pub const LEVEL_MASK: u32 = 255;
+ */
 
 /// The JobAggregate structure holds aggregated data for a single job.  The view of the job may be
 /// partial, as job records may have been filtered out for the job for various reasons, including
@@ -85,13 +90,15 @@ pub fn aggregate_and_print_jobs(
 ) -> Result<()> {
     // These are unmerged, but they are also unfiltered, so there may be data here that are not used
     // at all in the aggregated jobs.
-    let orig_streams = if print_args.breakdown.is_some() {
-        Some(streams.clone())
-    } else {
-        None
-    };
+    /* BREAKDOWN
+     * let orig_streams = if print_args.breakdown.is_some() {
+     *    Some(streams.clone())
+     * } else {
+     *    None
+     * };
+     */
 
-    let mut jobvec = aggregate_and_filter_jobs(system_config, filter_args, streams, bounds);
+    let /*mut*/ jobvec = aggregate_and_filter_jobs(system_config, filter_args, streams, bounds);
 
     if meta_args.verbose {
         eprintln!(
@@ -100,167 +107,171 @@ pub fn aggregate_and_print_jobs(
         );
     }
 
-    if let Some(ref breakdown) = print_args.breakdown {
-        let kwds = breakdown.split(",").collect::<Vec<&str>>();
-        let mut host = 0;
-        let mut command = 0;
-        let mut other = 0;
-        for k in kwds.iter() {
-            match k {
-                &"host" => {
-                    host += 1;
-                }
-                &"command" => {
-                    command += 1;
-                }
-                _ => {
-                    other += 1;
-                }
-            }
-        }
-        if host > 1 || command > 1 || other > 0 {
-            bail!("Bad breakdown spec {breakdown}");
-        }
-        attach_breakdown(
-            system_config,
-            filter_args,
-            &kwds,
-            0,
-            &mut jobvec,
-            orig_streams.unwrap(),
-            bounds,
-        );
-    }
+    /* BREAKDOWN
+     * if let Some(ref breakdown) = print_args.breakdown {
+     *    let kwds = breakdown.split(",").collect::<Vec<&str>>();
+     *    let mut host = 0;
+     *    let mut command = 0;
+     *    let mut other = 0;
+     *    for k in kwds.iter() {
+     *        match k {
+     *            &"host" => {
+     *                host += 1;
+     *            }
+     *            &"command" => {
+     *                command += 1;
+     *            }
+     *            _ => {
+     *                other += 1;
+     *            }
+     *        }
+     *    }
+     *    if host > 1 || command > 1 || other > 0 {
+     *        bail!("Bad breakdown spec {breakdown}");
+     *    }
+     *    attach_breakdown(
+     *        system_config,
+     *        filter_args,
+     *        &kwds,
+     *        0,
+     *        &mut jobvec,
+     *        orig_streams.unwrap(),
+     *        bounds,
+     *    );
+     * }
+     */
 
     prjobs::print_jobs(output, system_config, jobvec, print_args, meta_args)
 }
 
-// Assume breakdown by "X"
-// First partition input streams by job (across hosts and commands)
-// Then partition those streams by Xs (across Ys)
-// Then aggregate the data in the latter partitions
-// Then attach these aggregates to the job
-
-fn attach_breakdown(
-    system_config: &Option<HashMap<String, sonarlog::System>>,
-    filter_args: &JobFilterAndAggregationArgs,
-    kwds: &[&str],
-    kwdix: usize,
-    jobvec: &mut Vec<JobSummary>,
-    mut orig_streams: InputStreamSet,
-    bounds: &Timebounds,
-) {
-    // If the streams in `orig_streams` are unique enough to be in a HashMap then the subset
-    // we're creating by job here - the value in this hashmap - will also have unique keys if
-    // they reuse the InputStreamKey.
-    //
-    // Note orig_streams may have more streams and jobs than are in jobvec, due to filtering
-    // during aggregation.
-
-    let mut orig_streams_by_job: HashMap<u32, InputStreamSet> = HashMap::new();
-    for (key, streams) in orig_streams.drain() {
-        let job_id = streams[0].job_id;
-        if job_id == 0 {
-            continue;
-        }
-        if let Some(iss) = orig_streams_by_job.get_mut(&job_id) {
-            iss.insert(key, streams);
-        } else {
-            let mut iss = InputStreamSet::new();
-            iss.insert(key, streams);
-            orig_streams_by_job.insert(job_id, iss);
-        }
-    }
-
-    for (job_id, orig_job_streams) in orig_streams_by_job.drain() {
-        // TODO: This lookup is going to be quadratic
-        if let Some(job) = jobvec.iter_mut().find(|j| j.job[0].job_id == job_id) {
-            attach_one_breakdown(
-                system_config,
-                filter_args,
-                kwds,
-                kwdix,
-                job,
-                orig_job_streams,
-                bounds,
-            );
-        }
-    }
-}
-
-fn attach_one_breakdown(
-    system_config: &Option<HashMap<String, sonarlog::System>>,
-    filter_args: &JobFilterAndAggregationArgs,
-    kwds: &[&str],
-    kwdix: usize,
-    job: &mut JobSummary,
-    mut orig_job_streams: InputStreamSet,
-    bounds: &Timebounds,
-) -> bool {
-    let kwd = kwds[kwdix];
-
-    // Partition the streams for the job by host or command.  Again, it's fine to reuse the
-    // InputStreamKey as the key for the inner map.
-
-    let mut orig_streams_by_x: HashMap<String, InputStreamSet> = HashMap::new();
-    for (key, streams) in orig_job_streams.drain() {
-        let k = if kwd == "host" {
-            key.0.clone()
-        } else {
-            key.2.clone()
-        };
-        if let Some(iss) = orig_streams_by_x.get_mut(&k) {
-            iss.insert(key, streams);
-        } else {
-            let mut iss = InputStreamSet::new();
-            iss.insert(key.clone(), streams);
-            orig_streams_by_x.insert(k, iss);
-        }
-    }
-
-    // Aggregate the accumulated streams, and if necessary, descend another level to break down
-    // further.
-
-    // The problem with this is that if you do breakdown=host,command and it's all on one host then
-    // we bail too soon.  It's only when we have descended to the bottom that we know for sure.
-    let mut will_attach = orig_streams_by_x.len() > 1;
-    let mut breakdown = vec![];
-    for (_x, x_streams) in orig_streams_by_x {
-        let next_streams = if kwdix < kwds.len() - 1 {
-            Some(x_streams.clone())
-        } else {
-            None
-        };
-        let mut summaries =
-            aggregate_and_filter_jobs(system_config, filter_args, x_streams, bounds);
-        if summaries.len() == 0 {
-            // There could be no summaries due to filtering: job_streams are the original unfiltered
-            // streams for the job, but we apply filtering during aggregation
-            continue;
-        }
-        if summaries.len() != 1 {
-            panic!("summaries.len() = {}", summaries.len())
-        }
-        let mut summary = summaries.pop().unwrap();
-        if let Some(orig_x_streams) = next_streams {
-            will_attach = attach_one_breakdown(
-                system_config,
-                filter_args,
-                kwds,
-                kwdix + 1,
-                &mut summary,
-                orig_x_streams,
-                bounds,
-            ) || will_attach;
-        }
-        breakdown.push(summary);
-    }
-    if will_attach {
-        let tag = kwd.to_string();
-        job.breakdown = Some((tag, breakdown));
-    }
-    return will_attach;
-}
+/* BREAKDOWN
+ * // Assume breakdown by "X"
+ * // First partition input streams by job (across hosts and commands)
+ * // Then partition those streams by Xs (across Ys)
+ * // Then aggregate the data in the latter partitions
+ * // Then attach these aggregates to the job
+ *
+ * fn attach_breakdown(
+ *     system_config: &Option<HashMap<String, sonarlog::System>>,
+ *     filter_args: &JobFilterAndAggregationArgs,
+ *     kwds: &[&str],
+ *     kwdix: usize,
+ *     jobvec: &mut Vec<JobSummary>,
+ *     mut orig_streams: InputStreamSet,
+ *     bounds: &Timebounds,
+ * ) {
+ *     // If the streams in `orig_streams` are unique enough to be in a HashMap then the subset
+ *     // we're creating by job here - the value in this hashmap - will also have unique keys if
+ *     // they reuse the InputStreamKey.
+ *     //
+ *     // Note orig_streams may have more streams and jobs than are in jobvec, due to filtering
+ *     // during aggregation.
+ *
+ *     let mut orig_streams_by_job: HashMap<u32, InputStreamSet> = HashMap::new();
+ *     for (key, streams) in orig_streams.drain() {
+ *         let job_id = streams[0].job_id;
+ *         if job_id == 0 {
+ *             continue;
+ *         }
+ *         if let Some(iss) = orig_streams_by_job.get_mut(&job_id) {
+ *             iss.insert(key, streams);
+ *         } else {
+ *             let mut iss = InputStreamSet::new();
+ *             iss.insert(key, streams);
+ *             orig_streams_by_job.insert(job_id, iss);
+ *         }
+ *     }
+ *
+ *     for (job_id, orig_job_streams) in orig_streams_by_job.drain() {
+ *         // TODO: This lookup is going to be quadratic
+ *         if let Some(job) = jobvec.iter_mut().find(|j| j.job[0].job_id == job_id) {
+ *             attach_one_breakdown(
+ *                 system_config,
+ *                 filter_args,
+ *                 kwds,
+ *                 kwdix,
+ *                 job,
+ *                 orig_job_streams,
+ *                 bounds,
+ *             );
+ *         }
+ *     }
+ * }
+ *
+ * fn attach_one_breakdown(
+ *     system_config: &Option<HashMap<String, sonarlog::System>>,
+ *     filter_args: &JobFilterAndAggregationArgs,
+ *     kwds: &[&str],
+ *     kwdix: usize,
+ *     job: &mut JobSummary,
+ *     mut orig_job_streams: InputStreamSet,
+ *     bounds: &Timebounds,
+ * ) -> bool {
+ *     let kwd = kwds[kwdix];
+ *
+ *     // Partition the streams for the job by host or command.  Again, it's fine to reuse the
+ *     // InputStreamKey as the key for the inner map.
+ *
+ *     let mut orig_streams_by_x: HashMap<String, InputStreamSet> = HashMap::new();
+ *     for (key, streams) in orig_job_streams.drain() {
+ *         let k = if kwd == "host" {
+ *             key.0.clone()
+ *         } else {
+ *             key.2.clone()
+ *         };
+ *         if let Some(iss) = orig_streams_by_x.get_mut(&k) {
+ *             iss.insert(key, streams);
+ *         } else {
+ *             let mut iss = InputStreamSet::new();
+ *             iss.insert(key.clone(), streams);
+ *             orig_streams_by_x.insert(k, iss);
+ *         }
+ *     }
+ *
+ *     // Aggregate the accumulated streams, and if necessary, descend another level to break down
+ *     // further.
+ *
+ *     // The problem with this is that if you do breakdown=host,command and it's all on one host then
+ *     // we bail too soon.  It's only when we have descended to the bottom that we know for sure.
+ *     let mut will_attach = orig_streams_by_x.len() > 1;
+ *     let mut breakdown = vec![];
+ *     for (_x, x_streams) in orig_streams_by_x {
+ *         let next_streams = if kwdix < kwds.len() - 1 {
+ *             Some(x_streams.clone())
+ *         } else {
+ *             None
+ *         };
+ *         let mut summaries =
+ *             aggregate_and_filter_jobs(system_config, filter_args, x_streams, bounds);
+ *         if summaries.len() == 0 {
+ *             // There could be no summaries due to filtering: job_streams are the original unfiltered
+ *             // streams for the job, but we apply filtering during aggregation
+ *             continue;
+ *         }
+ *         if summaries.len() != 1 {
+ *             panic!("summaries.len() = {}", summaries.len())
+ *         }
+ *         let mut summary = summaries.pop().unwrap();
+ *         if let Some(orig_x_streams) = next_streams {
+ *             will_attach = attach_one_breakdown(
+ *                 system_config,
+ *                 filter_args,
+ *                 kwds,
+ *                 kwdix + 1,
+ *                 &mut summary,
+ *                 orig_x_streams,
+ *                 bounds,
+ *             ) || will_attach;
+ *         }
+ *         breakdown.push(summary);
+ *     }
+ *     if will_attach {
+ *         let tag = kwd.to_string();
+ *         job.breakdown = Some((tag, breakdown));
+ *     }
+ *     return will_attach;
+ * }
+ */
 
 // A sample stream is a quadruple (host, command, job-related-id, record-list).  A stream is only
 // ever about one job.  There may be multiple streams per job, they will all have the same
