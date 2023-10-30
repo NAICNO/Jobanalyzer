@@ -19,7 +19,8 @@ pub type MergedSampleStreams = Vec<Vec<Box<LogEntry>>>;
 /// Each output stream is sorted ascending by timestamp.  No two records have exactly the same time.
 /// All records within a stream have the same host, command, user, and job ID.
 ///
-/// The command name for synthesized data collects all the commands that went into the synthesized stream.
+/// The command name for synthesized data collects all the commands that went into the synthesized
+/// stream.
 
 pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams {
     // The value is a set of command names and a vector of the individual streams.
@@ -56,11 +57,12 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
         if let Some(zeroes) = zero.remove(&hostname) {
             vs.extend(zeroes);
         }
-        let cmdname = cmds.drain().collect::<Vec<String>>().join(",");
+        let mut commands = cmds.drain().collect::<Vec<String>>();
+        commands.sort();
         // Any user from any record is fine.  There should be an invariant that no stream is empty,
         // so this should always be safe.
         let user = streams[0][0].user.clone();
-        vs.push(merge_streams(hostname, cmdname, user, job_id, streams));
+        vs.push(merge_streams(hostname, commands.join(","), user, job_id, streams));
     }
 
     vs
@@ -127,11 +129,12 @@ pub fn merge_by_job(
             });
             new_bounds.insert(hostname.clone(), Timebound { earliest, latest });
         }
-        let cmdname = cmds.drain().collect::<Vec<String>>().join(",");
+        let mut commands = cmds.drain().collect::<Vec<String>>();
+        commands.sort();
         // Any user from any record is fine.  There should be an invariant that no stream is empty,
         // so this should always be safe.
         let user = streams[0][0].user.clone();
-        vs.push(merge_streams(hostname, cmdname, user, job_id, streams));
+        vs.push(merge_streams(hostname, commands.join(","), user, job_id, streams));
     }
 
     (vs, new_bounds)

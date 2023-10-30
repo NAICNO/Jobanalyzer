@@ -217,8 +217,10 @@ pub struct LogEntry {
     /// Unix user name, or `_zombie_<PID>`
     pub user: String,
 
-    /// For a unique process, this is its pid.  For a rolled-up job record with multiple processes,
-    /// this is initially zero, but logclean converts it to job_id + 10000000.
+    /// For a unique process, this is its pid.
+    ///
+    /// Semi-computed field.  For a rolled-up job record with multiple processes, this is initially
+    /// zero, but logclean converts it to job_id + logclean::JOB_ID_TAG.
     pub pid: u32,
 
     /// The job_id.  This has some complicated constraints, see the Sonar docs.
@@ -227,6 +229,10 @@ pub struct LogEntry {
     /// The command contains at least the executable name.  It may contain spaces and other special
     /// characters.  This can be `_unknown_` for zombie jobs and `_noinfo_` for non-zombie jobs when
     /// the command can't be found.
+    ///
+    /// Semi-computed field.  For merged records, this is either a comma-joined sorted list of the
+    /// command names of the original records, or the string "_merged_" when the record represents
+    /// the merging of multiple jobs.
     pub command: String,
 
     /// This is a running average of the CPU usage of the job, over the lifetime of the job, summed
@@ -253,15 +259,15 @@ pub struct LogEntry {
     /// memory on all the cards in `gpus`.  100.0 means 1 card's worth of memory (100%).  This value
     /// may be larger than 100.0 as it's the sum across cards.
     ///
-    /// Note this is not always reliable in its raw form (see Sonar documentation).  The logclean
-    /// module will tidy this up if presented with an appropriate system configuration.
+    /// Semi-computed field.  This is not always reliable in its raw form (see Sonar documentation).
+    /// The logclean module will tidy this up if presented with an appropriate system configuration.
     pub gpumem_pct: f64,
 
     /// GPU memory used by the job on the node at the time of sampling, naturally across all GPUs in
     /// `gpus`.
     ///
-    /// Note this is not always reliable in its raw form (see Sonar documentation).  The logclean
-    /// module will tidy this up if presented with an appropriate system configuration.
+    /// Semi-computed field.  This is not always reliable in its raw form (see Sonar documentation).
+    /// The logclean module will tidy this up if presented with an appropriate system configuration.
     pub gpumem_gb: f64,
 
     /// Status of GPUs, as seen by sonar at the time.
@@ -275,12 +281,12 @@ pub struct LogEntry {
     /// this process record.
     pub rolledup: u32,
 
-    // Computed fields.  Also see above about pid, gpumem_pct, and gpumem_gb.
-    /// CPU utilization in percent (100% = one full core) in the time interval since the previous
-    /// record for this job.  This is computed by logclean from consecutive `cputime_sec` fields for
-    /// records that represent the same job, when the information is available: it requires the
-    /// `pid` and `cputime_sec` fields to be meaningful.  For the first record (where there is no
-    /// previous record to diff against), the `cpu_pct` value is used here.
+    /// Computed field.  CPU utilization in percent (100% = one full core) in the time interval
+    /// since the previous record for this job.  This is computed by logclean from consecutive
+    /// `cputime_sec` fields for records that represent the same job, when the information is
+    /// available: it requires the `pid` and `cputime_sec` fields to be meaningful.  For the first
+    /// record (where there is no previous record to diff against), the `cpu_pct` value is used
+    /// here.
     pub cpu_util_pct: f64,
 }
 
