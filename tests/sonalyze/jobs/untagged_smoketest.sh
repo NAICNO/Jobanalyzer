@@ -6,7 +6,6 @@ if [[ $($SONALYZE version) =~ untagged_sonar_data ]]; then
     CHECK jobs_untagged_smoketest_times "2447150,2023-06-23 12:25,2023-06-24 09:00" "$output"
 
     # Translated from a whitebox test, but I'm unsure what this tests, actually...  output, maybe...
-    # Bug #181: The program name for the composite job keeps changing.
     output=$($SONALYZE jobs -u- \
 		       --max-cpu-avg=100000000 --max-cpu-peak=100000000 \
 		       --max-rcpu-avg=100000000 --max-rcpu-peak=100000000 \
@@ -30,10 +29,10 @@ if [[ $($SONALYZE version) =~ untagged_sonar_data ]]; then
 2628112   riccarsi  0d14h 0m  ml8   1        91        147      148       57       61        2           3            python
 2640656   larsbent  0d 1h25m  ml8   82       1462      102      104       64       93        19          38           python
 2643165   larsbent  0d 1h25m  ml8   9        152       37       41        60       86        3           3            python
-2722769   larsbent  0d11h20m  ml8   8        1071      121      140       79       93        22          40           python <defunct>,python
+2722769   larsbent  0d11h20m  ml8   8        1071      121      140       79       93        22          40           python,python <defunct>
 2722782>  larsbent  0d11h25m  ml8   2        170       61       88        55       84        2           3            python
 2727498   adamjak   0d 2h45m  ml8   1        21        1        1         0        0         0           0            node
 2747449   adamjak   0d 0h20m  ml8   5        22        1        1         0        0         0           0            python
 2750031   adamjak   0d 0h15m  ml8   25       100       1        1         0        0         0           0            python" \
-	  "$output" "heisenbug:181"
+	  "$output"
 fi
