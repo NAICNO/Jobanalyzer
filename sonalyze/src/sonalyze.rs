@@ -839,7 +839,7 @@ fn sonalyze() -> Result<()> {
         )
     };
 
-    let (from, to, logfiles) = {
+    let (from, have_from, to, have_to, logfiles) = {
         let source_args = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.source_args,
             Commands::Load(ref load_args) => &load_args.source_args,
@@ -853,17 +853,22 @@ fn sonalyze() -> Result<()> {
 
         // Included date range.  These are used both for file names and for records.
 
-        let from = if let Some(x) = source_args.from {
-            x
+        // The song and dance with `have_from` and `have_to` is this: when a list of files is
+        // present then `--from` and `--to` are inferred from the file contents, so long as they are
+        // not present on the command line.
+
+        let (from, have_from) = if let Some(x) = source_args.from {
+            (x, true)
         } else {
-            sonarlog::now() - chrono::Duration::days(1)
+            (sonarlog::now() - chrono::Duration::days(1),
+             source_args.logfiles.len() == 0)
         };
-        let to = if let Some(x) = source_args.to {
-            x
+        let (to, have_to) = if let Some(x) = source_args.to {
+            (x, true)
         } else {
-            sonarlog::now()
+            (sonarlog::now(), source_args.logfiles.len() == 0)
         };
-        if from > to {
+        if have_from && have_to && from > to {
             bail!("The --from time is greater than the --to time");
         }
 
@@ -905,7 +910,7 @@ fn sonalyze() -> Result<()> {
             eprintln!("Log files: {:?}", logfiles);
         }
 
-        (from, to, logfiles)
+        (from, have_from, to, have_to, logfiles)
     };
 
     // Record filtering logic is the same for all commands.
@@ -917,8 +922,8 @@ fn sonalyze() -> Result<()> {
             && !(&exclude_users).contains(&e.user)
             && ((&include_commands).is_empty() || (&include_commands).contains(&e.command))
             && !(&exclude_commands).contains(&e.command)
-            && from <= e.timestamp
-            && e.timestamp <= to
+            && (!have_from || from <= e.timestamp)
+            && (!have_to || e.timestamp <= to)
     };
 
     // System configuration, if specified.
@@ -937,8 +942,23 @@ fn sonalyze() -> Result<()> {
     };
 
     let (mut entries, bounds, discarded) = sonarlog::read_logfiles(&logfiles)?;
+
+    // Infer the values of --from and --to if necessary, see comment above.
+    let from = if have_from || bounds.len() == 0 {
+        from
+    } else {
+        bounds.iter().map(|(_,x)| x.earliest).reduce(|a,b| if a < b { a } else {b}).unwrap()
+    };
+    let to = if have_to || bounds.len() == 0 {
+        to
+    } else {
+        bounds.iter().map(|(_,x)| x.latest).reduce(|a,b| if a > b { a } else {b}).unwrap()
+    };
+
     if meta_args.verbose {
         eprintln!("Number of records discarded: {discarded}");
+        eprintln!("From: {:?}", from);
+        eprintln!("To: {:?}", to);
     }
 
     match cli.command {
