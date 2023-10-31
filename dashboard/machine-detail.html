@@ -1,0 +1,61 @@
+<html>
+  <head>
+    <link rel=stylesheet type=text/css href="table-style.css"/>
+    <title></title>
+    <script src="testflag.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="machine-detail.js"></script>
+  </head>
+  <body onload="setup()">
+
+    <center>
+      <h1>Machine details</h1>
+    </center>
+
+    <center>
+      <div id=system_description></div>
+    </center>
+
+    <center>
+      <h2>Machine load</h2>
+    </center>
+
+    <select id=frequency name="Frequency" onchange="render()"></select>
+    <input type=checkbox id=show_data name="Show data" onchange="reload()" checked>Show data</input>
+    <input type=checkbox id=show_downtime name="Show downtime" onchange="reload()">Show downtime</input>
+
+    <div><canvas id="machine_load"></canvas></div>
+
+    <div>&nbsp;</div>
+    <div>Data are relative to all system resources (e.g., 100% CPU
+      means all cores are completely busy; 100% GPU means all cards are completely busy).</div>
+    <div>&nbsp;</div>
+    <div>Main memory (RAM) can go
+    over 100% due to paging and similar system effects; the
+    measurement is the sum of the sizes of the jobs' private memories. </div>
+    </div>
+    </b>
+
+    <center>
+      <h2>CPU hogs</h2>
+    </center>
+
+    <p>The following jobs have used significant CPU time without using
+    any GPU time and are probably not appropriate to run on the ML
+    systems.  The list is recomputed at noon and midnight and goes back four weeks.</p>
+
+    <div id=cpuhog_report></div>
+
+    <center>
+      <h2>Deadweight processes</h2>
+    </center>
+
+    <p>The following processes and jobs are zombies or defuncts or
+    otherwise dead and may be bogging down the system.  The list is
+    recomputed at noon and midnight and goes back four weeks.</p>
+
+    <div id=deadweight_report></div>
+
+  </body>
+</html>
