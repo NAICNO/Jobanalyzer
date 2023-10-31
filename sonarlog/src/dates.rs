@@ -37,6 +37,13 @@ pub fn truncate_to_hour(t: Timestamp) -> Timestamp {
     timestamp_from_ymdhms(t.year(), t.month(), t.day(), t.hour(), 0, 0)
 }
 
+/// Zero out the second, and subsecond components and clamp 0<=minute<30 to 0 and 30<=minute<60 to
+/// 30.  The contract for Timelike::minute() is that it returns a value<60.
+
+pub fn truncate_to_half_hour(t: Timestamp) -> Timestamp {
+    timestamp_from_ymdhms(t.year(), t.month(), t.day(), t.hour(), if t.minute() < 30 { 0 } else { 30 }, 0)
+}
+
 /// Add one day to the timestamp.
 
 pub fn add_day(t: Timestamp) -> Timestamp {
@@ -53,6 +60,12 @@ pub fn truncate_to_day(t: Timestamp) -> Timestamp {
 
 pub fn add_hour(t: Timestamp) -> Timestamp {
     t + Duration::hours(1)
+}
+
+/// Add a half hour to the timestamp.
+
+pub fn add_half_hour(t: Timestamp) -> Timestamp {
+    t + Duration::minutes(30)
 }
 
 /// epoch: "a long long time ago", before any of our timestamps

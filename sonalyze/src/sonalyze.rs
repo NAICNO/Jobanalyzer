@@ -222,6 +222,10 @@ pub struct LoadFilterAndAggregationArgs {
     #[arg(long)]
     hourly: bool,
 
+    /// Bucket and average records half-hourly
+    #[arg(long)]
+    half_hourly: bool,
+
     /// Bucket and average records daily
     #[arg(long)]
     daily: bool,

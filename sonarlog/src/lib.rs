@@ -72,6 +72,10 @@ pub use dates::timestamp_from_ymd;
 
 pub use dates::truncate_to_hour;
 
+// Return the timestamp with seconds cleared out and minutes set to 0 or 30.
+
+pub use dates::truncate_to_half_hour;
+
 // Return the timestamp with hours, minutes, and seconds cleared out.
 
 pub use dates::truncate_to_day;
@@ -79,6 +83,10 @@ pub use dates::truncate_to_day;
 // Add one hour to the timestamp
 
 pub use dates::add_hour;
+
+// Add a half hour to the timestamp
+
+pub use dates::add_half_hour;
 
 // Add one day to the timestamp
 
@@ -166,6 +174,10 @@ pub use synthesize::merge_by_host; // -> MergedSampleStreams
 // Bucket samples in a single stream by hour and compute averages.
 
 pub use synthesize::fold_samples_hourly;
+
+// Bucket samples in a single stream by half hour and compute averages.
+
+pub use synthesize::fold_samples_half_hourly;
 
 // Bucket samples in a single stream by day and compute averages.
 
