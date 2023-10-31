@@ -13,13 +13,13 @@
 //   nproc: the rolledup field + 1, this is not printed if every process has rolledup=0
 //   command: the command field
 //
-// TODO: Remove the single-host restriction.
-// TODO: Support at least JSON output, it is sensible and a front-end could make use of it.
+// TODO: Remove the single-host restriction, for multi-host jobs.  Will complicate everything.
 
 use crate::format;
 use crate::{MetaArgs, ProfilePrintArgs};
 
 use anyhow::{bail, Result};
+use json;
 use sonarlog::{InputStreamSet, LogEntry, Timestamp};
 
 use std::collections::HashMap;
@@ -53,6 +53,23 @@ pub fn print(
         }
     }
 
+    let fixed_output;
+    let mut json_output = false;
+    let mut csv_output = false;
+    if let Some(ref fmt) = print_args.fmt {
+        for fld in fmt.split(',') {
+            if fld == "json" {
+                json_output = true;
+            } else if fld == "csv" {
+                csv_output = true;
+            }
+        }
+    }
+    if csv_output && json_output {
+        bail!("one type of output at a time")
+    }
+    fixed_output = !json_output && !csv_output;
+
     // `lists` has the event streams for the processes (or cluster of rolled-up processes).
     //
     // We want these sorted in the order in which they start being shown, so that there is a natural
@@ -60,6 +77,16 @@ pub fn print(
     // accomplish that.
     let mut lists = entries.drain().map(|(_,v)| v).collect::<Vec<Vec<Box<LogEntry>>>>();
     lists.sort_by(|a,b| a[0].timestamp.cmp(&b[0].timestamp));
+
+    // Print headings: Command name with PID, for now
+    if csv_output {
+        let mut commands = "time".to_string();
+        for x in &lists {
+            commands += &format!(",{} ({})", x[0].command, x[0].pid);
+        }
+        commands += "\n";
+        output.write(commands.as_bytes())?;
+    }
 
     // Indices into those streams of the next record we want.
     let mut indices = vec![0; lists.len()];
@@ -69,7 +96,10 @@ pub fn print(
     let initial_nonempty = nonempty;
 
     // The generated report structures.
-    let mut reports = vec![];
+    let mut fixed_reports = vec![];
+    let mut json_reports = vec![];
+    let mut csv_reports = vec![];
+    let mut timesteps = 0;
 
     // Generate the reports.
     //
@@ -93,33 +123,54 @@ pub fn print(
 
         // The report is the current timestamp + a list of all LogEntries with that timestamp
         let mintime = mintime.unwrap();
-        let mut pushed = false;
+        let mut first = true;
+        let mut curr_json_report = vec![];
+        let mut curr_csv_report = vec![];
 
-        i = 0;
+        let mut i = 0;
         while i < lists.len() {
             if indices[i] < lists[i].len() {
-                let r = lists[i][indices[i]].clone();
+                let r = &lists[i][indices[i]];
                 if r.timestamp == mintime {
-                    if pushed {
-                        reports.push(ReportLine{ t: None, r });
-                    } else {
-                        reports.push(ReportLine{ t: Some(mintime), r });
-                        pushed = true;
+                    // The cloning is dumb but we need RC to do better.
+                    if fixed_output {
+                        if first {
+                            fixed_reports.push(ReportLine{ t: Some(mintime), r: r.clone() });
+                        } else {
+                            fixed_reports.push(ReportLine{ t: None, r: r.clone() });
+                        }
+                    } else if json_output {
+                        curr_json_report.push(r.clone());
+                    } else if csv_output {
+                        curr_csv_report.push(Some(r.clone()))
                     }
                     indices[i] += 1;
                     if indices[i] == lists[i].len() {
                         nonempty -= 1;
                     }
+                    if first {
+                        timesteps += 1;
+                        first = false;
+                    }
+                } else if csv_output {
+                    curr_csv_report.push(None)
                 }
+            } else if csv_output {
+                curr_csv_report.push(None)
             }
             i += 1;
+        }
+        if json_output {
+            json_reports.push(curr_json_report);
+        } else if csv_output {
+            csv_reports.push((mintime, curr_csv_report));
         }
     }
 
     if meta_args.verbose {
         println!("Number of processes: {}", initial_nonempty);
         println!("Any rolled-up processes: {}", has_rolledup);
-        println!("Number of time steps: {}", reports.len());
+        println!("Number of time steps: {}", timesteps);
         return Ok(());
     }
 
@@ -133,16 +184,23 @@ pub fn print(
     };
     let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
     let mut opts = format::standard_options(&others);
-    if opts.csv || opts.named {
-        bail!("CSV output not supported");
+    if opts.named  {
+        bail!("Named fields are not supported")
     }
-    if opts.json {
-        bail!("JSON output not supported yet");
-    }
-    opts.fixed = true;
     opts.nodefaults = false;
-    if fields.len() > 0 {
-        format::format_data(output, &fields, &formatters, &opts, reports, &false);
+
+    // The Formatter code does not support nested structures.  For fixed-format output this has been
+    // solved with a clever encoding but for JSON and CSV we'll do some crude things.
+
+    if json_output {
+        write_json(output, &json_reports)?;
+    } else if csv_output {
+        write_csv(output, &fields, &csv_reports)?;
+    } else {
+        opts.fixed = true;
+        if fields.len() > 0 {
+            format::format_data(output, &fields, &formatters, &opts, fixed_reports, &false);
+        }
     }
 
     Ok(())
@@ -222,4 +280,77 @@ fn format_nproc(d: LogDatum, _: LogCtx) -> String {
 
 fn format_cmd(d: LogDatum, _: LogCtx) -> String {
     d.r.command.clone()
+}
+
+// Each of the inner vectors are commands, coherently sorted, for the same timestamp.  We write all
+// fields.
+
+fn write_json(output: &mut dyn io::Write, data: &[Vec<Box<LogEntry>>]) -> Result<()> {
+    let mut objects: Vec<json::JsonValue> = vec![];
+    for x in data {
+        let mut obj = json::JsonValue::new_object();
+        obj["time"] = x[0].timestamp.format("%Y-%m-%d %H:%M").to_string().into();
+        obj["job"] = x[0].job_id.into();
+        let mut points: Vec<json::JsonValue> = vec![];
+        for y in x {
+            let mut point = json::JsonValue::new_object();
+            point["command"] = y.command.to_string().into();
+            point["pid"] = y.pid.into();
+            point["cpu"] = (y.cpu_util_pct.round() as isize).into();
+            point["mem"] = (y.mem_gb.round() as isize).into();
+            point["gpu"] = (y.gpu_pct.round() as isize).into();
+            point["gpumem"] = (y.gpumem_gb.round() as isize).into();
+            point["nproc"] = (y.rolledup + 1).into();
+            points.push(point.into())
+        }
+        obj["points"] = points.into();
+        objects.push(obj);
+    }
+    output.write(json::stringify(objects).as_bytes())?;
+    Ok(())
+}
+
+fn write_csv(output: &mut dyn io::Write, fields: &[&str], data: &[(Timestamp, Vec<Option<Box<LogEntry>>>)]) -> Result<()> {
+    let mut cpu_field = 0;
+    let mut mem_field = 0;
+    let mut gpu_field = 0;
+    let mut gpumem_field = 0;
+    for f in fields {
+        match *f {
+            "cpu" => { cpu_field += 1; }
+            "gpu" => { gpu_field += 1; }
+            "mem" => { mem_field += 1; }
+            "gpumem" => { gpumem_field += 1; }
+            "csv" => {}
+            _ => { bail!("Not a known field: {f}") }
+        }
+    }
+    if cpu_field + mem_field + gpu_field + gpumem_field != 1 {
+        bail!("csv output needs exactly one valid field")
+    }
+
+    for (t, xs) in data {
+        let mut s = "".to_string();
+        s += t.format("%Y-%m-%d %H:%M").to_string().as_str();
+        for x in xs {
+            s += ",";
+            if let Some(x) = x {
+                if cpu_field > 0 {
+                    s += (x.cpu_util_pct.round() as isize).to_string().as_str();
+                } else if mem_field > 0 {
+                    s += (x.mem_gb.round() as isize).to_string().as_str();
+                } else if gpu_field > 0 {
+                    s += (x.gpu_pct.round() as isize).to_string().as_str();
+                } else if gpumem_field > 0 {
+                    s += (x.gpumem_gb.round() as isize).to_string().as_str();
+                } else {
+                    panic!("Should not happen")
+                }
+            }
+        }
+        s += "\n";
+        output.write(s.as_bytes())?;
+    }
+
+    Ok(())
 }

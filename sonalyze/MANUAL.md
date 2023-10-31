@@ -484,6 +484,8 @@ To do this, figure out the job number and then run
 $ sonalyze profile -j <job-number>
 ```
 
+(If the profile was not obtained during the last 24 hours, remember to add a `--from` argument too!)
+
 This will print out summaries of all the samples for the job across its lifetime (there may be a
 significant amount of output).  If the job had multiple commands or processes, each will be listed
 separately for each time step.  (In the future, if the job ran on multiple hosts, it will also be
@@ -518,3 +520,31 @@ $ sonalyze profile -j <job-number> -- my-logfile.csv
 
 Sonar runs in about 100ms; the smallest sensible interval is probably in the vicinity of 5s, but in
 that case there will be a vast amount of output for all but the shortest runs.
+
+### Plotting data
+
+With `sonalyze profile` it's possible to generate JSON or CSV data.  The JSON data contains all the
+data points, while CSV data can plot only one quantity at a time per process and time step.  For example,
+
+```
+$ sonalyze profile -j <job-number> --fmt=csv,cpu -- my-logfile.csv
+```
+
+prints the CPU values from the profile.  The output looks like this:
+
+```
+time,bwa (1119426),samtools (1119428)
+2023-10-21 08:35,3075,
+2023-10-21 08:40,3094,
+2023-10-21 08:45,3092,11
+2023-10-21 08:50,3078,12
+2023-10-21 08:55,3093,11
+2023-10-21 09:00,3080,14
+2023-10-21 09:05,3091,11
+2023-10-21 09:10,,10
+2023-10-21 09:15,,13
+```
+
+That is, the first line is a heading listing the constituent processes, and each successive line has the
+time stamp and the data for each process.  If a process was not alive at a given time the field is present,
+but empty.  Spreadsheets can ingest this data format and plot it.
