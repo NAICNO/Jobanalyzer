@@ -8,8 +8,8 @@ use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
 use sonarlog::{
-    self, add_day, add_hour, empty_logentry, gpuset_to_string, now, truncate_to_day, truncate_to_hour,
-    HostFilter, InputStreamSet, LogEntry, Timestamp,
+    self, add_day, add_half_hour, add_hour, empty_logentry, gpuset_to_string, now, truncate_to_day,
+    truncate_to_hour, truncate_to_half_hour, HostFilter, InputStreamSet, LogEntry, Timestamp,
 };
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -18,6 +18,7 @@ use std::io;
 #[derive(PartialEq, Clone, Copy)]
 enum BucketOpt {
     None,
+    HalfHourly,
     Hourly,
     Daily,
 }
@@ -56,6 +57,8 @@ pub fn aggregate_and_print_load(
         BucketOpt::Daily
     } else if filter_args.none {
         BucketOpt::None
+    } else if filter_args.half_hourly {
+        BucketOpt::HalfHourly
     } else {
         BucketOpt::Hourly // Default
     };
@@ -113,34 +116,40 @@ pub fn aggregate_and_print_load(
             t: now(),
         };
 
-        if bucket_opt != BucketOpt::None {
-            let by_timeslot = if bucket_opt == BucketOpt::Hourly {
-                sonarlog::fold_samples_hourly(stream)
-            } else {
-                sonarlog::fold_samples_daily(stream)
-            };
-            if print_opt == PrintOpt::All {
-                let by_timeslot2 = if print_args.compact {
-                    by_timeslot
-                } else {
-                    insert_missing_records(by_timeslot, from, to, bucket_opt)
+        match bucket_opt {
+            BucketOpt::Hourly | BucketOpt::HalfHourly | BucketOpt::Daily => {
+                let by_timeslot = match bucket_opt {
+                    BucketOpt::Hourly => sonarlog::fold_samples_hourly(stream),
+                    BucketOpt::HalfHourly => sonarlog::fold_samples_half_hourly(stream),
+                    BucketOpt::Daily => sonarlog::fold_samples_daily(stream),
+                    BucketOpt::None => panic!("Unexpected"),
                 };
-                format::format_data(output, &fields, &formatters, &opts, by_timeslot2, &ctx);
-            } else {
-                // Invariant: there's always at least one record
-                // TODO: Really not happy about the clone() here
-                let data = vec![by_timeslot[by_timeslot.len() - 1].clone()];
-                format::format_data(output, &fields, &formatters, &opts, data, &ctx);
+                if print_opt == PrintOpt::All {
+                    let by_timeslot2 = if print_args.compact {
+                        by_timeslot
+                    } else {
+                        insert_missing_records(by_timeslot, from, to, bucket_opt)
+                    };
+                    format::format_data(output, &fields, &formatters, &opts, by_timeslot2, &ctx);
+                } else {
+                    // Invariant: there's always at least one record
+                    // TODO: Really not happy about the clone() here
+                    let data = vec![by_timeslot[by_timeslot.len() - 1].clone()];
+                    format::format_data(output, &fields, &formatters, &opts, data, &ctx);
+                }
             }
-        } else if print_opt == PrintOpt::All {
-            // TODO: A question here about whether we should be inserting zero records.  I'm
-            // inclined to think probably not but it's debatable.
-            format::format_data(output, &fields, &formatters, &opts, stream, &ctx);
-        } else {
-            // Invariant: there's always at least one record
-            // TODO: Really not happy about the clone() here
-            let data = vec![stream[stream.len() - 1].clone()];
-            format::format_data(output, &fields, &formatters, &opts, data, &ctx);
+            BucketOpt::None => {
+                if print_opt == PrintOpt::All {
+                    // TODO: A question here about whether we should be inserting zero records.  I'm
+                    // inclined to think probably not but it's debatable.
+                    format::format_data(output, &fields, &formatters, &opts, stream, &ctx);
+                } else {
+                    // Invariant: there's always at least one record
+                    // TODO: Really not happy about the clone() here
+                    let data = vec![stream[stream.len() - 1].clone()];
+                    format::format_data(output, &fields, &formatters, &opts, data, &ctx);
+                }
+            }
         }
     }
 
@@ -196,10 +205,10 @@ fn insert_missing_records(
     bucket_opt: BucketOpt,
 ) -> Vec<Box<LogEntry>> {
     let (trunc, step): (fn(Timestamp) -> Timestamp, fn(Timestamp) -> Timestamp) =
-        if bucket_opt == BucketOpt::Hourly {
-            (truncate_to_hour, add_hour)
-        } else {
-            (truncate_to_day, add_day)
+        match bucket_opt {
+            BucketOpt::Hourly => (truncate_to_hour, add_hour),
+            BucketOpt::HalfHourly => (truncate_to_half_hour, add_half_hour),
+            BucketOpt::Daily | BucketOpt::None => (truncate_to_day, add_day),
         };
     let host = records[0].hostname.clone();
     let mut t = trunc(from);

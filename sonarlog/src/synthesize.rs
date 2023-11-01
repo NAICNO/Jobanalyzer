@@ -400,6 +400,10 @@ pub fn fold_samples_hourly(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
     fold_samples(samples, crate::truncate_to_hour)
 }
 
+pub fn fold_samples_half_hourly(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
+    fold_samples(samples, crate::truncate_to_half_hour)
+}
+
 pub fn fold_samples_daily(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
     fold_samples(samples, crate::truncate_to_day)
 }
