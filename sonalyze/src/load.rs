@@ -8,8 +8,8 @@ use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
 use sonarlog::{
-    self, add_day, add_half_hour, add_hour, empty_logentry, gpuset_to_string, now, truncate_to_day,
-    truncate_to_hour, truncate_to_half_hour, HostFilter, InputStreamSet, LogEntry, Timestamp,
+    self, add_day, add_half_day, add_half_hour, add_hour, empty_logentry, gpuset_to_string, now, truncate_to_day,
+    truncate_to_half_day, truncate_to_hour, truncate_to_half_hour, HostFilter, InputStreamSet, LogEntry, Timestamp,
 };
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -20,6 +20,7 @@ enum BucketOpt {
     None,
     HalfHourly,
     Hourly,
+    HalfDaily,
     Daily,
 }
 
@@ -55,6 +56,8 @@ pub fn aggregate_and_print_load(
 
     let bucket_opt = if filter_args.daily {
         BucketOpt::Daily
+    } else if filter_args.half_daily {
+        BucketOpt::HalfDaily
     } else if filter_args.none {
         BucketOpt::None
     } else if filter_args.half_hourly {
@@ -117,11 +120,12 @@ pub fn aggregate_and_print_load(
         };
 
         match bucket_opt {
-            BucketOpt::Hourly | BucketOpt::HalfHourly | BucketOpt::Daily => {
+            BucketOpt::Hourly | BucketOpt::HalfHourly | BucketOpt::Daily | BucketOpt::HalfDaily => {
                 let by_timeslot = match bucket_opt {
                     BucketOpt::Hourly => sonarlog::fold_samples_hourly(stream),
                     BucketOpt::HalfHourly => sonarlog::fold_samples_half_hourly(stream),
                     BucketOpt::Daily => sonarlog::fold_samples_daily(stream),
+                    BucketOpt::HalfDaily => sonarlog::fold_samples_half_daily(stream),
                     BucketOpt::None => panic!("Unexpected"),
                 };
                 if print_opt == PrintOpt::All {
@@ -208,6 +212,7 @@ fn insert_missing_records(
         match bucket_opt {
             BucketOpt::Hourly => (truncate_to_hour, add_hour),
             BucketOpt::HalfHourly => (truncate_to_half_hour, add_half_hour),
+            BucketOpt::HalfDaily => (truncate_to_half_day, add_half_day),
             BucketOpt::Daily | BucketOpt::None => (truncate_to_day, add_day),
         };
     let host = records[0].hostname.clone();

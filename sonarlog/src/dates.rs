@@ -50,10 +50,23 @@ pub fn add_day(t: Timestamp) -> Timestamp {
     t + Duration::days(1)
 }
 
+/// Add a half day to the timestamp.
+
+pub fn add_half_day(t: Timestamp) -> Timestamp {
+    t + Duration::hours(12)
+}
+
 /// Zero out the hour, minute, second, and subsecond components.
 
 pub fn truncate_to_day(t: Timestamp) -> Timestamp {
     timestamp_from_ymd(t.year(), t.month(), t.day())
+}
+
+/// Zero out the minute, second, and subsecond components and clamp 0<=hour<12 to 0 and 12<=hour<24 to
+/// 12.  The contract for Timelike::hour() is that it returns a value<24.
+
+pub fn truncate_to_half_day(t: Timestamp) -> Timestamp {
+    timestamp_from_ymdhms(t.year(), t.month(), t.day(), if t.hour() < 12 { 0 } else { 12 }, 0, 0)
 }
 
 /// Add one hour to the timestamp.
