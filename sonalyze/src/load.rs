@@ -99,10 +99,22 @@ pub fn aggregate_and_print_load(
 
     merged_streams.sort_by(|a, b| a[0].hostname.cmp(&b[0].hostname));
 
+    // The handling of hostname is a hack.
+    // The handling of JSON is also a hack.
     let explicit_host = fields.iter().any(|x| *x == "host");
+    let mut first = true;
+    if opts.json {
+        output.write("[".as_bytes())?;
+    }
     for stream in merged_streams {
+        if opts.json {
+            if !first {
+                output.write(",".as_bytes())?;
+            }
+            first = false;
+        }
         let hostname = stream[0].hostname.clone();
-        if !opts.csv && !explicit_host {
+        if !opts.csv && !opts.json && !explicit_host {
             output
                 .write(format!("HOST: {}\n", hostname).as_bytes())
                 .unwrap();
@@ -155,6 +167,9 @@ pub fn aggregate_and_print_load(
                 }
             }
         }
+    }
+    if opts.json {
+        output.write("]".as_bytes())?;
     }
 
     Ok(())
