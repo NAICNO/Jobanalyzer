@@ -181,19 +181,30 @@ func createDeadweightReport(
 	perJobReports := make([]*perJobReport, 0, len(db.Active)+len(db.Expired))
 	for _, jobState := range db.Active {
 		if allJobs || !jobState.IsReported {
-			perJobReports = append(perJobReports, makePerJobReport(jobState))
+			r := makePerJobReport(jobState)
+			if r != nil {
+				perJobReports = append(perJobReports, r)
+			}
 		}
 	}
 	for _, jobState := range db.Expired {
 		if allJobs || !jobState.IsReported {
-			perJobReports = append(perJobReports, makePerJobReport(jobState))
+			r := makePerJobReport(jobState)
+			if r != nil {
+				perJobReports = append(perJobReports, r)
+			}
 		}
 	}
 	return perJobReports
 }
 
+// This returns nil if the job was in such a state that no report could be created.  This can
+// legitimately happen when the database has more information than the logs.  See issue #220.
 func makePerJobReport(jobState *jobstate.JobState) *perJobReport {
-	job := jobState.Aux.(*deadweightJob)
+	job, found := jobState.Aux.(*deadweightJob)
+	if !found {
+		return nil
+	}
 	return &perJobReport{
 		Host:              jobState.Host,
 		Id:                jobState.Id,
