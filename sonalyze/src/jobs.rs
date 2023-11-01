@@ -14,7 +14,7 @@ use std::boxed::Box;
 use std::collections::HashMap;
 use std::io;
 
-/// Bit values for JobAggregate::classification
+/// Bit values for JobAggregate::classification.  Also defined in ~/naicreport/sonalyze/jobs.go.
 
 pub const LIVE_AT_END: u32 = 1; // Earliest timestamp coincides with earliest record read
 pub const LIVE_AT_START: u32 = 2; // Ditto latest/latest

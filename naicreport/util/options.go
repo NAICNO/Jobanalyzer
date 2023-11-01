@@ -115,6 +115,8 @@ func (s *StandardOptions) Parse(args []string) error {
 	return nil
 }
 
+// Simple utility: Clean a required path
+
 func CleanPath(p, optionName string) (newp string, e error) {
 	if p == "" {
 		e = errors.New(fmt.Sprintf("%s requires a value", optionName))
@@ -129,6 +131,18 @@ func CleanPath(p, optionName string) (newp string, e error) {
 		}
 	}
 	return
+}
+
+// Simple utility: Add standard data file arguments to an argument list
+
+func AddDataFiles(arguments []string, progOpts *StandardOptions) []string {
+	if progOpts.DataFiles != nil {
+		arguments = append(arguments, "--")
+		arguments = append(arguments, progOpts.DataFiles...)
+	} else {
+		arguments = append(arguments, "--data-path", progOpts.DataPath)
+	}
+	return arguments
 }
 
 // The format of `from` and `to` is one of:

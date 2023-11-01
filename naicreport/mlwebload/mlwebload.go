@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"os/exec"
 	"path"
 	"sort"
 	"strconv"
@@ -79,19 +78,12 @@ func MlWebload(progname string, args []string) error {
 
 	// For -- this must come last, so do files last always
 
-	if progOpts.DataFiles != nil {
-		loadArguments = append(loadArguments, "--")
-		loadArguments = append(loadArguments, progOpts.DataFiles...)
-		downtimeArguments = append(downtimeArguments, "--")
-		downtimeArguments = append(downtimeArguments, progOpts.DataFiles...)
-	} else {
-		loadArguments = append(loadArguments, "--data-path", progOpts.DataPath)
-		downtimeArguments = append(downtimeArguments, "--data-path", progOpts.DataPath)
-	}
+	loadArguments = util.AddDataFiles(loadArguments, progOpts)
+	downtimeArguments = util.AddDataFiles(downtimeArguments, progOpts)
 
 	// Obtain all the data
 
-	loadOutput, err := runSonalyze(sonalyzePath, loadArguments)
+	loadOutput, err := util.RunSubprocess(sonalyzePath, loadArguments)
 	if err != nil {
 		return err
 	}
@@ -102,7 +94,7 @@ func MlWebload(progname string, args []string) error {
 
 	var downtimeData []*downtimeDataByHost
 	if *downtimePtr {
-		downtimeOutput, err := runSonalyze(sonalyzePath, downtimeArguments)
+		downtimeOutput, err := util.RunSubprocess(sonalyzePath, downtimeArguments)
 		if err != nil {
 			return err
 		}
@@ -121,19 +113,6 @@ func MlWebload(progname string, args []string) error {
 
 	downtimeData = downtimeData
 	return writePlots(outputPath, *tagPtr, bucketing, configInfo, loadData, downtimeData)
-}
-
-func runSonalyze(sonalyzePath string, arguments []string) (string, error) {
-	cmd := exec.Command(sonalyzePath, arguments...)
-	var stdout strings.Builder
-	var stderr strings.Builder
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		return "", errors.Join(err, errors.New(stderr.String()))
-	}
-	return stdout.String(), nil
 }
 
 func writePlots(

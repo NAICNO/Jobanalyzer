@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	"naicreport/glance"
 	"naicreport/mlcpuhog"
 	"naicreport/mldeadweight"
 	"naicreport/mlwebload"
@@ -31,6 +32,9 @@ func main() {
 	case "ml-webload":
 		err = mlwebload.MlWebload(os.Args[0], os.Args[2:])
 
+	case "at-a-glance":
+		err = glance.Report(os.Args[0], os.Args[2:])
+
 	default:
 		toplevelUsage(1)
 	}
@@ -41,18 +45,28 @@ func main() {
 }
 
 func toplevelUsage(code int) {
-	fmt.Fprintf(os.Stderr, "Usage of %s:\n\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "  %s <verb> <option> ... [-- filename ...]\n\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "where <verb> is one of\n\n")
-	fmt.Fprintf(os.Stderr, "  help\n")
-	fmt.Fprintf(os.Stderr, "    Print help\n\n")
-	fmt.Fprintf(os.Stderr, "  ml-deadweight\n")
-	fmt.Fprintf(os.Stderr, "    Analyze the deadweight logs and generate a report of new violations\n\n")
-	fmt.Fprintf(os.Stderr, "  ml-cpuhog\n")
-	fmt.Fprintf(os.Stderr, "    Analyze the cpuhog logs and generate a report of new violations\n\n")
-	fmt.Fprintf(os.Stderr, "  ml-webload\n")
-	fmt.Fprintf(os.Stderr, "    Run sonalyze to generate plottable (JSON) load reports\n\n")
-	fmt.Fprintf(os.Stderr, "All verbs accept -h to print verb-specific help.\n")
-	fmt.Fprintf(os.Stderr, "Explicit filenames override any --data-path argument, when sensible.\n")
+	fmt.Fprintf(
+		os.Stderr,
+		`Usage of %s:
+  %s <verb> <option> ... [-- filename ...]
+
+where <verb> is one of
+
+  help
+    Print help
+  at-a-glance
+    Produce a summary report from many parts
+  ml-deadweight
+   Analyze the deadweight logs and generate a report of new violations
+  ml-cpuhog
+    Analyze the cpuhog logs and generate a report of new violations
+  ml-webload
+    Run sonalyze to generate plottable (JSON) load reports
+
+All verbs accept -h to print verb-specific help.
+Explicit filenames override any --data-path argument, when sensible
+`,
+		os.Args[0],
+		os.Args[0])
 	os.Exit(code)
 }
