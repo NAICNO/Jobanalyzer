@@ -1,6 +1,6 @@
 # This is still running because the record on ml4 is the last record observed on that host
 output=$($SONALYZE jobs -u- --host ml4 --min-samples=1 -f 2023-10-03 --fmt=csv,host,job --running -- running_and_completed.csv)
-CHECK running_ml4 "ml4,1269178" "$output"
+CHECK running_ml4 "ml4.hpc.uio.no,1269178" "$output"
 
 # Regression test for Jobanalyzer#118.  The problem is that the metadata for the job log - earliest
 # and latest records seen - are computed across hosts.  Based on `latest` in particular we compute
@@ -14,10 +14,10 @@ CHECK running_ml4 "ml4,1269178" "$output"
 
 # This ends before the last record on that host and should be completed
 output=$($SONALYZE jobs -u- --host ml8 --min-samples=1 -f 2023-10-03 --fmt=csv,host,job --completed -- running_and_completed.csv)
-CHECK completed_ml8 "ml8,90548" "$output"
+CHECK completed_ml8 "ml8.hpc.uio.no,90548" "$output"
 
 # This ends at the same time as the last record on that host and should be running
 output=$($SONALYZE jobs -u- --host ml8 --min-samples=1 -f 2023-10-03 --fmt=csv,host,job --running -- running_and_completed.csv)
-CHECK running_ml8 "ml8,2092901" "$output"
+CHECK running_ml8 "ml8.hpc.uio.no,2092901" "$output"
 
 

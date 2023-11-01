@@ -131,7 +131,8 @@ pub fn print_jobs(
                      */
                 }
             }
-            format::format_data(output, &fields, &formatters, &opts, selected, &now());
+            let c = Context { t: now(), fixed_format: !opts.json && !opts.csv };
+            format::format_data(output, &fields, &formatters, &opts, selected, &c);
         }
     }
 
@@ -263,8 +264,13 @@ fn my_formatters() -> (
  * }
  */
 
+struct Context {
+    t: Timestamp,
+    fixed_format: bool,
+}
+
 type LogDatum<'a> = &'a JobSummary;
-type LogCtx<'a> = &'a Timestamp;
+type LogCtx<'a> = &'a Context;
 
 fn format_user(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
     job[0].user.clone()
@@ -307,11 +313,17 @@ fn format_job_id(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
  * }
  */
 
-fn format_host(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
+fn format_host(JobSummary { job, .. }: LogDatum, c: LogCtx) -> String {
     // The hosts are in the jobs only, we aggregate only for presentation
     let mut hosts = HashSet::<String>::new();
-    for j in job {
-        hosts.insert(j.hostname.split('.').next().unwrap().to_string());
+    if c.fixed_format {
+        for j in job {
+            hosts.insert(j.hostname.split('.').next().unwrap().to_string());
+        }
+    } else {
+        for j in job {
+            hosts.insert(j.hostname.to_string());
+        }
     }
     sonarlog::combine_hosts(hosts.drain().collect::<Vec<String>>())
 }
@@ -334,8 +346,8 @@ fn format_duration(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> Stri
 
 // An argument could be made that this should be ISO time, at least when the output is CSV, but
 // for the time being I'm keeping it compatible with `start` and `end`.
-fn format_now(_: LogDatum, t: LogCtx) -> String {
-    t.format("%Y-%m-%d %H:%M").to_string()
+fn format_now(_: LogDatum, c: LogCtx) -> String {
+    c.t.format("%Y-%m-%d %H:%M").to_string()
 }
 
 fn format_start(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
