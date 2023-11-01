@@ -230,6 +230,10 @@ pub struct LoadFilterAndAggregationArgs {
     #[arg(long)]
     daily: bool,
 
+    /// Bucket and average records half-daily
+    #[arg(long)]
+    half_daily: bool,
+
     /// Do not bucket and average records
     #[arg(long)]
     none: bool,

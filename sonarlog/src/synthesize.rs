@@ -408,6 +408,10 @@ pub fn fold_samples_daily(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
     fold_samples(samples, crate::truncate_to_day)
 }
 
+pub fn fold_samples_half_daily(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
+    fold_samples(samples, crate::truncate_to_half_day)
+}
+
 fn fold_samples<'a>(
     samples: Vec<Box<LogEntry>>,
     get_time: fn(Timestamp) -> Timestamp,
