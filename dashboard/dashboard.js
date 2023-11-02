@@ -1,5 +1,16 @@
+// TESTDATA will be set if the page loads testflag.js first and the flag is set there.  This will
+// redirect file queries to the test-data/ dir, which has static test data.
+
+function compute_filename(fn) {
+    if (this["TESTDATA"]) {
+        return "test-data/" + fn;
+    } else {
+        return "output/" + fn;
+    }
+}
+
 function with_systems_and_frequencies(f) {
-    fetch("output/hostnames.json").
+    fetch(compute_filename("hostnames.json")).
 	then((response) => response.json()).
 	then(function (json_data) {
 	    let systems = json_data.map(x => ({text: x, value: x}))
@@ -12,7 +23,9 @@ function with_systems_and_frequencies(f) {
 }
 
 function with_chart_data(hostname, frequency, f) {
-    fetch(`output/${hostname}-${frequency}.json`).then((response) => response.json()).then(f)
+    fetch(compute_filename(`${hostname}-${frequency}.json`)).
+        then((response) => response.json()).
+        then(f)
 }
 
 // json_data has these fields
@@ -133,5 +146,62 @@ function populateDropdown(dd, vals) {
 	opt.innerText = text
 	opt.value = value
 	dd.appendChild(opt)
+    }
+}
+
+// Returns a promise that will fetch and render data
+
+function render_table(file, fields, parent, cmp, filter) {
+    let tbl = document.createElement("table")
+    let thead = document.createElement("thead")
+    for ( let {name} of fields ) {
+	let th = document.createElement("th")
+	th.innerText = name
+	thead.appendChild(th)
+    }
+    tbl.appendChild(thead)
+    let tbody = document.createElement("tbody")
+    tbl.appendChild(tbody)
+    parent.appendChild(tbl)
+    return fetch(compute_filename(file)).
+        then(response => response.json()).
+        then(data => do_render_table(data, fields, tbody, cmp, filter))
+}
+
+// Returns an array of rows
+function do_render_table(data, fields, tbody, cmp, filter) {
+    if (cmp != undefined) {
+	data.sort(cmp)
+    }
+    let trs = []
+    for (let d of data) {
+        if (filter != undefined && !filter(d)) {
+            continue
+        }
+	let tr = document.createElement("tr")
+	for (let {tag} of fields) {
+	    let td = document.createElement("td")
+	    if (tag in d) {
+		td.innerText = String(d[tag])
+	    }
+	    tr.appendChild(td)
+	}
+	tbody.appendChild(tr)
+        trs.push([d, tr])
+    }
+    return trs
+}
+
+function cmp_string_fields(field, flip) {
+    return function(r1, r2) {
+	let a = r1[field]
+	let b = r2[field]
+	if (a < b) {
+	    return flip ? 1 : -1
+	}
+	if (a > b) {
+	    return flip ? -1 : 1
+	}
+	return 0
     }
 }
