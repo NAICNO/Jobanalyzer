@@ -11,6 +11,7 @@ import (
 
 	"naicreport/jobstate"
 	"naicreport/sonalyze"
+	"naicreport/storage"
 	"naicreport/util"
 )
 
@@ -58,6 +59,11 @@ func Report(progname string, args []string) error {
 		return err
 	}
 
+	config, err := storage.ReadConfig(configFilename)
+	if err != nil {
+		return err
+	}
+
 	// It's possible that the code in this module would be a little less verbose if there were a
 	// centralized database mapping host -> glanceRecord that is just passed around for everyone to
 	// use.  But it's not obvious the code would be as easy to understand.
@@ -85,14 +91,14 @@ func Report(progname string, args []string) error {
 
 	recordsByHost := make(map[string]*glanceRecord)
 	for _, d := range ujbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname, *tagPtr)
+		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
 		r.JobsRecent = d.jobs_recent
 		r.JobsLonger = d.jobs_longer
 		r.UsersRecent = d.users_recent
 		r.UsersLonger = d.users_longer
 	}
 	for _, d := range sdbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname, *tagPtr)
+		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
 		cpu_status := 0
 		if d.cpu_down {
 			cpu_status = 1
@@ -105,7 +111,7 @@ func Report(progname string, args []string) error {
 		r.GpuStatus = gpu_status
 	}
 	for _, d := range labh {
-		r := glanceRecordForHost(recordsByHost, d.hostname, *tagPtr)
+		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
 		r.CpuRecent = d.cpu_recent
 		r.CpuLonger = d.cpu_longer
 		r.MemRecent = d.mem_recent
@@ -116,11 +122,11 @@ func Report(progname string, args []string) error {
 		r.GpumemLonger = d.gpumem_longer
 	}
 	for _, d := range hogsbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname, *tagPtr)
+		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
 		r.Hogs = d.count
 	}
 	for _, d := range deadweightbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname, *tagPtr)
+		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
 		r.Deadweights = d.count
 	}
 
@@ -135,16 +141,24 @@ func Report(progname string, args []string) error {
 	return nil
 }
 
-func glanceRecordForHost(recordsByHost map[string]*glanceRecord, hostname, tag string) *glanceRecord {
+func glanceRecordForHost(recordsByHost map[string]*glanceRecord, hostname string, config []*storage.SystemConfig, tag string) *glanceRecord {
 	if r, found := recordsByHost[hostname]; found {
 		return r
 	}
+	machine := ""
+	for _, c := range config {
+		if c.Hostname == hostname {
+			machine = c.Description
+			break
+		}
+	}
 	r := &glanceRecord{
-		Host:   hostname,
-		Tag:    tag,
-		Recent: RECENT_MINS,
-		Longer: LONGER_MINS,
-		Long:   LONG_MINS,
+		Host:    hostname,
+		Tag:     tag,
+		Machine: machine,
+		Recent:  RECENT_MINS,
+		Longer:  LONGER_MINS,
+		Long:    LONG_MINS,
 	}
 	recordsByHost[hostname] = r
 	return r
@@ -153,6 +167,7 @@ func glanceRecordForHost(recordsByHost map[string]*glanceRecord, hostname, tag s
 type glanceRecord struct {
 	Host         string  `json:"hostname"`
 	Tag          string  `json:"tag,omitempty"`
+	Machine      string  `json:"machine,omitempty"`
 	Recent       int     `json:"recent"`
 	Longer       int     `json:"longer"`
 	Long         int     `json:"long"`

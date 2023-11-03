@@ -173,7 +173,7 @@ function render_table(file, fields, parent, cmp, filter) {
         then(data => do_render_table(data, fields, tbody, cmp, filter))
 }
 
-// Returns array of rows
+// Returns array of rows.  Each cell is a SPAN inside a TD
 function do_render_table(data, fields, tbody, cmp, filter) {
     if (cmp != undefined) {
         data.sort(cmp)
@@ -187,7 +187,9 @@ function do_render_table(data, fields, tbody, cmp, filter) {
         for (let {tag} of fields) {
             let td = document.createElement("td")
             if (tag in d) {
-                td.innerText = String(d[tag])
+                let sp = document.createElement("span")
+                sp.textContent = d[tag]
+                td.appendChild(sp)
             }
             tr.appendChild(td)
         }

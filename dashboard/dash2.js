@@ -97,12 +97,12 @@ function annotate_rows(rows) {
     // each row has exactly the fields above, offsets are computed above too
     for ( let [d,r] of rows ) {
         r.onclick = function () { window.open(`${machine_page}?host=${d["hostname"]}`) }
-        if (d["cpu_status"] != 0) {
+        if (d.cpu_status != 0) {
             r.style.backgroundColor = col_DOWN
             continue
         }
-        if (d["gpu_status"] != 0) {
-            r.children[offs["gpu_status"]].style.backgroundColor = col_DOWN
+        if (d.gpu_status != 0) {
+            r.children[offs.gpu_status].style.backgroundColor = col_DOWN
         }
         for ( let n of working_fields ) {
             switch (true) {
@@ -117,11 +117,14 @@ function annotate_rows(rows) {
                 break
             }
         }
-        recent_minutes = d["recent"]
-        longer_minutes = d["longer"]
-        long_minutes = d["long"]
+        if ("machine" in d) {
+            r.children[offs.hostname].children[0].title = d.hostname + ": " + d.machine
+        }
+        recent_minutes = d.recent
+        longer_minutes = d.longer
+        long_minutes = d.long
         if (tag === undefined) {
-            tag = d["tag"]
+            tag = d.tag
         }
     }
 
