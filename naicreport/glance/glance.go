@@ -3,6 +3,7 @@ package glance
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"sort"
@@ -38,13 +39,10 @@ func Report(progname string, args []string) error {
 	sonalyzePathPtr := progOpts.Container.String("sonalyze", "", "Path to sonalyze executable (required)")
 	configFilenamePtr := progOpts.Container.String("config-file", "", "Path to system config file (required)")
 	statePathPtr := progOpts.Container.String("state-path", "", "Path to directory holding database state (required)")
+	tagPtr := progOpts.Container.String("tag", "", "Human-intelligible tag for data, usually describing origin (optional)")
 	err := progOpts.Parse(args)
 	if err != nil {
 		return err
-	}
-
-	if len(progOpts.DataFiles) > 0 {
-		return errors.New("The -- filename ... option does not make sense to this module (yet)")
 	}
 
 	sonalyzePath, err := util.CleanPath(*sonalyzePathPtr, "-sonalyze")
@@ -87,14 +85,14 @@ func Report(progname string, args []string) error {
 
 	recordsByHost := make(map[string]*glanceRecord)
 	for _, d := range ujbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname)
+		r := glanceRecordForHost(recordsByHost, d.hostname, *tagPtr)
 		r.JobsRecent = d.jobs_recent
 		r.JobsLonger = d.jobs_longer
 		r.UsersRecent = d.users_recent
 		r.UsersLonger = d.users_longer
 	}
 	for _, d := range sdbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname)
+		r := glanceRecordForHost(recordsByHost, d.hostname, *tagPtr)
 		cpu_status := 0
 		if d.cpu_down {
 			cpu_status = 1
@@ -107,7 +105,7 @@ func Report(progname string, args []string) error {
 		r.GpuStatus = gpu_status
 	}
 	for _, d := range labh {
-		r := glanceRecordForHost(recordsByHost, d.hostname)
+		r := glanceRecordForHost(recordsByHost, d.hostname, *tagPtr)
 		r.CpuRecent = d.cpu_recent
 		r.CpuLonger = d.cpu_longer
 		r.MemRecent = d.mem_recent
@@ -118,11 +116,11 @@ func Report(progname string, args []string) error {
 		r.GpumemLonger = d.gpumem_longer
 	}
 	for _, d := range hogsbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname)
+		r := glanceRecordForHost(recordsByHost, d.hostname, *tagPtr)
 		r.Hogs = d.count
 	}
 	for _, d := range deadweightbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname)
+		r := glanceRecordForHost(recordsByHost, d.hostname, *tagPtr)
 		r.Deadweights = d.count
 	}
 
@@ -137,12 +135,13 @@ func Report(progname string, args []string) error {
 	return nil
 }
 
-func glanceRecordForHost(recordsByHost map[string]*glanceRecord, hostname string) *glanceRecord {
+func glanceRecordForHost(recordsByHost map[string]*glanceRecord, hostname, tag string) *glanceRecord {
 	if r, found := recordsByHost[hostname]; found {
 		return r
 	}
 	r := &glanceRecord{
 		Host:   hostname,
+		Tag:    tag,
 		Recent: RECENT_MINS,
 		Longer: LONGER_MINS,
 		Long:   LONG_MINS,
@@ -153,6 +152,7 @@ func glanceRecordForHost(recordsByHost map[string]*glanceRecord, hostname string
 
 type glanceRecord struct {
 	Host         string  `json:"hostname"`
+	Tag          string  `json:"tag,omitempty"`
 	Recent       int     `json:"recent"`
 	Longer       int     `json:"longer"`
 	Long         int     `json:"long"`
@@ -446,7 +446,7 @@ func collectLoadAveragesOnce(
 		progOpts,
 		&rawData)
 	if err != nil {
-		return nil, errors.Join(errors.New("JSON unmarshaling"), err)
+		return nil, err
 	}
 
 	hosts := make(map[string]*sonalyzeLoadData)
@@ -527,9 +527,18 @@ func countDatabaseEntries(stateFilename string) ([]*badJobsByHost, error) {
 // Utilities
 
 func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *util.StandardOptions, rawData any) error {
-	sonalyzeOutput, err := util.RunSubprocess(sonalyzePath, util.AddDataFiles(arguments, progOpts))
+	arguments = util.AddStandardOptions(arguments, progOpts)
+	sonalyzeOutput, err := util.RunSubprocess(sonalyzePath, arguments)
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal([]byte(sonalyzeOutput), rawData)
+	err = json.Unmarshal([]byte(sonalyzeOutput), rawData)
+	if err != nil {
+		var extraErr error
+		if sonalyzeOutput == "" {
+			extraErr = errors.New("Empty output")
+		}
+		return errors.Join(errors.New(fmt.Sprintf("JSON unmarshaling on %s %v", sonalyzePath, arguments)), extraErr, err)
+	}
+	return nil
 }

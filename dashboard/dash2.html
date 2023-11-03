@@ -8,10 +8,13 @@
   </head>
   <body onload="setup()">
     <center>
+      <h2 id=title>Jobanalyzer Dashboard</h2>
+      <div>
       Recent: <span id=recent_defn>?</span>&nbsp;&nbsp;
       Longer: <span id=longer_defn>?</span>&nbsp;&nbsp;
       Hogs and zombies: <span id=long_defn>?</span>&nbsp;&nbsp;
       <input type=checkbox id=autorefresh name="Auto-refresh" checked onchange="toggleReload()">Auto-refresh every 5min</input>
+      </div>
       <p> </p>
     </center>
     <div id=report></div>
