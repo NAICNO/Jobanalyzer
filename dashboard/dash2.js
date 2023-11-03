@@ -82,6 +82,11 @@ function render() {
 let working_fields = ["cpu_recent","cpu_longer","mem_recent","mem_longer","gpu_recent","gpu_longer","gpumem_recent","gpumem_longer"]
 
 function annotate_rows(rows) {
+    // Defaults, updated in the loop
+    let recent_minutes = 30
+    let longer_minutes = 12*60
+    let long_minutes = 24*60
+
     // rows is an array of [json-datum, row-element] pairs
     // each row has exactly the fields above, offsets are computed above too
     for ( let [d,r] of rows ) {
@@ -106,7 +111,24 @@ function annotate_rows(rows) {
                 break
             }
         }
+        recent_minutes = d["recent"]
+        longer_minutes = d["longer"]
+        long_minutes = d["long"]
     }
+
+    document.getElementById("recent_defn").textContent = sanetime(recent_minutes)
+    document.getElementById("longer_defn").textContent = sanetime(longer_minutes)
+    document.getElementById("long_defn").textContent = sanetime(long_minutes)
+}
+
+function sanetime(mins) {
+    if (mins < 60) {
+        return mins + " mins"
+    }
+    if (mins % 60 == 0) {
+        return (mins / 60) + " hrs"
+    }
+    return Math.round((mins / 60) * 10) / 10 + " hrs"
 }
 
 function sort_records(r1, r2) {
