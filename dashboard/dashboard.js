@@ -11,13 +11,13 @@ function compute_filename(fn) {
 
 function with_systems_and_frequencies(f) {
     fetch(compute_filename("hostnames.json")).
-	then((response) => response.json()).
-	then(function (json_data) {
-	    let systems = json_data.map(x => ({text: x, value: x}))
+        then((response) => response.json()).
+        then(function (json_data) {
+            let systems = json_data.map(x => ({text: x, value: x}))
             let frequencies = [{text: "Daily, by hour", value: "daily"},
-		               {text: "Weekly, by hour", value: "weekly"},
-		               {text: "Monthly, by day", value: "monthly"},
-		               {text: "Quarterly, by day", value: "quarterly"}]
+                               {text: "Weekly, by hour", value: "weekly"},
+                               {text: "Monthly, by day", value: "monthly"},
+                               {text: "Quarterly, by day", value: "quarterly"}]
             f(systems, frequencies)
         })
 }
@@ -85,9 +85,9 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime)
     let datasets = []
     if (show_data) {
         datasets.push({ label: 'CPU%', data: rcpu_data, borderWidth: 2 },
-	              { label: 'RAM%', data: rmem_data, borderWidth: 2 },
-	              { label: 'GPU%', data: rgpu_data, borderWidth: 2 },
-	              { label: 'VRAM%', data: rgpumem_data, borderWidth: 2 })
+                      { label: 'RAM%', data: rmem_data, borderWidth: 2 },
+                      { label: 'GPU%', data: rgpu_data, borderWidth: 2 },
+                      { label: 'VRAM%', data: rgpumem_data, borderWidth: 2 })
     }
     if (show_downtime) {
         if (downhost_data) {
@@ -98,37 +98,37 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime)
         }
     }
     let my_chart = new Chart(chart_node, {
-	type: 'line',
-	data: {
-	    labels,
-	    datasets
-	},
-	options: {
-	    scales: {
-		x: {
-		    beginAtZero: true,
-		},
-		y: {
-		    beginAtZero: true,
-		    // Add a little padding at the top, not sure what's a good amount
-		    // but 10 is about the least we can do.
-		    max: Math.floor((maxval + 10) / 10) * 10,
-		}
-	    }
-	}
+        type: 'line',
+        data: {
+            labels,
+            datasets
+        },
+        options: {
+            scales: {
+                x: {
+                    beginAtZero: true,
+                },
+                y: {
+                    beginAtZero: true,
+                    // Add a little padding at the top, not sure what's a good amount
+                    // but 10 is about the least we can do.
+                    max: Math.floor((maxval + 10) / 10) * 10,
+                }
+            }
+        }
     })
 
     if (desc_node && "system" in json_data) {
-	// This is a json object with these fields:
-	//  - hostname: FQDN
-	//  - description: human-readable text string
-	//  - cpu_cores: num cores altogether (so, 2x14 hyperthreaded = 2x14x2 = 56)
-	//  - mem_gb: gb of main memory
-	//  - gpu_cards: num cards
-	//  - gpumem_gb: total amount of gpu memory
-	// Really the description says it all so probably enough to print that
-	desc_node.innerText =
-	    json_data.system.hostname + ": " + json_data.system.description
+        // This is a json object with these fields:
+        //  - hostname: FQDN
+        //  - description: human-readable text string
+        //  - cpu_cores: num cores altogether (so, 2x14 hyperthreaded = 2x14x2 = 56)
+        //  - mem_gb: gb of main memory
+        //  - gpu_cards: num cards
+        //  - gpumem_gb: total amount of gpu memory
+        // Really the description says it all so probably enough to print that
+        desc_node.innerText =
+            json_data.system.hostname + ": " + json_data.system.description
     }
 
     return my_chart;
@@ -140,12 +140,12 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime)
 
 function populateDropdown(dd, vals) {
     for ( let { text, value } of vals ) {
-	let opt = document.createElement("OPTION")
+        let opt = document.createElement("OPTION")
         // Firefox is happy with .label or .innerText here but Chrome insists on innerText.
         // Works with Safari too.
-	opt.innerText = text
-	opt.value = value
-	dd.appendChild(opt)
+        opt.innerText = text
+        opt.value = value
+        dd.appendChild(opt)
     }
 }
 
@@ -154,10 +154,15 @@ function populateDropdown(dd, vals) {
 function render_table(file, fields, parent, cmp, filter) {
     let tbl = document.createElement("table")
     let thead = document.createElement("thead")
-    for ( let {name} of fields ) {
-	let th = document.createElement("th")
-	th.innerText = name
-	thead.appendChild(th)
+    for ( let {name,help} of fields ) {
+        let th = document.createElement("th")
+        let sp = document.createElement("span")
+        if (help) {
+            sp.title = help
+        }
+        sp.textContent = name
+        th.appendChild(sp)
+        thead.appendChild(th)
     }
     tbl.appendChild(thead)
     let tbody = document.createElement("tbody")
@@ -168,25 +173,25 @@ function render_table(file, fields, parent, cmp, filter) {
         then(data => do_render_table(data, fields, tbody, cmp, filter))
 }
 
-// Returns an array of rows
+// Returns array of rows
 function do_render_table(data, fields, tbody, cmp, filter) {
     if (cmp != undefined) {
-	data.sort(cmp)
+        data.sort(cmp)
     }
     let trs = []
     for (let d of data) {
         if (filter != undefined && !filter(d)) {
             continue
         }
-	let tr = document.createElement("tr")
-	for (let {tag} of fields) {
-	    let td = document.createElement("td")
-	    if (tag in d) {
-		td.innerText = String(d[tag])
-	    }
-	    tr.appendChild(td)
-	}
-	tbody.appendChild(tr)
+        let tr = document.createElement("tr")
+        for (let {tag} of fields) {
+            let td = document.createElement("td")
+            if (tag in d) {
+                td.innerText = String(d[tag])
+            }
+            tr.appendChild(td)
+        }
+        tbody.appendChild(tr)
         trs.push([d, tr])
     }
     return trs
@@ -194,15 +199,15 @@ function do_render_table(data, fields, tbody, cmp, filter) {
 
 function cmp_string_fields(field, flip) {
     return function(r1, r2) {
-	let a = r1[field]
-	let b = r2[field]
-	if (a < b) {
-	    return flip ? 1 : -1
-	}
-	if (a > b) {
-	    return flip ? -1 : 1
-	}
-	return 0
+        let a = r1[field]
+        let b = r2[field]
+        if (a < b) {
+            return flip ? 1 : -1
+        }
+        if (a > b) {
+            return flip ? -1 : 1
+        }
+        return 0
     }
 }
 

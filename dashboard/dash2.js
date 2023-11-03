@@ -24,38 +24,40 @@ let fields = [
     {name: "Host", tag: "hostname"},
 
     // From the last record on the host.  0=ok, 1=error (maybe more codes later).
-    {name: "CPU\nstatus", tag: "cpu_status"},
-    {name: "GPU\nstatus", tag: "gpu_status"},
+    {name: "CPU\nstatus", tag: "cpu_status", help:"0=up, 1=down"},
+    {name: "GPU\nstatus", tag: "gpu_status", help:"0=up, 1=down"},
 
     // Unique users in the period.  This will never be greater than jobs; a user can have
     // several jobs, but not zero, and jobs can only have one user.
-    {name: "Users\n(recent)", tag: "users_recent"},
-    {name: "Users\n(longer)", tag: "users_longer"},
+    {name: "Users\n(recent)", tag: "users_recent", help:"Unique users running jobs"},
+    {name: "Users\n(longer)", tag: "users_longer", help:"Unique users running jobs"},
 
     // Unique jobs running within the period.
-    {name: "Jobs\n(recent)", tag: "jobs_recent"},
-    {name: "Jobs\n(longer)", tag: "jobs_longer"},
+    {name: "Jobs\n(recent)", tag: "jobs_recent", help:"Jobs big enough to count"},
+    {name: "Jobs\n(longer)", tag: "jobs_longer", help:"Jobs big enough to count"},
 
     // Relative to system information.
-    {name: "CPU%\n(recent)", tag: "cpu_recent"},
-    {name: "CPU%\n(longer)", tag: "cpu_longer"},
-    {name: "Mem%\n(recent)", tag: "mem_recent"},
-    {name: "Mem%\n(longer)", tag: "mem_longer"},
-    {name: "GPU%\n(recent)", tag: "gpu_recent"},
-    {name: "GPU%\n(longer)", tag: "gpu_longer"},
-    {name: "GPUMEM%\n(recent)", tag: "gpumem_recent"},
-    {name: "GPUMEM%\n(longer)", tag: "gpumem_longer"},
+    {name: "CPU%\n(recent)", tag: "cpu_recent", help:"Running average"},
+    {name: "CPU%\n(longer)", tag: "cpu_longer", help:"Running average"},
+    {name: "Mem%\n(recent)", tag: "mem_recent", help:"Running average"},
+    {name: "Mem%\n(longer)", tag: "mem_longer", help:"Running average"},
+    {name: "GPU%\n(recent)", tag: "gpu_recent", help:"Running average"},
+    {name: "GPU%\n(longer)", tag: "gpu_longer", help:"Running average"},
+    {name: "GPUMEM%\n(recent)", tag: "gpumem_recent", help:"Running average"},
+    {name: "GPUMEM%\n(longer)", tag: "gpumem_longer", help:"Running average"},
 
     // Number of new hogs and zombies encountered in the period, as of the last
     // generated report.  This currently changes rarely.
-    {name: "Hogs", tag: "hogs_long"},
-    {name: "Zombies", tag: "zombies_long"},
+    {name: "Hogs", tag: "hogs_long", help: "Jobs using a lot of CPU and no GPU"},
+    {name: "Zombies", tag: "zombies_long", help: "Defunct and zombie jobs"},
 ]
 
 // Compute field offsets in field table
 let offs = {}
+let by_tag = {}
 for (let i in fields) {
     offs[fields[i].tag] = i
+    by_tag[fields[i].tag] = fields[i]
 }
 
 let reload_timer = null
@@ -79,7 +81,7 @@ function setup() {
 
 function render() {
     render_table("at-a-glance.json", fields, document.getElementById("report"), sort_records).
-	then(annotate_rows)
+        then(annotate_rows)
 }
 
 let working_fields = ["cpu_recent","cpu_longer","mem_recent","mem_longer","gpu_recent","gpu_longer","gpumem_recent","gpumem_longer"]
@@ -95,13 +97,13 @@ function annotate_rows(rows) {
     // each row has exactly the fields above, offsets are computed above too
     for ( let [d,r] of rows ) {
         r.onclick = function () { window.open(`${machine_page}?host=${d["hostname"]}`) }
-	if (d["cpu_status"] != 0) {
-	    r.style.backgroundColor = col_DOWN
+        if (d["cpu_status"] != 0) {
+            r.style.backgroundColor = col_DOWN
             continue
-	}
-	if (d["gpu_status"] != 0) {
-	    r.children[offs["gpu_status"]].style.backgroundColor = col_DOWN
-	}
+        }
+        if (d["gpu_status"] != 0) {
+            r.children[offs["gpu_status"]].style.backgroundColor = col_DOWN
+        }
         for ( let n of working_fields ) {
             switch (true) {
             case d[n] >= 75:
@@ -148,16 +150,16 @@ function sort_records(r1, r2) {
     // then non-failing systems
     // within each group, by hostname
     if (r1["cpu_status"] != r2["cpu_status"]) {
-	return r2["cpu_status"] - r1["cpu_status"]
+        return r2["cpu_status"] - r1["cpu_status"]
     }
     if (r1["gpu_status"] != r2["gpu_status"]) {
-	return r2["gpu_status"] - r1["gpu_status"]
+        return r2["gpu_status"] - r1["gpu_status"]
     }
     if (r1["hostname"] < r2["hostname"]) {
-	return -1
+        return -1
     }
     if (r1["hostname"] > r2["hostname"]) {
-	return 1
+        return 1
     }
     return 0
 }
