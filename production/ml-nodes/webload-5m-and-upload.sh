@@ -21,7 +21,7 @@ mkdir -p $output_path
 naicreport_options="--sonalyze $sonar_dir/sonalyze --config-file $sonar_dir/ml-nodes.json --data-path $data_path"
 
 $sonar_dir/naicreport ml-webload $naicreport_options --output-path $output_path --with-downtime --tag minutely --none
-$sonar_dir/naicreport at-a-glance $naicreport_options --state-path $data_path > $output_path/at-a-glance.json
+$sonar_dir/naicreport at-a-glance $naicreport_options --state-path $data_path -tag "ML Nodes" > $output_path/at-a-glance.json
 
 $sonar_dir/loginfo hostnames $output_path > $output_path/hostnames.json
 

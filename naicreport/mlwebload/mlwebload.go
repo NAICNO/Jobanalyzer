@@ -50,14 +50,6 @@ func MlWebload(progname string, args []string) error {
 
 	loadArguments := loadInitialArgs(configFilename)
 	downtimeArguments := downtimeInitialArgs()
-	if progOpts.HaveFrom {
-		loadArguments = append(loadArguments, "--from", progOpts.FromStr)
-		downtimeArguments = append(downtimeArguments, "--from", progOpts.FromStr)
-	}
-	if progOpts.HaveTo {
-		loadArguments = append(loadArguments, "--to", progOpts.ToStr)
-		downtimeArguments = append(downtimeArguments, "--to", progOpts.ToStr)
-	}
 
 	// This handling of bucketing isn't completely clean but it's good enough for not-insane users.
 	// We can use flag.Visit() to do a better job, if we want.
@@ -76,10 +68,10 @@ func MlWebload(progname string, args []string) error {
 		return errors.New("One of --daily, --hourly, or --none is required")
 	}
 
-	// For -- this must come last, so do files last always
+	// For -- this must come last, so do standard options (from/to and files) last always
 
-	loadArguments = util.AddDataFiles(loadArguments, progOpts)
-	downtimeArguments = util.AddDataFiles(downtimeArguments, progOpts)
+	loadArguments = util.AddStandardOptions(loadArguments, progOpts)
+	downtimeArguments = util.AddStandardOptions(downtimeArguments, progOpts)
 
 	// Obtain all the data
 

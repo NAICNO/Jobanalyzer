@@ -1,3 +1,5 @@
+// dashboard.js must have been loaded before this
+
 let machine_load_chart = null
 let current_host = ""
 
@@ -14,9 +16,12 @@ function setup() {
 }
 
 function render() {
+    // We can argue about 30 but note that 30 is what the text says, and 30 is what the report
+    // contains (currently).
+    let thirty_days_ago = Date.now() - 30*24*60*60*1000
     render_machine_load()
-    render_cpuhogs()
-    render_deadweight()
+    render_cpuhogs(thirty_days_ago)
+    render_deadweight(thirty_days_ago)
 }
 
 function render_machine_load() {
@@ -33,7 +38,7 @@ function render_machine_load() {
     })
 }
 
-function render_cpuhogs() {
+function render_cpuhogs(thirty_days_ago) {
     let file = "cpuhog-report.json"
     let fields = [{name: "Host", tag: "hostname"},
 		  {name: "User", tag: "user"},
@@ -52,10 +57,13 @@ function render_cpuhogs() {
                  fields,
                  elt,
                  cmp_string_fields("last-seen", true),
-                 function (d) { return current_host == d["hostname"] })
+                 function (d) {
+                     return current_host == d["hostname"] &&
+                         parse_date(d["last-seen"]) >= thirty_days_ago
+                 })
 }
 
-function render_deadweight() {
+function render_deadweight(thirty_days_ago) {
       let file = "deadweight-report.json"
       let fields = [{name: "Host", tag: "hostname"},
 		    {name: "User", tag: "user"},
@@ -69,6 +77,9 @@ function render_deadweight() {
                  fields,
                  elt,
                  cmp_string_fields("last-seen", true),
-                 function (d) { return current_host == d["hostname"] })
+                 function (d) {
+                     return current_host == d["hostname"] &&
+                         parse_date(d["last-seen"]) >= thirty_days_ago
+                 })
 }
 

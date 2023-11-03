@@ -39,7 +39,7 @@ func main() {
 		toplevelUsage(1)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %v\n\n", err)
+		fmt.Fprintf(os.Stderr, "NAICREPORT FAILED\n%v\n\n", err)
 		toplevelUsage(1)
 	}
 }

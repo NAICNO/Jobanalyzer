@@ -133,9 +133,15 @@ func CleanPath(p, optionName string) (newp string, e error) {
 	return
 }
 
-// Simple utility: Add standard data file arguments to an argument list
+// Simple utility: Add standard from/to and data file arguments to an argument list
 
-func AddDataFiles(arguments []string, progOpts *StandardOptions) []string {
+func AddStandardOptions(arguments []string, progOpts *StandardOptions) []string {
+	if progOpts.HaveFrom {
+		arguments = append(arguments, "--from", progOpts.FromStr)
+	}
+	if progOpts.HaveTo {
+		arguments = append(arguments, "--to", progOpts.ToStr)
+	}
 	if progOpts.DataFiles != nil {
 		arguments = append(arguments, "--")
 		arguments = append(arguments, progOpts.DataFiles...)
