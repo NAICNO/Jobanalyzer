@@ -1,0 +1,6 @@
+# This should be copied to /etc/cron.d/sonar on every compute node
+
+SHELL=/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=larstha@uio.no
+0-59/5 * * * * sonar /cluster/var/sonar/bin/sonar.sh
