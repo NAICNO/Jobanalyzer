@@ -46,10 +46,10 @@ let fields = [
     {name: "GPUMEM%\n(recent)", tag: "gpumem_recent", help:"Running average"},
     {name: "GPUMEM%\n(longer)", tag: "gpumem_longer", help:"Running average"},
 
-    // Number of new hogs and zombies encountered in the period, as of the last
+    // Number of *new* hogs and zombies encountered in the period, as of the last
     // generated report.  This currently changes rarely.
-    {name: "Hogs", tag: "hogs_long", help: "Jobs using a lot of CPU and no GPU"},
-    {name: "Zombies", tag: "zombies_long", help: "Defunct and zombie jobs"},
+    {name: "Hogs\n(new)", tag: "hogs_long", help: "New jobs using a lot of CPU and no GPU"},
+    {name: "Zombies\n(new)", tag: "zombies_long", help: "New defunct and zombie jobs"},
 ]
 
 // Compute field offsets in field table
