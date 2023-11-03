@@ -205,3 +205,24 @@ function cmp_string_fields(field, flip) {
 	return 0
     }
 }
+
+// Time format used pervasively by Jobanalyzer: "yyyy-mm-dd hh:mm"
+let date_matcher = /^(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d)$/;
+
+// Given a date matching date_matcher, return a Number representing that as a UTC time with
+// millisecond precision.
+function parse_date(s) {
+    let ms = date_matcher.exec(s)
+    if (ms == null) {
+        throw new Error("Not a date (syntax): <" + s + ">")
+    }
+    let year = parseInt(ms[1], 10)
+    let month = parseInt(ms[2], 10)
+    let day = parseInt(ms[3], 10)
+    let hour = parseInt(ms[4], 10)
+    let min = parseInt(ms[5], 10)
+    if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(min)) {
+        throw new Error("Not a date (value): " + s)
+    }
+    return Date.UTC(year, month-1, day, hour, min)
+}
