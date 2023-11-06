@@ -188,7 +188,7 @@ function do_render_table(data, fields, tbody, cmp, filter) {
             let td = document.createElement("td")
             if (tag in d) {
                 let sp = document.createElement("span")
-                sp.textContent = d[tag]
+                sp.textContent = String(d[tag]).replaceAll(",",", ")
                 td.appendChild(sp)
             }
             tr.appendChild(td)
