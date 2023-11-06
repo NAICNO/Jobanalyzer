@@ -29,7 +29,7 @@ pub fn print(
     } else {
         FMT_DEFAULTS
     };
-    let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
+    let (fields, others) = format::parse_fields(spec, &formatters, &aliases)?;
     let mut opts = format::standard_options(&others);
     // `metadata` defaults to headerless un-named csv.  Would be more elegant to pass defaults to
     // standard_options, not hack it in afterwards.
@@ -52,9 +52,7 @@ pub fn print(
             a.host.cmp(&b.host)
         }
     });
-    if fields.len() > 0 {
-        format::format_data(output, &fields, &formatters, &opts, data, &false);
-    }
+    format::format_data(output, &fields, &formatters, &opts, data, &false);
     Ok(())
 }
 
