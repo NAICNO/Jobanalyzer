@@ -74,3 +74,5 @@ host,ml8.hpc.uio.no,up,2023-10-09 22:00,2023-10-09 22:15
 gpu,ml8.hpc.uio.no,up,2023-10-09 22:00,2023-10-09 22:15" \
       "$output"
 
+output=$($SONALYZE uptime --interval 5 --fmt=json,all -- empty_input.csv)
+CHECK uptime_json_empty "[]" "$output"

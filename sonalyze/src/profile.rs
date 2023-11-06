@@ -182,7 +182,7 @@ pub fn print(
     } else {
         FMT_DEFAULTS_WITHOUT_NPROC
     };
-    let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
+    let (fields, others) = format::parse_fields(spec, &formatters, &aliases)?;
     let mut opts = format::standard_options(&others);
     if opts.named  {
         bail!("Named fields are not supported")
@@ -198,9 +198,7 @@ pub fn print(
         write_csv(output, &fields, &csv_reports)?;
     } else {
         opts.fixed = true;
-        if fields.len() > 0 {
-            format::format_data(output, &fields, &formatters, &opts, fixed_reports, &false);
-        }
+        format::format_data(output, &fields, &formatters, &opts, fixed_reports, &false);
     }
 
     Ok(())
@@ -229,7 +227,7 @@ fn my_formatters() -> (
     HashMap<String, Vec<String>>,
 ) {
     let mut formatters: HashMap<String, &dyn Fn(LogDatum, LogCtx) -> String> = HashMap::new();
-    let aliases: HashMap<String, Vec<String>> = HashMap::new();
+    let mut aliases: HashMap<String, Vec<String>> = HashMap::new();
 
     formatters.insert("time".to_string(), &format_time);
     formatters.insert("cpu".to_string(), &format_cpu);
@@ -238,6 +236,11 @@ fn my_formatters() -> (
     formatters.insert("gpumem".to_string(), &format_gpumem);
     formatters.insert("nproc".to_string(), &format_nproc);
     formatters.insert("cmd".to_string(), &format_cmd);
+
+    aliases.insert("all".to_string(),
+                   vec!["time".to_string(), "cpu".to_string(), "mem".to_string(),
+                        "gpu".to_string(), "gpumem".to_string(), "nproc".to_string(),
+                        "cmd".to_string()]);
 
     (formatters, aliases)
 }

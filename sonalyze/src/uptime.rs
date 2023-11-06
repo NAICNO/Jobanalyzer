@@ -84,10 +84,6 @@ pub fn aggregate_and_print_uptime(
     _meta_args: &MetaArgs,
     mut entries: Vec<Box<LogEntry>>,
 ) -> Result<()> {
-    if entries.len() == 0 {
-        return Ok(());
-    }
-
     // We work by sorting by hostname and timestamp and then scanning the sorted list
     entries.sort_by(|a, b| {
         if a.hostname != b.hostname {
@@ -253,11 +249,9 @@ pub fn aggregate_and_print_uptime(
     } else {
         FMT_DEFAULTS
     };
-    let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
+    let (fields, others) = format::parse_fields(spec, &formatters, &aliases)?;
     let opts = format::standard_options(&others);
-    if fields.len() > 0 {
-        format::format_data(output, &fields, &formatters, &opts, reports, &false);
-    }
+    format::format_data(output, &fields, &formatters, &opts, reports, &false);
 
     Ok(())
 }

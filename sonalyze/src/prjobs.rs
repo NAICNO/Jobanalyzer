@@ -94,7 +94,8 @@ pub fn print_jobs(
                 )
                 .unwrap();
         });
-    } else if numselected > 0 {
+    } else {
+        // Note, numselected may be zero, but for the JSON format we can't bail out early.
         let (/*mut*/ formatters, aliases) = my_formatters();
         /* BREAKDOWN
          * if print_args.breakdown.is_some() {
@@ -106,7 +107,7 @@ pub fn print_jobs(
         } else {
             FMT_DEFAULTS
         };
-        let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
+        let (fields, others) = format::parse_fields(spec, &formatters, &aliases)?;
         let opts = format::standard_options(&others);
         let relative = fields.iter().any(|x| match *x {
             "rcpu-avg" | "rcpu-peak" | "rmem-avg" | "rmem-peak" | "rgpu-avg" | "rgpu-peak"
@@ -117,23 +118,21 @@ pub fn print_jobs(
             bail!("Relative values requested without config file");
         }
 
-        if fields.len() > 0 {
-            let mut selected = vec![];
-            for /*mut*/ job in jobvec.drain(0..) {
-                if job.aggregate.selected {
-                    /* BREAKDOWN
-                     * let breakdown = job.breakdown;
-                     * job.breakdown = None;
-                     */
-                    selected.push(job);
-                    /* BREAKDOWN
-                     * expand_subjobs(1, breakdown, &mut selected);
-                     */
-                }
+        let mut selected = vec![];
+        for /*mut*/ job in jobvec.drain(0..) {
+            if job.aggregate.selected {
+                /* BREAKDOWN
+                 * let breakdown = job.breakdown;
+                 * job.breakdown = None;
+                 */
+                selected.push(job);
+                /* BREAKDOWN
+                 * expand_subjobs(1, breakdown, &mut selected);
+                 */
             }
-            let c = Context { t: now(), fixed_format: !opts.json && !opts.csv };
-            format::format_data(output, &fields, &formatters, &opts, selected, &c);
         }
+        let c = Context { t: now(), fixed_format: !opts.json && !opts.csv };
+        format::format_data(output, &fields, &formatters, &opts, selected, &c);
     }
 
     Ok(())

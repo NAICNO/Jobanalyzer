@@ -78,7 +78,7 @@ pub fn aggregate_and_print_load(
     } else {
         FMT_DEFAULTS
     };
-    let (fields, others) = format::parse_fields(spec, &formatters, &aliases);
+    let (fields, others) = format::parse_fields(spec, &formatters, &aliases)?;
     let opts = format::standard_options(&others);
     let relative = fields.iter().any(|x| match *x {
         "rcpu" | "rmem" | "rgpu" | "rgpumem" => true,

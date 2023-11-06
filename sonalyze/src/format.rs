@@ -1,6 +1,7 @@
 /// Generic formatting code for a set of data extracted from a data structure to be presented
 /// columnar, as csv, or as json, and (except for json) with or without a header and with or without
 /// named fields.
+use anyhow::{bail, Result};
 use csv;
 use json;
 use std::collections::{HashMap, HashSet};
@@ -42,13 +43,13 @@ where
 }
 
 /// Return a vector of the known fields in `spec` wrt the formatters, and a HashSet of any other
-/// strings found in `spec`
+/// strings found in `spec`.  It returns an error if zero output fields were selected.
 
 pub fn parse_fields<'a, DataT, FmtT, CtxT>(
     spec: &'a str,
     formatters: &HashMap<String, FmtT>,
     aliases: &'a HashMap<String, Vec<String>>,
-) -> (Vec<&'a str>, HashSet<&'a str>)
+) -> Result<(Vec<&'a str>, HashSet<&'a str>)>
 where
     FmtT: Fn(&DataT, CtxT) -> String,
     CtxT: Copy,
@@ -70,7 +71,10 @@ where
             others.insert(x);
         }
     }
-    (fields, others)
+    if fields.len() == 0 {
+        bail!("No output fields were selected")
+    }
+    Ok((fields, others))
 }
 
 pub struct FormatOptions {
