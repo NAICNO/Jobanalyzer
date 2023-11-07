@@ -16,6 +16,7 @@ type SystemConfig struct {
 	MemGB       int    `json:"mem_gb"`
 	GpuCards    int    `json:"gpu_cards"`
 	GpuMemGB    int    `json:"gpumem_gb"`
+	GpuMemPct   bool   `json:"gpumem_pct"`
 }
 
 // Get the system config if possible

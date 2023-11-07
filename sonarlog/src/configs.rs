@@ -61,15 +61,17 @@ pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
                 }
                 sys.cpu_cores = grab_usize(&fields, "cpu_cores")?;
                 sys.mem_gb = grab_usize(&fields, "mem_gb")?;
-                sys.gpu_cards = grab_usize(&fields, "gpu_cards")?;
-                sys.gpumem_gb = grab_usize(&fields, "gpumem_gb")?;
-                if let Some(d) = fields.get("gpumem_pct") {
-                    if let Value::Bool(b) = d {
-                        sys.gpumem_pct = *b;
-                    } else {
-                        bail!("Field 'gpumem_pct' must have a boolean value");
+                let gpu_cards = grab_usize_opt(&fields, "gpu_cards")?;
+                let gpumem_gb = grab_usize_opt(&fields, "gpumem_gb")?;
+                let gpumem_pct = grab_bool_opt(&fields, "gpumem_pct")?;
+                if gpu_cards.is_none() {
+                    if gpumem_gb.is_some() || gpumem_pct.is_some() {
+                        bail!("Without gpu_cards there should be no gpumem_gb or gpumem_pct")
                     }
                 }
+                sys.gpu_cards = gpu_cards.or(Some(0)).unwrap();
+                sys.gpumem_gb = gpumem_gb.or(Some(0)).unwrap();
+                sys.gpumem_pct = gpumem_pct.or(Some(false)).unwrap();
                 let key = sys.hostname.clone();
                 if m.contains_key(&key) {
                     bail!("System info for host {key} already defined");
@@ -86,10 +88,18 @@ pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
 }
 
 fn grab_usize(fields: &serde_json::Map<String, Value>, name: &str) -> Result<usize> {
+    if let Some(n) = grab_usize_opt(fields, name)? {
+        Ok(n)
+    } else {
+        bail!("Field '{name}' must be present and have an integer value")
+    }
+}
+
+fn grab_usize_opt(fields: &serde_json::Map<String, Value>, name: &str) -> Result<Option<usize>> {
     if let Some(Value::Number(cores)) = fields.get(name) {
         if let Some(n) = cores.as_u64() {
             match usize::try_from(n) {
-                Ok(n) => Ok(n),
+                Ok(n) => Ok(Some(n)),
                 Err(_e) => {
                     bail!("Field '{name}' must have unsigned integer value")
                 }
@@ -98,7 +108,19 @@ fn grab_usize(fields: &serde_json::Map<String, Value>, name: &str) -> Result<usi
             bail!("Field '{name}' must have unsigned integer value")
         }
     } else {
-        bail!("Field '{name}' must be present and have an integer value")
+        Ok(None)
+    }
+}
+
+fn grab_bool_opt(fields: &serde_json::Map<String, Value>, name: &str) -> Result<Option<bool>> {
+    if let Some(d) = fields.get(name) {
+        if let Value::Bool(b) = d {
+            Ok(Some(*b))
+        } else {
+            bail!("Field 'gpumem_pct' must have a boolean value");
+        }
+    } else {
+        Ok(None)
     }
 }
 
@@ -108,12 +130,26 @@ fn grab_usize(fields: &serde_json::Map<String, Value>, name: &str) -> Result<usi
 #[test]
 fn test_config() {
     let conf = read_from_json("../tests/sonarlog/whitebox-config.json").unwrap();
-    assert!(conf.len() == 2);
+    assert!(conf.len() == 3);
     let c0 = conf.get("ml1.hpc.uio.no").unwrap();
     let c1 = conf.get("ml8.hpc.uio.no").unwrap();
+    let c2 = conf.get("c1-23").unwrap();
+
     assert!(&c0.hostname == "ml1.hpc.uio.no");
-    assert!(&c1.hostname == "ml8.hpc.uio.no");
     assert!(c0.cpu_cores == 56);
-    assert!(c1.gpumem_gb == 160);
+    assert!(c0.gpu_cards == 4);
+    assert!(c0.gpumem_gb == 0);
+    assert!(c0.gpumem_pct == true);
+
+    assert!(&c1.hostname == "ml8.hpc.uio.no");
+    assert!(c1.gpu_cards == 3);
+    assert!(c1.gpumem_gb == 128);
+    assert!(c1.gpumem_pct == false);
+
+    assert!(&c2.hostname == "c1-23");
+    assert!(c2.gpu_cards == 0);
+    assert!(c2.gpumem_gb == 0);
+    assert!(c2.gpumem_pct == false);
+
     assert!(conf.get("ml2.hpc.uio.no").is_none());
 }

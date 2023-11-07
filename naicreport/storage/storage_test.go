@@ -238,3 +238,22 @@ func TestFieldGetters(t *testing.T) {
 		t.Fatalf("Failed GetRFC3339 #3")
 	}
 }
+
+func TestReadConfig(t *testing.T) {
+	cfg, err := ReadConfig("../../tests/naicreport/whitebox-config.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg) != 3 {
+		t.Fatalf("Expected 3 elements")
+	}
+	if cfg[0].CpuCores != 64 || cfg[0].MemGB != 256 || cfg[0].GpuCards != 8 || cfg[0].GpuMemGB != 88 || cfg[0].GpuMemPct != false {
+		t.Fatalf("element 0: %v", cfg[0])
+	}
+	if cfg[1].CpuCores != 192 || cfg[1].MemGB != 1024 || cfg[1].GpuCards != 4 || cfg[1].GpuMemGB != 0 || cfg[1].GpuMemPct != true {
+		t.Fatalf("element 1: %v", cfg[1])
+	}
+	if cfg[2].CpuCores != 128 || cfg[2].MemGB != 512 || cfg[2].GpuCards != 0 || cfg[2].GpuMemGB != 0 || cfg[2].GpuMemPct != false {
+		t.Fatalf("element 2: %v", cfg[2])
+	}
+}
