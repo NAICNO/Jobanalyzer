@@ -5,15 +5,21 @@
 	"cpu_cores": 56,
 	"mem_gb": 128,
 	"gpu_cards": 4,
-	"gpumem_gb": 44
+	"gpumem_pct": true
     },
     {
 	"hostname":"ml8.hpc.uio.no",
-	"description": "2x48 AMD EPYC 7642 (hyperthreaded), 1TB, 4x NVIDIA A100 @ 40GB",
+	"description": "2x48 AMD EPYC 7642 (hyperthreaded), 1TB, 3x NVIDIA A100 @ 40GB",
 	"cpu_cores": 192,
 	"mem_gb": 1024,
-	"gpu_cards": 4,
-	"gpumem_gb": 160
+	"gpu_cards": 3,
+	"gpumem_gb": 128
+    },
+    {
+        "hostname":"c1-[23-25]",
+        "description": "1x128 ACME CPU, 256GB",
+        "cpu_cores": 128,
+        "mem_gb": 256
     }
 ]
 
