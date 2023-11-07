@@ -239,12 +239,23 @@ func TestFieldGetters(t *testing.T) {
 	}
 }
 
+func TestExpandPatterns(t *testing.T) {
+	x := ExpandPatterns("ab[1-2,4].cd[3]")
+	if len(x) != 3 || x[0] != "ab1.cd3" || x[1] != "ab2.cd3" || x[2] != "ab4.cd3" {
+		t.Fatalf("Pattern: %v", x)
+	}
+	x = ExpandPatterns("ab[].cd")
+	if len(x) != 1 || x[0] != "ab[].cd" {
+		t.Fatalf("Pattern: %v", x)
+	}
+}
+
 func TestReadConfig(t *testing.T) {
 	cfg, err := ReadConfig("../../tests/naicreport/whitebox-config.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(cfg) != 3 {
+	if len(cfg) != 5 {
 		t.Fatalf("Expected 3 elements")
 	}
 	if cfg[0].CpuCores != 64 || cfg[0].MemGB != 256 || cfg[0].GpuCards != 8 || cfg[0].GpuMemGB != 88 || cfg[0].GpuMemPct != false {
@@ -253,7 +264,13 @@ func TestReadConfig(t *testing.T) {
 	if cfg[1].CpuCores != 192 || cfg[1].MemGB != 1024 || cfg[1].GpuCards != 4 || cfg[1].GpuMemGB != 0 || cfg[1].GpuMemPct != true {
 		t.Fatalf("element 1: %v", cfg[1])
 	}
-	if cfg[2].CpuCores != 128 || cfg[2].MemGB != 512 || cfg[2].GpuCards != 0 || cfg[2].GpuMemGB != 0 || cfg[2].GpuMemPct != false {
-		t.Fatalf("element 2: %v", cfg[2])
+	names := []string{"c1-10", "c1-11", "c1-12"}
+	for i := 2; i < 5; i++ {
+		if cfg[i].CpuCores != 128 || cfg[i].MemGB != 512 || cfg[i].GpuCards != 0 || cfg[i].GpuMemGB != 0 || cfg[i].GpuMemPct != false {
+			t.Fatalf("element 2+%d: %v", i, cfg[i])
+		}
+		if cfg[i].Hostname != names[i-2] {
+			t.Fatalf("element 2+%d: %v", i, cfg[i])
+		}
 	}
 }

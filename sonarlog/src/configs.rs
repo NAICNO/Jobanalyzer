@@ -12,6 +12,8 @@
 ///   gpumem_pct - bool, optional, expressing a preference for the GPU memory reading
 ///
 /// See ../../production/ml-nodes/ml-nodes.json for an example.
+use crate::hosts;
+
 use anyhow::{bail, Result};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -21,7 +23,7 @@ use std::path;
 
 // See above comment block for field documentation.
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct System {
     pub hostname: String,
     pub description: String,
@@ -72,11 +74,15 @@ pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
                 sys.gpu_cards = gpu_cards.or(Some(0)).unwrap();
                 sys.gpumem_gb = gpumem_gb.or(Some(0)).unwrap();
                 sys.gpumem_pct = gpumem_pct.or(Some(false)).unwrap();
-                let key = sys.hostname.clone();
-                if m.contains_key(&key) {
-                    bail!("System info for host {key} already defined");
+                for exp in expand_hostname(&sys.hostname)?.drain(0..) {
+                    let mut nsys = sys.clone();
+                    let key = exp.clone();
+                    nsys.hostname = exp;
+                    if m.contains_key(&key) {
+                        bail!("System info for host {key} already defined");
+                    }
+                    m.insert(key, nsys);
                 }
-                m.insert(key, sys);
             } else {
                 bail!("Expected an object value")
             }
@@ -124,16 +130,30 @@ fn grab_bool_opt(fields: &serde_json::Map<String, Value>, name: &str) -> Result<
     }
 }
 
+fn expand_hostname(hn: &str) -> Result<Vec<String>> {
+    let elements = hn.split('.').map(|x| x.to_string()).collect::<Vec<String>>();
+    let expansions = hosts::expand_patterns(&elements)?;
+    let mut result = vec![];
+    for mut exps in expansions {
+        if exps.iter().any(|(prefix, _)| *prefix) {
+            bail!("Suffix wildcard not allowed in expandable hostname in config file")
+        }
+        result.push(exps.drain(0..).map(|(_, elt)| elt).collect::<Vec<String>>().join("."))
+    }
+    Ok(result)
+}
+
 // Basic whitebox test that the reading works.  Error conditions are tested blackbox, see
 // tests/sonalyze/config-file.sh.
 
 #[test]
 fn test_config() {
     let conf = read_from_json("../tests/sonarlog/whitebox-config.json").unwrap();
-    assert!(conf.len() == 3);
+    assert!(conf.len() == 5);
     let c0 = conf.get("ml1.hpc.uio.no").unwrap();
     let c1 = conf.get("ml8.hpc.uio.no").unwrap();
     let c2 = conf.get("c1-23").unwrap();
+    let c4 = conf.get("c1-25").unwrap();
 
     assert!(&c0.hostname == "ml1.hpc.uio.no");
     assert!(c0.cpu_cores == 56);
@@ -150,6 +170,11 @@ fn test_config() {
     assert!(c2.gpu_cards == 0);
     assert!(c2.gpumem_gb == 0);
     assert!(c2.gpumem_pct == false);
+
+    assert!(&c4.hostname == "c1-25");
+    assert!(c4.gpu_cards == 0);
+    assert!(c4.gpumem_gb == 0);
+    assert!(c4.gpumem_pct == false);
 
     assert!(conf.get("ml2.hpc.uio.no").is_none());
 }

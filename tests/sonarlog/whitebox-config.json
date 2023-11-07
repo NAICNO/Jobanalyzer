@@ -16,7 +16,7 @@
 	"gpumem_gb": 128
     },
     {
-        "hostname":"c1-23",
+        "hostname":"c1-[23-25]",
         "description": "1x128 ACME CPU, 256GB",
         "cpu_cores": 128,
         "mem_gb": 256

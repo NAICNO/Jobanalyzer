@@ -16,7 +16,7 @@
 	"gpumem_pct": true
     },
     {
-	"hostname":"c1-10",
+	"hostname":"c1-[10-12]",
 	"description": "1x128 ACME CPU, 512GB",
 	"cpu_cores": 128,
 	"mem_gb": 512

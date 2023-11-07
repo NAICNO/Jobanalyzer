@@ -108,7 +108,7 @@ impl HostFilter {
     }
 }
 
-fn expand_patterns(xs: &[String]) -> Result<Vec<Vec<(bool, String)>>> {
+pub fn expand_patterns(xs: &[String]) -> Result<Vec<Vec<(bool, String)>>> {
     if xs.len() == 0 {
         Ok(vec![vec![]])
     } else {
