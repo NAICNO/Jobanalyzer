@@ -1,10 +1,10 @@
 <html>
   <head>
     <link rel=stylesheet type=text/css href="table-style.css"/>
-    <title>ML nodes deadweight dashboard</title>
+    <title>CLUSTER deadweight dashboard</title>
   </head>
   <body>
-    <h1>ML nodes dead weight</h1>
+    <h1 id=main_title>CLUSTER dead weight</h1>
 
     <p>The following processes and jobs are zombies or defuncts or
     otherwise dead and may be bogging down the system.  The list is
@@ -12,16 +12,20 @@
 
     <div id=report></div>
 
+    <script src="testflag.js"></script>
     <script src="dashboard.js"></script>
     <script>
-      var file = "deadweight-report.json";
+      rewriteTitle()
       var fields = [{name: "Host", tag: "hostname"},
 		    {name: "User", tag: "user"},
 		    {name: "Job",  tag: "id"},
 		    {name: "Command", tag:"cmd"},
 		    {name: "First seen", tag:"started-on-or-before"},
 		    {name: "Last seen", tag:"last-seen"}]
-      render_table(file, fields, document.getElementById("report"), cmp_string_fields("last-seen", true))
+      render_table(tag_file("deadweight-report.json"),
+		   fields,
+		   document.getElementById("report"),
+		   cmp_string_fields("last-seen", true))
     </script>
 
   </body>

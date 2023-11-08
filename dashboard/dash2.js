@@ -46,9 +46,9 @@ let fields = [
     {name: "GPUMEM%\n(recent)", tag: "gpumem_recent", help:"Running average"},
     {name: "GPUMEM%\n(longer)", tag: "gpumem_longer", help:"Running average"},
 
-    // Number of *new* hogs and zombies encountered in the period, as of the last
+    // Number of *new* violators and zombies encountered in the period, as of the last
     // generated report.  This currently changes rarely.
-    {name: "Hogs\n(new)", tag: "hogs_long", help: "New jobs using a lot of CPU and no GPU"},
+    {name: "Violators\n(new)", tag: "violators_long", help: "New jobs violating policy"},
     {name: "Zombies\n(new)", tag: "zombies_long", help: "New defunct and zombie jobs"},
 ]
 
@@ -74,13 +74,21 @@ function toggleReload() {
     }
 }
 
+function setupLinks() {
+    let info = cluster_info(CURRENT_CLUSTER)
+    document.getElementById("violators_link").href=`violators.html?cluster=${CURRENT_CLUSTER}`
+    document.getElementById("deadweight_link").href=`deadweight.html?cluster=${CURRENT_CLUSTER}`
+}
+
 function setup() {
+    rewriteTitle()
     toggleReload()
+    setupLinks()
     render()
 }
 
 function render() {
-    render_table("at-a-glance.json", fields, document.getElementById("report"), sort_records).
+    render_table(tag_file("at-a-glance.json"), fields, document.getElementById("report"), sort_records).
         then(annotate_rows)
 }
 
@@ -91,17 +99,16 @@ function annotate_rows(rows) {
     let recent_minutes = 30
     let longer_minutes = 12*60
     let long_minutes = 24*60
-    let tag
 
     // rows is an array of [json-datum, row-element] pairs
     // each row has exactly the fields above, offsets are computed above too
     for ( let [d,r] of rows ) {
-        r.onclick = function () { window.open(`${machine_page}?host=${d["hostname"]}`) }
+        r.onclick = function () { window.open(`${machine_page}?cluster=${CURRENT_CLUSTER}&host=${d["hostname"]}`) }
         if (d.cpu_status != 0) {
             r.style.backgroundColor = col_DOWN
             continue
         }
-        if (d.gpu_status != 0) {
+        if (d.gpu_status != 0 && d.gpu_status != undefined) {
             r.children[offs.gpu_status].style.backgroundColor = col_DOWN
         }
         for ( let n of working_fields ) {
@@ -123,18 +130,11 @@ function annotate_rows(rows) {
         recent_minutes = d.recent
         longer_minutes = d.longer
         long_minutes = d.long
-        if (tag === undefined) {
-            tag = d.tag
-        }
     }
 
     document.getElementById("recent_defn").textContent = sanetime(recent_minutes)
     document.getElementById("longer_defn").textContent = sanetime(longer_minutes)
     document.getElementById("long_defn").textContent = sanetime(long_minutes)
-    if (tag !== undefined) {
-        document.title = tag + " Dashboard"
-        document.getElementById("title").textContent = tag + " Dashboard"
-    }
 }
 
 function sanetime(mins) {
