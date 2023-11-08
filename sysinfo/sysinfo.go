@@ -51,7 +51,7 @@ func main() {
 		r.GpuCards = gpuCards
 		r.GpumemGB = (gpuMem * int64(gpuCards)) / (1024 * 1024 * 1024)
 	}
-	bytes, err := json.Marshal(r)
+	bytes, err := json.MarshalIndent(r, "", " ")
 	if err != nil {
 		panic("Marshal")
 	}
