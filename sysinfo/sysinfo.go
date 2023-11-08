@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"strconv"
@@ -47,13 +48,13 @@ func main() {
 	if threadsPerCore > 1 {
 		ht = " (hyperthreaded)"
 	}
-	r.Model = fmt.Sprintf("%dx%d%s %s", sockets, coresPerSocket, ht, model)
+	r.MemGB = int64(math.Round(float64(mem) / (1024 * 1024 * 1024)))
+	r.Model = fmt.Sprintf("%dx%d%s, %s, %d GB", sockets, coresPerSocket, ht, model, r.MemGB)
 	r.Cores = sockets * coresPerSocket * threadsPerCore
-	r.MemGB = mem / (1024 * 1024 * 1024)
 	if gpuModel != "" {
 		r.Model += fmt.Sprintf(", %dx %s @ %dGB", gpuCards, gpuModel, gpuMem/(1024*1024*1024))
 		r.GpuCards = gpuCards
-		r.GpumemGB = (gpuMem * int64(gpuCards)) / (1024 * 1024 * 1024)
+		r.GpumemGB = int64(math.Round((float64(gpuMem) * float64(gpuCards)) / (1024 * 1024 * 1024)))
 	}
 	bytes, err := json.MarshalIndent(r, "", " ")
 	if err != nil {
