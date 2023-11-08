@@ -32,3 +32,9 @@ echo " SONARD RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd sonard ; go build )
 ( cd sonard ; ./sonard -h 2&> /dev/null )
+
+echo "======================================================================="
+echo " SYSINFO RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd sysinfo ; go build )
+( cd sysinfo ; ./sysinfo -h 2&> /dev/null )

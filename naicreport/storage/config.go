@@ -5,7 +5,6 @@ package storage
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -43,10 +42,10 @@ func ReadConfig(configFilename string) ([]*SystemConfig, error) {
 
 	for _, c := range configInfo {
 		if c.CpuCores == 0 || c.MemGB == 0 {
-			return nil, errors.New(fmt.Sprintf("Nonsensical CPU/memory information for %s", c.Hostname))
+			return nil, fmt.Errorf("Nonsensical CPU/memory information for %s", c.Hostname)
 		}
 		if c.GpuCards == 0 && (c.GpuMemGB != 0 || c.GpuMemPct) {
-			return nil, errors.New(fmt.Sprintf("Inconsistent GPU information for %s", c.Hostname))
+			return nil, fmt.Errorf("Inconsistent GPU information for %s", c.Hostname)
 		}
 	}
 
@@ -78,7 +77,7 @@ func ReadConfig(configFilename string) ([]*SystemConfig, error) {
 	names := make(map[string]bool)
 	for _, c := range configInfo {
 		if _, found := names[c.Hostname]; found {
-			return nil, errors.New(fmt.Sprintf("Duplicate host name in config: %s", c.Hostname))
+			return nil, fmt.Errorf("Duplicate host name in config: %s", c.Hostname)
 		}
 		names[c.Hostname] = true
 	}

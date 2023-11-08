@@ -104,7 +104,7 @@ func MlCpuhog(progname string, args []string) error {
 			progOpts.To,
 		)
 		if err != nil {
-			return errors.Join(errors.New("Could not enumerate files"), err)
+			return fmt.Errorf("Could not enumerate files: %w", err)
 		}
 		dataFiles = files
 	}
@@ -113,7 +113,7 @@ func MlCpuhog(progname string, args []string) error {
 	if *nowOpt != "" {
 		n, err := time.Parse(*nowOpt, util.DateTimeFormat)
 		if err != nil {
-			return errors.Join(errors.New("Argument to --now could not be parsed"), err)
+			return fmt.Errorf("Argument to --now could not be parsed: %w", err)
 		}
 		now = n.UTC()
 	} else {

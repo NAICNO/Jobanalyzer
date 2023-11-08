@@ -553,7 +553,10 @@ func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *util.Sta
 		if sonalyzeOutput == "" {
 			extraErr = errors.New("Empty output")
 		}
-		return errors.Join(errors.New(fmt.Sprintf("JSON unmarshaling on %s %v", sonalyzePath, arguments)), extraErr, err)
+		return errors.Join(
+			fmt.Errorf("JSON unmarshaling on %s %v", sonalyzePath, arguments),
+			extraErr,
+			err)
 	}
 	return nil
 }

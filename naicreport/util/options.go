@@ -119,7 +119,7 @@ func (s *StandardOptions) Parse(args []string) error {
 
 func CleanPath(p, optionName string) (newp string, e error) {
 	if p == "" {
-		e = errors.New(fmt.Sprintf("%s requires a value", optionName))
+		e = fmt.Errorf("%s requires a value", optionName)
 	} else if path.IsAbs(p) {
 		newp = path.Clean(p)
 	} else {
