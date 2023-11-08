@@ -9,9 +9,9 @@ import (
 	"os"
 
 	"naicreport/glance"
+	"naicreport/load"
 	"naicreport/mlcpuhog"
 	"naicreport/mldeadweight"
-	"naicreport/mlwebload"
 )
 
 func main() {
@@ -29,8 +29,8 @@ func main() {
 	case "ml-cpuhog":
 		err = mlcpuhog.MlCpuhog(os.Args[0], os.Args[2:])
 
-	case "ml-webload":
-		err = mlwebload.MlWebload(os.Args[0], os.Args[2:])
+	case "ml-webload", "load":
+		err = load.Load(os.Args[0], os.Args[2:])
 
 	case "at-a-glance":
 		err = glance.Report(os.Args[0], os.Args[2:])
@@ -56,12 +56,14 @@ where <verb> is one of
     Print help
   at-a-glance
     Produce a summary report from many parts
+  load
+    Run sonalyze to generate plottable (JSON) load reports
   ml-deadweight
    Analyze the deadweight logs and generate a report of new violations
   ml-cpuhog
     Analyze the cpuhog logs and generate a report of new violations
   ml-webload
-    Run sonalyze to generate plottable (JSON) load reports
+    Obsolete name for "load"
 
 All verbs accept -h to print verb-specific help.
 Explicit filenames override any --data-path argument, when sensible

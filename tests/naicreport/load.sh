@@ -1,24 +1,24 @@
 # -*- electric-indent-local-mode: nil -*-
 
-# Very basic tests for ml-webload
+# Very basic tests for `naicreport load`
 
 # TODO: can we do something with mktmp?
 # TODO: can we dump output on stdout with "-output-path -" say, or a different option?
-OUTPUT_DIR=mlwebload-output-dir
+OUTPUT_DIR=load-output-dir
 
 rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
-$NAICREPORT ml-webload \
+$NAICREPORT load \
             -sonalyze $SONALYZE \
-            -config-file mlwebload-smoketest-cfg.json \
+            -config-file load-smoketest-cfg.json \
             -output-path $OUTPUT_DIR \
             -tag test \
             -hourly -from 2023-10-09 -to 2023-10-10 \
             -with-downtime \
-            -- mlwebload-smoketest.csv
+            -- load-smoketest.csv
 exitcode=$?
 if (( $exitcode != 0 )); then
-    FAIL mlwebload_smoketest_setup "Exit code: $exitcode"
+    FAIL load_smoketest_setup "Exit code: $exitcode"
 fi
 
 output=$(cat $OUTPUT_DIR/ml7*json)
@@ -30,23 +30,23 @@ expected_count=48
 if [[ $output =~ '"rcpu"':'['([^]]*)']' ]]; then
     rcpu_items=${BASH_REMATCH[1]}
     count=$(echo $rcpu_items | sed 's/,/\n/g' | wc -l)
-    CHECK mlwebload_smoketest_rcpu_count $expected_count $count
+    CHECK load_smoketest_rcpu_count $expected_count $count
 else
-    FAIL mlwebload_smoketest_rcpu_count "$output"
+    FAIL load_smoketest_rcpu_count "$output"
 fi
 if [[ $output =~ '"labels"':'['([^]]*)']' ]]; then
     labels_items=${BASH_REMATCH[1]}
     count=$(echo $labels_items | sed 's/,/\n/g' | wc -l)
-    CHECK mlwebload_smoketest_labels_count $expected_count $count
+    CHECK load_smoketest_labels_count $expected_count $count
 else
-    FAIL mlwebload_smoketest_labels_count "$output"
+    FAIL load_smoketest_labels_count "$output"
 fi
 if [[ $output =~ '"downhost"':'['([^]]*)']' ]]; then
     downhost_items=${BASH_REMATCH[1]}
     count=$(echo $downhost_items | sed 's/,/\n/g' | wc -l)
-    CHECK mlwebload_smoketest_downhost_count $expected_count $count
+    CHECK load_smoketest_downhost_count $expected_count $count
 else
-    FAIL mlwebload_smoketest_downhost_count "$output"
+    FAIL load_smoketest_downhost_count "$output"
 fi
 
 # Check some informational items
@@ -55,7 +55,7 @@ t=1
 if [[ $output =~ '"bucketing":"hourly"' ]]; then
     t=0
 fi
-CHECK mlwebload_smoketest_bucketing 0 "$t"
+CHECK load_smoketest_bucketing 0 "$t"
 
 # Now check the contents of some of the arrays: specific values, and their positions.  Since the
 # data start at 22:00 UTC on the first day and there is bucketing by hour there should be 22 zero
@@ -75,13 +75,13 @@ CHECK mlwebload_smoketest_bucketing 0 "$t"
 #
 # This all feels pretty ad-hoc and is definitely subject to change.
 
-CHECK mlwebload_smoketest_downhost '1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1' "$downhost_items"
+CHECK load_smoketest_downhost '1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1' "$downhost_items"
 
 if [[ $output =~ '"downgpu"':'['([^]]*)']' ]]; then
     downgpu_items=${BASH_REMATCH[1]}
-    CHECK mlwebload_smoketest_downgpu '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0' "$downgpu_items"
+    CHECK load_smoketest_downgpu '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0' "$downgpu_items"
 else
-    FAIL mlwebload_smoketest_downgpu "$output"
+    FAIL load_smoketest_downgpu "$output"
 fi
 
 rm -rf $OUTPUT_DIR

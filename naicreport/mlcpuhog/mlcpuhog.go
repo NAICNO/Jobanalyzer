@@ -40,8 +40,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"path"
 	"os"
+	"path"
 	"time"
 
 	"naicreport/joblog"
@@ -52,7 +52,7 @@ import (
 
 const (
 	cpuhogStateFilename = "cpuhog-state.csv"
-	cpuhogDataFilename = "cpuhog.csv"
+	cpuhogDataFilename  = "cpuhog.csv"
 )
 
 // Options logic here and for deadweight:
@@ -89,7 +89,7 @@ func MlCpuhog(progname string, args []string) error {
 	case progOpts.DataPath == "":
 		return errors.New("If --state-file is not present then --data-path must be")
 	default:
-		stateFilename = path.Join(progOpts.DataPath, cpuhogStateFilename);
+		stateFilename = path.Join(progOpts.DataPath, cpuhogStateFilename)
 	}
 
 	// progOpts will establish the either-or invariant here
@@ -178,13 +178,13 @@ func MlCpuhog(progname string, args []string) error {
 	case *jsonOutput:
 		bytes, err := json.Marshal(createCpuhogReport(db, logs, true))
 		if err != nil {
-			return err
+			return fmt.Errorf("While marshaling cpuhog data: %w", err)
 		}
 		fmt.Println(string(bytes))
 	case *summaryOutput:
 		report := createCpuhogReport(db, logs, false)
 		for _, r := range report {
-			r.jobState.IsReported = true;
+			r.jobState.IsReported = true
 			fmt.Printf("%s,%d,%s,%d\n", r.User, r.Id, r.Host, r.CpuPeak)
 		}
 	default:

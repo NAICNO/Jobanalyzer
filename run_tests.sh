@@ -33,19 +33,8 @@ echo "======================================================================="
 ( cd sonalyze ; target/debug/sonalyze help > /dev/null )
 ( cd sonalyze ; target/debug/sonalyze jobs --fmt=help > /dev/null )
 
-echo "======================================================================="
-echo " NAICREPORT UNIT TESTS"
-echo "======================================================================="
-( cd naicreport/util ; go test )
-( cd naicreport/joblog ; go test )
-( cd naicreport/jobstate ; go test )
-( cd naicreport/storage ; go test )
-
-echo "======================================================================="
-echo " NAICREPORT BUILD + SMOKE TEST"
-echo "======================================================================="
-( cd naicreport ; go build )
-( cd naicreport ; ./naicreport help 2&> /dev/null )
+# NAICREPORT TESTS
+( cd naicreport ; ./run_tests.sh )
 
 echo "======================================================================="
 echo " LOGINFO BUILD + SMOKE TEST"
