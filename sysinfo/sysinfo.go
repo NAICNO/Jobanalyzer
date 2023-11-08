@@ -43,7 +43,11 @@ func main() {
 	if err != nil {
 		panic("Hostname")
 	}
-	r.Model = model
+	ht := ""
+	if threadsPerCore > 1 {
+		ht = " (hyperthreaded)"
+	}
+	r.Model = fmt.Sprintf("%dx%d%s %s", sockets, coresPerSocket, ht, model)
 	r.Cores = sockets * coresPerSocket * threadsPerCore
 	r.MemGB = mem / (1024 * 1024 * 1024)
 	if gpuModel != "" {
