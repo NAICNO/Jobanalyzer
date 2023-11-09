@@ -4,7 +4,6 @@ package sonalyze
 // "classification" fields of a jobs report.
 
 const (
-	LIVE_AT_END = 1				// Earliest timestamp coincides with earliest record read
-	LIVE_AT_START = 2			// Ditto latest/latest
+	LIVE_AT_END   = 1 // Earliest timestamp coincides with earliest record read
+	LIVE_AT_START = 2 // Ditto latest/latest
 )
-

@@ -1,11 +1,13 @@
-// Generate data for plotting the running load of the ML systems.  The data are taken from the live
-// sonar logs, by means of sonalyze.
+// Generate data for plotting the running load of a cluster.  The data are taken from the live sonar
+// logs, by means of sonalyze.
 
-package mlwebload
+package load
 
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"math"
 	"os"
 	"path"
 	"sort"
@@ -17,10 +19,10 @@ import (
 	"naicreport/util"
 )
 
-func MlWebload(progname string, args []string) error {
+func Load(progname string, args []string) error {
 	// Parse and sanitize options
 
-	progOpts := util.NewStandardOptions(progname + " ml-webload")
+	progOpts := util.NewStandardOptions(progname + " load")
 	sonalyzePathPtr := progOpts.Container.String("sonalyze", "", "Path to sonalyze executable (required)")
 	configFilenamePtr := progOpts.Container.String("config-file", "", "Path to system config file (required)")
 	outputPathPtr := progOpts.Container.String("output-path", ".", "Path to output directory")
@@ -109,11 +111,12 @@ func MlWebload(progname string, args []string) error {
 
 func writePlots(
 	outputPath, tag, bucketing string,
-	configInfo []*storage.SystemConfig,
+	configInfo map[string]*storage.SystemConfig,
 	loadData []*loadDataByHost,
 	downtimeData []*downtimeDataByHost,
 ) error {
-	// configInfo may be nil and this function should still work
+	// The config for a host may be missing, but this should still work.
+	//
 	// downtimeData may be nil, in which case it should be ignored, but if not nil it must have been
 	//  quantized already
 
@@ -124,18 +127,19 @@ func writePlots(
 		Bucketing string                `json:"bucketing"`
 		Labels    []string              `json:"labels"` // formatted timestamps, for now
 		Rcpu      []float64             `json:"rcpu"`
-		Rgpu      []float64             `json:"rgpu"`
 		Rmem      []float64             `json:"rmem"`
-		Rgpumem   []float64             `json:"rgpumem"`
-		DownHost  []int                 `json:"downhost"`
-		DownGpu   []int                 `json:"downgpu"`
-		System    *storage.SystemConfig `json:"system"`
+		Rgpu      []float64             `json:"rgpu,omitempty"`
+		Rgpumem   []float64             `json:"rgpumem,omitempty"`
+		DownHost  []int                 `json:"downhost,omitempty"`
+		DownGpu   []int                 `json:"downgpu,omitempty"`
+		System    *storage.SystemConfig `json:"system,omitempty"`
 	}
 
 	// Use the same timestamp for all records
 	now := time.Now().Format(util.DateTimeFormat)
 
 	for _, hd := range loadData {
+		system, _ := configInfo[hd.host]
 		var basename string
 		if tag == "" {
 			basename = hd.host + ".json"
@@ -143,34 +147,38 @@ func writePlots(
 			basename = hd.host + "-" + tag + ".json"
 		}
 		filename := path.Join(outputPath, basename)
-		output_file, err := os.CreateTemp(path.Dir(filename), "naicreport-webload")
+		output_file, err := os.CreateTemp(path.Dir(filename), "naicreport-load")
 		if err != nil {
 			return err
 		}
 
+		hasGpu := system != nil && system.GpuCards > 0
 		labels := make([]string, 0)
 		rcpuData := make([]float64, 0)
-		rgpuData := make([]float64, 0)
 		rmemData := make([]float64, 0)
-		rgpumemData := make([]float64, 0)
+		var rgpuData, rgpumemData []float64
+		if hasGpu {
+			rgpuData = make([]float64, 0)
+			rgpumemData = make([]float64, 0)
+		}
 		for _, d := range hd.data {
 			labels = append(labels, d.datetime.Format("01-02 15:04"))
 			rcpuData = append(rcpuData, d.rcpu)
-			rgpuData = append(rgpuData, d.rgpu)
 			rmemData = append(rmemData, d.rmem)
-			rgpumemData = append(rgpumemData, d.rgpumem)
-		}
-		downHost, downGpu := generateDowntimeData(hd, downtimeData)
-		var system *storage.SystemConfig
-		if configInfo != nil {
-			for _, s := range configInfo {
-				if s.Hostname == hd.host {
-					system = s
-					break
+			if hasGpu {
+				// Throw away GPU data if found to be invalid
+				if math.IsNaN(d.rgpu) || math.IsNaN(d.rgpumem) {
+					hasGpu = false
+					rgpuData = nil
+					rgpumemData = nil
+				} else {
+					rgpuData = append(rgpuData, d.rgpu)
+					rgpumemData = append(rgpumemData, d.rgpumem)
 				}
 			}
 		}
-		bytes, err := json.Marshal(perHost{
+		downHost, downGpu := generateDowntimeData(hd, downtimeData, hasGpu)
+		data := perHost{
 			Date:      now,
 			Host:      hd.host,
 			Tag:       tag,
@@ -183,9 +191,10 @@ func writePlots(
 			DownHost:  downHost,
 			DownGpu:   downGpu,
 			System:    system,
-		})
+		}
+		bytes, err := json.Marshal(data)
 		if err != nil {
-			return err
+			return fmt.Errorf("While marshaling perHost data: %v %w", data, err)
 		}
 		output_file.Write(bytes)
 
@@ -197,7 +206,7 @@ func writePlots(
 	return nil
 }
 
-func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHost []int, downGpu []int) {
+func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost, hasGpu bool) (downHost []int, downGpu []int) {
 	if dd == nil {
 		return
 	}
@@ -214,7 +223,9 @@ func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHos
 
 	loadData := ld.data
 	downHost = make([]int, len(loadData))
-	downGpu = make([]int, len(loadData))
+	if hasGpu {
+		downGpu = make([]int, len(loadData))
+	}
 
 	for _, ddval := range downtimeData {
 		loc := sort.Search(len(loadData), func(i int) bool {
@@ -224,7 +235,7 @@ func generateDowntimeData(ld *loadDataByHost, dd []*downtimeDataByHost) (downHos
 		for ix := max(loc-1, 0); ix < len(loadData) && loadData[ix].datetime.Before(ddval.end); ix++ {
 			if isDevice {
 				downHost[ix] = 1
-			} else {
+			} else if hasGpu {
 				downGpu[ix] = 1
 			}
 		}
@@ -281,7 +292,7 @@ func parseDowntimeOutput(output string) ([]*downtimeDataByHost, error) {
 	var rawData []*downtimeRepresentation
 	err := json.Unmarshal([]byte(output), &rawData)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("While unmarshaling downtime data: %w", err)
 	}
 
 	// The output from `sonalyze downtime` is sorted first by host, then by ascending start time.

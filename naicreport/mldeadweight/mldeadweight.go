@@ -62,7 +62,7 @@ func MlDeadweight(progname string, args []string) error {
 	case progOpts.DataPath == "":
 		return errors.New("If --state-file is not present then --data-path must be")
 	default:
-		stateFilename = path.Join(progOpts.DataPath, deadweightFilename);
+		stateFilename = path.Join(progOpts.DataPath, deadweightFilename)
 	}
 
 	// progOpts will establish the either-or invariant here
@@ -146,13 +146,13 @@ func MlDeadweight(progname string, args []string) error {
 	case *jsonOutput:
 		bytes, err := json.Marshal(createDeadweightReport(db, logs, true))
 		if err != nil {
-			return err
+			return fmt.Errorf("While marshaling deadweight data: %w", err)
 		}
 		fmt.Println(string(bytes))
 	case *summaryOutput:
 		report := createDeadweightReport(db, logs, false)
 		for _, r := range report {
-			r.jobState.IsReported = true;
+			r.jobState.IsReported = true
 			fmt.Printf("%s,%d,%s\n", r.User, r.Id, r.Host)
 		}
 	default:

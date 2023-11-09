@@ -116,10 +116,12 @@ func Report(progname string, args []string) error {
 		r.CpuLonger = d.cpu_longer
 		r.MemRecent = d.mem_recent
 		r.MemLonger = d.mem_longer
-		r.GpuRecent = d.gpu_recent
-		r.GpuLonger = d.gpu_longer
-		r.GpumemRecent = d.gpumem_recent
-		r.GpumemLonger = d.gpumem_longer
+		if cfg, found := config[d.hostname]; found && cfg.GpuCards > 0 {
+			r.GpuRecent = d.gpu_recent
+			r.GpuLonger = d.gpu_longer
+			r.GpumemRecent = d.gpumem_recent
+			r.GpumemLonger = d.gpumem_longer
+		}
 	}
 	for _, d := range hogsbh {
 		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
@@ -136,21 +138,21 @@ func Report(progname string, args []string) error {
 	}
 	sort.Sort(result)
 	bytes, err := json.Marshal(result)
+	if err != nil {
+		return fmt.Errorf("While marshaling at-a-glance data: %w", err)
+	}
 	os.Stdout.Write(bytes)
 
 	return nil
 }
 
-func glanceRecordForHost(recordsByHost map[string]*glanceRecord, hostname string, config []*storage.SystemConfig, tag string) *glanceRecord {
+func glanceRecordForHost(recordsByHost map[string]*glanceRecord, hostname string, config map[string]*storage.SystemConfig, tag string) *glanceRecord {
 	if r, found := recordsByHost[hostname]; found {
 		return r
 	}
 	machine := ""
-	for _, c := range config {
-		if c.Hostname == hostname {
-			machine = c.Description
-			break
-		}
+	if cfg, found := config[hostname]; found {
+		machine = cfg.Description
 	}
 	r := &glanceRecord{
 		Host:    hostname,
@@ -181,10 +183,10 @@ type glanceRecord struct {
 	CpuLonger    float64 `json:"cpu_longer"`
 	MemRecent    float64 `json:"mem_recent"`
 	MemLonger    float64 `json:"mem_longer"`
-	GpuRecent    float64 `json:"gpu_recent"`
-	GpuLonger    float64 `json:"gpu_longer"`
-	GpumemRecent float64 `json:"gpumem_recent"`
-	GpumemLonger float64 `json:"gpumem_longer"`
+	GpuRecent    float64 `json:"gpu_recent,omitempty"`
+	GpuLonger    float64 `json:"gpu_longer,omitempty"`
+	GpumemRecent float64 `json:"gpumem_recent,omitempty"`
+	GpumemLonger float64 `json:"gpumem_longer,omitempty"`
 	Hogs         int     `json:"hogs_long"`
 	Deadweights  int     `json:"zombies_long"`
 }
@@ -554,7 +556,7 @@ func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *util.Sta
 			extraErr = errors.New("Empty output")
 		}
 		return errors.Join(
-			fmt.Errorf("JSON unmarshaling on %s %v", sonalyzePath, arguments),
+			fmt.Errorf("While unmarshaling output of %s %v", sonalyzePath, arguments),
 			extraErr,
 			err)
 	}

@@ -15,14 +15,14 @@ type SystemConfig struct {
 	Description string `json:"description"`
 	CpuCores    int    `json:"cpu_cores"`
 	MemGB       int    `json:"mem_gb"`
-	GpuCards    int    `json:"gpu_cards"`
-	GpuMemGB    int    `json:"gpumem_gb"`
-	GpuMemPct   bool   `json:"gpumem_pct"`
+	GpuCards    int    `json:"gpu_cards,omitempty"`
+	GpuMemGB    int    `json:"gpumem_gb,omitempty"`
+	GpuMemPct   bool   `json:"gpumem_pct,omitempty"`
 }
 
 // Get the system config if possible
 
-func ReadConfig(configFilename string) ([]*SystemConfig, error) {
+func ReadConfig(configFilename string) (map[string]*SystemConfig, error) {
 	var configInfo []*SystemConfig
 
 	configFile, err := os.Open(configFilename)
@@ -37,7 +37,7 @@ func ReadConfig(configFilename string) ([]*SystemConfig, error) {
 
 	err = json.Unmarshal(bytes, &configInfo)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("While unmarshaling config data: %w", err)
 	}
 
 	for _, c := range configInfo {
@@ -74,13 +74,13 @@ func ReadConfig(configFilename string) ([]*SystemConfig, error) {
 	}
 	configInfo = append(configInfo, moreInfo...)
 
-	names := make(map[string]bool)
+	finalInfo := make(map[string]*SystemConfig)
 	for _, c := range configInfo {
-		if _, found := names[c.Hostname]; found {
+		if _, found := finalInfo[c.Hostname]; found {
 			return nil, fmt.Errorf("Duplicate host name in config: %s", c.Hostname)
 		}
-		names[c.Hostname] = true
+		finalInfo[c.Hostname] = c
 	}
 
-	return configInfo, nil
+	return finalInfo, nil
 }

@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -18,8 +19,7 @@ func RunSubprocess(subpath string, arguments []string) (string, error) {
 	err := cmd.Run()
 	errs := stderr.String()
 	if err != nil || errs != "" {
-		return "", errors.Join(err, errors.New(errs))
+		return "", errors.Join(fmt.Errorf("While running %s", subpath), err, errors.New(errs))
 	}
 	return stdout.String(), nil
 }
-
