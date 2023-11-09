@@ -1,7 +1,7 @@
-// The ml-nodes deadweight analysis runs fairly often (see next) and examines data from a larger
-// time window than its running interval, and will append information about zombies, defunct
-// processes and other dead weight to a daily log.  The schedule generates a fair amount of
-// redundancy under normal circumstances.
+// The deadweight analysis runs fairly often (see next) and examines data from a larger time window
+// than its running interval, and will append information about zombies, defunct processes and other
+// dead weight to a daily log.  The schedule generates a fair amount of redundancy under normal
+// circumstances.
 //
 // The analysis MUST run often enough for a job ID on a given host never to become reused between
 // two consecutive analysis runs.
@@ -17,7 +17,7 @@
 //  - we don't want to report jobs redundantly, so there will have to be persistent state
 //  - we don't want the state to grow without bound
 
-package mldeadweight
+package deadweight
 
 import (
 	"encoding/json"
@@ -37,6 +37,24 @@ const (
 	deadweightFilename = "deadweight-state.csv"
 )
 
+// This is new-style ingest based on running sonalyze.  The output of sonalyze is incorporated
+// directly into the database, which is written here.
+
+// --state-file becomes mandatory here
+
+// TODO: To maintain testability then we must allow '--' to take the place of running sonalyze.
+// Running sonalyze basically amounts to having a single test input.
+
+// Extra annoying is that progOpts does not have a way of *not* having --data-path.  So that has
+// to be dealt with too.
+
+func Ingest(progname string, args []string) error {
+
+}
+
+// This is old-style ingest from files stored in the log file tree.  This is obsolete and will
+// be removed once the new code is stable.
+//
 // Se comment in mlcpuhog.go re options logic for --state-file and --now
 
 func MlDeadweight(progname string, args []string) error {

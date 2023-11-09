@@ -11,7 +11,7 @@ import (
 	"naicreport/glance"
 	"naicreport/load"
 	"naicreport/mlcpuhog"
-	"naicreport/mldeadweight"
+	"naicreport/deadweight"
 )
 
 func main() {
@@ -23,8 +23,25 @@ func main() {
 	case "help":
 		toplevelUsage(0)
 
+	// New verbs
+	// "deadweight-ingest" will run sonalyze (as the shell script runs it now)
+	// and roll whatever new info there is to the database
+	//
+	// "deadweight-report" will print the report based on the current database
+	// and will update the isreported
+	//
+	// not sure yet who gets to run expiry
+	//
+	// same for cpuhog
+
+	case "deadweight-ingest":
+		deadweight.Ingest(os.Args[0], os.Args[2:])
+
+	case "deadweight-report":
+		deadweight.Report(os.Args[0], os.Args[2:])
+
 	case "ml-deadweight":
-		err = mldeadweight.MlDeadweight(os.Args[0], os.Args[2:])
+		err = deadweight.MlDeadweight(os.Args[0], os.Args[2:])
 
 	case "ml-cpuhog":
 		err = mlcpuhog.MlCpuhog(os.Args[0], os.Args[2:])
