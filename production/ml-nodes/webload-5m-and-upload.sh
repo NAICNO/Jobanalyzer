@@ -21,9 +21,9 @@ mkdir -p $output_path
 naicreport_options="--sonalyze $sonar_dir/sonalyze --config-file $sonar_dir/ml-nodes.json --data-path $data_path"
 
 $sonar_dir/naicreport ml-webload $naicreport_options --output-path $output_path --with-downtime --tag minutely --none
-$sonar_dir/naicreport at-a-glance $naicreport_options --state-path $data_path -tag "ML Nodes" > $output_path/at-a-glance.json
+$sonar_dir/naicreport at-a-glance $naicreport_options --state-path $data_path -tag "ML Nodes" > $output_path/ml-at-a-glance.json
 
-$sonar_dir/loginfo hostnames $output_path > $output_path/hostnames.json
+$sonar_dir/loginfo hostnames $output_path > $output_path/ml-hostnames.json
 
 # The chmod is done here so that we don't have to do it in naicreport or on the server,
 # and we don't depend on the umask.  But it must be done, or the files may not be
@@ -39,7 +39,7 @@ source $sonar_dir/upload-config.sh
 # will bypass the interactive prompt.
 if [[ $# -eq 0 || $1 != NOUPLOAD ]]; then
     scp -C -q -o StrictHostKeyChecking=no -i $IDENTITY_FILE_NAME \
-	$output_path/*-minutely.json $output_path/hostnames.json $output_path/at-a-glance.json \
+	$output_path/*-minutely.json $output_path/ml-hostnames.json $output_path/ml-at-a-glance.json \
 	$WWWUSER_AND_HOST:$WWWUSER_UPLOAD_PATH
 fi
 
