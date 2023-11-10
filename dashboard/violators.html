@@ -1,21 +1,22 @@
 <html>
   <head>
     <link rel=stylesheet type=text/css href="table-style.css"/>
-    <title>ML nodes CPU hog dashboard</title>
+    <title>CLUSTER policy violators dashboard</title>
   </head>
 
   <body>
-    <h1>ML nodes CPU hogs</h1>
+    <h1 id=main_title>CLUSTER policy violators</h1>
     
-    <p>The following jobs have used significant CPU time without using
-    any GPU time and are probably not appropriate to run on the ML
-    systems.  The list is recomputed at noon and midnight and goes back four weeks.</p>
+    <p>The following jobs have been running significantly outside of policy and are probably
+      not appropriate to run on this cluster.  The list is recomputed at noon and midnight
+      and goes back four weeks.</p>
 
     <div id=report></div>
 
+    <script src="testflag.js"></script>
     <script src="dashboard.js"></script>
     <script>
-      var file = "cpuhog-report.json";
+      rewriteTitle()
       var fields = [{name: "Host", tag: "hostname"},
 		    {name: "User", tag: "user"},
 		    {name: "Job",  tag: "id"},
@@ -27,7 +28,10 @@
 		    {name: "CPU% peak", tag:"rcpu-peak"},
 		    {name: "Mem% avg", tag:"rmem-avg"},
 		    {name: "Mem% peak", tag:"rmem-peak"}]
-      render_table(file, fields, document.getElementById("report"), cmp_string_fields("last-seen", true))
+      render_table(tag_file("violator-report.json"),
+		   fields,
+		   document.getElementById("report"),
+		   cmp_string_fields("last-seen", true))
     </script>
   </body>
 </html>

@@ -1,16 +1,74 @@
-// TESTDATA will be set if the page loads testflag.js first and the flag is set there.  This will
-// redirect file queries to the test-data/ dir, which has static test data.
+// The global TESTDATA will be defined and true if the page loads testflag.js first and the flag is
+// set there.  If it is defined and true we will redirect file queries to the test-data/ dir, which
+// has static test data; and other code may decide to change its filtering in response to the
+// setting.
 
 function compute_filename(fn) {
-    if (this["TESTDATA"]) {
+    if (globalThis["TESTDATA"]) {
         return "test-data/" + fn;
     } else {
         return "output/" + fn;
     }
 }
 
+// We use CURRENT_CLUSTER to hold the tag of the cluster we're currently operating on.  All pages
+// are relative to one specific cluster.
+
+var CURRENT_CLUSTER = (function () {
+    let params = new URLSearchParams(document.location.search)
+    let cluster = params.get("cluster")
+    return cluster ? cluster : "ml"
+})();
+
+// Cluster-info returns information about the cluster.  This function must be manually updated
+// whenever we add a cluster.  That is fixable - it could be data in a config file.
+
+function cluster_info(cluster) {
+    switch (cluster) {
+    default:
+        /*FALLTHROUGH*/
+    case "ml":
+        return {
+            cluster,
+            name:"ML nodes",
+            description:"UiO Machine Learning nodes",
+            prefix:"ml-",
+            policy:"Significant CPU usage without any GPU usage",
+        }
+    case "fox":
+        return {
+            cluster,
+            name:"Fox",
+            description:"UiO Fox supercomputer",
+            prefix:"fox-",
+            policy:"(To be determined)",
+        }
+    }
+}
+
+// Update the window title and the main document title with the cluster name.
+
+function rewriteTitle() {
+    let info = cluster_info(CURRENT_CLUSTER)
+    document.title = document.title.replace("CLUSTER", info.name)
+    let title_elt = document.getElementById("main_title")
+    if (title_elt) {
+        title_elt.textContent = title_elt.textContent.replace("CLUSTER", info.name)
+    }
+}
+
+// Add a prefix to the file name based on the cluster.
+
+function tag_file(fn) {
+    let info = cluster_info(CURRENT_CLUSTER)
+    return info.prefix + fn
+}
+
+// Load tables of host names (in the cluster) and measurement frequencies and invoke f on those
+// tables.
+
 function with_systems_and_frequencies(f) {
-    fetch(compute_filename("hostnames.json")).
+    fetch(compute_filename(tag_file("hostnames.json"))).
         then((response) => response.json()).
         then(function (json_data) {
             let systems = json_data.map(x => ({text: x, value: x}))
@@ -21,6 +79,8 @@ function with_systems_and_frequencies(f) {
             f(systems, frequencies)
         })
 }
+
+// Load the chart data and invoke f on the resulting table.
 
 function with_chart_data(hostname, frequency, f) {
     fetch(compute_filename(`${hostname}-${frequency}.json`)).
@@ -35,9 +95,9 @@ function with_chart_data(hostname, frequency, f) {
 //   bucketing - string - "hourly" or "daily"
 //   labels - array of length N of string labels
 //   rcpu - array of length N of data values
-//   rgpu - same
 //   rmem - same
-//   rgpumem - same
+//   rgpu - same, may be null/absent
+//   rgpumem - same, may be null/absent
 //   downhost - same, or null; values are 0 or 1
 //   downgpu - same, or null; values are 0 or 1
 //   system - system descriptor, see further down
@@ -53,7 +113,7 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime)
     let labels = json_data.labels
     let rcpu_data = json_data.rcpu
     let rmem_data = json_data.rmem
-    let rgpu_data = json_data.rgpu.map(d => Math.min(d, 100))
+    let rgpu_data = json_data.rgpu ? json_data.rgpu.map(d => Math.min(d, 100)) : null
     let rgpumem_data = json_data.rgpumem
 
     // Downtime data are flags indicating that the host or gpu was down during specific periods -
@@ -65,29 +125,44 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime)
     let downhost_data, downgpu_data
     if (json_data.downhost) {
         let dh = json_data.downhost.map(d => d*15)
-        let dg = json_data.downgpu.map(d => d*30)
         for ( let i=dh.length-1 ; i > 0 ; i-- ) {
             if (dh[i-1] > 0) {
                 dh[i] = dh[i-1]
             }
-            if (dg[i-1] > 0 && dh[i] == 0) {
+        }
+        downhost_data = dh
+    }
+    if (json_data.downgpu) {
+        let dg = json_data.downgpu.map(d => d*30)
+        for ( let i=dg.length-1 ; i > 0 ; i-- ) {
+            if (dg[i-1] > 0) {
                 dg[i] = dg[i-1]
             }
         }
-        downhost_data = dh
         downgpu_data = dg
     }
 
     // Scale the chart.  Mostly this is now for the sake of rmem_data, whose values routinely
     // go over 100%.
-    let maxval = Math.max(...rcpu_data, ...rmem_data, ...rgpu_data, ...rgpumem_data, 100)
+    let maxval = Math.max(...rcpu_data, ...rmem_data)
+    if (rgpu_data) {
+	maxval = Math.max(maxval, ...rgpu_data)
+    }
+    if (rgpumem_data) {
+	maxval = Math.max(maxval, ...rgpumem_data)
+    }
+    maxval = Math.max(maxval, 100)
 
     let datasets = []
     if (show_data) {
         datasets.push({ label: 'CPU%', data: rcpu_data, borderWidth: 2 },
-                      { label: 'RAM%', data: rmem_data, borderWidth: 2 },
-                      { label: 'GPU%', data: rgpu_data, borderWidth: 2 },
-                      { label: 'VRAM%', data: rgpumem_data, borderWidth: 2 })
+                      { label: 'RAM%', data: rmem_data, borderWidth: 2 })
+	if (rgpu_data) {
+            datasets.push({ label: 'GPU%', data: rgpu_data, borderWidth: 2 })
+	}
+	if (rgpumem_data) {
+            datasets.push({ label: 'VRAM%', data: rgpumem_data, borderWidth: 2 })
+	}
     }
     if (show_downtime) {
         if (downhost_data) {
