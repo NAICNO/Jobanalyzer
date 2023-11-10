@@ -92,7 +92,12 @@ function render() {
         then(annotate_rows)
 }
 
-let working_fields = ["cpu_recent","cpu_longer","mem_recent","mem_longer","gpu_recent","gpu_longer","gpumem_recent","gpumem_longer"]
+let working_fields = [
+    "cpu_recent","cpu_longer",
+    "mem_recent","mem_longer",
+    "gpu_recent","gpu_longer",
+    "gpumem_recent","gpumem_longer",
+]
 
 function annotate_rows(rows) {
     // Defaults, updated in the loop
@@ -102,8 +107,12 @@ function annotate_rows(rows) {
 
     // rows is an array of [json-datum, row-element] pairs
     // each row has exactly the fields above, offsets are computed above too
+    // each cell is a SPAN inside a TD
     for ( let [d,r] of rows ) {
-        r.onclick = function () { window.open(`${machine_page}?cluster=${CURRENT_CLUSTER}&host=${d["hostname"]}`) }
+	let link = document.createElement("A")
+	link.href = `${machine_page}?cluster=${CURRENT_CLUSTER}&host=${d["hostname"]}`
+	link.appendChild(r.children[offs.hostname].firstChild) // The SPAN is moved to the A
+	r.children[offs.hostname].appendChild(link)            // Insert A into TD
         if (d.cpu_status != 0) {
             r.style.backgroundColor = col_DOWN
             continue
