@@ -18,4 +18,4 @@ mkdir -p ${load_report_path}
 # Typical running time per invocation on ML nodes: 10-20ms
 
 $sonar_dir/naicreport ml-deadweight -data-path $sonar_data_dir -from 4w
-$sonar_dir/naicreport ml-deadweight -data-path $sonar_data_dir -from 4w -json > $load_report_path/deadweight-report.json
+$sonar_dir/naicreport ml-deadweight -data-path $sonar_data_dir -from 4w -json > $load_report_path/ml-deadweight-report.json
