@@ -43,13 +43,46 @@ const (
 // --state-file becomes mandatory here
 
 // TODO: To maintain testability then we must allow '--' to take the place of running sonalyze.
-// Running sonalyze basically amounts to having a single test input.
+// Running sonalyze basically amounts to having a single test input.  And then '--' becomes
+// exclusive of -sonalyze.  What a mess.
 
 // Extra annoying is that progOpts does not have a way of *not* having --data-path.  So that has
 // to be dealt with too.
 
 func Ingest(progname string, args []string) error {
 
+	// TODO: options here
+
+	db, err := readDb(stateFilename, progOpts.Verbose)
+	if err != nil {
+		return error
+	}
+
+	// TODO: logic
+	// Run sonalyze or read the joblog from options
+	// In either case incorporate new records into database
+
+	return jobstate.WriteJobDatabase(stateFilename, db)
+}
+
+func Report(progname string, args []string) error {
+
+	// TODO: options here
+
+	db, err := readDb(stateFilename, progOpts.Verbose)
+	if err != nil {
+		return error
+	}
+
+	// We write the DB here because the IsReported flag has changed and old records have been
+	// purged.
+
+	return writeReportsAndDbAndPurge(
+		db,
+		stateFilename,
+		progOpts.From, progOpts.To,
+		*jsonOutput, *summaryOutput, progOpts.Verbose,
+	)
 }
 
 // This is old-style ingest from files stored in the log file tree.  This is obsolete and will
@@ -108,15 +141,16 @@ func MlDeadweight(progname string, args []string) error {
 
 	////////////////////////////////////////////////////////////////////////////////
 	//
-	// Read inputs
+	// Read database
 
-	db, err, _ := jobstate.ReadJobDatabaseOrEmpty(stateFilename)
+	db, err := readDb(stateFilename, progOpts.Verbose)
 	if err != nil {
 		return err
 	}
-	if progOpts.Verbose {
-		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(db.Active), len(db.Expired))
-	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Read logs and update the database
 
 	logs, err := joblog.ReadJoblogFiles[*deadweightJob](
 		dataFiles,
@@ -134,10 +168,6 @@ func MlDeadweight(progname string, args []string) error {
 		}
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-	//
-	// Create the new state
-
 	new_jobs := 0
 	for _, hostrec := range logs {
 		for _, job := range hostrec.Jobs {
@@ -150,33 +180,60 @@ func MlDeadweight(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d new jobs\n", new_jobs)
 	}
 
-	purgeDate := util.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Generate reports, update IsReported, and save the database
+
+	return writeReportsAndDbAndPurge(
+		db,
+		stateFilename,
+		progOpts.From, progOpts.To,
+		*jsonOutput, *summaryOutput, progOpts.Verbose)
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Common code
+
+func readDb(stateFilename string, verbose bool) (*jobstate.JobDatabase, error) {
+	db, err, _ := jobstate.ReadJobDatabaseOrEmpty(stateFilename)
+	if err != nil {
+		return nil, err
+	}
+	if verbose {
+		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(db.Active), len(db.Expired))
+	}
+	return db, nil
+}
+
+func writeReportsAndDbAndPurge(
+	db *jobstate.JobDatabase,
+	stateFilename string,
+	from, to time.Time,
+	jsonOutput, summaryOutput, verbose bool,
+) error {
+	purgeDate := util.MinTime(from, to.AddDate(0, 0, -2))
 	purged := jobstate.PurgeJobsBefore(db, purgeDate)
 	if progOpts.Verbose {
 		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-	//
-	// Write outputs
-
 	switch {
-	case *jsonOutput:
-		bytes, err := json.Marshal(createDeadweightReport(db, logs, true))
+	case jsonOutput:
+		bytes, err := json.Marshal(createDeadweightReport(db, true))
 		if err != nil {
 			return fmt.Errorf("While marshaling deadweight data: %w", err)
 		}
 		fmt.Println(string(bytes))
-	case *summaryOutput:
-		report := createDeadweightReport(db, logs, false)
+	case summaryOutput:
+		report := createDeadweightReport(db, false)
 		for _, r := range report {
 			r.jobState.IsReported = true
 			fmt.Printf("%s,%d,%s\n", r.User, r.Id, r.Host)
 		}
 	default:
-		writeDeadweightReport(createDeadweightReport(db, logs, false))
+		writeDeadweightReport(createDeadweightReport(db, false))
 	}
-
 	return jobstate.WriteJobDatabase(stateFilename, db)
 }
 
@@ -193,7 +250,6 @@ type perJobReport struct {
 
 func createDeadweightReport(
 	db *jobstate.JobDatabase,
-	logs []*joblog.JobsByHost[*deadweightJob],
 	allJobs bool,
 ) []*perJobReport {
 	perJobReports := make([]*perJobReport, 0, len(db.Active)+len(db.Expired))

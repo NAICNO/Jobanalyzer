@@ -23,17 +23,6 @@ func main() {
 	case "help":
 		toplevelUsage(0)
 
-	// New verbs
-	// "deadweight-ingest" will run sonalyze (as the shell script runs it now)
-	// and roll whatever new info there is to the database
-	//
-	// "deadweight-report" will print the report based on the current database
-	// and will update the isreported
-	//
-	// not sure yet who gets to run expiry
-	//
-	// same for cpuhog
-
 	case "deadweight-ingest":
 		deadweight.Ingest(os.Args[0], os.Args[2:])
 
@@ -73,6 +62,10 @@ where <verb> is one of
     Print help
   at-a-glance
     Produce a summary report from many parts
+  deadweight-ingest
+    Run sonalyze and ingest new deadweight data into databases
+  deadweight-report
+    Report all unreported deadweight jobs and purge old data
   load
     Run sonalyze to generate plottable (JSON) load reports
   ml-deadweight
