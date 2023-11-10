@@ -125,7 +125,7 @@ func Report(progname string, args []string) error {
 	}
 	for _, d := range hogsbh {
 		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
-		r.Hogs = d.count
+		r.Violators = d.count
 	}
 	for _, d := range deadweightbh {
 		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
@@ -187,7 +187,7 @@ type glanceRecord struct {
 	GpuLonger    float64 `json:"gpu_longer,omitempty"`
 	GpumemRecent float64 `json:"gpumem_recent,omitempty"`
 	GpumemLonger float64 `json:"gpumem_longer,omitempty"`
-	Hogs         int     `json:"hogs_long"`
+	Violators    int     `json:"violators_long"`
 	Deadweights  int     `json:"zombies_long"`
 }
 
@@ -491,6 +491,9 @@ func collectLoadAveragesOnce(
 // We want to count the hogs or deadweights that started within some time window.  This is basically
 // a function of the cpuhog state file: firstViolation will have to be within the window.  So read
 // the state file and then count, by host.
+
+// Hogs are specific to the ML nodes; there is a more general notion of "policy violators" that
+// is not yet well developed.
 
 type badJobsByHost struct {
 	hostname string

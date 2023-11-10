@@ -29,8 +29,8 @@ $sonar_dir/loginfo hostnames $output_path > $output_path/ml-hostnames.json
 # and we don't depend on the umask.  But it must be done, or the files may not be
 # readable by the web server.
 chmod go+r $output_path/*-minutely.json
-chmod go+r $output_path/at-a-glance.json
-chmod go+r $output_path/hostnames.json
+chmod go+r $output_path/ml-at-a-glance.json
+chmod go+r $output_path/ml-hostnames.json
 
 source $sonar_dir/upload-config.sh
 
