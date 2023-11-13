@@ -1,35 +1,43 @@
 [
-    {
-        "hostname":"int-[1-4].fox.ad.fp.educloud.no",
-        "description":"2x64 AMD EPYC 7702, 512GB",
-        "cpu_cores":128,
-        "mem_gb": 512
-    },
-    {
-        "hostname":"c1-[5-29].fox",
-        "description":"2x64 AMD EPYC 7702, 512GB",
-        "cpu_cores":128,
-        "mem_gb": 512
-    },
-    {
-        "hostname":"gpu-1.fox",
-        "description":"2x48 AMD EPYC 7642, 1TB, 4xNVIDIA A100 @ 40GB",
-        "cpu_cores":96,
-        "mem_gb": 1024,
-        "gpu_cards": 4,
-        "gpumem_gb": 160
-    },
-    {
-        "hostname":"gpu-[2,3].fox",
-        "description":"2x48 AMD EPYC 7552, 1TB, 4xNVIDIA A100 @ 40GB",
-        "cpu_cores":96,
-        "mem_gb": 1024,
-        "gpu_cards": 4,
-        "gpumem_gb": 160
-    },
 {
- "hostname": "gpu-8.fox",
- "description": "AMD EPYC 7642 48-Core Processor, 4x NVIDIA A100 80GB PCIe @ 80GB",
+ "hostname": "int-[1-4].fox.ad.fp.educloud.no",
+ "description": "2x64, AMD EPYC 7702 64-Core Processor, 1007 GB",
+ "cpu_cores": 128,
+ "mem_gb": 1007
+},
+{
+ "hostname": "c1-[5-29].fox",
+ "description": "2x64 AMD EPYC 7702 64-Core Processor, 503 GB",
+ "cpu_cores": 128,
+ "mem_gb": 503
+},
+{
+ "hostname": "gpu-1.fox",
+ "description": "2x48 (hyperthreaded) AMD EPYC 7642 48-Core Processor, 1007 GB, 4x NVIDIA A100-PCIE-40GB @ 40GB",
+ "cpu_cores": 192,
+ "mem_gb": 1007,
+ "gpu_cards": 4,
+ "gpumem_gb": 160
+},
+{
+ "hostname": "gpu-[2-3].fox",
+ "description": "2x48 (hyperthreaded) AMD EPYC 7552 48-Core Processor, 1007 GB, 4x NVIDIA A100-PCIE-40GB @ 40GB",
+ "cpu_cores": 192,
+ "mem_gb": 1007,
+ "gpu_cards": 4,
+ "gpumem_gb": 160
+},
+{
+ "hostname": "gpu-[4-6]",
+ "description": "2x32 (hyperthreaded) AMD EPYC 7452 32-Core Processor, 503 GB, 4x NVIDIA GeForce RTX 3090 @ 24GB",
+ "cpu_cores": 128,
+ "mem_gb": 503,
+ "gpu_cards": 4,
+ "gpumem_gb": 96
+},
+{
+ "hostname": "gpu-[7,8].fox",
+ "description": "2x48 (hyperthreaded) AMD EPYC 7642 48-Core Processor, 1007 GB, 4x NVIDIA A100 80GB PCIe @ 80GB",
  "cpu_cores": 192,
  "mem_gb": 1007,
  "gpu_cards": 4,
@@ -37,7 +45,7 @@
 },
 {
  "hostname": "gpu-9.fox",
- "description": "AMD EPYC 7642 48-Core Processor, 2x NVIDIA H100 PCIe @ 79GB",
+ "description": "2x48 (hyperthreaded) AMD EPYC 7642 48-Core Processor, 1007 GB, 2x NVIDIA H100 PCIe @ 79GB",
  "cpu_cores": 192,
  "mem_gb": 1007,
  "gpu_cards": 2,
