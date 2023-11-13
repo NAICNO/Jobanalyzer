@@ -166,10 +166,19 @@ func glanceRecordForHost(recordsByHost map[string]*glanceRecord, hostname string
 	return r
 }
 
+// `machine` is omitempty on purpose - if present, it is used to show machine details in the
+// consumer, but it can be absent when the information is not available here.
+//
+// `tag` is omitempty on purpose - again, if present, it is information the client can use, but the
+// client must not depend on its presence.
+//
+// The GPU fields are omitempty on purpose; when absent, it is because the system is not known to
+// have a GPU.  The client code must cope with this.
+
 type glanceRecord struct {
 	Host         string  `json:"hostname"`
-	Tag          string  `json:"tag,omitempty"`
-	Machine      string  `json:"machine,omitempty"`
+	Tag          string  `json:"tag,omitempty"`		// human-readable label
+	Machine      string  `json:"machine,omitempty"` // machine description
 	Recent       int     `json:"recent"`
 	Longer       int     `json:"longer"`
 	Long         int     `json:"long"`

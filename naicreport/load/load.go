@@ -117,8 +117,11 @@ func writePlots(
 ) error {
 	// The config for a host may be missing, but this should still work.
 	//
-	// downtimeData may be nil, in which case it should be ignored, but if not nil it must have been
-	//  quantized already
+	// The `downtimeData` may be nil, in which case it should be ignored, but if not nil it must
+	// have been quantized already
+	//
+	// The GPU and downtime data are not transmitted when we don't have the data, and the consumer
+	// uses this as a signal to not produce plots for these quantities.
 
 	type perHost struct {
 		Date      string                `json:"date"`

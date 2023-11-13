@@ -41,10 +41,10 @@ let fields = [
     {name: "CPU%\n(longer)", tag: "cpu_longer", help:"Running average"},
     {name: "Mem%\n(recent)", tag: "mem_recent", help:"Running average"},
     {name: "Mem%\n(longer)", tag: "mem_longer", help:"Running average"},
-    {name: "GPU%\n(recent)", tag: "gpu_recent", help:"Running average"},
-    {name: "GPU%\n(longer)", tag: "gpu_longer", help:"Running average"},
-    {name: "GPUMEM%\n(recent)", tag: "gpumem_recent", help:"Running average"},
-    {name: "GPUMEM%\n(longer)", tag: "gpumem_longer", help:"Running average"},
+    {name: "GPU%\n(recent)", tag: "gpu_recent", defaultable: 0, help:"Running average"},
+    {name: "GPU%\n(longer)", tag: "gpu_longer", defaultable: 0, help:"Running average"},
+    {name: "GPUMEM%\n(recent)", tag: "gpumem_recent", defaultable: 0, help:"Running average"},
+    {name: "GPUMEM%\n(longer)", tag: "gpumem_longer", defaultable: 0, help:"Running average"},
 
     // Number of *new* violators and zombies encountered in the period, as of the last
     // generated report.  This currently changes rarely.
@@ -88,7 +88,10 @@ function setup() {
 }
 
 function render() {
-    render_table(tag_file("at-a-glance.json"), fields, document.getElementById("report"), sort_records).
+    render_table(tag_file("at-a-glance.json"),
+                 fields,
+                 document.getElementById("report"),
+                 sort_records).
         then(annotate_rows)
 }
 
