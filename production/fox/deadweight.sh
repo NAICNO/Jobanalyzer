@@ -4,9 +4,9 @@
 # current time and system.
 
 sonar_dir=$HOME/sonar
-sonar_bin=$sonar_dir
 data_dir=$sonar_dir/data
-output_dir=${data_dir}/$(date +'%Y/%m/%d')
+state_dir=$sonar_dir/state
+output_dir=${state_dir}/$(date +'%Y/%m/%d')
 
 mkdir -p ${output_dir}
 
@@ -17,4 +17,10 @@ mkdir -p ${output_dir}
 # at least, but ==> IMPORTANTLY, it MUST be run often enough that job IDs are not reused between
 # consecutive runs.  It is not expensive, and can be run fairly often.
 
-SONAR_ROOT=$data_dir $sonar_bin/sonalyze jobs -u - "$@" --zombie --fmt=csvnamed,tag:deadweight,now,std,start,end,cmd >> ${output_dir}/deadweight.csv
+$sonar_dir/sonalyze jobs \
+		    --data-path $data_dir \
+		    -u - \
+		    "$@" \
+		    --zombie \
+		    --fmt=csvnamed,tag:deadweight,now,std,start,end,cmd \
+		    >> ${output_dir}/deadweight.csv

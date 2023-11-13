@@ -1,5 +1,7 @@
 # How to set up Jobanalyzer and Sonar on Fox
 
+Be sure to read `../README.md` first.
+
 We will set up a cron job to run sonar on every node and another cron job to run analysis
 asynchronously on a non-node.
 
