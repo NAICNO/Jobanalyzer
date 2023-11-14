@@ -9,7 +9,8 @@ use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};
 use anyhow::{bail, Result};
 use sonarlog::{
     self, add_day, add_half_day, add_half_hour, add_hour, empty_logentry, gpuset_to_string, now, truncate_to_day,
-    truncate_to_half_day, truncate_to_hour, truncate_to_half_hour, HostFilter, InputStreamSet, LogEntry, Timestamp,
+    truncate_to_half_day, truncate_to_hour, truncate_to_half_hour, HostFilter, InputStreamSet, LogEntry,
+    MergedSampleStreams, Timestamp,
 };
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -66,6 +67,10 @@ pub fn aggregate_and_print_load(
         BucketOpt::Hourly // Default
     };
 
+    if filter_args.cluster && bucket_opt == BucketOpt::None {
+        bail!("Clustering across hosts requires first bucketing by time");
+    }
+
     let print_opt = if print_args.last {
         PrintOpt::Last
     } else {
@@ -94,6 +99,45 @@ pub fn aggregate_and_print_load(
 
     let mut merged_streams = sonarlog::merge_by_host(streams);
 
+    // Bucket the data, if applicable
+
+    if bucket_opt != BucketOpt::None {
+        merged_streams = merged_streams.drain(0..).
+            map(|stream| {
+                match bucket_opt {
+                    BucketOpt::Hourly => sonarlog::fold_samples_hourly(stream),
+                    BucketOpt::HalfHourly => sonarlog::fold_samples_half_hourly(stream),
+                    BucketOpt::Daily => sonarlog::fold_samples_daily(stream),
+                    BucketOpt::HalfDaily => sonarlog::fold_samples_half_daily(stream),
+                    BucketOpt::None => panic!("Unexpected"),
+                }
+            }).
+            collect::<MergedSampleStreams>();
+    }
+
+    // If clustering, merge the streams across hosts and compute a system config that represents the
+    // sum of the hosts in the cluster.
+
+    let mut the_conf: sonarlog::System = Default::default();
+    let mut merged_conf = None;
+    if filter_args.cluster {
+        if let Some(ref ht) = system_config {
+            for stream in &merged_streams {
+                if let Some(probe) = ht.get(&stream[0].hostname) {
+                    the_conf.cpu_cores += probe.cpu_cores;
+                    the_conf.mem_gb += probe.mem_gb;
+                    the_conf.gpu_cards += probe.gpu_cards;
+                    the_conf.gpumem_gb += probe.gpumem_gb;
+                } else if relative {
+                    bail!("Relative values requested without config info for {}", stream[0].hostname);
+                }
+            }
+            merged_conf = Some(&the_conf);
+        }
+        merged_streams = sonarlog::merge_across_hosts_by_time(merged_streams);
+        assert!(merged_streams.len() <= 1)
+    }
+
     // Sort hosts lexicographically.  This is not ideal because hosts like c1-10 vs c1-5 are not in
     // the order we expect but at least it's predictable.
 
@@ -114,17 +158,22 @@ pub fn aggregate_and_print_load(
             first = false;
         }
         let hostname = stream[0].hostname.clone();
-        if !opts.csv && !opts.json && !explicit_host {
+        if !opts.csv && !opts.json && !explicit_host && !filter_args.cluster {
             output
                 .write(format!("HOST: {}\n", hostname).as_bytes())
                 .unwrap();
         }
 
-        let sysconf = if let Some(ref ht) = system_config {
-            ht.get(&hostname)
-        } else {
-            None
-        };
+        let sysconf =
+            if let Some(_) = merged_conf {
+                merged_conf
+            } else if let Some(ref ht) = system_config {
+                ht.get(&hostname)
+            } else if relative {
+                bail!("Relative values requested without config info for {}", hostname)
+            } else {
+                None
+            };
 
         let ctx = PrintContext {
             sys: sysconf,
@@ -133,24 +182,17 @@ pub fn aggregate_and_print_load(
 
         match bucket_opt {
             BucketOpt::Hourly | BucketOpt::HalfHourly | BucketOpt::Daily | BucketOpt::HalfDaily => {
-                let by_timeslot = match bucket_opt {
-                    BucketOpt::Hourly => sonarlog::fold_samples_hourly(stream),
-                    BucketOpt::HalfHourly => sonarlog::fold_samples_half_hourly(stream),
-                    BucketOpt::Daily => sonarlog::fold_samples_daily(stream),
-                    BucketOpt::HalfDaily => sonarlog::fold_samples_half_daily(stream),
-                    BucketOpt::None => panic!("Unexpected"),
-                };
                 if print_opt == PrintOpt::All {
-                    let by_timeslot2 = if print_args.compact {
-                        by_timeslot
+                    let stream = if print_args.compact {
+                        stream
                     } else {
-                        insert_missing_records(by_timeslot, from, to, bucket_opt)
+                        insert_missing_records(stream, from, to, bucket_opt)
                     };
-                    format::format_data(output, &fields, &formatters, &opts, by_timeslot2, &ctx);
+                    format::format_data(output, &fields, &formatters, &opts, stream, &ctx);
                 } else {
                     // Invariant: there's always at least one record
                     // TODO: Really not happy about the clone() here
-                    let data = vec![by_timeslot[by_timeslot.len() - 1].clone()];
+                    let data = vec![stream[stream.len() - 1].clone()];
                     format::format_data(output, &fields, &formatters, &opts, data, &ctx);
                 }
             }
