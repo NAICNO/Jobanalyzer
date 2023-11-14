@@ -1,0 +1,9 @@
+# Normally, make sure this is owned by root.root and is placed in the shared file system, and then
+# link to it on every node, eg:
+#
+#   ln -s /cluster/var/sonar/bin/sonar-runner.cron /etc/cron.d/sonar
+
+SHELL=/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=larstha@uio.no
+0-59/5 * * * * sonar /cluster/var/sonar/bin/sonar.sh

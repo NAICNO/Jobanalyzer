@@ -1,5 +1,7 @@
 # ML-nodes sonar and sonalyze setup
 
+Be sure to read `../README.md` first.
+
 ## Files
 
 These are files that are used to drive sonar and the analysis of sonar

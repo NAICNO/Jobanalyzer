@@ -1,14 +1,16 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 #
 # Run sonalyze for the `deadweight` use case and capture its output in a file appropriate for the
 # current time and system.
 
-sonar_dir=$HOME/sonar
-sonar_data_dir=$sonar_dir/data
+set -euf -o pipefail
 
-path=$(date +'%Y/%m/%d')
-output_directory=${sonar_data_dir}/${path}
-mkdir -p ${output_directory}
+sonar_dir=$HOME/sonar
+data_dir=$sonar_dir/data
+state_dir=$sonar_dir/state
+output_dir=${state_dir}/$(date +'%Y/%m/%d')
+
+mkdir -p ${output_dir}
 
 # Report jobs that are not doing anything useful but are hanging onto system resources (zombies,
 # defuncts, and maybe others).  This is defined entirely by the sonalyze `--zombie` option, for now.
@@ -17,4 +19,10 @@ mkdir -p ${output_directory}
 # at least, but ==> IMPORTANTLY, it MUST be run often enough that job IDs are not reused between
 # consecutive runs.  It is not expensive, and can be run fairly often.
 
-SONAR_ROOT=$sonar_data_dir $sonar_dir/sonalyze jobs -u - "$@" --zombie --fmt=csvnamed,tag:deadweight,now,std,start,end,cmd >> ${output_directory}/deadweight.csv
+$sonar_dir/sonalyze jobs \
+		    --data-path $data_dir \
+		    -u - \
+		    --zombie \
+		    --fmt=csvnamed,tag:deadweight,now,std,start,end,cmd \
+		    "$@" \
+		    >> ${output_dir}/deadweight.csv
