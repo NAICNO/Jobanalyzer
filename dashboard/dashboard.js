@@ -30,6 +30,7 @@ function cluster_info(cluster) {
     case "ml":
         return {
             cluster,
+            subclusters: ["nvidia"],
             name:"ML nodes",
             description:"UiO Machine Learning nodes",
             prefix:"ml-",
@@ -38,6 +39,7 @@ function cluster_info(cluster) {
     case "fox":
         return {
             cluster,
+            subclusters: ["cpu","gpu","int"],
             name:"Fox",
             description:"UiO Fox supercomputer",
             prefix:"fox-",
@@ -48,12 +50,13 @@ function cluster_info(cluster) {
 
 // Update the window title and the main document title with the cluster name.
 
-function rewriteTitle() {
+function rewriteTitle(extra) {
     let info = cluster_info(CURRENT_CLUSTER)
-    document.title = document.title.replace("CLUSTER", info.name)
+    let name = info.name + (extra ? " (" + extra + ")" : "")
+    document.title = document.title.replace("CLUSTER", name)
     let title_elt = document.getElementById("main_title")
     if (title_elt) {
-        title_elt.textContent = title_elt.textContent.replace("CLUSTER", info.name)
+        title_elt.textContent = title_elt.textContent.replace("CLUSTER", name)
     }
 }
 
@@ -106,7 +109,7 @@ function with_chart_data(hostname, frequency, f) {
 //
 // desc_node is usually a DIV
 
-function plot_system(json_data, chart_node, desc_node, show_data, show_downtime) {
+function plot_system(json_data, chart_node, desc_node, show_data, show_downtime, show_hostname) {
 
     // Clamp GPU data to get rid of occasional garbage, it's probably OK to do this even
     // if it's not ideal.
@@ -203,7 +206,8 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime)
         //  - gpumem_gb: total amount of gpu memory
         // Really the description says it all so probably enough to print that
         desc_node.innerText =
-            json_data.system.hostname + ": " + json_data.system.description
+            (show_hostname ? json_data.system.hostname + ": " : "") +
+            json_data.system.description.replaceAll("|||","\n")
     }
 
     return my_chart;

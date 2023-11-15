@@ -1,6 +1,6 @@
 /// Helpers for merging sample streams.
 use crate::{
-    empty_gpuset, epoch, hosts, merge_gpu_status, now, union_gpuset, GpuStatus, InputStreamSet,
+    combine_hosts, empty_gpuset, epoch, hosts, merge_gpu_status, now, union_gpuset, GpuStatus, InputStreamSet,
     LogEntry, Timebound, Timebounds, Timestamp,
 };
 
@@ -173,6 +173,21 @@ pub fn merge_by_host(mut streams: InputStreamSet) -> MergedSampleStreams {
     }
 
     vs
+}
+
+pub fn merge_across_hosts_by_time(streams: MergedSampleStreams) -> MergedSampleStreams {
+    if streams.len() == 0 {
+        return vec![]
+    }
+    let hostname = combine_hosts(streams.iter().map(|s| s[0].hostname.clone()).collect::<Vec<String>>());
+    vec![
+        merge_streams(
+            hostname,
+            "_merged_".to_string(),
+            "_merged_".to_string(),
+            0,
+            streams)
+    ]
 }
 
 // What does it mean to sample a job that runs on multiple hosts, or to sample a host that runs

@@ -29,3 +29,13 @@ $sonar_dir/naicreport load \
 		      -hourly \
 		      -from 7d \
 		      -output-path $report_dir
+
+$sonar_dir/naicreport load \
+		     -sonalyze $sonar_dir/sonalyze \
+		     -config-file $sonar_dir/ml-nodes.json \
+		     -data-path $data_dir \
+		     -tag ml-nvidia-weekly \
+		     -hourly \
+		     -from 7d \
+		     -cluster 'ml[1-3,6-9]' \
+		     -output-path $report_dir

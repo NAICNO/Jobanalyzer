@@ -218,7 +218,7 @@ pub struct ConfigFileArg {
 
 #[derive(Args, Debug)]
 pub struct LoadFilterAndAggregationArgs {
-    /// Bucket and average records hourly, cf --daily and --none [default]
+    /// Bucket and average records hourly [default]
     #[arg(long)]
     hourly: bool,
 
@@ -237,6 +237,10 @@ pub struct LoadFilterAndAggregationArgs {
     /// Do not bucket and average records
     #[arg(long)]
     none: bool,
+
+    /// Sum bucketed/averaged data across all the selected hosts
+    #[arg(long)]
+    cluster: bool,
 }
 
 #[derive(Args, Debug, Default)]

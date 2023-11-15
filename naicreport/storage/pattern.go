@@ -24,6 +24,48 @@ import (
 	"strings"
 )
 
+// This takes as its input a string representing a comma-separated list of hostnames (according to
+// the grammar above) and returns a list of individual hostnames in that list.  It requires a bit of
+// logic because each hostname may contain a pattern that contains a comma.
+
+func SplitHostnames(s string) ([]string, error) {
+	strings := make([]string, 0)
+	if s == "" {
+		return strings, nil
+	}
+	insideBrackets := false
+	start := -1
+	for ix, c := range s {
+		if c == '[' {
+			if insideBrackets {
+				return nil, fmt.Errorf("Illegal pattern: nested brackets")
+			}
+			insideBrackets = true
+		} else if c == ']' {
+			if !insideBrackets {
+				return nil, fmt.Errorf("Illegal pattern: unmatched end bracket")
+			}
+			insideBrackets = false
+		} else if c == ',' && !insideBrackets {
+			if start == -1 {
+				return nil, fmt.Errorf("Illegal pattern: Empty host name")
+			}
+			strings = append(strings, s[start:ix])
+			start = -1
+		} else if start == -1 {
+			start = ix
+		}
+	}
+	if insideBrackets {
+		return nil, fmt.Errorf("Illegal pattern: Missing end bracket")
+	}
+	if start == len(s) || start == -1 {
+		return nil, fmt.Errorf("Illegal pattern: Empty host name")
+	}
+	strings = append(strings, s[start:])
+	return strings, nil
+}
+
 func ExpandPatterns(s string) []string {
 	before, after, has_tail := strings.Cut(s, ".")
 	head_expansions := ExpandPattern(before)

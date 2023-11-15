@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <link rel=stylesheet type=text/css href="table-style.css"/>
+    <title></title>
+    <script src="testflag.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="subcluster.js"></script>
+  </head>
+  <body onload="setup()">
+
+    <center>
+      <h1 id=main_title>CLUSTER aggregated weekly load</h1>
+    </center>
+
+    <center>
+      <div id=system_description></div>
+    </center>
+
+    <div><canvas id="machine_load"></canvas></div>
+
+    <div>&nbsp;</div>
+    <div>Data are relative to all system resources (e.g., 100% CPU
+      means all cores are completely busy; 100% GPU means all cards are completely busy).</div>
+    <div>&nbsp;</div>
+    <div>Main memory (RAM) can go
+    over 100% due to paging and similar system effects; the
+    measurement is the sum of the sizes of the jobs' private memories. </div>
+    </div>
+    </b>
+
+  </body>
+</html>

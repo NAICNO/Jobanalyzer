@@ -161,6 +161,11 @@ pub use synthesize::merge_by_job; // -> MergedSampleStreams
 
 pub use synthesize::merge_by_host; // -> MergedSampleStreams
 
+// Given a set of already-merged streams, where each stream pertains to one host and all hosts are
+// different, merge by timeslot to create cross-host cross-job data.
+
+pub use synthesize::merge_across_hosts_by_time;
+
 // Bucket samples in a single stream by various time quantities and compute averages.
 
 pub use synthesize::fold_samples_hourly;

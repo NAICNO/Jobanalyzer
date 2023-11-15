@@ -34,7 +34,7 @@ function render_machine_load() {
     with_chart_data(CURRENT_HOST, frequency, function (json_data) {
 	if (machine_load_chart != null)
 	    machine_load_chart.destroy()
-	machine_load_chart = plot_system(json_data, chart_node, desc_node, show_data, show_downtime)
+	machine_load_chart = plot_system(json_data, chart_node, desc_node, show_data, show_downtime, true)
     })
 }
 
