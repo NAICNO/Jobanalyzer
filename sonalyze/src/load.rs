@@ -124,6 +124,10 @@ pub fn aggregate_and_print_load(
         if let Some(ref ht) = system_config {
             for stream in &merged_streams {
                 if let Some(probe) = ht.get(&stream[0].hostname) {
+                    if the_conf.description != "" {
+                        the_conf.description += "|||"; // JSON-compatible separator
+                    }
+                    the_conf.description += &probe.description;
                     the_conf.cpu_cores += probe.cpu_cores;
                     the_conf.mem_gb += probe.mem_gb;
                     the_conf.gpu_cards += probe.gpu_cards;
@@ -158,7 +162,7 @@ pub fn aggregate_and_print_load(
             first = false;
         }
         let hostname = stream[0].hostname.clone();
-        if !opts.csv && !opts.json && !explicit_host && !filter_args.cluster {
+        if !opts.csv && !opts.json && !explicit_host {
             output
                 .write(format!("HOST: {}\n", hostname).as_bytes())
                 .unwrap();
@@ -179,6 +183,22 @@ pub fn aggregate_and_print_load(
             sys: sysconf,
             t: now(),
         };
+
+        // For JSON, add richer information about the host so that the client does not have to
+        // synthesize this information itself.
+        if opts.json {
+            let (description, gpu_cards) = if let Some(ref s) = sysconf {
+                (s.description.clone(), s.gpu_cards)
+            } else {
+                ("Unknown".to_string(), 0)
+            };
+            // TODO: This is not completely safe because the description could contain a non-JSON
+            // compatible character such as \t or \n, or a double-quote.
+            output.write(format!("{{\"system\":{{\"hostname\":\"{}\",\"description\":\"{}\",\"gpucards\":\"{}\"}},\"records\":",
+                                 &hostname,
+                                 &description,
+                                 gpu_cards).as_bytes())?;
+        }
 
         match bucket_opt {
             BucketOpt::Hourly | BucketOpt::HalfHourly | BucketOpt::Daily | BucketOpt::HalfDaily => {
@@ -208,6 +228,10 @@ pub fn aggregate_and_print_load(
                     format::format_data(output, &fields, &formatters, &opts, data, &ctx);
                 }
             }
+        }
+
+        if opts.json {
+            output.write("}".as_bytes())?;
         }
     }
     if opts.json {
