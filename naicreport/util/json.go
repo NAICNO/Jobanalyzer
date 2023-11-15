@@ -6,6 +6,7 @@ package util
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -32,3 +33,21 @@ func JsonFloat64(s string) float64 {
 	}
 	return f
 }
+
+func JsonGpulist(s string) []uint32 {
+	var gpuData []uint32		// Unknown set
+	if s != "unknown" {
+		gpuData = make([]uint32, 0) // Empty set
+		if s != "none" {
+			for _, it := range strings.Split(s, ",") {
+				n, err := strconv.ParseUint(it, 10, 32)
+				if err != nil {
+					panic(fmt.Sprintf("Failed to convert JSON value to gpu set, should not happen: %s", s))
+				}
+				gpuData = append(gpuData, uint32(n))
+			}
+		}
+	}
+	return gpuData
+}
+
