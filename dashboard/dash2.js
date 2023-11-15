@@ -76,8 +76,25 @@ function toggleReload() {
 
 function setupLinks() {
     let info = cluster_info(CURRENT_CLUSTER)
+
     document.getElementById("violators_link").href=`violators.html?cluster=${CURRENT_CLUSTER}`
     document.getElementById("deadweight_link").href=`deadweight.html?cluster=${CURRENT_CLUSTER}`
+
+    let subnames = info.subclusters
+    let subs = document.getElementById("subclusters")
+    if (subnames && subs) {
+        subs.appendChild(document.createTextNode("Aggregates: "))
+        for (let sn of subnames) {
+            let a = document.createElement("A")
+            let s = document.createElement("SPAN")
+            s.textContent = sn
+            a.appendChild(s)
+            a.href = `subcluster.html?cluster=${CURRENT_CLUSTER}&subcluster=${sn}`
+            subs.appendChild(a)
+            let t = document.createTextNode("    ")
+            subs.appendChild(t)
+        }
+    }
 }
 
 function setup() {
