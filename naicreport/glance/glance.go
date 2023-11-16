@@ -444,7 +444,7 @@ func collectLoadAveragesOnce(
 	bucketArg string,
 ) (map[string]*sonalyzeLoadData, error) {
 
-	type sonalyzeRawLoadData struct {
+	type loadDatumJSON struct {
 		Host    string `json:"host"`
 		Rcpu    string `json:"rcpu"`
 		Rmem    string `json:"rmem"`
@@ -452,7 +452,20 @@ func collectLoadAveragesOnce(
 		Rgpumem string `json:"rgpumem"`
 	}
 
-	var rawData [][]*sonalyzeRawLoadData
+	type systemDescJSON struct {
+		Host string `json:"hostname"`
+		Description string `json:"description"`
+		GpuCards string `json:"gpucards"`
+	}
+
+	type loadDataPackageJSON struct {
+		System *systemDescJSON `json:"system"`
+		Records []*loadDatumJSON `json:"records"`
+	}
+
+	type loadDataWithSystemJSON []*loadDataPackageJSON
+
+	var rawData loadDataWithSystemJSON
 	err := runAndUnmarshal(
 		sonalyzePath,
 		[]string{
@@ -468,9 +481,10 @@ func collectLoadAveragesOnce(
 
 	hosts := make(map[string]*sonalyzeLoadData)
 	for _, ds := range rawData {
+		rs := ds.Records
 		// All the hosts in ds are the same, and we only care about the last record for each host.
-		if len(ds) > 0 {
-			d := ds[len(ds)-1]
+		if len(rs) > 0 {
+			d := rs[len(rs)-1]
 			hosts[d.Host] = &sonalyzeLoadData{
 				host:    d.Host,
 				rcpu:    util.JsonFloat64(d.Rcpu),
