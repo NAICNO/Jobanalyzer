@@ -3,7 +3,7 @@
 # cputime_sec.
 output=$($SONALYZE load --fmt=json,host,cpu --compact --none -- json_output.csv)
 CHECK json_output \
-      '[[{"host":"ml4.hpc.uio.no","cpu":"58"}],[{"host":"ml8.hpc.uio.no","cpu":"18"},{"host":"ml8.hpc.uio.no","cpu":"231"}]]' \
+      '[{"system":{"hostname":"ml4.hpc.uio.no","description":"Unknown","gpucards":"0"},"records":[{"host":"ml4.hpc.uio.no","cpu":"58"}]},{"system":{"hostname":"ml8.hpc.uio.no","description":"Unknown","gpucards":"0"},"records":[{"host":"ml8.hpc.uio.no","cpu":"18"},{"host":"ml8.hpc.uio.no","cpu":"231"}]}]' \
       "$output"
 
 output=$($SONALYZE load --fmt=json,host,cpu --compact --none -- empty_input.csv)
