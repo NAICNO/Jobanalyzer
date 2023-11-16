@@ -79,6 +79,9 @@ func (s *StandardOptions) Parse(args []string) error {
 			}
 			files = append(files, fn)
 		}
+		if len(files) == 0 {
+			return errors.New("No file arguments provided")
+		}
 		s.DataFiles = files
 	} else {
 		// Clean the DataPath and make it absolute.
