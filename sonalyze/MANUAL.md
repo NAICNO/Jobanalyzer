@@ -523,8 +523,9 @@ that case there will be a vast amount of output for all but the shortest runs.
 
 ### Plotting data
 
-With `sonalyze profile` it's possible to generate JSON or CSV data.  The JSON data contains all the
-data points, while CSV data can plot only one quantity at a time per process and time step.  For example,
+With `sonalyze profile` it's possible to generate JSON, CSV, or HTML data.  The JSON data contain
+all the data points, while CSV and HTML data can show only one quantity at a time per process and
+time step.  For example,
 
 ```
 $ sonalyze profile -j <job-number> --fmt=csv,cpu -- my-logfile.csv
@@ -548,3 +549,37 @@ time,bwa (1119426),samtools (1119428)
 That is, the first line is a heading listing the constituent processes, and each successive line has the
 time stamp and the data for each process.  If a process was not alive at a given time the field is present,
 but empty.  Spreadsheets can ingest this data format and plot it.
+
+It is perhaps more useful to generate HTML, which can be viewed in a web browser:
+```
+$ sonalyze profile -j <job-number> --fmt=html,cpu -- my-logfile.csv > my-profile.html
+```
+
+Open the file in a browser; it renders the profile graphically.
+
+### Dealing with outliers
+
+Sometimes the profiles contain extreme outliers resulting from calculation errors, sampling
+conincidences, and so on.  In those cases, the profiles may be hard to understand.  A useful switch
+is `--max`, which will clamp values to the given maximum value (or to zero, if the values are more
+than twice the max, on the assumption that these data are pure noise).  Suppose you know you have no
+more than 64 cores on the machine.  Then this is meaningful (remember CPU utilization is presented
+in percent of one core):
+
+```
+$ sonalyze profile -j <job-number> --fmt=html,cpu --max=6400 -- my-logfile.csv > my-profile.html
+```
+
+### Dealing with spikes and with large data
+
+Some data are spiky: the process uses a modest amount of resources most of the time but has spikes
+when it uses much more.  Plotting the raw data, especially for data that came from very frequent
+sampling, may hide the average behavior in the spikes because the spikes are prominent in the plot.
+Smoothing the data has the double effect of exposing the averages by removing the spikes, and
+reducing the data volume.  Averages over 2-10 points seem to work well, we use the `--bucket` switch:
+
+```
+$ sonalyze profile -j <job-number> --fmt=html,cpu --bucket=3 -- my-logfile.csv > my-profile.html
+```
+
+Bucketing is performed after clamping.
