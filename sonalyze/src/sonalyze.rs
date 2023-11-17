@@ -155,6 +155,9 @@ pub struct ProfileCmdArgs {
     record_filter_args: RecordFilterArgs,
 
     #[command(flatten)]
+    filter_args: ProfileFilterAndAggregationArgs,
+
+    #[command(flatten)]
     print_args: ProfilePrintArgs,
 
     #[command(flatten)]
@@ -372,6 +375,17 @@ pub struct JobFilterAndAggregationArgs {
     /// Aggregate data across hosts (appropriate for batch systems)
     #[arg(long, short, default_value_t = false)]
     batch: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ProfileFilterAndAggregationArgs {
+    /// Clamp values to this (helps deal with noise)
+    #[arg(long)]
+    max: Option<f64>,
+
+    /// Bucket these many consecutive elements (helps reduce noise)
+    #[arg(long)]
+    bucket: Option<usize>,
 }
 
 #[derive(Args, Debug)]
@@ -1023,6 +1037,8 @@ fn sonalyze() -> Result<()> {
             let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
             profile::print(
                 &mut io::stdout(),
+                usize::from_str(&profile_args.record_filter_args.job[0]).unwrap(),
+                &profile_args.filter_args,
                 &profile_args.print_args,
                 meta_args,
                 streams,
