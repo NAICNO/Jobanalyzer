@@ -8,7 +8,7 @@ function setup() {
     CURRENT_HOST = params.get("host")
     document.title = CURRENT_HOST + " machine details"
     with_systems_and_frequencies(function (systems, frequencies) {
-	frequencies = [{text: "Moment-to-moment (last 6h)", value: "minutely"}, ...frequencies]
+	frequencies = [{text: "Moment-to-moment (last 24h)", value: "minutely"}, ...frequencies]
 	populateDropdown(document.getElementById("frequency"), frequencies)
 	// TODO: Probably vet the host against the systems
 	render()
