@@ -56,29 +56,29 @@ ml8.hpc.uio.no,2023-09-13 20:00,2023-09-14 01:15" \
 
 output=$($SONALYZE metadata --merge-by-job -- merge.csv)
 CHECK metadata_merge_by_job \
-      "\"ml1.hpc.uio.no,ml8.hpc.uio.no\",2023-09-13 20:00,2023-09-14 02:25
-ml8.hpc.uio.no,2023-09-13 20:00,2023-09-14 01:15" \
+      "ml8.hpc.uio.no,2023-09-13 20:00,2023-09-14 01:15
+\"ml[1,8].hpc.uio.no\",2023-09-13 20:00,2023-09-14 02:25" \
       "$output"
 
 output=$($SONALYZE parse --merge-by-job --fmt=host,job,localtime,cputime_sec -- merge.csv)
 CHECK parse_merge_by_job \
       "*
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",2851773,2023-09-13 20:00,1
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",2851773,2023-09-13 22:05,64
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",2851773,2023-09-13 23:25,2
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",2851773,2023-09-14 02:25,128
-*
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",4052478,2023-09-13 22:00,260
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",4052478,2023-09-13 23:30,520
-*
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",3784499,2023-09-13 22:00,4112
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",3784499,2023-09-13 23:10,49152
-*
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",3784760,2023-09-13 23:45,32
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",3784760,2023-09-13 23:50,8192
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",3784760,2023-09-14 01:10,65536
-\"ml1.hpc.uio.no,ml8.hpc.uio.no\",3784760,2023-09-14 01:15,131072
-*
 ml8.hpc.uio.no,3744442,2023-09-13 22:00,1024
-ml8.hpc.uio.no,3744442,2023-09-13 23:45,2048" \
+ml8.hpc.uio.no,3744442,2023-09-13 23:45,2048
+*
+\"ml[1,8].hpc.uio.no\",2851773,2023-09-13 20:00,1
+\"ml[1,8].hpc.uio.no\",2851773,2023-09-13 22:05,64
+\"ml[1,8].hpc.uio.no\",2851773,2023-09-13 23:25,2
+\"ml[1,8].hpc.uio.no\",2851773,2023-09-14 02:25,128
+*
+\"ml[1,8].hpc.uio.no\",4052478,2023-09-13 22:00,260
+\"ml[1,8].hpc.uio.no\",4052478,2023-09-13 23:30,520
+*
+\"ml[1,8].hpc.uio.no\",3784499,2023-09-13 22:00,4112
+\"ml[1,8].hpc.uio.no\",3784499,2023-09-13 23:10,49152
+*
+\"ml[1,8].hpc.uio.no\",3784760,2023-09-13 23:45,32
+\"ml[1,8].hpc.uio.no\",3784760,2023-09-13 23:50,8192
+\"ml[1,8].hpc.uio.no\",3784760,2023-09-14 01:10,65536
+\"ml[1,8].hpc.uio.no\",3784760,2023-09-14 01:15,131072" \
       "$output"
