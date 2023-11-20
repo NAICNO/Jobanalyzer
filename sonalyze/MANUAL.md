@@ -423,12 +423,15 @@ Output records are sorted in order of increasing start time of the job.
 The default format is `fixed`.  The field names for the `jobs` command are at least these:
 
 * `now` is the current time on the format `YYYY-MM-DD HH:MM`
+* `now/sec` is the current time as a unix timestamp
 * `job` is a number
 * `jobm` is a number, possibly suffixed by a mark "!" (job is running at the start and end of the time interval),
   "<" (job is running at the start of the interval), ">" (job is running at the end of the interval).
 * `user` is the user name
 * `duration` on the format DDdHHhMMm shows the number of days DD, hours HH and minutes MM the job ran for.
+* `duration/sec` is the duration of the job (in real time) in seconds
 * `start` and `end` on the format `YYYY-MM-DD HH:MM` are the endpoints for the job
+* `start/sec` and `end/sec` are unix timestamps for the endpoints of the job
 * `cpu-avg`, `cpu-peak`, `gpu-avg`, `gpu-peak` show CPU and GPU utilization as
    percentages, where 100 corresponds to one full core or device, ie on a system with 64 CPUs the
    CPU utilization can reach 6400 and on a system with 8 accelerators the GPU utilization can reach 800.
@@ -444,6 +447,8 @@ The default format is `fixed`.  The field names for the `jobs` command are at le
 * `cpu` is an abbreviation for `cpu-avg,cpu-peak`, `mem` an abbreviation for `mem-avg,mem-peak`, and so on,
   for `gpu`, `gpumem`, `rcpu`, `rmem`, `rgpu`, and `rgpumem`
 * `std` is an abbreviation for the set of default fields
+
+A Unix timestamp is the number of seconds since 197-01-01T00:00:00UTC.
 
 ### Field names for `load`
 

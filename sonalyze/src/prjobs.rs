@@ -166,8 +166,11 @@ fn my_formatters() -> (
     formatters.insert("job".to_string(), &format_job_id);
     formatters.insert("user".to_string(), &format_user);
     formatters.insert("duration".to_string(), &format_duration);
+    formatters.insert("duration/sec".to_string(), &format_duration_sec);
     formatters.insert("start".to_string(), &format_start);
+    formatters.insert("start/sec".to_string(), &format_start_sec);
     formatters.insert("end".to_string(), &format_end);
+    formatters.insert("end/sec".to_string(), &format_end_sec);
     formatters.insert("cpu-avg".to_string(), &format_cpu_avg);
     formatters.insert("cpu-peak".to_string(), &format_cpu_peak);
     formatters.insert("rcpu-avg".to_string(), &format_rcpu_avg);
@@ -189,6 +192,7 @@ fn my_formatters() -> (
     formatters.insert("cmd".to_string(), &format_command);
     formatters.insert("host".to_string(), &format_host);
     formatters.insert("now".to_string(), &format_now);
+    formatters.insert("now/sec".to_string(), &format_now_sec);
     formatters.insert("classification".to_string(), &format_classification);
 
     aliases.insert(
@@ -343,18 +347,35 @@ fn format_duration(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> Stri
     format!("{:}d{:2}h{:2}m", a.days, a.hours, a.minutes)
 }
 
+fn format_duration_sec(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    // We have no seconds, all job lengths are measured in minutes
+    format!("{}", 60 * (a.minutes + 60 * (a.hours + (a.days * 24))))
+}
+
 // An argument could be made that this should be ISO time, at least when the output is CSV, but
 // for the time being I'm keeping it compatible with `start` and `end`.
 fn format_now(_: LogDatum, c: LogCtx) -> String {
     c.t.format("%Y-%m-%d %H:%M").to_string()
 }
 
+fn format_now_sec(_: LogDatum, c: LogCtx) -> String {
+    c.t.format("%s").to_string()
+}
+
 fn format_start(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     a.first.format("%Y-%m-%d %H:%M").to_string()
 }
 
+fn format_start_sec(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    a.first.format("%s").to_string()
+}
+
 fn format_end(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     a.last.format("%Y-%m-%d %H:%M").to_string()
+}
+
+fn format_end_sec(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    a.last.format("%s").to_string()
 }
 
 fn format_cpu_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
