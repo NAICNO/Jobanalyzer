@@ -192,69 +192,115 @@ fn test_expansion() {
 /// The input is a set and combine_hosts is a function on that set: that is, inputs [x,y] and [y,x]
 /// will yield the same output (and this is important for some consumers).
 
-pub fn combine_hosts(mut hosts: Vec<String>) -> String {
-    // Sort lexicographically
-    hosts.sort();
+pub fn combine_hosts(hosts: Vec<String>) -> String {
+    // Split into groups of names a.b.c.d whose tails .b.c.d are the same, we will attempt to merge
+    // their `a` elements.
+    let mut splits = hosts.iter().map(|s| s.split(".").collect::<Vec<&str>>()).collect::<Vec<Vec<&str>>>();
 
+    // Sort lexicographically by tail first and then hostname second - this will allow us to group
+    // by tail in a single pass and later group by prefix in another pass.
+    splits.sort_by(|a,b| {
+        let mut i = 1;
+        while i < a.len() || i < b.len() {
+            if i < a.len() && i < b.len() {
+                if a[i] != b[i] {
+                    return a[i].cmp(&b[i])
+                }
+            } else if i < a.len() {
+                return std::cmp::Ordering::Greater
+            } else {
+                return std::cmp::Ordering::Less
+            }
+            i += 1;
+        }
+        return a[0].cmp(&b[0])
+    });
+
+    let mut groups : Vec<&[Vec<&str>]> = vec![];
     let mut i = 0;
-    let mut others = vec![]; // Uncombinable names to be sorted and appended at end
-    let mut result = String::new();
-    while i < hosts.len() {
+    while i < splits.len() {
         let mut j = i + 1;
-        let mut ix = None;
-        loop {
-            if j == hosts.len() {
-                break;
-            }
-            let probe = can_be_merged(&hosts[i], &hosts[j]);
-            if probe.is_none() {
-                break;
-            }
-            ix = probe;
-            j += 1;
+        while j < splits.len() && same_strs(&splits[i][1..], &splits[j][1..]) {
+            j = j + 1
         }
-        if let Some(ix) = ix {
-            let prefix = hosts[i].as_str()[0..ix].to_string();
+        groups.push(&splits[i..j]);
+        i = j
+    }
+
+    let mut results: Vec<String> = vec![];
+    for g in groups.drain(0..) {
+        // Each g has a common tail `.b.c.d`.  Group all the `a` elements from group `g` that can be
+        // combined.  The `a` elements that can be combined have a common prefix and a set of
+        // combinable suffixes, and since we started with a sorted list, the combinable elements of
+        // g are consecutive.
+
+        let lim = g.len();
+        let mut i = 0;
+        while i < lim {
+            let mut j = i + 1;
             let mut suffixes = vec![];
-            for k in i..j {
-                suffixes.push(hosts[k].as_str()[ix..].parse::<usize>().unwrap());
-            }
-            suffixes.sort();
-            let mut s = prefix + "[";
-            let mut k = 0;
-            while k < suffixes.len() {
-                let mut m = k + 1;
-                while m < suffixes.len() && suffixes[m] == suffixes[k] + (m - k) {
-                    m += 1;
-                }
-                if k > 0 {
-                    s += ",";
-                }
-                if m == k + 1 {
-                    s += &suffixes[k].to_string();
+            let mut prefix = None;
+            while j < lim {
+                if let Some(ix) = combinable(g[i][0], g[j][0]) {
+                    if suffixes.is_empty() {
+                        prefix = Some(g[i][0][..ix].to_string());
+                        suffixes.push(g[i][0][ix..].parse::<usize>().unwrap());
+                    }
+                    suffixes.push(g[j][0][ix..].parse::<usize>().unwrap());
+                    j += 1;
                 } else {
-                    s += &format!("{}-{}", suffixes[k], suffixes[m - 1]);
+                    break
                 }
-                k = m;
             }
-            s += "]";
-            if !result.is_empty() {
-                result += ",";
+            if suffixes.is_empty() {
+                results.push(g[i].join("."));
+            } else {
+                // combine several
+                let s = prefix.unwrap() + &combine(suffixes);
+                let mut elts = vec![s.as_str()];
+                elts.extend_from_slice(&g[i][1..]);
+                results.push(elts.join("."));
             }
-            result += &s;
+            i = j;
+        }
+    }
+
+    results.join(",")
+}
+
+fn same_strs(a: &[&str], b: &[&str]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    for i in 0..a.len() {
+        if a[i] != b[i] {
+            return false;
+        }
+    }
+    return true;
+}
+
+// It is known that the prefixes can be combined.
+fn combine(mut suffixes: Vec<usize>) -> String {
+    suffixes.sort();
+    let mut s = "[".to_string();
+    let mut k = 0;
+    while k < suffixes.len() {
+        let mut m = k + 1;
+        while m < suffixes.len() && suffixes[m] == suffixes[k] + (m - k) {
+            m += 1;
+        }
+        if k > 0 {
+            s += ",";
+        }
+        if m == k + 1 {
+            s += &suffixes[k].to_string();
         } else {
-            others.push(hosts[i].clone());
+            s += &format!("{}-{}", suffixes[k], suffixes[m - 1]);
         }
-        i = j;
+        k = m;
     }
-    others.sort();
-    for o in others {
-        if !result.is_empty() {
-            result += ",";
-        }
-        result += &o;
-    }
-    result
+    s + "]"
 }
 
 #[test]
@@ -262,18 +308,31 @@ fn test_combine_hosts() {
     assert!(
         combine_hosts(vec![
             "a1".to_string(),
-            "a2".to_string(),
             "a3".to_string(),
+            "a2".to_string(),
             "a5".to_string()
         ]) == "a[1-3,5]".to_string()
+    );
+    // Hosts are carefully ordered here to ensure that they are not sorted either by their first or
+    // second elements.
+    assert!(
+        combine_hosts(vec![
+            "a3.fox".to_string(),
+            "a1.fox".to_string(),
+            "a3.fum".to_string(),
+            "a2.fox".to_string(),
+            "a5.fox".to_string(),
+        ]) == "a[1-3,5].fox,a3.fum".to_string()
     );
 }
 
 // Names can be merged if they both end with a digit string and there is a joint prefix before the
 // digit string.  For now, we require this prefix to not end with a digit.  This returns None for
-// "no" and Some(isize) for "yes" where isize is the byte index of the start of the digit string.
+// "no" and Some(usize) for "yes" where usize is the byte index of the start of the digit string.
+//
+// Combinability must be reflexive, symmetric, and transitive.
 
-fn can_be_merged(a: &str, b: &str) -> Option<usize> {
+fn combinable(a: &str, b: &str) -> Option<usize> {
     let xs = a.as_bytes();
     let mut i = xs.len();
     while i > 0 && xs[i - 1] >= b'0' && xs[i - 1] <= b'9' {
@@ -300,10 +359,10 @@ fn can_be_merged(a: &str, b: &str) -> Option<usize> {
 }
 
 #[test]
-fn test_can_be_merged() {
-    assert!(can_be_merged("", "") == None);
-    assert!(can_be_merged("a", "b") == None);
-    assert!(can_be_merged("a", "a") == None);
-    assert!(can_be_merged("a1", "a23") == Some(1));
-    assert!(can_be_merged("a1-1", "a1-23") == Some(3));
+fn test_elements_can_be_merged() {
+    assert!(combinable("", "") == None);
+    assert!(combinable("a", "b") == None);
+    assert!(combinable("a", "a") == None);
+    assert!(combinable("a1", "a23") == Some(1));
+    assert!(combinable("a1-1", "a1-23") == Some(3));
 }
