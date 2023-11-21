@@ -6,9 +6,10 @@
 
 set -euf -o pipefail
 
-sonar_dir=$HOME/sonar
-state_dir=$sonar_dir/state
-report_dir=$sonar_dir/output
+cluster=fox.educloud.no
+sonar_dir=${sonar_dir:-$HOME/sonar}
+report_dir=$sonar_dir/reports/$cluster
+state_dir=$sonar_dir/state/$cluster
 
 mkdir -p ${report_dir}
 

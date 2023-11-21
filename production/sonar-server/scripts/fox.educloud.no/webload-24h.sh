@@ -5,17 +5,20 @@
 
 set -euf -o pipefail
 
-sonar_dir=$HOME/sonar
-data_dir=$sonar_dir/data
-report_dir=$sonar_dir/output
+cluster=fox.educloud.no
+
+sonar_dir=${sonar_dir:-$HOME/sonar}
+data_dir=$sonar_dir/data/$cluster
+report_dir=$sonar_dir/reports/$cluster
+script_dir=$sonar_dir/scripts/$cluster
 
 mkdir -p $report_dir
 
 $sonar_dir/naicreport load \
 		      -sonalyze $sonar_dir/sonalyze \
-		      -config-file $sonar_dir/ml-nodes.json \
-		      -output-path $report_dir \
-		      -data-path $data_dir \
+		      -config-file $script_dir/$cluster-config.json \
+		      -report-dir $report_dir \
+		      -data-dir $data_dir \
 		      -with-downtime \
 		      -tag monthly \
 		      -daily \
@@ -23,9 +26,9 @@ $sonar_dir/naicreport load \
 
 $sonar_dir/naicreport load \
 		      -sonalyze $sonar_dir/sonalyze \
-		      -config-file $sonar_dir/ml-nodes.json \
-		      -output-path $report_dir \
-		      -data-path $data_dir \
+		      -config-file $script_dir/$cluster-config.json \
+		      -report-dir $report_dir \
+		      -data-dir $data_dir \
 		      -with-downtime \
 		      -tag quarterly \
 		      -daily \
