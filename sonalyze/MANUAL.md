@@ -406,11 +406,12 @@ format:
 * `csv` forces CSV-format output, the default is fixed-column layout
 * `csvnamed` forces CSV-format output with each field prefixed by `<fieldname>=`
 * `json` forces JSON-format output (without any header, ever)
+* `awk` forces space-separated output, with spaces replaced by `_` within fields
 * `header` forces a header to be printed for CSV; this is the default for fixed-column output
    (and a no-op for JSON)
 * `noheader` forces a header not to be printed, default for `csv`, `csvnamed`, and `json`
 * `nodefaults` applies in some cases with some output forms (notably the `parse` command with
-  csv or JSON output) and causes the suppression of fields that have their default values)
+  csv or JSON or awk output) and causes the suppression of fields that have their default values)
 * `tag:something` forces a field `tag` to be printed for each record with the value `something`
 
 Run with `--fmt=help` to get help on formatting syntax, field names, aliases, and controls, as
@@ -423,12 +424,21 @@ Output records are sorted in order of increasing start time of the job.
 The default format is `fixed`.  The field names for the `jobs` command are at least these:
 
 * `now` is the current time on the format `YYYY-MM-DD HH:MM`
+* `now/sec` is the current time as a unix timestamp
 * `job` is a number
 * `jobm` is a number, possibly suffixed by a mark "!" (job is running at the start and end of the time interval),
   "<" (job is running at the start of the interval), ">" (job is running at the end of the interval).
 * `user` is the user name
 * `duration` on the format DDdHHhMMm shows the number of days DD, hours HH and minutes MM the job ran for.
+* `duration/sec` is the duration of the job (in real time) in seconds
+* `cputime` on the format DDdHHhMMm shows the number of CPU days DD, hours HH and minutes MM the job
+   ran for, note this is frequently longer than `duration`
+* `cputime/sec` is the total CPU time of the job in seconds, across all cores
+* `gputime` on the format DDdHHhMMm shows the number of GPU days DD, hours HH and minutes MM the job
+   ran for, note this too can be longer than `duration`, if a computation used multiple cards in parallel
+* `gputime/sec` is the total GPU time of the job in seconds, across all cards
 * `start` and `end` on the format `YYYY-MM-DD HH:MM` are the endpoints for the job
+* `start/sec` and `end/sec` are unix timestamps for the endpoints of the job
 * `cpu-avg`, `cpu-peak`, `gpu-avg`, `gpu-peak` show CPU and GPU utilization as
    percentages, where 100 corresponds to one full core or device, ie on a system with 64 CPUs the
    CPU utilization can reach 6400 and on a system with 8 accelerators the GPU utilization can reach 800.
@@ -444,6 +454,8 @@ The default format is `fixed`.  The field names for the `jobs` command are at le
 * `cpu` is an abbreviation for `cpu-avg,cpu-peak`, `mem` an abbreviation for `mem-avg,mem-peak`, and so on,
   for `gpu`, `gpumem`, `rcpu`, `rmem`, `rgpu`, and `rgpumem`
 * `std` is an abbreviation for the set of default fields
+
+A Unix timestamp is the number of seconds since 197-01-01T00:00:00UTC.
 
 ### Field names for `load`
 
