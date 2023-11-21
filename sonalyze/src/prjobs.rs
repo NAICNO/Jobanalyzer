@@ -194,6 +194,10 @@ fn my_formatters() -> (
     formatters.insert("now".to_string(), &format_now);
     formatters.insert("now/sec".to_string(), &format_now_sec);
     formatters.insert("classification".to_string(), &format_classification);
+    formatters.insert("cputime".to_string(), &format_cputime);
+    formatters.insert("cputime/sec".to_string(), &format_cputime_sec);
+    formatters.insert("gputime".to_string(), &format_gputime);
+    formatters.insert("gputime/sec".to_string(), &format_gputime_sec);
 
     aliases.insert(
         "std".to_string(),
@@ -350,6 +354,54 @@ fn format_duration(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> Stri
 fn format_duration_sec(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     // We have no seconds, all job lengths are measured in minutes
     format!("{}", 60 * (a.minutes + 60 * (a.hours + (a.days * 24))))
+}
+
+// Note that this is frequently longer than the job duration b/c multicore.  I mention this only
+// because it can be confusing.
+fn format_cputime(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    // See below for a description of the computation.
+    let duration = 60 * (a.minutes + 60 * (a.hours + (a.days * 24)));
+    let mut cputime_sec = (a.cpu_avg * duration as f64 / 100.0).round() as i64;
+    if cputime_sec % 60 >= 30 {
+        cputime_sec += 30;
+    }
+    let _seconds = cputime_sec % 60;
+    let minutes = (cputime_sec / 60) % 60;
+    let hours = (cputime_sec / (60 * 60)) % 24;
+    let days = cputime_sec / (60 * 60 * 24);
+    format!("{:}d{:2}h{:2}m", days, hours, minutes)
+}
+
+fn format_cputime_sec(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    // The unit for average cpu utilization is core-seconds per second, we multiply this by duration
+    // (whose units is second) to get total core-seconds for the job.  Finally scale by 100 because
+    // the cpu_avg numbers are expressed in integer percentage point.
+    let duration = 60 * (a.minutes + 60 * (a.hours + (a.days * 24)));
+    let cputime = (a.cpu_avg * duration as f64 / 100.0).round() as i64;
+    format!("{}", cputime)
+}
+
+fn format_gputime(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    // See below for a description of the computation.
+    let duration = 60 * (a.minutes + 60 * (a.hours + (a.days * 24)));
+    let mut gputime_sec = (a.gpu_avg * duration as f64 / 100.0).round() as i64;
+    if gputime_sec % 60 >= 30 {
+        gputime_sec += 30;
+    }
+    let _seconds = gputime_sec % 60;
+    let minutes = (gputime_sec / 60) % 60;
+    let hours = (gputime_sec / (60 * 60)) % 24;
+    let days = gputime_sec / (60 * 60 * 24);
+    format!("{:}d{:2}h{:2}m", days, hours, minutes)
+}
+
+fn format_gputime_sec(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    // The unit for average gpu utilization is card-seconds per second, we multiply this by duration
+    // (whose units is second) to get total card-seconds for the job.  Finally scale by 100 because
+    // the gpu_avg numbers are expressed in integer percentage point.
+    let duration = 60 * (a.minutes + 60 * (a.hours + (a.days * 24)));
+    let gputime = (a.gpu_avg * duration as f64 / 100.0).round() as i64;
+    format!("{}", gputime)
 }
 
 // An argument could be made that this should be ISO time, at least when the output is CSV, but

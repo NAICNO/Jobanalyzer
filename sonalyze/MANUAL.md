@@ -430,6 +430,12 @@ The default format is `fixed`.  The field names for the `jobs` command are at le
 * `user` is the user name
 * `duration` on the format DDdHHhMMm shows the number of days DD, hours HH and minutes MM the job ran for.
 * `duration/sec` is the duration of the job (in real time) in seconds
+* `cputime` on the format DDdHHhMMm shows the number of CPU days DD, hours HH and minutes MM the job
+   ran for, note this is frequently longer than `duration`
+* `cputime/sec` is the total CPU time of the job in seconds, across all cores
+* `gputime` on the format DDdHHhMMm shows the number of GPU days DD, hours HH and minutes MM the job
+   ran for, note this too can be longer than `duration`, if a computation used multiple cards in parallel
+* `gputime/sec` is the total GPU time of the job in seconds, across all cards
 * `start` and `end` on the format `YYYY-MM-DD HH:MM` are the endpoints for the job
 * `start/sec` and `end/sec` are unix timestamps for the endpoints of the job
 * `cpu-avg`, `cpu-peak`, `gpu-avg`, `gpu-peak` show CPU and GPU utilization as
