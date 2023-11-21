@@ -406,11 +406,12 @@ format:
 * `csv` forces CSV-format output, the default is fixed-column layout
 * `csvnamed` forces CSV-format output with each field prefixed by `<fieldname>=`
 * `json` forces JSON-format output (without any header, ever)
+* `awk` forces space-separated output, with spaces replaced by `_` within fields
 * `header` forces a header to be printed for CSV; this is the default for fixed-column output
    (and a no-op for JSON)
 * `noheader` forces a header not to be printed, default for `csv`, `csvnamed`, and `json`
 * `nodefaults` applies in some cases with some output forms (notably the `parse` command with
-  csv or JSON output) and causes the suppression of fields that have their default values)
+  csv or JSON or awk output) and causes the suppression of fields that have their default values)
 * `tag:something` forces a field `tag` to be printed for each record with the value `something`
 
 Run with `--fmt=help` to get help on formatting syntax, field names, aliases, and controls, as

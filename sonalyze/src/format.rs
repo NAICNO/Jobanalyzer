@@ -81,6 +81,7 @@ pub struct FormatOptions {
     pub tag: Option<String>,
     pub json: bool,   // json explicitly requested
     pub csv: bool,    // csv or csvnamed explicitly requested
+    pub awk: bool,    // awk explicitly requested
     pub fixed: bool,  // fixed output explicitly requested
     pub named: bool,  // csvnamed explicitly requested
     pub header: bool, // true if nothing requested b/c fixed+header is default
@@ -92,10 +93,11 @@ pub fn standard_options(others: &HashSet<&str>) -> FormatOptions {
     let csvnamed = others.get("csvnamed").is_some();
     let csv = others.get("csv").is_some() || csvnamed;
     let json = others.get("json").is_some() && !csv;
-    let fixed = others.get("fixed").is_some() && !csv && !json;
+    let awk = others.get("awk").is_some() && !csv && !json;
+    let fixed = others.get("fixed").is_some() && !csv && !json && !awk;
     let nodefaults = others.get("nodefaults").is_some();
-    // json gets no header, even if one is requested
-    let header = (!csv && !json && !others.get("noheader").is_some())
+    // json and awk get no header, even if one is requested
+    let header = (!csv && !json && !awk && !others.get("noheader").is_some())
         || (csv && others.get("header").is_some());
     let mut tag: Option<String> = None;
     for x in others {
@@ -107,6 +109,7 @@ pub fn standard_options(others: &HashSet<&str>) -> FormatOptions {
     FormatOptions {
         csv,
         json,
+        awk,
         header,
         tag,
         fixed,
@@ -157,6 +160,8 @@ pub fn format_data<'a, DataT, FmtT, CtxT>(
         format_csv(output, fields, opts, cols);
     } else if opts.json {
         format_json(output, fields, opts, cols);
+    } else if opts.awk {
+        format_awk(output, fields, opts, cols);
     } else {
         format_fixed_width(output, fields, opts, cols);
     }
@@ -310,3 +315,37 @@ fn format_json<'a>(
     }
     output.write(json::stringify(objects).as_bytes()).unwrap();
 }
+
+// awk output: fields are space-separated and spaces are not allowed within fields, they
+// are replaced by `_`.
+
+fn format_awk<'a>(
+    output: &mut dyn io::Write,
+    fields: &[&'a str],
+    opts: &FormatOptions,
+    cols: Vec<Vec<String>>,
+) {
+    for row in 0..cols[0].len() {
+        let mut line = "".to_string();
+        for col in 0..fields.len() {
+            let val = &cols[col][row];
+            if opts.nodefaults && val == "*skip*" {
+                // do nothing
+            } else {
+                if !line.is_empty() {
+                    line += " ";
+                }
+                line += val.replace(" ", "_").as_str();
+            }
+        }
+        if let Some(ref tag) = opts.tag {
+            if !line.is_empty() {
+                line += " ";
+            }
+            line += tag;
+        }
+        line += "\n";
+        output.write(line.as_bytes()).unwrap();
+    }
+}
+
