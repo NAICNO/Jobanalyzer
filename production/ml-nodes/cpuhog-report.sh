@@ -18,4 +18,4 @@ mkdir -p ${report_dir}
 # Typical running time per invocation on ML nodes: 10-20ms
 
 $sonar_dir/naicreport ml-cpuhog -data-path $state_dir -from 4w
-$sonar_dir/naicreport ml-cpuhog -data-path $state_dir -from 4w -json > $report_dir/ml-cpuhog-report.json
+$sonar_dir/naicreport ml-cpuhog -data-path $state_dir -from 4w -json > $report_dir/ml-violator-report.json
