@@ -182,7 +182,7 @@ func writePlots(
 			rgpumemData = make([]float64, 0)
 		}
 		for _, d := range hd.data {
-			labels = append(labels, d.datetime.Format("01-02 15:04"))
+			labels = append(labels, d.datetime.Format(util.DateTimeFormat))
 			rcpuData = append(rcpuData, d.rcpu)
 			rmemData = append(rmemData, d.rmem)
 			if hasGpu {
