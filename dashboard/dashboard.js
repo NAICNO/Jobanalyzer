@@ -200,14 +200,40 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime,
         // This is a json object with these fields:
         //  - hostname: FQDN
         //  - description: human-readable text string
-        //  - cpu_cores: num cores altogether (so, 2x14 hyperthreaded = 2x14x2 = 56)
-        //  - mem_gb: gb of main memory
-        //  - gpu_cards: num cards
-        //  - gpumem_gb: total amount of gpu memory
-        // Really the description says it all so probably enough to print that
-        desc_node.innerText =
-            (show_hostname ? json_data.system.hostname + ": " : "") +
-            json_data.system.description.replaceAll("|||","\n")
+	// The description can contain multiple descriptions separated by "|||"
+	// We merge descriptions that are the same (as this is common).
+	let newdescs = {}
+	for (let x of json_data.system.description.split("|||")) {
+	    if (x in newdescs) {
+		newdescs[x]++
+	    } else {
+		newdescs[x] = 1
+	    }
+	}
+	let xs = [];
+	for (let x in newdescs) {
+	    xs.push([newdescs[x], x])
+	}
+	xs.sort(function (a, b) {
+	    if (a[0] == b[0]) {
+		if (a[1] < b[1]) {
+		    return -1
+		}
+		if (a[1] > b[1]) {
+		    return 1
+		}
+		return 0
+	    }
+	    return b[0] - a[0]
+	})
+	let desc = ""
+	for (let [n, d] of xs) {
+	    if (desc != "") {
+		desc += "\n"
+	    }
+	    desc += n + "x " + d
+	}
+        desc_node.innerText = (show_hostname ? json_data.system.hostname + ": " : "") + desc
     }
 
     return my_chart;
