@@ -49,7 +49,7 @@ func main() {
 		ht = " (hyperthreaded)"
 	}
 	r.MemGB = int64(math.Round(float64(mem) / (1024 * 1024 * 1024)))
-	r.Model = fmt.Sprintf("%dx%d%s, %s, %d GB", sockets, coresPerSocket, ht, model, r.MemGB)
+	r.Model = fmt.Sprintf("%dx%d%s %s, %d GB", sockets, coresPerSocket, ht, model, r.MemGB)
 	r.Cores = sockets * coresPerSocket * threadsPerCore
 	if gpuModel != "" {
 		r.Model += fmt.Sprintf(", %dx %s @ %dGB", gpuCards, gpuModel, gpuMem/(1024*1024*1024))
