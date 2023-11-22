@@ -122,9 +122,8 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime,
     // Downtime data are flags indicating that the host or gpu was down during specific periods -
     // during the hour / day starting with at the start time of the bucket.  To represent that in
     // the current plot, we carry each nonzero value forward to the next slot too, to get a
-    // horizontal line covering the entire bucket.  This is far from pretty because we then get
-    // slopes up to and down from the horizontal line from the preceding and following time slots.
-    // That is bug #171.
+    // horizontal line covering the entire bucket.  To make that pretty, we delete the remaining
+    // zero slots.
     let downhost_data, downgpu_data
     if (json_data.downhost) {
         let dh = json_data.downhost.map(d => d*15)
@@ -133,6 +132,11 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime,
                 dh[i] = dh[i-1]
             }
         }
+	for ( let i=0 ; i < dh.length ; i++ ) {
+	    if (dh[i] == 0) {
+		delete dh[i]
+	    }
+	}
         downhost_data = dh
     }
     if (json_data.downgpu) {
@@ -142,6 +146,11 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime,
                 dg[i] = dg[i-1]
             }
         }
+	for ( let i=0 ; i < dg.length ; i++ ) {
+	    if (dg[i] == 0) {
+		delete dg[i]
+	    }
+	}
         downgpu_data = dg
     }
 
