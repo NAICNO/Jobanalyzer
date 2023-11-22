@@ -28,6 +28,7 @@ where
             }
             if help.aliases.len() > 0 {
                 println!("\nAliases:");
+                help.aliases.sort();
                 for (name, mut fields) in help.aliases {
                     fields.sort();
                     let explication = (&fields).join(",");
