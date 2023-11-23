@@ -1,25 +1,27 @@
-// The ml-nodes cpuhog analysis runs fairly often (see next) and examines data from a larger time
-// window than its running interval, and will append information about CPU hogs to a daily log.  The
-// schedule generates a fair amount of redundancy under normal circumstances.
+// CPU hog analysis looks for jobs that use a lot of CPU and no GPU.
 //
-// The analysis MUST run often enough for a job ID on a given host never to become reused between
-// two consecutive analysis runs.
+// It has two phases: ingestion and reporting.
 //
-// The present component runs occasionally and filters / resolves the redundancy and creates
-// formatted reports about new violations.  For this it maintains state about what it's already seen
-// and reported.
+// - The ingestion is currently a shell script that runs fairly often (see next) and examines data
+//   from a larger time window than its running interval, and will append information about cpu hogs
+//   to a daily ingestion log.  The schedule generates a fair amount of redundancy under normal
+//   circumstances.
+//
+//   The ingestion MUST run often enough for a job ID on a given host never to become reused between
+//   two consecutive analysis runs.
+//
+// - The reporting component (this component) runs occasionally and filters / resolves the
+//   redundancy in the ingestion log and creates formatted reports about new problems.  For this it
+//   maintains state about what it's already seen and reported.
 //
 // For now this code is specific to the ML nodes, hence the "ml" in all the names.
 //
 // Requirements:
 //
 //  - a job that appears in the cpuhog log is a cpu hog and should be reported
-//  - the report is (for now) some textual output to be emailed
-//  - we don't want to report jobs redundantly, so there will have to be persistent state
-//  - we don't want the state to grow without bound
-
-// For textual reports, there is persistent state so that reports are not sent redundantly.  This
-// state maps a job to a flag that indicates whether a report has been sent or not.
+//  - the report is selectable as textual output (to be emailed), json, or a tabular summary
+//  - we don't want to report jobs redundantly, so there is persistent state
+//  - we don't want the state to grow without bound, so the state is purged from time to time
 //
 // A job is identified by a quadruple (host, id, expired, lastSeen): If expired==false, then the job
 // key is (host, id), otherwise the key is (host, id, lastSeen).  The reason for this is that
