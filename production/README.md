@@ -36,10 +36,10 @@ access to the shared file system, runs a number of analysis jobs.
 
 The analysis jobs have some intermediate products and produce some reports.  For this, they need two
 data directories `$state_dir` and `$report_dir`.  Typically these are subdirectories of a common
-directory that also holds executables (`sonalyze`, `naicreport`, and `loginfo`), shell scripts
-(many), and cluster configuration data (`ml-nodes.json`, `fox.json`, etc).  If this directory does
-not contain the raw log data directory then it may have a symlink to that directory, so that the
-scripts don't need to know where that directory is.
+directory that also holds executables (`sonalyze` and `naicreport`), shell scripts (many), and
+cluster configuration data (`ml-nodes.json`, `fox.json`, etc).  If this directory does not contain
+the raw log data directory then it may have a symlink to that directory, so that the scripts don't
+need to know where that directory is.
 
 It is necessary for the analysis jobs for separate clusters to use separate state directories, as
 files in the state are not tagged with cluster or host name.
