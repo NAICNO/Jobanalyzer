@@ -1,21 +1,26 @@
-// The ml-nodes deadweight analysis runs fairly often (see next) and examines data from a larger
-// time window than its running interval, and will append information about zombies, defunct
-// processes and other dead weight to a daily log.  The schedule generates a fair amount of
-// redundancy under normal circumstances.
+// Deadweight analysis looks for zombies and other dead processes that are hanging around and
+// consuming resouces without being useful.
 //
-// The analysis MUST run often enough for a job ID on a given host never to become reused between
-// two consecutive analysis runs.
+// It has two phases: ingestion and reporting.
 //
-// The present component runs occasionally and filters / resolves the redundancy and creates
-// formatted reports about new problems.  For this it maintains state about what it's already seen
-// and reported.
+// - The ingestion is currently a shell script that runs fairly often (see next) and examines data
+//   from a larger time window than its running interval, and will append information about dead
+//   weight to a daily ingestion log.  The schedule generates a fair amount of redundancy under
+//   normal circumstances.
+//
+//   The ingestion MUST run often enough for a job ID on a given host never to become reused between
+//   two consecutive analysis runs.
+//
+// - The reporting component (this component) runs occasionally and filters / resolves the
+//   redundancy in the ingestion log and creates formatted reports about new problems.  For this it
+//   maintains state about what it's already seen and reported.
 //
 // Requirements:
 //
-//  - a job that appears in the deadweight log is dead weight and should be reported
-//  - the report is (for now) just textual output to be emailed
-//  - we don't want to report jobs redundantly, so there will have to be persistent state
-//  - we don't want the state to grow without bound
+//  - a job that appears in the ingestion log is dead weight and should be reported
+//  - the report is selectable as textual output (to be emailed), json, or a tabular summary
+//  - we don't want to report jobs redundantly, so there is persistent state
+//  - we don't want the state to grow without bound, so the state is purged from time to time
 
 package deadweight
 
@@ -40,11 +45,6 @@ const (
 // Se comment in mlcpuhog.go re options logic for --state-file and --now
 
 func Deadweight(progname string, args []string) error {
-
-	////////////////////////////////////////////////////////////////////////////////
-	//
-	// Parse options and establish inputs
-
 	progOpts := util.NewStandardOptions(progname + "ml-deadweight")
 	jsonOutput := progOpts.Container.Bool("json", false, "Format output as JSON")
 	summaryOutput := progOpts.Container.Bool("summary", false, "Format output for testing")
@@ -88,6 +88,24 @@ func Deadweight(progname string, args []string) error {
 		now = time.Now().UTC()
 	}
 
+	return deadweight(
+		stateFilename,
+		dataFiles,
+		progOpts.From,
+		progOpts.To,
+		now,
+		*jsonOutput,
+		*summaryOutput,
+		progOpts.Verbose,
+	)
+}
+
+func deadweight(
+	stateFilename string,
+	dataFiles []string,
+	from, to, now time.Time,
+	jsonOutput, summaryOutput, verbose bool,
+) error {
 	////////////////////////////////////////////////////////////////////////////////
 	//
 	// Read inputs
@@ -96,20 +114,20 @@ func Deadweight(progname string, args []string) error {
 	if err != nil {
 		return err
 	}
-	if progOpts.Verbose {
+	if verbose {
 		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(db.Active), len(db.Expired))
 	}
 
 	logs, err := joblog.ReadJoblogFiles[*deadweightJob](
 		dataFiles,
-		progOpts.Verbose,
+		verbose,
 		parseDeadweightRecord,
 		integrateDeadweightRecords,
 	)
 	if err != nil {
 		return err
 	}
-	if progOpts.Verbose {
+	if verbose {
 		fmt.Fprintf(os.Stderr, "%d hosts in log\n", len(logs))
 		for _, l := range logs {
 			fmt.Fprintf(os.Stderr, " %s: %d records\n", l.Host, len(l.Jobs))
@@ -128,13 +146,13 @@ func Deadweight(progname string, args []string) error {
 			}
 		}
 	}
-	if progOpts.Verbose {
+	if verbose {
 		fmt.Fprintf(os.Stderr, "%d new jobs\n", new_jobs)
 	}
 
-	purgeDate := util.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
+	purgeDate := util.MinTime(from, to.AddDate(0, 0, -2))
 	purged := jobstate.PurgeJobsBefore(db, purgeDate)
-	if progOpts.Verbose {
+	if verbose {
 		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
 	}
 
@@ -143,13 +161,13 @@ func Deadweight(progname string, args []string) error {
 	// Write outputs
 
 	switch {
-	case *jsonOutput:
+	case jsonOutput:
 		bytes, err := json.Marshal(createDeadweightReport(db, logs, true))
 		if err != nil {
 			return fmt.Errorf("While marshaling deadweight data: %w", err)
 		}
 		fmt.Println(string(bytes))
-	case *summaryOutput:
+	case summaryOutput:
 		report := createDeadweightReport(db, logs, false)
 		for _, r := range report {
 			r.jobState.IsReported = true
