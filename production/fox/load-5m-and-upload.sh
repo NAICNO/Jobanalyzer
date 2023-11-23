@@ -38,9 +38,9 @@ $sonar_dir/naicreport at-a-glance \
 		      -tag "Fox" \
 		      > $report_dir/fox-at-a-glance.json
 
-$sonar_dir/loginfo hostnames \
-		   $report_dir \
-		   > $report_dir/fox-hostnames.json
+$sonar_dir/naicreport hostnames \
+		      $report_dir \
+		      > $report_dir/fox-hostnames.json
 
 # The chmod is done here so that we don't have to do it in naicreport or on the server,
 # and we don't depend on the umask.  But it must be done, or the files may not be

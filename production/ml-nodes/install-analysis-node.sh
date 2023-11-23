@@ -18,7 +18,6 @@ mkdir -p $SONARDIR
 
 cp sonalyze/release/sonalyze $SONARDIR
 cp naicreport/naicreport $SONARDIR
-cp loginfo/loginfo $SONARDIR
 cp production/ml-nodes/ml-nodes.json $SONARDIR
 cp production/ml-nodes/jobanalyzer-analysis.cron $SONARDIR
 cp production/ml-nodes/cpuhog*.sh \
