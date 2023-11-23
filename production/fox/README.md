@@ -144,7 +144,6 @@ First, create a directory and copy files into it:
     cp ~/Jobanalyzer/production/fox/jobanalyzer-analysis.cron ~/sonar
     cp ~/Jobanalyzer/sonalyze/target/release/sonalyze ~/sonar
     cp ~/Jobanalyzer/naicreport/naicreport ~/sonar
-    cp ~/Jobanalyzer/loginfo/loginfo ~/sonar
     ln -s /cluster/var/sonar/data ~/sonar/data
     ln -s ~/.ssh/ubuntu-vm.pem ~/sonar
 ```

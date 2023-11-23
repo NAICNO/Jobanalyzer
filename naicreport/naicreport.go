@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"os"
 
+	"naicreport/deadweight"
 	"naicreport/glance"
+	"naicreport/hostnames"
 	"naicreport/load"
 	"naicreport/mlcpuhog"
-	"naicreport/mldeadweight"
 )
 
 func main() {
@@ -23,17 +24,20 @@ func main() {
 	case "help":
 		toplevelUsage(0)
 
-	case "ml-deadweight":
-		err = mldeadweight.MlDeadweight(os.Args[0], os.Args[2:])
+	case "at-a-glance":
+		err = glance.Report(os.Args[0], os.Args[2:])
+
+	case "deadweight", "ml-deadweight":
+		err = deadweight.Deadweight(os.Args[0], os.Args[2:])
+
+	case "hostnames":
+		err = hostnames.Hostnames(os.Args[0], os.Args[2:])
+
+	case "load", "ml-webload":
+		err = load.Load(os.Args[0], os.Args[2:])
 
 	case "ml-cpuhog":
 		err = mlcpuhog.MlCpuhog(os.Args[0], os.Args[2:])
-
-	case "ml-webload", "load":
-		err = load.Load(os.Args[0], os.Args[2:])
-
-	case "at-a-glance":
-		err = glance.Report(os.Args[0], os.Args[2:])
 
 	default:
 		toplevelUsage(1)
@@ -52,16 +56,20 @@ func toplevelUsage(code int) {
 
 where <verb> is one of
 
-  help
-    Print help
   at-a-glance
     Produce a summary report from many parts
+  deadweight
+    Analyze the deadweight logs and generate a report of new violations
+  help
+    Print help
+  hostnames
+	Analyze the names of log files to generate a list of host names
   load
     Run sonalyze to generate plottable (JSON) load reports
-  ml-deadweight
-   Analyze the deadweight logs and generate a report of new violations
   ml-cpuhog
     Analyze the cpuhog logs and generate a report of new violations
+  ml-deadweight
+    Obsolete name for "deadweight"
   ml-webload
     Obsolete name for "load"
 

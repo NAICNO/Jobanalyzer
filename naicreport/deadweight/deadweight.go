@@ -17,7 +17,7 @@
 //  - we don't want to report jobs redundantly, so there will have to be persistent state
 //  - we don't want the state to grow without bound
 
-package mldeadweight
+package deadweight
 
 import (
 	"encoding/json"
@@ -39,7 +39,7 @@ const (
 
 // Se comment in mlcpuhog.go re options logic for --state-file and --now
 
-func MlDeadweight(progname string, args []string) error {
+func Deadweight(progname string, args []string) error {
 
 	////////////////////////////////////////////////////////////////////////////////
 	//
