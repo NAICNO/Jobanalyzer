@@ -291,6 +291,10 @@ could likely run on any of the ML nodes, yet when it runs on ML8 it is in the wa
 could use the 40GB provided by those cards.  (And when some of the other ML nodes stand unused, this
 is Story 1 of `adm_unused_capacity` as well.)
 
+*Story 6 (vampire):* Another variation of *Story 3*, this problem occurs when *U* does not run one
+big job that uses a lot of CPU and no GPU, but many smaller jobs, sometimes overlapping, that
+together have the effect of being a big job in violation of the cpuhog policy.  See issue 55 for an
+exploration.  *A* wants to move *U* to a system without GPUs.
 
 #### `adm_software_use`
 
