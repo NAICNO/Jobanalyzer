@@ -3,7 +3,7 @@
 let machine_load_chart = null
 let CURRENT_HOST = ""
 
-function setup() {
+function machine_detail_onload() {
     let params = new URLSearchParams(document.location.search)
     CURRENT_HOST = params.get("host")
     document.title = CURRENT_HOST + " machine details"
@@ -39,6 +39,32 @@ function render_machine_load() {
 }
 
 function render_violators(thirty_days_ago) {
+    violators_by_time(thirty_days_ago)
+    violators_by_user(thirty_days_ago)
+}
+
+function violators_by_time(thirty_days_ago) {
+    document.getElementById("violator_report_by_time").replaceChildren()
+    render_violators_by_time(
+	"violator_report_by_time", 
+	function (d) {
+	    return CURRENT_HOST == d["hostname"] &&
+		(parse_date(d["last-seen"]) >= thirty_days_ago || globalThis["TESTDATA"])
+	})
+}
+
+function violators_by_user(thirty_days_ago) {
+    document.getElementById("violator_report_by_user").replaceChildren()
+    render_violators_by_user(
+	"violator_report_by_user", 
+	function (d) {
+	    return CURRENT_HOST == d["hostname"] &&
+		(parse_date(d["last-seen"]) >= thirty_days_ago || globalThis["TESTDATA"])
+	},
+	CURRENT_HOST)
+}
+
+/*
     let fields = [{name: "Host", tag: "hostname"},
 		  {name: "User", tag: "user"},
 		  {name: "Job",  tag: "id"},
@@ -50,17 +76,18 @@ function render_violators(thirty_days_ago) {
 		  {name: "RCPU peak", tag:"rcpu-peak"},
 		  {name: "RMem avg", tag:"rmem-avg"},
 		  {name: "RMem peak", tag:"rmem-peak"}]
-    let elt = document.getElementById("violator_report")
+    let elt = document.getElementById("violator_report_by_time")
     elt.replaceChildren()
-    render_table(tag_file("violator-report.json"),
-                 fields,
-                 elt,
-                 cmp_string_fields("last-seen", true),
-                 function (d) {
-                     return CURRENT_HOST == d["hostname"] &&
-                         (parse_date(d["last-seen"]) >= thirty_days_ago || globalThis["TESTDATA"])
-                 })
+    render_table_from_file(tag_file("violator-report.json"),
+			   fields,
+			   elt,
+			   cmp_string_fields("last-seen", true),
+			   function (d) {
+			       return CURRENT_HOST == d["hostname"] &&
+				   (parse_date(d["last-seen"]) >= thirty_days_ago || globalThis["TESTDATA"])
+			   })
 }
+*/
 
 function render_deadweight(thirty_days_ago) {
       let fields = [{name: "Host", tag: "hostname"},
@@ -71,13 +98,13 @@ function render_deadweight(thirty_days_ago) {
 		    {name: "Last seen", tag:"last-seen"}]
     let elt = document.getElementById("deadweight_report")
     elt.replaceChildren()
-    render_table(tag_file("deadweight-report.json"),
-                 fields,
-                 elt,
-                 cmp_string_fields("last-seen", true),
-                 function (d) {
-                     return CURRENT_HOST == d["hostname"] &&
-                         (parse_date(d["last-seen"]) >= thirty_days_ago || globalThis["TESTDATA"])
-                 })
+    render_table_from_file(tag_file("deadweight-report.json"),
+			   fields,
+			   elt,
+			   cmp_string_fields("last-seen", true),
+			   function (d) {
+			       return CURRENT_HOST == d["hostname"] &&
+				   (parse_date(d["last-seen"]) >= thirty_days_ago || globalThis["TESTDATA"])
+			   })
 }
 

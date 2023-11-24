@@ -2,36 +2,29 @@
   <head>
     <link rel=stylesheet type=text/css href="table-style.css"/>
     <title>CLUSTER policy violators dashboard</title>
+    <script src="testflag.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="violators.js"></script>
+    <script>
+      function violators_onload() {
+	  rewriteTitle()
+	  render_violators_by_time("report_by_time")
+	  render_violators_by_user("report_by_user")
+      }
+    </script>
   </head>
 
-  <body>
+  <body onload="violators_onload()">
     <h1 id=main_title>CLUSTER policy violators</h1>
     
-    <p>The following jobs have been running significantly outside of policy and are probably
+    <p>The following users and jobs have been running significantly outside of policy and are probably
       not appropriate to run on this cluster.  The list is recomputed at noon and midnight
       and goes back four weeks.</p>
 
-    <div id=report></div>
+    <h2>By user</h2>
+    <div id=report_by_user></div>
 
-    <script src="testflag.js"></script>
-    <script src="dashboard.js"></script>
-    <script>
-      rewriteTitle()
-      var fields = [{name: "Host", tag: "hostname"},
-		    {name: "User", tag: "user"},
-		    {name: "Job",  tag: "id"},
-		    {name: "Command", tag:"cmd"},
-		    {name: "First seen", tag:"started-on-or-before"},
-		    {name: "Last seen", tag:"last-seen"},
-		    {name: "CPU peak", tag:"cpu-peak"},
-		    {name: "CPU% avg", tag:"rcpu-avg"},
-		    {name: "CPU% peak", tag:"rcpu-peak"},
-		    {name: "Mem% avg", tag:"rmem-avg"},
-		    {name: "Mem% peak", tag:"rmem-peak"}]
-      render_table(tag_file("violator-report.json"),
-		   fields,
-		   document.getElementById("report"),
-		   cmp_string_fields("last-seen", true))
-    </script>
+    <h2>By job and time</h2>
+    <div id=report_by_time></div>
   </body>
 </html>

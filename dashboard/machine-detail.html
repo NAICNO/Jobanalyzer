@@ -5,9 +5,10 @@
     <script src="testflag.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="dashboard.js"></script>
+    <script src="violators.js"></script>
     <script src="machine-detail.js"></script>
   </head>
-  <body onload="setup()">
+  <body onload="machine_detail_onload()">
 
     <center>
       <h1>Machine details</h1>
@@ -44,7 +45,11 @@
     <p>The following jobs have violated usage policy and are probably not appropriate to run on this cluster.
     The list is recomputed at noon and midnight and goes back four weeks.</p>
 
-    <div id=violator_report></div>
+    <h2>By user</h2>
+    <div id=violator_report_by_user></div>
+
+    <h2>By job and time</h2>
+    <div id=violator_report_by_time></div>
 
     <center>
       <h2>Deadweight processes last 30 days</h2>
