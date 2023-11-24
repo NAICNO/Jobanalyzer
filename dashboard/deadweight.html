@@ -3,7 +3,7 @@
     <link rel=stylesheet type=text/css href="table-style.css"/>
     <title>CLUSTER deadweight dashboard</title>
   </head>
-  <body>
+  <body onload="render()">
     <h1 id=main_title>CLUSTER dead weight</h1>
 
     <p>The following processes and jobs are zombies or defuncts or
@@ -14,19 +14,6 @@
 
     <script src="testflag.js"></script>
     <script src="dashboard.js"></script>
-    <script>
-      rewriteTitle()
-      var fields = [{name: "Host", tag: "hostname"},
-		    {name: "User", tag: "user"},
-		    {name: "Job",  tag: "id"},
-		    {name: "Command", tag:"cmd"},
-		    {name: "First seen", tag:"started-on-or-before"},
-		    {name: "Last seen", tag:"last-seen"}]
-      render_table(tag_file("deadweight-report.json"),
-		   fields,
-		   document.getElementById("report"),
-		   cmp_string_fields("last-seen", true))
-    </script>
-
+    <script src="deadweight.js"></script>
   </body>
 </html>

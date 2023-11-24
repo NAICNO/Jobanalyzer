@@ -105,7 +105,10 @@ function setup() {
 }
 
 function render() {
-    render_table(tag_file("at-a-glance.json"), fields, document.getElementById("report"), sort_records).
+    render_table_from_file(tag_file("at-a-glance.json"),
+			   fields,
+			   document.getElementById("report"),
+			   sort_records).
         then(annotate_rows)
 }
 

@@ -67,12 +67,18 @@ function tag_file(fn) {
     return info.prefix + fn
 }
 
+// Returns a promise that fetches and unwraps JSON data.
+
+function fetch_data_from_file(f) {
+    return fetch(compute_filename(f)).
+        then((response) => response.json())
+}
+
 // Load tables of host names (in the cluster) and measurement frequencies and invoke f on those
 // tables.
 
 function with_systems_and_frequencies(f) {
-    fetch(compute_filename(tag_file("hostnames.json"))).
-        then((response) => response.json()).
+    fetch_data_from_file(tag_file("hostnames.json")).
         then(function (json_data) {
             let systems = json_data.map(x => ({text: x, value: x}))
             let frequencies = [{text: "Daily, by hour", value: "daily"},
@@ -86,8 +92,7 @@ function with_systems_and_frequencies(f) {
 // Load the chart data and invoke f on the resulting table.
 
 function with_chart_data(hostname, frequency, f) {
-    fetch(compute_filename(`${hostname}-${frequency}.json`)).
-        then((response) => response.json()).
+    fetch_data_from_file(`${hostname}-${frequency}.json`).
         then(f)
 }
 
@@ -209,49 +214,52 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime,
         // This is a json object with these fields:
         //  - hostname: FQDN
         //  - description: human-readable text string
-	// The description can contain multiple descriptions separated by "|||"
-	// We merge descriptions that are the same (as this is common).
-	let newdescs = {}
-	for (let x of json_data.system.description.split("|||")) {
-	    if (x in newdescs) {
-		newdescs[x]++
-	    } else {
-		newdescs[x] = 1
-	    }
-	}
-	let xs = [];
-	for (let x in newdescs) {
-	    xs.push([newdescs[x], x])
-	}
-	xs.sort(function (a, b) {
-	    if (a[0] == b[0]) {
-		if (a[1] < b[1]) {
-		    return -1
-		}
-		if (a[1] > b[1]) {
-		    return 1
-		}
-		return 0
-	    }
-	    return b[0] - a[0]
-	})
-	let desc = ""
-	for (let [n, d] of xs) {
-	    if (desc != "") {
-		desc += "\n"
-	    }
-	    desc += n + "x " + d
-	}
+	let desc = reformat_descriptions(json_data.system.description)
         desc_node.innerText = (show_hostname ? json_data.system.hostname + ": " : "") + desc
     }
 
     return my_chart;
 }
 
+// The description can contain multiple descriptions separated by "|||". We merge descriptions that
+// are the same (as this is common).
+function reformat_descriptions(description) {
+    // Map from string description to numeric count
+    let newdescs = {}
+    for (let x of description.split("|||")) {
+	if (x in newdescs) {
+	    newdescs[x]++
+	} else {
+	    newdescs[x] = 1
+	}
+    }
+    let xs = [];
+    for (let x in newdescs) {
+	xs.push([newdescs[x], x])
+    }
+    xs.sort(function (a, b) {
+	if (a[0] == b[0]) {
+	    if (a[1] < b[1]) {
+		return -1
+	    }
+	    if (a[1] > b[1]) {
+		return 1
+	    }
+	    return 0
+	}
+	return b[0] - a[0]
+    })
+    let desc = ""
+    for (let [n, d] of xs) {
+	if (desc != "") {
+	    desc += "\n"
+	}
+	desc += n + "x " + d
+    }
+    return desc
+}
 
-// dd should be a SELECT element
-// vals should be an array of {text, value} objects with string values
-
+// `dd` should be a SELECT element. `vals` should be an array of {text, value} objects with string values.
 function populateDropdown(dd, vals) {
     for ( let { text, value } of vals ) {
         let opt = document.createElement("OPTION")
@@ -263,9 +271,9 @@ function populateDropdown(dd, vals) {
     }
 }
 
-// Returns a promise that will fetch and render data
-
-function render_table(file, fields, parent, cmp, filter) {
+// Create a table from the fields and attach it to the parent.  Return the table and table body
+// elements.
+function make_table(fields, parent) {
     let tbl = document.createElement("table")
     let thead = document.createElement("thead")
     for ( let {name,help} of fields ) {
@@ -282,13 +290,19 @@ function render_table(file, fields, parent, cmp, filter) {
     let tbody = document.createElement("tbody")
     tbl.appendChild(tbody)
     parent.appendChild(tbl)
-    return fetch(compute_filename(file)).
-        then(response => response.json()).
-        then(data => do_render_table(data, fields, tbody, cmp, filter))
+    return [tbl, tbody]
 }
 
-// Returns array of rows.  Each cell is a SPAN inside a TD
-function do_render_table(data, fields, tbody, cmp, filter) {
+// Returns a promise that will fetch and render data in a table, which is made here.
+function render_table_from_file(file, fields, parent, cmp, filter) {
+    let [tbl, tbody] = make_table(fields, parent)
+    return fetch_data_from_file(file).
+        then(data => render_table_from_data(data, fields, tbody, cmp, filter))
+}
+
+// The `data` correspond to the `fields` somehow and are inserted as rows into `tbody`.  Returns
+// array of new TR rows.  Each cell is a SPAN inside a TD.
+function render_table_from_data(data, fields, tbody, cmp, filter) {
     if (cmp != undefined) {
         data.sort(cmp)
     }
@@ -347,3 +361,33 @@ function parse_date(s) {
     }
     return Date.UTC(year, month-1, day, hour, min)
 }
+
+// These work for strings, too
+
+function min(a, b) {
+    return a < b ? a : b
+}
+
+function max(a, b) {
+    return a > b ? a : b
+}
+
+// Fixed-width field
+
+function fix(n, v) {
+    v = String(v)
+    if (v.length >= n) {
+	return v.substring(0,n)
+    }
+    return v + spaces(n-v.length)
+}
+
+var spc = " "
+
+function spaces(n) {
+    while (spc.length < n) {
+	spc = spc + spc
+    }
+    return spc.substring(0, n)
+}
+
