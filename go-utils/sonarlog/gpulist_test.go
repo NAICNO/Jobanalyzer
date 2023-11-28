@@ -1,18 +1,29 @@
-package util
+package sonarlog
 
 import (
 	"testing"
 )
 
 func TestGpuset(t *testing.T) {
-	if JsonGpulist("unknown") != nil {
+	s, err := ParseGpulist("unknown")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s != nil {
 		t.Fatalf("Unknown set")
 	}
-	if len(JsonGpulist("none")) != 0 {
+	s, err = ParseGpulist("none")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s == nil || len(s) != 0 {
 		t.Fatalf("Empty set")
 	}
 	// Duplicate elements are not supported, really
-	s := JsonGpulist("1,3,2,5,0")
+	s, err = ParseGpulist("1,3,2,5,0")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(s) != 5 {
 		t.Fatalf("Length-5 set")
 	}

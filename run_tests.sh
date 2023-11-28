@@ -48,6 +48,9 @@ echo "======================================================================="
 ( cd sysinfo ; go build )
 ( cd sysinfo ; ./sysinfo -h 2&> /dev/null )
 
+# GO-UTIL TESTS
+( cd go-utils ; ./run_tests.sh )
+
 echo "======================================================================="
 echo " SONALYZE REGRESSION TEST, DEFAULT FEATURES"
 echo "======================================================================="

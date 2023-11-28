@@ -13,6 +13,7 @@ import (
 	"sort"
 	"time"
 
+	"go-utils/process"
 	"naicreport/storage"
 	"naicreport/util"
 )
@@ -94,7 +95,7 @@ func Load(progname string, args []string) error {
 
 	// Obtain all the data
 
-	loadOutput, err := util.RunSubprocess(sonalyzePath, loadArguments)
+	loadOutput, err := process.RunSubprocess(sonalyzePath, loadArguments)
 	if err != nil {
 		return err
 	}
@@ -106,7 +107,7 @@ func Load(progname string, args []string) error {
 
 	var downtimeData []*downtimeDataByHost
 	if *downtimePtr {
-		downtimeOutput, err := util.RunSubprocess(sonalyzePath, downtimeArguments)
+		downtimeOutput, err := process.RunSubprocess(sonalyzePath, downtimeArguments)
 		if err != nil {
 			return err
 		}
