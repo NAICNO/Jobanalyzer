@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go-utils/process"
+	"go-utils/sonarlog"
 	"naicreport/storage"
 	"naicreport/util"
 )
@@ -156,7 +157,7 @@ func writePlots(
 	//  quantized already
 
 	// Use the same timestamp for all records
-	now := time.Now().Format(util.DateTimeFormat)
+	now := time.Now().Format(sonarlog.DateTimeFormat)
 
 	for _, hd := range loadData {
 		var basename string
@@ -183,7 +184,7 @@ func writePlots(
 			rgpumemData = make([]float64, 0)
 		}
 		for _, d := range hd.data {
-			labels = append(labels, d.datetime.Format(util.DateTimeFormat))
+			labels = append(labels, d.datetime.Format(sonarlog.DateTimeFormat))
 			rcpuData = append(rcpuData, d.rcpu)
 			rmemData = append(rmemData, d.rmem)
 			if hasGpu {
@@ -329,8 +330,8 @@ func parseDowntimeOutput(output string) ([]*downtimeDataByHost, error) {
 	var innerData = make([]*downtimeDatum, 0)
 	for _, repr := range rawData {
 		// Convert some values
-		start, startErr := time.Parse(util.DateTimeFormat, repr.Start)
-		end, endErr := time.Parse(util.DateTimeFormat, repr.End)
+		start, startErr := time.Parse(sonarlog.DateTimeFormat, repr.Start)
+		end, endErr := time.Parse(sonarlog.DateTimeFormat, repr.End)
 		if startErr != nil || endErr != nil {
 			continue
 		}

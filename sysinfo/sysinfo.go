@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
+
+	"go-utils/process"
 )
 
 func main() {
@@ -134,17 +135,11 @@ func numField(s string) int64 {
 }
 
 func run(command string, arguments ...string) []string {
-	cmd := exec.Command(command, arguments...)
-	var stdout strings.Builder
-	var stderr strings.Builder
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	errs := stderr.String()
-	if err != nil || errs != "" {
+	output, err := process.RunSubprocess(command, arguments)
+	if err != nil {
 		return []string{}
 	}
-	return strings.Split(stdout.String(), "\n")
+	return strings.Split(output, "\n")
 }
 
 func lines(fn string) []string {

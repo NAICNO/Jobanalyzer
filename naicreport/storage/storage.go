@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"naicreport/util"
+	"go-utils/sonarlog"
 )
 
 // Given the (relative) name of a root directory, a start date, a date past the end date, and a glob
@@ -186,7 +186,7 @@ func GetBool(record map[string]string, tag string, success *bool) bool {
 func GetDateTime(record map[string]string, tag string, success *bool) time.Time {
 	s, found := record[tag]
 	*success = *success && found
-	value, err := time.Parse(util.DateTimeFormat, s)
+	value, err := time.Parse(sonarlog.DateTimeFormat, s)
 	*success = *success && err == nil
 	return value
 }

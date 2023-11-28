@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	sonartime "go-utils/time"
 	"naicreport/storage"
 	"naicreport/util"
 )
@@ -162,10 +163,10 @@ func parseJobRecord(r map[string]string) (*testJob, bool) {
 }
 
 func integrateJobRecords(record, probe *testJob) {
-	record.LastSeen = util.MaxTime(record.LastSeen, probe.LastSeen)
-	record.firstSeen = util.MinTime(record.firstSeen, probe.firstSeen)
-	record.start = util.MinTime(record.start, probe.start)
-	record.end = util.MaxTime(record.end, probe.end)
+	record.LastSeen = sonartime.MaxTime(record.LastSeen, probe.LastSeen)
+	record.firstSeen = sonartime.MinTime(record.firstSeen, probe.firstSeen)
+	record.start = sonartime.MinTime(record.start, probe.start)
+	record.end = sonartime.MaxTime(record.end, probe.end)
 }
 
 // These are real cpuhog data, but anonymized and slightly cleaned up to deal with some artifacts

@@ -27,6 +27,8 @@ import (
 	"path"
 	"time"
 
+	"go-utils/sonarlog"
+	sonartime "go-utils/time"
 	"naicreport/joblog"
 	"naicreport/jobstate"
 	"naicreport/storage"
@@ -79,7 +81,7 @@ func Deadweight(progname string, args []string) error {
 
 	var now time.Time
 	if *nowOpt != "" {
-		n, err := time.Parse(*nowOpt, util.DateTimeFormat)
+		n, err := time.Parse(*nowOpt, sonarlog.DateTimeFormat)
 		if err != nil {
 			return fmt.Errorf("Argument to --now could not be parsed: %w", err)
 		}
@@ -132,7 +134,7 @@ func Deadweight(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d new jobs\n", new_jobs)
 	}
 
-	purgeDate := util.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
+	purgeDate := sonartime.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
 	purged := jobstate.PurgeJobsBefore(db, purgeDate)
 	if progOpts.Verbose {
 		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
@@ -210,9 +212,9 @@ func makePerJobReport(jobState *jobstate.JobState) *perJobReport {
 		Id:                jobState.Id,
 		User:              job.user,
 		Cmd:               job.cmd,
-		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(util.DateTimeFormat),
-		FirstViolation:    jobState.FirstViolation.Format(util.DateTimeFormat),
-		LastSeen:          jobState.LastSeen.Format(util.DateTimeFormat),
+		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(sonarlog.DateTimeFormat),
+		FirstViolation:    jobState.FirstViolation.Format(sonarlog.DateTimeFormat),
+		LastSeen:          jobState.LastSeen.Format(sonarlog.DateTimeFormat),
 		jobState:          jobState,
 	}
 }
@@ -258,10 +260,10 @@ type deadweightJob struct {
 }
 
 func integrateDeadweightRecords(record, other *deadweightJob) {
-	record.firstSeen = util.MinTime(record.firstSeen, other.firstSeen)
-	record.LastSeen = util.MaxTime(record.LastSeen, other.LastSeen)
-	record.start = util.MinTime(record.start, other.start)
-	record.end = util.MaxTime(record.end, other.end)
+	record.firstSeen = sonartime.MinTime(record.firstSeen, other.firstSeen)
+	record.LastSeen = sonartime.MaxTime(record.LastSeen, other.LastSeen)
+	record.start = sonartime.MinTime(record.start, other.start)
+	record.end = sonartime.MaxTime(record.end, other.end)
 }
 
 func parseDeadweightRecord(r map[string]string) (*deadweightJob, bool) {

@@ -20,7 +20,7 @@ func JsonInt(s string) int {
 }
 
 func JsonDateTime(s string) time.Time {
-	t, err := time.Parse(DateTimeFormat, s)
+	t, err := time.Parse(sonarlog.DateTimeFormat, s)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to convert JSON value to time, should not happen: %s", s))
 	}
