@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"go-utils/process"
 	"naicreport/jobstate"
 	"naicreport/sonalyze"
 	"naicreport/storage"
@@ -562,7 +563,7 @@ func countDatabaseEntries(stateFilename string) ([]*badJobsByHost, error) {
 
 func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *util.StandardOptions, rawData any) error {
 	arguments = util.AddStandardOptions(arguments, progOpts)
-	sonalyzeOutput, err := util.RunSubprocess(sonalyzePath, arguments)
+	sonalyzeOutput, err := process.RunSubprocess(sonalyzePath, arguments)
 	if err != nil {
 		return err
 	}
