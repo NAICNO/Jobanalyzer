@@ -32,3 +32,15 @@ echo " SYSINFO RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd sysinfo ; go build )
 ( cd sysinfo ; ./sysinfo -h 2&> /dev/null )
+
+echo "======================================================================="
+echo " EXFILTRATE RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd exfiltrate ; go build )
+( cd exfiltrate ; ./exfiltrate -h 2&> /dev/null )
+
+echo "======================================================================="
+echo " INFILTRATE RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd infiltrate ; go build )
+( cd infiltrate ; ./infiltrate -h 2&> /dev/null )

@@ -1,0 +1,1 @@
+v=0.7.0,time=2023-11-15T00:05:03+01:00,host=myhost,cores=56,user=balintl,job=4159295,pid=4159295,cmd=watch,cpu%=0.1,cpukib=1916,gpus=none,gpu%=0,gpumem%=0,gpukib=0,cputime_sec=2663

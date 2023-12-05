@@ -17,6 +17,8 @@
 #   TEST_NAME - the file name of the test being run
 #   SONALYZE - the name of the sonalyze executable, typically a debug build
 #   NAICREPORT - the name of the naicreport executable
+#   INFILTRATE - the name of the infiltrate executable
+#   EXFILTRATE - the name of the exfiltrate executable
 #
 # Each script will do whatever and then pass the name of the test (interpreted in the context of
 # TEST_NAME), the expected output, and the actual output to the CHECK function.  The latter is
@@ -27,12 +29,14 @@
 #
 # The pattern is a regex pattern that must match the name of the test filname.
 
-TEST_DIRECTORIES="sonarlog sonalyze sonard naicreport"
+TEST_DIRECTORIES="sonarlog sonalyze sonard naicreport transport"
 
 export TEST_ROOT=$(pwd)
 export SONALYZE=$TEST_ROOT/../sonalyze/target/debug/sonalyze
 export NAICREPORT=$TEST_ROOT/../naicreport/naicreport
 export SONARD=$TEST_ROOT/../sonard/sonard
+export INFILTRATE=$TEST_ROOT/../infiltrate/infiltrate
+export EXFILTRATE=$TEST_ROOT/../exfiltrate/exfiltrate
 
 pattern="$1"
 hard_failed=0

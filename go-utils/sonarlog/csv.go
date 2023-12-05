@@ -1,6 +1,7 @@
 package sonarlog
 
 import (
+	"bytes"
 	"encoding/csv"
 	"io"
 	"log"
@@ -72,6 +73,8 @@ outerLoop:
 				r.GpuMemPct, err = strconv.ParseFloat(val, 64)
 			case "gpukib":
 				r.GpuKib, err = strconv.ParseUint(val, 10, 64)
+			case "gpufail":
+				r.GpuFail, err = strconv.ParseUint(val, 10, 64)
 			case "cputime_sec":
 				r.CpuTimeSec, err = strconv.ParseUint(val, 10, 64)
 			case "rolledup":
@@ -126,3 +129,49 @@ outerLoop:
 	return
 }
 
+// TODO: Omit fields with default values
+
+func (r *SonarReading) Csvnamed() []byte {
+	var bw bytes.Buffer
+	csvw := csv.NewWriter(&bw)
+	csvw.Write([]string{
+		"v=" + r.Version,
+		"time=" + r.Timestamp,
+		"host=" + r.Host,
+		"cores=" + strconv.FormatUint(r.Cores, 10),
+		"user=" + r.User,
+		"job=" + strconv.FormatUint(r.Job, 10),
+		"pid=" + strconv.FormatUint(r.Pid, 10),
+		"cmd=" + r.Cmd,
+		"cpu%=" + strconv.FormatFloat(r.CpuPct, 'g', -1, 64),
+		"cpukib=" + strconv.FormatUint(r.CpuKib, 10),
+		"gpus=" + r.Gpus,
+		"gpu%=" + strconv.FormatFloat(r.GpuPct, 'g', -1, 64),
+		"gpumem%=" + strconv.FormatFloat(r.GpuMemPct, 'g', -1, 64),
+		"gpukib=" + strconv.FormatUint(r.GpuKib, 10),
+		"gpufail=" + strconv.FormatUint(r.GpuFail, 10),
+		"cputime_sec=" + strconv.FormatUint(r.CpuTimeSec, 10),
+		"rolledup=" + strconv.FormatUint(r.Rolledup, 10),
+	})
+	csvw.Flush()
+	return bw.Bytes()
+}
+
+// TODO: Omit more fields with default values
+
+func (r *SonarHeartbeat) Csvnamed() []byte {
+	var bw bytes.Buffer
+	csvw := csv.NewWriter(&bw)
+	csvw.Write([]string{
+		"v=" + r.Version,
+		"time=" + r.Timestamp,
+		"host=" + r.Host,
+		"cores=0",
+		"user=_sonar_",
+		"job=0",
+		"pid=0",
+		"cmd=_heartbeat_",
+	})
+	csvw.Flush()
+	return bw.Bytes()
+}
