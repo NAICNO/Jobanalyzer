@@ -4,48 +4,54 @@ All clusters have individual setups (for now), owing partly to how the setups ha
 independently and partly to real differences between the clusters.  There are however many
 commonalities, as follows.
 
-## Sonar and sonar data
+## Sonar
 
 We run `sonar` by means of cron on each node in the cluster.  This samples the node every few
-minutes and (currently) stores the sample data in files on a shared disk under the directory
-`$data_dir`.  In this directory there is a subdirectory per year; in each year, one per month; in
-each month, one per day; and in each day, one file per host name.  The file name is
-`<hostname>.csv`.
-
-It is possible for multiple clusters with disjoint host name sets to use the same shared file
-system, as the file naming scheme ensures there will be no name collisions.
+minutes and exfiltrates the sample data to the analysis host (known as "the sonar VM" henceforth) by
+means of the `exfiltrate` program.
 
 The cron script `sonar-runner.cron` in each cluster directory contains a cron setup for the cluster.
 The shell script `sonar.sh` actually runs `sonar` with the appropriate options, which will vary from
 cluster to cluster.
 
-### ML nodes
+### ML nodes (cluster name: mlx.hpc.uio.no)
 
 For the time being, `sonar` is run as user `larstha` and `~larstha/sonar` contains the cron script,
-`sonar.sh` and the `sonar` binary.  The value of `$data_dir` is `~larstha/sonar/data/`.
+`sonar.sh` and the `sonar` and `exfiltrate` binaries.
 
-### Fox
+### Fox (cluster name: fox.educloud.no)
 
 `sonar` is run as the system user `sonar`.  `/cluster/var/sonar/bin` holds the cron script,
-`sonar.sh` and the `sonar` binary.  The value of `$data_dir` is `/cluster/var/sonar/data`.
+`sonar.sh` and the `sonar` and `exfiltrate` binaries.
+
+## The Sonar VM and data storage
+
+On the Sonar VM, data are ingested by means of the `infiltrate` program and stored in a local file
+system under the UID that runs `infiltrate` (currently "ubuntu").
+
+The root for Jobanalyzer is in `~ubuntu/sonar`.  In this directory, the subdirectory `data/` holds
+the ingested data.  There is one directory for each cluster, it is named with the cluster name (eg,
+`data/mlx.hpc.uio.no/` and `data/fox.educloud.no/`).  In each cluster directory there is a
+subdirectory per year; in each year, one per month; in each month, one per day; and in each day, one
+file per host name (the host name may be local to the cluster and not globally unique, this is
+common for HPC systems).  The file name is `<hostname>.csv`.
 
 ## Sonalyze, naicreport, and analysis data
 
-A separate cron job running on a separate host, not necessarily in the cluster but (currently) with
-access to the shared file system, runs a number of analysis jobs.
+Separate cron jobs run on the Sonar VM to perform analyses of the ingested data and upload the files
+to a web server.  These run as the same UID as `infiltrate`, ensuring that files can be shared among
+ingestor and analyzers without being world-readable.
 
 The analysis jobs have some intermediate products and produce some reports.  For this, they need two
-data directories `$state_dir` and `$report_dir`.  Typically these are subdirectories of a common
+data directories `$state_dir` and `$report_dir`.  Typically these are in subdirectories of a common
 directory that also holds executables (`sonalyze` and `naicreport`), shell scripts (many), and
 cluster configuration data (`ml-nodes.json`, `fox.json`, etc).  If this directory does not contain
 the raw log data directory then it may have a symlink to that directory, so that the scripts don't
 need to know where that directory is.
 
 It is necessary for the analysis jobs for separate clusters to use separate state directories, as
-files in the state are not tagged with cluster or host name.
-
-However, the reports are all tagged with cluster or host name, and the report directory can be
-shared if desired.
+files in the state are not tagged with cluster or host name.  The report directories should also be
+separated by cluster.
 
 In this directory there is also a key file (`.pem`) or a link to one; this is used for data
 uploading.  The file `upload-config.sh` contains information about how to upload data to the web
