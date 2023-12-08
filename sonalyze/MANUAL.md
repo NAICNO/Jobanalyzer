@@ -43,6 +43,9 @@ The program operates by phases:
 Input filtering options are shared between the operations.  Aggregation filtering and output options
 are per-operation, as outlined directly below.
 
+Sonalyze can also act as a client toward a server that runs sonalyze on its behalf against a data
+store on a remote host, see "Remote access" further down.
+
 ### Log file computation options
 
 `--data-path=<path>`
@@ -600,3 +603,22 @@ $ sonalyze profile -j <job-number> --fmt=html,cpu --bucket=3 -- my-logfile.csv >
 ```
 
 Bucketing is performed after clamping.
+
+## REMOTE ACCESS
+
+Sometimes the log files are not stored locally but on a remote host to which we cannot log in.  If
+the `sonalyzed` server is running on that host, we can run sonalyze locally and ask it to contact
+that server and run sonalyze against the data stored there.  The server responds to an HTTP `GET`
+request; the local sonalyze constructs and sends that request via curl.
+
+To do so, use the `--remote` argument to provide an http URL for the remote host and the `--cluster`
+argument to name the cluster for which we want data:
+
+```
+$ sonalyze jobs --remote http://some.host.no:8087 --cluster ml -f20w -u- --some-gpu --host ml8
+```
+
+It is additionally possible to use `--auth-file` to specify a file holding the identity information
+of yourself as a `username:password` pair (this is crude but implements HTTP "basic"
+authentication).  In this case, the server must have been told about this identity.  See the server
+manual.

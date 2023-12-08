@@ -101,7 +101,7 @@ pub fn aggregate_and_print_jobs(
     let /*mut*/ jobvec = aggregate_and_filter_jobs(system_config, filter_args, streams, bounds);
 
     if meta_args.verbose {
-        eprintln!(
+        println!(
             "Number of jobs after aggregation filtering: {}",
             jobvec.len()
         );
