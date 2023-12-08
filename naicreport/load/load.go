@@ -1,5 +1,5 @@
-// Generate data for plotting the running load of a cluster.  The data are taken from the live sonar
-// logs, by means of sonalyze.
+// Generate data for plotting the running load of a group of hosts.  The data are taken from the
+// live sonar logs, by means of sonalyze.
 
 package load
 
@@ -30,7 +30,7 @@ func Load(progname string, args []string) error {
 	hourlyPtr := progOpts.Container.Bool("hourly", true, "Bucket data hourly")
 	dailyPtr := progOpts.Container.Bool("daily", false, "Bucket data daily")
 	nonePtr := progOpts.Container.Bool("none", false, "Do not bucket data")
-	clusterPtr := progOpts.Container.String("cluster", "", "Cluster these host name patterns (comma-separated) (requires bucketing, too)")
+	groupPtr := progOpts.Container.String("group", "", "Group these host name patterns (comma-separated) (requires bucketing, too)")
 	downtimePtr := progOpts.Container.Bool("with-downtime", false, "Include downtime data")
 	err := progOpts.Parse(args)
 	if err != nil {
@@ -71,16 +71,16 @@ func Load(progname string, args []string) error {
 		return errors.New("One of --daily, --hourly, or --none is required")
 	}
 
-	if *clusterPtr != "" {
+	if *groupPtr != "" {
 		if bucketing == "none" {
-			return errors.New("Cannot --cluster together with --none")
+			return errors.New("Cannot --group together with --none")
 		}
 		if *downtimePtr {
-			return errors.New("Cannot --cluster together with --with-downtime")
+			return errors.New("Cannot --group together with --with-downtime")
 		}
-		loadArguments = append(loadArguments, "--cluster")
+		loadArguments = append(loadArguments, "--group")
 
-		patterns, err := storage.SplitHostnames(*clusterPtr)
+		patterns, err := storage.SplitHostnames(*groupPtr)
 		if err != nil {
 			return err
 		}
@@ -118,12 +118,12 @@ func Load(progname string, args []string) error {
 		}
 	}
 
-	return writePlots(outputPath, *tagPtr, bucketing, *clusterPtr != "", loadData, downtimeData)
+	return writePlots(outputPath, *tagPtr, bucketing, *groupPtr != "", loadData, downtimeData)
 }
 
 func writePlots(
 	outputPath, tag, bucketing string,
-	clustering bool,
+	grouping bool,
 	loadData []*loadDataBySystem,
 	downtimeData []*downtimeDataByHost,
 ) error {
@@ -147,8 +147,8 @@ func writePlots(
 		System    *perSystem            `json:"system,omitempty"`
 	}
 
-	if clustering && len(loadData) != 1 {
-		return fmt.Errorf("Expected exactly one datum for clustered run, tag=%s", tag)
+	if grouping && len(loadData) != 1 {
+		return fmt.Errorf("Expected exactly one datum for grouped run, tag=%s", tag)
 	}
 
 	// The config for a host may be missing, but this should still work.
@@ -161,7 +161,7 @@ func writePlots(
 
 	for _, hd := range loadData {
 		var basename string
-		if clustering {
+		if grouping {
 			basename = tag + ".json"
 		} else if tag == "" {
 			basename = hd.system.host + ".json"

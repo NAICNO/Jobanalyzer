@@ -37,7 +37,7 @@ $sonar_dir/naicreport load \
                       -tag fox-cpu-weekly \
                       -hourly \
                       -from 7d \
-                      -cluster 'c1-[5-29]' \
+                      -group 'c1-[5-29]' \
                       -output-path $report_dir
 
 $sonar_dir/naicreport load \
@@ -47,7 +47,7 @@ $sonar_dir/naicreport load \
                       -tag fox-gpu-weekly \
                       -hourly \
                       -from 7d \
-                      -cluster 'gpu-[1-9]' \
+                      -group 'gpu-[1-9]' \
                       -output-path $report_dir
 
 $sonar_dir/naicreport load \
@@ -57,5 +57,5 @@ $sonar_dir/naicreport load \
                       -tag fox-int-weekly \
                       -hourly \
                       -from 7d \
-                      -cluster 'int-[1-4]' \
+                      -group 'int-[1-4]' \
                       -output-path $report_dir

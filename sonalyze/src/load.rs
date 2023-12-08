@@ -67,8 +67,8 @@ pub fn aggregate_and_print_load(
         BucketOpt::Hourly // Default
     };
 
-    if filter_args.cluster && bucket_opt == BucketOpt::None {
-        bail!("Clustering across hosts requires first bucketing by time");
+    if filter_args.group && bucket_opt == BucketOpt::None {
+        bail!("Grouping across hosts requires first bucketing by time");
     }
 
     let print_opt = if print_args.last {
@@ -115,12 +115,12 @@ pub fn aggregate_and_print_load(
             collect::<MergedSampleStreams>();
     }
 
-    // If clustering, merge the streams across hosts and compute a system config that represents the
-    // sum of the hosts in the cluster.
+    // If grouping, merge the streams across hosts and compute a system config that represents the
+    // sum of the hosts in the group.
 
     let mut the_conf: sonarlog::System = Default::default();
     let mut merged_conf = None;
-    if filter_args.cluster {
+    if filter_args.group {
         if let Some(ref ht) = system_config {
             for stream in &merged_streams {
                 if let Some(probe) = ht.get(&stream[0].hostname) {

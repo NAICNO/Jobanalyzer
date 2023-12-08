@@ -94,7 +94,7 @@ pub fn print(
     //
     // We apply clamping to all the pertinent fields during the matrix conversion step.
 
-    // `processes` has the event streams for the processes (or cluster of rolled-up processes).
+    // `processes` has the event streams for the processes (or group of rolled-up processes).
     //
     // We want these sorted in the order in which they start being shown, so that there is a natural
     // feel to the list of processes for each timestamp.  Sorting ascending by first timestamp will
