@@ -39,5 +39,5 @@ $sonar_dir/naicreport load \
 		     -tag ml-nvidia-weekly \
 		     -hourly \
 		     -from 7d \
-		     -cluster 'ml[1-3,6-9]' \
+		     -group 'ml[1-3,6-9]' \
 		     -output-path $report_dir

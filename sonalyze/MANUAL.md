@@ -226,17 +226,22 @@ specified filters.
 These are only available with the `load` command.  All filters are optional.  Records must pass all
 specified filters.
 
-`--hourly`
+`--hourly`, `--half-hourly`
 
-  Bucket the records hourly and present averages (the default).  Contrast `--daily` and `--none`.
+  Bucket the records (half)hourly and present averages (the default).  Contrast `--daily` and `--none`.
 
-`--daily`
+`--daily`, `--half-daily`
 
-  Bucket the records daily and present averages.  Contrast `--hourly` and `--none`.
+  Bucket the records (half)daily and present averages.  Contrast `--hourly` and `--none`.
 
 `--none`
 
   Do not bucket the records.  Contrast `--hourly` and `--daily`.
+
+`--group`
+
+  Sum bucketed/averaged data by time step across all the selected hosts, yielding an aggregate for this
+  group/subcluster of hosts.  Requires bucketing other than `--none`.
 
 ### Job printing options
 

@@ -1,4 +1,4 @@
-/// `sonalize` -- Analyze `sonar` log files
+/// `sonalyze` -- Analyze `sonar` log files
 ///
 /// See MANUAL.md for a manual, or run with --help for brief help.
 ///
@@ -243,7 +243,7 @@ pub struct LoadFilterAndAggregationArgs {
 
     /// Sum bucketed/averaged data across all the selected hosts
     #[arg(long)]
-    cluster: bool,
+    group: bool,
 }
 
 #[derive(Args, Debug, Default)]
