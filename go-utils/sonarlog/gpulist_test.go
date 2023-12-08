@@ -28,7 +28,7 @@ func TestGpuset(t *testing.T) {
 		t.Fatalf("Length-5 set")
 	}
 	// Order of elements is unspecified
-	xs := []uint32{0,1,2,3,5}
+	xs := []uint32{0, 1, 2, 3, 5}
 	for _, x := range xs {
 		found := false
 		for _, y := range s {
@@ -42,4 +42,3 @@ func TestGpuset(t *testing.T) {
 		}
 	}
 }
-

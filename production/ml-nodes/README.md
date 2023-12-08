@@ -2,6 +2,18 @@
 
 Be sure to read `../README.md` first.
 
+## Some notes about new setup (not done)
+
+After building, copy `exfiltrate/exfiltrate` to ~/sonar
+
+Set up `.ssh/exfil-auth.txt` with the correct authentication data, obviously not included here.
+
+The runner file is now called `sonar-runner.cron` not `jobanalyzer.cron`.
+
+For the time being (experimental) there are also `sonar-runner-new.cron` and `sonar-new.sh`, the latter
+exfiltrates the data, the runner runs both the scripts
+
+
 ## Files
 
 These are files that are used to drive sonar and the analysis of sonar

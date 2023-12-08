@@ -1,0 +1,1 @@
+v=0.7.0,time=2023-11-15T00:00:03+01:00,host=myhost,cores=56,user=limeng,job=1511785,pid=0,cmd=python,cpu%=675,cpukib=123249780,"gpus=3,1,2,0",gpu%=396,gpumem%=276,gpukib=37986304,cputime_sec=2652658,rolledup=36

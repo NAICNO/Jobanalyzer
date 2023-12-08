@@ -1,0 +1,16 @@
+# Crontab to run on the sonar server.
+
+MAILTO=larstha@uio.no
+
+@reboot $HOME/sonar/start-infiltrate.sh
+
+# UiO ML nodes cluster
+
+2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/mlx.hpc.uio.no/webload-5m-and-upload.sh
+2 0-23/2 * * * $HOME/sonar/mlx.hpc.uio.no/cpuhog.sh
+2 0-23/2 * * * $HOME/sonar/mlx.hpc.uio.no/deadweight.sh
+3 0-23 * * * $HOME/sonar/mlx.hpc.uio.no/webload-1h.sh
+3 0 1-31 * * $HOME/sonar/mlx.hpc.uio.no/webload-24h.sh
+3 0-23/12 * * * $HOME/sonar/mlx.hpc.uio.no/cpuhog-report.sh
+3 0-23/12 * * * $HOME/sonar/mlx.hpc.uio.no/deadweight-report.sh
+4 0-23 * * * $HOME/sonar/mlx.hpc.uio.no/upload-data.sh
