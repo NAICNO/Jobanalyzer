@@ -67,7 +67,7 @@ pub fn print_jobs(
         .reduce(i32::add)
         .unwrap_or(0);
     if meta_args.verbose {
-        eprintln!("Number of jobs after output filtering: {}", numselected);
+        println!("Number of jobs after output filtering: {}", numselected);
     }
 
     // Now print.

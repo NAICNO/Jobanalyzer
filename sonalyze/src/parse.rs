@@ -14,7 +14,7 @@ pub fn print_parsed_data(
     entries: Vec<Box<LogEntry>>,
 ) -> Result<()> {
     if meta_args.verbose {
-        eprintln!("{} source records", entries.len());
+        println!("{} source records", entries.len());
         return Ok(());
     }
 

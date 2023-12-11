@@ -73,6 +73,7 @@ See `production/README.md` for instructions about how to set everything up.
 * `presentations/` - Slides for various presentations given
 * `production/` - All sorts of files and scripts for running Sonar and Jobanalyzer in production
 * `sonalyze/` - Rust source code for a program that queries the Sonar data
+* `sonalyzed/` - Go source code for a simple HTTP server that runs Sonalyze on behalf of a remote client
 * `sonard/` - Go source code for a utility that runs Sonar in the background with custom settings
 * `sonarlog/` - Rust source code for a library that reads and cleans up Sonar data, used by `sonalyze/`
 * `sysinfo/` - Go source code for a utility that extracts the system configuration of the host

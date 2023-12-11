@@ -19,7 +19,7 @@ pub fn print(
     mut bounds: Timebounds,
 ) -> Result<()> {
     if meta_args.verbose {
-        eprintln!("{} source records", bounds.len());
+        println!("{} source records", bounds.len());
         return Ok(());
     }
 

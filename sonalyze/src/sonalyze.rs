@@ -20,6 +20,7 @@
 /// interval) then the entire job should be displayed, including data about it outside the interval.
 /// Ditto, that if a job ran on a selected host then its work on all hosts should be displayed.  But
 /// it just ain't so.
+mod command;
 mod format;
 mod jobs;
 mod load;
@@ -29,18 +30,106 @@ mod prjobs;
 mod profile;
 mod uptime;
 
+use crate::command::run_with_timeout;
+
 use anyhow::{bail, Result};
 use chrono::{Datelike, NaiveDate};
 use clap::{Args, Parser, Subcommand};
 use sonarlog::{self, HostFilter, LogEntry, Timestamp};
 use std::collections::HashSet;
 use std::env;
-use std::io::{self, Write};
+use std::fs::File;
+use std::io::{self, Read, Write};
 use std::num::ParseIntError;
 use std::ops::Add;
+use std::path;
 use std::process;
 use std::str::FromStr;
 use std::time;
+use urlencoding::encode;
+
+// This must equal `magicBoolean` in the sonalyzed sources.
+const MAGIC_BOOLEAN: &str = "xxxxxtruexxxxx";
+
+// UrlBuilder is used to reify relevant command line arguments as URL parameters.  We need this for
+// remote queries.
+
+struct UrlBuilder {
+    options: String
+}
+
+impl UrlBuilder {
+    fn new() -> UrlBuilder {
+        UrlBuilder { options: "".to_string() }
+    }
+
+    fn add_option_date(&mut self, name: &str, t: &Option<Timestamp>) {
+        if let Some(ref t) = t {
+            self.add_string(name, &t.format("%Y-%m-%d").to_string());
+        }
+    }
+
+    fn add_option_duration(&mut self, name: &str, t: &Option<chrono::Duration>) {
+        if let Some(ref t) = t {
+            // The format is WwDdHhMm but let's skip the week part
+            let mut mins = t.num_minutes();
+            let minutes = mins % 60;
+            mins /= 60;
+            let hours = mins % 24;
+            mins /= 24;
+            let days = mins;
+            self.add_string(name, &format!("{days}d{hours}h{minutes}m"))
+        }
+    }
+
+    fn add_bool(&mut self, name: &str, b: bool) {
+        if b {
+            self.add_string(name, MAGIC_BOOLEAN);
+        }
+    }
+
+    fn add_string(&mut self, name: &str, val: &str) {
+        if !self.options.is_empty() {
+            self.options += "&";
+        }
+        self.options += name;
+        self.options += "=";
+        self.options += &encode(val).into_owned();
+    }
+
+    fn add_option_usize(&mut self, name: &str, val: &Option<usize>) {
+        if let Some(val) = val {
+            self.add_usize(name, *val);
+        }
+    }
+
+    fn add_usize(&mut self, name: &str, val: usize) {
+        self.add_string(name, &val.to_string());
+    }
+
+    fn add_defaulted_usize(&mut self, name: &str, val: usize, def: usize) {
+        if val != def {
+            self.add_usize(name, val);
+        }
+    }
+
+    fn add_option_f64(&mut self, name: &str, val: &Option<f64>) {
+        if let Some(ref val) = val {
+            self.add_string(name, &val.to_string());
+        }
+    }
+
+    fn add_option_string(&mut self, name: &str, val: &Option<String>) {
+        if let Some(ref val) = val {
+            self.add_string(name, &val);
+        }
+    }
+
+    fn encoded_arguments(&self) -> String {
+        return self.options.to_string()
+    }
+}
+
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -170,6 +259,18 @@ pub struct SourceArgs {
     #[arg(long)]
     data_path: Option<String>,
 
+    /// Select a remote host to serve the query [default: none].  Requires --cluster.
+    #[arg(long)]
+    remote: Option<String>,
+
+    /// Select the cluster for which we want data [default: none].  For use with --remote.
+    #[arg(long)]
+    cluster: Option<String>,
+
+    /// Provide a file with username:password [default: none].  For use with --remote.
+    #[arg(long)]
+    auth_file: Option<String>,
+
     /// Select records by this time and later.  Format can be YYYY-MM-DD, or Nd or Nw
     /// signifying N days or weeks ago [default: 1d, ie 1 day ago]
     #[arg(long, short, value_parser = parse_time_start_of_day)]
@@ -183,6 +284,13 @@ pub struct SourceArgs {
     /// Log file names (overrides --data-path)
     #[arg(last = true)]
     logfiles: Vec<String>,
+}
+
+impl UrlBuilder {
+    fn add_source_args(&mut self, a: &SourceArgs) {
+        self.add_option_date("from", &a.from);
+        self.add_option_date("to", &a.to);
+    }
 }
 
 #[derive(Args, Debug)]
@@ -210,6 +318,29 @@ pub struct RecordFilterArgs {
     /// Select records for this job (repeatable) [default: all]
     #[arg(long, short)]
     job: Vec<String>,
+}
+
+impl UrlBuilder {
+    fn add_record_filter_args(&mut self, a: &RecordFilterArgs) {
+        for host in &a.host {
+            self.add_string("host", host);
+        }
+        for user in &a.user {
+            self.add_string("user", user);
+        }
+        for user in &a.exclude_user {
+            self.add_string("exclude-user", user);
+        }
+        for command in &a.command {
+            self.add_string("command", command);
+        }
+        for command in &a.exclude_command {
+            self.add_string("exclude-command", command);
+        }
+        for job in &a.job {
+            self.add_string("job", job);
+        }
+    }
 }
 
 #[derive(Args, Debug)]
@@ -246,6 +377,19 @@ pub struct LoadFilterAndAggregationArgs {
     group: bool,
 }
 
+impl UrlBuilder {
+    fn add_load_filter_and_aggregation_args(&mut self, a: &LoadFilterAndAggregationArgs) {
+        self.add_bool("hourly", a.hourly);
+        self.add_bool("half-hourly", a.half_hourly);
+        self.add_bool("daily", a.daily);
+        self.add_bool("half-daily", a.half_daily);
+        self.add_bool("none", a.none);
+        self.add_bool("group", a.group);
+    }
+}
+
+const BIG_VALUE: usize = 100000000;
+
 #[derive(Args, Debug, Default)]
 pub struct JobFilterAndAggregationArgs {
     /// Select only jobs with at least this many samples [default: 2]
@@ -261,11 +405,11 @@ pub struct JobFilterAndAggregationArgs {
     min_cpu_peak: usize,
 
     /// Select only jobs with at most this much average CPU use (100=1 full CPU)
-    #[arg(long, default_value_t = 100000000)]
+    #[arg(long, default_value_t = BIG_VALUE)]
     max_cpu_avg: usize,
 
     /// Select only jobs with at most this much peak CPU use (100=1 full CPU)
-    #[arg(long, default_value_t = 100000000)]
+    #[arg(long, default_value_t = BIG_VALUE)]
     max_cpu_peak: usize,
 
     /// Select only jobs with at least this much relative average CPU use (100=all cpus)
@@ -309,11 +453,11 @@ pub struct JobFilterAndAggregationArgs {
     min_gpu_peak: usize,
 
     /// Select only jobs with at most this much average GPU use (100=1 full GPU card)
-    #[arg(long, default_value_t = 100000000)]
+    #[arg(long, default_value_t = BIG_VALUE)]
     max_gpu_avg: usize,
 
     /// Select only jobs with at most this much peak GPU use (100=1 full GPU card)
-    #[arg(long, default_value_t = 100000000)]
+    #[arg(long, default_value_t = BIG_VALUE)]
     max_gpu_peak: usize,
 
     /// Select only jobs with at least this much relative average GPU use (100=all cards)
@@ -377,6 +521,45 @@ pub struct JobFilterAndAggregationArgs {
     batch: bool,
 }
 
+impl UrlBuilder {
+    // It's annoying to repeat the "0" and the "100" default values, but they can't be otherwise, so
+    // it's not really a maintenance problem.
+    fn add_job_filter_and_aggregation_args(&mut self, a: &JobFilterAndAggregationArgs) {
+        self.add_option_usize("min-samples", &a.min_samples);
+        self.add_defaulted_usize("min-cpu-avg", a.min_cpu_avg, 0);
+        self.add_defaulted_usize("min-cpu-peak", a.min_cpu_peak, 0);
+        self.add_defaulted_usize("max-cpu-avg", a.max_cpu_avg, BIG_VALUE);
+        self.add_defaulted_usize("max-cpu-peak", a.max_cpu_peak, BIG_VALUE);
+        self.add_defaulted_usize("min-rcpu-avg", a.min_rcpu_avg, 0);
+        self.add_defaulted_usize("min-rcpu-peak", a.min_rcpu_peak, 0);
+        self.add_defaulted_usize("max-rcpu-avg", a.max_rcpu_avg, 100);
+        self.add_defaulted_usize("max-rcpu-peak", a.max_rcpu_peak, 100);
+        self.add_defaulted_usize("min-mem-avg", a.min_mem_avg, 0);
+        self.add_defaulted_usize("min-mem-peak", a.min_mem_peak, 0);
+        self.add_defaulted_usize("min-rmem-avg", a.min_rmem_avg, 0);
+        self.add_defaulted_usize("min-rmem-peak", a.min_rmem_peak, 0);
+        self.add_defaulted_usize("min-gpu-avg", a.min_gpu_avg, 0);
+        self.add_defaulted_usize("min-gpu-peak", a.min_gpu_peak, 0);
+        self.add_defaulted_usize("max-gpu-avg", a.max_gpu_avg, BIG_VALUE);
+        self.add_defaulted_usize("max-gpu-peak", a.max_gpu_peak, BIG_VALUE);
+        self.add_defaulted_usize("min-rgpu-avg", a.min_rgpu_avg, 0);
+        self.add_defaulted_usize("min-rgpu-peak", a.min_rgpu_peak, 0);
+        self.add_defaulted_usize("max-rgpu-avg", a.max_rgpu_avg, 100);
+        self.add_defaulted_usize("max-rgpu-peak", a.max_rgpu_peak, 100);
+        self.add_defaulted_usize("min-gpumem-avg", a.min_gpumem_avg, 0);
+        self.add_defaulted_usize("min-gpumem-peak", a.min_gpumem_peak, 0);
+        self.add_defaulted_usize("min-rgpumem-avg", a.min_rgpumem_avg, 0);
+        self.add_defaulted_usize("min-rgpumem-peak", a.min_rgpumem_peak, 0);
+        self.add_option_duration("min-runtime", &a.min_runtime);
+        self.add_bool("no-gpu", a.no_gpu);
+        self.add_bool("some-gpu", a.some_gpu);
+        self.add_bool("completed", a.completed);
+        self.add_bool("running", a.running);
+        self.add_bool("zombie", a.zombie);
+        self.add_bool("batch", a.batch);
+    }
+}
+
 #[derive(Args, Debug)]
 pub struct ProfileFilterAndAggregationArgs {
     /// Clamp values to this (helps deal with noise)
@@ -386,6 +569,13 @@ pub struct ProfileFilterAndAggregationArgs {
     /// Bucket these many consecutive elements (helps reduce noise)
     #[arg(long)]
     bucket: Option<usize>,
+}
+
+impl UrlBuilder {
+    fn add_profile_filter_and_aggregation_args(&mut self, a: &ProfileFilterAndAggregationArgs) {
+        self.add_option_f64("max", &a.max);
+        self.add_option_usize("bucket", &a.bucket);
+    }
 }
 
 #[derive(Args, Debug)]
@@ -407,6 +597,15 @@ pub struct LoadPrintArgs {
     compact: bool,
 }
 
+impl UrlBuilder {
+    fn add_load_print_args(&mut self, a: &LoadPrintArgs) {
+        self.add_bool("all", a.all);
+        self.add_bool("last", a.last);
+        self.add_option_string("fmt", &a.fmt);
+        self.add_bool("compact", a.compact);
+    }
+}
+
 #[derive(Args, Debug, Default)]
 pub struct JobPrintArgs {
     /* BREAKDOWN
@@ -422,6 +621,13 @@ pub struct JobPrintArgs {
     /// Select fields and format for the output [default: try --fmt=help]
     #[arg(long)]
     fmt: Option<String>,
+}
+
+impl UrlBuilder {
+    fn add_job_print_args(&mut self, a: &JobPrintArgs) {
+        self.add_option_usize("numjobs", &a.numjobs);
+        self.add_option_string("fmt", &a.fmt);
+    }
 }
 
 #[derive(Args, Debug)]
@@ -443,11 +649,26 @@ pub struct UptimePrintArgs {
     fmt: Option<String>,
 }
 
+impl UrlBuilder {
+    fn add_uptime_print_args(&mut self, a: &UptimePrintArgs) {
+        self.add_usize("interval", a.interval);
+        self.add_bool("only-up", a.only_up);
+        self.add_bool("only-down", a.only_down);
+        self.add_option_string("fmt", &a.fmt);
+    }
+}
+
 #[derive(Args, Debug)]
 pub struct ProfilePrintArgs {
     /// Select fields and format for the output [default: try --fmt=help]
     #[arg(long)]
     fmt: Option<String>,
+}
+
+impl UrlBuilder {
+    fn add_profile_print_args(&mut self, a: &ProfilePrintArgs) {
+        self.add_option_string("fmt", &a.fmt);
+    }
 }
 
 #[derive(Args, Debug, Default)]
@@ -469,6 +690,15 @@ pub struct ParsePrintArgs {
     fmt: Option<String>,
 }
 
+impl UrlBuilder {
+    fn add_parse_print_args(&mut self, a: &ParsePrintArgs) {
+        self.add_bool("merge-by-host-and-job", a.merge_by_host_and_job);
+        self.add_bool("merge-by-job", a.merge_by_job);
+        self.add_bool("clean", a.clean);
+        self.add_option_string("fmt", &a.fmt);
+    }
+}
+
 #[derive(Args, Debug, Default)]
 pub struct MetaArgs {
     /// Print useful statistics about the input to stderr, then terminate
@@ -478,6 +708,13 @@ pub struct MetaArgs {
     /// Print unformatted and/or debug-formatted data (for developers)
     #[arg(long, default_value_t = false)]
     raw: bool,
+}
+
+impl UrlBuilder {
+    fn add_meta_args(&mut self, a: &MetaArgs) {
+        self.add_bool("verbose", a.verbose);
+        self.add_bool("raw", a.raw);
+    }
 }
 
 // The command arg parsers don't need to include the string being parsed because the error generated
@@ -681,12 +918,6 @@ fn sonalyze() -> Result<()> {
         return Ok(());
     }
 
-    if let Commands::Profile(ref profile_args) = cli.command {
-        if profile_args.record_filter_args.job.len() != 1 {
-            bail!("Exactly one job number is required by `profile`")
-        }
-    }
-
     let meta_args = match cli.command {
         Commands::Jobs(ref jobs_args) => &jobs_args.meta_args,
         Commands::Load(ref load_args) => &load_args.meta_args,
@@ -697,6 +928,151 @@ fn sonalyze() -> Result<()> {
             &parse_args.meta_args
         }
     };
+
+    // When remoting we build a URL from all the options and then just pass it to curl.
+
+    let (remote_arg, cluster_arg, data_path_arg) =
+        match cli.command {
+            Commands::Version => {
+                panic!("Should not happen")
+            }
+            Commands::Jobs(ref args) => {
+                (&args.source_args.remote, &args.source_args.cluster, &args.source_args.data_path)
+            }
+            Commands::Load(ref args) => {
+                (&args.source_args.remote, &args.source_args.cluster, &args.source_args.data_path)
+            }
+            Commands::Uptime(ref args) => {
+                (&args.source_args.remote, &args.source_args.cluster, &args.source_args.data_path)
+            }
+            Commands::Profile(ref args) => {
+                (&args.source_args.remote, &args.source_args.cluster, &args.source_args.data_path)
+            }
+            Commands::Parse(ref args) | Commands::Metadata(ref args) => {
+                (&args.source_args.remote, &args.source_args.cluster, &args.source_args.data_path)
+            }
+        };
+    let remoting =
+        if remote_arg.is_some() || cluster_arg.is_some() {
+            // TODO: Probably, --cluster *does* make sense with --data-path, and will be convenient,
+            // when we run sonalyze from the command line on the server.
+            if data_path_arg.is_some() {
+                bail!("--data-path may not be used with --remote or --cluster")
+            }
+            if remote_arg.is_some() != cluster_arg.is_some() {
+                bail!("--remote and --cluster must be used together")
+            }
+            // TODO: Can check the syntax of the URL, but can also let curl do that for us.
+            true
+        } else {
+            false
+        };
+    if remoting {
+        let mut b = UrlBuilder::new();
+        let mut request = remote_arg.as_ref().unwrap().to_string();
+        let auth_file;
+        b.add_string("cluster", &cluster_arg.as_ref().unwrap());
+        match cli.command {
+            Commands::Jobs(ref args) => {
+                request += "/jobs";
+                auth_file = args.source_args.auth_file.clone();
+                b.add_source_args(&args.source_args);
+                b.add_record_filter_args(&args.record_filter_args);
+                b.add_job_filter_and_aggregation_args(&args.filter_args);
+                b.add_job_print_args(&args.print_args);
+                b.add_meta_args(&args.meta_args);
+            }
+            Commands::Load(ref args) => {
+                request += "/load";
+                auth_file = args.source_args.auth_file.clone();
+                b.add_source_args(&args.source_args);
+                b.add_record_filter_args(&args.record_filter_args);
+                b.add_load_filter_and_aggregation_args(&args.filter_args);
+                b.add_load_print_args(&args.print_args);
+                b.add_meta_args(&args.meta_args);
+            }
+            Commands::Uptime(ref args) => {
+                request += "/uptime";
+                auth_file = args.source_args.auth_file.clone();
+                b.add_source_args(&args.source_args);
+                b.add_record_filter_args(&args.record_filter_args);
+                b.add_uptime_print_args(&args.print_args);
+                b.add_meta_args(&args.meta_args);
+            }
+            Commands::Profile(ref args) => {
+                request += "/profile";
+                auth_file = args.source_args.auth_file.clone();
+                b.add_source_args(&args.source_args);
+                b.add_record_filter_args(&args.record_filter_args);
+                b.add_profile_filter_and_aggregation_args(&args.filter_args);
+                b.add_profile_print_args(&args.print_args);
+                b.add_meta_args(&args.meta_args);
+            }
+            Commands::Parse(ref args) | Commands::Metadata(ref args) => {
+                request += "/parse";
+                auth_file = args.source_args.auth_file.clone();
+                b.add_source_args(&args.source_args);
+                b.add_record_filter_args(&args.record_filter_args);
+                b.add_parse_print_args(&args.print_args);
+                b.add_meta_args(&args.meta_args);
+            }
+            Commands::Version => {
+                panic!("Should not happen")
+            }
+        }
+        request += "?";
+        request += &b.encoded_arguments();
+        let mut buf = "".to_string();
+        let username: &str;
+        let password: &str;
+        if let Some(filename) = auth_file {
+            let mut file = File::open(path::Path::new(&filename))?;
+            match file.read_to_string(&mut buf) {
+                Err(e) => {
+                    bail!("Failed to read auth file: {:?}", e);
+                }
+                Ok(_) => {
+                    let xs = buf.trim().split(':').collect::<Vec<&str>>();
+                    if xs.len() != 2 {
+                        bail!("Invalid auth file syntax")
+                    }
+                    username = xs[0];
+                    password = xs[1];
+                }
+            }
+        } else {
+            username = "";
+            password = "";
+        }
+
+        // TODO: Using -u is sort of broken as the name/passwd will be in clear text on the command
+        // line and visible by `ps`.  Better might be to use --netrc-file, but then we have to
+        // generate this file carefully for each invocation, also a sensitive issue, and there would
+        // have to be a host name.
+
+        let mut command = format!("curl -s --get '{request}'");
+        if username != "" {
+            command += &format!(" -u {username}:{password}");
+        }
+        if meta_args.verbose {
+            println!("Executing {command}");
+        }
+        match run_with_timeout(&command, 60) {
+            Ok(s) => {
+                println!("{s}");
+                return Ok(());
+            }
+            Err(e) => {
+                bail!("{e}")
+            }
+        }
+    }
+
+    if let Commands::Profile(ref profile_args) = cli.command {
+        if profile_args.record_filter_args.job.len() != 1 {
+            bail!("Exactly one job number is required by `profile`")
+        }
+    }
 
     let (
         include_hosts,
@@ -919,7 +1295,7 @@ fn sonalyze() -> Result<()> {
             source_args.logfiles.clone()
         } else {
             if meta_args.verbose {
-                eprintln!("Data path: {:?}", data_path);
+                println!("Data path: {:?}", data_path);
             }
             if data_path.is_none() {
                 bail!("No data path");
@@ -933,7 +1309,7 @@ fn sonalyze() -> Result<()> {
         };
 
         if meta_args.verbose {
-            eprintln!("Log files: {:?}", logfiles);
+            println!("Log files: {:?}", logfiles);
         }
 
         (from, have_from, to, have_to, logfiles)
@@ -982,9 +1358,9 @@ fn sonalyze() -> Result<()> {
     };
 
     if meta_args.verbose {
-        eprintln!("Number of records discarded: {discarded}");
-        eprintln!("From: {:?}", from);
-        eprintln!("To: {:?}", to);
+        println!("Number of records discarded: {discarded}");
+        println!("From: {:?}", from);
+        println!("To: {:?}", to);
     }
 
     match cli.command {
@@ -1010,14 +1386,14 @@ fn sonalyze() -> Result<()> {
                 ),
                 Commands::Jobs(ref job_args) => {
                     if meta_args.verbose {
-                        eprintln!("Number of samples read: {records_read}");
+                        println!("Number of samples read: {records_read}");
                         let numrec = streams
                             .iter()
                             .map(|(_, recs)| recs.len())
                             .reduce(usize::add)
                             .unwrap_or_default();
-                        eprintln!("Number of samples after input filtering: {}", numrec);
-                        eprintln!("Number of streams after input filtering: {}", streams.len());
+                        println!("Number of samples after input filtering: {}", numrec);
+                        println!("Number of streams after input filtering: {}", streams.len());
                     }
                     jobs::aggregate_and_print_jobs(
                         &mut io::stdout(),

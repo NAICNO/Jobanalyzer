@@ -37,7 +37,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log/syslog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -47,6 +46,7 @@ import (
 
 	"go-utils/auth"
 	"go-utils/sonarlog"
+	"go-utils/status"
 )
 
 const (
@@ -61,17 +61,24 @@ var verbose bool
 var programFailed = false
 
 func main() {
-	startLogger()
+	status.Start(logTag)
 	port, dataPath, authFile := commandLine()
+
+	// TODO: Use a password file here, not a single identity, see sonalyzed for an example.
+
 	var err error
 	var authUser, authPass string
 	if authFile != "" {
 		authUser, authPass, err = auth.ParseAuth(authFile)
 		if err != nil {
-			fatal(fmt.Sprintf("Failed to read authentication file: %v\n", err))
+			status.Fatal(fmt.Sprintf("Failed to read authentication file: %v\n", err))
 		}
 	}
 	go runWriter()
+
+	// TODO: We have shared abstractions for the HTTP server and the signal handling, now.  See
+	// sonalyzed for examples.
+
 	go runServer(port, dataPath, authUser, authPass)
 	// Hang until SIGHUP or SIGTERM, then shut down orderly.
 	stopSignal := make(chan os.Signal, 1)
@@ -108,18 +115,18 @@ func runServer(port int, dataPath, authUser, authPass string) {
 			}),
 	)
 	if verbose {
-		logInfo(fmt.Sprintf("Listening on port %d", port))
+		status.Info(fmt.Sprintf("Listening on port %d", port))
 	}
 	server = &http.Server{Addr: fmt.Sprintf(":%d", port)}
 	err := server.ListenAndServe()
 	if err != nil {
 		if err != http.ErrServerClosed {
-			logError(err.Error())
-			logError("SERVER NOT RUNNING")
+			status.Error(err.Error())
+			status.Error("SERVER NOT RUNNING")
 			// TODO: This is ugly, though legal
 			programFailed = true
 		} else {
-			logInfo(err.Error())
+			status.Info(err.Error())
 		}
 	}
 	serverStopChannel <- true
@@ -129,7 +136,7 @@ func stopServer() {
 	ctx, cancel := context.WithTimeout(context.Background(), serverShutdownTimeoutSec*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		logWarning(err.Error())
+		status.Warning(err.Error())
 	}
 	<-serverStopChannel
 }
@@ -142,12 +149,12 @@ func commandLine() (port int, dataPath, authFile string) {
 	flag.Parse()
 
 	if dataPath == "" {
-		fatal("Required argument: -data-path")
+		status.Fatal("Required argument: -data-path")
 	}
 	dataPath = path.Clean(dataPath)
 	info, err := os.DirFS(dataPath).(fs.StatFS).Stat(".")
 	if err != nil || !info.IsDir() {
-		fatal(fmt.Sprintf("Bad -data-path directory %s", dataPath))
+		status.Fatal(fmt.Sprintf("Bad -data-path directory %s", dataPath))
 	}
 
 	return
@@ -159,7 +166,7 @@ func incomingData(
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if verbose {
-			logInfo(fmt.Sprintf("Request from %s: %v", r.RemoteAddr, r.Header))
+			status.Info(fmt.Sprintf("Request from %s: %v", r.RemoteAddr, r.Header))
 		}
 
 		// Error logging during the preparatory steps -- until we know we have a full request that
@@ -176,7 +183,7 @@ func incomingData(
 			w.WriteHeader(403)
 			fmt.Fprintf(w, "Bad method")
 			if verbose {
-				logWarning(fmt.Sprintf("Bad method: %s", r.Method))
+				status.Warning(fmt.Sprintf("Bad method: %s", r.Method))
 			}
 			return
 		}
@@ -190,7 +197,7 @@ func incomingData(
 				contentType = ct[0]
 			}
 			if verbose {
-				logWarning(fmt.Sprintf("Bad content-type %s", contentType))
+				status.Warning(fmt.Sprintf("Bad content-type %s", contentType))
 			}
 			return
 		}
@@ -201,7 +208,7 @@ func incomingData(
 			w.WriteHeader(401)
 			fmt.Fprintf(w, "Unauthorized")
 			if verbose {
-				logWarning("Authorization failed")
+				status.Warning("Authorization failed")
 			}
 			return
 		}
@@ -214,7 +221,7 @@ func incomingData(
 				w.WriteHeader(400)
 				fmt.Fprintf(w, "Bad content")
 				if verbose {
-					logWarning("Bad content - can't read the body")
+					status.Warning("Bad content - can't read the body")
 				}
 				return
 			}
@@ -228,7 +235,7 @@ func incomingData(
 			w.WriteHeader(code)
 			fmt.Fprintf(w, msg)
 			if verbose {
-				logInfo(logmsg)
+				status.Info(logmsg)
 			}
 		}
 	}
@@ -301,7 +308,7 @@ func writeRecord(dataPath, cluster, host, timestamp string, payload []byte) {
 	tval, err := time.Parse(time.RFC3339, timestamp)
 	if err != nil {
 		if verbose {
-			logWarning(fmt.Sprintf("Bad timestamp %s, dropping record", timestamp))
+			status.Warning(fmt.Sprintf("Bad timestamp %s, dropping record", timestamp))
 		}
 	}
 	dirname := fmt.Sprintf("%s/%04d/%02d/%02d", cluster, tval.Year(), tval.Month(), tval.Day())
@@ -362,7 +369,7 @@ func runWriter() {
 				// Anyway, if we get here with a partial data write it's going to be something more
 				// serious than EINTR, such as a disk full.  Trying to recover is probably not worth
 				// our time.  Just log the failure and hope somebody sees it.
-				logError(fmt.Sprintf("Write error on log (%v), %d bytes written of %d", err, n, len(r.payload)))
+				status.Error(fmt.Sprintf("Write error on log (%v), %d bytes written of %d", err, n, len(r.payload)))
 			}
 		}
 	}
@@ -372,7 +379,7 @@ func runWriter() {
 func maybeRetry(r *dataRecord, msg string) {
 	if r.attempts < maxAttempts {
 		if verbose {
-			logInfo(msg + ", retrying later")
+			status.Info(msg + ", retrying later")
 		}
 		go func() {
 			// Obviously some kind of backoff is possible, but do we care?
@@ -380,48 +387,6 @@ func maybeRetry(r *dataRecord, msg string) {
 			dataChannel <- r
 		}()
 	} else {
-		logWarning(msg + ", too many retries, abandoning")
-	}
-}
-
-func fatal(msg string) {
-	logCritical(msg)
-	fmt.Fprintf(os.Stderr, "FATAL: %s\n", msg)
-	os.Exit(1)
-}
-
-var logger *syslog.Writer
-
-func startLogger() {
-	var err error
-	// The "","" address connects us to the Unix syslog daemon.  The priority (INFO) is a
-	// placeholder, it will be overridden by all the logger functions below.
-	logger, err = syslog.Dial("", "", syslog.LOG_INFO|syslog.LOG_USER, logTag)
-    if err != nil {
-		fatal(err.Error())
-    }
-}
-
-func logCritical(msg string) {
-	if logger != nil {
-		logger.Crit(msg)
-	}
-}
-
-func logError(msg string) {
-	if logger != nil {
-		logger.Err(msg)
-	}
-}
-
-func logWarning(msg string) {
-	if logger != nil {
-		logger.Warning(msg)
-	}
-}
-
-func logInfo(msg string) {
-	if logger != nil {
-		logger.Info(msg)
+		status.Warning(msg + ", too many retries, abandoning")
 	}
 }

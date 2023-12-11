@@ -44,3 +44,9 @@ echo " INFILTRATE RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd infiltrate ; go build )
 ( cd infiltrate ; ./infiltrate -h 2&> /dev/null )
+
+echo "======================================================================="
+echo " SONALYZED RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd sonalyzed ; go build )
+( cd sonalyzed ; ./sonalyzed -h 2&> /dev/null )
