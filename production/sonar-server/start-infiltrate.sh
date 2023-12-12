@@ -9,7 +9,7 @@ auth_dir=$HOME/.ssh
 
 mkdir -p $data_dir
 
-pidfile=$sonar_dir/infiltrate_pid
+pidfile=$sonar_dir/infiltrate.pid
 rm -f $pidfile
 $sonar_dir/infiltrate -data-path $data_dir -port 8086 -auth-file $auth_dir/exfil-auth.txt &
 infiltrate_pid=$!

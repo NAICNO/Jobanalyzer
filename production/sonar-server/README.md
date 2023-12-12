@@ -6,7 +6,10 @@ This file normally lives in $JOBANALYZER/production/sonar-server/README.md.
 
 Let $JOBANALYZER be the Jobanalyzer root directory.
 
-First build and test the executables:
+### Step 1: Build
+
+First build and test the executables, as follows.  Remember, you may first need to `module load` Go
+1.20 or later and Rust 1.65 or later, or otherwise obtain those tools.
 
 ```
   cd $JOBANALYZER
@@ -14,27 +17,48 @@ First build and test the executables:
   ./build.sh
 ```
 
-You may need to install tools if this fails along the way.  It's important to run `build.sh` last as
-the test builds may be created with unusual options.
+It's important to run `build.sh` last as the test builds may be created with unusual options.
 
-Create working directories if necessary and copy files.  The working directory is always
+### Step 2: Setup
+
+Create working directories if necessary and copy files, as follows.  The working directory is always
 `$HOME/sonar`, if you want something else you need to edit a bunch of scripts.
 
 ```
   cd $JOBANALYZER
   mkdir -p ~/sonar/data
   cp infiltrate/infiltrate ~/sonar
-  cp production/sonar-server/start-infiltrate.sh ~/sonar
-  cp production/sonar-server/sonar-server.cron ~/sonar
-  cp production/sonar-server/README.md ~/sonar
+  cp sonalyzed/sonalyzed ~/sonar
+  cp naicreport/naicreport ~/sonar
+  cp sonalyze/target/release/sonalyze ~/sonar
+  cp production/sonar-server/*.sh ~/sonar
+  cp production/sonar-server/*.cron ~/sonar
+  cp production/sonar-server/POINTER.md ~/sonar
+  cp -r production/sonar-server/scripts ~/sonar
 ```
 
-Set up the crontab and start the data logger:
+If ~/sonar/scripts does not have a subdirectory for your cluster, you will need to create one.  See
+"Adding a new cluster" below.
+
+Now set up the upload identity (really we don't want to have to do this).  NOTE: When this step
+disappears there will be other steps here to "do something" with the web server report directory,
+but those will be easier.
+
+```
+  ln ~/.ssh/ubuntu-vm.pem .
+```
+
+IMPORTANT: Now edit upload-config.sh to your liking.
+
+### Step 3: Activate
+
+Activate the cron jobs and start the data logger and the query server:
 
 ```
   cd ~/sonar
   crontab sonar-server.cron
   ./start-infiltrate.sh
+  ./start-sonalyzed.sh
 ```
 
 ## Upgrading infiltrate and exfiltrate
@@ -71,30 +95,45 @@ The sending side must use the same credentials and port.
 
 ### Startup on boot, and remaining up
 
-There is a crontab, sonar-server.cron, that has an @boot spec for this program, and it runs the file
-start-infiltrate.sh.
+There is a crontab, sonar-server.cron, that has a @reboot spec for this program, and it runs the
+file start-infiltrate.sh.
 
-### Bugs, future directions
+## Adding a new cluster
+
+The analysis scripts to run on the server are in the subdirectory named for the cluster, eg,
+`scripts/mlx.hpc.uio.no`.  These scripts are in turn run by the cron script, `sonar-server.cron`.
+
+To add a new cluster, add a new subdirectory and populate it with appropriate scripts.  Normally
+you'll want at least scripts to compute the load reports every 5 minutes, every hour, and every day,
+and to upload data.  But no scripts are actually required - cluster data may be available for
+interactive query only, for example.
+
+In the cluster's script directory there must be a file that describes the nodes in the cluster, its
+name must be `CLUSTER-config.json` where `CLUSTER` is the cluster name.  For example,
+`mlx.hpc.uio.no-config.json` for the ML nodes cluster.
+
+## Bugs, future directions
+
+## Data logger (infiltrate)
 
 We need to support HTTPS/TLS.
 
 In the future it would be useful for the password file to be able to contain multiple lines so that
-different clusters could have their own credentials.
+different clusters could have their own credentials.  Sonalyzed already allows this.
 
 We need something so that this server is "always" up without the user crontab.  There are a couple
 of ways of doing this.  One is to integrate with systemd, which is probably right in the long run.
 The other is to run a script every 15 minutes or so (in any case well within the window that the
-transport can deal with) that checks the infiltrate_pid file and performs a pgrep infiltrate, and if
+transport can deal with) that checks the infiltrate.pid file and performs a pgrep infiltrate, and if
 things don't check out (the values obtained have to be equal) then (re)starts the server if
 necessary.
-
-There should be something that terminates the server properly on reboot, ie sends it HUP.  Not sure
-what the OS will do.
 
 There should be a "ping" function in the server, ie an address "/ping" that will return 200 OK to
 show that the server is up.  It makes it possible to check not just that the process is there but
 that it is responsive.
 
-## Analyses
+## Interactive query (sonalyzed)
 
-The analysis scripts to run on the server are in the directory named for the cluster, eg, mlx.hpc.uio.no
+We need to support HTTPS/TLS.
+
+We need something to ensure that the server remains up / is restarted if it crashes.
