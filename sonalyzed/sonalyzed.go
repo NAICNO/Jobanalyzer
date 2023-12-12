@@ -200,6 +200,9 @@ func requestHandler(
 		user, pass, ok := r.BasicAuth()
 		passed := !ok && authenticator == nil || ok && authenticator != nil && authenticator(user, pass)
 		if !passed {
+			if authenticator != nil {
+				w.Header().Add("WWW-Authenticate","Basic realm=\"Jobanalyzer remote access\", charset=\"utf-8\"")
+			}
 			w.WriteHeader(401)
 			fmt.Fprintf(w, "Unauthorized")
 			if verbose {
