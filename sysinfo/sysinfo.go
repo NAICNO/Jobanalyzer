@@ -15,17 +15,18 @@ import (
 )
 
 func main() {
-	isNvidia := flag.Bool("nvidia", false, "Get info for Nvidia GPUs")
-	isAmd := flag.Bool("amd", false, "Get info for AMD (ROCm) GPUs")
+	var isNvidia, isAmd bool
+	flag.BoolVar(&isNvidia, "nvidia", false, "Get info for Nvidia GPUs")
+	flag.BoolVar(&isAmd, "amd", false, "Get info for AMD (ROCm) GPUs")
 	flag.Parse()
 
 	model, sockets, coresPerSocket, threadsPerCore := cpuinfo()
 	mem := meminfo()
 	gpuModel, gpuCards, gpuMem := "", 0, int64(0)
 	switch {
-	case *isNvidia:
+	case isNvidia:
 		gpuModel, gpuCards, gpuMem = nvidiaInfo()
-	case *isAmd:
+	case isAmd:
 		fmt.Fprintf(os.Stderr, "%s: No AMD support yet\n", os.Args[0])
 		os.Exit(1)
 	}

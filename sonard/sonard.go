@@ -26,28 +26,14 @@ import (
 )
 
 func main() {
-	intervalFlag := flag.Int("i", 60, "Interval (seconds) at which to run sonar")
-	minCpuFlag := flag.Int("m", 30, "Minimum CPU time consumption for a job before sonar records it")
-	sonarName := flag.String("s", "", "Path to sonar executable")
-	verboseFlag := flag.Bool("v", false, "Print informational messages")
-	flag.Parse()
-	if *intervalFlag < 5 {
-		log.Fatalf("Minimum -i value is 5 seconds, have %d", *intervalFlag)
-	}
-	if *minCpuFlag < 1 {
-		log.Fatalf("Minimum -m value is 1 second, have %d", *minCpuFlag)
-	}
-	if *minCpuFlag >= *intervalFlag {
-		*minCpuFlag = *intervalFlag / 2
-		if *verboseFlag {
-			log.Printf("Adjusting -m value to %d to fit value of -i (which is %d)", *minCpuFlag, *intervalFlag)
+	interval, minCpu, sonarName, logfileName, verbose := commandLine()
+
+	if minCpu >= interval {
+		minCpu = interval / 2
+		if verbose {
+			log.Printf("Adjusting -m value to %d to fit value of -i (which is %d)", minCpu, interval)
 		}
 	}
-	rest := flag.Args()
-	if len(rest) != 1 {
-		log.Fatalf("There must be exactly one logfile argument at the end, I see %v", rest)
-	}
-	logfileName := path.Clean(rest[0])
 
 	// There's an assumption here that when this process receives SIGHUP or SIGINT it will not need
 	// to catch the signal and specifically close this file; the file will be closed for it, and the
@@ -61,22 +47,54 @@ func main() {
 		"ps",
 		"--exclude-system-jobs",
 		"--exclude-commands=bash,ssh,zsh,tmux,systemd",
-		"--min-cpu-time", fmt.Sprint(*minCpuFlag),
+		"--min-cpu-time", fmt.Sprint(minCpu),
 		"--batchless",
 	}
 	for {
-		cmd := exec.Command(*sonarName, arguments...)
+		cmd := exec.Command(sonarName, arguments...)
 		var stderr strings.Builder
 		cmd.Stdout = logfile
 		cmd.Stderr = &stderr
-		if *verboseFlag {
-			log.Printf("Running %s %v", *sonarName, arguments)
+		if verbose {
+			log.Printf("Running %s %v", sonarName, arguments)
 		}
 		err := cmd.Run()
 		errout := stderr.String()
 		if err != nil || len(errout) != 0 {
 			log.Fatalf("Sonar exited with an error\n%v", errors.Join(err, errors.New(errout)))
 		}
-		time.Sleep(time.Duration(*intervalFlag) * time.Second)
+		time.Sleep(time.Duration(interval) * time.Second)
 	}
+}
+
+func commandLine() (
+	interval int,
+	minCpu int,
+	sonarName string,
+	logfileName string,
+	verbose bool,
+) {
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [options] output-logfile\nOptions:\n", os.Args[0])
+		flag.PrintDefaults()
+		fmt.Fprintf(flag.CommandLine.Output(), "  output-logfile\n    \tDestination for sonar log records\n")
+	}
+	flag.IntVar(&interval, "i", 60, "Interval in `seconds` at which to run sonar")
+	flag.IntVar(&minCpu, "m", 30, "Minimum CPU time consumption in `seconds` for a job before sonar records it")
+	flag.StringVar(&sonarName, "s", "", "Sonar executable `filename`")
+	flag.BoolVar(&verbose, "v", false, "Print informational messages")
+	flag.Parse()
+
+	if interval < 5 {
+		log.Fatalf("Minimum -i value is 5 seconds, have %d", interval)
+	}
+	if minCpu < 1 {
+		log.Fatalf("Minimum -m value is 1 second, have %d", minCpu)
+	}
+	rest := flag.Args()
+	if len(rest) != 1 {
+		log.Fatalf("There must be exactly one logfile argument at the end, I see %v", rest)
+	}
+	logfileName = path.Clean(rest[0])
+	return
 }

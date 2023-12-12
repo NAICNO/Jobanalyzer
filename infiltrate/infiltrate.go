@@ -25,8 +25,8 @@
 // keep it running - infrastructure should restart it if it crashes (due to a panic).  Also, the
 // http framework catches panics within the request handler and tries to keep the server up.
 //
-// About logging: Infiltrate logs everything to the syslog with the tag defined below ("logTag").
-// Errors encountered during startup are also logged to stderr.
+// About logging: Infiltrate logs everything to the syslog.  Errors encountered during startup are
+// also logged to stderr.
 
 package main
 
@@ -36,7 +36,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"os/signal"
@@ -45,6 +44,7 @@ import (
 	"time"
 
 	"go-utils/auth"
+	"go-utils/options"
 	"go-utils/sonarlog"
 	"go-utils/status"
 )
@@ -54,24 +54,26 @@ const (
 	dirPermissions           = 0755
 	filePermissions          = 0644
 	serverShutdownTimeoutSec = 10
-	logTag                   = "jobanalyzer/infiltrate"
 )
 
 var verbose bool
 var programFailed = false
 
 func main() {
-	status.Start(logTag)
-	port, dataPath, authFile := commandLine()
+	status.Start("jobanalyzer/infiltrate")
+
+	port, dataPath, authFile, err := commandLine()
+	if err != nil {
+		status.Fatalf("Command line: %v", err)
+	}
 
 	// TODO: Use a password file here, not a single identity, see sonalyzed for an example.
 
-	var err error
 	var authUser, authPass string
 	if authFile != "" {
 		authUser, authPass, err = auth.ParseAuth(authFile)
 		if err != nil {
-			status.Fatal(fmt.Sprintf("Failed to read authentication file: %v\n", err))
+			status.Fatalf("Failed to read authentication file: %v\n", err)
 		}
 	}
 	go runWriter()
@@ -115,7 +117,7 @@ func runServer(port int, dataPath, authUser, authPass string) {
 			}),
 	)
 	if verbose {
-		status.Info(fmt.Sprintf("Listening on port %d", port))
+		status.Infof("Listening on port %d", port)
 	}
 	server = &http.Server{Addr: fmt.Sprintf(":%d", port)}
 	err := server.ListenAndServe()
@@ -141,32 +143,13 @@ func stopServer() {
 	<-serverStopChannel
 }
 
-func commandLine() (port int, dataPath, authFile string) {
-	flag.IntVar(&port, "port", defaultListenPort, "Port to listen on")
-	flag.StringVar(&dataPath, "data-path", "", "Path of data store root directory")
-	flag.StringVar(&authFile, "auth-file", "", "Authentication file")
-	flag.BoolVar(&verbose, "v", false, "Verbose logging")
-	flag.Parse()
-
-	if dataPath == "" {
-		status.Fatal("Required argument: -data-path")
-	}
-	dataPath = path.Clean(dataPath)
-	info, err := os.DirFS(dataPath).(fs.StatFS).Stat(".")
-	if err != nil || !info.IsDir() {
-		status.Fatal(fmt.Sprintf("Bad -data-path directory %s", dataPath))
-	}
-
-	return
-}
-
 func incomingData(
 	authUser, authPass string,
 	dataHandler func([]byte) (int, string, string),
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if verbose {
-			status.Info(fmt.Sprintf("Request from %s: %v", r.RemoteAddr, r.Header))
+			status.Infof("Request from %s: %v", r.RemoteAddr, r.Header)
 		}
 
 		// Error logging during the preparatory steps -- until we know we have a full request that
@@ -183,7 +166,7 @@ func incomingData(
 			w.WriteHeader(403)
 			fmt.Fprintf(w, "Bad method")
 			if verbose {
-				status.Warning(fmt.Sprintf("Bad method: %s", r.Method))
+				status.Warningf("Bad method: %s", r.Method)
 			}
 			return
 		}
@@ -197,7 +180,7 @@ func incomingData(
 				contentType = ct[0]
 			}
 			if verbose {
-				status.Warning(fmt.Sprintf("Bad content-type %s", contentType))
+				status.Warningf("Bad content-type %s", contentType)
 			}
 			return
 		}
@@ -308,7 +291,7 @@ func writeRecord(dataPath, cluster, host, timestamp string, payload []byte) {
 	tval, err := time.Parse(time.RFC3339, timestamp)
 	if err != nil {
 		if verbose {
-			status.Warning(fmt.Sprintf("Bad timestamp %s, dropping record", timestamp))
+			status.Warningf("Bad timestamp %s, dropping record", timestamp)
 		}
 	}
 	dirname := fmt.Sprintf("%s/%04d/%02d/%02d", cluster, tval.Year(), tval.Month(), tval.Day())
@@ -369,7 +352,7 @@ func runWriter() {
 				// Anyway, if we get here with a partial data write it's going to be something more
 				// serious than EINTR, such as a disk full.  Trying to recover is probably not worth
 				// our time.  Just log the failure and hope somebody sees it.
-				status.Error(fmt.Sprintf("Write error on log (%v), %d bytes written of %d", err, n, len(r.payload)))
+				status.Errorf("Write error on log (%v), %d bytes written of %d", err, n, len(r.payload))
 			}
 		}
 	}
@@ -389,4 +372,21 @@ func maybeRetry(r *dataRecord, msg string) {
 	} else {
 		status.Warning(msg + ", too many retries, abandoning")
 	}
+}
+
+func commandLine() (port int, dataPath, authFile string, err error) {
+	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	flags.IntVar(&port, "port", defaultListenPort, "Listen for connections on `port`")
+	flags.StringVar(&dataPath, "data-path", "", "Path of data store root `directory` (required)")
+	flags.StringVar(&authFile, "auth-file", "", "Read user names and passwords from `filename`")
+	flags.BoolVar(&verbose, "v", false, "Verbose logging")
+	err = flags.Parse(os.Args[1:])
+	if err == flag.ErrHelp {
+		os.Exit(0)
+	}
+	if err != nil {
+		return
+	}
+	dataPath, err = options.RequireDirectory(dataPath, "-data-path")
+	return
 }

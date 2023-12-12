@@ -1,6 +1,9 @@
 package time
 
 import (
+	"errors"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -16,4 +19,36 @@ func MaxTime(a, b time.Time) time.Time {
 		return a
 	}
 	return b
+}
+
+// The format of `from` and `to` is one of:
+//  YYYY-MM-DD
+//  Nd (days ago)
+//  Nw (weeks ago)
+
+var dateRe = regexp.MustCompile(`^(\d\d\d\d)-(\d\d)-(\d\d)$`)
+var daysRe = regexp.MustCompile(`^(\d+)d$`)
+var weeksRe = regexp.MustCompile(`^(\d+)w$`)
+
+func ParseRelativeDate(s string) (time.Time, error) {
+	probe := dateRe.FindSubmatch([]byte(s))
+	if probe != nil {
+		yyyy, _ := strconv.ParseUint(string(probe[1]), 10, 32)
+		mm, _ := strconv.ParseUint(string(probe[2]), 10, 32)
+		dd, _ := strconv.ParseUint(string(probe[3]), 10, 32)
+		return time.Date(int(yyyy), time.Month(mm), int(dd), 0, 0, 0, 0, time.UTC), nil
+	}
+	probe = daysRe.FindSubmatch([]byte(s))
+	if probe != nil {
+		days, _ := strconv.ParseUint(string(probe[1]), 10, 32)
+		t := time.Now().UTC().AddDate(0, 0, -int(days))
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), nil
+	}
+	probe = weeksRe.FindSubmatch([]byte(s))
+	if probe != nil {
+		weeks, _ := strconv.ParseUint(string(probe[1]), 10, 32)
+		t := time.Now().UTC().AddDate(0, 0, -int(weeks)*7)
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), nil
+	}
+	return time.Now(), errors.New("Bad time specification")
 }

@@ -50,10 +50,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"math/rand"
 	"net/http"
@@ -63,6 +63,7 @@ import (
 
 	"go-utils/auth"
 	"go-utils/sonarlog"
+	"go-utils/status"
 )
 
 const (
@@ -79,20 +80,24 @@ const (
 var verbose bool
 
 func main() {
-	window, cluster, inputSource, inputType, outputType, authFile, target := commandLine()
+	status.Start("jobanalyzer/exfiltrate")
 
-	var err error
+	window, cluster, inputSource, inputType, outputType, authFile, target, err := commandLine()
+	if err != nil {
+		status.Fatalf("Command line: %v", err)
+	}
+
 	var authUser, authPass string
 	if authFile != "" {
 		authUser, authPass, err = auth.ParseAuth(authFile)
 		if err != nil {
-			log.Fatalf("Failed to read authentication file: %v", err)
+			status.Fatalf("Failed to read authentication file: %v", err)
 		}
 	}
 
 	bs, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		log.Fatalf("Failed to read from stdin: %v", err)
+		status.Fatalf("Failed to read from stdin: %v", err)
 	}
 	if verbose {
 		fmt.Printf("Bytes of data read: %d\n", len(bs))
@@ -104,10 +109,10 @@ func main() {
 		var badRecords int
 		readings, heartbeats, badRecords, err = sonarlog.ParseSonarCsvnamed(bytes.NewReader(bs))
 		if err != nil {
-			log.Fatalf("Failed to parse input as csvnamed: %v", err)
+			status.Fatalf("Failed to parse input as csvnamed: %v", err)
 		}
 		if badRecords > 0 {
-			log.Printf("Bad records and/or fields: %d", badRecords)
+			status.Infof("Bad records and/or fields: %d", badRecords)
 		}
 	} else {
 		panic("Unexpected input type / source combination")
@@ -126,7 +131,7 @@ func main() {
 	}
 
 	if target.Scheme != "http" && target.Scheme != "https" {
-		log.Fatalf("Only http / https targets for now")
+		status.Fatal("Only http / https targets for now")
 	}
 
 	switch outputType {
@@ -140,7 +145,7 @@ func main() {
 			if len(rs) == cap(rs) || i == len(readings) && len(rs) > 0 {
 				buf, err := json.Marshal(&rs)
 				if err != nil {
-					log.Fatalf("Failed to marshal: %v", err)
+					status.Fatalf("Failed to marshal: %v", err)
 				}
 				postDataByHTTP(0, buf, authUser, authPass, targetStr)
 				rs = rs[0:0]
@@ -170,7 +175,7 @@ func main() {
 			if len(hs) == cap(hs) || i == len(heartbeats) && len(hs) > 0 {
 				buf, err := json.Marshal(&hs)
 				if err != nil {
-					log.Fatalf("Failed to marshal: %v", err)
+					status.Fatalf("Failed to marshal: %v", err)
 				}
 				postDataByHTTP(0, buf, authUser, authPass, targetStr)
 				hs = hs[0:0]
@@ -211,7 +216,7 @@ func postDataByHTTP(prevAttempts int, buf []byte, authUser, authPass, target str
 	// Go down a level from http.Post() in order to be able to set authentication header.
 	req, err := http.NewRequest("POST", target, bytes.NewReader(buf))
 	if err != nil {
-		log.Printf("Failed to post: %v", err)
+		status.Infof("Failed to post: %v", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -226,7 +231,7 @@ func postDataByHTTP(prevAttempts int, buf []byte, authUser, authPass, target str
 		if prevAttempts+1 <= maxAttempts {
 			addRetry(prevAttempts+1, buf, authUser, authPass, target)
 		} else {
-			log.Printf("Failed to post to %s after max retries: %v", target, err)
+			status.Infof("Failed to post to %s after max retries: %v", target, err)
 		}
 		return
 	}
@@ -242,7 +247,7 @@ func postDataByHTTP(prevAttempts int, buf []byte, authUser, authPass, target str
 	//
 	// TODO: Possibly for codes in the 500 range we should retry?
 	if resp.StatusCode >= 300 {
-		log.Printf("Failed to post: HTTP status=%d", resp.StatusCode)
+		status.Infof("Failed to post: HTTP status=%d", resp.StatusCode)
 		// Fall through: must read response body
 	}
 
@@ -286,61 +291,68 @@ func commandLine() (
 	window int,
 	cluster, inputSource, inputType, outputType, authFile string,
 	target *url.URL,
+	err error,
 ) {
-	flag.IntVar(&window, "window", -1, "Sending window in seconds")
-	flag.StringVar(&cluster, "cluster", "", "Name of cluster")
-	sourceArg := flag.String("source", "", "Source and format (eg `sonar/csvnamed`)")
-	flag.StringVar(&outputType, "output", "", "Format of output (transmitted data)")
-	targetArg := flag.String("target", "", "Target address")
-	flag.StringVar(&authFile, "auth-file", "", "Authentication file")
-	flag.BoolVar(&verbose, "v", false, "Verbose information")
-	flag.Parse()
-
-	if window < 0 {
-		badArg("Argument -window is required")
+	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	flags.IntVar(&window, "window", 0, "Send data inside a window of this many `seconds`")
+	flags.StringVar(&cluster, "cluster", "", "Tag the data as coming from `cluster-name` (required)")
+	var sourceArg string
+	flags.StringVar(&sourceArg, "source", "", "Assume input data are in this `format` (required)")
+	flags.StringVar(&outputType, "output", "", "Transmit data in this `format` (required)")
+	var targetArg string
+	flags.StringVar(&targetArg, "target", "", "Connect to `url` to upload data (required)")
+	flags.StringVar(&authFile, "auth-file", "", "Read upload credentials from `filename`")
+	flags.BoolVar(&verbose, "v", false, "Verbose information")
+	err = flags.Parse(os.Args[1:])
+	if err == flag.ErrHelp {
+		os.Exit(0)
+	}
+	if err != nil {
+		return
 	}
 
 	if cluster == "" {
-		badArg("Argument -cluster is required")
+		err = errors.New("Argument -cluster is required")
+		return
 	}
 
-	if *sourceArg == "" {
-		badArg("Argument -source is required")
+	if sourceArg == "" {
+		err = errors.New("Argument -source is required")
+		return
 	}
-	if *sourceArg != "sonar/csvnamed" {
+	if sourceArg != "sonar/csvnamed" {
 		// This is expected to change
-		badArg("Unknown --source value")
+		err = errors.New("Unknown --source value")
+		return
 	}
 	inputSource = "sonar"
 	inputType = "csvnamed"
 
 	if outputType == "" {
-		badArg("Argument -output is required")
+		err = errors.New("Argument -output is required")
+		return
 	}
 	if outputType != "json" {
 		// This is expected to change
-		badArg("-output must be `json`")
+		err = errors.New("-output must be `json`")
+		return
 	}
 
-	if *targetArg == "" {
-		badArg("Argument -target is required")
+	if targetArg == "" {
+		err = errors.New("Argument -target is required")
+		return
 	}
 	// TODO: Validation.  The parser seems to accept pretty much anything.  Probably we require
 	// scheme://host:port and no path on the host and no query.  What about userinfo in the host
 	// field?
-	target, err := url.Parse(*targetArg)
+	target, err = url.Parse(targetArg)
 	if err != nil || target.Scheme == "" || target.Host == "" || target.Path != "" {
 		errmsg := ""
 		if err != nil {
 			errmsg = fmt.Sprintf(": %v", err)
 		}
-		badArg(fmt.Sprintf("Failed to parse target URL %s%s", target, errmsg))
+		err = fmt.Errorf("Failed to parse target URL %s%s", target, errmsg)
 	}
 
 	return
-}
-
-func badArg(msg string) {
-	fmt.Fprintln(os.Stderr, msg+"\nTry -h")
-	os.Exit(1)
 }

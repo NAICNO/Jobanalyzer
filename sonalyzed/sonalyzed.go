@@ -54,7 +54,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"path"
@@ -62,6 +61,7 @@ import (
 
 	"go-utils/auth"
 	"go-utils/httpsrv"
+	"go-utils/options"
 	"go-utils/process"
 	"go-utils/status"
 )
@@ -69,10 +69,10 @@ import (
 const (
 	defaultListenPort = 8087
 
-	logTag            = "jobanalyzer/sonalyzed"
+	logTag = "jobanalyzer/sonalyzed"
 
 	// This must equal MAGIC_BOOLEAN in the sonalyze sources.
-	magicBoolean      = "xxxxxtruexxxxx"
+	magicBoolean = "xxxxxtruexxxxx"
 )
 
 var verbose bool
@@ -80,14 +80,17 @@ var programFailed = false
 
 func main() {
 	status.Start(logTag)
-	port, jobanalyzerPath, passwordFile := commandLine()
+
+	port, jobanalyzerPath, passwordFile, err := commandLine()
+	if err != nil {
+		status.Fatalf("Command line: %v", err)
+	}
 
 	var authenticator func(user, pass string) bool
 	if passwordFile != "" {
-		var err error
 		authenticator, err = auth.ParsePasswdFile(passwordFile)
 		if err != nil {
-			status.Fatal(fmt.Sprintf("Failed to read password file: %v\n", err))
+			status.Fatalf("Failed to read password file: %v\n", err)
 		}
 	}
 
@@ -110,25 +113,6 @@ func main() {
 	if programFailed {
 		os.Exit(1)
 	}
-}
-
-func commandLine() (port int, jobanalyzerPath, passwordFile string) {
-	flag.IntVar(&port, "port", defaultListenPort, "Port to listen on")
-	flag.StringVar(&jobanalyzerPath, "jobanalyzer-path", "", "Path of jobanalyzer root directory")
-	flag.StringVar(&passwordFile, "password-file", "", "Password file")
-	flag.BoolVar(&verbose, "v", false, "Verbose logging")
-	flag.Parse()
-
-	if jobanalyzerPath == "" {
-		status.Fatal("Required argument: -jobanalyzer-path")
-	}
-	jobanalyzerPath = path.Clean(jobanalyzerPath)
-	info, err := os.DirFS(jobanalyzerPath).(fs.StatFS).Stat(".")
-	if err != nil || !info.IsDir() {
-		status.Fatal(fmt.Sprintf("Bad -jobanalyzer-path directory %s", jobanalyzerPath))
-	}
-
-	return
 }
 
 // Disallow argument names that are malformed or are specific values.  This is not fabulous but
@@ -174,8 +158,8 @@ func requestHandler(
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if verbose {
-			status.Info(fmt.Sprintf("Request from %s: %v", r.RemoteAddr, r.Header))
-			status.Info(fmt.Sprintf("%v", r.URL))
+			status.Infof("Request from %s: %v", r.RemoteAddr, r.Header)
+			status.Infof("%v", r.URL)
 		}
 
 		// Error logging during the preparatory steps -- until we know we have a full request that
@@ -192,7 +176,7 @@ func requestHandler(
 			w.WriteHeader(403)
 			fmt.Fprintf(w, "Bad method")
 			if verbose {
-				status.Warning(fmt.Sprintf("Bad method: %s", r.Method))
+				status.Warningf("Bad method: %s", r.Method)
 			}
 			return
 		}
@@ -201,7 +185,7 @@ func requestHandler(
 		passed := !ok && authenticator == nil || ok && authenticator != nil && authenticator(user, pass)
 		if !passed {
 			if authenticator != nil {
-				w.Header().Add("WWW-Authenticate","Basic realm=\"Jobanalyzer remote access\", charset=\"utf-8\"")
+				w.Header().Add("WWW-Authenticate", "Basic realm=\"Jobanalyzer remote access\", charset=\"utf-8\"")
 			}
 			w.WriteHeader(401)
 			fmt.Fprintf(w, "Unauthorized")
@@ -229,7 +213,7 @@ func requestHandler(
 		// The parameter `cluster` provides the cluster name, which is needed for the data directory
 		// and the config file.
 
-		arguments := []string{ command }
+		arguments := []string{command}
 		clusterName := ""
 
 		for name, vs := range r.URL.Query() {
@@ -243,7 +227,7 @@ func requestHandler(
 				w.WriteHeader(400)
 				fmt.Fprintf(w, "Bad parameter %s", name)
 				if verbose {
-					status.Warning(fmt.Sprintf("Bad parameter %s", name))
+					status.Warningf("Bad parameter %s", name)
 				}
 				return
 			}
@@ -295,7 +279,7 @@ func requestHandler(
 			w.WriteHeader(400)
 			fmt.Fprint(w, err.Error())
 			if verbose {
-				status.Warning(fmt.Sprintf("ERROR: %v", err))
+				status.Warningf("ERROR: %v", err)
 			}
 			return
 		}
@@ -315,4 +299,21 @@ func resolveClusterAlias(clusterName string) string {
 	default:
 		return clusterName
 	}
+}
+
+func commandLine() (port int, jobanalyzerPath, passwordFile string, err error) {
+	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	flags.IntVar(&port, "port", defaultListenPort, "Listen for connections on `port`")
+	flags.StringVar(&jobanalyzerPath, "jobanalyzer-path", "", "Path of jobanalyzer root `directory` (required)")
+	flags.StringVar(&passwordFile, "password-file", "", "Read user names and passwords from `filename`")
+	flags.BoolVar(&verbose, "v", false, "Verbose logging")
+	err = flags.Parse(os.Args[1:])
+	if err == flag.ErrHelp {
+		os.Exit(0)
+	}
+	if err != nil {
+		return
+	}
+	jobanalyzerPath, err = options.RequireDirectory(jobanalyzerPath, "-jobanalyzer-path")
+	return
 }

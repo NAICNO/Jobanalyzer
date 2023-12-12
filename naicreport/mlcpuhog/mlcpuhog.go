@@ -38,6 +38,7 @@ package mlcpuhog
 import (
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -57,6 +58,8 @@ const (
 	cpuhogDataFilename  = "cpuhog.csv"
 )
 
+var verbose bool
+
 // Options logic here and for deadweight:
 //
 // - If `--state-file` is present then that names the state file; otherwise `--data-path` must be present
@@ -70,56 +73,9 @@ const (
 
 func MlCpuhog(progname string, args []string) error {
 
-	////////////////////////////////////////////////////////////////////////////////
-	//
-	// Parse options and establish inputs
-
-	progOpts := util.NewStandardOptions(progname + "ml-cpuhog")
-	jsonOutput := progOpts.Container.Bool("json", false, "Format output as JSON")
-	summaryOutput := progOpts.Container.Bool("summary", false, "Format output for testing")
-	stateFileOpt := progOpts.Container.String("state-file", "", "Name of saved-state file (optional)")
-	nowOpt := progOpts.Container.String("now", "", "ISO time to use as the present time (for testing)")
-	err := progOpts.Parse(args)
+	jsonOutput, summaryOutput, stateFilename, now, from, to, dataFiles, err := commandLine()
 	if err != nil {
 		return err
-	}
-
-	var stateFilename string
-	switch {
-	case *stateFileOpt != "":
-		stateFilename = *stateFileOpt
-	case progOpts.DataPath == "":
-		return errors.New("If --state-file is not present then --data-path must be")
-	default:
-		stateFilename = path.Join(progOpts.DataPath, cpuhogStateFilename)
-	}
-
-	// progOpts will establish the either-or invariant here
-	var dataFiles []string
-	if progOpts.DataFiles != nil {
-		dataFiles = progOpts.DataFiles
-	} else {
-		files, err := joblog.FindJoblogFiles(
-			progOpts.DataPath,
-			cpuhogDataFilename,
-			progOpts.From,
-			progOpts.To,
-		)
-		if err != nil {
-			return fmt.Errorf("Could not enumerate files: %w", err)
-		}
-		dataFiles = files
-	}
-
-	var now time.Time
-	if *nowOpt != "" {
-		n, err := time.Parse(*nowOpt, sonarlog.DateTimeFormat)
-		if err != nil {
-			return fmt.Errorf("Argument to --now could not be parsed: %w", err)
-		}
-		now = n.UTC()
-	} else {
-		now = time.Now().UTC()
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -130,20 +86,20 @@ func MlCpuhog(progname string, args []string) error {
 	if err != nil {
 		return err
 	}
-	if progOpts.Verbose {
+	if verbose {
 		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(db.Active), len(db.Expired))
 	}
 
 	logs, err := joblog.ReadJoblogFiles[*cpuhogJob](
 		dataFiles,
-		progOpts.Verbose,
+		verbose,
 		parseCpuhogRecord,
 		integrateCpuhogRecords,
 	)
 	if err != nil {
 		return err
 	}
-	if progOpts.Verbose {
+	if verbose {
 		fmt.Fprintf(os.Stderr, "%d hosts in log\n", len(logs))
 		for _, l := range logs {
 			fmt.Fprintf(os.Stderr, " %s: %d records\n", l.Host, len(l.Jobs))
@@ -162,13 +118,13 @@ func MlCpuhog(progname string, args []string) error {
 			}
 		}
 	}
-	if progOpts.Verbose {
+	if verbose {
 		fmt.Fprintf(os.Stderr, "%d new jobs\n", new_jobs)
 	}
 
-	purgeDate := sonartime.MinTime(progOpts.From, progOpts.To.AddDate(0, 0, -2))
+	purgeDate := sonartime.MinTime(from, to.AddDate(0, 0, -2))
 	purged := jobstate.PurgeJobsBefore(db, purgeDate)
-	if progOpts.Verbose {
+	if verbose {
 		fmt.Fprintf(os.Stderr, "%d jobs purged\n", purged)
 	}
 
@@ -177,13 +133,13 @@ func MlCpuhog(progname string, args []string) error {
 	// Write outputs
 
 	switch {
-	case *jsonOutput:
+	case jsonOutput:
 		bytes, err := json.Marshal(createCpuhogReport(db, logs, true))
 		if err != nil {
 			return fmt.Errorf("While marshaling cpuhog data: %w", err)
 		}
 		fmt.Println(string(bytes))
-	case *summaryOutput:
+	case summaryOutput:
 		report := createCpuhogReport(db, logs, false)
 		for _, r := range report {
 			r.jobState.IsReported = true
@@ -372,4 +328,68 @@ func parseCpuhogRecord(r map[string]string) (*cpuhogJob, bool) {
 		rmemAvg:   rmemAvg,
 		rmemPeak:  rmemPeak,
 	}, true
+}
+
+// This is virtually identical to the function in deadweight.go
+func commandLine() (
+	jsonOutput, summaryOutput bool,
+	stateFilename string,
+	now, from, to time.Time,
+	dataFiles []string,
+	err error,
+) {
+	opts := flag.NewFlagSet(os.Args[0] + " ml-cpuhog", flag.ContinueOnError)
+	logOpts := util.AddSonarLogOptions(opts)
+	opts.BoolVar(&jsonOutput, "json", false, "Format output as JSON")
+	opts.BoolVar(&summaryOutput, "summary", false, "Format output for testing")
+	opts.StringVar(&stateFilename, "state-file", "", "Store computation state in `filename` (optional)")
+	var nowOpt string
+	opts.StringVar(&nowOpt, "now", "", "ISO `timestamp` to use as the present time (for testing)")
+	opts.BoolVar(&verbose, "v", false, "Verbose (debugging) output")
+	err = opts.Parse(os.Args[2:])
+	if err == flag.ErrHelp {
+		os.Exit(0)
+	}
+	if err != nil {
+		return
+	}
+	err = util.RectifySonarLogOptions(logOpts, opts)
+	if err != nil {
+		return
+	}
+	if stateFilename == "" {
+		if logOpts.DataPath == "" {
+			err = errors.New("If --state-file is not present then --data-path must be")
+			return
+		}
+		stateFilename = path.Join(logOpts.DataPath, cpuhogStateFilename)
+	}
+
+	// logOpts will establish the either-or invariant here
+	if logOpts.DataFiles != nil {
+		dataFiles = logOpts.DataFiles
+	} else {
+		var files []string
+		files, err = joblog.FindJoblogFiles(logOpts.DataPath, cpuhogDataFilename, logOpts.From, logOpts.To)
+		if err != nil {
+			err = fmt.Errorf("Could not enumerate files: %w", err)
+			return
+		}
+		dataFiles = files
+	}
+
+	if nowOpt != "" {
+		var n time.Time
+		n, err = time.Parse(nowOpt, sonarlog.DateTimeFormat)
+		if err != nil {
+			err = fmt.Errorf("Argument to --now could not be parsed: %w", err)
+			return
+		}
+		now = n.UTC()
+	} else {
+		now = time.Now().UTC()
+	}
+	from = logOpts.From
+	to = logOpts.To
+	return
 }
