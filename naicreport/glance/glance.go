@@ -3,12 +3,14 @@ package glance
 import (
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"path"
 	"sort"
 	"time"
 
+	"go-utils/options"
 	"go-utils/process"
 	"naicreport/jobstate"
 	"naicreport/sonalyze"
@@ -37,25 +39,7 @@ var longerCutoff = nowUTC.Add(-LONGER_MINS * 60 * nanosPerSec)
 var longCutoff = nowUTC.Add(-LONG_MINS * 60 * nanosPerSec)
 
 func Report(progname string, args []string) error {
-	progOpts := util.NewStandardOptions(progname + " at-a-glance")
-	sonalyzePathPtr := progOpts.Container.String("sonalyze", "", "Path to sonalyze executable (required)")
-	configFilenamePtr := progOpts.Container.String("config-file", "", "Path to system config file (required)")
-	statePathPtr := progOpts.Container.String("state-path", "", "Path to directory holding database state (required)")
-	tagPtr := progOpts.Container.String("tag", "", "Human-intelligible tag for data, usually describing origin (optional)")
-	err := progOpts.Parse(args)
-	if err != nil {
-		return err
-	}
-
-	sonalyzePath, err := util.CleanPath(*sonalyzePathPtr, "-sonalyze")
-	if err != nil {
-		return err
-	}
-	configFilename, err := util.CleanPath(*configFilenamePtr, "-config-file")
-	if err != nil {
-		return err
-	}
-	statePath, err := util.CleanPath(*statePathPtr, "-state-path")
+	sonalyzePath, configFilename, statePath, tag, logOpts, err := commandLine()
 	if err != nil {
 		return err
 	}
@@ -69,15 +53,15 @@ func Report(progname string, args []string) error {
 	// centralized database mapping host -> glanceRecord that is just passed around for everyone to
 	// use.  But it's not obvious the code would be as easy to understand.
 
-	ujbh, err := collectUsersAndJobs(sonalyzePath, progOpts)
+	ujbh, err := collectUsersAndJobs(sonalyzePath, logOpts)
 	if err != nil {
 		return err
 	}
-	sdbh, err := collectStatusData(sonalyzePath, progOpts)
+	sdbh, err := collectStatusData(sonalyzePath, logOpts)
 	if err != nil {
 		return err
 	}
-	labh, err := collectLoadAverages(sonalyzePath, configFilename, progOpts)
+	labh, err := collectLoadAverages(sonalyzePath, configFilename, logOpts)
 	if err != nil {
 		return err
 	}
@@ -92,14 +76,14 @@ func Report(progname string, args []string) error {
 
 	recordsByHost := make(map[string]*glanceRecord)
 	for _, d := range ujbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
+		r := glanceRecordForHost(recordsByHost, d.hostname, config, tag)
 		r.JobsRecent = d.jobs_recent
 		r.JobsLonger = d.jobs_longer
 		r.UsersRecent = d.users_recent
 		r.UsersLonger = d.users_longer
 	}
 	for _, d := range sdbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
+		r := glanceRecordForHost(recordsByHost, d.hostname, config, tag)
 		cpu_status := 0
 		if d.cpu_down {
 			cpu_status = 1
@@ -112,7 +96,7 @@ func Report(progname string, args []string) error {
 		r.GpuStatus = gpu_status
 	}
 	for _, d := range labh {
-		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
+		r := glanceRecordForHost(recordsByHost, d.hostname, config, tag)
 		r.CpuRecent = d.cpu_recent
 		r.CpuLonger = d.cpu_longer
 		r.MemRecent = d.mem_recent
@@ -125,11 +109,11 @@ func Report(progname string, args []string) error {
 		}
 	}
 	for _, d := range hogsbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
+		r := glanceRecordForHost(recordsByHost, d.hostname, config, tag)
 		r.Violators = d.count
 	}
 	for _, d := range deadweightbh {
-		r := glanceRecordForHost(recordsByHost, d.hostname, config, *tagPtr)
+		r := glanceRecordForHost(recordsByHost, d.hostname, config, tag)
 		r.Deadweights = d.count
 	}
 
@@ -147,7 +131,12 @@ func Report(progname string, args []string) error {
 	return nil
 }
 
-func glanceRecordForHost(recordsByHost map[string]*glanceRecord, hostname string, config map[string]*storage.SystemConfig, tag string) *glanceRecord {
+func glanceRecordForHost(
+	recordsByHost map[string]*glanceRecord,
+	hostname string,
+	config map[string]*storage.SystemConfig,
+	tag string,
+) *glanceRecord {
 	if r, found := recordsByHost[hostname]; found {
 		return r
 	}
@@ -210,7 +199,7 @@ type usersAndJobsByHost struct {
 
 func collectUsersAndJobs(
 	sonalyzePath string,
-	progOpts *util.StandardOptions,
+	progOpts *util.SonarLogOptions,
 ) ([]*usersAndJobsByHost, error) {
 
 	// First get the raw data about recent jobs across all hosts
@@ -305,7 +294,7 @@ type systemStatusByHost struct {
 	gpu_down bool
 }
 
-func collectStatusData(sonalyzePath string, progOpts *util.StandardOptions) ([]*systemStatusByHost, error) {
+func collectStatusData(sonalyzePath string, progOpts *util.SonarLogOptions) ([]*systemStatusByHost, error) {
 
 	// First run sonalyze to collect information about system status
 
@@ -372,11 +361,11 @@ type loadAveragesByHost struct {
 func collectLoadAverages(
 	sonalyzePath string,
 	configFilename string,
-	progOpts *util.StandardOptions,
+	progOpts *util.SonarLogOptions,
 ) ([]*loadAveragesByHost, error) {
 
 	if RECENT_MINS != 30 {
-		panic("Only half-hourly 'recent' interval")
+		return nil, errors.New("UNIMPLEMENTED: Only half-hourly 'recent' interval")
 	}
 	recentData, err := collectLoadAveragesOnce(
 		sonalyzePath,
@@ -388,7 +377,7 @@ func collectLoadAverages(
 	}
 
 	if LONGER_MINS != 60*12 {
-		panic("Only half-daily 'longer' interval")
+		return nil, errors.New("UNIMPLEMENTED: Only half-daily 'longer' interval")
 	}
 	longerData, err := collectLoadAveragesOnce(
 		sonalyzePath,
@@ -441,7 +430,7 @@ type sonalyzeLoadData struct {
 
 func collectLoadAveragesOnce(
 	sonalyzePath, configFilename string,
-	progOpts *util.StandardOptions,
+	progOpts *util.SonarLogOptions,
 	bucketArg string,
 ) (map[string]*sonalyzeLoadData, error) {
 
@@ -561,8 +550,8 @@ func countDatabaseEntries(stateFilename string) ([]*badJobsByHost, error) {
 //
 // Utilities
 
-func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *util.StandardOptions, rawData any) error {
-	arguments = util.AddStandardOptions(arguments, progOpts)
+func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *util.SonarLogOptions, rawData any) error {
+	arguments = util.ForwardSonarLogOptions(arguments, progOpts)
 	sonalyzeOutput, err := process.RunSubprocess(sonalyzePath, arguments)
 	if err != nil {
 		return err
@@ -580,3 +569,33 @@ func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *util.Sta
 	}
 	return nil
 }
+
+func commandLine() (
+	sonalyzePath string,
+	configFilename string,
+	statePath string,
+	tag string,
+	logOpts *util.SonarLogOptions,
+	err error,
+) {
+	opts := flag.NewFlagSet(os.Args[0] + " at-a-glance", flag.ContinueOnError)
+	logOpts = util.AddSonarLogOptions(opts)
+	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
+	opts.StringVar(&configFilename, "config-file", "", "Read cluster configuration from `filename` (required)")
+	opts.StringVar(&statePath, "state-path", "", "Store computation state in `directory` (required)")
+	opts.StringVar(&tag, "tag", "", "Annotate output with `cluster-name` (optional)")
+	err = opts.Parse(os.Args[2:])
+	if err == flag.ErrHelp {
+		os.Exit(0)
+	}
+	if err != nil {
+		return
+	}
+	err1 := util.RectifySonarLogOptions(logOpts, opts)
+	sonalyzePath, err2 := options.RequireCleanPath(sonalyzePath, "-sonalyze")
+	configFilename, err3 := options.RequireCleanPath(configFilename, "-config-file")
+	statePath, err4 := options.RequireCleanPath(statePath, "-state-path")
+	err = errors.Join(err1, err2, err3, err4)
+	return
+}
+

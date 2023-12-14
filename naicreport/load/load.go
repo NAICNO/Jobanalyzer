@@ -6,6 +6,7 @@ package load
 import (
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -13,38 +14,17 @@ import (
 	"sort"
 	"time"
 
+	"go-utils/options"
 	"go-utils/process"
 	"go-utils/sonarlog"
 	"naicreport/storage"
 	"naicreport/util"
 )
 
-func Load(progname string, args []string) error {
-	// Parse and sanitize options
+var verbose bool
 
-	progOpts := util.NewStandardOptions(progname + " load")
-	sonalyzePathPtr := progOpts.Container.String("sonalyze", "", "Path to sonalyze executable (required)")
-	configFilenamePtr := progOpts.Container.String("config-file", "", "Path to system config file (required)")
-	outputPathPtr := progOpts.Container.String("output-path", ".", "Path to output directory")
-	tagPtr := progOpts.Container.String("tag", "", "Tag for output files")
-	hourlyPtr := progOpts.Container.Bool("hourly", true, "Bucket data hourly")
-	dailyPtr := progOpts.Container.Bool("daily", false, "Bucket data daily")
-	nonePtr := progOpts.Container.Bool("none", false, "Do not bucket data")
-	groupPtr := progOpts.Container.String("group", "", "Group these host name patterns (comma-separated) (requires bucketing, too)")
-	downtimePtr := progOpts.Container.Bool("with-downtime", false, "Include downtime data")
-	err := progOpts.Parse(args)
-	if err != nil {
-		return err
-	}
-	sonalyzePath, err := util.CleanPath(*sonalyzePathPtr, "-sonalyze")
-	if err != nil {
-		return err
-	}
-	configFilename, err := util.CleanPath(*configFilenamePtr, "-config-file")
-	if err != nil {
-		return err
-	}
-	outputPath, err := util.CleanPath(*outputPathPtr, "-output-path")
+func Load(progname string, args []string) error {
+	sonalyzePath, configFilename, outputPath, tag, group, hourly, daily, none, downtime, logOpts, err := commandLine()
 	if err != nil {
 		return err
 	}
@@ -58,29 +38,29 @@ func Load(progname string, args []string) error {
 	// We can use flag.Visit() to do a better job, if we want.
 
 	var bucketing string
-	if *nonePtr {
+	if none {
 		loadArguments = append(loadArguments, "--none")
 		bucketing = "none"
-	} else if *dailyPtr {
+	} else if daily {
 		loadArguments = append(loadArguments, "--daily")
 		bucketing = "daily"
-	} else if *hourlyPtr {
+	} else if hourly {
 		loadArguments = append(loadArguments, "--hourly")
 		bucketing = "hourly"
 	} else {
 		return errors.New("One of --daily, --hourly, or --none is required")
 	}
 
-	if *groupPtr != "" {
+	if group != "" {
 		if bucketing == "none" {
 			return errors.New("Cannot --group together with --none")
 		}
-		if *downtimePtr {
+		if downtime {
 			return errors.New("Cannot --group together with --with-downtime")
 		}
 		loadArguments = append(loadArguments, "--group")
 
-		patterns, err := storage.SplitHostnames(*groupPtr)
+		patterns, err := storage.SplitHostnames(group)
 		if err != nil {
 			return err
 		}
@@ -89,13 +69,16 @@ func Load(progname string, args []string) error {
 		}
 	}
 
-	// For -- this must come last, so do standard options (from/to and files) last always
+	// For -- this must come last, so do standard log options last always
 
-	loadArguments = util.AddStandardOptions(loadArguments, progOpts)
-	downtimeArguments = util.AddStandardOptions(downtimeArguments, progOpts)
+	loadArguments = util.ForwardSonarLogOptions(loadArguments, logOpts)
+	downtimeArguments = util.ForwardSonarLogOptions(downtimeArguments, logOpts)
 
 	// Obtain all the data
 
+	if verbose {
+		fmt.Printf("Sonalyze load arguments\n%v", loadArguments)
+	}
 	loadOutput, err := process.RunSubprocess(sonalyzePath, loadArguments)
 	if err != nil {
 		return err
@@ -107,7 +90,10 @@ func Load(progname string, args []string) error {
 	}
 
 	var downtimeData []*downtimeDataByHost
-	if *downtimePtr {
+	if downtime {
+		if verbose {
+			fmt.Printf("Sonalyze downtime arguments\n%v", downtimeArguments)
+		}
 		downtimeOutput, err := process.RunSubprocess(sonalyzePath, downtimeArguments)
 		if err != nil {
 			return err
@@ -118,7 +104,7 @@ func Load(progname string, args []string) error {
 		}
 	}
 
-	return writePlots(outputPath, *tagPtr, bucketing, *groupPtr != "", loadData, downtimeData)
+	return writePlots(outputPath, tag, bucketing, group != "", loadData, downtimeData)
 }
 
 func writePlots(
@@ -471,3 +457,41 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 
 	return allData, nil
 }
+
+func commandLine() (
+	sonalyzePath string,
+	configFilename string,
+	outputPath string,
+	tag string,
+	group string,
+	hourly, daily, none, downtime bool,
+	logOpts *util.SonarLogOptions,
+	err error,
+) {
+	opts := flag.NewFlagSet(os.Args[0] + " load", flag.ContinueOnError)
+	logOpts = util.AddSonarLogOptions(opts)
+	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
+	opts.StringVar(&configFilename, "config-file", "", "Read cluster configuration from `filename` (required)")
+	opts.StringVar(&outputPath, "output-path", ".", "Store output in `directory`")
+	opts.StringVar(&tag, "tag", "", "Annotate output with `cluster-name` (optional)")
+	opts.StringVar(&group, "group", "", "Group these `host name patterns` (comma-separated) (requires bucketing, too)")
+	opts.BoolVar(&hourly, "hourly", true, "Bucket data hourly")
+	opts.BoolVar(&daily, "daily", false, "Bucket data daily")
+	opts.BoolVar(&none, "none", false, "Do not bucket data")
+	opts.BoolVar(&downtime, "with-downtime", false, "Include downtime data")
+	opts.BoolVar(&verbose, "v", false, "Verbose (debugging) output")
+	err = opts.Parse(os.Args[2:])
+	if err == flag.ErrHelp {
+		os.Exit(0)
+	}
+	if err != nil {
+		return
+	}
+	err1 := util.RectifySonarLogOptions(logOpts, opts)
+	sonalyzePath, err2 := options.RequireCleanPath(sonalyzePath, "-sonalyze")
+	configFilename, err3 := options.RequireCleanPath(configFilename, "-config-file")
+	outputPath, err4 := options.RequireCleanPath(outputPath, "-output-path")
+	err = errors.Join(err1, err2, err3, err4)
+	return
+}
+

@@ -6,12 +6,6 @@ import (
 	"os"
 )
 
-func Fatal(msg string) {
-	Critical(msg)
-	fmt.Fprintf(os.Stderr, "FATAL: %s\n", msg)
-	os.Exit(1)
-}
-
 var logger *syslog.Writer
 
 func Start(logTag string) {
@@ -24,16 +18,38 @@ func Start(logTag string) {
 	}
 }
 
+func Fatal(msg string) {
+	if logger != nil {
+		logger.Crit(msg)
+	}
+	fmt.Fprintf(os.Stderr, "FATAL: %s\n", msg)
+	os.Exit(1)
+}
+
+func Fatalf(format string, args ...any) {
+	Fatal(fmt.Sprintf(format, args...))
+}
+
 func Critical(msg string) {
 	if logger != nil {
 		logger.Crit(msg)
 	}
+	fmt.Fprintf(os.Stderr, "CRITICAL: %s\n", msg)
+}
+
+func Criticalf(format string, args ...any) {
+	Critical(fmt.Sprintf(format, args...))
 }
 
 func Error(msg string) {
 	if logger != nil {
 		logger.Err(msg)
 	}
+	fmt.Fprintf(os.Stderr, "ERROR: %s\n", msg)
+}
+
+func Errorf(format string, args ...any) {
+	Error(fmt.Sprintf(format, args...))
 }
 
 func Warning(msg string) {
@@ -42,8 +58,16 @@ func Warning(msg string) {
 	}
 }
 
+func Warningf(format string, args ...any) {
+	Warning(fmt.Sprintf(format, args...))
+}
+
 func Info(msg string) {
 	if logger != nil {
 		logger.Info(msg)
 	}
+}
+
+func Infof(format string, args ...any) {
+	Info(fmt.Sprintf(format, args...))
 }
