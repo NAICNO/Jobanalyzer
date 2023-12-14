@@ -96,6 +96,14 @@ pub fn now() -> Timestamp {
     Utc::now()
 }
 
+/// far_future: some timestamp not in any sample data.
+///
+/// Note the returned timestamp may contain non-zero subsecond data.
+
+pub fn far_future() -> Timestamp {
+    now() + Duration::days(365)
+}
+
 /// Parse the date, which may contain a non-zero TZO, into a UTC timestamp.
 ///
 /// Note the returned timestamp may contain non-zero subsecond data, if the input had subsecond

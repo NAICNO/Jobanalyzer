@@ -56,6 +56,10 @@ pub use dates::epoch;
 
 pub use dates::now;
 
+// A time that should not be in any sample record.
+
+pub use dates::far_future;
+
 // Parse a &str into a Timestamp.
 
 pub use dates::parse_timestamp;
