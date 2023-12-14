@@ -26,7 +26,7 @@ mkdir -p ${output_dir}
 
 $sonar_dir/sonalyze jobs \
 		    --data-path $data_dir \
-		    --config-file=$script_dir/ml-nodes.json \
+		    --config-file=$script_dir/mlx.hpc.uio.no-config.json \
 		    -u - \
 		    --no-gpu --min-rcpu-peak=10 --min-runtime=10m \
 		    --fmt=csvnamed,tag:cpuhog,now,std,cpu-peak,gpu-peak,rcpu,rmem,start,end,cmd \

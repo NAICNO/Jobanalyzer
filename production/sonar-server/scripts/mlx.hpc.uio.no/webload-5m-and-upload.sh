@@ -24,7 +24,7 @@ mkdir -p $report_dir
 
 $sonar_dir/naicreport load \
 		      -sonalyze $sonar_dir/sonalyze \
-		      -config-file $script_dir/ml-nodes.json \
+		      -config-file $script_dir/mlx.hpc.uio.no-config.json \
 		      -data-path $data_dir \
 		      -output-path $report_dir \
 		      -with-downtime \
@@ -33,7 +33,7 @@ $sonar_dir/naicreport load \
 
 $sonar_dir/naicreport at-a-glance \
 		      -sonalyze $sonar_dir/sonalyze \
-		      -config-file $script_dir/ml-nodes.json \
+		      -config-file $script_dir/mlx.hpc.uio.no-config.json \
 		      -data-path $data_dir \
 		      -state-path $state_dir \
 		      -tag "ML Nodes" \

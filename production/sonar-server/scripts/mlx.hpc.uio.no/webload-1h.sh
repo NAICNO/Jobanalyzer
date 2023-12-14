@@ -15,7 +15,7 @@ mkdir -p $report_dir
 
 $sonar_dir/naicreport load \
 		      -sonalyze $sonar_dir/sonalyze \
-		      -config-file $script_dir/ml-nodes.json \
+		      -config-file $script_dir/mlx.hpc.uio.no-config.json \
 		      -data-path $data_dir \
 		      -with-downtime \
 		      -tag daily \
@@ -24,7 +24,7 @@ $sonar_dir/naicreport load \
 
 $sonar_dir/naicreport load \
 		      -sonalyze $sonar_dir/sonalyze \
-		      -config-file $script_dir/ml-nodes.json \
+		      -config-file $script_dir/mlx.hpc.uio.no-config.json \
 		      -data-path $data_dir \
 		      -with-downtime \
 		      -tag weekly \
@@ -34,7 +34,7 @@ $sonar_dir/naicreport load \
 
 $sonar_dir/naicreport load \
 		     -sonalyze $sonar_dir/sonalyze \
-		     -config-file $script_dir/ml-nodes.json \
+		     -config-file $script_dir/mlx.hpc.uio.no-config.json \
 		     -data-path $data_dir \
 		     -tag ml-nvidia-weekly \
 		     -hourly \
