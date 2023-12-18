@@ -48,7 +48,7 @@ but those will be easier.
   ln ~/.ssh/ubuntu-vm.pem .
 ```
 
-IMPORTANT: Now edit upload-config.sh to your liking.
+IMPORTANT: Now for each CLUSTER edit ~/sonar/scripts/$CLUSTER/upload-config.sh to your liking.
 
 ### Step 3: Activate
 

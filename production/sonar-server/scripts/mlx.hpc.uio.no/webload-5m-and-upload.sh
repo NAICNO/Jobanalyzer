@@ -50,7 +50,7 @@ chmod go+r $report_dir/*-minutely.json
 chmod go+r $report_dir/ml-at-a-glance.json
 chmod go+r $report_dir/ml-hostnames.json
 
-source $sonar_dir/upload-config.sh
+source $script_dir/upload-config.sh
 
 upload_files="$report_dir/*-minutely.json $report_dir/ml-hostnames.json $report_dir/ml-at-a-glance.json"
 if [[ $# -eq 0 || $1 != NOUPLOAD ]]; then
