@@ -1180,7 +1180,7 @@ fn sonalyze() -> Result<()> {
         // Included commands.
 
         let (exclude_system_commands, exclude_heartbeat) = match cli.command {
-            Commands::Load(_) => (true, true),
+            Commands::Load(_) => (true, false),
             Commands::Jobs(_) => (true, true),
             Commands::Uptime(_) => (false, false),
             Commands::Profile(_) => (false, true),
