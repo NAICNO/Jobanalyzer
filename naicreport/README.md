@@ -7,7 +7,8 @@ is separate from `sonalyze` because it has state: it knows what it's reported pr
 redundant reporting.
 
 `naicreport` is really a superstructure for a number of more or less related and more or less ad-hoc
-commands, expressed as verb arguments to `naicreport` itself, here are the ones considered so far:
+commands, expressed as verb arguments to `naicreport` itself, here are the main ones considered so
+far (but run `naicreport help` for a full list):
 
 - `naicreport ml-cpuhog <options>` will digest the `cpuhog.csv` logs produced by the
   `../production/sonalyze/ml-nodes/cpuhog.sh` script and will report new offending jobs to a Proper

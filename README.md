@@ -21,13 +21,14 @@ cases.
 ### Admins
 
 Admins will come to Jobanalyzer via [its web interface](http://http://158.39.48.160/).  The current
-interface is bare-bones and consists of a node-centric load dashboard, allowing the current and
-historical load of each node to be examined, along with some reports of programs that mis-use the
-systems.  Only the UiO ML nodes are currently represented.
+interface is bare-bones and consists of a cluster- and node-centric load dashboard, allowing the
+current and historical load of each cluster and node to be examined, along with some reports of
+programs that mis-use the systems.  The UiO ML nodes and the UiO Fox supercomputer are currently
+represented.
 
 Data for the web interface are produced firstly by periodic analysis by the low-level `sonalyze`
 tool and secondly by the higher-level `naicreport` tool, and the results of these analyses are
-uploaded periodically to the server.
+uploaded periodically to the web server.
 
 The web interface will be extended with more functional dashboards, including alerts for actionable
 items.  (Currently those alerts are emailed.)
@@ -36,12 +37,9 @@ items.  (Currently those alerts are emailed.)
 ### Users
 
 Users will currently come to Jobanalyzer via its command line interface (there is room here for a
-web interface or other GUI but that's down the road).  The primary interface is via the low-level
-`sonalyze` tool.  This tool can be hard to use effectively, but does serve many use cases as
-described below.
-
-In practice, it is likely that common use cases for users should be packaged up and provided
-directly via the higher-level `naicreport` tool.
+web interface or other GUI).  The primary interface is via the low-level `sonalyze` tool.  This tool
+can be hard to use effectively, but does serve many use cases as described elsewhere in the
+documentation.
 
 
 ## Setup
