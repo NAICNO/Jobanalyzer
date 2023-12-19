@@ -10,6 +10,7 @@ set -eu -o pipefail
 
 cluster=mlx.hpc.uio.no
 sonar_dir=$HOME/sonar
+script_dir=$sonar_dir/scripts/$cluster
 report_dir=$sonar_dir/reports/$cluster
 
 # The chmod is done here so that we don't have to do it in naicreport or on the server,
@@ -17,7 +18,7 @@ report_dir=$sonar_dir/reports/$cluster
 # readable by the web server.
 chmod go+r $report_dir/*.json
 
-source $sonar_dir/upload-config.sh
+source $script_dir/upload-config.sh
 
 #scp -C -q -i $IDENTITY_FILE_NAME $load_report_path/*.json $WWWUSER_AND_HOST:$WWWUSER_UPLOAD_PATH
 
