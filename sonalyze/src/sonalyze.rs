@@ -315,9 +315,13 @@ pub struct RecordFilterArgs {
     #[arg(long)]
     exclude_command: Vec<String>,
 
-    /// Select records for this job (repeatable) [default: all]
+    /// Select records for this job ID (repeatable) [default: all]
     #[arg(long, short)]
     job: Vec<String>,
+
+    /// Exclude jobs where the job ID equals this ID (repeatable) [default: none]
+    #[arg(long)]
+    exclude_job: Vec<String>,
 }
 
 impl UrlBuilder {
@@ -339,6 +343,9 @@ impl UrlBuilder {
         }
         for job in &a.job {
             self.add_string("job", job);
+        }
+        for job in &a.exclude_job {
+            self.add_string("exclude-job", job);
         }
     }
 }
@@ -1069,14 +1076,15 @@ fn sonalyze() -> Result<()> {
     }
 
     if let Commands::Profile(ref profile_args) = cli.command {
-        if profile_args.record_filter_args.job.len() != 1 {
-            bail!("Exactly one job number is required by `profile`")
+        if profile_args.record_filter_args.job.len() != 1 || profile_args.record_filter_args.exclude_job.len() != 0 {
+            bail!("Exactly one specific job number is required by `profile`")
         }
     }
 
     let (
         include_hosts,
         include_jobs,
+        exclude_jobs,
         include_users,
         exclude_users,
         include_commands,
@@ -1105,6 +1113,16 @@ fn sonalyze() -> Result<()> {
         let include_jobs = {
             let mut jobs = HashSet::<usize>::new();
             for job in &record_filter_args.job {
+                jobs.insert(usize::from_str(job)?);
+            }
+            jobs
+        };
+
+        // Excluded job numbers.
+
+        let exclude_jobs = {
+            let mut jobs = HashSet::<usize>::new();
+            for job in &record_filter_args.exclude_job {
                 jobs.insert(usize::from_str(job)?);
             }
             jobs
@@ -1234,6 +1252,7 @@ fn sonalyze() -> Result<()> {
         (
             include_hosts,
             include_jobs,
+            exclude_jobs,
             include_users,
             exclude_users,
             include_commands,
@@ -1321,8 +1340,9 @@ fn sonalyze() -> Result<()> {
         ((&include_users).is_empty() || (&include_users).contains(&e.user))
             && ((&include_hosts).is_empty() || (&include_hosts).contains(&e.hostname))
             && ((&include_jobs).is_empty() || (&include_jobs).contains(&(e.job_id as usize)))
-            && !(&exclude_users).contains(&e.user)
             && ((&include_commands).is_empty() || (&include_commands).contains(&e.command))
+            && !(&exclude_users).contains(&e.user)
+            && !(&exclude_jobs).contains(&(e.job_id as usize))
             && !(&exclude_commands).contains(&e.command)
             && (!have_from || from <= e.timestamp)
             && (!have_to || e.timestamp <= to)
