@@ -8,9 +8,9 @@ use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
 use sonarlog::{
-    self, add_day, add_half_day, add_half_hour, add_hour, empty_logentry, gpuset_to_string, now, truncate_to_day,
-    truncate_to_half_day, truncate_to_hour, truncate_to_half_hour, HostFilter, InputStreamSet, LogEntry,
-    MergedSampleStreams, Timestamp,
+    self, add_day, add_half_day, add_half_hour, add_hour, empty_logentry, gpuset_to_string, now,
+    truncate_to_day, truncate_to_half_day, truncate_to_half_hour, truncate_to_hour, HostFilter,
+    InputStreamSet, LogEntry, MergedSampleStreams, Timestamp,
 };
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -102,17 +102,16 @@ pub fn aggregate_and_print_load(
     // Bucket the data, if applicable
 
     if bucket_opt != BucketOpt::None {
-        merged_streams = merged_streams.drain(0..).
-            map(|stream| {
-                match bucket_opt {
-                    BucketOpt::Hourly => sonarlog::fold_samples_hourly(stream),
-                    BucketOpt::HalfHourly => sonarlog::fold_samples_half_hourly(stream),
-                    BucketOpt::Daily => sonarlog::fold_samples_daily(stream),
-                    BucketOpt::HalfDaily => sonarlog::fold_samples_half_daily(stream),
-                    BucketOpt::None => panic!("Unexpected"),
-                }
-            }).
-            collect::<MergedSampleStreams>();
+        merged_streams = merged_streams
+            .drain(0..)
+            .map(|stream| match bucket_opt {
+                BucketOpt::Hourly => sonarlog::fold_samples_hourly(stream),
+                BucketOpt::HalfHourly => sonarlog::fold_samples_half_hourly(stream),
+                BucketOpt::Daily => sonarlog::fold_samples_daily(stream),
+                BucketOpt::HalfDaily => sonarlog::fold_samples_half_daily(stream),
+                BucketOpt::None => panic!("Unexpected"),
+            })
+            .collect::<MergedSampleStreams>();
     }
 
     // If grouping, merge the streams across hosts and compute a system config that represents the
@@ -133,7 +132,10 @@ pub fn aggregate_and_print_load(
                     the_conf.gpu_cards += probe.gpu_cards;
                     the_conf.gpumem_gb += probe.gpumem_gb;
                 } else if relative {
-                    bail!("Relative values requested without config info for {}", stream[0].hostname);
+                    bail!(
+                        "Relative values requested without config info for {}",
+                        stream[0].hostname
+                    );
                 }
             }
             merged_conf = Some(&the_conf);
@@ -168,16 +170,18 @@ pub fn aggregate_and_print_load(
                 .unwrap();
         }
 
-        let sysconf =
-            if let Some(_) = merged_conf {
-                merged_conf
-            } else if let Some(ref ht) = system_config {
-                ht.get(&hostname)
-            } else if relative {
-                bail!("Relative values requested without config info for {}", hostname)
-            } else {
-                None
-            };
+        let sysconf = if let Some(_) = merged_conf {
+            merged_conf
+        } else if let Some(ref ht) = system_config {
+            ht.get(&hostname)
+        } else if relative {
+            bail!(
+                "Relative values requested without config info for {}",
+                hostname
+            )
+        } else {
+            None
+        };
 
         let ctx = PrintContext {
             sys: sysconf,
@@ -289,13 +293,12 @@ fn insert_missing_records(
     to: Timestamp,
     bucket_opt: BucketOpt,
 ) -> Vec<Box<LogEntry>> {
-    let (trunc, step): (fn(Timestamp) -> Timestamp, fn(Timestamp) -> Timestamp) =
-        match bucket_opt {
-            BucketOpt::Hourly => (truncate_to_hour, add_hour),
-            BucketOpt::HalfHourly => (truncate_to_half_hour, add_half_hour),
-            BucketOpt::HalfDaily => (truncate_to_half_day, add_half_day),
-            BucketOpt::Daily | BucketOpt::None => (truncate_to_day, add_day),
-        };
+    let (trunc, step): (fn(Timestamp) -> Timestamp, fn(Timestamp) -> Timestamp) = match bucket_opt {
+        BucketOpt::Hourly => (truncate_to_hour, add_hour),
+        BucketOpt::HalfHourly => (truncate_to_half_hour, add_half_hour),
+        BucketOpt::HalfDaily => (truncate_to_half_day, add_half_day),
+        BucketOpt::Daily | BucketOpt::None => (truncate_to_day, add_day),
+    };
     let host = records[0].hostname.clone();
     let mut t = trunc(from);
     let mut result = vec![];

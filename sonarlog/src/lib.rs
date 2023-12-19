@@ -74,17 +74,17 @@ pub use dates::timestamp_from_ymd;
 
 // Return the timestamp with various parts cleared out.
 
-pub use dates::truncate_to_hour;
-pub use dates::truncate_to_half_hour;
 pub use dates::truncate_to_day;
 pub use dates::truncate_to_half_day;
+pub use dates::truncate_to_half_hour;
+pub use dates::truncate_to_hour;
 
 // Add various quantities to the timestamp
 
-pub use dates::add_hour;
-pub use dates::add_half_hour;
 pub use dates::add_day;
 pub use dates::add_half_day;
+pub use dates::add_half_hour;
+pub use dates::add_hour;
 
 // Compute a set of plausible log file names within a directory tree, for a date range and a set of
 // included host names.
@@ -172,10 +172,10 @@ pub use synthesize::merge_across_hosts_by_time;
 
 // Bucket samples in a single stream by various time quantities and compute averages.
 
-pub use synthesize::fold_samples_hourly;
-pub use synthesize::fold_samples_half_hourly;
 pub use synthesize::fold_samples_daily;
 pub use synthesize::fold_samples_half_daily;
+pub use synthesize::fold_samples_half_hourly;
+pub use synthesize::fold_samples_hourly;
 
 // A datum representing a bag of merged streams, with no implied constraints on uniqueness of any
 // type of key or any ordering.

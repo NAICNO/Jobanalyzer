@@ -114,7 +114,7 @@ pub struct Timebound {
 
 pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timebounds, usize)> {
     let mut entries = Vec::<Box<LogEntry>>::new();
-    let mut discarded : usize = 0;
+    let mut discarded: usize = 0;
 
     // Read all the files
     for file in logfiles {

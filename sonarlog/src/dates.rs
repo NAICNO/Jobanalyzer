@@ -41,7 +41,14 @@ pub fn truncate_to_hour(t: Timestamp) -> Timestamp {
 /// 30.  The contract for Timelike::minute() is that it returns a value<60.
 
 pub fn truncate_to_half_hour(t: Timestamp) -> Timestamp {
-    timestamp_from_ymdhms(t.year(), t.month(), t.day(), t.hour(), if t.minute() < 30 { 0 } else { 30 }, 0)
+    timestamp_from_ymdhms(
+        t.year(),
+        t.month(),
+        t.day(),
+        t.hour(),
+        if t.minute() < 30 { 0 } else { 30 },
+        0,
+    )
 }
 
 /// Add one day to the timestamp.
@@ -66,7 +73,14 @@ pub fn truncate_to_day(t: Timestamp) -> Timestamp {
 /// 12.  The contract for Timelike::hour() is that it returns a value<24.
 
 pub fn truncate_to_half_day(t: Timestamp) -> Timestamp {
-    timestamp_from_ymdhms(t.year(), t.month(), t.day(), if t.hour() < 12 { 0 } else { 12 }, 0, 0)
+    timestamp_from_ymdhms(
+        t.year(),
+        t.month(),
+        t.day(),
+        if t.hour() < 12 { 0 } else { 12 },
+        0,
+        0,
+    )
 }
 
 /// Add one hour to the timestamp.

@@ -55,12 +55,14 @@ const MAGIC_BOOLEAN: &str = "xxxxxtruexxxxx";
 // remote queries.
 
 struct UrlBuilder {
-    options: String
+    options: String,
 }
 
 impl UrlBuilder {
     fn new() -> UrlBuilder {
-        UrlBuilder { options: "".to_string() }
+        UrlBuilder {
+            options: "".to_string(),
+        }
     }
 
     fn add_option_date(&mut self, name: &str, t: &Option<Timestamp>) {
@@ -126,10 +128,9 @@ impl UrlBuilder {
     }
 
     fn encoded_arguments(&self) -> String {
-        return self.options.to_string()
+        return self.options.to_string();
     }
 }
-
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -233,7 +234,6 @@ pub struct UptimeCmdArgs {
     #[command(flatten)]
     meta_args: MetaArgs,
 }
-
 
 #[derive(Args, Debug)]
 pub struct ProfileCmdArgs {
@@ -620,7 +620,6 @@ pub struct JobPrintArgs {
      * #[arg(long)]
      * breakdown: Option<String>,
      */
-
     /// Print at most these many most recent jobs per user [default: all]
     #[arg(long, short)]
     numjobs: Option<usize>,
@@ -938,42 +937,50 @@ fn sonalyze() -> Result<()> {
 
     // When remoting we build a URL from all the options and then just pass it to curl.
 
-    let (remote_arg, cluster_arg, data_path_arg) =
-        match cli.command {
-            Commands::Version => {
-                panic!("Should not happen")
-            }
-            Commands::Jobs(ref args) => {
-                (&args.source_args.remote, &args.source_args.cluster, &args.source_args.data_path)
-            }
-            Commands::Load(ref args) => {
-                (&args.source_args.remote, &args.source_args.cluster, &args.source_args.data_path)
-            }
-            Commands::Uptime(ref args) => {
-                (&args.source_args.remote, &args.source_args.cluster, &args.source_args.data_path)
-            }
-            Commands::Profile(ref args) => {
-                (&args.source_args.remote, &args.source_args.cluster, &args.source_args.data_path)
-            }
-            Commands::Parse(ref args) | Commands::Metadata(ref args) => {
-                (&args.source_args.remote, &args.source_args.cluster, &args.source_args.data_path)
-            }
-        };
-    let remoting =
-        if remote_arg.is_some() || cluster_arg.is_some() {
-            // TODO: Probably, --cluster *does* make sense with --data-path, and will be convenient,
-            // when we run sonalyze from the command line on the server.
-            if data_path_arg.is_some() {
-                bail!("--data-path may not be used with --remote or --cluster")
-            }
-            if remote_arg.is_some() != cluster_arg.is_some() {
-                bail!("--remote and --cluster must be used together")
-            }
-            // TODO: Can check the syntax of the URL, but can also let curl do that for us.
-            true
-        } else {
-            false
-        };
+    let (remote_arg, cluster_arg, data_path_arg) = match cli.command {
+        Commands::Version => {
+            panic!("Should not happen")
+        }
+        Commands::Jobs(ref args) => (
+            &args.source_args.remote,
+            &args.source_args.cluster,
+            &args.source_args.data_path,
+        ),
+        Commands::Load(ref args) => (
+            &args.source_args.remote,
+            &args.source_args.cluster,
+            &args.source_args.data_path,
+        ),
+        Commands::Uptime(ref args) => (
+            &args.source_args.remote,
+            &args.source_args.cluster,
+            &args.source_args.data_path,
+        ),
+        Commands::Profile(ref args) => (
+            &args.source_args.remote,
+            &args.source_args.cluster,
+            &args.source_args.data_path,
+        ),
+        Commands::Parse(ref args) | Commands::Metadata(ref args) => (
+            &args.source_args.remote,
+            &args.source_args.cluster,
+            &args.source_args.data_path,
+        ),
+    };
+    let remoting = if remote_arg.is_some() || cluster_arg.is_some() {
+        // TODO: Probably, --cluster *does* make sense with --data-path, and will be convenient,
+        // when we run sonalyze from the command line on the server.
+        if data_path_arg.is_some() {
+            bail!("--data-path may not be used with --remote or --cluster")
+        }
+        if remote_arg.is_some() != cluster_arg.is_some() {
+            bail!("--remote and --cluster must be used together")
+        }
+        // TODO: Can check the syntax of the URL, but can also let curl do that for us.
+        true
+    } else {
+        false
+    };
     if remoting {
         let mut b = UrlBuilder::new();
         let mut request = remote_arg.as_ref().unwrap().to_string();
@@ -1076,7 +1083,9 @@ fn sonalyze() -> Result<()> {
     }
 
     if let Commands::Profile(ref profile_args) = cli.command {
-        if profile_args.record_filter_args.job.len() != 1 || profile_args.record_filter_args.exclude_job.len() != 0 {
+        if profile_args.record_filter_args.job.len() != 1
+            || profile_args.record_filter_args.exclude_job.len() != 0
+        {
             bail!("Exactly one specific job number is required by `profile`")
         }
     }
@@ -1281,8 +1290,10 @@ fn sonalyze() -> Result<()> {
         let (from, have_from) = if let Some(x) = source_args.from {
             (x, true)
         } else {
-            (sonarlog::now() - chrono::Duration::days(1),
-             source_args.logfiles.len() == 0)
+            (
+                sonarlog::now() - chrono::Duration::days(1),
+                source_args.logfiles.len() == 0,
+            )
         };
         let (to, have_to) = if let Some(x) = source_args.to {
             (x, true)
@@ -1369,12 +1380,20 @@ fn sonalyze() -> Result<()> {
     let from = if have_from || bounds.len() == 0 {
         from
     } else {
-        bounds.iter().map(|(_,x)| x.earliest).reduce(|a,b| if a < b { a } else {b}).unwrap()
+        bounds
+            .iter()
+            .map(|(_, x)| x.earliest)
+            .reduce(|a, b| if a < b { a } else { b })
+            .unwrap()
     };
     let to = if have_to || bounds.len() == 0 {
         to
     } else {
-        bounds.iter().map(|(_,x)| x.latest).reduce(|a,b| if a > b { a } else {b}).unwrap()
+        bounds
+            .iter()
+            .map(|(_, x)| x.latest)
+            .reduce(|a, b| if a > b { a } else { b })
+            .unwrap()
     };
 
     if meta_args.verbose {

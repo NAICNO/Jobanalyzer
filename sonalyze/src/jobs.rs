@@ -19,10 +19,10 @@ use std::io;
 pub const LIVE_AT_END: u32 = 1; // Earliest timestamp coincides with earliest record read
 pub const LIVE_AT_START: u32 = 2; // Ditto latest/latest
                                   // Subjob level is eight bits at this offset
-/* BREAKDOWN
- * pub const LEVEL_SHIFT: u32 = 8;
- * pub const LEVEL_MASK: u32 = 255;
- */
+                                  /* BREAKDOWN
+                                   * pub const LEVEL_SHIFT: u32 = 8;
+                                   * pub const LEVEL_MASK: u32 = 255;
+                                   */
 
 /// The JobAggregate structure holds aggregated data for a single job.  The view of the job may be
 /// partial, as job records may have been filtered out for the job for various reasons, including

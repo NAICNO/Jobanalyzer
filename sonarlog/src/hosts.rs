@@ -195,28 +195,31 @@ fn test_expansion() {
 pub fn combine_hosts(hosts: Vec<String>) -> String {
     // Split into groups of names a.b.c.d whose tails .b.c.d are the same, we will attempt to merge
     // their `a` elements.
-    let mut splits = hosts.iter().map(|s| s.split(".").collect::<Vec<&str>>()).collect::<Vec<Vec<&str>>>();
+    let mut splits = hosts
+        .iter()
+        .map(|s| s.split(".").collect::<Vec<&str>>())
+        .collect::<Vec<Vec<&str>>>();
 
     // Sort lexicographically by tail first and then hostname second - this will allow us to group
     // by tail in a single pass and later group by prefix in another pass.
-    splits.sort_by(|a,b| {
+    splits.sort_by(|a, b| {
         let mut i = 1;
         while i < a.len() || i < b.len() {
             if i < a.len() && i < b.len() {
                 if a[i] != b[i] {
-                    return a[i].cmp(&b[i])
+                    return a[i].cmp(&b[i]);
                 }
             } else if i < a.len() {
-                return std::cmp::Ordering::Greater
+                return std::cmp::Ordering::Greater;
             } else {
-                return std::cmp::Ordering::Less
+                return std::cmp::Ordering::Less;
             }
             i += 1;
         }
-        return a[0].cmp(&b[0])
+        return a[0].cmp(&b[0]);
     });
 
-    let mut groups : Vec<&[Vec<&str>]> = vec![];
+    let mut groups: Vec<&[Vec<&str>]> = vec![];
     let mut i = 0;
     while i < splits.len() {
         let mut j = i + 1;
@@ -249,7 +252,7 @@ pub fn combine_hosts(hosts: Vec<String>) -> String {
                     suffixes.push(g[j][0][ix..].parse::<usize>().unwrap());
                     j += 1;
                 } else {
-                    break
+                    break;
                 }
             }
             if suffixes.is_empty() {

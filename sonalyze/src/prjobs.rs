@@ -119,7 +119,9 @@ pub fn print_jobs(
         }
 
         let mut selected = vec![];
-        for /*mut*/ job in jobvec.drain(0..) {
+        for
+        /*mut*/
+        job in jobvec.drain(0..) {
             if job.aggregate.selected {
                 /* BREAKDOWN
                  * let breakdown = job.breakdown;
@@ -131,7 +133,10 @@ pub fn print_jobs(
                  */
             }
         }
-        let c = Context { t: now(), fixed_format: !opts.json && !opts.csv };
+        let c = Context {
+            t: now(),
+            fixed_format: !opts.json && !opts.csv,
+        };
         format::format_data(output, &fields, &formatters, &opts, selected, &c);
     }
 

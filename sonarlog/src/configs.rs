@@ -131,14 +131,22 @@ fn grab_bool_opt(fields: &serde_json::Map<String, Value>, name: &str) -> Result<
 }
 
 fn expand_hostname(hn: &str) -> Result<Vec<String>> {
-    let elements = hn.split('.').map(|x| x.to_string()).collect::<Vec<String>>();
+    let elements = hn
+        .split('.')
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>();
     let expansions = hosts::expand_patterns(&elements)?;
     let mut result = vec![];
     for mut exps in expansions {
         if exps.iter().any(|(prefix, _)| *prefix) {
             bail!("Suffix wildcard not allowed in expandable hostname in config file")
         }
-        result.push(exps.drain(0..).map(|(_, elt)| elt).collect::<Vec<String>>().join("."))
+        result.push(
+            exps.drain(0..)
+                .map(|(_, elt)| elt)
+                .collect::<Vec<String>>()
+                .join("."),
+        )
     }
     Ok(result)
 }

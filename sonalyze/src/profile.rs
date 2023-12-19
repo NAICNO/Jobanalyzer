@@ -39,7 +39,7 @@ pub fn print(
     // Simplify: Assert that we have only a single host.
     // Precompute: check whether we need the nproc field
 
-    let mut host : Option<&str> = None;
+    let mut host: Option<&str> = None;
     let mut has_rolledup = false;
     for ((k, _, _), es) in entries.iter() {
         for e in es {
@@ -67,7 +67,8 @@ pub fn print(
             if fld == "html" {
                 html_output = true;
                 outputs += 1;
-            } if fld == "json" {
+            }
+            if fld == "json" {
                 json_output = true;
                 outputs += 1;
             } else if fld == "csv" {
@@ -99,8 +100,11 @@ pub fn print(
     // We want these sorted in the order in which they start being shown, so that there is a natural
     // feel to the list of processes for each timestamp.  Sorting ascending by first timestamp will
     // accomplish that.
-    let mut processes = entries.drain().map(|(_,v)| v).collect::<Vec<Vec<Box<LogEntry>>>>();
-    processes.sort_by(|a,b| a[0].timestamp.cmp(&b[0].timestamp));
+    let mut processes = entries
+        .drain()
+        .map(|(_, v)| v)
+        .collect::<Vec<Vec<Box<LogEntry>>>>();
+    processes.sort_by(|a, b| a[0].timestamp.cmp(&b[0].timestamp));
 
     // Print headings: Command name with PID, for now
     if csv_output {
@@ -116,7 +120,9 @@ pub fn print(
     let mut indices = vec![0; processes.len()];
 
     // Number of nonempty streams remaining, this is the termination condition.
-    let mut nonempty = processes.iter().fold(0, |acc, l| acc + if l.len() > 0 { 1 } else { 0 });
+    let mut nonempty = processes
+        .iter()
+        .fold(0, |acc, l| acc + if l.len() > 0 { 1 } else { 0 });
     let initial_nonempty = nonempty;
 
     // The generated report structures.
@@ -159,9 +165,12 @@ pub fn print(
                     let newr = clamp_fields(&r, filter_args);
                     if fixed_output {
                         if first {
-                            fixed_reports.push(ReportLine{ t: Some(mintime), r: newr });
+                            fixed_reports.push(ReportLine {
+                                t: Some(mintime),
+                                r: newr,
+                            });
                         } else {
-                            fixed_reports.push(ReportLine{ t: None, r: newr });
+                            fixed_reports.push(ReportLine { t: None, r: newr });
                         }
                     } else if json_output {
                         curr_json_report.push(newr);
@@ -199,38 +208,41 @@ pub fn print(
     if let Some(b) = filter_args.bucket {
         let nproc = processes.len();
         if b > 1 && (csv_output || html_output) {
-            csv_reports = csv_reports.chunks(b).map(|rows| {
-                let new_t = rows[rows.len()/2].0;
-                let mut recs = vec![];
-                for i in 0..nproc {
-                    let mut count = 0;
-                    let mut cpu_util_pct = 0.0;
-                    let mut mem_gb = 0.0;
-                    let mut gpu_pct = 0.0;
-                    let mut gpumem_gb = 0.0;
-                    let mut avg = None;
-                    for (_, row) in rows {
-                        if let Some(ref proc) = row[i] {
-                            if avg.is_none() {
-                                avg = Some(proc.clone())
+            csv_reports = csv_reports
+                .chunks(b)
+                .map(|rows| {
+                    let new_t = rows[rows.len() / 2].0;
+                    let mut recs = vec![];
+                    for i in 0..nproc {
+                        let mut count = 0;
+                        let mut cpu_util_pct = 0.0;
+                        let mut mem_gb = 0.0;
+                        let mut gpu_pct = 0.0;
+                        let mut gpumem_gb = 0.0;
+                        let mut avg = None;
+                        for (_, row) in rows {
+                            if let Some(ref proc) = row[i] {
+                                if avg.is_none() {
+                                    avg = Some(proc.clone())
+                                }
+                                count += 1;
+                                cpu_util_pct += proc.cpu_util_pct;
+                                mem_gb += proc.mem_gb;
+                                gpu_pct += proc.gpu_pct;
+                                gpumem_gb += proc.gpumem_gb;
                             }
-                            count += 1;
-                            cpu_util_pct += proc.cpu_util_pct;
-                            mem_gb += proc.mem_gb;
-                            gpu_pct += proc.gpu_pct;
-                            gpumem_gb += proc.gpumem_gb;
                         }
+                        if let Some(ref mut avg) = avg {
+                            avg.cpu_util_pct = cpu_util_pct / (count as f64);
+                            avg.mem_gb = mem_gb / (count as f64);
+                            avg.gpu_pct = gpu_pct / (count as f64);
+                            avg.gpumem_gb = gpumem_gb / (count as f64);
+                        }
+                        recs.push(avg);
                     }
-                    if let Some(ref mut avg) = avg {
-                        avg.cpu_util_pct = cpu_util_pct / (count as f64);
-                        avg.mem_gb = mem_gb / (count as f64);
-                        avg.gpu_pct = gpu_pct / (count as f64);
-                        avg.gpumem_gb = gpumem_gb / (count as f64);
-                    }
-                    recs.push(avg);
-                }
-                (new_t, recs)
-            }).collect::<Vec<(Timestamp, Vec<Option<Box<LogEntry>>>)>>();
+                    (new_t, recs)
+                })
+                .collect::<Vec<(Timestamp, Vec<Option<Box<LogEntry>>>)>>();
         }
         if b > 1 && json_output {
             bail!("Bucketing not implemented for json output");
@@ -257,7 +269,7 @@ pub fn print(
     };
     let (fields, others) = format::parse_fields(spec, &formatters, &aliases)?;
     let mut opts = format::standard_options(&others);
-    if opts.named  {
+    if opts.named {
         bail!("Named fields are not supported")
     }
     opts.nodefaults = false;
@@ -267,8 +279,20 @@ pub fn print(
 
     if html_output {
         let bucketing = max(filter_args.bucket.or(Some(1)).unwrap(), 1);
-        let html_labels = processes.iter().map(|p| { format!("{} ({})", p[0].command, p[0].pid) }).collect::<Vec<String>>();
-        write_html(output, &hostname, jobno, bucketing, &fields, &html_labels, processes.len(), &csv_reports)?;
+        let html_labels = processes
+            .iter()
+            .map(|p| format!("{} ({})", p[0].command, p[0].pid))
+            .collect::<Vec<String>>();
+        write_html(
+            output,
+            &hostname,
+            jobno,
+            bucketing,
+            &fields,
+            &html_labels,
+            processes.len(),
+            &csv_reports,
+        )?;
     } else if json_output {
         write_json(output, &json_reports)?;
     } else if csv_output {
@@ -314,10 +338,18 @@ fn my_formatters() -> (
     formatters.insert("nproc".to_string(), &format_nproc);
     formatters.insert("cmd".to_string(), &format_cmd);
 
-    aliases.insert("all".to_string(),
-                   vec!["time".to_string(), "cpu".to_string(), "mem".to_string(),
-                        "gpu".to_string(), "gpumem".to_string(), "nproc".to_string(),
-                        "cmd".to_string()]);
+    aliases.insert(
+        "all".to_string(),
+        vec![
+            "time".to_string(),
+            "cpu".to_string(),
+            "mem".to_string(),
+            "gpu".to_string(),
+            "gpumem".to_string(),
+            "nproc".to_string(),
+            "cmd".to_string(),
+        ],
+    );
 
     (formatters, aliases)
 }
@@ -355,7 +387,11 @@ fn format_gpumem(d: LogDatum, _: LogCtx) -> String {
 }
 
 fn format_nproc(d: LogDatum, _: LogCtx) -> String {
-    if d.r.rolledup == 0 { "".to_string() } else { format!("{}", d.r.rolledup + 1) }
+    if d.r.rolledup == 0 {
+        "".to_string()
+    } else {
+        format!("{}", d.r.rolledup + 1)
+    }
 }
 
 fn format_cmd(d: LogDatum, _: LogCtx) -> String {
@@ -397,25 +433,44 @@ fn check_fields(fields: &[&str]) -> Result<(bool, bool, bool, bool)> {
     let mut gpumem_field = 0;
     for f in fields {
         match *f {
-            "cpu" => { cpu_field += 1; }
-            "gpu" => { gpu_field += 1; }
-            "mem" => { mem_field += 1; }
-            "gpumem" => { gpumem_field += 1; }
+            "cpu" => {
+                cpu_field += 1;
+            }
+            "gpu" => {
+                gpu_field += 1;
+            }
+            "mem" => {
+                mem_field += 1;
+            }
+            "gpumem" => {
+                gpumem_field += 1;
+            }
             "csv" | "html" => {}
-            _ => { bail!("Not a known field: {f}") }
+            _ => {
+                bail!("Not a known field: {f}")
+            }
         }
     }
     if cpu_field + mem_field + gpu_field + gpumem_field != 1 {
         bail!("formatted output needs exactly one valid field")
     }
-    Ok((cpu_field > 0, mem_field > 0, gpu_field > 0, gpumem_field > 0))
+    Ok((
+        cpu_field > 0,
+        mem_field > 0,
+        gpu_field > 0,
+        gpumem_field > 0,
+    ))
 }
 
 // Each data record has a timestamp and then a vector of length = the number of processes.  The
 // values in the record are None (no information - process not running) or the LogEntry for the
 // process at that time.
 
-fn write_csv(output: &mut dyn io::Write, fields: &[&str], data: &[(Timestamp, Vec<Option<Box<LogEntry>>>)]) -> Result<()> {
+fn write_csv(
+    output: &mut dyn io::Write,
+    fields: &[&str],
+    data: &[(Timestamp, Vec<Option<Box<LogEntry>>>)],
+) -> Result<()> {
     let (cpu_field, mem_field, gpu_field, gpumem_field) = check_fields(fields)?;
     for (t, xs) in data {
         let mut s = "".to_string();
@@ -456,10 +511,14 @@ fn write_html(
     fields: &[&str],
     col_labels: &[String],
     numprocs: usize,
-    data: &[(Timestamp, Vec<Option<Box<LogEntry>>>)]
+    data: &[(Timestamp, Vec<Option<Box<LogEntry>>>)],
 ) -> Result<()> {
     let (cpu_field, mem_field, gpu_field, gpumem_field) = check_fields(fields)?;
-    let labels = data.iter().map(|(t, _)| t.format("\"%Y-%m-%d %H:%M\"").to_string()).collect::<Vec<String>>().join(",");
+    let labels = data
+        .iter()
+        .map(|(t, _)| t.format("\"%Y-%m-%d %H:%M\"").to_string())
+        .collect::<Vec<String>>()
+        .join(",");
     // One dataset per process.
     let mut datasets = vec![];
     let mut username = "".to_string();
@@ -570,7 +629,7 @@ fn clamp_fields(r: &Box<LogEntry>, filter_args: &ProfileFilterAndAggregationArgs
 fn clamp_max(x: f64, c: Option<f64>) -> f64 {
     if let Some(c) = c {
         if x > c {
-            if x > 2.0*c {
+            if x > 2.0 * c {
                 0.0
             } else {
                 c

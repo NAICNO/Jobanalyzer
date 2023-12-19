@@ -62,7 +62,13 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
         // Any user from any record is fine.  There should be an invariant that no stream is empty,
         // so this should always be safe.
         let user = streams[0][0].user.clone();
-        vs.push(merge_streams(hostname, commands.join(","), user, job_id, streams));
+        vs.push(merge_streams(
+            hostname,
+            commands.join(","),
+            user,
+            job_id,
+            streams,
+        ));
     }
 
     vs
@@ -134,7 +140,13 @@ pub fn merge_by_job(
         // Any user from any record is fine.  There should be an invariant that no stream is empty,
         // so this should always be safe.
         let user = streams[0][0].user.clone();
-        vs.push(merge_streams(hostname, commands.join(","), user, job_id, streams));
+        vs.push(merge_streams(
+            hostname,
+            commands.join(","),
+            user,
+            job_id,
+            streams,
+        ));
     }
 
     (vs, new_bounds)
@@ -177,17 +189,21 @@ pub fn merge_by_host(mut streams: InputStreamSet) -> MergedSampleStreams {
 
 pub fn merge_across_hosts_by_time(streams: MergedSampleStreams) -> MergedSampleStreams {
     if streams.len() == 0 {
-        return vec![]
+        return vec![];
     }
-    let hostname = combine_hosts(streams.iter().map(|s| s[0].hostname.clone()).collect::<Vec<String>>());
-    vec![
-        merge_streams(
-            hostname,
-            "_merged_".to_string(),
-            "_merged_".to_string(),
-            0,
-            streams)
-    ]
+    let hostname = combine_hosts(
+        streams
+            .iter()
+            .map(|s| s[0].hostname.clone())
+            .collect::<Vec<String>>(),
+    );
+    vec![merge_streams(
+        hostname,
+        "_merged_".to_string(),
+        "_merged_".to_string(),
+        0,
+        streams,
+    )]
 }
 
 // What does it mean to sample a job that runs on multiple hosts, or to sample a host that runs
@@ -458,7 +474,6 @@ fn merge_streams(
 
                 // This is an old record and we can ignore it.
                 continue;
-
             } else if ix == STREAM_ENDED {
                 // Highly likely - stream already marked as exhausted.
                 continue;

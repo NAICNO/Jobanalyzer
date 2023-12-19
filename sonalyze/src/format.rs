@@ -349,4 +349,3 @@ fn format_awk<'a>(
         output.write(line.as_bytes()).unwrap();
     }
 }
-

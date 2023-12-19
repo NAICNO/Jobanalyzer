@@ -133,7 +133,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
         fields: Vec<String>,
     }
 
-    let mut discarded : usize = 0;
+    let mut discarded: usize = 0;
 
     // An error here is going to be an I/O error so always propagate it.
     let mut reader = csv::ReaderBuilder::new()

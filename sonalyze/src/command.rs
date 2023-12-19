@@ -57,7 +57,7 @@ pub fn run_with_timeout(command: &str, timeout_seconds: u64) -> Result<String, S
             Ok((_, _)) => {
                 // Some type of internal error
                 stdout_result = "Internal error".to_string();
-                break true
+                break true;
             }
             Err(e) => {
                 if e.error.kind() == io::ErrorKind::TimedOut {
@@ -65,17 +65,17 @@ pub fn run_with_timeout(command: &str, timeout_seconds: u64) -> Result<String, S
                         Ok(_) => {
                             // Command is hung
                             stdout_result = "Timed out".to_string();
-                            break true
+                            break true;
                         }
                         Err(_) => {
                             // Some type of internal error
                             stdout_result = "Timed out / internal error".to_string();
-                            break true
+                            break true;
                         }
                     }
                 }
                 // Some type of internal error
-                break true
+                break true;
             }
         }
     };
