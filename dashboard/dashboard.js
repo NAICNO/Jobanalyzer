@@ -48,6 +48,14 @@ function cluster_info(cluster) {
     }
 }
 
+// The sonalyze daemon can serve up content (static or dynamic) in response to queries.
+// TODO: This is not a great place for this information.
+
+function sonalyzedAddress() {
+    // Currently only plain HTTP
+    return "http://158.39.48.160:8087"
+}
+
 // Update the window title and the main document title with the cluster name.
 
 function rewriteTitle(extra) {

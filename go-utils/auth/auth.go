@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -27,11 +28,16 @@ func ParseAuth(filename string) (string, string, error) {
 	return xs[0], xs[1], nil
 }
 
-// Read a file with lines of username and password pairs and return a function that will check a
-// username/password pair.  Only the new form, "username:password", is accepted.  Lines can be blank
-// (mostly a concession to an empty last line, sort of silly).
+type Authenticator struct {
+	filepath string
+	identities map[string]string
+}
 
-func ParsePasswdFile(filename string) (func(user, pass string) bool, error) {
+// Read a file with lines of username and password pairs and return an object that will check a
+// username/password pair.  Only the new syntax, "username:password", is accepted.  Lines can be
+// blank.
+
+func ReadPasswords(filename string) (*Authenticator, error) {
 	bs, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -52,8 +58,19 @@ func ParsePasswdFile(filename string) (func(user, pass string) bool, error) {
 		}
 		m[xs[0]] = xs[1]
 	}
-	return func(user, pass string) bool {
-		probe, found := m[user]
-		return found && probe == pass
+	return &Authenticator{
+		filepath: filename,
+		identities: m,
 	}, nil
+}
+
+func (a *Authenticator) Authenticate(user, pass string) bool {
+	// TODO: This needs to be under a mutex or using an atomic, once Reread is implemented
+	probe, found := a.identities[user]
+	return found && probe == pass
+}
+
+func (a *Authenticator) Reread() error {
+	// TODO: This needs to be under a mutex or using an atomic
+	return errors.New("auth.Reread not implemented")
 }

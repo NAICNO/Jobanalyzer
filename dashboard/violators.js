@@ -17,7 +17,7 @@ function render_violators_by_time(elt_id, filter) {
 		  {name: "Mem% peak", tag:"rmem-peak"},
 		 ]
     render_table_from_file(
-	tag_file("violator-report.json"),	
+	tag_file("violator-report.json"),
 	fields,
 	document.getElementById(elt_id),
 	cmp_string_fields("last-seen", true),

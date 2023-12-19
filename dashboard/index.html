@@ -1,12 +1,21 @@
 <html>
   <head>
     <title>NAIC Dashboards</title>
+    <script src="testflag.js"></script>
+    <script src="dashboard.js"></script>
+    <script>
+      function setup() {
+          document.getElementById("jobquery_link").href=`${sonalyzedAddress()}/q/jobquery.html`
+      }
+    </script>
   </head>
-  <body>
+  <body onload="setup()">
     <h1>NAIC Dashboards</h1>
     <div><a href="dash2.html?cluster=ml">ML Nodes dashboard</a></div>
     <div>&nbsp;</div>
     <div><a href="dash2.html?cluster=fox">Fox dashboard</a></div>
+    <div>&nbsp;</div>
+    <div><a id="jobquery_link">Interactive query</a></div>
     <div>&nbsp;</div>
   </body>
 </html>

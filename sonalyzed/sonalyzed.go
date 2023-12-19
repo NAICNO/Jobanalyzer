@@ -8,6 +8,10 @@
 // and --config-file supplied by sonalyzed.  The returned output is the raw output from sonalyze,
 // whether for success or error.  A successful runs yields 2xx and an error yields 4xx or 5xx.
 //
+// The server also responds to GET requests for static files in the `/q/` request path, this
+// simplifies the implementation of queries through sonalyzed because everything can come from the
+// same server port.
+//
 // Arguments:
 //
 // -jobanalyzer-path <jobanalyzer-root-directory>
@@ -15,11 +19,13 @@
 //  This is a required argument.  In the named directory there shall be:
 //
 //   - the `sonalyze` executable
+//   - optionally a file `cluster-aliases.json`, described below
 //   - subdirectories `data` and `scripts`
 //   - for each cluster, subdirectories `data/CLUSTERNAME` and `scripts/CLUSTERNAME`
 //   - each subdirectory of `data` has the sonar data tree for the cluster
 //   - each subdirectory of `scripts has a file `CLUSTERNAME-config.json`, which holds the cluster
 //     description.
+//   - a subdirectory `q` that holds static files to be served in response to `/q/` requests
 //
 // -port <port-number>
 //
@@ -57,8 +63,10 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"syscall"
 
+	"go-utils/alias"
 	"go-utils/auth"
 	"go-utils/httpsrv"
 	"go-utils/options"
@@ -69,37 +77,62 @@ import (
 const (
 	defaultListenPort = 8087
 
+	clusterAliasesFilename = "cluster-aliases.json"
+
 	logTag = "jobanalyzer/sonalyzed"
+
+	// HTTP basic authentication realm name
+	authRealm = "Jobanalyzer remote access"
 
 	// This must equal MAGIC_BOOLEAN in the sonalyze sources.
 	magicBoolean = "xxxxxtruexxxxx"
 )
 
+// -v adds informational/warning logging relevant to debugging
 var verbose bool
+
+// The root of everything
+var jobanalyzerPath string
+
+// Authenticator black box, default nil - no authentication
+var authenticator *auth.Authenticator
+
+// Alias-to-cluster-name mapper, default nil - no mapping
+var aliasResolver *alias.Aliases
+
+// Set to true if something went horribly wrong and we should exit(1)
 var programFailed = false
 
 func main() {
 	status.Start(logTag)
 
-	port, jobanalyzerPath, passwordFile, err := commandLine()
+	var passwordFile string
+	var err error
+	var port int
+	port, jobanalyzerPath, passwordFile, verbose, err = commandLine()
 	if err != nil {
 		status.Fatalf("Command line: %v", err)
 	}
 
-	var authenticator func(user, pass string) bool
 	if passwordFile != "" {
-		authenticator, err = auth.ParsePasswdFile(passwordFile)
+		authenticator, err = auth.ReadPasswords(passwordFile)
 		if err != nil {
 			status.Fatalf("Failed to read password file: %v\n", err)
 		}
 	}
 
-	http.HandleFunc("/jobs", requestHandler("jobs", jobanalyzerPath, authenticator))
-	http.HandleFunc("/load", requestHandler("load", jobanalyzerPath, authenticator))
-	http.HandleFunc("/uptime", requestHandler("uptime", jobanalyzerPath, authenticator))
-	http.HandleFunc("/profile", requestHandler("profile", jobanalyzerPath, authenticator))
-	http.HandleFunc("/parse", requestHandler("parse", jobanalyzerPath, authenticator))
-	http.HandleFunc("/metadata", requestHandler("metadata", jobanalyzerPath, authenticator))
+	aliasResolver, err = alias.ReadAliases(path.Join(jobanalyzerPath, clusterAliasesFilename))
+	if err != nil {
+		status.Warning(err.Error())
+	}
+
+	http.HandleFunc("/jobs", requestHandler("jobs"))
+	http.HandleFunc("/load", requestHandler("load"))
+	http.HandleFunc("/uptime", requestHandler("uptime"))
+	http.HandleFunc("/profile", requestHandler("profile"))
+	http.HandleFunc("/parse", requestHandler("parse"))
+	http.HandleFunc("/metadata", requestHandler("metadata"))
+	http.HandleFunc("/q/", fileHandler())
 
 	s := httpsrv.New(verbose, port, func(err error) {
 		programFailed = true
@@ -107,6 +140,9 @@ func main() {
 	go s.Start()
 
 	// Wait here until we're stopped by SIGHUP (manual) or SIGTERM (from OS during shutdown).
+	//
+	// TODO: For SIGHUP, we should not exit but should instead reread the password file and the
+	// cluster aliases file.
 	process.WaitForSignal(syscall.SIGHUP, syscall.SIGTERM)
 	s.Stop()
 
@@ -152,9 +188,18 @@ func argOk(command, arg string) bool {
 	}
 }
 
+// Error logging during the preparatory steps in the request handlers -- until we know we have a
+// full request that is also authenticated -- is under -v in order to avoid logging storms: if some
+// attacker spews garbage at us we may otherwise DDoS ourselves with log data.
+//
+// Documented behavior: the server will close the request body, we don't need to do it.
+//
+// I can find no documentation about needing to consume the body in case of an early (error)
+// return, nor anything obvious in the net/http source code to indicate this, nor has google
+// turned up anything.  So request handler code assumes it's not necessary.
+
 func requestHandler(
-	command, jobanalyzerPath string,
-	authenticator func(user, pass string) bool,
+	command string,
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if verbose {
@@ -162,52 +207,12 @@ func requestHandler(
 			status.Infof("%v", r.URL)
 		}
 
-		// Error logging during the preparatory steps -- until we know we have a full request that
-		// is also authenticated -- is under -v in order to avoid logging storms: if some attacker
-		// spews garbage at us we may otherwise DDoS ourselves with log data.
-		//
-		// Documented behavior: the server will close the request body, we don't need to do it.
-		//
-		// I can find no documentation about needing to consume the body in case of an early (error)
-		// return, nor anything obvious in the net/http source code to indicate this, nor has google
-		// turned up anything.  So this code assumes it's not necessary.
-
-		if r.Method != "GET" {
-			w.WriteHeader(403)
-			fmt.Fprintf(w, "Bad method")
-			if verbose {
-				status.Warningf("Bad method: %s", r.Method)
-			}
+		if !httpsrv.AssertMethod(w, r, "GET") || !httpsrv.Authenticate(w, r, authenticator, authRealm) {
 			return
 		}
-
-		user, pass, ok := r.BasicAuth()
-		passed := !ok && authenticator == nil || ok && authenticator != nil && authenticator(user, pass)
-		if !passed {
-			if authenticator != nil {
-				w.Header().Add("WWW-Authenticate", "Basic realm=\"Jobanalyzer remote access\", charset=\"utf-8\"")
-			}
-			w.WriteHeader(401)
-			fmt.Fprintf(w, "Unauthorized")
-			if verbose {
-				status.Warning("Authorization failed")
-			}
+		_, havePayload := httpsrv.ReadPayload(w, r)
+		if !havePayload {
 			return
-		}
-
-		payload := make([]byte, r.ContentLength)
-		haveRead := 0
-		for haveRead < int(r.ContentLength) {
-			n, err := r.Body.Read(payload[haveRead:])
-			if err != nil && err != io.EOF {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, "Bad content")
-				if verbose {
-					status.Warning("Bad content - can't read the body")
-				}
-				return
-			}
-			haveRead += n
 		}
 
 		// The parameter `cluster` provides the cluster name, which is needed for the data directory
@@ -256,7 +261,9 @@ func requestHandler(
 			}
 			return
 		}
-		clusterName = resolveClusterAlias(clusterName)
+		if aliasResolver != nil {
+			clusterName = aliasResolver.Resolve(clusterName)
+		}
 
 		arguments = append(
 			arguments,
@@ -289,19 +296,48 @@ func requestHandler(
 	}
 }
 
-func resolveClusterAlias(clusterName string) string {
-	// TODO: This expansion should be in a config file
-	switch clusterName {
-	case "ml":
-		return "mlx.hpc.uio.no"
-	case "fox":
-		return "fox.educloud.no"
-	default:
-		return clusterName
+func fileHandler() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if verbose {
+			status.Infof("Request from %s: %v", r.RemoteAddr, r.Header)
+			status.Infof("%v", r.URL)
+		}
+
+		if !httpsrv.AssertMethod(w, r, "GET") || !httpsrv.Authenticate(w, r, authenticator, authRealm) {
+			return
+		}
+		_, havePayload := httpsrv.ReadPayload(w, r)
+		if !havePayload {
+			return
+		}
+
+		p := path.Clean(r.URL.Path)
+		if strings.Index(p, "..") != -1 {
+			w.WriteHeader(400)
+			fmt.Fprintf(w, "Bad URL")
+			return
+		}
+		filepath := path.Join(jobanalyzerPath, p)
+		f, err := os.Open(filepath)
+		if err != nil {
+			w.WriteHeader(404)
+			fmt.Fprintf(w, "No such file .../%s", p)
+			return
+		}
+		defer f.Close()
+		all, err := io.ReadAll(f)
+		if err != nil {
+			w.WriteHeader(404)
+			fmt.Fprintf(w, "Unable to read file .../%s", p)
+			return
+		}
+		w.WriteHeader(200)
+		_, _ = w.Write(all)
+		// The write may have gone badly but there you have it.  Let the client mop it up.
 	}
 }
 
-func commandLine() (port int, jobanalyzerPath, passwordFile string, err error) {
+func commandLine() (port int, jobanalyzerPath, passwordFile string, verbose bool, err error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	flags.IntVar(&port, "port", defaultListenPort, "Listen for connections on `port`")
 	flags.StringVar(&jobanalyzerPath, "jobanalyzer-path", "", "Path of jobanalyzer root `directory` (required)")
