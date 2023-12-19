@@ -108,6 +108,7 @@ func WriteFreeCSV(filename string, fields []string, data []map[string]string) er
 	if err != nil {
 		return err
 	}
+	// NOTE, if there are error exits before the rename then they must remove the temp file.
 	wr := csv.NewWriter(output_file)
 	for _, row := range data {
 		// TODO: With go 1.21, we can hoist this and clear() it after the write, instead of

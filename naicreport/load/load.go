@@ -159,6 +159,13 @@ func writePlots(
 		if err != nil {
 			return err
 		}
+		// The tempname is the full path, it's set to "" below once the file is renamed.
+		tempname := output_file.Name()
+		defer (func() {
+			if tempname != "" {
+				os.Remove(tempname)
+			}
+		})()
 
 		hasGpu := hd.system != nil && hd.system.gpuCards > 0
 		labels := make([]string, 0)
@@ -213,9 +220,9 @@ func writePlots(
 		}
 		output_file.Write(bytes)
 
-		oldname := output_file.Name()
 		output_file.Close()
-		os.Rename(oldname, filename)
+		os.Rename(tempname, filename)
+		tempname = ""			// Signal that no cleanup is required
 	}
 
 	return nil
