@@ -443,13 +443,13 @@ func collectLoadAveragesOnce(
 	}
 
 	type systemDescJSON struct {
-		Host string `json:"hostname"`
+		Host        string `json:"hostname"`
 		Description string `json:"description"`
-		GpuCards string `json:"gpucards"`
+		GpuCards    string `json:"gpucards"`
 	}
 
 	type loadDataPackageJSON struct {
-		System *systemDescJSON `json:"system"`
+		System  *systemDescJSON  `json:"system"`
 		Records []*loadDatumJSON `json:"records"`
 	}
 
@@ -578,7 +578,7 @@ func commandLine() (
 	logOpts *util.SonarLogOptions,
 	err error,
 ) {
-	opts := flag.NewFlagSet(os.Args[0] + " at-a-glance", flag.ContinueOnError)
+	opts := flag.NewFlagSet(os.Args[0]+" at-a-glance", flag.ContinueOnError)
 	logOpts = util.AddSonarLogOptions(opts)
 	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
 	opts.StringVar(&configFilename, "config-file", "", "Read cluster configuration from `filename` (required)")
@@ -598,4 +598,3 @@ func commandLine() (
 	err = errors.Join(err1, err2, err3, err4)
 	return
 }
-

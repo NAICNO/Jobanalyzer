@@ -22,7 +22,6 @@ func newSonarLogOptions(progname string) (*SonarLogOptions, *flag.FlagSet) {
 	return logOpts, flags
 }
 
-
 func TestOptionsDataPath(t *testing.T) {
 	opt, flags := newSonarLogOptions("hi")
 	err := parse(opt, flags, []string{"--data-path", "ho/hum"})

@@ -5,7 +5,7 @@ import (
 )
 
 func TestAuth(t *testing.T) {
-	u,p,err := ParseAuth("auth_test1.txt")
+	u, p, err := ParseAuth("auth_test1.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -13,7 +13,7 @@ func TestAuth(t *testing.T) {
 		t.Fatalf("Bad user or password: %s %s", u, p)
 	}
 
-	u,p,err = ParseAuth("auth_test2.txt")
+	u, p, err = ParseAuth("auth_test2.txt")
 	if err != nil {
 		t.Fatal(err)
 	}

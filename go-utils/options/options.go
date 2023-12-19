@@ -42,4 +42,3 @@ func RequireCleanPath(optval, optname string) (string, error) {
 
 	return path.Join(wd, optval), nil
 }
-

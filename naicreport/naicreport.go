@@ -17,7 +17,7 @@ import (
 )
 
 type command struct {
-	help string
+	help    string
 	handler func(arg0 string, args []string) error
 }
 
@@ -80,7 +80,7 @@ func usage(code int) {
 	fmt.Fprintf(out, "where <verb> is one of\n\n")
 	entries := make(sort.StringSlice, 0)
 	for name, command := range commands {
-		entries = append(entries, "  " + name + "\n    " + command.help)
+		entries = append(entries, "  "+name+"\n    "+command.help)
 	}
 	sort.Sort(entries)
 	for _, e := range entries {

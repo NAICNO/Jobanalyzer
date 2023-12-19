@@ -31,7 +31,7 @@ func ParseAuth(filename string) (string, string, error) {
 // username/password pair.  Only the new form, "username:password", is accepted.  Lines can be blank
 // (mostly a concession to an empty last line, sort of silly).
 
-func ParsePasswdFile(filename string) (func (user, pass string) bool, error) {
+func ParsePasswdFile(filename string) (func(user, pass string) bool, error) {
 	bs, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func ParsePasswdFile(filename string) (func (user, pass string) bool, error) {
 		}
 		m[xs[0]] = xs[1]
 	}
-	return func (user, pass string) bool {
+	return func(user, pass string) bool {
 		probe, found := m[user]
 		return found && probe == pass
 	}, nil

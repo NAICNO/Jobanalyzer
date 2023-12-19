@@ -114,23 +114,23 @@ func writePlots(
 	downtimeData []*downtimeDataByHost,
 ) error {
 	type perSystem struct {
-		Host string `json:"hostname"`
+		Host        string `json:"hostname"`
 		Description string `json:"description"`
 	}
 
 	type perHost struct {
-		Date      string                `json:"date"`
-		Host      string                `json:"hostname"`
-		Tag       string                `json:"tag"`
-		Bucketing string                `json:"bucketing"`
-		Labels    []string              `json:"labels"` // formatted timestamps, for now
-		Rcpu      []float64             `json:"rcpu"`
-		Rmem      []float64             `json:"rmem"`
-		Rgpu      []float64             `json:"rgpu,omitempty"`
-		Rgpumem   []float64             `json:"rgpumem,omitempty"`
-		DownHost  []int                 `json:"downhost,omitempty"`
-		DownGpu   []int                 `json:"downgpu,omitempty"`
-		System    *perSystem            `json:"system,omitempty"`
+		Date      string     `json:"date"`
+		Host      string     `json:"hostname"`
+		Tag       string     `json:"tag"`
+		Bucketing string     `json:"bucketing"`
+		Labels    []string   `json:"labels"` // formatted timestamps, for now
+		Rcpu      []float64  `json:"rcpu"`
+		Rmem      []float64  `json:"rmem"`
+		Rgpu      []float64  `json:"rgpu,omitempty"`
+		Rgpumem   []float64  `json:"rgpumem,omitempty"`
+		DownHost  []int      `json:"downhost,omitempty"`
+		DownGpu   []int      `json:"downgpu,omitempty"`
+		System    *perSystem `json:"system,omitempty"`
 	}
 
 	if grouping && len(loadData) != 1 {
@@ -195,8 +195,8 @@ func writePlots(
 		downHost, downGpu := generateDowntimeData(hd, downtimeData, hasGpu)
 		var system *perSystem
 		if hd.system != nil {
-			system = &perSystem {
-				Host: hd.system.host,
+			system = &perSystem{
+				Host:        hd.system.host,
 				Description: hd.system.description,
 			}
 		}
@@ -222,7 +222,7 @@ func writePlots(
 
 		output_file.Close()
 		os.Rename(tempname, filename)
-		tempname = ""			// Signal that no cleanup is required
+		tempname = "" // Signal that no cleanup is required
 	}
 
 	return nil
@@ -415,13 +415,13 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 	}
 
 	type systemDescJSON struct {
-		Host string `json:"hostname"`
+		Host        string `json:"hostname"`
 		Description string `json:"description"`
-		GpuCards string `json:"gpucards"`
+		GpuCards    string `json:"gpucards"`
 	}
 
 	type loadDataPackageJSON struct {
-		System *systemDescJSON `json:"system"`
+		System  *systemDescJSON  `json:"system"`
 		Records []*loadDatumJSON `json:"records"`
 	}
 
@@ -454,9 +454,9 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 		}
 		allData = append(allData, &loadDataBySystem{
 			system: &systemDesc{
-				host: bySystem.System.Host,
+				host:        bySystem.System.Host,
 				description: bySystem.System.Description,
-				gpuCards: util.JsonInt(bySystem.System.GpuCards),
+				gpuCards:    util.JsonInt(bySystem.System.GpuCards),
 			},
 			data: data,
 		})
@@ -475,7 +475,7 @@ func commandLine() (
 	logOpts *util.SonarLogOptions,
 	err error,
 ) {
-	opts := flag.NewFlagSet(os.Args[0] + " load", flag.ContinueOnError)
+	opts := flag.NewFlagSet(os.Args[0]+" load", flag.ContinueOnError)
 	logOpts = util.AddSonarLogOptions(opts)
 	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
 	opts.StringVar(&configFilename, "config-file", "", "Read cluster configuration from `filename` (required)")
@@ -501,4 +501,3 @@ func commandLine() (
 	err = errors.Join(err1, err2, err3, err4)
 	return
 }
-

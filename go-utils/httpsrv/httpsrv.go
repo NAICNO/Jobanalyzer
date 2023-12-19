@@ -17,18 +17,18 @@ const (
 
 type Server struct {
 	verbose bool
-	port int
-	failed func(error)
-	stop chan bool
-	server *http.Server
+	port    int
+	failed  func(error)
+	stop    chan bool
+	server  *http.Server
 }
 
 func New(verbose bool, port int, failed func(error)) *Server {
-	return &Server {
+	return &Server{
 		verbose: verbose,
-		port: port,
-		failed: failed,
-		stop: make(chan bool),
+		port:    port,
+		failed:  failed,
+		stop:    make(chan bool),
 	}
 }
 
@@ -56,5 +56,5 @@ func (s *Server) Stop() {
 	if err := s.server.Shutdown(ctx); err != nil {
 		status.Warning(err.Error())
 	}
-	<- s.stop
+	<-s.stop
 }

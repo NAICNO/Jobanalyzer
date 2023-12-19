@@ -259,7 +259,6 @@ func parseDeadweightRecord(r map[string]string) (*deadweightJob, bool) {
 	}, true
 }
 
-
 // This is virtually identical to the function in mlcpuhog.go
 func commandLine() (
 	jsonOutput, summaryOutput bool,
@@ -268,7 +267,7 @@ func commandLine() (
 	dataFiles []string,
 	err error,
 ) {
-	opts := flag.NewFlagSet(os.Args[0] + " deadweight", flag.ContinueOnError)
+	opts := flag.NewFlagSet(os.Args[0]+" deadweight", flag.ContinueOnError)
 	logOpts := util.AddSonarLogOptions(opts)
 	opts.BoolVar(&jsonOutput, "json", false, "Format output as JSON")
 	opts.BoolVar(&summaryOutput, "summary", false, "Format output for testing")

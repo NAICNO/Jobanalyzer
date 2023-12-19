@@ -42,4 +42,3 @@ func JsonGpulist(s string) []uint32 {
 	}
 	return gpuData
 }
-

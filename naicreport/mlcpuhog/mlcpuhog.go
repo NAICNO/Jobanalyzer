@@ -338,7 +338,7 @@ func commandLine() (
 	dataFiles []string,
 	err error,
 ) {
-	opts := flag.NewFlagSet(os.Args[0] + " ml-cpuhog", flag.ContinueOnError)
+	opts := flag.NewFlagSet(os.Args[0]+" ml-cpuhog", flag.ContinueOnError)
 	logOpts := util.AddSonarLogOptions(opts)
 	opts.BoolVar(&jsonOutput, "json", false, "Format output as JSON")
 	opts.BoolVar(&summaryOutput, "summary", false, "Format output for testing")
