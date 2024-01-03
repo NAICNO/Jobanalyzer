@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Standard report (prototype): "top consumers last n days" aka "system load by user"
+# Standard report (prototype): "rank user jobs by load"
 #
 # Currently ML cluster only, but easy to extend once the data are on the analysis host.
 # Currently shows entries sorted by descending CPU time or GPU time (in seconds).
@@ -10,10 +10,11 @@
 # Configure these as necessary
 CLUSTER=ml
 HOST="ml[1-9]"
+USER=pubuduss
 AUTH=~/.ssh/sonalyzed-auth.txt
-TIMESPAN=30d
+TIMESPAN=90d
 DISCRIMINANT= # Use --no-gpu or --some-gpu if you like
-SORTBY=2      # "2" for CPU time, "4" for GPU time
+SORTBY=2      # "1" for CPU time, "2" for GPU time
 HOWMANY=25
 
 # Configure this only if you're running from some other directory or you've not compiled the
@@ -22,24 +23,20 @@ HOWMANY=25
 SONALYZE=../sonalyze/target/release/sonalyze
 
 # Generally don't mess with these.
-QUANT=cputime/sec,gputime/sec
+QUANT=cputime/sec,gputime/sec,cmd
 REMOTE=http://158.39.48.160:8087
 
 SUM_AND_PERCENT='
 {
-  cputime[$1] += $2
-  cpusum += $2
-  gputime[$1] += $3
-  gpusum += $3
+  cputime[$3] += $1
+  gputime[$3] += $2
 }
 END {
-  for (user in cputime) {
-    printf("%s %d %3.1f %d %3.1f\n",
-           user,
-           cputime[user],
-           cputime[user] * 100 / cpusum,
-           gputime[user],
-           gputime[user] * 100 / gpusum)
+  for (cmd in cputime) {
+    printf("%d %d %s\n",
+           cputime[cmd],
+           gputime[cmd],
+           cmd)
   }
 }'
 
@@ -47,8 +44,8 @@ $SONALYZE jobs \
   --auth-file $AUTH \
   --cluster $CLUSTER \
   --remote $REMOTE \
-  -u- \
-  --fmt=awk,user,$QUANT \
+  --user $USER \
+  --fmt=awk,$QUANT \
   --from $TIMESPAN \
   --host "$HOST" \
   $DISCRIMINANT | \
