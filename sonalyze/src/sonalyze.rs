@@ -1073,7 +1073,8 @@ fn sonalyze() -> Result<()> {
         }
         match run_with_timeout(&command, 60) {
             Ok(s) => {
-                println!("{s}");
+                // print, not println, or we end up adding a blank line that confuses consumers
+                print!("{s}");
                 return Ok(());
             }
             Err(e) => {
