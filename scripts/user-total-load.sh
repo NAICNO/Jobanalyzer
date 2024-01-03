@@ -9,7 +9,7 @@
 
 QUANT=gputime/sec
 CLUSTER=ml
-HOST=ml8
+HOST="ml8"
 AUTH=~/.ssh/sonalyzed-auth.txt
 TIMESPAN=16w
 DISCRIMINANT=--some-gpu
@@ -42,7 +42,7 @@ $SONALYZE jobs \
   -u- \
   --fmt=awk,user,$QUANT \
   --from $TIMESPAN \
-  --host $HOST \
+  --host "$HOST" \
   $DISCRIMINANT | \
     awk "$SUM_AND_PERCENT" | \
     sort -k 2nr
