@@ -44,7 +44,7 @@ Input filtering options are shared between the operations.  Aggregation filterin
 are per-operation, as outlined directly below.
 
 Sonalyze can also act as a client toward a server that runs sonalyze on its behalf against a data
-store on a remote host, see "Remote access" further down.
+store on a remote host, see the section "REMOTE ACCESS" further down.
 
 ### Log file computation options
 
@@ -621,4 +621,8 @@ $ sonalyze jobs --remote http://some.host.no:8087 --cluster ml -f20w -u- --some-
 It is additionally possible to use `--auth-file` to specify a file holding the identity information
 of yourself as a `username:password` pair (this is crude but implements HTTP "basic"
 authentication).  In this case, the server must have been told about this identity.  See the server
-manual.
+manual for how to set that up.
+
+In the case of remote access, the server supplies the `--data-path` and `--config-file` arguments
+based on the `--cluster` argument, so the former must be omitted from the local command invocation.
+Additionally, no trailing file arguments (`-- filename ...`) are allowed in the local invocation.

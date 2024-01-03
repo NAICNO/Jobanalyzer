@@ -27,9 +27,9 @@
 //
 // -password-file <filename>
 //
-//  This is an optional argument.  It names a file with username:password pairs, one per line,
-//  to be matched with values in an incoming HTTP basic authentication header.  If the connection
-//  is not HTTPS then the password may have been intercepted in transit.
+//  This is an optional argument.  It names a file with username:password pairs, one per line, to be
+//  matched with values in an incoming HTTP basic authentication header.  (Note, if the connection
+//  is not HTTPS then the password may have been intercepted in transit.)
 //
 // Termination:
 //
