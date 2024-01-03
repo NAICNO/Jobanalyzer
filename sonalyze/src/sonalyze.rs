@@ -937,7 +937,8 @@ fn sonalyze() -> Result<()> {
 
     // When remoting we build a URL from all the options and then just pass it to curl.
 
-    let (remote_arg, cluster_arg, data_path_arg) = match cli.command {
+    let no_string : Option<String> = None;
+    let (remote_arg, cluster_arg, data_path_arg, logfile_arg, config_file_arg) = match cli.command {
         Commands::Version => {
             panic!("Should not happen")
         }
@@ -945,33 +946,49 @@ fn sonalyze() -> Result<()> {
             &args.source_args.remote,
             &args.source_args.cluster,
             &args.source_args.data_path,
+            &args.source_args.logfiles,
+            &args.config_arg.config_file,
         ),
         Commands::Load(ref args) => (
             &args.source_args.remote,
             &args.source_args.cluster,
             &args.source_args.data_path,
+            &args.source_args.logfiles,
+            &args.config_arg.config_file,
         ),
         Commands::Uptime(ref args) => (
             &args.source_args.remote,
             &args.source_args.cluster,
             &args.source_args.data_path,
+            &args.source_args.logfiles,
+            &no_string,
         ),
         Commands::Profile(ref args) => (
             &args.source_args.remote,
             &args.source_args.cluster,
             &args.source_args.data_path,
+            &args.source_args.logfiles,
+            &no_string,
         ),
         Commands::Parse(ref args) | Commands::Metadata(ref args) => (
             &args.source_args.remote,
             &args.source_args.cluster,
             &args.source_args.data_path,
+            &args.source_args.logfiles,
+            &no_string,
         ),
     };
     let remoting = if remote_arg.is_some() || cluster_arg.is_some() {
-        // TODO: Probably, --cluster *does* make sense with --data-path, and will be convenient,
-        // when we run sonalyze from the command line on the server.
+        // TODO: Probably, --cluster *does* make sense with --data-path and the others, and will be
+        // convenient, among other times when we run sonalyze from the command line on the server.
         if data_path_arg.is_some() {
             bail!("--data-path may not be used with --remote or --cluster")
+        }
+        if config_file_arg.is_some() {
+            bail!("--config-file may not be used with --remote or --cluster")
+        }
+        if logfile_arg.len() > 0 {
+            bail!("-- logfile ... may not be used with --remote or --cluster")
         }
         if remote_arg.is_some() != cluster_arg.is_some() {
             bail!("--remote and --cluster must be used together")
