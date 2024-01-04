@@ -13,7 +13,7 @@
 set -eu -o pipefail
 
 cluster=mlx.hpc.uio.no
-sonar_dir=$HOME/sonar
+sonar_dir=${sonar_dir:-$HOME/sonar}
 data_dir=$sonar_dir/data/$cluster
 report_dir=$sonar_dir/reports/$cluster
 script_dir=$sonar_dir/scripts/$cluster
@@ -25,8 +25,8 @@ mkdir -p $report_dir
 $sonar_dir/naicreport load \
 		      -sonalyze $sonar_dir/sonalyze \
 		      -config-file $script_dir/mlx.hpc.uio.no-config.json \
-		      -data-path $data_dir \
-		      -output-path $report_dir \
+		      -data-dir $data_dir \
+		      -report-dir $report_dir \
 		      -with-downtime \
 		      -tag minutely \
 		      -none
@@ -34,13 +34,13 @@ $sonar_dir/naicreport load \
 $sonar_dir/naicreport at-a-glance \
 		      -sonalyze $sonar_dir/sonalyze \
 		      -config-file $script_dir/mlx.hpc.uio.no-config.json \
-		      -data-path $data_dir \
-		      -state-path $state_dir \
+		      -data-dir $data_dir \
+		      -state-dir $state_dir \
 		      -tag "ML Nodes" \
 		      > $report_dir/ml-at-a-glance.json
 
 $sonar_dir/naicreport hostnames \
-		      $report_dir \
+		      -report-dir $report_dir \
 		      > $report_dir/ml-hostnames.json
 
 # The chmod is done here so that we don't have to do it in naicreport or on the server,

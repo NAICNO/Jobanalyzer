@@ -87,6 +87,6 @@ func usage(code int) {
 		fmt.Fprintln(out, e)
 	}
 	fmt.Fprintln(out, "\nAll verbs accept -h to print verb-specific help.")
-	fmt.Fprintln(out, "Explicit filenames override any --data-path argument, when sensible.")
+	fmt.Fprintln(out, "Explicit filenames override any -data-dir or -state-dir argument, when sensible.")
 	os.Exit(code)
 }

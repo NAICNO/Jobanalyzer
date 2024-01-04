@@ -1,7 +1,53 @@
-// The ml-nodes deadweight analysis runs fairly often (see next) and examines data from a larger
-// time window than its running interval, and will append information about zombies, defunct
-// processes and other dead weight to a daily log.  The schedule generates a fair amount of
-// redundancy under normal circumstances.
+// deadweight - consolidate periodic deadweight reports into a persistent database.
+//
+// End-user options:
+//
+//  -state-dir directory
+//  -data-path directory (obsolete name)
+//     The directory that holds the database file and is the root of the directory tree
+//     containing the periodic reports.
+//
+//  -from timestamp
+//     The start of the window of time we're interested in, default 1d (1 day ago).  Normally, the
+//     `-from` switch should use a constant, relative time, eg `-from 30d` to always be examining
+//     the last month.
+//
+//     Note, records older than the `-from` date will be purged from the persistent state.
+//
+//  -json
+//     Produce json output, not the default formatted-text output.
+//
+// Debugging / development options:
+//
+//  -v
+//     Print diagnostic information
+//
+//  -summary
+//     Print some summary information
+//
+//  -state-file filename
+//     Name the file holding the database, overrides the standard computation of this file name.
+//     Normally, the database is <state-dir>/deadweight-state.csv.
+//
+//  -to timestamp
+//     The end of the window of time, default now.  Normally, the `-to` switch should not be used,
+//     as the resulting purging of the database can be surprising.
+//
+//  -now time
+//     Define `now` so that relative times like `1d` are relative to a fixed known time.  The time
+//     must have the precise format "YYYY-MM-DD hh:mm" (with the embedded space)
+//
+//  -- filename ... (at end of options list only)
+//     Name the files holding the periodic reports.  Normally those data files are the
+//     deadweight.csv log files found in the state directory in the <year>/<month>/<day>
+//     subdirectories appropriate for the selected date range.
+//
+// Description:
+//
+// The ml-nodes deadweight analysis runs fairly often and examines data from a larger time window
+// than its running interval, and will append information about zombies, defunct processes and other
+// dead weight to a daily log.  The schedule generates a fair amount of redundancy under normal
+// circumstances.
 //
 // The analysis MUST run often enough for a job ID on a given host never to become reused between
 // two consecutive analysis runs.
@@ -10,12 +56,31 @@
 // formatted reports about new problems.  For this it maintains state about what it's already seen
 // and reported.
 //
+// -------------------------------------------------------------------------------------------------
+//
+// Implementation notes.
+//
 // Requirements:
 //
 //  - a job that appears in the deadweight log is dead weight and should be reported
 //  - the report is (for now) just textual output to be emailed
 //  - we don't want to report jobs redundantly, so there will have to be persistent state
 //  - we don't want the state to grow without bound
+//
+// Persistent state:
+//
+// For textual reports, there is persistent state so that reports are not sent redundantly.  This
+// state maps a job to a flag that indicates whether a report has been sent or not.
+//
+// A job is identified by a quadruple (host, id, expired, lastSeen): If expired==false, then the job
+// key is (host, id), otherwise the key is (host, id, lastSeen).  The reason for this is that
+// non-expired jobs have non-constant lastSeen values, and there is only ever one non-expired job
+// for the same (host, id) pair.
+//
+// The astute reader will have realized that "expired" and "lastSeen" depend on the time window of
+// records that this program examines.  Therefore, the persistent state is dependent on that time
+// window.  For sane results, the `-to` switch should not be used and the `-from` switch should
+// use a constant, relative time, eg `-from 30d` to always be examining the last month.
 
 package deadweight
 
@@ -37,16 +102,15 @@ import (
 )
 
 const (
-	deadweightFilename = "deadweight-state.csv"
+	deadweightStateFilename = "deadweight-state.csv"
+	deadweightDataFilename  = "deadweight.csv"
 )
 
 var verbose bool
 
-// Se comment in mlcpuhog.go re options logic for --state-file and --now
-
 func Deadweight(progname string, args []string) error {
 
-	jsonOutput, summaryOutput, stateFilename, now, from, to, dataFiles, err := commandLine()
+	jsonOutput, summaryOutput, stateFilename, now, fileOpts, filterOpts, err := commandLine()
 	if err != nil {
 		return err
 	}
@@ -61,6 +125,21 @@ func Deadweight(progname string, args []string) error {
 	}
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(db.Active), len(db.Expired))
+	}
+
+	var dataFiles []string
+	// fileOpts will establish the either-or invariant here
+	if fileOpts.Files != nil {
+		dataFiles = fileOpts.Files
+	} else {
+		dataFiles, err = joblog.FindJoblogFiles(
+			fileOpts.Path,
+			deadweightDataFilename,
+			filterOpts.From,
+			filterOpts.To)
+		if err != nil {
+			return err
+		}
 	}
 
 	logs, err := joblog.ReadJoblogFiles[*deadweightJob](
@@ -95,6 +174,8 @@ func Deadweight(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d new jobs\n", new_jobs)
 	}
 
+	from := filterOpts.From
+	to := filterOpts.To
 	purgeDate := sonartime.MinTime(from, to.AddDate(0, 0, -2))
 	purged := jobstate.PurgeJobsBefore(db, purgeDate)
 	if verbose {
@@ -263,18 +344,22 @@ func parseDeadweightRecord(r map[string]string) (*deadweightJob, bool) {
 func commandLine() (
 	jsonOutput, summaryOutput bool,
 	stateFilename string,
-	now, from, to time.Time,
-	dataFiles []string,
+	now time.Time,
+	fileOpts *util.DataFilesOptions,
+	filterOpts *util.DateFilterOptions,
 	err error,
 ) {
 	opts := flag.NewFlagSet(os.Args[0]+" deadweight", flag.ContinueOnError)
-	logOpts := util.AddSonarLogOptions(opts)
+	fileOpts = util.AddDataFilesOptions(opts, "state-dir", "Root `directory` of state data store")
+	filterOpts = util.AddDateFilterOptions(opts)
 	opts.BoolVar(&jsonOutput, "json", false, "Format output as JSON")
 	opts.BoolVar(&summaryOutput, "summary", false, "Format output for testing")
 	opts.StringVar(&stateFilename, "state-file", "", "Store computation state in `filename` (optional)")
 	var nowOpt string
 	opts.StringVar(&nowOpt, "now", "", "ISO `timestamp` to use as the present time (for testing)")
 	opts.BoolVar(&verbose, "v", false, "Verbose (debugging) output")
+	var dataPath string
+	opts.StringVar(&dataPath, "data-path", "", "Obsolete name for -state-dir")
 	err = opts.Parse(os.Args[2:])
 	if err == flag.ErrHelp {
 		os.Exit(0)
@@ -282,43 +367,34 @@ func commandLine() (
 	if err != nil {
 		return
 	}
-	err = util.RectifySonarLogOptions(logOpts, opts)
+	if fileOpts.Path == "" && fileOpts.Files == nil && dataPath != "" {
+		fileOpts.Path = dataPath
+	}
+	err = util.RectifyDateFilterOptions(filterOpts, opts)
+	if err != nil {
+		return
+	}
+	err = util.RectifyDataFilesOptions(fileOpts, opts)
 	if err != nil {
 		return
 	}
 	if stateFilename == "" {
-		if logOpts.DataPath == "" {
-			err = errors.New("If --state-file is not present then --data-path must be")
+		if fileOpts.Path == "" {
+			err = errors.New("If -state-file is not present then -state-dir must be")
 			return
 		}
-		stateFilename = path.Join(logOpts.DataPath, deadweightFilename)
+		stateFilename = path.Join(fileOpts.Path, deadweightStateFilename)
 	}
-
-	// logOpts will establish the either-or invariant here
-	if logOpts.DataFiles != nil {
-		dataFiles = logOpts.DataFiles
-	} else {
-		var files []string
-		files, err = joblog.FindJoblogFiles(logOpts.DataPath, "deadweight.csv", logOpts.From, logOpts.To)
-		if err != nil {
-			err = fmt.Errorf("Could not enumerate files: %w", err)
-			return
-		}
-		dataFiles = files
-	}
-
 	if nowOpt != "" {
 		var n time.Time
 		n, err = time.Parse(nowOpt, sonarlog.DateTimeFormat)
 		if err != nil {
-			err = fmt.Errorf("Argument to --now could not be parsed: %w", err)
+			err = fmt.Errorf("Argument to -now could not be parsed: %w", err)
 			return
 		}
 		now = n.UTC()
 	} else {
 		now = time.Now().UTC()
 	}
-	from = logOpts.From
-	to = logOpts.To
 	return
 }

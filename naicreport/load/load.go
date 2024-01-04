@@ -1,5 +1,71 @@
-// Generate data for plotting the running load of a group of hosts.  The data are taken from the
-// live sonar logs, by means of sonalyze.
+// load - Generate plots of machine load and uptime from Sonar data.
+//
+// End-user options:
+//
+//  -data-dir directory
+//  -data-path directory (obsolete name)
+//    The root directory of the Sonar data store, for a particular cluster.
+//
+//  -sonalyze filename
+//    The `sonalyze` executable.
+//
+//  -config-file filename
+//    The machine configuration file for the cluster.
+//
+//  -report-dir directory
+//  -output-path directory (obsolete name)
+//    The directory in which to store the generated per-host reports.
+//
+//  -tag tag-name
+//    A tag for the report describing what it is about, sometimes a time range.  The report will be
+//    stored in a file typically called <hostname>-<tag>.json.  A typical tag is `hourly` or
+//    `weekly`, tagging the report as being for hourly or weekly data.  The `naicreport hostnames`
+//    command makes use of the tagging scheme when computing the set of hostnames.
+//
+//  -from timestamp
+//    The start of the window of time we're interested in, default 1d (1 day ago).
+//
+//  -to timestamp
+//    The end of the window of time we're interested in, default now.
+//
+//  -group hostname-patterns
+//    This option selects a number of hostnames and merges their data to provide a summary report
+//    for the cluster or subcluster.  For example, on the ML cluster we use `-group 'ml[1-3,6-9]'`
+//    to produce an aggregate report for the machines with NVIDIA accelerators.
+//
+//    The hostname pattern is meant to match only the first element of a qualified host name, and
+//    its syntax is a string prefix optionally followed by a set of numbers and numeric ranges, as
+//    above, or equivalently 'ml[1,2,3,6,7,8,9]'.  Multiple patterns can be joined with commas, eg
+//    'ml1,ml2,ml3,ml[6-8],ml9'.
+//
+//  -daily
+//    Bucket data by day.  One of -daily, -hourly, or -none is required.
+//
+//  -hourly
+//    Bucket data by hour
+//
+//  -none
+//    Do not bucket data.
+//
+//  -with-downtime
+//    Include downtime data for hosts and GPUs in the report.
+//
+// Debugging / development options:
+//
+//  -v
+//    Print various (verbose) debugging output
+//
+// Description:
+//
+// The `load` command runs sonalyze on Sonar data and produces a JSON object per host that
+// represents load data, bucketed and grouped as specified by options.  The reports are written to
+// the report directory in files named <hostname>-<tag>.json (if there is a tag, which is
+// recommended).
+//
+// The data format is documented by the code below (sorry) but is engineered for compactness as an
+// object carrying some metadata and a number of parallel arrays of numbers to describe the data
+// values.  The data are consumed by the JavaScript code that presents the plot, see files in
+// ../../dashboard.
 
 package load
 
@@ -24,7 +90,7 @@ import (
 var verbose bool
 
 func Load(progname string, args []string) error {
-	sonalyzePath, configFilename, outputPath, tag, group, hourly, daily, none, downtime, logOpts, err := commandLine()
+	sonalyzePath, configFilename, reportDir, tag, group, hourly, daily, none, downtime, logFilterOpts, logFileOpts, err := commandLine()
 	if err != nil {
 		return err
 	}
@@ -33,6 +99,9 @@ func Load(progname string, args []string) error {
 
 	loadArguments := loadInitialArgs(configFilename)
 	downtimeArguments := downtimeInitialArgs()
+
+	loadArguments = util.ForwardDateFilterOptions(loadArguments, logFilterOpts)
+	downtimeArguments = util.ForwardDateFilterOptions(downtimeArguments, logFilterOpts)
 
 	// This handling of bucketing isn't completely clean but it's good enough for not-insane users.
 	// We can use flag.Visit() to do a better job, if we want.
@@ -71,8 +140,8 @@ func Load(progname string, args []string) error {
 
 	// For -- this must come last, so do standard log options last always
 
-	loadArguments = util.ForwardSonarLogOptions(loadArguments, logOpts)
-	downtimeArguments = util.ForwardSonarLogOptions(downtimeArguments, logOpts)
+	loadArguments = util.ForwardDataFilesOptions(loadArguments, "--data-path", logFileOpts)
+	downtimeArguments = util.ForwardDataFilesOptions(downtimeArguments, "--data-path", logFileOpts)
 
 	// Obtain all the data
 
@@ -104,11 +173,11 @@ func Load(progname string, args []string) error {
 		}
 	}
 
-	return writePlots(outputPath, tag, bucketing, group != "", loadData, downtimeData)
+	return writePlots(reportDir, tag, bucketing, group != "", loadData, downtimeData)
 }
 
 func writePlots(
-	outputPath, tag, bucketing string,
+	reportDir, tag, bucketing string,
 	grouping bool,
 	loadData []*loadDataBySystem,
 	downtimeData []*downtimeDataByHost,
@@ -154,7 +223,7 @@ func writePlots(
 		} else {
 			basename = hd.system.host + "-" + tag + ".json"
 		}
-		filename := path.Join(outputPath, basename)
+		filename := path.Join(reportDir, basename)
 		output_file, err := os.CreateTemp(path.Dir(filename), "naicreport-load")
 		if err != nil {
 			return err
@@ -468,25 +537,32 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 func commandLine() (
 	sonalyzePath string,
 	configFilename string,
-	outputPath string,
+	reportDir string,
 	tag string,
 	group string,
 	hourly, daily, none, downtime bool,
-	logOpts *util.SonarLogOptions,
+	filterOpts *util.DateFilterOptions,
+	fileOpts *util.DataFilesOptions,
 	err error,
 ) {
 	opts := flag.NewFlagSet(os.Args[0]+" load", flag.ContinueOnError)
-	logOpts = util.AddSonarLogOptions(opts)
+	fileOpts = util.AddDataFilesOptions(opts, "data-dir", "Root `directory` of data store")
 	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
 	opts.StringVar(&configFilename, "config-file", "", "Read cluster configuration from `filename` (required)")
-	opts.StringVar(&outputPath, "output-path", ".", "Store output in `directory`")
-	opts.StringVar(&tag, "tag", "", "Annotate output with `cluster-name` (optional)")
+	filterOpts = util.AddDateFilterOptions(opts)
+	const defaultReportDir = "."
+	opts.StringVar(&reportDir, "report-dir", defaultReportDir, "Store reports in `directory`")
+	opts.StringVar(&tag, "tag", "", "Tag report file names with `tag-name` (optional)")
 	opts.StringVar(&group, "group", "", "Group these `host name patterns` (comma-separated) (requires bucketing, too)")
 	opts.BoolVar(&hourly, "hourly", true, "Bucket data hourly")
 	opts.BoolVar(&daily, "daily", false, "Bucket data daily")
 	opts.BoolVar(&none, "none", false, "Do not bucket data")
 	opts.BoolVar(&downtime, "with-downtime", false, "Include downtime data")
 	opts.BoolVar(&verbose, "v", false, "Verbose (debugging) output")
+	var dataPath string
+	opts.StringVar(&dataPath, "data-path", "", "Obsolete name for -data-dir")
+	var outputPath string
+	opts.StringVar(&outputPath, "output-path", "", "Obsolete name for -report-dir")
 	err = opts.Parse(os.Args[2:])
 	if err == flag.ErrHelp {
 		os.Exit(0)
@@ -494,10 +570,17 @@ func commandLine() (
 	if err != nil {
 		return
 	}
-	err1 := util.RectifySonarLogOptions(logOpts, opts)
+	err5 := util.RectifyDateFilterOptions(filterOpts, opts)
+	if fileOpts.Path == "" && fileOpts.Files == nil && dataPath != "" {
+		fileOpts.Path = dataPath
+	}
+	err1 := util.RectifyDataFilesOptions(fileOpts, opts)
 	sonalyzePath, err2 := options.RequireCleanPath(sonalyzePath, "-sonalyze")
 	configFilename, err3 := options.RequireCleanPath(configFilename, "-config-file")
-	outputPath, err4 := options.RequireCleanPath(outputPath, "-output-path")
-	err = errors.Join(err1, err2, err3, err4)
+	if reportDir == defaultReportDir && outputPath != "" {
+		reportDir = outputPath
+	}
+	reportDir, err4 := options.RequireCleanPath(reportDir, "-report-dir")
+	err = errors.Join(err1, err2, err3, err4, err5)
 	return
 }

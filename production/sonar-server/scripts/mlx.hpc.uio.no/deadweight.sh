@@ -6,7 +6,7 @@
 set -euf -o pipefail
 
 cluster=mlx.hpc.uio.no
-sonar_dir=$HOME/sonar
+sonar_dir=${sonar_dir:-$HOME/sonar}
 data_dir=$sonar_dir/data/$cluster
 state_dir=$sonar_dir/state/$cluster
 output_dir=${state_dir}/$(date +'%Y/%m/%d')

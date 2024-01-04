@@ -14,40 +14,26 @@ import (
 	ut "go-utils/time"
 )
 
-type SonarLogOptions struct {
-	DataPath  string
-	DataFiles []string // For -- filename ...
-	HaveFrom  bool
-	From      time.Time
-	FromStr   string
-	HaveTo    bool
-	To        time.Time
-	ToStr     string
+type DataFilesOptions struct {
+	Path  string
+	Files []string // For -- filename ...
+	Name  string   // Option name
 }
 
-func AddSonarLogOptions(opts *flag.FlagSet) *SonarLogOptions {
-	logOpts := SonarLogOptions{
-		DataPath:  "",
-		DataFiles: nil,
-		HaveFrom:  false,
-		From:      time.Now(),
-		FromStr:   "",
-		HaveTo:    false,
-		To:        time.Now(),
-		ToStr:     "",
+func AddDataFilesOptions(opts *flag.FlagSet, canonicalName, explanation string) *DataFilesOptions {
+	logOpts := DataFilesOptions{
+		Path:  "",
+		Files: nil,
+		Name:  canonicalName,
 	}
-	opts.StringVar(&logOpts.DataPath, "data-path", "", "Root `directory` of data store (required)")
-	opts.StringVar(&logOpts.FromStr, "from", "1d",
-		"Start `date` of log window, yyyy-mm-dd or Nd (days ago) or Nw (weeks ago)")
-	opts.StringVar(&logOpts.ToStr, "to", "",
-		"End `date` of log window, yyyy-mm-dd or Nd (days ago) or Nw (weeks ago)")
+	opts.StringVar(&logOpts.Path, canonicalName, "", explanation)
 	return &logOpts
 }
 
-func RectifySonarLogOptions(s *SonarLogOptions, opts *flag.FlagSet) error {
+func RectifyDataFilesOptions(s *DataFilesOptions, opts *flag.FlagSet) error {
 	// Figure out files
 	var err error
-	if s.DataPath == "" {
+	if s.Path == "" {
 		files := []string{}
 		for _, f := range opts.Args() {
 			fn, err := options.RequireCleanPath(f, "--")
@@ -59,14 +45,55 @@ func RectifySonarLogOptions(s *SonarLogOptions, opts *flag.FlagSet) error {
 		if len(files) == 0 {
 			return errors.New("No file arguments provided")
 		}
-		s.DataFiles = files
+		s.Files = files
 	} else {
-		// Clean the DataPath and make it absolute.
-		s.DataPath, err = options.RequireCleanPath(s.DataPath, "-data-path")
+		// Clean the Path and make it absolute.
+		s.Path, err = options.RequireCleanPath(s.Path, s.Name)
 		if err != nil {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func ForwardDataFilesOptions(arguments []string, optName string, opts *DataFilesOptions) []string {
+	if opts.Files != nil {
+		arguments = append(arguments, "--")
+		arguments = append(arguments, opts.Files...)
+	} else {
+		arguments = append(arguments, optName, opts.Path)
+	}
+	return arguments
+}
+
+type DateFilterOptions struct {
+	HaveFrom bool
+	From     time.Time
+	FromStr  string
+	HaveTo   bool
+	To       time.Time
+	ToStr    string
+}
+
+func AddDateFilterOptions(opts *flag.FlagSet) *DateFilterOptions {
+	logOpts := DateFilterOptions{
+		HaveFrom: false,
+		From:     time.Now(),
+		FromStr:  "",
+		HaveTo:   false,
+		To:       time.Now(),
+		ToStr:    "",
+	}
+	opts.StringVar(&logOpts.FromStr, "from", "1d",
+		"Start `date` of log window, yyyy-mm-dd or Nd (days ago) or Nw (weeks ago)")
+	opts.StringVar(&logOpts.ToStr, "to", "",
+		"End `date` of log window, yyyy-mm-dd or Nd (days ago) or Nw (weeks ago)")
+	return &logOpts
+}
+
+func RectifyDateFilterOptions(s *DateFilterOptions, opts *flag.FlagSet) error {
+	var err error
 
 	// Figure out the date range.  From has a sane default so always parse; To has no default so
 	// grab current day if nothing is specified.
@@ -95,20 +122,12 @@ func RectifySonarLogOptions(s *SonarLogOptions, opts *flag.FlagSet) error {
 	return nil
 }
 
-// Simple utility: Forward standard from/to and data file arguments to an argument list
-
-func ForwardSonarLogOptions(arguments []string, progOpts *SonarLogOptions) []string {
+func ForwardDateFilterOptions(arguments []string, progOpts *DateFilterOptions) []string {
 	if progOpts.HaveFrom {
 		arguments = append(arguments, "--from", progOpts.FromStr)
 	}
 	if progOpts.HaveTo {
 		arguments = append(arguments, "--to", progOpts.ToStr)
-	}
-	if progOpts.DataFiles != nil {
-		arguments = append(arguments, "--")
-		arguments = append(arguments, progOpts.DataFiles...)
-	} else {
-		arguments = append(arguments, "--data-path", progOpts.DataPath)
 	}
 	return arguments
 }

@@ -2,40 +2,20 @@
 
 ## Overview
 
-`naicreport` is a component that ingests summaries produced by `sonalyze` and produces reports.  It
-is separate from `sonalyze` because it has state: it knows what it's reported previously and will avoid
-redundant reporting.
+`naicreport` is a shim around a number of commands that produce various kinds of reports and
+maintain various kinds of state: `deadweight`, `glance`, `hostnames`, `load`, `mlcpuhog`.  The
+functionality and usage of each command is documented in a block comment at the beginning of its
+main source file, eg in `deadweight/deadweight.go`.
 
-`naicreport` is really a superstructure for a number of more or less related and more or less ad-hoc
-commands, expressed as verb arguments to `naicreport` itself, here are the main ones considered so
-far (but run `naicreport help` for a full list):
+Command line parsing in the commands follows the Go standard, so:
 
-- `naicreport ml-cpuhog <options>` will digest the `cpuhog.csv` logs produced by the
-  `../production/sonalyze/ml-nodes/cpuhog.sh` script and will report new offending jobs to a Proper
-  Authority.
+- `-h` will get you brief help in most situations (consult the documentation for more information,
+  as mentioned above)
+- option names can use single dashes `-option` or double dashes `--option`
+- option values can be stated with `-option value` or `-option=value`
+- single-letter option names *can not* be merged with their values, as in `-f5d`
 
-- `naicreport ml-deadweight <options>` will digest the `deadweight.csv` logs produced by the
-  `../production/sonalyze/ml-nodes/deadweight.sh` script and will report new offending processes to a
-  Proper Authority.
+## Warning
 
-- `naicreport ml-webload <options>` will (for now) invoke `sonalyze` on the `sonar` logs and will
-  produce a system load report in a format digestable by the web dashboard.
-
-Most of these commands have state, which is updated as necessary.  As a general rule, `naicreport`
+Several of these commands have state, which is updated as necessary.  As a general rule, `naicreport`
 does not have *thread-safe* storage, and the program should only be run on one system at a time.
-
-Each command is implemented in a separate subdirectory, with shared code in `storage/` and `util/`.
-
-## Design & implementation
-
-`naicreport` is written in Go: the world wants static types, strong types, and garbage collection.
-(Both `sonar` and `sonalyze` are written in Rust.  For `sonar` this was both fine and reasonable,
-while for `sonalyze` it was not the most natural choice, but was instead driven by the prospect of
-sharing the increasingly complicated log processing code with eg `jobgraph`.  `naicreport` does not
-have that constraint.)
-
-The data produced by `sonalyze` is always in "free csv form", ie using CSV syntax but with fields
-tagged by field names and in arbitrary order, and different rows may not have the same number of
-fields.  This allows its output to evolve, but it means `naicreport` must be a little flexible wrt
-what it does when fields in its input data are missing.
-

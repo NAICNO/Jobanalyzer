@@ -1,23 +1,75 @@
-// The ml-nodes cpuhog analysis runs fairly often (see next) and examines data from a larger time
-// window than its running interval, and will append information about CPU hogs to a daily log.  The
+// ml-cpuhog - consolidate periodic cpuhog reports into a persistent database.
+//
+// End-user options:
+//
+//  -state-dir directory
+//  -data-path directory (obsolete name)
+//     The directory that holds the database file and is the root of the directory tree
+//     containing the periodic reports.
+//
+//  -from timestamp
+//     The start of the window of time we're interested in, default 1d (1 day ago).  Normally, the
+//     `-from` switch should use a constant, relative time, eg `-from 30d` to always be examining
+//     the last month.
+//
+//     Note, records older than the `-from` date will be purged from the persistent state.
+//
+//  -json
+//     Produce json output, not the default formatted-text output.
+//
+// Debugging / development options:
+//
+//  -v
+//     Print diagnostic information
+//
+//  -summary
+//     Print some summary information
+//
+//  -state-file filename
+//     Name the file holding the database, overrides the standard computation of this file name.
+//     Normally, the database is <state-dir>/cpuhog-state.csv.
+//
+//  -to timestamp
+//     The end of the window of time, default now.  Normally, the `-to` switch should not be used,
+//     as the resulting purging of the database can be surprising.
+//
+//  -now time
+//     Define `now` so that relative times like `1d` are relative to a fixed known time.  The time
+//     must have the precise format "YYYY-MM-DD hh:mm" (with the embedded space)
+//
+//  -- filename ... (at end of options list only)
+//     Name the files holding the periodic reports.  Normally those data files are the cpuhog.csv
+//     log files found in the state directory in the <year>/<month>/<day> subdirectories appropriate
+//     for the selected date range.
+//
+// Description:
+//
+// The ML nodes cpuhog analysis runs fairly often and examines log data from a larger time window
+// than its running interval.  It will append information about CPU hogs to a daily log.  The
 // schedule generates a fair amount of redundancy under normal circumstances.
 //
-// The analysis MUST run often enough for a job ID on a given host never to become reused between
-// two consecutive analysis runs.
+// The cpuhog analysis MUST run often enough for a job ID on a given host never to become reused
+// between two consecutive analysis runs.
 //
-// The present component runs occasionally and filters / resolves the redundancy and creates
+// The ml-cpuhog component runs occasionally and filters / resolves the redundancy and creates
 // formatted reports about new violations.  For this it maintains state about what it's already seen
 // and reported.
 //
 // For now this code is specific to the ML nodes, hence the "ml" in all the names.
 //
-// Requirements:
+// -------------------------------------------------------------------------------------------------
+//
+// Implementation notes.
+//
+// Program requirements:
 //
 //  - a job that appears in the cpuhog log is a cpu hog and should be reported
 //  - the report is (for now) some textual output to be emailed
 //  - we don't want to report jobs redundantly, so there will have to be persistent state
 //  - we don't want the state to grow without bound
-
+//
+// Persistent state:
+//
 // For textual reports, there is persistent state so that reports are not sent redundantly.  This
 // state maps a job to a flag that indicates whether a report has been sent or not.
 //
@@ -28,10 +80,8 @@
 //
 // The astute reader will have realized that "expired" and "lastSeen" depend on the time window of
 // records that this program examines.  Therefore, the persistent state is dependent on that time
-// window.  For sane results, the `--to` switch should not be used and the `--from` switch should
-// use a constant, relative time, eg `--from=30d` to always be examining the last month.
-//
-// Records older than the `--from` date will be purged from the persistent state.
+// window.  For sane results, the `-to` switch should not be used and the `-from` switch should
+// use a constant, relative time, eg `-from 30d` to always be examining the last month.
 
 package mlcpuhog
 
@@ -60,20 +110,9 @@ const (
 
 var verbose bool
 
-// Options logic here and for deadweight:
-//
-// - If `--state-file` is present then that names the state file; otherwise `--data-path` must be present
-//   and we use `${dataPath}/cpuhog-state.csv` as the state file
-//
-// - If `-- filename ...` are present then those are used for input; otherwise `--data-path` must be present
-//   and we enumerate cpuhog.csv files within the dataPath directory
-//
-// - The `--now` option is strictly for testing, everyone else should ignore it.  It parses a time on
-//   the format "YYYY-MM-DD hh:mm" (yes, with the space).
-
 func MlCpuhog(progname string, args []string) error {
 
-	jsonOutput, summaryOutput, stateFilename, now, from, to, dataFiles, err := commandLine()
+	jsonOutput, summaryOutput, stateFilename, now, fileOpts, filterOpts, err := commandLine()
 	if err != nil {
 		return err
 	}
@@ -88,6 +127,21 @@ func MlCpuhog(progname string, args []string) error {
 	}
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%d+%d records in database\n", len(db.Active), len(db.Expired))
+	}
+
+	// fileOpts will establish the either-or invariant here
+	var dataFiles []string
+	if fileOpts.Files != nil {
+		dataFiles = fileOpts.Files
+	} else {
+		dataFiles, err = joblog.FindJoblogFiles(
+			fileOpts.Path,
+			cpuhogDataFilename,
+			filterOpts.From,
+			filterOpts.To)
+		if err != nil {
+			return err
+		}
 	}
 
 	logs, err := joblog.ReadJoblogFiles[*cpuhogJob](
@@ -122,6 +176,8 @@ func MlCpuhog(progname string, args []string) error {
 		fmt.Fprintf(os.Stderr, "%d new jobs\n", new_jobs)
 	}
 
+	from := filterOpts.From
+	to := filterOpts.To
 	purgeDate := sonartime.MinTime(from, to.AddDate(0, 0, -2))
 	purged := jobstate.PurgeJobsBefore(db, purgeDate)
 	if verbose {
@@ -334,18 +390,22 @@ func parseCpuhogRecord(r map[string]string) (*cpuhogJob, bool) {
 func commandLine() (
 	jsonOutput, summaryOutput bool,
 	stateFilename string,
-	now, from, to time.Time,
-	dataFiles []string,
+	now time.Time,
+	fileOpts *util.DataFilesOptions,
+	filterOpts *util.DateFilterOptions,
 	err error,
 ) {
 	opts := flag.NewFlagSet(os.Args[0]+" ml-cpuhog", flag.ContinueOnError)
-	logOpts := util.AddSonarLogOptions(opts)
+	fileOpts = util.AddDataFilesOptions(opts, "state-dir", "Root `directory` of state data store")
+	filterOpts = util.AddDateFilterOptions(opts)
 	opts.BoolVar(&jsonOutput, "json", false, "Format output as JSON")
 	opts.BoolVar(&summaryOutput, "summary", false, "Format output for testing")
 	opts.StringVar(&stateFilename, "state-file", "", "Store computation state in `filename` (optional)")
 	var nowOpt string
 	opts.StringVar(&nowOpt, "now", "", "ISO `timestamp` to use as the present time (for testing)")
 	opts.BoolVar(&verbose, "v", false, "Verbose (debugging) output")
+	var dataPath string
+	opts.StringVar(&dataPath, "data-path", "", "Obsolete name for -state-dir")
 	err = opts.Parse(os.Args[2:])
 	if err == flag.ErrHelp {
 		os.Exit(0)
@@ -353,43 +413,34 @@ func commandLine() (
 	if err != nil {
 		return
 	}
-	err = util.RectifySonarLogOptions(logOpts, opts)
+	err = util.RectifyDateFilterOptions(filterOpts, opts)
+	if err != nil {
+		return
+	}
+	if fileOpts.Path == "" && fileOpts.Files == nil && dataPath != "" {
+		fileOpts.Path = dataPath
+	}
+	err = util.RectifyDataFilesOptions(fileOpts, opts)
 	if err != nil {
 		return
 	}
 	if stateFilename == "" {
-		if logOpts.DataPath == "" {
-			err = errors.New("If --state-file is not present then --data-path must be")
+		if fileOpts.Path == "" {
+			err = errors.New("If -state-file is not present then -state-dir must be")
 			return
 		}
-		stateFilename = path.Join(logOpts.DataPath, cpuhogStateFilename)
+		stateFilename = path.Join(fileOpts.Path, cpuhogStateFilename)
 	}
-
-	// logOpts will establish the either-or invariant here
-	if logOpts.DataFiles != nil {
-		dataFiles = logOpts.DataFiles
-	} else {
-		var files []string
-		files, err = joblog.FindJoblogFiles(logOpts.DataPath, cpuhogDataFilename, logOpts.From, logOpts.To)
-		if err != nil {
-			err = fmt.Errorf("Could not enumerate files: %w", err)
-			return
-		}
-		dataFiles = files
-	}
-
 	if nowOpt != "" {
 		var n time.Time
 		n, err = time.Parse(nowOpt, sonarlog.DateTimeFormat)
 		if err != nil {
-			err = fmt.Errorf("Argument to --now could not be parsed: %w", err)
+			err = fmt.Errorf("Argument to -now could not be parsed: %w", err)
 			return
 		}
 		now = n.UTC()
 	} else {
 		now = time.Now().UTC()
 	}
-	from = logOpts.From
-	to = logOpts.To
 	return
 }
