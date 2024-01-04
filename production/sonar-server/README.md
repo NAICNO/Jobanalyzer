@@ -29,10 +29,11 @@ Create working directories if necessary and copy files, as follows.  The working
   mkdir -p ~/sonar/data
   cp infiltrate/infiltrate ~/sonar
   cp sonalyzed/sonalyzed ~/sonar
+  mkdir -p ~/sonar/query
+  cp sonalyzed/sonalyzed/query/*.{html,js,css} ~/sonar/query
   cp naicreport/naicreport ~/sonar
   cp sonalyze/target/release/sonalyze ~/sonar
-  cp production/sonar-server/*.sh ~/sonar
-  cp production/sonar-server/*.cron ~/sonar
+  cp production/sonar-server/*.{sh,cron} ~/sonar
   cp production/sonar-server/POINTER.md ~/sonar
   cp -r production/sonar-server/scripts ~/sonar
 ```
@@ -48,7 +49,7 @@ but those will be easier.
   ln ~/.ssh/ubuntu-vm.pem .
 ```
 
-IMPORTANT: Now for each CLUSTER edit ~/sonar/scripts/$CLUSTER/upload-config.sh to your liking.
+IMPORTANT: Now for each CLUSTER edit `~/sonar/scripts/$CLUSTER/upload-config.sh` to your liking.
 
 ### Step 3: Activate
 
@@ -60,6 +61,11 @@ Activate the cron jobs and start the data logger and the query server:
   ./start-infiltrate.sh
   ./start-sonalyzed.sh
 ```
+
+The data logger (currently) normally runs on port 8086 and the query server on port 8087.  These
+ports must be opened for remote access, or you must change the startup scripts to point to ports
+that are open, and in that case, also edit upload setups in `upload-config.sh` and you may need to
+edit dashboard HTML code (discussed elsewhere).
 
 ## Upgrading infiltrate and exfiltrate
 

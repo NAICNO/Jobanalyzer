@@ -1,0 +1,13 @@
+#joblist {
+    width: 100%;
+    border: 1px solid #333;
+}
+
+#joblist td {
+    border: 1px solid #333;
+}
+
+#joblist thead, #joblist tfoot {
+    background-color: #333;
+    color: #fff;
+}

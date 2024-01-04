@@ -23,20 +23,20 @@ func TestAuth(t *testing.T) {
 }
 
 func TestPwfile(t *testing.T) {
-	oracle, err := ParsePasswdFile("auth_test3.txt")
+	oracle, err := ReadPasswords("auth_test3.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !oracle("grunge", "dirge") {
+	if !oracle.Authenticate("grunge", "dirge") {
 		t.Fatalf("Failed #1")
 	}
-	if oracle("grunge", "blapp") {
+	if oracle.Authenticate("grunge", "blapp") {
 		t.Fatalf("Failed #2")
 	}
-	if !oracle("fuzz", "fizz") {
+	if !oracle.Authenticate("fuzz", "fizz") {
 		t.Fatalf("Failed #3")
 	}
-	if oracle("blum", "fuzz") {
+	if oracle.Authenticate("blum", "fuzz") {
 		t.Fatalf("Failed #4")
 	}
 }
