@@ -34,6 +34,7 @@ Create working directories if necessary and copy files, as follows.  The working
   cp naicreport/naicreport ~/sonar
   cp sonalyze/target/release/sonalyze ~/sonar
   cp production/sonar-server/*.{sh,cron} ~/sonar
+  cp production/sonar-server/cluster-aliases.json ~/sonar
   cp production/sonar-server/POINTER.md ~/sonar
   cp -r production/sonar-server/scripts ~/sonar
 ```
