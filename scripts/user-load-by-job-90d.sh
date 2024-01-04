@@ -17,19 +17,18 @@ DISCRIMINANT= # Use --no-gpu or --some-gpu if you like
 SORTBY=2      # "1" for CPU time, "2" for GPU time
 HOWMANY=25
 
-# Configure this only if you're running from some other directory or you've not compiled the
-# binaries yourself and you're using somebody else's.  To build binaries, run build.sh in the parent
-# directory.
+# Standard configuration
 SONALYZE=../sonalyze/target/release/sonalyze
-
-# Generally don't mess with these.
-QUANT=cputime/sec,gputime/sec,cmd
 REMOTE=http://158.39.48.160:8087
 
+FIELDS=cputime/sec,gputime/sec,cmd
 SUM_AND_PERCENT='
 {
-  cputime[$3] += $1
-  gputime[$3] += $2
+  cpusec=$1
+  gpusec=$2
+  cmd=$3
+  cputime[cmd] += cpusec
+  gputime[cmd] += gpusec
 }
 END {
   for (cmd in cputime) {
@@ -41,13 +40,14 @@ END {
 }'
 
 $SONALYZE jobs \
-  --auth-file $AUTH \
-  --cluster $CLUSTER \
   --remote $REMOTE \
+  --cluster $CLUSTER \
+  --auth-file $AUTH \
   --user $USER \
-  --fmt=awk,$QUANT \
+  --fmt=awk,$FIELDS \
   --from $TIMESPAN \
   --host "$HOST" \
-  $DISCRIMINANT | \
-    awk "$SUM_AND_PERCENT" | \
-    sort -k ${SORTBY}nr | head -n $HOWMANY
+  $DISCRIMINANT \
+    | awk "$SUM_AND_PERCENT" \
+    | sort -k ${SORTBY}nr \
+    | head -n $HOWMANY
