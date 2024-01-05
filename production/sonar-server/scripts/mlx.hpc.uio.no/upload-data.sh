@@ -9,7 +9,7 @@
 set -eu -o pipefail
 
 cluster=mlx.hpc.uio.no
-sonar_dir=$HOME/sonar
+sonar_dir=${sonar_dir:-$HOME/sonar}
 script_dir=$sonar_dir/scripts/$cluster
 report_dir=$sonar_dir/reports/$cluster
 

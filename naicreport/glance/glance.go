@@ -1,3 +1,33 @@
+// at-a-glance - produce cluster overview data for the main dashboard.
+//
+// End-user options:
+//
+//  -data-dir directory
+//  -data-path directory (obsolete name)
+//    The root directory of the Sonar data store, for a particular cluster.
+//
+//  -sonalyze filename
+//    The `sonalyze` executable.
+//
+//  -config-file filename
+//    The machine configuration file for the cluster.
+//
+//  -state-dir directory
+//  -state-path directory (obsolete name)
+//     The directory that holds the database files for cpuhog and deadweight reports.
+//
+//  -tag tag-name
+//    A tag for the report describing whose data it contains, typically a human-readable string.
+//    The tag is included in the report and may be displayed by the dashboard code.
+//
+// Description:
+//
+// The program examines raw Sonar data as well as the state databases for cpuhog/deadweight/... and
+// produces a summary report which will be displayed by the main dashboard.  The output is always
+// json, printed on stdout.
+//
+// The data format is defined by the code below (sorry).
+
 package glance
 
 import (
@@ -38,8 +68,13 @@ var recentCutoff = nowUTC.Add(-RECENT_MINS * 60 * nanosPerSec)
 var longerCutoff = nowUTC.Add(-LONGER_MINS * 60 * nanosPerSec)
 var longCutoff = nowUTC.Add(-LONG_MINS * 60 * nanosPerSec)
 
+type optionsPkg struct {
+	fileOpts   *util.DataFilesOptions
+	filterOpts *util.DateFilterOptions
+}
+
 func Report(progname string, args []string) error {
-	sonalyzePath, configFilename, statePath, tag, logOpts, err := commandLine()
+	sonalyzePath, configFilename, stateDir, tag, fileOpts, filterOpts, err := commandLine()
 	if err != nil {
 		return err
 	}
@@ -53,6 +88,7 @@ func Report(progname string, args []string) error {
 	// centralized database mapping host -> glanceRecord that is just passed around for everyone to
 	// use.  But it's not obvious the code would be as easy to understand.
 
+	logOpts := &optionsPkg{fileOpts, filterOpts}
 	ujbh, err := collectUsersAndJobs(sonalyzePath, logOpts)
 	if err != nil {
 		return err
@@ -65,11 +101,11 @@ func Report(progname string, args []string) error {
 	if err != nil {
 		return err
 	}
-	hogsbh, err := collectCpuhogs(path.Join(statePath, "cpuhog-state.csv"))
+	hogsbh, err := collectCpuhogs(path.Join(stateDir, "cpuhog-state.csv"))
 	if err != nil {
 		return err
 	}
-	deadweightbh, err := collectDeadweight(path.Join(statePath, "deadweight-state.csv"))
+	deadweightbh, err := collectDeadweight(path.Join(stateDir, "deadweight-state.csv"))
 	if err != nil {
 		return err
 	}
@@ -199,7 +235,7 @@ type usersAndJobsByHost struct {
 
 func collectUsersAndJobs(
 	sonalyzePath string,
-	progOpts *util.SonarLogOptions,
+	progOpts *optionsPkg,
 ) ([]*usersAndJobsByHost, error) {
 
 	// First get the raw data about recent jobs across all hosts
@@ -294,7 +330,7 @@ type systemStatusByHost struct {
 	gpu_down bool
 }
 
-func collectStatusData(sonalyzePath string, progOpts *util.SonarLogOptions) ([]*systemStatusByHost, error) {
+func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStatusByHost, error) {
 
 	// First run sonalyze to collect information about system status
 
@@ -361,7 +397,7 @@ type loadAveragesByHost struct {
 func collectLoadAverages(
 	sonalyzePath string,
 	configFilename string,
-	progOpts *util.SonarLogOptions,
+	progOpts *optionsPkg,
 ) ([]*loadAveragesByHost, error) {
 
 	if RECENT_MINS != 30 {
@@ -430,7 +466,7 @@ type sonalyzeLoadData struct {
 
 func collectLoadAveragesOnce(
 	sonalyzePath, configFilename string,
-	progOpts *util.SonarLogOptions,
+	progOpts *optionsPkg,
 	bucketArg string,
 ) (map[string]*sonalyzeLoadData, error) {
 
@@ -550,8 +586,9 @@ func countDatabaseEntries(stateFilename string) ([]*badJobsByHost, error) {
 //
 // Utilities
 
-func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *util.SonarLogOptions, rawData any) error {
-	arguments = util.ForwardSonarLogOptions(arguments, progOpts)
+func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *optionsPkg, rawData any) error {
+	arguments = util.ForwardDateFilterOptions(arguments, progOpts.filterOpts)
+	arguments = util.ForwardDataFilesOptions(arguments, "--data-path", progOpts.fileOpts)
 	sonalyzeOutput, err := process.RunSubprocess(sonalyzePath, arguments)
 	if err != nil {
 		return err
@@ -573,17 +610,23 @@ func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *util.Son
 func commandLine() (
 	sonalyzePath string,
 	configFilename string,
-	statePath string,
+	stateDir string,
 	tag string,
-	logOpts *util.SonarLogOptions,
+	fileOpts *util.DataFilesOptions,
+	filterOpts *util.DateFilterOptions,
 	err error,
 ) {
 	opts := flag.NewFlagSet(os.Args[0]+" at-a-glance", flag.ContinueOnError)
-	logOpts = util.AddSonarLogOptions(opts)
+	fileOpts = util.AddDataFilesOptions(opts, "data-dir", "Root `directory` of data store")
+	filterOpts = util.AddDateFilterOptions(opts)
 	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
 	opts.StringVar(&configFilename, "config-file", "", "Read cluster configuration from `filename` (required)")
-	opts.StringVar(&statePath, "state-path", "", "Store computation state in `directory` (required)")
+	opts.StringVar(&stateDir, "state-dir", "", "Directory holding databases for system state (required)")
 	opts.StringVar(&tag, "tag", "", "Annotate output with `cluster-name` (optional)")
+	var dataPath string
+	opts.StringVar(&dataPath, "data-path", "", "Obsolete name for -data-dir")
+	var statePath string
+	opts.StringVar(&statePath, "state-path", "", "Obsolete name for -state-dir")
 	err = opts.Parse(os.Args[2:])
 	if err == flag.ErrHelp {
 		os.Exit(0)
@@ -591,10 +634,17 @@ func commandLine() (
 	if err != nil {
 		return
 	}
-	err1 := util.RectifySonarLogOptions(logOpts, opts)
+	if fileOpts.Path == "" && fileOpts.Files == nil && dataPath != "" {
+		fileOpts.Path = dataPath
+	}
+	err1 := util.RectifyDataFilesOptions(fileOpts, opts)
+	err5 := util.RectifyDateFilterOptions(filterOpts, opts)
 	sonalyzePath, err2 := options.RequireCleanPath(sonalyzePath, "-sonalyze")
 	configFilename, err3 := options.RequireCleanPath(configFilename, "-config-file")
-	statePath, err4 := options.RequireCleanPath(statePath, "-state-path")
-	err = errors.Join(err1, err2, err3, err4)
+	if stateDir == "" && statePath != "" {
+		stateDir = statePath
+	}
+	stateDir, err4 := options.RequireCleanPath(stateDir, "-state-dir")
+	err = errors.Join(err1, err2, err3, err4, err5)
 	return
 }

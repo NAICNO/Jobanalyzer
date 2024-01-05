@@ -6,7 +6,7 @@
 set -euf -o pipefail
 
 cluster=mlx.hpc.uio.no
-sonar_dir=$HOME/sonar
+sonar_dir=${sonar_dir:-$HOME/sonar}
 script_dir=$sonar_dir/scripts/$cluster
 data_dir=$sonar_dir/data/$cluster
 state_dir=$sonar_dir/state/$cluster

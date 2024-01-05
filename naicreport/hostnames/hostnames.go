@@ -1,8 +1,23 @@
-// Hostnames: Compute a set of host names from a set of log file names.
+// hostnames - compute a set of host names from a set of report file names.
 //
-// Enumerate the files in the log directory.  For each that has the form <something>-<word>.json
-// where <word> is from a known set, remember <something>.  Sort the list lexicographically, remove
-// duplicates, and print the list as a JSON array of strings on stdout.
+// End-user options:
+//
+//  -report-dir <report-directory>
+//  <report-directory> (obsolete form)
+//     The name of the directory holding generated reports
+//
+// Description:
+//
+// Enumerate the files in the report directory.  For each file name that has the form
+// <something>-<word>.json where <word> is from a known set, remember <something>.  Sort the list of
+// <something>s lexicographically, remove duplicates, and print the resulting list as a JSON array
+// of strings on stdout.
+//
+// The set of <word>s is: {`minutely`, `daily`, `weekly`, `monthly`, `quarterly`}.
+//
+// -------------------------------------------------------------------------------------------------
+//
+// Implementation notes.
 //
 // Obviously this could be a shell script but it's better integrated into naicreport.
 //
@@ -13,6 +28,7 @@ package hostnames
 import (
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io/fs"
 	"os"
@@ -23,23 +39,10 @@ import (
 var glob *regexp.Regexp = regexp.MustCompile("^(.*)-(?:minutely|daily|weekly|monthly|quarterly).json$")
 
 func Hostnames(progname string, args []string) (err error) {
-	if len(args) != 1 {
-		err = errors.New("Requires one argument: the log directory")
+	dirname, err := commandLine()
+	if err != nil {
 		return
 	}
-	if args[0] == "-h" {
-		fmt.Fprintf(
-			os.Stderr,
-			`Usage of %s hostnames:
-    %s hostnames <dirname>
-      <dirname> names the directory containing the load reports
-`,
-			progname,
-			progname,
-		)
-		return
-	}
-	dirname := args[0]
 	err = hostnames(dirname)
 	return
 }
@@ -68,6 +71,28 @@ func hostnames(dirname string) (err error) {
 	encoding, err := json.Marshal(hosts)
 	if err == nil {
 		fmt.Println(string(encoding))
+	}
+	return
+}
+
+func commandLine() (dirname string, err error) {
+	opts := flag.NewFlagSet(os.Args[0]+" hostnames", flag.ContinueOnError)
+	opts.StringVar(&dirname, "report-dir", "", "Report `directory`")
+	err = opts.Parse(os.Args[2:])
+	if err == flag.ErrHelp {
+		os.Exit(0)
+	}
+	if err != nil {
+		return
+	}
+	// Backwards compatible
+	if dirname == "" {
+		rest := opts.Args()
+		if len(rest) == 0 {
+			err = errors.New("No report directory specified")
+			return
+		}
+		dirname = rest[0]
 	}
 	return
 }

@@ -6,7 +6,7 @@
 set -euf -o pipefail
 
 cluster=mlx.hpc.uio.no
-sonar_dir=$HOME/sonar
+sonar_dir=${sonar_dir:-$HOME/sonar}
 data_dir=$sonar_dir/data/$cluster
 report_dir=$sonar_dir/reports/$cluster
 script_dir=$sonar_dir/scripts/$cluster
@@ -16,8 +16,8 @@ mkdir -p $report_dir
 $sonar_dir/naicreport load \
 		      -sonalyze $sonar_dir/sonalyze \
 		      -config-file $script_dir/mlx.hpc.uio.no-config.json \
-		      -output-path $report_dir \
-		      -data-path $data_dir \
+		      -report-dir $report_dir \
+		      -data-dir $data_dir \
 		      -with-downtime \
 		      -tag monthly \
 		      -daily \
@@ -26,8 +26,8 @@ $sonar_dir/naicreport load \
 $sonar_dir/naicreport load \
 		      -sonalyze $sonar_dir/sonalyze \
 		      -config-file $script_dir/mlx.hpc.uio.no-config.json \
-		      -output-path $report_dir \
-		      -data-path $data_dir \
+		      -report-dir $report_dir \
+		      -data-dir $data_dir \
 		      -with-downtime \
 		      -tag quarterly \
 		      -daily \
