@@ -228,7 +228,8 @@ func sonarReading(payload []byte, dataPath string) (int, string, string) {
 	var rs []*sonarlog.SonarReading
 	err := json.Unmarshal(payload, &rs)
 	if err != nil {
-		return 400, "Bad content", fmt.Sprintf("Bad content - can't unmarshal SonarReading JSON: %v", err)
+		return 400, "Bad content",
+			fmt.Sprintf("Bad content - can't unmarshal SonarReading JSON: %v", err)
 	}
 	for _, r := range rs {
 		writeRecord(dataPath, r.Cluster, r.Host, r.Timestamp, r.Csvnamed())
@@ -240,7 +241,8 @@ func sonarHeartbeat(payload []byte, dataPath string) (int, string, string) {
 	var rs []*sonarlog.SonarHeartbeat
 	err := json.Unmarshal(payload, &rs)
 	if err != nil {
-		return 400, "Bad content", fmt.Sprintf("Bad content - can't unmarshal SonarHeartbeat JSON: %v", err)
+		return 400, "Bad content",
+			fmt.Sprintf("Bad content - can't unmarshal SonarHeartbeat JSON: %v", err)
 	}
 	for _, r := range rs {
 		writeRecord(dataPath, r.Cluster, r.Host, r.Timestamp, r.Csvnamed())
@@ -352,7 +354,8 @@ func runWriter() {
 				// Anyway, if we get here with a partial data write it's going to be something more
 				// serious than EINTR, such as a disk full.  Trying to recover is probably not worth
 				// our time.  Just log the failure and hope somebody sees it.
-				status.Errorf("Write error on log (%v), %d bytes written of %d", err, n, len(r.payload))
+				status.Errorf("Write error on log (%v), %d bytes written of %d",
+					err, n, len(r.payload))
 			}
 		}
 	}
