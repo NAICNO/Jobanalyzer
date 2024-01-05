@@ -95,11 +95,11 @@ import (
 	"path"
 	"time"
 
+	"go-utils/freecsv"
 	"go-utils/sonarlog"
 	sonartime "go-utils/time"
 	"naicreport/joblog"
 	"naicreport/jobstate"
-	"naicreport/storage"
 	"naicreport/util"
 )
 
@@ -345,21 +345,21 @@ func integrateCpuhogRecords(record, probe *cpuhogJob) {
 func parseCpuhogRecord(r map[string]string) (*cpuhogJob, bool) {
 	success := true
 
-	tag := storage.GetString(r, "tag", &success)
+	tag := freecsv.GetString(r, "tag", &success)
 	success = success && tag == "cpuhog"
-	timestamp := storage.GetDateTime(r, "now", &success)
-	id := storage.GetJobMark(r, "jobm", &success)
-	user := storage.GetString(r, "user", &success)
-	host := storage.GetString(r, "host", &success)
-	cmd := storage.GetString(r, "cmd", &success)
-	cpuPeak := storage.GetFloat64(r, "cpu-peak", &success)
-	gpuPeak := storage.GetFloat64(r, "gpu-peak", &success)
-	rcpuAvg := storage.GetFloat64(r, "rcpu-avg", &success)
-	rcpuPeak := storage.GetFloat64(r, "rcpu-peak", &success)
-	rmemAvg := storage.GetFloat64(r, "rmem-avg", &success)
-	rmemPeak := storage.GetFloat64(r, "rmem-peak", &success)
-	start := storage.GetDateTime(r, "start", &success)
-	end := storage.GetDateTime(r, "end", &success)
+	timestamp := freecsv.GetSonarDateTime(r, "now", &success)
+	id := freecsv.GetJobMark(r, "jobm", &success)
+	user := freecsv.GetString(r, "user", &success)
+	host := freecsv.GetString(r, "host", &success)
+	cmd := freecsv.GetString(r, "cmd", &success)
+	cpuPeak := freecsv.GetFloat64(r, "cpu-peak", &success)
+	gpuPeak := freecsv.GetFloat64(r, "gpu-peak", &success)
+	rcpuAvg := freecsv.GetFloat64(r, "rcpu-avg", &success)
+	rcpuPeak := freecsv.GetFloat64(r, "rcpu-peak", &success)
+	rmemAvg := freecsv.GetFloat64(r, "rmem-avg", &success)
+	rmemPeak := freecsv.GetFloat64(r, "rmem-peak", &success)
+	start := freecsv.GetSonarDateTime(r, "start", &success)
+	end := freecsv.GetSonarDateTime(r, "end", &success)
 
 	if !success {
 		return nil, false

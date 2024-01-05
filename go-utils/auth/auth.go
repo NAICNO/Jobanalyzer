@@ -1,15 +1,25 @@
+// Authorization checking abstraction.
+//
+// A password file has a sequence of lines, each with a username:password syntax (blanks are
+// significant, but empty lines are ignored).  This can be read with ReadPasswords() to produce an
+// Authenticator object that can be used to authenticate credentials.
+//
+// An authorization file has a single line with the same syntax.  This can be read with ParseAuth()
+// to produce a username/password pair that can be passed to the authenticator, or the file name can
+// be passed as an argument to curl -u.
+//
+// The authenticator can be reinitialized after creation (reading from the same file, which is
+// presumed to have changed).  Reinitialization is thread-safe, and if it fails to read the file the
+// authenticator is unchanged.
+
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 )
-
-// The file must provide a user name and password on the form username/password (old form) or
-// username:password (new form, compatible with curl), to be used in an HTTP basic authentication
-// header.
 
 func ParseAuth(filename string) (string, string, error) {
 	bs, err := os.ReadFile(filename)
@@ -29,15 +39,23 @@ func ParseAuth(filename string) (string, string, error) {
 }
 
 type Authenticator struct {
-	filepath string
+	filepath   string
 	identities map[string]string
+	lock       sync.RWMutex
 }
 
-// Read a file with lines of username and password pairs and return an object that will check a
-// username/password pair.  Only the new syntax, "username:password", is accepted.  Lines can be
-// blank.
-
 func ReadPasswords(filename string) (*Authenticator, error) {
+	mapping, err := readPasswords(filename)
+	if err != nil {
+		return nil, err
+	}
+	return &Authenticator{
+		filepath:   filename,
+		identities: mapping,
+	}, nil
+}
+
+func readPasswords(filename string) (map[string]string, error) {
 	bs, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -58,19 +76,23 @@ func ReadPasswords(filename string) (*Authenticator, error) {
 		}
 		m[xs[0]] = xs[1]
 	}
-	return &Authenticator{
-		filepath: filename,
-		identities: m,
-	}, nil
+	return m, nil
 }
 
 func (a *Authenticator) Authenticate(user, pass string) bool {
-	// TODO: This needs to be under a mutex or using an atomic, once Reread is implemented
+	a.lock.RLock()
+	defer a.lock.RUnlock()
 	probe, found := a.identities[user]
 	return found && probe == pass
 }
 
 func (a *Authenticator) Reread() error {
-	// TODO: This needs to be under a mutex or using an atomic
-	return errors.New("auth.Reread not implemented")
+	m, err := readPasswords(a.filepath)
+	if err != nil {
+		return err
+	}
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	a.identities = m
+	return nil
 }

@@ -40,11 +40,11 @@ import (
 	"sort"
 	"time"
 
+	"go-utils/config"
 	"go-utils/options"
 	"go-utils/process"
+	"go-utils/sonalyze"
 	"naicreport/jobstate"
-	"naicreport/sonalyze"
-	"naicreport/storage"
 	"naicreport/util"
 )
 
@@ -79,7 +79,7 @@ func Report(progname string, args []string) error {
 		return err
 	}
 
-	config, err := storage.ReadConfig(configFilename)
+	config, err := config.ReadConfig(configFilename)
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func Report(progname string, args []string) error {
 func glanceRecordForHost(
 	recordsByHost map[string]*glanceRecord,
 	hostname string,
-	config map[string]*storage.SystemConfig,
+	config map[string]*config.SystemConfig,
 	tag string,
 ) *glanceRecord {
 	if r, found := recordsByHost[hostname]; found {
@@ -282,8 +282,8 @@ func collectUsersAndJobs(
 			host_data[repr.Hostname] = hostrec
 		}
 
-		classification := util.JsonInt(repr.Classification)
-		end := util.JsonDateTime(repr.EndUTC)
+		classification := sonalyze.JsonInt(repr.Classification)
+		end := sonalyze.JsonDateTime(repr.EndUTC)
 
 		// Note is_recent is included in is_longer all the way
 
@@ -513,10 +513,10 @@ func collectLoadAveragesOnce(
 			d := rs[len(rs)-1]
 			hosts[d.Host] = &sonalyzeLoadData{
 				host:    d.Host,
-				rcpu:    util.JsonFloat64(d.Rcpu),
-				rmem:    util.JsonFloat64(d.Rmem),
-				rgpu:    util.JsonFloat64(d.Rgpu),
-				rgpumem: util.JsonFloat64(d.Rgpumem),
+				rcpu:    sonalyze.JsonFloat64(d.Rcpu),
+				rmem:    sonalyze.JsonFloat64(d.Rmem),
+				rgpu:    sonalyze.JsonFloat64(d.Rgpu),
+				rgpumem: sonalyze.JsonFloat64(d.Rgpumem),
 			}
 		}
 	}

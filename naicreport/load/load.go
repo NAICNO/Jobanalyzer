@@ -80,10 +80,11 @@ import (
 	"sort"
 	"time"
 
+	"go-utils/hostglob"
 	"go-utils/options"
 	"go-utils/process"
+	"go-utils/sonalyze"
 	"go-utils/sonarlog"
-	"naicreport/storage"
 	"naicreport/util"
 )
 
@@ -129,7 +130,7 @@ func Load(progname string, args []string) error {
 		}
 		loadArguments = append(loadArguments, "--group")
 
-		patterns, err := storage.SplitHostnames(group)
+		patterns, err := hostglob.SplitHostnames(group)
 		if err != nil {
 			return err
 		}
@@ -507,16 +508,16 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 		data := make([]*loadDatum, 0)
 		for _, r := range bySystem.Records {
 			newDatum := &loadDatum{
-				datetime: util.JsonDateTime(r.Datetime),
-				cpu:      util.JsonFloat64(r.Cpu),
-				mem:      util.JsonFloat64(r.Mem),
-				gpu:      util.JsonFloat64(r.Gpu),
-				gpumem:   util.JsonFloat64(r.Gpumem),
-				gpus:     util.JsonGpulist(r.Gpus),
-				rcpu:     util.JsonFloat64(r.Rcpu),
-				rmem:     util.JsonFloat64(r.Rmem),
-				rgpu:     util.JsonFloat64(r.Rgpu),
-				rgpumem:  util.JsonFloat64(r.Rgpumem),
+				datetime: sonalyze.JsonDateTime(r.Datetime),
+				cpu:      sonalyze.JsonFloat64(r.Cpu),
+				mem:      sonalyze.JsonFloat64(r.Mem),
+				gpu:      sonalyze.JsonFloat64(r.Gpu),
+				gpumem:   sonalyze.JsonFloat64(r.Gpumem),
+				gpus:     sonalyze.JsonGpulist(r.Gpus),
+				rcpu:     sonalyze.JsonFloat64(r.Rcpu),
+				rmem:     sonalyze.JsonFloat64(r.Rmem),
+				rgpu:     sonalyze.JsonFloat64(r.Rgpu),
+				rgpumem:  sonalyze.JsonFloat64(r.Rgpumem),
 				host:     bySystem.System.Host,
 			}
 			data = append(data, newDatum)
@@ -525,7 +526,7 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 			system: &systemDesc{
 				host:        bySystem.System.Host,
 				description: bySystem.System.Description,
-				gpuCards:    util.JsonInt(bySystem.System.GpuCards),
+				gpuCards:    sonalyze.JsonInt(bySystem.System.GpuCards),
 			},
 			data: data,
 		})

@@ -1,7 +1,7 @@
 // Utilities for parsing values that are transmitted as JSON strings due to limitations in
 // the sonalyze formatter.  These parsers uniformly panic on conversion error
 
-package util
+package sonalyze
 
 import (
 	"fmt"

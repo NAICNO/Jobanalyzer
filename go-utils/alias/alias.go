@@ -1,34 +1,49 @@
+// Cluster name aliasing abstraction.
+//
 // The alias file maps a short name to a full name, eg, "ml" => "mlx.hpc.uio.no", and should be used
-// throughout the system to allow short names to be used.  There can be multiple short names mapping
-// to the same long name.
+// throughout the system to allow short names (the aliases) to be used.  There can be multiple short
+// names mapping to the same long name.
 //
 // The input is a json file with an array of mappings:
-//  [{"alias":"ml", "value":"mlx.hpc.uio.no"}, ...]
+//
+//  [{"alias":"ml",
+//    "value":"mlx.hpc.uio.no"},
+//   ...]
+//
+// The alias mapper can be reinitialized after creation (reading from the same file, which is
+// presumed to have changed).  Reinitialization is thread-safe, and if it fails to read the file the
+// mapper is unchanged.
 
 package alias
 
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"os"
+	"sync"
 )
 
 type Aliases struct {
 	filepath string
-	mapping map[string]string
+	mapping  map[string]string
+	lock     sync.RWMutex
 }
 
 func ReadAliases(filepath string) (*Aliases, error) {
-	f, err := os.Open(filepath)
+	mapping, err := readAliases(filepath)
 	if err != nil {
-		return nil, fmt.Errorf("No accessible alias file: %v\n", filepath)
+		return nil, err
 	}
-	defer f.Close()
-	all, err := io.ReadAll(f)
+	return &Aliases{
+		filepath: filepath,
+		mapping:  mapping,
+	}, nil
+}
+
+func readAliases(filepath string) (map[string]string, error) {
+	all, err := os.ReadFile(filepath)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read alias file: %v\n", filepath)
+		return nil, err
 	}
 
 	type aliasEncoding struct {
@@ -46,14 +61,13 @@ func ReadAliases(filepath string) (*Aliases, error) {
 	for _, e := range aliases {
 		mapping[e.Alias] = e.Value
 	}
-	return &Aliases{
-		filepath,
-		mapping,
-	}, nil
+
+	return mapping, nil
 }
 
 func (a *Aliases) Resolve(alias string) string {
-	// TODO: Requires a mutex or atomic when Reread is implemented
+	a.lock.RLock()
+	defer a.lock.RUnlock()
 	if m, found := a.mapping[alias]; found {
 		return m
 	}
@@ -61,6 +75,12 @@ func (a *Aliases) Resolve(alias string) string {
 }
 
 func (a *Aliases) Reread() error {
-	// TODO: Implement this, under a mutex or atomic
-	return errors.New("alias.Reread not implemented")
+	mapping, err := readAliases(a.filepath)
+	if err != nil {
+		return err
+	}
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	a.mapping = mapping
+	return nil
 }
