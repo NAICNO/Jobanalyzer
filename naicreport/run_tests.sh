@@ -8,7 +8,6 @@ echo "======================================================================="
 ( cd util ; go test )
 ( cd joblog ; go test )
 ( cd jobstate ; go test )
-( cd storage ; go test )
 
 echo "======================================================================="
 echo " NAICREPORT BUILD + SMOKE TEST"

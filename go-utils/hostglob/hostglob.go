@@ -1,3 +1,5 @@
+// Expand, split, and otherwise manipulate host name sets.
+//
 // For a specification of this, see the block comment starting sonarlog/src/hosts.rs and the code
 // for expand_patterns() in that file, and the code for expand_element() in sonarlog/src/pattern.rs.
 //
@@ -14,7 +16,7 @@
 // If the element is syntactically invalid, the unexpanded value is returned.  In a range A-B, A
 // must be no greater than B.
 
-package storage
+package hostglob
 
 import (
 	"errors"

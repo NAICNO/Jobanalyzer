@@ -1,19 +1,16 @@
-// Storage management for naicreport.  The file format is "free CSV" form, that is, files use CSV
-// syntax but each row can have a different number of columns and each column value starts with
-// `<fieldname>=`, so column order is irrelevant.
+// Manage data in "free CSV" form, that is, files use CSV syntax but each row can have a different
+// number of columns and each column value starts with `<fieldname>=`, column order is irrelevant.
 //
 // I/O errors are propagated to the caller.
 //
 // Rows that appear to be illegal on input are silently dropped.
 
-package storage
+package freecsv
 
 import (
 	"bufio"
 	"encoding/csv"
-	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path"
 	"strconv"
@@ -22,32 +19,6 @@ import (
 
 	"go-utils/sonarlog"
 )
-
-// Given the (relative) name of a root directory, a start date, a date past the end date, and a glob
-// pattern, find and return all files that match the pattern in the data store, filtering by the
-// start date.  The returned names are relative to the data_path.
-//
-// The path shall be a clean, absolute path that ends in `/` only if the entire path is `/`.
-//
-// For the dates, only year/month/day are considered, and timestamps should be passed as UTC times
-// with hour, minute, second, and nsec as zero.
-//
-// The pattern shall have no path components and is typically a glob
-
-func EnumerateFiles(data_path string, from time.Time, to time.Time, pattern string) ([]string, error) {
-	filesys := os.DirFS(data_path)
-	result := []string{}
-	for from.Before(to) {
-		probe_fn := fmt.Sprintf("%4d/%02d/%02d/%s", from.Year(), from.Month(), from.Day(), pattern)
-		matches, err := fs.Glob(filesys, probe_fn)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, matches...)
-		from = from.AddDate(0, 0, 1)
-	}
-	return result, nil
-}
 
 // General "free CSV" reader, returns array of maps from field names to field values.
 //
@@ -182,9 +153,9 @@ func GetBool(record map[string]string, tag string, success *bool) bool {
 	return value
 }
 
-// DateTime field.  The logs use this format uniformly (for better or worse).
+// Sonar DateTime field.  The Sonar logs use this format uniformly (for better or worse).
 
-func GetDateTime(record map[string]string, tag string, success *bool) time.Time {
+func GetSonarDateTime(record map[string]string, tag string, success *bool) time.Time {
 	s, found := record[tag]
 	*success = *success && found
 	value, err := time.Parse(sonarlog.DateTimeFormat, s)

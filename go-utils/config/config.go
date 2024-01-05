@@ -1,13 +1,21 @@
-// Managing the "config" data.  These are going to become more complex over time,
-// with optional and conditional parts.
+// Manage cluster configuration data.
+//
+// The cluster configuration is an array of JSON objects where each object represents the
+// configuration of one or more nodes on the cluster, with the fields of `SystemConfig` below.
+//
+// The configuration is currently time-invariant.
+//
+// (These data are going to become more complex over time, with optional and conditional parts.)
 
-package storage
+package config
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+
+	"go-utils/hostglob"
 )
 
 type SystemConfig struct {
@@ -51,7 +59,7 @@ func ReadConfig(configFilename string) (map[string]*SystemConfig, error) {
 
 	moreInfo := []*SystemConfig{}
 	for _, c := range configInfo {
-		expanded := ExpandPatterns(c.Hostname)
+		expanded := hostglob.ExpandPatterns(c.Hostname)
 		switch len(expanded) {
 		case 0:
 			panic("No way")

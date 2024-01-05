@@ -1,4 +1,5 @@
-// A simple HTTP server.
+// This package contains code for a simple HTTP server (built on existing Go library code) and some
+// utilities for that.
 
 package httpsrv
 
@@ -23,6 +24,9 @@ type Server struct {
 	server  *http.Server
 }
 
+// Create a server that will be listening on `port`.  It will call `failed` if the server returns a
+// failure code.  The server is not started by this.
+
 func New(verbose bool, port int, failed func(error)) *Server {
 	return &Server{
 		verbose: verbose,
@@ -31,6 +35,10 @@ func New(verbose bool, port int, failed func(error)) *Server {
 		stop:    make(chan bool),
 	}
 }
+
+// Start the server.  This blocks the current goroutine until the server exits, so typical usage
+// would be `go s.Start()`.  To force the server to shut down, call s.Stop().  When the server
+// exits, it will call s.failed if there was an error.
 
 func (s *Server) Start() {
 	if s.verbose {
@@ -49,6 +57,8 @@ func (s *Server) Start() {
 	}
 	s.stop <- true
 }
+
+// Cause the server to shut down and stop.
 
 func (s *Server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), serverShutdownTimeoutSec*time.Second)

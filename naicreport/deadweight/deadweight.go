@@ -93,11 +93,11 @@ import (
 	"path"
 	"time"
 
+	"go-utils/freecsv"
 	"go-utils/sonarlog"
 	sonartime "go-utils/time"
 	"naicreport/joblog"
 	"naicreport/jobstate"
-	"naicreport/storage"
 	"naicreport/util"
 )
 
@@ -310,16 +310,16 @@ func integrateDeadweightRecords(record, other *deadweightJob) {
 
 func parseDeadweightRecord(r map[string]string) (*deadweightJob, bool) {
 	success := true
-	tag := storage.GetString(r, "tag", &success)
+	tag := freecsv.GetString(r, "tag", &success)
 	// Old files used "bughunt" for the tag
 	success = success && (tag == "deadweight" || tag == "bughunt")
-	timestamp := storage.GetDateTime(r, "now", &success)
-	id := storage.GetJobMark(r, "jobm", &success)
-	user := storage.GetString(r, "user", &success)
-	cmd := storage.GetString(r, "cmd", &success)
-	host := storage.GetString(r, "host", &success)
-	start := storage.GetDateTime(r, "start", &success)
-	end := storage.GetDateTime(r, "end", &success)
+	timestamp := freecsv.GetSonarDateTime(r, "now", &success)
+	id := freecsv.GetJobMark(r, "jobm", &success)
+	user := freecsv.GetString(r, "user", &success)
+	cmd := freecsv.GetString(r, "cmd", &success)
+	host := freecsv.GetString(r, "host", &success)
+	start := freecsv.GetSonarDateTime(r, "start", &success)
+	end := freecsv.GetSonarDateTime(r, "end", &success)
 
 	if !success {
 		return nil, false

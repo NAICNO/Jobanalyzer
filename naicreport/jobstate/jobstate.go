@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"naicreport/storage"
+	"go-utils/freecsv"
 )
 
 // Information about CPU hogs stored in the persistent state.  Other data that are needed for
@@ -57,11 +57,11 @@ type ExpiredJobKey struct {
 // Read the job state from disk and return a parsed and error-checked data structure.  Bogus records
 // are silently dropped.
 //
-// If this returns an error, it is the error returned from storage.ReadFreeCSV, see that for more
+// If this returns an error, it is the error returned from freecsv.ReadFreeCSV, see that for more
 // information.  No new errors are generated here.
 
 func ReadJobDatabase(stateFilename string) (*JobDatabase, error, int) {
-	stateCsv, err := storage.ReadFreeCSV(stateFilename)
+	stateCsv, err := freecsv.ReadFreeCSV(stateFilename)
 	if err != nil {
 		return nil, err, 0
 	}
@@ -69,13 +69,13 @@ func ReadJobDatabase(stateFilename string) (*JobDatabase, error, int) {
 	dropped := 0
 	for _, repr := range stateCsv {
 		success := true
-		id := storage.GetUint32(repr, "id", &success)
-		host := storage.GetString(repr, "host", &success)
-		startedOnOrBefore := storage.GetRFC3339(repr, "startedOnOrBefore", &success)
-		firstViolation := storage.GetRFC3339(repr, "firstViolation", &success)
-		lastSeen := storage.GetRFC3339(repr, "lastSeen", &success)
-		isReported := storage.GetBool(repr, "isReported", &success)
-		isExpired := storage.GetBool(repr, "isExpired", new(bool))
+		id := freecsv.GetUint32(repr, "id", &success)
+		host := freecsv.GetString(repr, "host", &success)
+		startedOnOrBefore := freecsv.GetRFC3339(repr, "startedOnOrBefore", &success)
+		firstViolation := freecsv.GetRFC3339(repr, "firstViolation", &success)
+		lastSeen := freecsv.GetRFC3339(repr, "lastSeen", &success)
+		isReported := freecsv.GetBool(repr, "isReported", &success)
+		isExpired := freecsv.GetBool(repr, "isExpired", new(bool))
 
 		if !success {
 			// Bogus record
@@ -189,7 +189,7 @@ func WriteJobDatabase(stateFilename string, db *JobDatabase) error {
 		output_records = append(output_records, makeMap(r, true))
 	}
 	fields := []string{"id", "host", "startedOnOrBefore", "firstViolation", "lastSeen", "isReported", "isExpired"}
-	err := storage.WriteFreeCSV(stateFilename, fields, output_records)
+	err := freecsv.WriteFreeCSV(stateFilename, fields, output_records)
 	if err != nil {
 		return err
 	}

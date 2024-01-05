@@ -1,4 +1,4 @@
-package storage
+package freecsv
 
 import (
 	"io"
@@ -7,32 +7,6 @@ import (
 	"testing"
 	"time"
 )
-
-func TestEnumerateFiles(t *testing.T) {
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("getwd failed: %q", err)
-	}
-	root := path.Join(wd, "../../tests/naicreport/whitebox-tree")
-	files, err := EnumerateFiles(
-		root,
-		time.Date(2023, 5, 30, 0, 0, 0, 0, time.UTC),
-		time.Date(2023, 7, 31, 0, 0, 0, 0, time.UTC),
-		"a*.csv")
-	if err != nil {
-		t.Fatalf("EnumerateFiles returned error %q", err)
-	}
-	if !same(files, []string{
-		"2023/05/30/a0.csv",
-		"2023/05/31/a1.csv",
-		"2023/06/01/a1.csv",
-		"2023/06/02/a2.csv",
-		"2023/06/04/a4.csv",
-		"2023/06/05/a5.csv",
-	}) {
-		t.Fatalf("EnumerateFiles returned the wrong files %q", files)
-	}
-}
 
 func TestReadFreeCSV(t *testing.T) {
 	wd, err := os.Getwd()
@@ -118,18 +92,6 @@ func TestWriteFreeCSV(t *testing.T) {
 	}
 }
 
-func same(a []string, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 func TestFieldGetters(t *testing.T) {
 	success := true
 	if GetString(map[string]string{"hi": "ho"}, "hi", &success) != "ho" || !success {
@@ -209,16 +171,16 @@ func TestFieldGetters(t *testing.T) {
 	}
 
 	success = true
-	if GetDateTime(map[string]string{"now": "2023-09-12 08:37"}, "now", &success) !=
+	if GetSonarDateTime(map[string]string{"now": "2023-09-12 08:37"}, "now", &success) !=
 		time.Date(2023, 9, 12, 8, 37, 0, 0, time.UTC) || !success {
 		t.Fatalf("Failed GetDateTime #1")
 	}
-	GetDateTime(map[string]string{"now": "2023-09-12 08:37"}, "then", &success)
+	GetSonarDateTime(map[string]string{"now": "2023-09-12 08:37"}, "then", &success)
 	if success {
 		t.Fatalf("Failed GetDateTime #2")
 	}
 	success = true
-	GetDateTime(map[string]string{"now": "2023-09-12T08:37"}, "now", &success)
+	GetSonarDateTime(map[string]string{"now": "2023-09-12T08:37"}, "now", &success)
 	if success {
 		t.Fatalf("Failed GetDateTime #3")
 	}
@@ -236,92 +198,5 @@ func TestFieldGetters(t *testing.T) {
 	GetRFC3339(map[string]string{"now": "2023-09-12 08:37Z"}, "now", &success)
 	if success {
 		t.Fatalf("Failed GetRFC3339 #3")
-	}
-}
-
-func TestSplitHostnames(t *testing.T) {
-	xs, err := SplitHostnames("yes.no,ml[1-3].hi,ml[1,2],zappa")
-	if err != nil {
-		t.Fatalf("Hostnames #1: %s", err.Error())
-	}
-	if len(xs) != 4 || xs[0] != "yes.no" || xs[1] != "ml[1-3].hi" || xs[2] != "ml[1,2]" || xs[3] != "zappa" {
-		t.Fatalf("Hostnames #2: %v", xs)
-	}
-	// Empty input is allowed
-	xs, err = SplitHostnames("")
-	if err != nil {
-		t.Fatalf("Hostnames #3: %s", err.Error())
-	}
-	if len(xs) != 0 {
-		t.Fatalf("Hostnames #4: %v", xs)
-	}
-	// No closing bracket
-	xs, err = SplitHostnames("yes[hi")
-	if err == nil {
-		t.Fatalf("Should fail #1: %v", xs)
-	}
-	// Nested opening bracket
-	xs, err = SplitHostnames("yes[hi[]")
-	if err == nil {
-		t.Fatalf("Should fail #2: %v", xs)
-	}
-	// No opening bracket
-	xs, err = SplitHostnames("yes]")
-	if err == nil {
-		t.Fatalf("Should fail #3: %v", xs)
-	}
-	// Empty at beginning
-	xs, err = SplitHostnames(",yes")
-	if err == nil {
-		t.Fatalf("Should fail #4: %v", xs)
-	}
-	// Empty at end
-	xs, err = SplitHostnames("yes,")
-	if err == nil {
-		t.Fatalf("Should fail #5: %v", xs)
-	}
-	// Empty in the middle
-	xs, err = SplitHostnames("yes,,no")
-	if err == nil {
-		t.Fatalf("Should fail #6: %v", xs)
-	}
-}
-
-func TestExpandPatterns(t *testing.T) {
-	x := ExpandPatterns("ab[1-2,4].cd[3]")
-	if len(x) != 3 || x[0] != "ab1.cd3" || x[1] != "ab2.cd3" || x[2] != "ab4.cd3" {
-		t.Fatalf("Pattern: %v", x)
-	}
-	x = ExpandPatterns("ab[].cd")
-	if len(x) != 1 || x[0] != "ab[].cd" {
-		t.Fatalf("Pattern: %v", x)
-	}
-}
-
-func TestReadConfig(t *testing.T) {
-	cfg, err := ReadConfig("../../tests/naicreport/whitebox-config.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(cfg) != 5 {
-		t.Fatalf("Expected 3 elements")
-	}
-	c0 := cfg["ml7.hpc.uio.no"]
-	if c0.CpuCores != 64 || c0.MemGB != 256 || c0.GpuCards != 8 || c0.GpuMemGB != 88 || c0.GpuMemPct != false {
-		t.Fatalf("element 0: %v", c0)
-	}
-	c1 := cfg["ml8.hpc.uio.no"]
-	if c1.CpuCores != 192 || c1.MemGB != 1024 || c1.GpuCards != 4 || c1.GpuMemGB != 0 || c1.GpuMemPct != true {
-		t.Fatalf("element 1: %v", c1)
-	}
-	names := []string{"c1-10", "c1-11", "c1-12"}
-	for i := 2; i < 5; i++ {
-		c := cfg[names[i-2]]
-		if c.CpuCores != 128 || c.MemGB != 512 || c.GpuCards != 0 || c.GpuMemGB != 0 || c.GpuMemPct != false {
-			t.Fatalf("content element 2+%d: %v", i, c)
-		}
-		if c.Hostname != names[i-2] {
-			t.Fatalf("name element 2+%d: %v", i, c)
-		}
 	}
 }

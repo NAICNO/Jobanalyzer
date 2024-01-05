@@ -7,16 +7,16 @@ import (
 	"time"
 
 	sonartime "go-utils/time"
-	"naicreport/storage"
-	"naicreport/util"
+	"go-utils/freecsv"
+	"go-utils/filesys"
 )
 
 func TestReadLogFiles(t *testing.T) {
-	dataPath, err := util.PopulateTestData(
+	dataPath, err := filesys.PopulateTestData(
 		"joblog",
-		util.TestFile{"2023/09/03", "jobdata.csv", []byte(file_2023_09_03)},
-		util.TestFile{"2023/09/06", "jobdata.csv", []byte(file_2023_09_06)},
-		util.TestFile{"2023/09/07", "jobdata.csv", []byte(file_2023_09_07)},
+		filesys.TestFile{"2023/09/03", "jobdata.csv", []byte(file_2023_09_03)},
+		filesys.TestFile{"2023/09/06", "jobdata.csv", []byte(file_2023_09_06)},
+		filesys.TestFile{"2023/09/07", "jobdata.csv", []byte(file_2023_09_07)},
 	)
 	defer os.RemoveAll(dataPath)
 	if err != nil {
@@ -135,14 +135,14 @@ type testJob struct {
 func parseJobRecord(r map[string]string) (*testJob, bool) {
 	success := true
 
-	tag := storage.GetString(r, "tag", &success)
+	tag := freecsv.GetString(r, "tag", &success)
 	success = success && tag == "mytag"
-	timestamp := storage.GetDateTime(r, "now", &success)
-	id := storage.GetJobMark(r, "jobm", &success)
-	user := storage.GetString(r, "user", &success)
-	host := storage.GetString(r, "host", &success)
-	start := storage.GetDateTime(r, "start", &success)
-	end := storage.GetDateTime(r, "end", &success)
+	timestamp := freecsv.GetSonarDateTime(r, "now", &success)
+	id := freecsv.GetJobMark(r, "jobm", &success)
+	user := freecsv.GetString(r, "user", &success)
+	host := freecsv.GetString(r, "host", &success)
+	start := freecsv.GetSonarDateTime(r, "start", &success)
+	end := freecsv.GetSonarDateTime(r, "end", &success)
 
 	if !success {
 		return nil, false

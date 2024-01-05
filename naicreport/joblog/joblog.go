@@ -25,7 +25,8 @@ import (
 	"sort"
 	"time"
 
-	"naicreport/storage"
+	"go-utils/filesys"
+	"go-utils/freecsv"
 )
 
 // The jobs being read from the logs satisfy this interface, where LastSeen is always set to the
@@ -91,7 +92,7 @@ func FindJoblogFiles(
 	// the window of time we're interested in
 	from, to time.Time,
 ) ([]string, error) {
-	relativeFiles, err := storage.EnumerateFiles(dataPath, from, to, logFilename)
+	relativeFiles, err := filesys.EnumerateFiles(dataPath, from, to, logFilename)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +126,7 @@ func ReadJoblogFiles[T Job](
 	// Collect all the buckets, there will be many entries in this list for the same host
 	bucketList := make(bucketList_t[T], 0)
 	for _, filePath := range files {
-		records, err := storage.ReadFreeCSV(filePath)
+		records, err := freecsv.ReadFreeCSV(filePath)
 		if err != nil {
 			continue
 		}
