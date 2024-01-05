@@ -4,7 +4,7 @@
 // a local data store.  The path is the sonalyze command name, eg, `GET /jobs?...` will run
 // `sonalyze jobs`.  The parameter names are always the long parameter names for sonalyze and the
 // parameter values are always urlencoded as necessary; boolean values must be the value defined as
-// `magicBoolean` below.  Most parameters and names are forwarded to sonalyze with eg --data-path
+// `magicBoolean` below.  Most parameters and names are forwarded to sonalyze, with eg --data-path
 // and --config-file supplied by sonalyzed.  The returned output is the raw output from sonalyze,
 // whether for success or error.  A successful runs yields 2xx and an error yields 4xx or 5xx.
 //
@@ -23,8 +23,8 @@
 //   - subdirectories `data` and `scripts`
 //   - for each cluster, subdirectories `data/CLUSTERNAME` and `scripts/CLUSTERNAME`
 //   - each subdirectory of `data` has the sonar data tree for the cluster
-//   - each subdirectory of `scripts has a file `CLUSTERNAME-config.json`, which holds the cluster
-//     description.
+//   - each subdirectory of `scripts` has a file `CLUSTERNAME-config.json`, which holds the cluster
+//     description (machine configuration).
 //   - a subdirectory `q` that holds static files to be served in response to `/q/` requests
 //
 // -port <port-number>
@@ -53,6 +53,18 @@
 //
 //  sonalyzed logs everything to the syslog with the tag defined below ("logTag").  Errors
 //  encountered during startup are also logged to stderr.
+//
+// Cluster names and aliases:
+//
+//  Cluster names are the aliases of login nodes (fox.educloud.no for the UiO Fox supercomputer) or
+//  synthesized names for a group of machines in the same family (mlx.hpc.uio.no for the UiO ML
+//  nodes cluster).
+//
+//  The cluster alias file is a JSON array containing objects with "alias" and "value" fields:
+//
+//    [{"alias":"ml","value":"mlx.hpc.uio.no"}, ...]
+//
+//  so that the short name "ml" can be used to name the cluster "mlx.hpc.uio.no" in requests.
 
 package main
 
@@ -207,7 +219,8 @@ func requestHandler(
 			status.Infof("%v", r.URL)
 		}
 
-		if !httpsrv.AssertMethod(w, r, "GET") || !httpsrv.Authenticate(w, r, authenticator, authRealm) {
+		if !httpsrv.AssertMethod(w, r, "GET") ||
+			!httpsrv.Authenticate(w, r, authenticator, authRealm) {
 			return
 		}
 		_, havePayload := httpsrv.ReadPayload(w, r)
@@ -303,7 +316,8 @@ func fileHandler() func(http.ResponseWriter, *http.Request) {
 			status.Infof("%v", r.URL)
 		}
 
-		if !httpsrv.AssertMethod(w, r, "GET") || !httpsrv.Authenticate(w, r, authenticator, authRealm) {
+		if !httpsrv.AssertMethod(w, r, "GET") ||
+			!httpsrv.Authenticate(w, r, authenticator, authRealm) {
 			return
 		}
 		_, havePayload := httpsrv.ReadPayload(w, r)
@@ -340,8 +354,10 @@ func fileHandler() func(http.ResponseWriter, *http.Request) {
 func commandLine() (port int, jobanalyzerPath, passwordFile string, verbose bool, err error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	flags.IntVar(&port, "port", defaultListenPort, "Listen for connections on `port`")
-	flags.StringVar(&jobanalyzerPath, "jobanalyzer-path", "", "Path of jobanalyzer root `directory` (required)")
-	flags.StringVar(&passwordFile, "password-file", "", "Read user names and passwords from `filename`")
+	flags.StringVar(&jobanalyzerPath, "jobanalyzer-path", "",
+		"Path of jobanalyzer root `directory` (required)")
+	flags.StringVar(&passwordFile, "password-file", "",
+		"Read user names and passwords from `filename`")
 	flags.BoolVar(&verbose, "v", false, "Verbose logging")
 	err = flags.Parse(os.Args[1:])
 	if err == flag.ErrHelp {
