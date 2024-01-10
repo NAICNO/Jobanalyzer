@@ -51,6 +51,11 @@ The following additional conditions have to be met on compute and gpu nodes
 * the owner of `/etc/cron.d/sonar` shall be `root.root`
 * cron errors show up in `/var/log/cron`
 
+For new and reinstalled nodes to just work:
+ 
+* the access.conf setting shall be reflected in `master:/install/dists/fox/syncfiles-el9/etc/security/access.conf`
+* the script `master:/install/postscripts/fox_sonar` shall contain commands to set up home directory and permissions
+
 ### Interactive nodes
 
 The following additional conditions have to be met on interactive nodes and login nodes
