@@ -43,7 +43,8 @@ job is run as the user `sonar` by copying `sonar-runner.cron` to /etc/cron.d/son
 
 The following additional conditions have to be met on compute and gpu nodes
 
-* there shall be a nologin user `sonar` with UID 502 (the same UID on all nodes) and homedir `/var/run/sonar`
+* there shall be a user `sonar` with UID 502 (the same UID on all nodes) and homedir `/var/run/sonar`
+* user can be nologin
 * the directory `/var/run/sonar` shall exist
 * the owner of `/var/run/sonar` shall be `sonar.sonar`
 * in `/etc/security/access.conf` there shall be the permission `+ : sonar : cron` before the deny-all line
@@ -52,9 +53,10 @@ The following additional conditions have to be met on compute and gpu nodes
 
 ### Interactive nodes
 
-The following additional conditions have to be met on interactive nodes
+The following additional conditions have to be met on interactive nodes and login nodes
 
-* there shall be a nologin user `sonar` with UID 502 (the same UID on all nodes) and homedir `/home/sonar`
+* there shall be a user `sonar` with UID 502 (the same UID on all nodes) and homedir `/home/sonar`
+* user can be nologin
 * the directory `/home/sonar` shall exist
 * the owner of `/home/sonar` shall be `sonar.whatever`
 * normally `/etc/security/access.conf` allows everything, otherwise see above
