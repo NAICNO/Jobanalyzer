@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Run sonar and capture its output in a file appropriate for the current time and system.
-# This is for systems with slurm, ie compute and gpu nodes.  Hence no --batchless.
+# This is for systems without slurm, ie interactive and login nodes.
 
 set -euf -o pipefail
 
@@ -19,5 +19,6 @@ $sonar_bin_dir/sonar ps \
 		     --exclude-commands=bash,ssh,zsh,tmux,systemd \
 		     --min-cpu-time=60 \
 		     --rollup \
+		     --batchless \
 		     --lockdir=/var/tmp \
 		     >> ${output_dir}/${HOSTNAME}.csv
