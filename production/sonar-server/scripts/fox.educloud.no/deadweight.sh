@@ -5,9 +5,10 @@
 
 set -euf -o pipefail
 
-sonar_dir=$HOME/sonar
-data_dir=$sonar_dir/data
-state_dir=$sonar_dir/state
+cluster=fox.educloud.no
+sonar_dir=${sonar_dir:-$HOME/sonar}
+data_dir=$sonar_dir/data/$cluster
+state_dir=$sonar_dir/state/$cluster
 output_dir=${state_dir}/$(date +'%Y/%m/%d')
 
 mkdir -p ${output_dir}

@@ -70,6 +70,7 @@ See `production/README.md` for instructions about how to set everything up.
 * `naicreport/` - Go source code for a program that queries the Sonar data and generates reports
 * `presentations/` - Slides for various presentations given
 * `production/` - All sorts of files and scripts for running Sonar and Jobanalyzer in production
+* `scripts/` - Ad-hoc reports implemented as shell scripts
 * `sonalyze/` - Rust source code for a program that queries the Sonar data
 * `sonalyzed/` - Go source code for a simple HTTP server that runs Sonalyze on behalf of a remote client
 * `sonard/` - Go source code for a utility that runs Sonar in the background with custom settings

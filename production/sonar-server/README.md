@@ -1,10 +1,12 @@
 # Sonar server setup
 
-This file normally lives in $JOBANALYZER/production/sonar-server/README.md.
+This file normally lives in `$JOBANALYZER/production/sonar-server/README.md`.
+
+FIXME: The following instructions are pretty rough and they get rougher toward the bottom.
 
 ## Fundamentals
 
-Let $JOBANALYZER be the Jobanalyzer root directory.
+Let `$JOBANALYZER` be the Jobanalyzer source code root directory.
 
 ### Step 1: Build
 
@@ -17,42 +19,76 @@ First build and test the executables, as follows.  Remember, you may first need 
   ./build.sh
 ```
 
-It's important to run `build.sh` last as the test builds may be created with unusual options.
+**IMPORTANT:** Run `build.sh` last as the test builds may be created with unusual options.
 
-### Step 2: Setup
+### Step 2: Setup data ingestion and reporting
 
 Create working directories if necessary and copy files, as follows.  The working directory is always
-`$HOME/sonar`, if you want something else you need to edit a bunch of scripts.
+`$HOME/sonar` for whatever user is running the server, if you want something else you need to edit a
+bunch of scripts.
 
 ```
   cd $JOBANALYZER
-  mkdir -p ~/sonar/data
+
+  mkdir -p ~/sonar/data ~/sonar/reports ~/sonar/q
+
   cp infiltrate/infiltrate ~/sonar
   cp sonalyzed/sonalyzed ~/sonar
-  mkdir -p ~/sonar/query
-  cp sonalyzed/sonalyzed/query/*.{html,js,css} ~/sonar/query
   cp naicreport/naicreport ~/sonar
   cp sonalyze/target/release/sonalyze ~/sonar
-  cp production/sonar-server/*.{sh,cron} ~/sonar
+
+  cp sonalyzed/query/*.{html,js,css} ~/sonar/q
+
+  cp production/sonar-server/server-config ~/sonar
   cp production/sonar-server/cluster-aliases.json ~/sonar
   cp production/sonar-server/POINTER.md ~/sonar
+  cp production/sonar-server/*.{sh,cron} ~/sonar
   cp -r production/sonar-server/scripts ~/sonar
 ```
 
-If ~/sonar/scripts does not have a subdirectory for your cluster, you will need to create one.  See
+If `~/sonar/scripts` does not have a subdirectory for your cluster, you will need to create one.  See
 "Adding a new cluster" below.
 
-Now set up the upload identity (really we don't want to have to do this).  NOTE: When this step
-disappears there will be other steps here to "do something" with the web server report directory,
-but those will be easier.
+### Step 3: Setup the web server
 
+The web server must currently run on the same machine as ingest and analysis.  The reports will be
+copied from the directory they are generated in and into the web server's data directory.
+
+But first, set up the dashboard: The dashboard code must be copied to a suitable directory at or
+under the web server's root, we'll call this the dashboard directory, `$DASHBOARD`.
 ```
-  ln ~/.ssh/ubuntu-vm.pem .
+  cd $JOBANALYZER
+  cp dashboard/*.{html,js,css} $DASHBOARD
 ```
 
-IMPORTANT: Now for each CLUSTER edit `~/sonar/scripts/$CLUSTER/upload-config.sh` to your liking.
+The directory $DASHBOARD/output must exist and must be writable by the user that is going to run the
+sonar server, eg:
+```
+  # mkdir -p $DASHBOARD/output
+  # chown -R <sonar-user>.<sonar-user-group> $DASHBOARD/output
+```
 
-### Step 3: Activate
+### Step 4: Configure
+
+We must set up a password file, usually in `~/.ssh/sonalyzed-auth.txt`.  This is a plaintext file on
+`username:password` format, one per line.  It controls access to the query server, `sonalyzed`.
+
+We must also set up an identity file, usually in ~/.ssh/exfil-auth.txt`.  This is a plaintext file
+with a single line on `username:password` format.  It is used to authorize data sent to the
+infiltration server, `infiltrate`.  It is the same file that `exfiltrate` uses on the compute node
+to identify itself to the server.
+
+Ideally these files are not readable or writable by anyone but the owner, but nobody checks this.
+
+We must then edit `~/sonar/server-config` to point to the authorization files, to define the path to
+`$DASHBOARD/output`, and to define the ports used for various services.  The ports must be open for
+remote access.
+
+We must finally edit `$DASHBOARD/testflag.js` (which is the configuration file for the dashboard) to
+set up at least the variable `SONALYZED` to point at the correct host and port for the sonalyze
+daemon.
+
+### Step 5: Activate server
 
 Activate the cron jobs and start the data logger and the query server:
 
@@ -63,24 +99,21 @@ Activate the cron jobs and start the data logger and the query server:
   ./start-sonalyzed.sh
 ```
 
-The data logger (currently) normally runs on port 8086 and the query server on port 8087.  These
-ports must be opened for remote access, or you must change the startup scripts to point to ports
-that are open, and in that case, also edit upload setups in `upload-config.sh` and you may need to
-edit dashboard HTML code (discussed elsewhere).
+The data logger and query server run on ports defined in the config file, see above.
 
-## Upgrading infiltrate and exfiltrate
+## Upgrading `infiltrate` and `exfiltrate`
 
 One does not simply copy new executables into place.  Here are some pointers.
 
 Infiltrate must be spun down on the analysis host by killing it with HUP, once it is down the executable
-can be replaced and start-infiltrate.sh can be run again to start a new server.
+can be replaced and `start-infiltrate.sh` can be run again to start a new server.
 
-The exfiltrate executable is used by the golang runtime on all the cluster nodes and overwriting it
-with new data will cause the runtime to crash.  Also, given the random sending window there is no
+The `exfiltrate` executable is used by the golang runtime on all the cluster nodes and overwriting
+it with new data will cause the runtime to crash.  Also, given the random sending window there is no
 one time when the executable is not busy.  Probably (untested), it is enough to mv the new
 executable into the place of the old one, so as to replace it atomically, and hope that the runtime
 has gone through the proper channels to hold onto a reference to its image from where it's linked in
-/proc/pid.
+`/proc/pid`.
 
 ## Data logger daemon
 

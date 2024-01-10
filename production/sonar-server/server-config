@@ -1,0 +1,32 @@
+# This file is to be included by other scripts.  It defines variables used by those scripts.
+
+####
+# Paths elsewhere in the file system.
+
+# Generated reports are copied by various scripts to this directory, which must exist with suitable
+# permissions.
+report_target_path=/data/www/output
+
+####
+# Identities and authorization.
+
+# `infiltrate` uses this file to check that data are uploaded by authorized agents only.
+# The file has (currently) one line on `username:password` format
+infiltrate_auth_file=$HOME/.ssh/exfil-auth.txt
+
+# `sonalyzed` uses this file to check that remote queries are made only by authorized users.
+# The file has any number of lines on `username:password` format
+sonalyzed_auth_file=$HOME/.ssh/sonalyzed-auth.txt
+
+####
+# Ports.
+#
+# Central Services has locked down most ports, here is the list of what's open:
+# https://www-int.usit.uio.no/om/organisasjon/iti/nettdrift/dokumentasjon/nett-info/uio-acl/nexus-xx-gw-2616.acl.txt
+
+# `infiltrate` listens on this port for data uploads from the individual nodes.  This is an open
+# `Oracle` port.
+infiltrate_port=1553
+
+# `sonalyzed` listens on this port for remote sonalyze queries.  This is an open `Oracle` port.
+sonalyzed_port=1559

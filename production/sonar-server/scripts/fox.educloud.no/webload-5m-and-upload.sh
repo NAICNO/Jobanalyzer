@@ -8,9 +8,9 @@
 # We need globbing, stay away from -f
 set -eu -o pipefail
 
-cluster=mlx.hpc.uio.no
-abbrev=ml
-tag="ML Nodes"
+cluster=fox.educloud.no
+abbrev=fox
+tag="Fox Nodes"
 
 sonar_dir=${sonar_dir:-$HOME/sonar}
 data_dir=$sonar_dir/data/$cluster

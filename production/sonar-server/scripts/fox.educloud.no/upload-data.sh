@@ -5,7 +5,8 @@
 # We need globbing, stay away from -f
 set -eu -o pipefail
 
-cluster=mlx.hpc.uio.no
+cluster=fox.educloud.no
+
 sonar_dir=${sonar_dir:-$HOME/sonar}
 script_dir=$sonar_dir/scripts/$cluster
 report_dir=$sonar_dir/reports/$cluster

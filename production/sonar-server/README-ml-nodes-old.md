@@ -1,17 +1,82 @@
-# ML-nodes sonar and sonalyze setup
+# How to set up Jobanalyzer and Sonar on the ML nodes
+
+This is probably obsolete now, I've kept it around in case I need it.
+Don't consult this normally.
+
+--- some older stuff ---
+
+## The Sonar VM and data storage
+
+On the Sonar VM, data are ingested by means of the `infiltrate` program and stored in a local file
+system under the UID that runs `infiltrate` (currently "ubuntu").
+
+The root for Jobanalyzer is in `~ubuntu/sonar`.  In this directory, the subdirectory `data/` holds
+the ingested data.  There is one directory for each cluster, it is named with the cluster name (eg,
+`data/mlx.hpc.uio.no/` and `data/fox.educloud.no/`).  In each cluster directory there is a
+subdirectory per year; in each year, one per month; in each month, one per day; and in each day, one
+file per host name (the host name may be local to the cluster and not globally unique, this is
+common for HPC systems).  The file name is `<hostname>.csv`.
+
+## Sonalyze, naicreport, and analysis data
+
+Separate cron jobs run on the Sonar VM to perform analyses of the ingested data and upload the files
+to a web server.  These run as the same UID as `infiltrate`, ensuring that files can be shared among
+ingestor and analyzers without being world-readable.
+
+The analysis jobs have some intermediate products and produce some reports.  For this, they need two
+data directories `$state_dir` and `$report_dir`.  Typically these are in subdirectories of a common
+directory that also holds executables (`sonalyze` and `naicreport`), shell scripts (many), and
+cluster configuration data (`ml-nodes.json`, `fox.json`, etc).  If this directory does not contain
+the raw log data directory then it may have a symlink to that directory, so that the scripts don't
+need to know where that directory is.
+
+It is necessary for the analysis jobs for separate clusters to use separate state directories, as
+files in the state are not tagged with cluster or host name.  The report directories should also be
+separated by cluster.
+
+In this directory there is also a key file (`.pem`) or a link to one; this is used for data
+uploading.  The file `upload-config.sh` contains information about how to upload data to the web
+server.
+
+### ML nodes
+
+Currently, the analysis job is run as user `larstha` on `moneypenny`.
+`/itf-fi-ml/home/larstha/sonar` is the same directory as used by the sonar job.  It contains all the
+analysis shell scripts, the analysis executables, and the analysis subdirectories `state` and
+`output`.
+
+### Fox
+
+Currently, the analysis job is run as user `ec-larstha` on `login-1`.  `~ec-larstha/sonar` has the
+analysis shell scripts and executables, along with subdirectories `state` and `output`, and a symlink
+to the data directory.
+
+--- end ---
 
 Be sure to read `../README.md` first.
 
-## Some notes about new setup (not done)
+We will set up a cron job to run sonar on every node and another cron job to run analysis
+asynchronously on a non-node.
 
-After building, copy `exfiltrate/exfiltrate` to ~/sonar
+## Common preparation for Sonar and Jobanalyzer
 
-Set up `.ssh/exfil-auth.txt` with the correct authentication data, obviously not included here.
+You need a `whatever` user account on Moneypenny and on the ML nodes to hold shared files and to run
+the analysis jobs (for now).
 
-The runner file is now called `sonar-runner.cron` not `jobanalyzer.cron`.
+Log in as `whatever` on an ML node, your home directory is `/itf-fi-ml/home/whatever`.  Then:
 
-For the time being (experimental) there are also `sonar-runner-new.cron` and `sonar-new.sh`, the latter
-exfiltrates the data, the runner runs both the scripts
+```
+    git clone https://github.com/NAICNO/Jobanalyzer.git
+    cd Jobanalyzer
+    module load Rust/1.65.0-GCCcore-12.2.0
+    module load Go/1.20.4
+    ./build.sh
+```
+
+(For Go, anything after 1.20 should be fine.  For Rust, anything after 1.65 should be fine, and I
+don't think the GCCCore version matters.  As of 21 November 2023, the installed versions on the ML
+nodes are insufficient; I have petitioned for an upgrade.  If an upgrade does not happen you must
+install your own tools.)
 
 
 ## Files
