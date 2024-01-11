@@ -14,7 +14,7 @@ First build and test the executables, as follows.  Remember, you may first need 
 1.20 or later and Rust 1.65 or later, or otherwise obtain those tools.
 
 ```
-  cd $JOBANALYZER
+  cd $JOBANALYZER/code
   ./run_tests.sh
   ./build.sh
 ```
@@ -32,12 +32,12 @@ bunch of scripts.
 
   mkdir -p ~/sonar/data ~/sonar/reports ~/sonar/q
 
-  cp infiltrate/infiltrate ~/sonar
-  cp sonalyzed/sonalyzed ~/sonar
-  cp naicreport/naicreport ~/sonar
-  cp sonalyze/target/release/sonalyze ~/sonar
+  cp code/infiltrate/infiltrate ~/sonar
+  cp code/sonalyzed/sonalyzed ~/sonar
+  cp code/naicreport/naicreport ~/sonar
+  cp code/sonalyze/target/release/sonalyze ~/sonar
 
-  cp sonalyzed/query/*.{html,js,css} ~/sonar/q
+  cp code/sonalyzed/query/*.{html,js,css} ~/sonar/q
 
   cp production/sonar-server/server-config ~/sonar
   cp production/sonar-server/cluster-aliases.json ~/sonar
@@ -58,7 +58,7 @@ But first, set up the dashboard: The dashboard code must be copied to a suitable
 under the web server's root, we'll call this the dashboard directory, `$DASHBOARD`.
 ```
   cd $JOBANALYZER
-  cp dashboard/*.{html,js,css} $DASHBOARD
+  cp code/dashboard/*.{html,js,css} $DASHBOARD
 ```
 
 The directory $DASHBOARD/output must exist and must be writable by the user that is going to run the
@@ -73,7 +73,7 @@ sonar server, eg:
 We must set up a password file, usually in `~/.ssh/sonalyzed-auth.txt`.  This is a plaintext file on
 `username:password` format, one per line.  It controls access to the query server, `sonalyzed`.
 
-We must also set up an identity file, usually in ~/.ssh/exfil-auth.txt`.  This is a plaintext file
+We must also set up an identity file, usually in `~/.ssh/exfil-auth.txt`.  This is a plaintext file
 with a single line on `username:password` format.  It is used to authorize data sent to the
 infiltration server, `infiltrate`.  It is the same file that `exfiltrate` uses on the compute node
 to identify itself to the server.
@@ -128,7 +128,7 @@ To start the infiltration server (data logging daemon), we need to run this in t
 This will listen for incoming data on HTTP (not HTTPS!) from all the nodes in all the clusters and
 will log data in Sonar-format files in `~/sonar/data/<cluster>/<year>/<month>/<day>/<hostname>.csv`.
 
-The file ~/.ssh/exfil-auth.txt contains one line of text on the form `<username>/<password>`,
+The file `~/.ssh/exfil-auth.txt` contains one line of text on the form `<username>:<password>`,
 characters should be printable ASCII and `<username>` cannot contain a `:`.
 
 The sending side must use the same credentials and port.

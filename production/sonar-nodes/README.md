@@ -1,7 +1,8 @@
 # Sonar on the compute nodes
 
-We run `sonar` by means of cron on each node in each cluster.  This samples the node every few
-minutes and exfiltrates the sample data to the analysis host by means of the `exfiltrate` program.
+We run `sonar` by means of cron on each node in each cluster: A script samples the node every few
+minutes using `sonar` and exfiltrates the sample data to the analysis host by means of the
+`exfiltrate` program.
 
 A companion program `sysinfo` can be used to probe the system configuration interactively.
 
@@ -78,12 +79,12 @@ git clone https://github.com/NordicHPC/sonar.git
 ( cd sonar ; cargo build --release )
 
 git clone https://github.com/NAICNO/Jobanalyzer.git
-( cd Jobanalyzer/exfiltrate ; go build )
-( cd Jobanalyzer/sysinfo ; go build )
+( cd Jobanalyzer/code/exfiltrate ; go build )
+( cd Jobanalyzer/code/sysinfo ; go build )
 ```
 
-The executables are in `sonar/target/release/sonar`, `Jobanalyzer/exfiltrate/exfiltrate`, and
-`Jobanalyzer/sysinfo/sysinfo` respectively.
+The executables are in `sonar/target/release/sonar`, `Jobanalyzer/code/exfiltrate/exfiltrate`, and
+`Jobanalyzer/code/sysinfo/sysinfo` respectively.
 
 
 ## The `sysinfo` utility

@@ -13,14 +13,14 @@ Jobanalyzer is a set of tools providing the following types of services:
 The tool set is expected to grow over time.
 
 Current tools are based on a system sampler, and provide information based on collected samples.
-See [DESIGN.md](DESIGN.md) for more information on the technical architecture and its
-implementation.  See [REQUIREMENTS.md](REQUIREMENTS.md) for requirements and a list of specific use
+See [doc/DESIGN.md](doc/DESIGN.md) for more information on the technical architecture and its
+implementation.  See [doc/REQUIREMENTS.md](doc.REQUIREMENTS.md) for requirements and a list of specific use
 cases.
 
 
 ### Admins
 
-Admins will come to Jobanalyzer via [its web interface](http://http://158.39.48.160/).  The current
+Admins will come to Jobanalyzer via [its web interface](http://naic-report.uio.no).  The current
 interface is bare-bones and consists of a cluster- and node-centric load dashboard, allowing the
 current and historical load of each cluster and node to be examined, along with some reports of
 programs that mis-use the systems.  The UiO ML nodes and the UiO Fox supercomputer are currently
@@ -51,29 +51,9 @@ and scripts to produce reports; and web nodes run a web server serving HTML, JS,
 See `production/README.md` for instructions about how to set everything up.
 
 
-## What are in the different subdirectories and files?
+## What are in the different subdirectories?
 
-### Files
-
-* `build.sh` - build all programs in release mode
-* `DESIGN.md` - architecture and implementation overview
-* `OLDER-USE-CASES.md` - original use cases
-* `REQUIREMENTS.md` - cleaned-up requirements and use cases
-* `run_tests.sh` - build programs in various configurations and run test cases
-
-### Subdirectories
-
-* `dashboard/` - HTML+CSS+JS source code for the web front-end
-* `exfiltrate/` - Go source code for a program that ships Sonar data to a remote host, also see `infiltrate/`
-* `go-utils/` - Go source code for utility functions used by all the Go programs in this repo
-* `infiltrate/` - Go source code for a program that receives Sonar data on a host, also see `exfiltrate/`
-* `naicreport/` - Go source code for a program that queries the Sonar data and generates reports
-* `presentations/` - Slides for various presentations given
+* `adhoc-reports/` - Ad-hoc reports implemented as shell scripts or similar
+* `code/` - Source code and tests for all programs
+* `doc/` - design documents of various sorts, presentations, etc
 * `production/` - All sorts of files and scripts for running Sonar and Jobanalyzer in production
-* `scripts/` - Ad-hoc reports implemented as shell scripts
-* `sonalyze/` - Rust source code for a program that queries the Sonar data
-* `sonalyzed/` - Go source code for a simple HTTP server that runs Sonalyze on behalf of a remote client
-* `sonard/` - Go source code for a utility that runs Sonar in the background with custom settings
-* `sonarlog/` - Rust source code for a library that reads and cleans up Sonar data, used by `sonalyze/`
-* `sysinfo/` - Go source code for a utility that extracts the system configuration of the host
-* `tests/` - Test cases for everything

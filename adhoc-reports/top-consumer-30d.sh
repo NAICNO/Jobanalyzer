@@ -13,13 +13,13 @@
 CLUSTER=ml
 HOST="ml[1-9]"
 AUTH=~/.ssh/sonalyzed-auth.txt
-TIMESPAN=7d
+TIMESPAN=30d
 SORTBY=2      # "2" for CPU time, "4" for GPU time
 HOWMANY=25
 
 # Standard configuration
-SONALYZE=../sonalyze/target/release/sonalyze
-REMOTE=http://158.39.48.160:8087
+SONALYZE=../code/sonalyze/target/release/sonalyze
+REMOTE=http://naic-report.uio.no:8087
 
 FIELDS=user,cputime/sec,gputime/sec
 SUM_AND_PERCENT='
