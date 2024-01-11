@@ -18,8 +18,8 @@ SORTBY=2      # "1" for CPU time, "2" for GPU time
 HOWMANY=25
 
 # Standard configuration
-SONALYZE=../sonalyze/target/release/sonalyze
-REMOTE=http://158.39.48.160:8087
+SONALYZE=../code/sonalyze/target/release/sonalyze
+REMOTE=http://naic-report.uio.no:8087
 
 FIELDS=cputime/sec,gputime/sec,cmd
 SUM_AND_PERCENT='
