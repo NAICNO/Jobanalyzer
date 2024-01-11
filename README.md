@@ -20,7 +20,7 @@ cases.
 
 ### Admins
 
-Admins will come to Jobanalyzer via [its web interface](http://naic-report.uio.no).  The current
+Admins will come to Jobanalyzer via [its web interface](http://naic-monitor.uio.no).  The current
 interface is bare-bones and consists of a cluster- and node-centric load dashboard, allowing the
 current and historical load of each cluster and node to be examined, along with some reports of
 programs that mis-use the systems.  The UiO ML nodes and the UiO Fox supercomputer are currently

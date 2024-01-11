@@ -15,7 +15,7 @@ TIMESPAN=16w
 DISCRIMINANT=--some-gpu
 
 SONALYZE=../code/sonalyze/target/release/sonalyze
-REMOTE=http://naic-report.uio.no:8087
+REMOTE=http://naic-monitor.uio.no:8087
 
 # User total load across a time period, in absolute terms and as a percentage of the total.  This
 # makes sense for cpu time and gpu time, at least.

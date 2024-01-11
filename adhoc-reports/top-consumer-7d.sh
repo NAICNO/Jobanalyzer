@@ -19,7 +19,7 @@ HOWMANY=25
 
 # Standard configuration
 SONALYZE=../code/sonalyze/target/release/sonalyze
-REMOTE=http://naic-report.uio.no:8087
+REMOTE=http://naic-monitor.uio.no:8087
 
 FIELDS=user,cputime/sec,gputime/sec
 SUM_AND_PERCENT='
