@@ -1,5 +1,7 @@
 // This package contains code for a simple HTTP server (built on existing Go library code) and some
 // utilities for that.
+//
+// NOTE, this is being tested as part of the `infiltrate` server, see ../../tests/transport
 
 package httpsrv
 
