@@ -31,11 +31,14 @@ The sonar home directory is `~larstha/sonar` though this may change.  The cron j
 
 `exfil-auth.txt` is stored in `~larstha/.ssh`.
 
-
 ## Fox (cluster name: fox.educloud.no)
 
 The sonar home directory is `/cluster/var/sonar/bin`, owned by the system user `sonar`.  The cron
 job is run as the user `sonar` by copying `sonar-runner.cron` to /etc/cron.d/sonar.
+
+**NOTE** On interactive and login nodes, use the files `sonar-no-slurm.sh` and
+`sonar-runner-no-slurm.cron` instead of `sonar.sh` and `sonar-runner.cron`.  The reason for this is
+that job numbers must be synthesized by sonar on such nodes.
 
 `exfil-auth.txt` is stored in the sonar home directory with restrictive ownership and permissions
 (not precisely ideal but there you have it).

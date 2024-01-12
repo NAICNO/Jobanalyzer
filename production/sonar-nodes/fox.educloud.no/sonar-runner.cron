@@ -1,7 +1,10 @@
-# Normally, make sure this is owned by root.root and is placed in the shared file system, and then
-# link to it on every node, eg:
+# Cron file for fox nodes that have slurm (compute and gpu nodes).
 #
-#   ln -s /cluster/var/sonar/bin/sonar-runner.cron /etc/cron.d/sonar
+# Copy this into /etc/cron.d as root:
+#
+#  # cp sonar-runner.cron /etc/cron.d/sonar
+#
+# Be sure that the ownership is root.root.
 
 SHELL=/bin/bash
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
