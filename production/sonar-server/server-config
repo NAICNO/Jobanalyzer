@@ -1,3 +1,4 @@
+# -*- mode: shell-script; fill-column: 100 -*-
 # This file is to be included by other scripts.  It defines variables used by those scripts.
 
 ####
@@ -30,3 +31,16 @@ infiltrate_port=1553
 
 # `sonalyzed` listens on this port for remote sonalyze queries.  This is an open `Oracle` port.
 sonalyzed_port=1559
+
+####
+# Email recipients.
+#
+# A number of ad-hoc reports are output as formatted text to be emailed to appropriate recipients.
+# The following is a list of addresses, one per cluster and report type running on that cluster.
+
+# ML nodes (mlx.hpc.uio.no)
+ml_deadweight_recipient=itf-ai-support@usit.uio.no
+ml_violator_recipient=itf-ai-support@usit.uio.no
+
+# Fox nodes (fox.educloud.no)
+fox_deadweight_recipient=larstha@uio.no
