@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -71,4 +72,12 @@ func CopyFile(from, to string) error {
 		return err
 	}
 	return os.WriteFile(to, data, 0644)
+}
+
+func FileLines(filename string) ([]string, error) {
+	bytes, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("Could not open %s: %v", filename, err)
+	}
+	return strings.Split(string(bytes), "\n"), nil
 }
