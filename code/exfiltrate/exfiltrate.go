@@ -56,12 +56,12 @@ import (
 	"io"
 	"math"
 	"math/rand"
-	"net/http"
 	"net/url"
 	"os"
 	"time"
 
 	"go-utils/auth"
+	"go-utils/httpclient"
 	"go-utils/sonarlog"
 	"go-utils/status"
 )
@@ -134,11 +134,13 @@ func main() {
 		status.Fatal("Only http / https targets for now")
 	}
 
+	client := httpclient.NewClient(target, authUser, authPass, maxAttempts, resendIntervalMin, verbose)
 	switch outputType {
 	case "json":
-		// These loops send multiple records together so as to optimize network traffic.
+		// These loops send multiple records together so as to optimize network traffic, but not too
+		// many of them, as to keep packet size sensible.  This may be more complexity than it's
+		// worth.
 
-		targetStr := target.String() + "/sonar-reading"
 		rs := make([]*sonarlog.SonarReading, 0, maxRecordsPerMessage)
 		i := 0
 		for {
@@ -147,7 +149,7 @@ func main() {
 				if err != nil {
 					status.Fatalf("Failed to marshal: %v", err)
 				}
-				postDataByHTTP(0, buf, authUser, authPass, targetStr)
+				client.PostDataByHttp("/sonar-reading", buf)
 				rs = rs[0:0]
 			}
 			if i == len(readings) {
@@ -168,7 +170,6 @@ func main() {
 			i++
 		}
 
-		targetStr = target.String() + "/sonar-heartbeat"
 		hs := make([]*sonarlog.SonarHeartbeat, 0, maxRecordsPerMessage)
 		i = 0
 		for {
@@ -177,7 +178,7 @@ func main() {
 				if err != nil {
 					status.Fatalf("Failed to marshal: %v", err)
 				}
-				postDataByHTTP(0, buf, authUser, authPass, targetStr)
+				client.PostDataByHttp("/sonar-heartbeat", buf)
 				hs = hs[0:0]
 			}
 			if i == len(heartbeats) {
@@ -192,7 +193,15 @@ func main() {
 		panic("Bad output type")
 	}
 
-	processRetries()
+	// Data for a packet that could not be delivered go into a queue and a re-send attempt is made
+	// after some minutes by ProcessRetries.  The exfiltrate process stays alive, but the sonar
+	// process that created the data should be able to exit on its own as we've read all the data.
+	// Another run of Sonar may start up another exfiltrate meanwhile.  This is OK, as records may
+	// arrive out-of-order at the destination.  There is a hard limit on the number of retries per
+	// packet, after which the record is dropped on the floor.  The exfiltrate process exits when
+	// the retry queue is empty.
+
+	client.ProcessRetries()
 }
 
 func cleanFloat(f float64) float64 {
@@ -206,85 +215,6 @@ func cleanFloat(f float64) float64 {
 		return 0
 	}
 	return f
-}
-
-func postDataByHTTP(prevAttempts int, buf []byte, authUser, authPass, target string) {
-	if verbose {
-		fmt.Printf("Trying to send %s\n", string(buf))
-	}
-
-	// Go down a level from http.Post() in order to be able to set authentication header.
-	req, err := http.NewRequest("POST", target, bytes.NewReader(buf))
-	if err != nil {
-		status.Infof("Failed to post: %v", err)
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if authUser != "" {
-		req.SetBasicAuth(authUser, authPass)
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		// There doesn't seem to be any good way to determine that a host is currently unreachable
-		// vs all sorts of other errors that can happen along the way.  So when a sending error
-		// occurs, always retry.
-		if prevAttempts+1 <= maxAttempts {
-			addRetry(prevAttempts+1, buf, authUser, authPass, target)
-		} else {
-			status.Infof("Failed to post to %s after max retries: %v", target, err)
-		}
-		return
-	}
-
-	if verbose {
-		fmt.Printf("Response %s\n", resp.Status)
-	}
-
-	// Codes in the 200 range indicate everything is OK, for now.
-	// Really we should expect
-	//  202 (StatusAccepted) for when a new record is created
-	//  208 (StatusAlreadyReported) for when the record is a dup
-	//
-	// TODO: Possibly for codes in the 500 range we should retry?
-	if resp.StatusCode >= 300 {
-		status.Infof("Failed to post: HTTP status=%d", resp.StatusCode)
-		// Fall through: must read response body
-	}
-
-	// API requires that we read and close the body
-	_, _ = io.ReadAll(resp.Body)
-	resp.Body.Close()
-}
-
-// Retries are a bit crude.  Data for a packet we could not deliver go into a queue and a re-send
-// attempt is made after some minutes.  The exfiltrate process stays alive, but the sonar process
-// that created the data should be able to exit on its own as we've read all the data.  Another run
-// of Sonar may start up another exfiltrate meanwhile.  This is OK, as records may arrive
-// out-of-order at the destination.  There is a hard limit on the number of retries, after which the
-// record is dropped on the floor.  The process exits when the retry queue is empty.
-
-type retry struct {
-	prevAttempts       int    // number of attempts that have been performed
-	buf                []byte // the content
-	authUser, authPass string // authorization
-	target             string // target address
-}
-
-var retries = make([]retry, 0)
-
-func processRetries() {
-	for len(retries) > 0 {
-		time.Sleep(resendIntervalMin * time.Minute)
-		rs := retries
-		retries = make([]retry, 0)
-		for _, r := range rs {
-			postDataByHTTP(r.prevAttempts, r.buf, r.authUser, r.authPass, r.target)
-		}
-	}
-}
-
-func addRetry(prevAttempts int, buf []byte, authUser, authPass, target string) {
-	retries = append(retries, retry{prevAttempts, buf, authUser, authPass, target})
 }
 
 func commandLine() (
