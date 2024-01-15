@@ -5,7 +5,7 @@ import (
 )
 
 func TestReadConfig(t *testing.T) {
-	cfg, err := ReadConfig("../../tests/naicreport/whitebox-config.json")
+	cfg, err := ReadConfig("test-config.json")
 	if err != nil {
 		t.Fatal(err)
 	}

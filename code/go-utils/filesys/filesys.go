@@ -64,3 +64,11 @@ func PopulateTestData(tag string, data ...TestFile) (string, error) {
 	}
 	return tempdir, nil
 }
+
+func CopyFile(from, to string) error {
+	data, err := os.ReadFile(from)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(to, data, 0644)
+}

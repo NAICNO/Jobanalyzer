@@ -5,6 +5,7 @@ set -o errexit
 echo "======================================================================="
 echo " GO-UTIL UNIT TESTS"
 echo "======================================================================="
+( cd alias ; go test )
 ( cd auth ; go test )
 ( cd config ; go test )
 ( cd filesys ; go test )

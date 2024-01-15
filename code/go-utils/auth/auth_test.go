@@ -1,7 +1,10 @@
 package auth
 
 import (
+	"os"
 	"testing"
+
+	"go-utils/filesys"
 )
 
 func TestAuth(t *testing.T) {
@@ -23,7 +26,12 @@ func TestAuth(t *testing.T) {
 }
 
 func TestPwfile(t *testing.T) {
-	oracle, err := ReadPasswords("auth_test3.txt")
+	err := filesys.CopyFile("auth_test3.txt", "t.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("t.txt")
+	oracle, err := ReadPasswords("t.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,5 +46,23 @@ func TestPwfile(t *testing.T) {
 	}
 	if oracle.Authenticate("blum", "fuzz") {
 		t.Fatalf("Failed #4")
+	}
+
+	err = filesys.CopyFile("auth_test4.txt", "t.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = oracle.Reread()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !oracle.Authenticate("grunge", "dirge") {
+		t.Fatalf("Failed #5")
+	}
+	if oracle.Authenticate("fuzz", "fizz") {
+		t.Fatalf("Failed #6")
+	}
+	if !oracle.Authenticate("bletch", "blum") {
+		t.Fatalf("Failed #7")
 	}
 }
