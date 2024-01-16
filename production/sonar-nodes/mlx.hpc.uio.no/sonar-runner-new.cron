@@ -1,7 +1,0 @@
-# Cron script to run on compute nodes.  This just runs sonar every five minutes and captures its
-# output.  Run this via crontab as the data logging user, eg
-#
-#   crontab sonar-runner-new.cron
-
-0-59/5 * * * * $HOME/sonar/sonar.sh
-0-59/5 * * * * $HOME/sonar/sonar-new.sh
