@@ -1,13 +1,14 @@
-# Sonar on the compute nodes
+# Running Sonar on compute nodes
 
 We run `sonar` by means of cron on each node in each cluster: A script samples the node every few
 minutes using `sonar` and exfiltrates the sample data to the analysis host by means of the
 `exfiltrate` program.
 
-A companion program `sysinfo` can be used to probe the system configuration interactively.
+A companion program `sysinfo` can be used to probe the system configuration of the node
+interactively.
 
-On each cluster there is a *sonar home directory*, which is typically on a shared disk.  This
-directory holds programs and scripts:
+On each cluster there is a *sonar home directory*, which may or may not be on a shared disk.  This
+directory holds these programs and scripts:
 
 * `sonar` is an executable that samples the system and prints sample data on stdout
 * `exfiltrate` is an executable that reads sample data from stdin and transports it over the network to
@@ -26,15 +27,67 @@ binaries are naturally architecture-dependent.
 
 ## ML nodes (cluster name: mlx.hpc.uio.no)
 
-The sonar home directory is `~larstha/sonar` though this may change.  The cron job is run as
-`larstha` by means of `crontab`.
+Sonar runs as the user `sonar-runner` and the sonar home directory is `~sonar-runner`.
 
-`exfil-auth.txt` is stored in `~larstha/.ssh`.
+The cron job is run as `sonar-runner` by copying `sonar-runner.cron` to `/etc/cron.d/sonar`.
+
+Currently, `~sonar-runner` is `/var/lib/sonar-runner` on all nodes.  As this directory is private to
+each machine, the binaries and scripts have to be updated everywhere every time there is an update.
+This is annoying but there are few machines in this cluster and updates are rare, so it's acceptable.
+
+`exfil-auth.txt` is stored in `~sonar-runner` with maximal restrictions (only readable and only by
+owner).
+
+### A script for installing or updating sonar on the ML nodes
+
+First build sonar and jobanalyzer binaries somewhere (as described below) and create
+`sonar-mlnodes.tar.gz` that contains the five files in the list above (not `exfil-auth.txt`).
+
+There are no secrets in this tar file.  Of course the contents are sensitive in the sense that they
+can be corrupted, so it can be copied freely but should not be left open to write access.
+
+The tar file does not normally have to be created more than once, all the ML nodes have the same
+architecture.
+
+On each ML host, do as follows.
+
+Put the tar file somewhere accessible to the sonar-runner user, `/tmp` might work:
+
+```
+  $ cp sonar-mlnodes.tar.gz /tmp
+```
+
+Create the user if necessary:
+```
+  $ sudo -i
+  # useradd -r -m -d /var/lib/sonar-runner -s /sbin/nologin -c "Sonar monitor account" sonar-runner
+```
+
+Then set everything up:
+```
+  # sudo -u sonar-runner /bin/bash
+  $ cd
+  $ cp /tmp/sonar-mlnodes.tar.gz .
+  $ tar xzf sonar-mlnodes.tar.gz
+  $ touch exfil-auth.txt
+  $ chmod go-rwx exfil-auth.txt
+  $ <edit exfil-auth.txt to add credential>
+  $ chmod u-w exfil-auth.txt
+  $ ^D
+  # <edit /etc/security/access.conf and add "+ : sonar-runner : cron" before any deny-all lines>
+  # cp /var/lib/sonar-runner/sonar-runner.cron /etc/cron.d/sonar
+  # ^D
+  $ rm /tmp/sonar-mlnodes.tar.gz
+```
+
+If you want to test the setup without sending output directly to the production system, then edit
+`sonar.sh` to use the address of a test system that has an ingestion system set up.
 
 ## Fox (cluster name: fox.educloud.no)
 
-The sonar home directory is `/cluster/var/sonar/bin`, owned by the system user `sonar`.  The cron
-job is run as the user `sonar` by copying `sonar-runner.cron` to /etc/cron.d/sonar.
+Sonar runs as the user `sonar` and the sonar home directory is `/cluster/var/sonar/bin`, owned by
+`sonar`.  The cron job is run as the user `sonar` by copying `sonar-runner.cron` to
+`/etc/cron.d/sonar`.
 
 **NOTE** On interactive and login nodes, use the files `sonar-no-slurm.sh` and
 `sonar-runner-no-slurm.cron` instead of `sonar.sh` and `sonar-runner.cron`.  The reason for this is
