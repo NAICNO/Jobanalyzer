@@ -1,12 +1,13 @@
-# Cron file for fox nodes that do not have slurm (login nodes, interactive nodes).
+# This must be copied to /etc/cron.d/sonar on every compute node
+# It must be owned by root.root
 #
-# Copy this into /etc/cron.d as root:
-#
-#  # cp sonar-runner-no-slurm.cron /etc/cron.d/sonar
-#
-# Be sure that the ownership is root.root.
+# Before you think about symlinking it, be aware that the system cron does not pick
+# up changes to the script unless you also change the mtime on the link.  So you
+# might as well copy.
 
 SHELL=/bin/bash
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 MAILTO=larstha@uio.no
+# These are sequential so that the lock files don't interfere with each other
+# The original command will eventually go away.
 0-59/5 * * * * sonar /cluster/var/sonar/bin/sonar-no-slurm.sh
