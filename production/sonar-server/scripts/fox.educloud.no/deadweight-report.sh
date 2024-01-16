@@ -10,6 +10,7 @@ cluster=fox.educloud.no
 sonar_dir=${sonar_dir:-$HOME/sonar}
 report_dir=$sonar_dir/reports/$cluster
 state_dir=$sonar_dir/state/$cluster
+source $sonar_dir/server-config
 
 mkdir -p ${report_dir}
 
@@ -18,5 +19,8 @@ mkdir -p ${report_dir}
 #
 # Typical running time per invocation on ML nodes: 10-20ms
 
-$sonar_dir/naicreport ml-deadweight -data-path $state_dir -from 4w
+$sonar_dir/naicreport ml-deadweight -data-path $state_dir -from 4w > $report_dir/fox-deadweight-report.txt
+if [[ -s $report_dir/fox-deadweight-report.txt ]]; then
+    mail -s "Fox deadweight report" "$fox_deadweight_recipient" < $report_dir/fox-deadweight-report.txt
+fi
 $sonar_dir/naicreport ml-deadweight -data-path $state_dir -from 4w -json > $report_dir/fox-deadweight-report.json
