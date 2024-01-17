@@ -11,7 +11,7 @@ use sonarlog::{
     Timebounds, Timestamp,
 };
 use std::boxed::Box;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io;
 
 /// Bit values for JobAggregate::classification.  Also defined in ~/naicreport/sonalyze/jobs.go.
@@ -98,6 +98,17 @@ pub fn aggregate_and_print_jobs(
      * };
      */
 
+    // The printer will need to know all the hosts that go into a job summary in case relative
+    // fields have been requested; it can then check to see if the data for the host in question
+    // were present, and bail out otherwise.  Unfortunately, we don't know yet whether relative
+    // values are requested; that won't be known until the printer parses the format string.  So
+    // collect the set of hosts from the set of streams (usually very cheap) and pass that on.
+
+    let mut hosts = HashSet::<String>::new();
+    for (_, s) in &streams {
+        hosts.insert(s[0].hostname.clone());
+    }
+
     let /*mut*/ jobvec = aggregate_and_filter_jobs(system_config, filter_args, streams, bounds);
 
     if meta_args.verbose {
@@ -141,7 +152,7 @@ pub fn aggregate_and_print_jobs(
      * }
      */
 
-    prjobs::print_jobs(output, system_config, jobvec, print_args, meta_args)
+    prjobs::print_jobs(output, system_config, hosts, jobvec, print_args, meta_args)
 }
 
 /* BREAKDOWN

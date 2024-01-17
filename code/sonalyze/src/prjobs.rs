@@ -18,6 +18,7 @@ use std::ops::Add;
 pub fn print_jobs(
     output: &mut dyn io::Write,
     system_config: &Option<HashMap<String, sonarlog::System>>,
+    mut hosts: HashSet<String>,
     mut jobvec: Vec<JobSummary>,
     print_args: &JobPrintArgs,
     meta_args: &MetaArgs,
@@ -114,8 +115,16 @@ pub fn print_jobs(
             | "rgpumem-avg" | "rgpumem-peak" => true,
             _ => false,
         });
-        if relative && system_config.is_none() {
-            bail!("Relative values requested without config file");
+        if relative {
+            if let Some(ref ht) = system_config {
+                for host in hosts.drain() {
+                    if ht.get(&host).is_none() {
+                        bail!("Missing host configuration for {}", &host)
+                    }
+                }
+            } else {
+                bail!("Relative values requested without config file");
+            }
         }
 
         let mut selected = vec![];
