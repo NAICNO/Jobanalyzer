@@ -90,8 +90,17 @@ pub fn aggregate_and_print_load(
         _ => false,
     });
 
-    if relative && system_config.is_none() {
-        bail!("Relative values requested without config file");
+    // After this, everyone can assume there will be a system_config for every host in the data.
+    if relative {
+        if let Some(ref ht) = system_config {
+            for (_, s) in & streams {
+                if ht.get(&s[0].hostname).is_none() {
+                    bail!("Missing host configuration for {}", &s[0].hostname)
+                }
+            }
+        } else {
+            bail!("Relative values requested without config file");
+        }
     }
 
     // There one synthesized sample stream per host.  The samples will all have different
@@ -122,21 +131,15 @@ pub fn aggregate_and_print_load(
     if filter_args.group {
         if let Some(ref ht) = system_config {
             for stream in &merged_streams {
-                if let Some(probe) = ht.get(&stream[0].hostname) {
-                    if the_conf.description != "" {
-                        the_conf.description += "|||"; // JSON-compatible separator
-                    }
-                    the_conf.description += &probe.description;
-                    the_conf.cpu_cores += probe.cpu_cores;
-                    the_conf.mem_gb += probe.mem_gb;
-                    the_conf.gpu_cards += probe.gpu_cards;
-                    the_conf.gpumem_gb += probe.gpumem_gb;
-                } else if relative {
-                    bail!(
-                        "Relative values requested without config info for {}",
-                        stream[0].hostname
-                    );
+                let probe = ht.get(&stream[0].hostname).unwrap();
+                if the_conf.description != "" {
+                    the_conf.description += "|||"; // JSON-compatible separator
                 }
+                the_conf.description += &probe.description;
+                the_conf.cpu_cores += probe.cpu_cores;
+                the_conf.mem_gb += probe.mem_gb;
+                the_conf.gpu_cards += probe.gpu_cards;
+                the_conf.gpumem_gb += probe.gpumem_gb;
             }
             merged_conf = Some(&the_conf);
         }
@@ -174,11 +177,6 @@ pub fn aggregate_and_print_load(
             merged_conf
         } else if let Some(ref ht) = system_config {
             ht.get(&hostname)
-        } else if relative {
-            bail!(
-                "Relative values requested without config info for {}",
-                hostname
-            )
         } else {
             None
         };
