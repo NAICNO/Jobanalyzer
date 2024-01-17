@@ -39,7 +39,7 @@ function cluster_info(cluster) {
     case "fox":
         return {
             cluster,
-            subclusters: ["cpu","gpu","int"],
+            subclusters: ["cpu","gpu","int","login"],
             name:"Fox",
             description:"UiO Fox supercomputer",
             prefix:"fox-",
@@ -49,11 +49,9 @@ function cluster_info(cluster) {
 }
 
 // The sonalyze daemon can serve up content (static or dynamic) in response to queries.
-// TODO: This is not a great place for this information.
 
 function sonalyzedAddress() {
-    // Currently only plain HTTP
-    return "http://158.39.48.160:8087"
+    return SONALYZED
 }
 
 // Update the window title and the main document title with the cluster name.

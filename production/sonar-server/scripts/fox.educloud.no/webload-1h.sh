@@ -62,3 +62,13 @@ $sonar_dir/naicreport load \
                       -from 7d \
                       -group 'int-[1-4]' \
                       -report-dir $report_dir
+
+$sonar_dir/naicreport load \
+                      -sonalyze $sonar_dir/sonalyze \
+                      -config-file $script_dir/$cluster-config.json \
+                      -data-dir $data_dir \
+                      -tag fox-login-weekly \
+                      -hourly \
+                      -from 7d \
+                      -group 'login-[1-4]' \
+                      -report-dir $report_dir
