@@ -17,10 +17,11 @@ directory holds these programs and scripts:
 * `sonar.sh` is the script that runs `sonar` and `exfiltrate` with appropriate options
 * `sonar-runner.cron` is a `cron` script appropriate for the host to schedule invocations of `sonar.sh`
 
-There is also another file:
+There is also a directory with two files:
 
-* `exfil-auth.txt` contains identity information used by `exfiltrate` in its communication with the
+* `secrets/exfil-auth.txt` contains identity information used by `exfiltrate` in its communication with the
   server.  For more information about this file, see the documentation in `../sonar-server`.
+* `secrets/exfil-ca.crt` is the certificate for the NAIC Certificate Authority, this is used for HTTP upload.
 
 The contents of `sonar.sh` and `sonar-runner.cron` may vary from cluster to cluster, and the
 binaries are naturally architecture-dependent.
@@ -35,16 +36,16 @@ Currently, `~sonar-runner` is `/var/lib/sonar-runner` on all nodes.  As this dir
 each machine, the binaries and scripts have to be updated everywhere every time there is an update.
 This is annoying but there are few machines in this cluster and updates are rare, so it's acceptable.
 
-`exfil-auth.txt` is stored in `~sonar-runner` with maximal restrictions (only readable and only by
-owner).
+`secrets` and its files have maximal restrictions (only readable and only by owner).
 
 ### A script for installing or updating sonar on the ML nodes
 
 First build sonar and jobanalyzer binaries somewhere (as described below) and create
-`sonar-mlnodes.tar.gz` that contains the five files in the list above (not `exfil-auth.txt`).
+`sonar-mlnodes.tar.gz` that contains the files in the list above except `secrets/exfil-auth.txt`.
 
-There are no secrets in this tar file.  Of course the contents are sensitive in the sense that they
-can be corrupted, so it can be copied freely but should not be left open to write access.
+There are no secrets in this tar file, the certificate is freely copyable.  Of course the contents
+are sensitive in the sense that they can be corrupted, so it can be copied freely but should not be
+left open to write access.
 
 The tar file does not normally have to be created more than once, all the ML nodes have the same
 architecture.
@@ -69,10 +70,10 @@ Then set everything up:
   $ cd
   $ cp /tmp/sonar-mlnodes.tar.gz .
   $ tar xzf sonar-mlnodes.tar.gz
-  $ touch exfil-auth.txt
-  $ chmod go-rwx exfil-auth.txt
-  $ <edit exfil-auth.txt to add credential>
-  $ chmod u-w exfil-auth.txt
+  $ touch secrets/exfil-auth.txt
+  $ chmod go-rwx secrets/exfil-auth.txt
+  $ <edit secrets/exfil-auth.txt to add credential>
+  $ chmod u-w secrets/exfil-auth.txt
   $ ^D
   # <edit /etc/security/access.conf and add "+ : sonar-runner : cron" before any deny-all lines>
   # cp /var/lib/sonar-runner/sonar-runner.cron /etc/cron.d/sonar
@@ -85,7 +86,7 @@ If you want to test the setup without sending output directly to the production 
 
 ## Fox (cluster name: fox.educloud.no)
 
-Sonar runs as the user `sonar` and the sonar home directory is `/cluster/var/sonar/bin`, owned by
+Sonar runs as the user `sonar` and the sonar work directory is `/cluster/var/sonar/bin`, owned by
 `sonar`.  The cron job is run as the user `sonar` by copying `sonar-runner.cron` to
 `/etc/cron.d/sonar`.
 
@@ -93,8 +94,7 @@ Sonar runs as the user `sonar` and the sonar home directory is `/cluster/var/son
 `sonar-runner-no-slurm.cron` instead of `sonar.sh` and `sonar-runner.cron`.  The reason for this is
 that job numbers must be synthesized by sonar on such nodes.
 
-`exfil-auth.txt` is stored in the sonar home directory with restrictive ownership and permissions
-(not precisely ideal but there you have it).
+`secrets/` is stored in the sonar work directory with restrictive ownership and permissions.
 
 ### Compute/gpu nodes
 
@@ -109,7 +109,7 @@ The following additional conditions have to be met on compute and gpu nodes
 * cron errors show up in `/var/log/cron`
 
 For new and reinstalled nodes to just work:
- 
+
 * the access.conf setting shall be reflected in `master:/install/dists/fox/syncfiles-el9/etc/security/access.conf`
 * the script `master:/install/postscripts/fox_sonar` shall contain commands to set up home directory and permissions
 
@@ -142,7 +142,6 @@ git clone https://github.com/NAICNO/Jobanalyzer.git
 The executables are in `sonar/target/release/sonar`, `Jobanalyzer/code/exfiltrate/exfiltrate`, and
 `Jobanalyzer/code/sysinfo/sysinfo` respectively.
 
-
 ## The `sysinfo` utility
 
 In each cluster directory there is a file called `<clustername>-config.json` which holds information
@@ -153,3 +152,18 @@ about the configuration of every node in the system.  When nodes are added, remo
 
 For a node without a GPU, simply run `sysinfo`.  If the node is known to have an NVIDIA gpu,
 add the `-nvidia` flag.  If it is known to have an AMD gpu, add the `-amd` flag.
+
+## Updating a live server
+
+One does not simply copy new executables into place as this will create all sorts of problems.
+
+Generally the safest bet is to spin down the cron job by removing `/etc/cron.d/sonar` or by
+inserting an `exit 0` line at the beginning of sonar.sh.  (On the ML nodes this has to be done once
+per node, on Fox the script is shared.)
+
+Then, once sonar and exfiltrate are not running (`pgrep exfil` returning no hits is a good
+indication), the new executables can be put in place, and the cron job restarted.
+
+Alternatively, it may be OK to to generate new executables, copy them to `~/sonar` under different
+names, and then `mv` them into place, as this should be atomic and any references to the existing
+executables will keep those alive behind the scenes.  But this is not well tested.

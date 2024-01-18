@@ -9,8 +9,11 @@ package httpclient
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
+	"os"
 	"net/http"
 	"net/url"
 	"time"
@@ -24,6 +27,7 @@ import (
 
 type HttpClient struct {
 	target                         *url.URL
+	client                         *http.Client
 	authUser, authPass             string
 	maxAttempts, resendIntervalMin uint
 	verbose                        bool
@@ -39,22 +43,46 @@ type retry struct {
 // Here, `authUser` can be empty; if not, `authPass` must also be provided and the pair are used for
 // HTTP basic authentication.  `maxAttempts` should be 0 if no retries are desired.  Otherwise,
 // `resendIntervalMin` is the resend interval in minutes.
+//
+// If the target is https then caCertfile must not be empty, and vice versa.
 
 func NewClient(
 	target *url.URL,
+	caCertfile string,
 	authUser, authPass string,
 	maxAttempts, resendIntervalMin uint,
 	verbose bool,
-) *HttpClient {
+) (*HttpClient, error) {
+	var client *http.Client
+	if caCertfile != "" {
+		certPool := x509.NewCertPool()
+		caCertPEM, err := os.ReadFile(caCertfile)
+		if err != nil {
+			return nil, err
+		}
+		if !certPool.AppendCertsFromPEM(caCertPEM) {
+			return nil, fmt.Errorf("Invalid cert in CA PEM")
+		}
+		tlsConfig := &tls.Config{
+			RootCAs: certPool,
+		}
+		tr := &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+		client = &http.Client{Transport: tr}
+	} else {
+		client = &http.Client{}
+	}
 	return &HttpClient{
 		target:            target,
+		client:            client,
 		authUser:          authUser,
 		authPass:          authPass,
 		maxAttempts:       maxAttempts,
 		resendIntervalMin: resendIntervalMin,
 		verbose:           verbose,
 		retries:           make([]retry, 0),
-	}
+	}, nil
 }
 
 // The "path" is appended to the URL and should start with a "/".
@@ -95,7 +123,7 @@ func (c *HttpClient) postDataByHttp(prevAttempts uint, path string, buf []byte) 
 	if c.authUser != "" {
 		req.SetBasicAuth(c.authUser, c.authPass)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		// There doesn't seem to be any good way to determine that a host is currently unreachable
 		// vs all sorts of other errors that can happen along the way.  So when a sending error

@@ -17,9 +17,15 @@
 // the form username/password, to be used in an HTTP basic authentication header.  If the connection
 // is not HTTPS then the password may be intercepted in transit.
 //
+// If the -ca-cert opton is provided then the URL must be an HTTPS URL (and vice versa), and the
+// argument is a filename holding the certificate for a Certificate Authority that exfiltrate will
+// use to validate the identity of the server.
+//
 // For example, with a sending window of 300s:
 //
-//   sonar ps ... | exfiltrate --window=300 --cluster=ml --source=sonar/csvnamed --output=json --target=https://...
+//   sonar ps ... | \
+//      exfiltrate -window 300 -cluster ml -source sonar/csvnamed -output json \
+//                 -ca-cert secrets/server-ca.crt -target https://...
 //
 // Source formats supported
 //
@@ -82,7 +88,7 @@ var verbose bool
 func main() {
 	status.Start("jobanalyzer/exfiltrate")
 
-	window, cluster, inputSource, inputType, outputType, authFile, target, err := commandLine()
+	window, cluster, inputSource, inputType, outputType, authFile, caCert, target, err := commandLine()
 	if err != nil {
 		status.Fatalf("Command line: %v", err)
 	}
@@ -133,8 +139,17 @@ func main() {
 	if target.Scheme != "http" && target.Scheme != "https" {
 		status.Fatal("Only http / https targets for now")
 	}
+	if target.Scheme == "https" && caCert == "" {
+		status.Fatal("HTTPS requires a -ca-cert")
+	}
+	if target.Scheme == "http" && caCert != "" {
+		status.Fatal("HTTP needs no -ca-cert; did you mean HTTPS?")
+	}
 
-	client := httpclient.NewClient(target, authUser, authPass, maxAttempts, resendIntervalMin, verbose)
+	client, err := httpclient.NewClient(target, caCert, authUser, authPass, maxAttempts, resendIntervalMin, verbose)
+	if err != nil {
+		status.Fatalf("Failed to create client: %v", err)
+	}
 	switch outputType {
 	case "json":
 		// These loops send multiple records together so as to optimize network traffic, but not too
@@ -219,7 +234,7 @@ func cleanFloat(f float64) float64 {
 
 func commandLine() (
 	window int,
-	cluster, inputSource, inputType, outputType, authFile string,
+	cluster, inputSource, inputType, outputType, authFile, caCert string,
 	target *url.URL,
 	err error,
 ) {
@@ -232,6 +247,7 @@ func commandLine() (
 	var targetArg string
 	flags.StringVar(&targetArg, "target", "", "Connect to `url` to upload data (required)")
 	flags.StringVar(&authFile, "auth-file", "", "Read upload credentials from `filename`")
+	flags.StringVar(&caCert, "ca-cert", "", "Connect over HTTPS with CA cert `filename`")
 	flags.BoolVar(&verbose, "v", false, "Verbose information")
 	err = flags.Parse(os.Args[1:])
 	if err == flag.ErrHelp {

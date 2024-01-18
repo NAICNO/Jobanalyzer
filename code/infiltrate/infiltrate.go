@@ -1,6 +1,6 @@
 // `infiltrate` - data receiver for Sonar data, to run on database/analysis host.
 //
-// Infiltrate receives JSON-formatted data by HTTP POST on several addresses and stores the data
+// Infiltrate receives JSON-formatted data by HTTP/HTTPS POST on several addresses and stores the data
 // locally for subsequent analysis.  This agent is always running - it's the only contact point for
 // the data producers on the nodes.
 //
@@ -62,7 +62,7 @@ var programFailed = false
 func main() {
 	status.Start("jobanalyzer/infiltrate")
 
-	port, dataPath, authFile, err := commandLine()
+	port, httpsKey, httpsCert, dataPath, authFile, err := commandLine()
 	if err != nil {
 		status.Fatalf("Command line: %v", err)
 	}
@@ -81,7 +81,7 @@ func main() {
 	// TODO: We have shared abstractions for the HTTP server and the signal handling, now.  See
 	// sonalyzed for examples.
 
-	go runServer(port, dataPath, authUser, authPass)
+	go runServer(port, httpsKey, httpsCert, dataPath, authUser, authPass)
 	// Hang until SIGHUP or SIGTERM, then shut down orderly.
 	stopSignal := make(chan os.Signal, 1)
 	signal.Notify(stopSignal, syscall.SIGHUP)  // Sent manually and maybe when logging out?
@@ -97,7 +97,7 @@ func main() {
 var serverStopChannel = make(chan bool)
 var server *http.Server
 
-func runServer(port int, dataPath, authUser, authPass string) {
+func runServer(port int, httpsKey, httpsCert, dataPath, authUser, authPass string) {
 	http.HandleFunc(
 		"/sonar-reading",
 		incomingData(
@@ -119,8 +119,17 @@ func runServer(port int, dataPath, authUser, authPass string) {
 	if verbose {
 		status.Infof("Listening on port %d", port)
 	}
-	server = &http.Server{Addr: fmt.Sprintf(":%d", port)}
-	err := server.ListenAndServe()
+	var err error
+	if httpsKey != "" {
+		hn, err := os.Hostname()
+		if err == nil {
+			server = &http.Server{Addr: fmt.Sprintf("%s:%d", hn, port)}
+			err = server.ListenAndServeTLS(httpsCert, httpsKey)
+		}
+	} else {
+		server = &http.Server{Addr: fmt.Sprintf(":%d", port)}
+		err = server.ListenAndServe()
+	}
 	if err != nil {
 		if err != http.ErrServerClosed {
 			status.Error(err.Error())
@@ -149,7 +158,8 @@ func incomingData(
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if verbose {
-			status.Infof("Request from %s: %v", r.RemoteAddr, r.Header)
+			// Header reveals auth info, don't put it into logs
+			status.Infof("Request from %s: %v", r.RemoteAddr, r.URL.String())
 		}
 
 		// Error logging during the preparatory steps -- until we know we have a full request that
@@ -377,9 +387,13 @@ func maybeRetry(r *dataRecord, msg string) {
 	}
 }
 
-func commandLine() (port int, dataPath, authFile string, err error) {
+func commandLine() (port int, httpsKey, httpsCert, dataPath, authFile string, err error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	flags.IntVar(&port, "port", defaultListenPort, "Listen for connections on `port`")
+	flags.StringVar(&httpsCert, "server-cert", "",
+		"Listen for HTTPS connections with server cert `filename` (requires -server-key)")
+	flags.StringVar(&httpsKey, "server-key", "",
+		"Listen for HTTPS connections with server key `filename` (requires -server-cert)")
 	flags.StringVar(&dataPath, "data-path", "", "Path of data store root `directory` (required)")
 	flags.StringVar(&authFile, "auth-file", "", "Read user names and passwords from `filename`")
 	flags.BoolVar(&verbose, "v", false, "Verbose logging")
@@ -391,5 +405,11 @@ func commandLine() (port int, dataPath, authFile string, err error) {
 		return
 	}
 	dataPath, err = options.RequireDirectory(dataPath, "-data-path")
+	if err != nil {
+		return
+	}
+	if (httpsCert != "") != (httpsKey != "") {
+		err = fmt.Errorf("Need both -https-cert and -https-key, or neither")
+	}
 	return
 }

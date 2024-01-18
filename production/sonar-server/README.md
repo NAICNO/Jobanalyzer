@@ -19,9 +19,9 @@ First build and test the executables, as follows.  Remember, you may first need 
   ./build.sh
 ```
 
-**IMPORTANT:** Run `build.sh` last as the test builds may be created with unusual options.
+**IMPORTANT:** Run `build.sh` last, as the test builds may be created with unusual options.
 
-### Step 2: Setup data ingestion and reporting
+### Step 2: Set up data ingestion and reporting
 
 Create working directories if necessary and copy files, as follows.  The working directory is always
 `$HOME/sonar` for whatever user is running the server, if you want something else you need to edit a
@@ -30,18 +30,19 @@ bunch of scripts.
 ```
   cd $JOBANALYZER
 
-  mkdir -p ~/sonar/data ~/sonar/reports ~/sonar/q
+  mkdir -p ~/sonar/data ~/sonar/reports ~/sonar/q ~/sonar/secrets
+  chmod go-rwx ~/sonar/secrets
 
   cp code/infiltrate/infiltrate ~/sonar
-  cp code/sonalyzed/sonalyzed ~/sonar
   cp code/naicreport/naicreport ~/sonar
   cp code/sonalyze/target/release/sonalyze ~/sonar
+  cp code/sonalyzed/sonalyzed ~/sonar
 
   cp code/sonalyzed/query/*.{html,js,css} ~/sonar/q
 
-  cp production/sonar-server/server-config ~/sonar
   cp production/sonar-server/cluster-aliases.json ~/sonar
   cp production/sonar-server/POINTER.md ~/sonar
+  cp production/sonar-server/server-config ~/sonar
   cp production/sonar-server/*.{sh,cron} ~/sonar
   cp -r production/sonar-server/scripts ~/sonar
 ```
@@ -49,7 +50,7 @@ bunch of scripts.
 If `~/sonar/scripts` does not have a subdirectory for your cluster, you will need to create one.  See
 "Adding a new cluster" below.
 
-### Step 3: Setup the web server
+### Step 3: Set up the web server
 
 The web server must currently run on the same machine as ingest and analysis.  The reports will be
 copied from the directory they are generated in and into the web server's data directory.
@@ -68,21 +69,24 @@ sonar server, eg:
   # chown -R <sonar-user>.<sonar-user-group> $DASHBOARD/output
 ```
 
-### Step 4: Configure
+### Step 4: Configure data ingestion and remote query
 
-We must set up a password file, usually in `~/.ssh/sonalyzed-auth.txt`.  This is a plaintext file on
+We must create a password file in `~/sonar/secrets/sonalyzed-auth.txt`.  This is a plaintext file on
 `username:password` format, one per line.  It controls access to the query server, `sonalyzed`.
 
-We must also set up an identity file, usually in `~/.ssh/exfil-auth.txt`.  This is a plaintext file
-with a single line on `username:password` format.  It is used to authorize data sent to the
-infiltration server, `infiltrate`.  It is the same file that `exfiltrate` uses on the compute node
-to identify itself to the server.
+We must create a password file in `~/sonar/secrets/exfil-auth.txt`.  This is a plaintext file on
+`username:password` format, one per line.  It controls access to the data infiltration server,
+`infiltrate`.
 
-Ideally these files are not readable or writable by anyone but the owner, but nobody checks this.
+If `infiltrate` is to communicate by HTTPS then we must create HTTPS certificates and keys in
+`~/sonar/secrets`.  See [secrets/README.md](secrets/README.md) for more.
 
-We must then edit `~/sonar/server-config` to point to the authorization files, to define the path to
-`$DASHBOARD/output`, and to define the ports used for various services.  The ports must be open for
-remote access.
+Ideally the files in `secrets` are not readable or writable by anyone but the owner, but nobody
+checks this.
+
+We must then edit `~/sonar/server-config` to point to the various authorization files, to define the
+path to `$DASHBOARD/output`, and to define the ports used for various services.  The ports must be
+open for remote access.
 
 We must finally edit `$DASHBOARD/testflag.js` (which is the configuration file for the dashboard) to
 set up at least the variable `SONALYZED` to point at the correct host and port for the sonalyze
@@ -101,42 +105,12 @@ Activate the cron jobs and start the data logger and the query server:
 
 The data logger and query server run on ports defined in the config file, see above.
 
-## Upgrading `infiltrate` and `exfiltrate`
+## Upgrading `infiltrate` and `sonalyzed`
 
 One does not simply copy new executables into place.  Here are some pointers.
 
-Infiltrate must be spun down on the analysis host by killing it with HUP, once it is down the executable
-can be replaced and `start-infiltrate.sh` can be run again to start a new server.
-
-The `exfiltrate` executable is used by the golang runtime on all the cluster nodes and overwriting
-it with new data will cause the runtime to crash.  Also, given the random sending window there is no
-one time when the executable is not busy.  Probably (untested), it is enough to mv the new
-executable into the place of the old one, so as to replace it atomically, and hope that the runtime
-has gone through the proper channels to hold onto a reference to its image from where it's linked in
-`/proc/pid`.
-
-## Data logger daemon
-
-### Basics
-
-To start the infiltration server (data logging daemon), we need to run this in the background:
-
-```
-./infiltrate -data-path ~/sonar/data -port 8086 -auth-file ~/.ssh/exfil-auth.txt
-```
-
-This will listen for incoming data on HTTP (not HTTPS!) from all the nodes in all the clusters and
-will log data in Sonar-format files in `~/sonar/data/<cluster>/<year>/<month>/<day>/<hostname>.csv`.
-
-The file `~/.ssh/exfil-auth.txt` contains one line of text on the form `<username>:<password>`,
-characters should be printable ASCII and `<username>` cannot contain a `:`.
-
-The sending side must use the same credentials and port.
-
-### Startup on boot, and remaining up
-
-There is a crontab, sonar-server.cron, that has a @reboot spec for this program, and it runs the
-file start-infiltrate.sh.
+`infiltrate` and `sonalyzed` must be spun down on the analysis host by killing them with TERM, once
+they are down the executables can be replaced and the start scripts can be run to start new servers.
 
 ## Adding a new cluster
 
@@ -155,11 +129,6 @@ name must be `CLUSTER-config.json` where `CLUSTER` is the cluster name.  For exa
 ## Bugs, future directions
 
 ## Data logger (infiltrate)
-
-We need to support HTTPS/TLS.
-
-In the future it would be useful for the password file to be able to contain multiple lines so that
-different clusters could have their own credentials.  Sonalyzed already allows this.
 
 We need something so that this server is "always" up without the user crontab.  There are a couple
 of ways of doing this.  One is to integrate with systemd, which is probably right in the long run.

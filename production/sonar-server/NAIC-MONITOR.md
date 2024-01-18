@@ -70,7 +70,26 @@ hard because cfengine changes it back.  But there is a way:
 
 Installed and configured firewall and nginx as mentioned [here](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/deploying_web_servers_and_reverse_proxies/setting-up-and-configuring-nginx_deploying-web-servers-and-reverse-proxies).
 
-The firewall change was surprising given the "open to the world" configuration requested.
+(The firewall change was surprising given the "open to the world" configuration requested from IT for this VM.)
+
+### Tweak: open ports
+
+If services are to use ports other than the ones that are open by default, they must be opened.
+Ports have to be selected carefully, because there is a firewall *outside* naic-monitor and it does
+not let everything through.  To see what it lets through, see
+[here](https://www-int.usit.uio.no/om/organisasjon/iti/nettdrift/dokumentasjon/nett-info/uio-acl/nexus-xx-gw-2616.acl.txt).
+If none of these ports can be made to work, then new ports must be requested.
+
+For the time being, for naic-monitor ingest, query and test I use the open Oracle ports.
+
+You need to
+```
+# firewall-cmd --permanent --add-ports={nnn/tcp,mmm/tcp}
+# firewall-cmd --reload
+```
+to open ports `nnn` and `mmm` locally.  Again, these need to be ports that are let through by
+the external firewall.
+
 
 ### Tweak: Setup disk
 
