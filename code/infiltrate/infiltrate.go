@@ -54,6 +54,7 @@ const (
 	dirPermissions           = 0755
 	filePermissions          = 0644
 	serverShutdownTimeoutSec = 10
+	matchUserAndCluster      = false // This will become true eventually
 )
 
 var verbose bool
@@ -67,11 +68,9 @@ func main() {
 		status.Fatalf("Command line: %v", err)
 	}
 
-	// TODO: Use a password file here, not a single identity, see sonalyzed for an example.
-
-	var authUser, authPass string
+	var authenticator *auth.Authenticator
 	if authFile != "" {
-		authUser, authPass, err = auth.ParseAuth(authFile)
+		authenticator, err = auth.ReadPasswords(authFile)
 		if err != nil {
 			status.Fatalf("Failed to read authentication file: %v\n", err)
 		}
@@ -81,7 +80,7 @@ func main() {
 	// TODO: We have shared abstractions for the HTTP server and the signal handling, now.  See
 	// sonalyzed for examples.
 
-	go runServer(port, httpsKey, httpsCert, dataPath, authUser, authPass)
+	go runServer(port, httpsKey, httpsCert, dataPath, authenticator)
 	// Hang until SIGHUP or SIGTERM, then shut down orderly.
 	stopSignal := make(chan os.Signal, 1)
 	signal.Notify(stopSignal, syscall.SIGHUP)  // Sent manually and maybe when logging out?
@@ -97,23 +96,21 @@ func main() {
 var serverStopChannel = make(chan bool)
 var server *http.Server
 
-func runServer(port int, httpsKey, httpsCert, dataPath, authUser, authPass string) {
+func runServer(port int, httpsKey, httpsCert, dataPath string, authenticator *auth.Authenticator) {
 	http.HandleFunc(
 		"/sonar-reading",
 		incomingData(
-			authUser,
-			authPass,
-			func(payload []byte) (int, string, string) {
-				return sonarReading(payload, dataPath)
+			authenticator,
+			func(payload []byte, clusterName string) (int, string, string) {
+				return sonarReading(payload, dataPath, clusterName)
 			}),
 	)
 	http.HandleFunc(
 		"/sonar-heartbeat",
 		incomingData(
-			authUser,
-			authPass,
-			func(payload []byte) (int, string, string) {
-				return sonarHeartbeat(payload, dataPath)
+			authenticator,
+			func(payload []byte, clusterName string) (int, string, string) {
+				return sonarHeartbeat(payload, dataPath, clusterName)
 			}),
 	)
 	if verbose {
@@ -153,8 +150,8 @@ func stopServer() {
 }
 
 func incomingData(
-	authUser, authPass string,
-	dataHandler func([]byte) (int, string, string),
+	authenticator *auth.Authenticator,
+	dataHandler func([]byte, string) (int, string, string),
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if verbose {
@@ -196,7 +193,7 @@ func incomingData(
 		}
 
 		user, pass, ok := r.BasicAuth()
-		passed := !ok && authPass == "" || ok && user == authUser && pass == authPass
+		passed := !ok && authenticator == nil || ok && authenticator != nil && authenticator.Authenticate(user, pass)
 		if !passed {
 			w.WriteHeader(401)
 			fmt.Fprintf(w, "Unauthorized")
@@ -221,7 +218,7 @@ func incomingData(
 			haveRead += n
 		}
 
-		code, msg, logmsg := dataHandler(payload)
+		code, msg, logmsg := dataHandler(payload, user)
 
 		// If we don't do anything then the result will just be 200 OK.
 		if code != 200 {
@@ -234,7 +231,7 @@ func incomingData(
 	}
 }
 
-func sonarReading(payload []byte, dataPath string) (int, string, string) {
+func sonarReading(payload []byte, dataPath, clusterName string) (int, string, string) {
 	var rs []*sonarlog.SonarReading
 	err := json.Unmarshal(payload, &rs)
 	if err != nil {
@@ -242,12 +239,14 @@ func sonarReading(payload []byte, dataPath string) (int, string, string) {
 			fmt.Sprintf("Bad content - can't unmarshal SonarReading JSON: %v", err)
 	}
 	for _, r := range rs {
-		writeRecord(dataPath, r.Cluster, r.Host, r.Timestamp, r.Csvnamed())
+		if !matchUserAndCluster || clusterName == "" || r.Cluster == clusterName {
+			writeRecord(dataPath, r.Cluster, r.Host, r.Timestamp, r.Csvnamed())
+		}
 	}
 	return 200, "", ""
 }
 
-func sonarHeartbeat(payload []byte, dataPath string) (int, string, string) {
+func sonarHeartbeat(payload []byte, dataPath, clusterName string) (int, string, string) {
 	var rs []*sonarlog.SonarHeartbeat
 	err := json.Unmarshal(payload, &rs)
 	if err != nil {
@@ -255,7 +254,9 @@ func sonarHeartbeat(payload []byte, dataPath string) (int, string, string) {
 			fmt.Sprintf("Bad content - can't unmarshal SonarHeartbeat JSON: %v", err)
 	}
 	for _, r := range rs {
-		writeRecord(dataPath, r.Cluster, r.Host, r.Timestamp, r.Csvnamed())
+		if !matchUserAndCluster || clusterName == "" || r.Cluster == clusterName {
+			writeRecord(dataPath, r.Cluster, r.Host, r.Timestamp, r.Csvnamed())
+		}
 	}
 	return 200, "", ""
 }
