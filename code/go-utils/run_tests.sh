@@ -12,4 +12,5 @@ echo "======================================================================="
 ( cd freecsv ; go test )
 ( cd hostglob ; go test )
 ( cd sonarlog ; go test )
+( cd sysinfo ; go test )
 ( cd time ; go test )
