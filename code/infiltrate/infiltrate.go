@@ -8,11 +8,32 @@
 // this allows existing consumers to work without change, just without needing a shared disk with
 // the data producers.  The storage format will change later.
 //
-// The -data-path option is required while -port is optional.
+// Options:
 //
-// If the -auth-file option is provided then the file named must provide a user name and password
-// on the form username/password, to be matched with one in an HTTP basic authentication header.  If
-// the connection is not HTTPS then the password may have been intercepted in transit.
+// -data-path `filename`
+//   Required argument.  The root of the data store.
+//
+// -port `port-number`
+//   Optional argument.  Port on which to listen, default is 8086.
+//
+// -auth-file `filename`
+//   Optional argument.  If provided then the file named must provide username:password
+//   combinations, to be matched with one in an HTTP basic authentication header.  (If the
+//   connection is not HTTPS then the password may have been intercepted in transit.)
+//
+// -match-user-and-cluster
+//   Optional argument.  If set, and -auth-file is also provided, then the user name provided by the
+//   HTTP connection must match the cluster name in the data packet.  The effect is to make it
+//   possible for each cluster to have its own username:password pair and for one cluster not to be
+//   able to upload data for another.
+//
+// -server-cert `filename`
+//   Optional unless -server-key is provided.  Path of a file holding the public certificate of the
+//   HTTPS server.  Only HTTPS traffic is accepted.
+//
+// -server-key `filename`
+//   Optional unless -server-cert is provided.  Path of a file holding the private key of the
+//   HTTPS server.  Only HTTPS traffic is accepted.
 //
 // Sending SIGHUP or SIGTERM to infiltrate will shut it down in an orderly manner.
 //
@@ -54,11 +75,11 @@ const (
 	dirPermissions           = 0755
 	filePermissions          = 0644
 	serverShutdownTimeoutSec = 10
-	matchUserAndCluster      = false // This will become true eventually
 )
 
-var verbose bool
+var verbose = false
 var programFailed = false
+var matchUserAndCluster = false
 
 func main() {
 	status.Start("jobanalyzer/infiltrate")
@@ -397,6 +418,7 @@ func commandLine() (port int, httpsKey, httpsCert, dataPath, authFile string, er
 		"Listen for HTTPS connections with server key `filename` (requires -server-cert)")
 	flags.StringVar(&dataPath, "data-path", "", "Path of data store root `directory` (required)")
 	flags.StringVar(&authFile, "auth-file", "", "Read user names and passwords from `filename`")
+	flags.BoolVar(&matchUserAndCluster, "match-user-and-cluster", false, "Require user name to match cluster name")
 	flags.BoolVar(&verbose, "v", false, "Verbose logging")
 	err = flags.Parse(os.Args[1:])
 	if err == flag.ErrHelp {
