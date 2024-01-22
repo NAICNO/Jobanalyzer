@@ -48,12 +48,6 @@ function cluster_info(cluster) {
     }
 }
 
-// The sonalyze daemon can serve up content (static or dynamic) in response to queries.
-
-function sonalyzedAddress() {
-    return SONALYZED
-}
-
 // Update the window title and the main document title with the cluster name.
 
 function rewriteTitle(extra) {
