@@ -45,6 +45,15 @@ function cluster_info(cluster) {
             prefix:"fox-",
             policy:"(To be determined)",
         }
+    case "saga":
+        return {
+            cluster,
+            subclusters: ["login"],
+            name:"Saga",
+            description:"Sigma2 'Saga' supercomputer",
+            prefix:"saga-",
+            policy:"(To be determined)",
+        }
     }
 }
 

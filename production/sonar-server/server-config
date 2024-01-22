@@ -58,3 +58,6 @@ ml_violator_recipient=itf-ai-support@usit.uio.no
 
 # Fox nodes (fox.educloud.no)
 fox_deadweight_recipient=larstha@uio.no
+
+# Saga nodes (saga.sigma2.no)
+saga_deadweight_recipient=larstha@uio.no

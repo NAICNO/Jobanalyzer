@@ -125,6 +125,13 @@ The following additional conditions have to be met on interactive nodes and logi
 * the owner of `/etc/cron.d/sonar` shall be `root.root`
 * cron errors show up in the journal
 
+## Adding new compute clusters
+
+Information about how to set up sonar on the server is in [../sonar-server/README.md](../sonar-server/README.md).
+
+To complement information above, see [the PR that added everything for Saga](https://github.com/NAICNO/Jobanalyzer/pull/364) for an
+example of what a new node configuration might look like.
+
 ## Building `sonar`, `exfiltrate` and `sysinfo`
 
 You need to install or load compilers for Go 1.20 or later (for `exfiltrate`) and Rust 1.65 or later
