@@ -1,5 +1,14 @@
 # -*- mode: shell-script; fill-column: 100 -*-
+
 # This file is to be included by other scripts.  It defines variables used by those scripts.
+# $sonar_dir must be defined by the including script before this script is loaded.
+
+####
+# Feature configuration
+
+# `infiltrate` listens for HTTPS traffic.  Comment out or set to 0 to listen for HTTP, but note
+# the port changes.
+infiltrate_https=1
 
 ####
 # Paths elsewhere in the file system.
@@ -12,12 +21,16 @@ report_target_path=/data/www/output
 # Identities and authorization.
 
 # `infiltrate` uses this file to check that data are uploaded by authorized agents only.
-# The file has (currently) one line on `username:password` format
-infiltrate_auth_file=$HOME/.ssh/exfil-auth.txt
+# The file has a number of lines on `username:password` format
+infiltrate_auth_file=$sonar_dir/secrets/exfil-auth.txt
+
+# `infiltrate` uses these files to receive HTTPS connections from the clients.
+infiltrate_https_key=$sonar_dir/secrets/exfil-server.key
+infiltrate_https_cert=$sonar_dir/secrets/exfil-server.crt
 
 # `sonalyzed` uses this file to check that remote queries are made only by authorized users.
 # The file has any number of lines on `username:password` format
-sonalyzed_auth_file=$HOME/.ssh/sonalyzed-auth.txt
+sonalyzed_auth_file=$sonar_dir/secrets/sonalyzed-auth.txt
 
 ####
 # Ports.
@@ -25,9 +38,10 @@ sonalyzed_auth_file=$HOME/.ssh/sonalyzed-auth.txt
 # Central Services has locked down most ports, here is the list of what's open:
 # https://www-int.usit.uio.no/om/organisasjon/iti/nettdrift/dokumentasjon/nett-info/uio-acl/nexus-xx-gw-2616.acl.txt
 
-# `infiltrate` listens on this port for data uploads from the individual nodes.  This is an open
-# `Oracle` port.
-infiltrate_port=1553
+# `infiltrate` listens on this port for data uploads from the individual nodes.  These are open
+# `Oracle` ports.
+infiltrate_http_port=1553
+infiltrate_https_port=1697
 
 # `sonalyzed` listens on this port for remote sonalyze queries.  This is an open `Oracle` port.
 sonalyzed_port=1559

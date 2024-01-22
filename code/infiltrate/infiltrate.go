@@ -1,6 +1,6 @@
 // `infiltrate` - data receiver for Sonar data, to run on database/analysis host.
 //
-// Infiltrate receives JSON-formatted data by HTTP POST on several addresses and stores the data
+// Infiltrate receives JSON-formatted data by HTTP/HTTPS POST on several addresses and stores the data
 // locally for subsequent analysis.  This agent is always running - it's the only contact point for
 // the data producers on the nodes.
 //
@@ -54,6 +54,7 @@ const (
 	dirPermissions           = 0755
 	filePermissions          = 0644
 	serverShutdownTimeoutSec = 10
+	matchUserAndCluster      = false // This will become true eventually
 )
 
 var verbose bool
@@ -62,16 +63,14 @@ var programFailed = false
 func main() {
 	status.Start("jobanalyzer/infiltrate")
 
-	port, dataPath, authFile, err := commandLine()
+	port, httpsKey, httpsCert, dataPath, authFile, err := commandLine()
 	if err != nil {
 		status.Fatalf("Command line: %v", err)
 	}
 
-	// TODO: Use a password file here, not a single identity, see sonalyzed for an example.
-
-	var authUser, authPass string
+	var authenticator *auth.Authenticator
 	if authFile != "" {
-		authUser, authPass, err = auth.ParseAuth(authFile)
+		authenticator, err = auth.ReadPasswords(authFile)
 		if err != nil {
 			status.Fatalf("Failed to read authentication file: %v\n", err)
 		}
@@ -81,7 +80,7 @@ func main() {
 	// TODO: We have shared abstractions for the HTTP server and the signal handling, now.  See
 	// sonalyzed for examples.
 
-	go runServer(port, dataPath, authUser, authPass)
+	go runServer(port, httpsKey, httpsCert, dataPath, authenticator)
 	// Hang until SIGHUP or SIGTERM, then shut down orderly.
 	stopSignal := make(chan os.Signal, 1)
 	signal.Notify(stopSignal, syscall.SIGHUP)  // Sent manually and maybe when logging out?
@@ -97,30 +96,37 @@ func main() {
 var serverStopChannel = make(chan bool)
 var server *http.Server
 
-func runServer(port int, dataPath, authUser, authPass string) {
+func runServer(port int, httpsKey, httpsCert, dataPath string, authenticator *auth.Authenticator) {
 	http.HandleFunc(
 		"/sonar-reading",
 		incomingData(
-			authUser,
-			authPass,
-			func(payload []byte) (int, string, string) {
-				return sonarReading(payload, dataPath)
+			authenticator,
+			func(payload []byte, clusterName string) (int, string, string) {
+				return sonarReading(payload, dataPath, clusterName)
 			}),
 	)
 	http.HandleFunc(
 		"/sonar-heartbeat",
 		incomingData(
-			authUser,
-			authPass,
-			func(payload []byte) (int, string, string) {
-				return sonarHeartbeat(payload, dataPath)
+			authenticator,
+			func(payload []byte, clusterName string) (int, string, string) {
+				return sonarHeartbeat(payload, dataPath, clusterName)
 			}),
 	)
 	if verbose {
 		status.Infof("Listening on port %d", port)
 	}
-	server = &http.Server{Addr: fmt.Sprintf(":%d", port)}
-	err := server.ListenAndServe()
+	var err error
+	if httpsKey != "" {
+		hn, err := os.Hostname()
+		if err == nil {
+			server = &http.Server{Addr: fmt.Sprintf("%s:%d", hn, port)}
+			err = server.ListenAndServeTLS(httpsCert, httpsKey)
+		}
+	} else {
+		server = &http.Server{Addr: fmt.Sprintf(":%d", port)}
+		err = server.ListenAndServe()
+	}
 	if err != nil {
 		if err != http.ErrServerClosed {
 			status.Error(err.Error())
@@ -144,12 +150,13 @@ func stopServer() {
 }
 
 func incomingData(
-	authUser, authPass string,
-	dataHandler func([]byte) (int, string, string),
+	authenticator *auth.Authenticator,
+	dataHandler func([]byte, string) (int, string, string),
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if verbose {
-			status.Infof("Request from %s: %v", r.RemoteAddr, r.Header)
+			// Header reveals auth info, don't put it into logs
+			status.Infof("Request from %s: %v", r.RemoteAddr, r.URL.String())
 		}
 
 		// Error logging during the preparatory steps -- until we know we have a full request that
@@ -186,7 +193,7 @@ func incomingData(
 		}
 
 		user, pass, ok := r.BasicAuth()
-		passed := !ok && authPass == "" || ok && user == authUser && pass == authPass
+		passed := !ok && authenticator == nil || ok && authenticator != nil && authenticator.Authenticate(user, pass)
 		if !passed {
 			w.WriteHeader(401)
 			fmt.Fprintf(w, "Unauthorized")
@@ -211,7 +218,7 @@ func incomingData(
 			haveRead += n
 		}
 
-		code, msg, logmsg := dataHandler(payload)
+		code, msg, logmsg := dataHandler(payload, user)
 
 		// If we don't do anything then the result will just be 200 OK.
 		if code != 200 {
@@ -224,7 +231,7 @@ func incomingData(
 	}
 }
 
-func sonarReading(payload []byte, dataPath string) (int, string, string) {
+func sonarReading(payload []byte, dataPath, clusterName string) (int, string, string) {
 	var rs []*sonarlog.SonarReading
 	err := json.Unmarshal(payload, &rs)
 	if err != nil {
@@ -232,12 +239,14 @@ func sonarReading(payload []byte, dataPath string) (int, string, string) {
 			fmt.Sprintf("Bad content - can't unmarshal SonarReading JSON: %v", err)
 	}
 	for _, r := range rs {
-		writeRecord(dataPath, r.Cluster, r.Host, r.Timestamp, r.Csvnamed())
+		if !matchUserAndCluster || clusterName == "" || r.Cluster == clusterName {
+			writeRecord(dataPath, r.Cluster, r.Host, r.Timestamp, r.Csvnamed())
+		}
 	}
 	return 200, "", ""
 }
 
-func sonarHeartbeat(payload []byte, dataPath string) (int, string, string) {
+func sonarHeartbeat(payload []byte, dataPath, clusterName string) (int, string, string) {
 	var rs []*sonarlog.SonarHeartbeat
 	err := json.Unmarshal(payload, &rs)
 	if err != nil {
@@ -245,7 +254,9 @@ func sonarHeartbeat(payload []byte, dataPath string) (int, string, string) {
 			fmt.Sprintf("Bad content - can't unmarshal SonarHeartbeat JSON: %v", err)
 	}
 	for _, r := range rs {
-		writeRecord(dataPath, r.Cluster, r.Host, r.Timestamp, r.Csvnamed())
+		if !matchUserAndCluster || clusterName == "" || r.Cluster == clusterName {
+			writeRecord(dataPath, r.Cluster, r.Host, r.Timestamp, r.Csvnamed())
+		}
 	}
 	return 200, "", ""
 }
@@ -377,9 +388,13 @@ func maybeRetry(r *dataRecord, msg string) {
 	}
 }
 
-func commandLine() (port int, dataPath, authFile string, err error) {
+func commandLine() (port int, httpsKey, httpsCert, dataPath, authFile string, err error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	flags.IntVar(&port, "port", defaultListenPort, "Listen for connections on `port`")
+	flags.StringVar(&httpsCert, "server-cert", "",
+		"Listen for HTTPS connections with server cert `filename` (requires -server-key)")
+	flags.StringVar(&httpsKey, "server-key", "",
+		"Listen for HTTPS connections with server key `filename` (requires -server-cert)")
 	flags.StringVar(&dataPath, "data-path", "", "Path of data store root `directory` (required)")
 	flags.StringVar(&authFile, "auth-file", "", "Read user names and passwords from `filename`")
 	flags.BoolVar(&verbose, "v", false, "Verbose logging")
@@ -391,5 +406,11 @@ func commandLine() (port int, dataPath, authFile string, err error) {
 		return
 	}
 	dataPath, err = options.RequireDirectory(dataPath, "-data-path")
+	if err != nil {
+		return
+	}
+	if (httpsCert != "") != (httpsKey != "") {
+		err = fmt.Errorf("Need both -https-cert and -https-key, or neither")
+	}
 	return
 }

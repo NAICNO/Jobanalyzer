@@ -10,7 +10,22 @@
 set -euf -o pipefail
 
 sonar_bin_dir=/cluster/var/sonar/bin
-target_addr=http://naic-monitor.uio.no:1553
+sonar_secrets_dir=$sonar_bin_dir/secrets
+
+# The server receiving the data.  For HTTPS you need -ca-cert below, for HTTP remove that arg.
+target_addr=https://naic-monitor.uio.no:1697
+#target_addr=http://naic-monitor.uio.no:1553
+
+# Must have a single username:password line, known to the receiving server
+auth_file=$sonar_secrets_dir/exfil-auth.txt
+
+# For HTTPS only - goes with the -ca-cert line below
+cert_file=$sonar_secrets_dir/exfil-ca.crt
+
+# The upload window is set to 280 seconds so that the upload is almost certain to be done before
+# sonar runs the next time, assuming a 5-minute interval for sonar runs.  Correctness does not
+# depend on that - data can arrive at the server in any order, so long as they are tagged with the
+# correct timestamp - but it's nice to not have more processes running concurrently than necessary.
 window=240
 
 # Fox has a job queue, so do not use --batchless
@@ -28,5 +43,6 @@ $sonar_bin_dir/sonar ps \
 	  -window $window \
 	  -source sonar/csvnamed \
 	  -output json \
+	  -auth-file $auth_file \
 	  -target $target_addr \
-	  -auth-file $sonar_bin_dir/exfil-auth.txt
+	  -ca-cert $cert_file
