@@ -18,6 +18,7 @@ if [[ $infiltrate_https == 1 ]]; then
     $sonar_dir/infiltrate \
         -data-path $data_dir \
         -auth-file $infiltrate_auth_file \
+        -match-user-and-cluster \
         -port $infiltrate_https_port \
         -server-key $infiltrate_https_key \
         -server-cert $infiltrate_https_cert &
@@ -26,6 +27,7 @@ else
     $sonar_dir/infiltrate \
         -data-path $data_dir \
         -auth-file $infiltrate_auth_file \
+        -match-user-and-cluster \
         -port $infiltrate_http_port &
     infiltrate_pid=$!
 fi
