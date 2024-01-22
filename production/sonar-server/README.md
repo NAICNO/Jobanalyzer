@@ -2,8 +2,6 @@
 
 This file normally lives in `$JOBANALYZER/production/sonar-server/README.md`.
 
-FIXME: The following instructions are pretty rough and they get rougher toward the bottom.
-
 ## Fundamentals
 
 Let `$JOBANALYZER` be the Jobanalyzer source code root directory.
@@ -30,15 +28,13 @@ bunch of scripts.
 ```
   cd $JOBANALYZER
 
-  mkdir -p ~/sonar/data ~/sonar/reports ~/sonar/q ~/sonar/secrets
+  mkdir -p ~/sonar/data ~/sonar/reports ~/sonar/secrets
   chmod go-rwx ~/sonar/secrets
 
   cp code/infiltrate/infiltrate ~/sonar
   cp code/naicreport/naicreport ~/sonar
   cp code/sonalyze/target/release/sonalyze ~/sonar
   cp code/sonalyzed/sonalyzed ~/sonar
-
-  cp code/sonalyzed/query/*.{html,js,css} ~/sonar/q
 
   cp production/sonar-server/cluster-aliases.json ~/sonar
   cp production/sonar-server/POINTER.md ~/sonar
@@ -67,6 +63,35 @@ sonar server, eg:
 ```
   # mkdir -p $DASHBOARD/output
   # chown -R <sonar-user>.<sonar-user-group> $DASHBOARD/output
+```
+
+These are my additions to nginx.conf for the default `server`:
+
+```
+        # sonalyzed commands
+        location /jobs {
+                proxy_pass http://localhost:1559;
+        }
+        location /load {
+                proxy_pass http://localhost:1559;
+        }
+        location /uptime {
+                proxy_pass http://localhost:1559;
+        }
+        location /profile {
+                proxy_pass http://localhost:1559;
+        }
+        location /parse {
+                proxy_pass http://localhost:1559;
+        }
+        location /metadata {
+                proxy_pass http://localhost:1559;
+        }
+
+        # Dashboard static content
+        location / {
+                root /data/www;
+        }
 ```
 
 ### Step 4: Configure data ingestion and remote query

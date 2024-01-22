@@ -8,10 +8,6 @@
 // and --config-file supplied by sonalyzed.  The returned output is the raw output from sonalyze,
 // whether for success or error.  A successful runs yields 2xx and an error yields 4xx or 5xx.
 //
-// The server also responds to GET requests for static files in the `/q/` request path, this
-// simplifies the implementation of queries through sonalyzed because everything can come from the
-// same server port.
-//
 // Arguments:
 //
 // -jobanalyzer-path <jobanalyzer-root-directory>
@@ -25,7 +21,6 @@
 //   - each subdirectory of `data` has the sonar data tree for the cluster
 //   - each subdirectory of `scripts` has a file `CLUSTERNAME-config.json`, which holds the cluster
 //     description (machine configuration).
-//   - a subdirectory `q` that holds static files to be served in response to `/q/` requests
 //
 // -port <port-number>
 //
@@ -71,11 +66,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path"
-	"strings"
 	"syscall"
 
 	"go-utils/alias"
@@ -144,7 +137,6 @@ func main() {
 	http.HandleFunc("/profile", requestHandler("profile"))
 	http.HandleFunc("/parse", requestHandler("parse"))
 	http.HandleFunc("/metadata", requestHandler("metadata"))
-	http.HandleFunc("/q/", fileHandler())
 
 	s := httpsrv.New(verbose, port, func(err error) {
 		programFailed = true
@@ -306,48 +298,6 @@ func requestHandler(
 
 		w.WriteHeader(200)
 		fmt.Fprint(w, output)
-	}
-}
-
-func fileHandler() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if verbose {
-			status.Infof("Request from %s: %v", r.RemoteAddr, r.Header)
-			status.Infof("%v", r.URL)
-		}
-
-		if !httpsrv.AssertMethod(w, r, "GET") ||
-			!httpsrv.Authenticate(w, r, authenticator, authRealm) {
-			return
-		}
-		_, havePayload := httpsrv.ReadPayload(w, r)
-		if !havePayload {
-			return
-		}
-
-		p := path.Clean(r.URL.Path)
-		if strings.Index(p, "..") != -1 {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "Bad URL")
-			return
-		}
-		filepath := path.Join(jobanalyzerPath, p)
-		f, err := os.Open(filepath)
-		if err != nil {
-			w.WriteHeader(404)
-			fmt.Fprintf(w, "No such file .../%s", p)
-			return
-		}
-		defer f.Close()
-		all, err := io.ReadAll(f)
-		if err != nil {
-			w.WriteHeader(404)
-			fmt.Fprintf(w, "Unable to read file .../%s", p)
-			return
-		}
-		w.WriteHeader(200)
-		_, _ = w.Write(all)
-		// The write may have gone badly but there you have it.  Let the client mop it up.
 	}
 }
 

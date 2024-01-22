@@ -79,7 +79,7 @@ function setupLinks() {
 
     document.getElementById("violators_link").href=`violators.html?cluster=${CURRENT_CLUSTER}`
     document.getElementById("deadweight_link").href=`deadweight.html?cluster=${CURRENT_CLUSTER}`
-    document.getElementById("jobquery_link").href=`${sonalyzedAddress()}/q/jobquery.html?cluster=${CURRENT_CLUSTER}`
+    document.getElementById("jobquery_link").href=`jobquery.html?cluster=${CURRENT_CLUSTER}`
 
     let subnames = info.subclusters
     let subs = document.getElementById("subclusters")
