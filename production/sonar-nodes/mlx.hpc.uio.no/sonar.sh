@@ -24,6 +24,9 @@ cert_file=$sonar_dir/secrets/exfil-ca.crt
 # correct timestamp - but it's nice to not have more processes running concurrently than necessary.
 window=280
 
+# The canonical name of the cluster
+cluster=mlx.hpc.uio.no
+
 # --batchless is for systems without a job queue
 #
 # --rollup merges processes with the same command line within the same job, it may or may not be
@@ -37,7 +40,7 @@ $sonar_dir/sonar ps \
 		 --batchless \
 		 --rollup \
     | $sonar_dir/exfiltrate \
-	  -cluster mlx.hpc.uio.no \
+	  -cluster $cluster \
 	  -window $window \
 	  -source sonar/csvnamed \
 	  -output json \

@@ -146,19 +146,25 @@ they are down the executables can be replaced and the start scripts can be run t
 
 ## Adding a new cluster
 
-(This is a little rough still.)
+Information about how to set up sonar on the the compute nodes is in [../sonar-nodes/README.md](../sonar-nodes/README.md).
 
 The analysis scripts to run on the server are in the subdirectory named for the cluster, eg,
-`scripts/mlx.hpc.uio.no`.  These scripts are in turn run by the cron script, `sonar-server.cron`.
+`scripts/mlx.hpc.uio.no`.  These scripts are in turn run by the cron script, [`sonar-server.cron`](sonar-server.cron).
 
-To add a new cluster, add a new subdirectory and populate it with appropriate scripts.  Normally
-you'll want at least scripts to compute the load reports every 5 minutes, every hour, and every day,
-and to upload data.  But no scripts are actually required - cluster data may be available for
-interactive query only, for example.
+To add a new cluster, add a new subdirectory in `scripts/` and populate it with appropriate scripts,
+probably modifying those from a similar cluster.  Normally you'll want at least scripts to compute
+the load reports every 5 minutes, every hour, and every day, and to upload data.  But no scripts are
+actually required - cluster data may be available for interactive query only, for example.
 
 In the cluster's script directory there must be a file that describes the nodes in the cluster, its
 name must be `CLUSTER-config.json` where `CLUSTER` is the cluster name.  For example,
 `mlx.hpc.uio.no-config.json` for the ML nodes cluster.
+
+The dashboard also needs a few additions in `index.html` and in `code/dashboard/dashboard.js` to
+link to the cluster's dashboard and describe the cluster.
+
+See [the PR that added everything for Saga](https://github.com/NAICNO/Jobanalyzer/pull/364) for an
+example of what everything looks like.
 
 ## Setting up naic-monitor.uio.no
 

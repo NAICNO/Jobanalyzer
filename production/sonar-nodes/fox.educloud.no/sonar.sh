@@ -28,6 +28,9 @@ cert_file=$sonar_secrets_dir/exfil-ca.crt
 # correct timestamp - but it's nice to not have more processes running concurrently than necessary.
 window=240
 
+# The canonical name of the cluster
+cluster=fox.educloud.no
+
 # Fox has a job queue, so do not use --batchless
 # TODO: It's not obvious that --rollup is right for Jobanalyzer
 
@@ -38,7 +41,7 @@ $sonar_bin_dir/sonar ps \
 		 --rollup \
 		 --lockdir=/var/tmp \
     | $sonar_bin_dir/exfiltrate \
-	  -cluster fox.educloud.no \
+	  -cluster $cluster \
 	  -window $window \
 	  -source sonar/csvnamed \
 	  -output json \

@@ -41,7 +41,7 @@ function cluster_info(cluster) {
             cluster,
             subclusters: ["cpu","gpu","int","login"],
             name:"Fox",
-            description:"UiO Fox supercomputer",
+            description:"UiO 'Fox' supercomputer",
             prefix:"fox-",
             policy:"(To be determined)",
         }
