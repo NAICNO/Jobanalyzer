@@ -279,6 +279,8 @@ fn my_formatters() -> (
     formatters.insert("rcpu".to_string(), &format_rcpu);
     formatters.insert("mem".to_string(), &format_mem);
     formatters.insert("rmem".to_string(), &format_rmem);
+    formatters.insert("res".to_string(), &format_res);
+    formatters.insert("rres".to_string(), &format_rres);
     formatters.insert("gpu".to_string(), &format_gpu);
     formatters.insert("rgpu".to_string(), &format_rgpu);
     formatters.insert("gpumem".to_string(), &format_gpumem);
@@ -364,6 +366,18 @@ fn format_rmem(d: LoadDatum, ctx: LoadCtx) -> String {
     format!(
         "{}",
         ((d.mem_gb as f64) / (s.mem_gb as f64) * 100.0).round()
+    )
+}
+
+fn format_res(d: LoadDatum, _: LoadCtx) -> String {
+    format!("{}", d.resident_gb as isize)
+}
+
+fn format_rres(d: LoadDatum, ctx: LoadCtx) -> String {
+    let s = ctx.sys.unwrap();
+    format!(
+        "{}",
+        ((d.resident_gb as f64) / (s.mem_gb as f64) * 100.0).round()
     )
 }
 

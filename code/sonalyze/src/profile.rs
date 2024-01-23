@@ -8,6 +8,7 @@
 //
 //   cpu: the cpu_util_pct field
 //   mem: the mem_gb field
+//   res: the res_gb field
 //   gpu: the gpu_pct field
 //   gpumem: the gpumem_gb field
 //   nproc: the rolledup field + 1, this is not printed if every process has rolledup=0
@@ -217,6 +218,7 @@ pub fn print(
                         let mut count = 0;
                         let mut cpu_util_pct = 0.0;
                         let mut mem_gb = 0.0;
+                        let mut res_gb = 0.0;
                         let mut gpu_pct = 0.0;
                         let mut gpumem_gb = 0.0;
                         let mut avg = None;
@@ -228,6 +230,7 @@ pub fn print(
                                 count += 1;
                                 cpu_util_pct += proc.cpu_util_pct;
                                 mem_gb += proc.mem_gb;
+                                res_gb += proc.resident_gb;
                                 gpu_pct += proc.gpu_pct;
                                 gpumem_gb += proc.gpumem_gb;
                             }
@@ -235,6 +238,7 @@ pub fn print(
                         if let Some(ref mut avg) = avg {
                             avg.cpu_util_pct = cpu_util_pct / (count as f64);
                             avg.mem_gb = mem_gb / (count as f64);
+                            avg.resident_gb = res_gb / (count as f64);
                             avg.gpu_pct = gpu_pct / (count as f64);
                             avg.gpumem_gb = gpumem_gb / (count as f64);
                         }
@@ -333,6 +337,7 @@ fn my_formatters() -> (
     formatters.insert("time".to_string(), &format_time);
     formatters.insert("cpu".to_string(), &format_cpu);
     formatters.insert("mem".to_string(), &format_mem);
+    formatters.insert("res".to_string(), &format_res);
     formatters.insert("gpu".to_string(), &format_gpu);
     formatters.insert("gpumem".to_string(), &format_gpumem);
     formatters.insert("nproc".to_string(), &format_nproc);
@@ -344,6 +349,7 @@ fn my_formatters() -> (
             "time".to_string(),
             "cpu".to_string(),
             "mem".to_string(),
+            "res".to_string(),
             "gpu".to_string(),
             "gpumem".to_string(),
             "nproc".to_string(),
@@ -376,6 +382,10 @@ fn format_cpu(d: LogDatum, _: LogCtx) -> String {
 
 fn format_mem(d: LogDatum, _: LogCtx) -> String {
     format!("{}", d.r.mem_gb.round() as isize)
+}
+
+fn format_res(d: LogDatum, _: LogCtx) -> String {
+    format!("{}", d.r.resident_gb.round() as isize)
 }
 
 fn format_gpu(d: LogDatum, _: LogCtx) -> String {
@@ -414,6 +424,7 @@ fn write_json(output: &mut dyn io::Write, data: &[Vec<Box<LogEntry>>]) -> Result
             point["pid"] = y.pid.into();
             point["cpu"] = (y.cpu_util_pct.round() as isize).into();
             point["mem"] = (y.mem_gb.round() as isize).into();
+            point["res"] = (y.resident_gb.round() as isize).into();
             point["gpu"] = (y.gpu_pct.round() as isize).into();
             point["gpumem"] = (y.gpumem_gb.round() as isize).into();
             point["nproc"] = (y.rolledup + 1).into();
@@ -426,9 +437,10 @@ fn write_json(output: &mut dyn io::Write, data: &[Vec<Box<LogEntry>>]) -> Result
     Ok(())
 }
 
-fn check_fields(fields: &[&str]) -> Result<(bool, bool, bool, bool)> {
+fn check_fields(fields: &[&str]) -> Result<(bool, bool, bool, bool, bool)> {
     let mut cpu_field = 0;
     let mut mem_field = 0;
+    let mut res_field = 0;
     let mut gpu_field = 0;
     let mut gpumem_field = 0;
     for f in fields {
@@ -442,6 +454,9 @@ fn check_fields(fields: &[&str]) -> Result<(bool, bool, bool, bool)> {
             "mem" => {
                 mem_field += 1;
             }
+            "res" => {
+                res_field += 1;
+            }
             "gpumem" => {
                 gpumem_field += 1;
             }
@@ -451,12 +466,13 @@ fn check_fields(fields: &[&str]) -> Result<(bool, bool, bool, bool)> {
             }
         }
     }
-    if cpu_field + mem_field + gpu_field + gpumem_field != 1 {
+    if cpu_field + mem_field + res_field + gpu_field + gpumem_field != 1 {
         bail!("formatted output needs exactly one valid field")
     }
     Ok((
         cpu_field > 0,
         mem_field > 0,
+        res_field > 0,
         gpu_field > 0,
         gpumem_field > 0,
     ))
@@ -471,7 +487,7 @@ fn write_csv(
     fields: &[&str],
     data: &[(Timestamp, Vec<Option<Box<LogEntry>>>)],
 ) -> Result<()> {
-    let (cpu_field, mem_field, gpu_field, gpumem_field) = check_fields(fields)?;
+    let (cpu_field, mem_field, res_field, gpu_field, gpumem_field) = check_fields(fields)?;
     for (t, xs) in data {
         let mut s = "".to_string();
         s += t.format("%Y-%m-%d %H:%M").to_string().as_str();
@@ -482,6 +498,8 @@ fn write_csv(
                     s += (x.cpu_util_pct.round() as isize).to_string().as_str();
                 } else if mem_field {
                     s += (x.mem_gb.round() as isize).to_string().as_str();
+                } else if res_field {
+                    s += (x.resident_gb.round() as isize).to_string().as_str();
                 } else if gpu_field {
                     s += (x.gpu_pct.round() as isize).to_string().as_str();
                 } else if gpumem_field {
@@ -513,7 +531,7 @@ fn write_html(
     numprocs: usize,
     data: &[(Timestamp, Vec<Option<Box<LogEntry>>>)],
 ) -> Result<()> {
-    let (cpu_field, mem_field, gpu_field, gpumem_field) = check_fields(fields)?;
+    let (cpu_field, mem_field, res_field, gpu_field, gpumem_field) = check_fields(fields)?;
     let labels = data
         .iter()
         .map(|(t, _)| t.format("\"%Y-%m-%d %H:%M\"").to_string())
@@ -538,6 +556,8 @@ fn write_html(
                     (x.cpu_util_pct.round() as isize).to_string()
                 } else if mem_field {
                     (x.mem_gb.round() as isize).to_string()
+                } else if res_field {
+                    (x.resident_gb.round() as isize).to_string()
                 } else if gpu_field {
                     (x.gpu_pct.round() as isize).to_string()
                 } else if gpumem_field {
@@ -616,6 +636,7 @@ fn clamp_fields(r: &Box<LogEntry>, filter_args: &ProfileFilterAndAggregationArgs
     if filter_args.max.is_some() {
         newr.cpu_util_pct = clamp_max(newr.cpu_util_pct, filter_args.max);
         newr.mem_gb = clamp_max(newr.mem_gb, filter_args.max);
+        newr.resident_gb = clamp_max(newr.resident_gb, filter_args.max);
         newr.gpu_pct = clamp_max(newr.gpu_pct, filter_args.max);
         newr.gpumem_gb = clamp_max(newr.gpumem_gb, filter_args.max);
     }

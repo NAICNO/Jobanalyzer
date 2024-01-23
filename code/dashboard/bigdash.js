@@ -45,8 +45,10 @@ fields.push(
     // Relative to system information.
     {name: "CPU%\n(recent)", tag: "cpu_recent", help:"Running average"},
     {name: "CPU%\n(longer)", tag: "cpu_longer", help:"Running average"},
-    {name: "Mem%\n(recent)", tag: "mem_recent", help:"Running average"},
-    {name: "Mem%\n(longer)", tag: "mem_longer", help:"Running average"},
+    {name: "Resident%\n(recent)", tag: "resident_recent", help:"Running average"},
+    {name: "Resident%\n(longer)", tag: "resident_longer", help:"Running average"},
+    {name: "Virt%\n(recent)", tag: "mem_recent", help:"Running average"},
+    {name: "Virt%\n(longer)", tag: "mem_longer", help:"Running average"},
     {name: "GPU%\n(recent)", tag: "gpu_recent", help:"Running average"},
     {name: "GPU%\n(longer)", tag: "gpu_longer", help:"Running average"},
     {name: "GPUMEM%\n(recent)", tag: "gpumem_recent", help:"Running average"},
@@ -143,6 +145,7 @@ function render() {
 let working_fields = [
     "cpu_recent","cpu_longer",
     "mem_recent","mem_longer",
+    "resident_recent","resident_longer",
     "gpu_recent","gpu_longer",
     "gpumem_recent","gpumem_longer",
 ]
@@ -243,6 +246,8 @@ var knownFields = {
     "cpu_longer":true,
     "mem_recent":true,
     "mem_longer":true,
+    "resident_recent":true,
+    "resident_longer":true,
     "gpu_recent":true,
     "gpu_longer":true,
     "gpumem_recent":true,
@@ -261,6 +266,8 @@ var knownFields = {
     "cpu-longer":"cpu_longer",
     "mem-recent":"mem_recent",
     "mem-longer":"mem_longer",
+    "resident-recent":"resident_recent",
+    "resident-longer":"resident_longer",
     "gpu-recent":"gpu_recent",
     "gpu-longer":"gpu_longer",
     "gpumem-recent":"gpumem_recent",
@@ -278,6 +285,8 @@ var knownFields = {
     "Cpu%":"cpu_longer",
     "mem%":"mem_recent",
     "Mem%":"mem_longer",
+    "res%":"resident_recent",
+    "Res%":"resident_longer",
     "gpu%":"gpu_recent",
     "Gpu%":"gpu_longer",
     "gpumem%":"gpumem_recent",
@@ -306,6 +315,10 @@ builtinOperation["mem-busy"] = compileQuery("mem% >= 50", knownFields, builtinOp
 builtinOperation["Mem-busy"] = compileQuery("Mem% >= 50", knownFields, builtinOperation)
 builtinOperation["mem-idle"] = compileQuery("mem% < 50", knownFields, builtinOperation)
 builtinOperation["Mem-idle"] = compileQuery("Mem% < 50", knownFields, builtinOperation)
+builtinOperation["res-busy"] = compileQuery("res% >= 50", knownFields, builtinOperation)
+builtinOperation["Res-busy"] = compileQuery("Res% >= 50", knownFields, builtinOperation)
+builtinOperation["res-idle"] = compileQuery("res% < 50", knownFields, builtinOperation)
+builtinOperation["Res-idle"] = compileQuery("Res% < 50", knownFields, builtinOperation)
 builtinOperation["gpu-busy"] = compileQuery("gpu% >= 50", knownFields, builtinOperation)
 builtinOperation["Gpu-busy"] = compileQuery("Gpu% >= 50", knownFields, builtinOperation)
 builtinOperation["gpu-idle"] = compileQuery("gpu and gpu% < 50", knownFields, builtinOperation)

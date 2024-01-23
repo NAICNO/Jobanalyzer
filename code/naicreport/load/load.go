@@ -217,6 +217,7 @@ func writePlots(
 		Labels    []string   `json:"labels"` // formatted timestamps, for now
 		Rcpu      []float64  `json:"rcpu"`
 		Rmem      []float64  `json:"rmem"`
+		Rres      []float64  `json:"rres"`
 		Rgpu      []float64  `json:"rgpu,omitempty"`
 		Rgpumem   []float64  `json:"rgpumem,omitempty"`
 		DownHost  []int      `json:"downhost,omitempty"`
@@ -262,6 +263,7 @@ func writePlots(
 		labels := make([]string, 0)
 		rcpuData := make([]float64, 0)
 		rmemData := make([]float64, 0)
+		rresData := make([]float64, 0)
 		var rgpuData, rgpumemData []float64
 		if hasGpu {
 			rgpuData = make([]float64, 0)
@@ -271,6 +273,7 @@ func writePlots(
 			labels = append(labels, d.datetime.Format(sonarlog.DateTimeFormat))
 			rcpuData = append(rcpuData, d.rcpu)
 			rmemData = append(rmemData, d.rmem)
+			rresData = append(rresData, d.rres)
 			if hasGpu {
 				// Throw away GPU data if found to be invalid
 				if math.IsNaN(d.rgpu) || math.IsNaN(d.rgpumem) {
@@ -300,6 +303,7 @@ func writePlots(
 			Rcpu:      rcpuData,
 			Rgpu:      rgpuData,
 			Rmem:      rmemData,
+			Rres:      rresData,
 			Rgpumem:   rgpumemData,
 			DownHost:  downHost,
 			DownGpu:   downGpu,
@@ -460,6 +464,7 @@ type loadDatum struct {
 	gpus     []uint32 // nil for "unknown"
 	rcpu     float64
 	rmem     float64
+	rres     float64
 	rgpu     float64
 	rgpumem  float64
 	host     string // redundant but maybe useful
@@ -483,7 +488,7 @@ func loadInitialArgs() []string {
 	return []string{
 		"load",
 		"--config-file", configFilename,
-		"--fmt=json,datetime,cpu,mem,gpu,gpumem,rcpu,rmem,rgpu,rgpumem,gpus,host",
+		"--fmt=json,datetime,cpu,mem,gpu,gpumem,rcpu,rmem,rres,rgpu,rgpumem,gpus,host",
 	}
 }
 
@@ -500,6 +505,7 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 		Gpus     string `json:"gpus"`
 		Rcpu     string `json:"rcpu"`
 		Rmem     string `json:"rmem"`
+		Rres     string `json:"rres"`
 		Rgpu     string `json:"rgpu"`
 		Rgpumem  string `json:"rgpumem"`
 		Host     string `json:"host"`
@@ -537,6 +543,7 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 				gpus:     sonalyze.JsonGpulist(r.Gpus),
 				rcpu:     sonalyze.JsonFloat64(r.Rcpu),
 				rmem:     sonalyze.JsonFloat64(r.Rmem),
+				rres:     sonalyze.JsonFloat64(r.Rres),
 				rgpu:     sonalyze.JsonFloat64(r.Rgpu),
 				rgpumem:  sonalyze.JsonFloat64(r.Rgpumem),
 				host:     bySystem.System.Host,

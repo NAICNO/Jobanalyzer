@@ -76,6 +76,7 @@ function with_chart_data(hostname, frequency, f) {
 //   labels - array of length N of string labels
 //   rcpu - array of length N of data values
 //   rmem - same
+//   rres - same
 //   rgpu - same, may be null/absent
 //   rgpumem - same, may be null/absent
 //   downhost - same, or null; values are 0 or 1
@@ -93,6 +94,7 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime,
     let labels = json_data.labels
     let rcpu_data = json_data.rcpu
     let rmem_data = json_data.rmem
+    let rres_data = json_data.rres
     let rgpu_data = json_data.rgpu ? json_data.rgpu.map(d => Math.min(d, 100)) : null
     let rgpumem_data = json_data.rgpumem
 
@@ -134,6 +136,9 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime,
     // Scale the chart.  Mostly this is now for the sake of rmem_data, whose values routinely
     // go over 100%.
     let maxval = Math.max(...rcpu_data, ...rmem_data)
+    if (rres_data) {
+        maxval = Math.max(maxval, ...rres_data)
+    }
     if (rgpu_data) {
 	maxval = Math.max(maxval, ...rgpu_data)
     }
@@ -145,7 +150,10 @@ function plot_system(json_data, chart_node, desc_node, show_data, show_downtime,
     let datasets = []
     if (show_data) {
         datasets.push({ label: 'CPU%', data: rcpu_data, borderWidth: 2 },
-                      { label: 'RAM%', data: rmem_data, borderWidth: 2 })
+                      { label: 'VIRT%', data: rmem_data, borderWidth: 2 })
+        if (rres_data) {
+            datasets.push({ label: 'RAM%', data: rres_data, borderWidth: 2 })
+        }
 	if (rgpu_data) {
             datasets.push({ label: 'GPU%', data: rgpu_data, borderWidth: 2 })
 	}

@@ -39,8 +39,10 @@ let fields = [
     // Relative to system information.
     {name: "CPU%\n(recent)", tag: "cpu_recent", help:"Running average"},
     {name: "CPU%\n(longer)", tag: "cpu_longer", help:"Running average"},
-    {name: "Mem%\n(recent)", tag: "mem_recent", help:"Running average"},
-    {name: "Mem%\n(longer)", tag: "mem_longer", help:"Running average"},
+    {name: "Resident%\n(recent)", tag: "resident_recent", help:"Running average"},
+    {name: "Resident%\n(longer)", tag: "resident_longer", help:"Running average"},
+    {name: "Virt%\n(recent)", tag: "mem_recent", help:"Running average"},
+    {name: "Virt%\n(longer)", tag: "mem_longer", help:"Running average"},
     {name: "GPU%\n(recent)", tag: "gpu_recent", help:"Running average"},
     {name: "GPU%\n(longer)", tag: "gpu_longer", help:"Running average"},
     {name: "GPUMEM%\n(recent)", tag: "gpumem_recent", help:"Running average"},
@@ -116,6 +118,7 @@ function render() {
 let working_fields = [
     "cpu_recent","cpu_longer",
     "mem_recent","mem_longer",
+    "resident_recent","resident_longer",
     "gpu_recent","gpu_longer",
     "gpumem_recent","gpumem_longer",
 ]
