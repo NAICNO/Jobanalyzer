@@ -164,7 +164,7 @@ The dashboard also needs a few additions in `index.html` and in `code/dashboard/
 link to the cluster's dashboard and describe the cluster.
 
 See [the PR that added everything for Saga](https://github.com/NAICNO/Jobanalyzer/pull/364) for an
-example of what everything looks like.
+example of what support for a new cluster looks like.
 
 ## Setting up naic-monitor.uio.no
 
