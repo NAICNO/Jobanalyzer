@@ -60,7 +60,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"math"
 	"math/rand"
 	"net/url"
 	"os"
@@ -68,6 +67,7 @@ import (
 
 	"go-utils/auth"
 	"go-utils/httpclient"
+	jsonutil "go-utils/json"
 	"go-utils/sonarlog"
 	"go-utils/status"
 )
@@ -178,9 +178,9 @@ func main() {
 			if r.Cluster == "" {
 				r.Cluster = cluster
 			}
-			r.CpuPct = cleanFloat(r.CpuPct)
-			r.GpuPct = cleanFloat(r.GpuPct)
-			r.GpuMemPct = cleanFloat(r.GpuMemPct)
+			r.CpuPct = jsonutil.CleanFloat64(r.CpuPct)
+			r.GpuPct = jsonutil.CleanFloat64(r.GpuPct)
+			r.GpuMemPct = jsonutil.CleanFloat64(r.GpuMemPct)
 			rs = append(rs, r)
 			i++
 		}
@@ -217,19 +217,6 @@ func main() {
 	// the retry queue is empty.
 
 	client.ProcessRetries()
-}
-
-func cleanFloat(f float64) float64 {
-	if math.IsInf(f, 1) {
-		return math.MaxFloat64
-	}
-	if math.IsInf(f, -1) {
-		return -math.MaxFloat64
-	}
-	if math.IsNaN(f) {
-		return 0
-	}
-	return f
 }
 
 func commandLine() (
