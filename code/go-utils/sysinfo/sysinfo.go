@@ -8,12 +8,13 @@ package sysinfo
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/user"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"go-utils/filesys"
 )
 
 // UserMap: Optimize the lookup from uid to user name by caching.
@@ -78,7 +79,7 @@ func EnumeratePids() ([]PidAndUid, error) {
 func CpuInfo() (modelName string, sockets, coresPerSocket, threadsPerCore int, err error) {
 	physids := make(map[int]bool)
 	siblings := 0
-	lines, err := fileLines("/proc/cpuinfo")
+	lines, err := filesys.FileLines("/proc/cpuinfo")
 	if err != nil {
 		return
 	}
@@ -115,7 +116,7 @@ func CpuInfo() (modelName string, sockets, coresPerSocket, threadsPerCore int, e
 // PhysicalMemoryBy: get size of physical memory in bytes
 
 func PhysicalMemoryBy() (memSize uint64, err error) {
-	lines, err := fileLines("/proc/meminfo")
+	lines, err := filesys.FileLines("/proc/meminfo")
 	if err != nil {
 		return
 	}
@@ -140,7 +141,7 @@ func PagesizeBy() (pageSize uint) {
 // BootTime: get the time of boot in seconds since Unix epoch
 
 func BootTime() (btime int64, err error) {
-	lines, err := fileLines("/proc/stat")
+	lines, err := filesys.FileLines("/proc/stat")
 	if err != nil {
 		return
 	}
@@ -152,20 +153,6 @@ func BootTime() (btime int64, err error) {
 	}
 	err = fmt.Errorf("Could not find btime in /proc/stat")
 	return
-}
-
-func fileLines(filename string) ([]string, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("Could not open %s: %v", filename, err)
-	}
-	defer f.Close()
-
-	bytes, err := io.ReadAll(f)
-	if err != nil {
-		return nil, fmt.Errorf("Could not read %s: %v", filename, err)
-	}
-	return strings.Split(string(bytes), "\n"), nil
 }
 
 // Line must be <whatever>: <text>, return <text> with spaces trimmed

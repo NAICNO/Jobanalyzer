@@ -19,6 +19,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"go-utils/filesys"
 )
 
 func ParseAuth(filename string) (string, string, error) {
@@ -56,12 +58,11 @@ func ReadPasswords(filename string) (*Authenticator, error) {
 }
 
 func readPasswords(filename string) (map[string]string, error) {
-	bs, err := os.ReadFile(filename)
+	lines, err := filesys.FileLines(filename)
 	if err != nil {
 		return nil, err
 	}
 	m := make(map[string]string)
-	lines := strings.Split(string(bs), "\n")
 	for i, l := range lines {
 		s := strings.TrimSpace(l)
 		if s == "" {
