@@ -73,10 +73,6 @@ import (
 )
 
 const (
-	// 10 should be more than enough for most HPC systems, which tend to have a few large jobs
-	// running per node at any point in time.
-	maxRecordsPerMessage = 10
-
 	// The number of attempts and the interval gives the server about a 30 minute interval to come
 	// alive in case it's down when the first attempt is made.
 	maxAttempts       = 6
@@ -152,58 +148,37 @@ func main() {
 	}
 	switch outputType {
 	case "json":
-		// These loops send multiple records together so as to optimize network traffic, but not too
-		// many of them, as to keep packet size sensible.  This may be more complexity than it's
-		// worth.
-
-		rs := make([]*sonarlog.SonarReading, 0, maxRecordsPerMessage)
-		i := 0
-		for {
-			if len(rs) == cap(rs) || i == len(readings) && len(rs) > 0 {
-				buf, err := json.Marshal(&rs)
-				if err != nil {
-					status.Fatalf("Failed to marshal: %v", err)
+		if len(readings) > 0 {
+			for _, r := range readings {
+				// Tag the record with the cluster name if it isn't already tagged.
+				if r.Cluster == "" {
+					r.Cluster = cluster
 				}
-				client.PostDataByHttp("/sonar-reading", buf)
-				rs = rs[0:0]
+				// Remove JSON-unrepresentable Infinity and NaN values, as they appear in older data.
+				r.CpuPct = jsonutil.CleanFloat64(r.CpuPct)
+				r.GpuPct = jsonutil.CleanFloat64(r.GpuPct)
+				r.GpuMemPct = jsonutil.CleanFloat64(r.GpuMemPct)
 			}
-			if i == len(readings) {
-				break
+			buf, err := json.Marshal(&readings)
+			if err != nil {
+				status.Fatalf("Failed to marshal: %v", err)
 			}
-
-			// Tag the record with the cluster name if it isn't already tagged.  Remove
-			// JSON-unrepresentable Infinity and NaN values, as they appear in some (mostly older)
-			// CSV records.
-			r := readings[i]
-			if r.Cluster == "" {
-				r.Cluster = cluster
-			}
-			r.CpuPct = jsonutil.CleanFloat64(r.CpuPct)
-			r.GpuPct = jsonutil.CleanFloat64(r.GpuPct)
-			r.GpuMemPct = jsonutil.CleanFloat64(r.GpuMemPct)
-			rs = append(rs, r)
-			i++
+			client.PostDataByHttp("/sonar-reading", buf)
 		}
 
-		hs := make([]*sonarlog.SonarHeartbeat, 0, maxRecordsPerMessage)
-		i = 0
-		for {
-			if len(hs) == cap(hs) || i == len(heartbeats) && len(hs) > 0 {
-				buf, err := json.Marshal(&hs)
-				if err != nil {
-					status.Fatalf("Failed to marshal: %v", err)
+		if len(heartbeats) > 0 {
+			for _, h := range heartbeats {
+				if h.Cluster == "" {
+					h.Cluster = cluster
 				}
-				client.PostDataByHttp("/sonar-heartbeat", buf)
-				hs = hs[0:0]
 			}
-			if i == len(heartbeats) {
-				break
+			buf, err := json.Marshal(&heartbeats)
+			if err != nil {
+				status.Fatalf("Failed to marshal: %v", err)
 			}
-			r := heartbeats[i]
-			r.Cluster = cluster
-			hs = append(hs, r)
-			i++
+			client.PostDataByHttp("/sonar-heartbeat", buf)
 		}
+
 	default:
 		panic("Bad output type")
 	}
