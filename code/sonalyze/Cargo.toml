@@ -12,7 +12,7 @@ name = "sonalyze"
 path = "src/sonalyze.rs"
 
 [features]
-default = []
+default = [ "untagged_sonar_data" ]
 untagged_sonar_data = [ "sonarlog/untagged_sonar_data" ]
 
 [dependencies]

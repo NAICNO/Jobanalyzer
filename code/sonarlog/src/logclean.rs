@@ -111,19 +111,31 @@ where
         stream.truncate(good + 1);
     });
 
-    // For each stream, compute the cpu_util_pct field as the difference in cputime_sec between
-    // adjacent records divided by the time difference between them.  The first record instead gets
-    // a copy of the cpu_pct field.
+    // For each stream, compute the cpu_util_pct field of each record.
+    //
+    // For v0.7.0 and later, compute this as the difference in cputime_sec between adjacent records
+    // divided by the time difference between them.  The first record gets a copy of the cpu_pct
+    // field.
+    //
+    // For v0.6.0 and earlier, we don't have cputime_sec.  The best we can do with the data we have
+    // is copy the cpu_pct field into cpu_util_pct.
     streams.iter_mut().for_each(|(_, stream)| {
         // By construction, every stream is non-empty.
         stream[0].cpu_util_pct = stream[0].cpu_pct;
-        for i in 1..stream.len() {
-            let dt =
-                ((stream[i].timestamp - stream[i - 1].timestamp) as Duration).num_seconds() as f64;
-            let dc = stream[i].cputime_sec - stream[i - 1].cputime_sec;
-            // It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
-            // We filter these below.
-            stream[i].cpu_util_pct = (dc / dt) * 100.0;
+        let (major, minor, _) = crate::logfile::parse_version(&stream[0].version);
+        if major == 0 && minor <= 6 {
+            for i in 1..stream.len() {
+                stream[i].cpu_util_pct = stream[0].cpu_pct;
+            }
+        } else {
+            for i in 1..stream.len() {
+                let dt =
+                    ((stream[i].timestamp - stream[i - 1].timestamp) as Duration).num_seconds() as f64;
+                let dc = stream[i].cputime_sec - stream[i - 1].cputime_sec;
+                // It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
+                // We filter these below.
+                stream[i].cpu_util_pct = (dc / dt) * 100.0;
+            }
         }
     });
 

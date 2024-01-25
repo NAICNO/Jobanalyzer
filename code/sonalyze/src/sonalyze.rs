@@ -315,6 +315,10 @@ pub struct RecordFilterArgs {
     #[arg(long)]
     exclude_command: Vec<String>,
 
+    /// Exclude records for system jobs (uid < 1000)
+    #[arg(long)]
+    exclude_system_jobs: bool,
+
     /// Select records for this job ID (repeatable) [default: all]
     #[arg(long, short)]
     job: Vec<String>,
@@ -341,6 +345,7 @@ impl UrlBuilder {
         for command in &a.exclude_command {
             self.add_string("exclude-command", command);
         }
+        self.add_bool("exclude-system-jobs", a.exclude_system_jobs);
         for job in &a.job {
             self.add_string("job", job);
         }
@@ -1116,6 +1121,7 @@ fn sonalyze() -> Result<()> {
         exclude_users,
         include_commands,
         exclude_commands,
+        exclude_system_jobs,
     ) = {
         let record_filter_args = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.record_filter_args,
@@ -1284,6 +1290,7 @@ fn sonalyze() -> Result<()> {
             exclude_users,
             include_commands,
             exclude_commands,
+            record_filter_args.exclude_system_jobs,
         )
     };
 
@@ -1373,6 +1380,7 @@ fn sonalyze() -> Result<()> {
             && !(&exclude_users).contains(&e.user)
             && !(&exclude_jobs).contains(&(e.job_id as usize))
             && !(&exclude_commands).contains(&e.command)
+            && (!exclude_system_jobs || e.pid >= 1000)
             && (!have_from || from <= e.timestamp)
             && (!have_to || e.timestamp <= to)
     };

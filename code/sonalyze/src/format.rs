@@ -216,8 +216,9 @@ fn format_fixed_width<'a>(
             let w = widths[i];
             s += format!("{:w$}  ", "tag").as_str();
         }
-        output.write(s.trim_end().as_bytes()).unwrap();
-        output.write(b"\n").unwrap();
+        // Ignore errors here, they are common for broken pipelines
+        let _ = output.write(s.trim_end().as_bytes());
+        let _ = output.write(b"\n");
     }
 
     // Body
@@ -234,8 +235,9 @@ fn format_fixed_width<'a>(
             let w = widths[col];
             s += format!("{:w$}  ", tag).as_str();
         }
-        output.write(s.trim_end().as_bytes()).unwrap();
-        output.write(b"\n").unwrap();
+        // Ignore errors here, they are common for broken pipelines
+        let _ = output.write(s.trim_end().as_bytes());
+        let _ = output.write(b"\n");
         row += 1;
     }
 }
