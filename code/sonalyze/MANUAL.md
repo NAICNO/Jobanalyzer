@@ -99,6 +99,10 @@ filters.
   Exclude commands matching `<command>` exactly, in addition to default exclusions.  This option can
   be repeated.
 
+`--exclude-system-jobs`
+
+  Exclude jobs with PID < 1000.
+
 `-j <job#>`, `--job=<job#>`
 
   Select specific records by job number(s).  The option can be repeated.
