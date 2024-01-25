@@ -118,6 +118,16 @@ pub fn merge_gpu_status(lhs: GpuStatus, rhs: GpuStatus) -> GpuStatus {
     }
 }
 
+/// Parse a version string.
+
+pub fn parse_version(v: &str) -> (usize, usize, usize) {
+    let parts: Vec<&str> = v.split('.').collect();
+    let major = parts[0].parse::<usize>().unwrap();
+    let minor = parts[1].parse::<usize>().unwrap();
+    let bugfix = parts[2].parse::<usize>().unwrap();
+    (major, minor, bugfix)
+}
+
 /// Parse a log file into a set of LogEntry structures, and append to `entries` in the order
 /// encountered.  Entries are boxed so that later processing won't copy these increasingly large
 /// structures all the time.  Return an error in the case of I/O errors, but silently drop records
