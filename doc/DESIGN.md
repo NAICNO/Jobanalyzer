@@ -2,10 +2,10 @@
 
 ## Architectural overview
 
-There is a variety of use cases (see [`README.md`](README.md) and
-[`REQUIREMENTS.md`](REQUIREMENTS.md)) and as a consequence, a fairly elaborate architecture.  But in
-brief, the system is built around a system sampler and a pool of samples, with a stack of
-increasingly user-friendly, stateful, and specialized tools to process those samples.
+There is a variety of use cases (see [`REQUIREMENTS.md`](REQUIREMENTS.md)) and as a consequence, a
+fairly elaborate architecture.  But in brief, the system is built around a system sampler and a pool
+of samples, with a stack of increasingly user-friendly, stateful, and specialized tools to process
+those samples.  The [presentations](../presentations) may be helpful.
 
 We use [`sonar`](https://github.com/NordicHPC/sonar) as a general system sampler.  Sonar runs
 periodically (currently every 5m or so, currently by means of `cron`) on all interesting hosts, and
@@ -16,15 +16,15 @@ to make much sense.
 Sonar is stateless and contextless: it samples the system state, tries to clean up what it can in
 the absence of any context, and appends data to a log file.
 
-We use [`sonarlog`](sonarlog) (currently in this repository, though see [ticket
-25](https://github.com/NAICNO/Jobanalyzer/issues/25)) to ingest, contextualize, enrich, tidy up, and
-filter the Sonar logs.  Sonarlog produces "sample streams", which are clean, self-consistent, and
+We use [`sonarlog`](code/sonarlog) to ingest, contextualize, enrich, tidy up, and filter the
+Sonar logs.  Sonarlog produces "sample streams", which are clean, self-consistent, and
 chronologically sensible per-process or per-process-cluster sample data.  Sonarlog runs as a
 component of `sonalyze`, see next.
 
-We use [`sonalyze`](sonalyze) (in this repository) to aggregate, merge, query, and format the sample
-streams to present meaningful summaries of "jobs".  See [`sonalyze/MANUAL.md`](sonalyze/MANUAL.md)
-for instructions about how to run it, and [`README.md`](README.md) for some sample use cases.
+We use [`sonalyze`](code/sonalyze) to aggregate, merge, query, and format the sample streams to
+present meaningful summaries of "jobs".  See [`sonalyze/MANUAL.md`](code/sonalyze/MANUAL.md)
+for instructions about how to run it, and [`REQUIREMENTS.md`](REQUIREMENTS.md) for some sample use
+cases.
 
 Sonarlog and Sonalyze are stateless, but they have context: the entire sample stream (or the window
 on those streams that has been selected) is available for inspection, and these components can and
@@ -35,15 +35,17 @@ single-node and multiple-node systems, on systems with or without a batch queue,
 consist of a single command as well as those that consist of many different commands.
 
 Anyway, there are many options available to Sonalyze to make it or Sonarlog select time windows,
-sample records, jobs, and output formats.  See [`sonalyze/MANUAL.md`](sonalyze/MANUAL.md) or run
-Sonalyze with `--help`.
+sample records, jobs, and output formats.  See [`sonalyze/MANUAL.md`](code/sonalyze/MANUAL.md) or
+run Sonalyze with `--help`.
 
 Built on top of Sonalyze there are shell scripts that run periodically to run Sonalyze on the Sonar
 logs and to produce further logs.  These scripts are system-specific; the ones for the UiO ML nodes
-are in [`production/ml-nodes`](production/ml-nodes) and correspond in some cases directly to use
-cases in [`README.md`](README.md).  For example, the [`cpuhog.sh`](production/ml-nodes/cpuhog.sh)
-script runs a Sonalyze query that looks for longish-running programs that use a lot of CPU and no
-GPU, and therefore technically abuse the ML nodes, which are meant for GPU-heavy computations.
+are in
+[`production/jobanalyzer-server/scripts/mlx.hpc.uio.no`](../production/jobanalyzer-server/scripts/mlx.hpc.uio.no)
+and correspond in some cases directly to use cases in [`REQUIREMENTS.md`](REQUIREMENTS.md).  For
+example, the [`cpuhog.sh`](../production/jobanalyzer-server/scripts/mlx.hpc.uio.no/cpuhog.sh) script
+runs a Sonalyze query that looks for longish-running programs that use a lot of CPU and no GPU, and
+therefore technically abuse the ML nodes, which are meant for GPU-heavy computations.
 
 Sonalyze being stateless, the scripts are also stateless.
 
@@ -59,6 +61,10 @@ things.
 Then there are scripts built on top of Naicreport that run it periodically and upload its reports
 (all JSON) to a web server.
 
+On the infrastructure side, the `exfiltrate` tool sends Sonar data across the network to a server
+and the `infiltrate` tool receives it and integrates the data into the database.  The `sonalyzed`
+server is a remote command server for `sonalyze`.
+
 The web server has simple presentation logic for the JSON data, and always works on whatever data
 have been uploaded - it has no other state, and makes no queries to any other back-end to inspect
 log data.
@@ -66,19 +72,15 @@ log data.
 
 ## Production setup
 
-### ML Nodes
-
-See [production/ml-nodes/README.md](production/ml-nodes/README.md) for instructions about how to set
-up and run everything.  In brief, all scripts and programs live in a single directory with
-subdirectories for data and reports, and cron jobs run scripts at sensible intervals to do all the
-work.
+See [../production/sonar-nodes/README.md](../production/sonar-nodes/README.md) for instructions
+about how to set up and run everything on the compute nodes.
 
 
 ## Implementation overview
 
 Sonar runs often and on systems that are used for HPC, and needs to be lightweight.  Currently it
-runs in about 50-100ms (not including the overhead of `cron`); further reductions are likely
-possible.
+runs in about 50-100ms (not including the overhead of `cron` or data exfiltration); further
+reductions are likely possible.
 
 The other tools can run on any system that has access to up-to-date Sonar output, and they don't
 have to be very fast if they aren't being run on the HPC nodes.
@@ -95,30 +97,60 @@ and Sonarlog can be used as a component of these tools, it is not currently run 
 Sonalyze can produce human-readable, free CSV, traditional CSV, and JSON output, as different use
 cases call for different formats.
 
-Naicreport is written in Go for greater flexibility (the rigidity of Rust's ownership system and
-manual memory management get in the way of getting things done).  Its state files are currently in
-free CSV form.  It can produce human-readable or JSON output.
+Naicreport and other utilities are written in Go for greater flexibility (the rigidity of Rust's
+ownership system and manual memory management get in the way of getting things done).  Their state
+files are currently in free CSV form.  They can produce human-readable or JSON output.
 
 Logic is pushed into Naicreport and Sonalyze when it is sensible and possible; the surrounding shell
 scripts are kept very simple.
+
+## The Sonar VM and data storage
+
+On the Sonar VM, data are ingested by means of the `infiltrate` program and stored in a local file
+system under the UID that runs `infiltrate`.
+
+The root for Jobanalyzer is in this user's `~/sonar` directory.  In this directory, the subdirectory
+`data/` holds the ingested data.  There is one directory for each cluster, it is named with the
+cluster name (eg, `data/mlx.hpc.uio.no/` and `data/fox.educloud.no/`).  In each cluster directory
+there is a subdirectory per year; in each year, one per month; in each month, one per day; and in
+each day, one file per host name (the host name may be local to the cluster and not globally unique,
+this is common for HPC systems).  The file name is `<hostname>.csv`.
+
+## Sonalyze, naicreport, and analysis data
+
+Separate cron jobs run on the Sonar VM to perform analyses of the ingested data and upload the files
+to a web server.  These run as the same UID as `infiltrate`, ensuring that files can be shared among
+ingestor and analyzers without being world-readable.
+
+The analysis jobs have some intermediate products and produce some reports.  For this, they need two
+data directories `$state_dir` and `$report_dir`.  Typically these are in subdirectories of a common
+directory that also holds executables (`sonalyze` and `naicreport`), shell scripts (many), and
+cluster configuration data (`ml-nodes.json`, `fox.json`, etc).  If this directory does not contain
+the raw log data directory then it may have a symlink to that directory, so that the scripts don't
+need to know where that directory is.
+
+It is necessary for the analysis jobs for separate clusters to use separate state directories, as
+files in the state are not tagged with cluster or host name.  The report directories should also be
+separated by cluster.
 
 
 ## Various considerations
 
 ### Privacy
 
-Currently the log files are publically accessible on any system that mounts the disk where the logs
-are stored, and this is by design: all the "user" use cases require this.  However, there are
-concerns around GDPR/privcy as well as security.  The log contains a history of runs, keyed by UID
-and time, and part of the command line for a process.  Thus the user's activities may be tracked and
-exposed without consent, and should there be a secret embedded in the command name it may be
-exposed.
+The log contains a history of runs, keyed by UID and time, and part of the command line for a
+process.  Thus the user's activities may be tracked and exposed without consent, and should there be
+a secret embedded in the command name it may be exposed.
 
 On the one hand, this information is not privileged to other users of the system: anyone running
 `top` or `ps` would see the information.
 
 On the other hand, information in the log may become viewable from outside the system - if the disk
 is mounted elsewhere, or as part of job summaries uploaded to publically visible servers.
+
+Sonar data were previously stored on a shared disk but are now exfiltrated by HTTPS to a server that
+safeguards it.  Access to detailed data via remote sonalyze queries (including from the web
+front-end) require authorization.  Summary reports and dashboards are still open to the world.
 
 ### What are "requested resources"?
 
@@ -131,7 +163,7 @@ accompanying log) must also contain the requested resources.  For example,
   "implicitly requested resources") then it's not going to help moving it to a larger system.
 
 At the moment, the "requested resources" for the ML nodes are encoded in the script that produces
-the reports about resource usage, [`cpuhog.sh`](production/ml-nodes/cpuhog.sh).
+the reports about resource usage, `cpuhog.sh`.
 
 What does it mean for a job to be using a "lot" of CPU and a "little" GPU?
 

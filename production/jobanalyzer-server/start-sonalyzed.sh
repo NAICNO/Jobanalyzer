@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script is currently run by cron at boot time (see sonar-server.cron) to start Jobanalyzer's
+# This script is currently run by cron at boot time (see jobanalyzer.cron) to start Jobanalyzer's
 # `sonalyzed` server, which runs sonalyze locally on behalf of a remote client in response to a GET.
 
 sonar_dir=${sonar_dir:-$HOME/sonar}

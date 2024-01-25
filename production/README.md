@@ -6,7 +6,8 @@ Every cluster has a *cluster name* that distinguishes it globally.  Frequently t
 the FQDN of the cluster's login node.  These clusters are defined at present:
 
 * `mlx.hpc.uio.no` - abbreviated `ml` and `mlx` - UiO machine learning nodes
-* `fox.educloud.no` - abbreviated `fox` - UiO Fox supercomputer
+* `fox.educloud.no` - abbreviated `fox` - UiO "Fox" supercomputer
+* `saga.sigma2.no` - abbreviated `saga` - Sigma2/NRIS "Saga" supercomputer
 
 The cluster name scheme is imperfectly implemented throughout the system but we are moving in the
 direction of using it for everything.
@@ -31,5 +32,5 @@ Everything pertaining to the *compute nodes* is in the subdirectory `sonar-nodes
 that directory for how to set up `sonar` on compute nodes.
 
 At this time, the analysis node and web nodes are the same node (and it will probably remain that
-way).  Everything pertaining to this joint node is in the subdirectory `sonar-server`.  See the
-README in that directory for how to set up analysis and web service on the server.
+way).  Everything pertaining to this joint node is in the subdirectory `jobanalyzer-server`.  See
+the README in that directory for how to set up analysis and web service on the server.

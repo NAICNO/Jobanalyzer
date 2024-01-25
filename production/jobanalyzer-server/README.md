@@ -1,6 +1,6 @@
-# Sonar server setup
+# Jobanalyzer server setup
 
-This file normally lives in `$JOBANALYZER/production/sonar-server/README.md`.
+This file normally lives in `$JOBANALYZER/production/jobanalyzer-server/README.md`.
 
 If the VM itself has not been set up then see a later section, "Setting up naic-monitor.uio.no".
 The rest of this document assumes that there is a functional Linux server with https web, email,
@@ -29,7 +29,8 @@ First build and test the executables, as follows.  Remember, you may first need 
 
 Create working directories if necessary and copy files, as follows.  The working directory is always
 `$HOME/sonar` for whatever user is running the server, if you want something else you need to edit a
-bunch of scripts.
+bunch of scripts.  (The name of the working directory is historical; `$HOME/jobanalyzer` would have
+been better.  But it's a pain to change everything.)
 
 ```
   cd $JOBANALYZER
@@ -42,11 +43,11 @@ bunch of scripts.
   cp code/sonalyze/target/release/sonalyze ~/sonar
   cp code/sonalyzed/sonalyzed ~/sonar
 
-  cp production/sonar-server/cluster-aliases.json ~/sonar
-  cp production/sonar-server/POINTER.md ~/sonar
-  cp production/sonar-server/server-config ~/sonar
-  cp production/sonar-server/*.{sh,cron} ~/sonar
-  cp -r production/sonar-server/scripts ~/sonar
+  cp production/jobanalyzer-server/cluster-aliases.json ~/sonar
+  cp production/jobanalyzer-server/POINTER.md ~/sonar
+  cp production/jobanalyzer-server/server-config ~/sonar
+  cp production/jobanalyzer-server/*.{sh,cron} ~/sonar
+  cp -r production/jobanalyzer-server/scripts ~/sonar
 ```
 
 If `~/sonar/scripts` does not have a subdirectory for your cluster, you will need to create one.  See
@@ -63,11 +64,11 @@ under the web server's root, we'll call this the dashboard directory, `$DASHBOAR
 configuration used below puts this in `/data/www`.
 
 The directory `$DASHBOARD/output` must exist and must be writable by the user that is going to run the
-sonar server.
+Jobanalyzer server.
 
 ```
   # mkdir -p $DASHBOARD/output
-  # chown -R <sonar-user>:<sonar-user-group> $DASHBOARD
+  # chown -R <jobanalyzer-user>:<jobanalyzer-user-group> $DASHBOARD
   # ^D
   $ cd $JOBANALYZER
   $ cp code/dashboard/*.{html,js,css} $DASHBOARD
@@ -130,7 +131,7 @@ Activate the cron jobs and start the data logger and the query server:
 
 ```
   cd ~/sonar
-  crontab sonar-server.cron
+  crontab jobanalyzer.cron
   ./start-infiltrate.sh
   ./start-sonalyzed.sh
 ```
@@ -148,8 +149,8 @@ they are down the executables can be replaced and the start scripts can be run t
 
 Information about how to set up sonar on the the compute nodes is in [../sonar-nodes/README.md](../sonar-nodes/README.md).
 
-The analysis scripts to run on the server are in the subdirectory named for the cluster, eg,
-`scripts/mlx.hpc.uio.no`.  These scripts are in turn run by the cron script, [`sonar-server.cron`](sonar-server.cron).
+The analysis scripts to run on the Jobanalyzer server are in the subdirectory named for the cluster, eg,
+`scripts/mlx.hpc.uio.no`.  These scripts are in turn run by the cron script, [`jobanalyzer.cron`](jobanalyzer.cron).
 
 To add a new cluster, add a new subdirectory in `scripts/` and populate it with appropriate scripts,
 probably modifying those from a similar cluster.  Normally you'll want at least scripts to compute
