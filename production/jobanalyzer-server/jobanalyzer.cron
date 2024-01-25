@@ -1,4 +1,4 @@
-# Crontab to run on the sonar server.
+# Crontab to run on the jobanalyzer server.
 
 MAILTO=larstha@uio.no
 
@@ -7,20 +7,20 @@ MAILTO=larstha@uio.no
 
 # UiO ML nodes cluster "mlx.hpc.uio.no"
 
-2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/scripts/mlx.hpc.uio.no/webload-5m-and-upload.sh
+2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/scripts/mlx.hpc.uio.no/load-5m-and-upload.sh
 2 0-23/2 * * * $HOME/sonar/scripts/mlx.hpc.uio.no/cpuhog.sh
 2 0-23/2 * * * $HOME/sonar/scripts/mlx.hpc.uio.no/deadweight.sh
-3 0-23 * * * $HOME/sonar/scripts/mlx.hpc.uio.no/webload-1h.sh
-3 0 1-31 * * $HOME/sonar/scripts/mlx.hpc.uio.no/webload-24h.sh
+3 0-23 * * * $HOME/sonar/scripts/mlx.hpc.uio.no/load-1h.sh
+3 0 1-31 * * $HOME/sonar/scripts/mlx.hpc.uio.no/load-24h.sh
 3 0-23/12 * * * $HOME/sonar/scripts/mlx.hpc.uio.no/cpuhog-report.sh
 3 0-23/12 * * * $HOME/sonar/scripts/mlx.hpc.uio.no/deadweight-report.sh
 4 0-23 * * * $HOME/sonar/scripts/mlx.hpc.uio.no/upload-data.sh
 
 # UiO "Fox" supercomputer "fox.educloud.no"
 
-2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/scripts/fox.educloud.no/webload-5m-and-upload.sh
-3 0-23 * * * $HOME/sonar/scripts/fox.educloud.no/webload-1h.sh
-3 1 1-31 * * $HOME/sonar/scripts/fox.educloud.no/webload-24h.sh
+2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/scripts/fox.educloud.no/load-5m-and-upload.sh
+3 0-23 * * * $HOME/sonar/scripts/fox.educloud.no/load-1h.sh
+3 1 1-31 * * $HOME/sonar/scripts/fox.educloud.no/load-24h.sh
 4 0-23 * * * $HOME/sonar/scripts/fox.educloud.no/upload-data.sh
 2 0-23/2 * * * $HOME/sonar/scripts/fox.educloud.no/deadweight.sh
 3 0-23/12 * * * $HOME/sonar/scripts/fox.educloud.no/deadweight-report.sh

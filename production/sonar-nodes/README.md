@@ -20,10 +20,10 @@ directory holds these programs and scripts:
 There is also a directory with two files:
 
 * `secrets/exfil-auth.txt` contains identity information used by `exfiltrate` in its communication with the
-  server.  For more information about this file, see the documentation in `../sonar-server`.
+  server.  For more information about this file, see the documentation in `../jobanalyzer-server`.
 * `secrets/exfil-ca.crt` is the certificate for the NAIC Certificate Authority, this is used for HTTP upload.
 
-The contents of `sonar.sh` and `sonar-runner.cron` may vary from cluster to cluster, and the
+The contents of `sonar.sh` and `jobanalyzer.cron` may vary from cluster to cluster, and the
 binaries are naturally architecture-dependent.
 
 ## ML nodes (cluster name: mlx.hpc.uio.no)
@@ -127,7 +127,7 @@ The following additional conditions have to be met on interactive nodes and logi
 
 ## Adding new compute clusters
 
-Information about how to set up sonar on the server is in [../sonar-server/README.md](../sonar-server/README.md).
+Information about how to set up sonar on the server is in [../jobanalyzer-server/README.md](../jobanalyzer-server/README.md).
 
 To complement information above, see [the PR that added everything for Saga](https://github.com/NAICNO/Jobanalyzer/pull/364) for an
 example of what a new node configuration might look like.

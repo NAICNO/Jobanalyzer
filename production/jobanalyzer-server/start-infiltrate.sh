@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script is currently run by cron at boot time (see sonar-server.cron) to start Jobanalyzer's
+# This script is currently run by cron at boot time (see jobanalyzer.cron) to start Jobanalyzer's
 # `infiltrate` server, which receives data from all logging nodes.
 
 # Currently this is set up for HTTPS.  For HTTP, change $infiltrate_port here or in the config file,
