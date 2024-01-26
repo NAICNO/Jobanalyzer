@@ -1,4 +1,4 @@
-// The global TESTDATA will be defined and true if the page loads testflag.js first and the flag is
+// The global TESTDATA will be defined and true if the page loads config.js first and the flag is
 // set there.  If it is defined and true we will redirect file queries to the test-data/ dir, which
 // has static test data; and other code may decide to change its filtering in response to the
 // setting.
@@ -19,43 +19,6 @@ var CURRENT_CLUSTER = (function () {
     let cluster = params.get("cluster")
     return cluster ? cluster : "ml"
 })();
-
-// Cluster-info returns information about the cluster.  This function must be manually updated
-// whenever we add a cluster.  That is fixable - it could be data in a config file.
-
-function cluster_info(cluster) {
-    switch (cluster) {
-    default:
-        /*FALLTHROUGH*/
-    case "ml":
-        return {
-            cluster,
-            subclusters: ["nvidia"],
-            name:"ML nodes",
-            description:"UiO Machine Learning nodes",
-            prefix:"ml-",
-            policy:"Significant CPU usage without any GPU usage",
-        }
-    case "fox":
-        return {
-            cluster,
-            subclusters: ["cpu","gpu","int","login"],
-            name:"Fox",
-            description:"UiO 'Fox' supercomputer",
-            prefix:"fox-",
-            policy:"(To be determined)",
-        }
-    case "saga":
-        return {
-            cluster,
-            subclusters: ["login"],
-            name:"Saga",
-            description:"Sigma2 'Saga' supercomputer",
-            prefix:"saga-",
-            policy:"(To be determined)",
-        }
-    }
-}
 
 // Update the window title and the main document title with the cluster name.
 

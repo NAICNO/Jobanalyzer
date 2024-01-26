@@ -20,8 +20,17 @@ function render() {
     // contains (currently).
     let thirty_days_ago = Date.now() - 30*24*60*60*1000
     render_machine_load()
-    render_violators(thirty_days_ago)
-    render_deadweight(thirty_days_ago)
+    let info = cluster_info(CURRENT_CLUSTER)
+    if (info.violators) {
+        render_violators(thirty_days_ago)
+    } else {
+        document.getElementById("violators_display").replaceChildren()
+    }
+    if (info.deadweight) {
+        render_deadweight(thirty_days_ago)
+    } else {
+        document.getElementById("deadweight_display").replaceChildren()
+    }
 }
 
 function render_machine_load() {
