@@ -144,8 +144,16 @@ func (c *HttpClient) postDataByHttp(prevAttempts uint, path string, buf []byte) 
 	// Really we should expect
 	//  202 (StatusAccepted) for when a new record is created
 	//  208 (StatusAlreadyReported) for when the record is a dup
-	//
-	// TODO: Possibly for codes in the 500 range we should retry?
+
+	// Plausible "temporarily borked" response codes.
+	if resp.StatusCode == 500 || resp.StatusCode == 503 || resp.StatusCode == 504 {
+		if prevAttempts+1 <= c.maxAttempts {
+			c.addRetry(prevAttempts+1, path, buf)
+		}
+		// Fall through: must read response body
+	}
+
+	// Log the problem for 5xx too
 	if resp.StatusCode >= 300 {
 		status.Infof("Failed to post: HTTP status=%d", resp.StatusCode)
 		// Fall through: must read response body
