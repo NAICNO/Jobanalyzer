@@ -5,18 +5,16 @@
 set -euf -o pipefail
 
 # The sonar and exfiltrate binaries must be in this directory.
-sonar_dir=$HOME
+sonar_dir=$HOME/sonar
 
 # The server receiving data.  For HTTPS you need -ca-cert below, for HTTP you must remove that arg.
-target_addr=https://naic-monitor.uio.no:1697
-#target_addr=http://naic-monitor.uio.no:1553
-#target_addr=http://158.39.48.160:8086
+target_addr=https://naic-monitor.uio.no
 
 # Must have a single username:password line, known to the receiving server
 auth_file=$sonar_dir/secrets/exfil-auth.txt
 
 # For HTTPS only.  Goes with the -cert-ca argument to exfiltrate command line below.
-cert_file=$sonar_dir/secrets/exfil-ca.crt
+cert_file=$sonar_dir/secrets/naic-monitor.uio.no_fullchain.crt
 
 # The upload window is set to 280 seconds so that the upload is almost certain to be done before
 # sonar runs the next time, assuming a 5-minute interval for sonar runs.  Correctness does not
