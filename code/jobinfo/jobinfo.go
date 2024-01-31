@@ -42,7 +42,7 @@
 //     Exclude records whose commands start with any of these comma-separated names.
 //
 //   -min-cpu-time <seconds>
-//     Include records for jobs that have used at least this much CPU time.
+//     Include records for jobs (after rollup) that have used at least this much CPU time.
 //
 //   -lockdir <directory>
 //     Place lockfiles in this directory.  If the lockfile exists on startup, we'll exit
@@ -57,12 +57,12 @@
 //     basic authentication.  Otherwise this argument is ignored.
 //
 //   -ca-cert <filename>
-//     If the target is an https: address, this file will contain the certificate for a CA that allows
-//     the client to validate the server.  Otherwise this argument is ignored.
+//     If the target is an https: address, this file will contain the certificate for a CA that
+//     allows the client to validate the server.  Otherwise this argument is ignored.
 //
 //   -nvidia
-//     Attempt to obtain NVIDIA GPU data by running nvidia-smi or probing devices.  It's usually safe
-//     to do this even on systems without an NVIDIA GPU.
+//     Attempt to obtain NVIDIA GPU data by running nvidia-smi or probing devices.  It's usually
+//     safe to do this even on systems without an NVIDIA GPU.
 //
 //   -amd
 //     Attempt to obtain AMD GPU data by running rocm-smi or probing devices.  It's usually safe
@@ -82,22 +82,24 @@
 //
 //   Since v=0.1.0:
 //
-//   user       - string  - user name for entry
-//   job        - integer - job number
-//   pid        - integer - process ID
-//   cmd        - string  - command string
-//   cpu_pct    - float   - cpu time ...
-//   cpu_s      - integer - cpu time ...
-//   vmem_kb    - integer - virtual memory size in KiB
-//   pss_kb     - integer - resident (proportional set size) memory size in KiB
-//   gpus       - string  - gpu set: "none", "unknown", "n,m,o,..." (default "none")
-//   gpu_pct    - float   - gpu time ...
-//   gpumem_kb  - integer - gpu resident memory size in KiB
-//   gpumem_pct - float   - gpu resident memory size as percent of total
-//   gpufail    - integer - 0 means OK, the rest are in flux
-//   rolledup   - integer - number of jobs rolled up
+//   user        - string  - user name for entry
+//   job         - integer - job number
+//   pid         - integer - process ID
+//   cmd         - string  - command string
+//   cpu_pct     - float   - cpu time ...
+//   cpu_s       - integer - cpu time ...
+//   vmem_kib    - integer - virtual memory size in KiB
+//   rssanon_kib - integer - resident (RssAnon) memory size in KiB
+//   gpus        - string  - gpu set: "none", "unknown", "n,m,o,..." (default "none")
+//   gpu_pct     - float   - gpu time ...
+//   gpumem_kib  - integer - gpu resident memory size in KiB
+//   gpumem_pct  - float   - gpu resident memory size as percent of total
+//   gpufail     - integer - 0 means OK, the rest are in flux
+//   rolledup    - integer - number of jobs rolled up
 //
 // Semantics are as for sonar, ie, complicated.  DOCUMENTME.
+//
+// TODO: "vmem" should be pinned down, and maybe that's not the term we want.
 //
 // Job object fields that have their default values are omitted (zeroes, empty strings, or for the
 // gpu set, "none").
@@ -154,9 +156,9 @@ var (
 	memTotalKiB         uint64
 	pageSizeKiB         uint
 	bootTimeSinceEpochS int64
+	nowSinceEpochS      int64
 	clockTicksPerS      uint
 	hostName            string
-	nowSinceEpochS      int64
 )
 
 type envelopeObject struct {
@@ -174,11 +176,11 @@ type jobObject struct {
 	Cmd       string  `json:"cmd"`
 	CpuPct    float64 `json:"cpu_pct,omitempty"`
 	CpuSec    int64   `json:"cpu_s,omitempty"`
-	VmemKb    int64   `json:"vmem_kb,omitempty"`
-	PssKb     int64   `json:"pss_kb,omitempty"`
+	VmemKB    int64   `json:"vmem_kb,omitempty"`
+	RssAnonKB int64   `json:"rssanon_kb,omitempty"`
 	Gpus      string  `json:"gpus,omitempty"`
 	GpuPct    float64 `json:"gpu_pct,omitempty"`
-	GpumemKb  int64   `json:"gpumem_kb,omitempty"`
+	GpumemKB  int64   `json:"gpumem_kb,omitempty"`
 	GpumemPct float64 `json:"gpumem_pct,omitempty"`
 	GpuFail   int     `json:"gpufail,omitempty"`
 	Rolledup  int     `json:"rolledup,omitempty"`
@@ -194,11 +196,6 @@ func main() {
 		if lf == nil {
 			return
 		}
-	}
-
-	err := getSystemInformation()
-	if err != nil {
-		status.Fatalf("Failed to obtain system information, %v", err)
 	}
 
 	// Extract job information
@@ -253,52 +250,6 @@ func main() {
 	}
 }
 
-func getSystemInformation() (err error) {
-	// Installed memory is needed for all sorts of things
-	m, err := sysinfo.PhysicalMemoryBy()
-	if err != nil {
-		return
-	}
-	memTotalKiB = m / 1024
-
-	// We need this for boot-relative times in /proc
-	bootTimeSinceEpochS, err = sysinfo.BootTime()
-	if err != nil {
-		return
-	}
-
-	// Some data are presented in pages
-	pageSizeKiB = sysinfo.PagesizeBy() / 1024
-
-	// Some elapsed times are presented in terms of ticks.  On Linux, a tick is a constant 1/100s,
-	// and though it is possible to do sysconf(_SC_CLK_TCK) it is evidently not necessary.
-	//
-	// Quoting from https://github.com/tklauser/go-sysconf/blob/main/sysconf_linux.go,
-	//
-	//   CLK_TCK is a constant on Linux for all architectures except alpha and ia64.
-	//   See e.g.
-	//   https://git.musl-libc.org/cgit/musl/tree/src/conf/sysconf.c#n30
-	//   https://github.com/containerd/cgroups/pull/12
-	//   https://lore.kernel.org/lkml/agtlq6$iht$1@penguin.transmeta.com/
-	//
-	// The last one of those is probably most interesting.  Quoting Linus:
-	//
-	//   The fact that libproc believes that HZ can change is _their_ problem.
-	//   I've told people over and over that user-level HZ is a constant (and, on
-	//   x86, that constant is 100), and that won't change.
-	clockTicksPerS = 100
-
-	// Node name is needed for all readings
-	hostName, err = os.Hostname()
-	if err != nil {
-		return
-	}
-
-	// Everyone uses the same timestamp
-	nowSinceEpochS = time.Now().UTC().Unix()
-
-	return
-}
 
 // Command line syntax errors are reported to flag's error output + exit(2).
 // Other errors are logged to the syslog.
@@ -408,5 +359,45 @@ Options:
 		if err != nil {
 			status.Fatalf("Failed to read -http-auth file %s", httpAuthFile)
 		}
+	}
+}
+
+func init() {
+	m, err := sysinfo.PhysicalMemoryBy()
+	if err != nil {
+		panic(err)
+	}
+	memTotalKiB = m / 1024
+
+	pageSizeKiB = sysinfo.PagesizeBy() / 1024
+
+	bootTimeSinceEpochS, err = sysinfo.BootTime()
+	if err != nil {
+		panic(err)
+	}
+
+	nowSinceEpochS = time.Now().UTC().Unix()
+
+	// Some elapsed times are presented in terms of ticks.  On Linux, a tick is a constant 1/100s,
+	// and though it is possible to do sysconf(_SC_CLK_TCK) it is evidently not necessary.
+	//
+	// Quoting from https://github.com/tklauser/go-sysconf/blob/main/sysconf_linux.go,
+	//
+	//   CLK_TCK is a constant on Linux for all architectures except alpha and ia64.
+	//   See e.g.
+	//   https://git.musl-libc.org/cgit/musl/tree/src/conf/sysconf.c#n30
+	//   https://github.com/containerd/cgroups/pull/12
+	//   https://lore.kernel.org/lkml/agtlq6$iht$1@penguin.transmeta.com/
+	//
+	// The last one of those is probably most interesting.  Quoting Linus:
+	//
+	//   The fact that libproc believes that HZ can change is _their_ problem.
+	//   I've told people over and over that user-level HZ is a constant (and, on
+	//   x86, that constant is 100), and that won't change.
+	clockTicksPerS = 100
+
+	hostName, err = os.Hostname()
+	if err != nil {
+		panic(err)
 	}
 }
