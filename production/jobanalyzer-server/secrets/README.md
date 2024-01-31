@@ -19,11 +19,7 @@ Currently all users can upload data for any node.  This will change.
 
 ### Exfiltrate/infiltrate certificates
 
-The certificates for exfiltrate/infiltrate were generated like this:
-
-```
-openssl genrsa -out exfil-ca.key 2048
-openssl req -new -x509 -days 3650 -key exfil-ca.key -subj "/C=IN/ST=KA/L=BL/O=Norwegian AI Cloud/CN=NAIC Root CA" -out exfil-ca.crt
-openssl req -newkey rsa:2048 -nodes -keyout exfil-server.key -subj "/C=IN/ST=KA/L=BL/O=Norwegian AI Cloud/CN=naic-monitor.uio.no" -out exfil-server.csr
-openssl x509 -req -extfile <(printf "subjectAltName=DNS:naic-monitor.uio.no") -days 3650 -in exfil-server.csr -CA exfil-ca.crt -CAkey exfil-ca.key -CAcreateserial -out exfil-server.crt
-```
+`exfiltrate` and `infiltrate` now communicate over standard HTTPS via the nginx proxy on
+naic-monitor.uio.no, and `exfiltrate` needs access to the certificate chain for that host.  This is
+also installed in the web server.  Basically, the `naic-monitor.uio.no_fullchain.crt` file is copied
+to the node's `secrets/` directory and is referenced from `sonar.sh`.

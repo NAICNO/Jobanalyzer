@@ -57,7 +57,7 @@ If `~/sonar/scripts` does not have a subdirectory for your cluster, you will nee
 
 The web server must currently run on the same machine as ingest, analysis, and query.  Generated
 reports will be copied from the directory they are generated in and into the web server's data
-directory.  The web server also proxies access to the query engine.
+directory.  The web server also proxies access to the query engine and the ingestion module.
 
 But first, set up the dashboard: The dashboard code must be copied to a suitable directory at or
 under the web server's root, we'll call this the dashboard directory, `$DASHBOARD`.  The
@@ -78,6 +78,14 @@ Second, the web server must be configured.  These are my additions to nginx.conf
 `server` (see further down about HTTPS setup and so on):
 
 ```
+        # infiltrate upload points
+        location /sonar-reading {
+                proxy_pass http://localhost:8086;
+        }
+        location /sonar-heartbeat {
+                proxy_pass http://localhost:8086;
+        }
+
         # sonalyzed commands
         location /jobs {
                 proxy_pass http://localhost:1559;
@@ -104,7 +112,8 @@ Second, the web server must be configured.  These are my additions to nginx.conf
         }
 ```
 
-The port 1559 is the same used by default for the `sonalyzed` query engine, see next.
+The port 1559 is the same used by default for the `sonalyzed` query engine, see next, while 8086
+is the port used by default for the `infiltrate` module.
 
 ### Step 4: Configure data ingestion and remote query
 
@@ -114,9 +123,6 @@ We must create a password file in `~/sonar/secrets/sonalyzed-auth.txt`.  This is
 We must create a password file in `~/sonar/secrets/exfil-auth.txt`.  This is a plaintext file on
 `username:password` format, one per line.  It controls access to the data infiltration server,
 `infiltrate`.
-
-If `infiltrate` is to communicate by HTTPS then we must create special HTTPS certificates and keys
-in `~/sonar/secrets`.  See [secrets/README.md](secrets/README.md) for more.
 
 Ideally the files in `secrets` are not readable or writable by anyone but the owner, but nobody
 checks this.
@@ -255,8 +261,6 @@ not let everything through.  To see what it lets through, see
 [here](https://www-int.usit.uio.no/om/organisasjon/iti/nettdrift/dokumentasjon/nett-info/uio-acl/nexus-xx-gw-2616.acl.txt).
 If none of these ports can be made to work, then new ports must be requested.
 
-For the time being, for naic-monitor I use the open Oracle ports.
-
 You need to
 ```
 # firewall-cmd --permanent --add-ports={nnn/tcp,mmm/tcp}
@@ -265,8 +269,7 @@ You need to
 to open ports `nnn` and `mmm` locally.  Again, these need to be ports that are let through by
 the external firewall.
 
-Currently (2024/01/23) only port 1697 needs to be open.  It is used by `infiltrate` to ingest data
-over HTTPS from the HPC clusters.  (Other ports were also open previously.)
+Currently there is no need to open additional ports, as all services proxy via port 443 (HTTPS) with nginx.
 
 #### Tweak: Setup disk
 
@@ -294,7 +297,7 @@ as described earlier.
 
 The HTTPS cert for naic-monitor.uio.no must be obtained from the UiO CA as described
 [here](https://www.uio.no/tjenester/it/sikkerhet/sertifikater/kokebok.html).  My `/etc/nginx/nginx.conf`
-is modified as follows (including the proxying described earlier):
+is modified as follows:
 
 ```
     # generated 2024-01-23, Mozilla Guideline v5.7, nginx 1.20.1, OpenSSL 3.0.7, modern configuration, no OCSP
@@ -312,43 +315,7 @@ is modified as follows (including the proxying described earlier):
         listen 443 ssl http2;
         listen [::]:443 ssl http2;
 
-        root         /usr/share/nginx/html;
-
-        # Load configuration files for the default server block.
-        include /etc/nginx/default.d/*.conf;
-
-        error_page 404 /404.html;
-        location = /404.html {
-        }
-
-        error_page 500 502 503 504 /50x.html;
-        location = /50x.html {
-        }
-
-        # sonalyzed commands
-        location /jobs {
-                proxy_pass http://localhost:1559;
-        }
-        location /load {
-                proxy_pass http://localhost:1559;
-        }
-        location /uptime {
-                proxy_pass http://localhost:1559;
-        }
-        location /profile {
-                proxy_pass http://localhost:1559;
-        }
-        location /parse {
-                proxy_pass http://localhost:1559;
-        }
-        location /metadata {
-                proxy_pass http://localhost:1559;
-        }
-
-        # Dashboard static content
-        location / {
-                root /data/www;
-        }
+        .... PROXY AND SERVICE STUFF HERE, SEE ABOVE ....
 
         ssl_certificate /etc/nginx/certificates/naic-monitor.uio.no_fullchain.crt;
         ssl_certificate_key /etc/nginx/certificates/naic-monitor.uio.no.key;

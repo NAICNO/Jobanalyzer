@@ -24,10 +24,6 @@ report_target_path=/data/www/output
 # The file has a number of lines on `username:password` format
 infiltrate_auth_file=$sonar_dir/secrets/exfil-auth.txt
 
-# `infiltrate` uses these files to receive HTTPS connections from the clients.
-infiltrate_https_key=$sonar_dir/secrets/exfil-server.key
-infiltrate_https_cert=$sonar_dir/secrets/exfil-server.crt
-
 # `sonalyzed` uses this file to check that remote queries are made only by authorized users.
 # The file has any number of lines on `username:password` format
 sonalyzed_auth_file=$sonar_dir/secrets/sonalyzed-auth.txt
@@ -38,10 +34,9 @@ sonalyzed_auth_file=$sonar_dir/secrets/sonalyzed-auth.txt
 # Central Services has locked down most ports, here is the list of what's open:
 # https://www-int.usit.uio.no/om/organisasjon/iti/nettdrift/dokumentasjon/nett-info/uio-acl/nexus-xx-gw-2616.acl.txt
 
-# `infiltrate` listens on this port for data uploads from the individual nodes.  These are open
-# `Oracle` ports.
-infiltrate_http_port=1553
-infiltrate_https_port=1697
+# `infiltrate` listens on this port for http data uploads from the individual nodes.  This is the
+# default port but better to be explicit.
+infiltrate_http_port=8086
 
 # `sonalyzed` listens on this port for remote sonalyze queries.  This is an open `Oracle` port.
 sonalyzed_port=1559

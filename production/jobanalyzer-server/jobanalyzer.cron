@@ -27,6 +27,7 @@ MAILTO=larstha@uio.no
 
 # Sigma2 "Saga" supercomputer "saga.sigma2.no"
 
+0,15,30,45 * * * * $HOME/sonar/scripts/saga.sigma2.no/saga-slurp.sh
 2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/scripts/saga.sigma2.no/load-5m-and-upload.sh
 3 0-23 * * * $HOME/sonar/scripts/saga.sigma2.no/load-1h.sh
 3 1 1-31 * * $HOME/sonar/scripts/saga.sigma2.no/load-24h.sh

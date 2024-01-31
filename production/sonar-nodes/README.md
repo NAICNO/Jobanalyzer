@@ -21,7 +21,8 @@ There is also a directory with two files:
 
 * `secrets/exfil-auth.txt` contains identity information used by `exfiltrate` in its communication with the
   server.  For more information about this file, see the documentation in `../jobanalyzer-server`.
-* `secrets/exfil-ca.crt` is the certificate for the NAIC Certificate Authority, this is used for HTTP upload.
+* `secrets/naic-monitor.uio.no_fullchain.crt` is the certificate for the naic-monitor server, this is used
+  for HTTPS upload.
 
 The contents of `sonar.sh` and `jobanalyzer.cron` may vary from cluster to cluster, and the
 binaries are naturally architecture-dependent.
