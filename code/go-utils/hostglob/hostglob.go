@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -197,3 +198,63 @@ func ungetc(r io.RuneScanner, c rune) {
 		r.UnreadRune()
 	}
 }
+
+// Given a list of host names, return an abbreviated list that uses host number sets where possible.
+//
+// Good enough: Host names match /^(.*)-(\d+)$/ and we can compress the values of \2 for equal \1.
+//
+// Better: there can be several runs of digits that could be compressed individually, but let's not
+// worry about that yet.
+
+func CompressHostnames(hosts []string) ([]string, error) {
+	same := make(map[string][]int)
+	for _, h := range hosts {
+		k := strings.LastIndexAny(h, "-")
+		if !(k > 0 && k < len(h)-1) {
+			return nil, fmt.Errorf("Bad host name %s", h)
+		}
+		n, err := strconv.ParseInt(h[k+1:], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		name := h[:k+1]
+		if bag, found := same[name]; found {
+			same[name] = append(bag, int(n))
+		} else {
+			same[name] = []int{int(n)}
+		}
+	}
+	result := make([]string, 0)
+	for k, v := range same {
+		result = append(result, k+compressRange(v))
+	}
+	return result, nil
+}
+
+func compressRange(xs []int) string {
+	if len(xs) == 1 {
+		return fmt.Sprintf("%d", xs[0])
+	}
+	sort.Sort(sort.IntSlice(xs))
+	s := ""
+	for i := 0; i < len(xs); {
+		first := xs[i]
+		prev := first
+		i++
+		for i < len(xs) && xs[i] == prev+1 {
+			prev = xs[i]
+			i++
+		}
+		if s != "" {
+			s += ","
+		}
+		if first != prev {
+			s += fmt.Sprintf("%d-%d", first, prev)
+		} else {
+			s += fmt.Sprintf("%d", first)
+		}
+	}
+	s = "[" + s + "]"
+	return s
+}
+

@@ -1,0 +1,14 @@
+[
+ {
+  "hostname": "login-[1-5]",
+  "description": "2x16 (hyperthreaded) Intel(R) Xeon(R) Gold 6130 CPU @ 2.10GHz, 755 GB",
+  "cpu_cores": 64,
+  "mem_gb": 755
+ },
+ {
+  "hostname": "gpu-12-[1-8]",
+  "gpu_cards": 4,
+  "gpumem_gb": 160,
+  "metadata":[{"k":"gpu","v":"NVIDIA A100"}]
+ }
+]

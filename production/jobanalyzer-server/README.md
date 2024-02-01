@@ -167,6 +167,10 @@ In the cluster's script directory there must be a file that describes the nodes 
 name must be `CLUSTER-config.json` where `CLUSTER` is the cluster name.  For example,
 `mlx.hpc.uio.no-config.json` for the ML nodes cluster.
 
+The process of creating the `CLUSTER-config.json` file has been automated to some extent on systems
+that run slurm.  See `../../code/slurminfo`.  It runs `sinfo` and produces a JSON array that is
+suitable for the `CLUSTER-config.json` file.  See more documentation in that directory.
+
 The dashboard also needs a few additions in `index.html` and in `code/dashboard/dashboard.js` to
 link to the cluster's dashboard and describe the cluster.
 
