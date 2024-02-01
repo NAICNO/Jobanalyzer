@@ -1,0 +1,44 @@
+[
+{
+ "hostname": "int-[1-4]",
+ "description": "2x64, AMD EPYC 7702 64-Core Processor, 1007 GB",
+ "cpu_cores": 128,
+ "mem_gb": 1007,
+ "metadata":[{"k":"host-suffix","v":".fox.ad.fp.educloud.no"}]
+},
+{
+ "hostname": "login-[1-4]",
+ "description": "2x64 (hyperthreaded) AMD EPYC 7702 64-Core Processor, 503 GB",
+ "cpu_cores": 256,
+ "mem_gb": 503,
+ "metadata":[{"k":"host-suffix","v":".fox.ad.fp.educloud.no"}]
+},
+{
+ "hostname": "c1-[5-29]",
+ "metadata":[{"k":"host-suffix","v":".fox"}]
+},
+{
+ "hostname": "gpu-[1-2]",
+ "gpu_cards": 4,
+ "gpumem_gb": 160,
+ "metadata":[{"k":"host-suffix","v":".fox"},{"k":"gpu","v":"NVIDIA A100-PCIE-40GB"}]
+},
+{
+ "hostname": "gpu-[4-6]",
+ "gpu_cards": 4,
+ "gpumem_gb": 96,
+ "metadata":[{"k":"gpu","v":"NVIDIA GeForce RTX 3090"}]
+},
+{
+ "hostname": "gpu-[7,8]",
+ "gpu_cards": 4,
+ "gpumem_gb": 320,
+ "metadata":[{"k":"host-suffix","v":".fox"},{"k":"gpu","v":"NVIDIA A100 80GB PCIe"}]
+},
+{
+ "hostname": "gpu-10",
+ "gpu_cards": 2,
+ "gpumem_gb": 159,
+ "metadata":[{"k":"host-suffix","v":".fox"},{"k":"gpu","v":"NVIDIA H100 PCIe"}]
+}
+]

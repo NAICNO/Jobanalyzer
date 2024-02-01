@@ -18,19 +18,45 @@ import (
 	"go-utils/hostglob"
 )
 
-type SystemConfig struct {
-	Hostname    string `json:"hostname"`
-	Description string `json:"description"`
-	CpuCores    int    `json:"cpu_cores"`
-	MemGB       int    `json:"mem_gb"`
-	GpuCards    int    `json:"gpu_cards,omitempty"`
-	GpuMemGB    int    `json:"gpumem_gb,omitempty"`
-	GpuMemPct   bool   `json:"gpumem_pct,omitempty"`
+type SystemMeta struct {
+	Key   string `json:"k"`
+	Value string `json:"v"`
 }
 
-// Get the system config if possible
+type SystemConfig struct {
+	// Name that host is known by on the cluster
+	Hostname string `json:"hostname"`
 
-func ReadConfig(configFilename string) (map[string]*SystemConfig, error) {
+	// End-user description, not parseable
+	Description string `json:"description"`
+
+	// Total number of cores x threads
+	CpuCores int `json:"cpu_cores"`
+
+	// GB of installed main RAM
+	MemGB int `json:"mem_gb"`
+
+	// If true, then jobs can span nodes
+	MultiNode bool `json:"multinode,omitempty"`
+
+	// Number of installed cards
+	GpuCards int `json:"gpu_cards,omitempty"`
+
+	// Total GPU memory across all cards
+	GpuMemGB int `json:"gpumem_gb,omitempty"`
+
+	// If true, use the percentage-of-memory-per-process figure from the card
+	// rather than a memory measurement
+	GpuMemPct bool `json:"gpumem_pct,omitempty"`
+
+	// Carries additional information used by code generators
+	Metadata []SystemMeta `json:"metadata,omitempty"`
+}
+
+// Get the system config if possible, returning a map from expanded host name to information for the
+// host.  If `lenient` is true then checks for CpuCores and MemGB are omitted.
+
+func ReadConfig(configFilename string, lenient bool) (map[string]*SystemConfig, error) {
 	var configInfo []*SystemConfig
 
 	configFile, err := os.Open(configFilename)
@@ -49,8 +75,10 @@ func ReadConfig(configFilename string) (map[string]*SystemConfig, error) {
 	}
 
 	for _, c := range configInfo {
-		if c.CpuCores == 0 || c.MemGB == 0 {
-			return nil, fmt.Errorf("Nonsensical CPU/memory information for %s", c.Hostname)
+		if !lenient {
+			if c.CpuCores == 0 || c.MemGB == 0 {
+				return nil, fmt.Errorf("Nonsensical CPU/memory information for %s", c.Hostname)
+			}
 		}
 		if c.GpuCards == 0 && (c.GpuMemGB != 0 || c.GpuMemPct) {
 			return nil, fmt.Errorf("Inconsistent GPU information for %s", c.Hostname)
@@ -68,15 +96,9 @@ func ReadConfig(configFilename string) (map[string]*SystemConfig, error) {
 		default:
 			c.Hostname = expanded[0]
 			for i := 1; i < len(expanded); i++ {
-				moreInfo = append(moreInfo, &SystemConfig{
-					Hostname:    expanded[i],
-					Description: c.Description,
-					CpuCores:    c.CpuCores,
-					MemGB:       c.MemGB,
-					GpuCards:    c.GpuCards,
-					GpuMemGB:    c.GpuMemGB,
-					GpuMemPct:   c.GpuMemPct,
-				})
+				var d SystemConfig = *c
+				d.Hostname = expanded[i]
+				moreInfo = append(moreInfo, &d)
 			}
 		}
 	}

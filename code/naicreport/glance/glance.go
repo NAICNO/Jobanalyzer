@@ -79,7 +79,7 @@ func Report(progname string, args []string) error {
 		return err
 	}
 
-	config, err := config.ReadConfig(configFilename)
+	config, err := config.ReadConfig(configFilename, false)
 	if err != nil {
 		return err
 	}

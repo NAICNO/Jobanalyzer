@@ -66,6 +66,12 @@ echo "======================================================================="
 ( cd sonalyzed ; go build )
 ( cd sonalyzed ; ./sonalyzed -h 2&> /dev/null )
 
+echo "======================================================================="
+echo " SLURMINFO RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd slurminfo ; go build )
+( cd slurminfo ; ./slurminfo -h 2&> /dev/null )
+
 # GO-UTIL TESTS
 ( cd go-utils ; ./run_tests.sh )
 

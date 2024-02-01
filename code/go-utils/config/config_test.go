@@ -5,7 +5,7 @@ import (
 )
 
 func TestReadConfig(t *testing.T) {
-	cfg, err := ReadConfig("test-config.json")
+	cfg, err := ReadConfig("test-config.json", false)
 	if err != nil {
 		t.Fatal(err)
 	}
