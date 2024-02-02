@@ -286,7 +286,7 @@ func requestHandler(
 
 		// Run the command and report the result
 
-		output, err := process.RunSubprocess(path.Join(jobanalyzerPath, "sonalyze"), arguments)
+		stdout, stderr, err := process.RunSubprocess(path.Join(jobanalyzerPath, "sonalyze"), arguments)
 		if err != nil {
 			w.WriteHeader(400)
 			fmt.Fprint(w, err.Error())
@@ -295,9 +295,12 @@ func requestHandler(
 			}
 			return
 		}
+		if stderr != "" {
+			status.Warning(stderr)
+		}
 
 		w.WriteHeader(200)
-		fmt.Fprint(w, output)
+		fmt.Fprint(w, stdout)
 	}
 }
 

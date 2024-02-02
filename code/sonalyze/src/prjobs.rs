@@ -119,7 +119,12 @@ pub fn print_jobs(
             if let Some(ref ht) = system_config {
                 for host in hosts.drain() {
                     if ht.get(&host).is_none() {
-                        bail!("Missing host configuration for {}", &host)
+                        // Note that system_config is not actually used during printing.  What we're
+                        // doing here is making somebody (hopefully) aware that there are problems.
+                        // We have generated nonsense/zero data for relative fields for anything to
+                        // do with this host, already.  But it's only here that we have available
+                        // information that we are asking for relative fields.
+                        eprintln!("Warning: Missing host configuration for {}", &host);
                     }
                 }
             } else {

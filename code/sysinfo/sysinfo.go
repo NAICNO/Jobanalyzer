@@ -109,9 +109,9 @@ func nvidiaInfo() (modelName string, cards int, memPerCardBy int64) {
 }
 
 func run(command string, arguments ...string) []string {
-	output, err := process.RunSubprocess(command, arguments)
+	stdout, _, err := process.RunSubprocess(command, arguments)
 	if err != nil {
 		return []string{}
 	}
-	return strings.Split(output, "\n")
+	return strings.Split(stdout, "\n")
 }
