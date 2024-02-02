@@ -31,7 +31,7 @@ function render_violators_by_user(elt_id, filter, filter_by_host) {
 		  {name: "First seen", tag:"earliest"},
 		  {name: "Last seen", tag:"latest"},
 		 ]
-    let [tbl, tbody] = make_table(fields, document.getElementById(elt_id))
+    let tbody = make_table(fields, document.getElementById(elt_id))
     fetch_data_from_file(tag_file("violator-report.json")).
 	then(function (data) {
 	    data = filter ? data.filter(filter) : data;

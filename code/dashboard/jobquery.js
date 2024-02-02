@@ -1,5 +1,9 @@
-// This code is very ad-hoc.  Some could be shared with the code in ../../dashboard.  Much could
-// probably be extracted from a framework, if we were to use that.
+// Logic for jobquery.html.
+
+function setup() {
+    populateFromParameters()
+    addProfilingHooks()
+}
 
 // The representation of "true" is a hack but it's determined by the server, so live with it.  Note
 // the initial `=`.
@@ -65,15 +69,70 @@ function appendTo(elt, first, value) {
     }
 }
 
-var names = ["job","user","host","duration","start","end","cpu-peak","res-peak","mem-peak","gpu-peak","gpumem-peak","cmd"]
-var sorting = {
-    "job": "numeric",
-    "cpu-peak": "numeric",
-    "res-peak": "numeric",
-    "mem-peak": "numeric",
-    "gpu-peak": "numeric",
-    "gpumem-peak": "numeric",
-    "duration": "duration",
+var theTable = new Table(
+    document.getElementById("joblist"),
+    [{ name:    "Job#",
+       tag:     "job",
+       sort:    "numeric",
+       display: linkToJob },
+
+     { name:    "User",
+       tag:     "user" },
+
+     { name:    "Node",
+       tag:     "host",
+       display: (row, tag) => breakText(row[tag]) },
+
+     { name:    "Duration",
+       tag:     "duration",
+       sort:    "duration"},
+
+     { name:    "Start",
+       tag:     "start" },
+
+     { name:    "End",
+       tag:     "end" },
+
+     { name:    "Peak #cores",
+       tag:     "cpu-peak",
+       sort:    "numeric",
+       display: (row, tag) => Math.round(row[tag]/100) },
+
+     { name:    "Peak resident GB",
+       tag:     "res-peak",
+       sort:    "numeric" },
+
+     { name:    "Peak virtual GB",
+       tag:     "mem-peak",
+       sort:    "numeric" },
+
+     { name:    "Peak GPU cards",
+       tag:     "gpu-peak",
+       sort:    "numeric" },
+
+     { name:    "Peak GPU RAM GB",
+       tag:     "gpumem-peak",
+       sort:    "numeric" },
+
+     { name:    "Command",
+       tag:     "cmd",
+       display: (row, tag) => breakText(row[tag]) }]
+)
+
+function linkToJob(row, tag) {
+    let a = document.createElement("A")
+    a.textContent = row[tag]
+    a.href = makeProfileURL(cluster, from, to, row)
+    a.target = "_blank"
+    return a
+}
+
+function breakText(text) {
+    // Don't break at spaces that exist, but at commas.  Generally this has the effect of
+    // keeping duration and timestamp fields together and breaking the command field apart.
+    //
+    // TODO: This is not ideal, b/c it breaks within node name ranges, we can fix that.
+    return String(text).replaceAll(" ", "\xA0").replaceAll(",", ", ")
 }
 
 // In response to the "Select jobs" button - read and validate the form elements, post a query.
@@ -154,7 +213,7 @@ function selectJobs() {
     case "some": query += "&some-gpu" + trueVal; break;
     case "none": query += "&no-gpu" + trueVal; break;
     }
-    let fmt = encodeURIComponent("json," + names.join(","))
+    let fmt = encodeURIComponent("json," + theTable.fieldNames.join(","))
     query += `&fmt=${fmt}`
     if (minRuntimeVal != "") {
 	if (/^(\d+w)?(\d+d)?(\d+h)?(\d+m)?$/.exec(minRuntimeVal) == null) {
@@ -184,126 +243,29 @@ function selectJobs() {
     // Display a URL that will take us back to this window with the form fields filled in
     message(query.replace("/jobs", window.location.origin + window.location.pathname))
 
-    // Fire off the query
-    let tableState = {
-        selected: "",
-        direction: "",
-    }
     fetch(query).
 	then(response => response.json()).
 	then(function (data) {
-            sortDataBy(data, "end", "descending", tableState)
-            repopulateTable(cluster, from, to, data, tableState)
+            theTable.sortAndRepopulateFromData(
+                data,
+                "end",
+                "descending")
         }).
         catch(function () {
             message("Query failed - is your cluster name correct?")
         })
 }
 
-var durationRe = /^(.*)d(.*)h(.*)m$/;
+var profilingHooks = false
 
-function sortDataBy(data, field, direction, tableState) {
-    if (tableState.selected == field && direction == "opposite") {
-        if (tableState.direction == "ascending") {
-            direction = "descending"
-        } else {
-            direction = "ascending"
+function addProfilingHooks(name) {
+    if (!profilingHooks) {
+        // Add event handlers so that when somebody changes the profile settings, all the URLs in the
+        // table are rewritten.  This is pretty gross in principle but works OK.
+        for (let name of profnames) {
+            document.getElementById("p" + name).addEventListener("change", recomputeURLs)
         }
-    } else if (direction == "opposite") {
-        direction = "ascending"
-    }
-    data.sort(function (a, b) {
-        let x, y
-        switch (sorting[field]) {
-        case "numeric":
-            x = parseFloat(a[field])
-            y = parseFloat(b[field])
-            break
-        case "duration": {
-            let m1 = durationRe.exec(a[field])
-            let m2 = durationRe.exec(b[field])
-            x = parseInt(m1[1])*24*60 + parseInt(m1[2])*60 + parseInt(m1[3])
-            y = parseInt(m2[1])*24*60 + parseInt(m2[2])*60 + parseInt(m2[3])
-            break
-        }
-        default:
-            x = a[field]
-            y = b[field]
-            break
-        }
-        if (x < y) {
-            return -1
-        }
-        if (x > y) {
-            return 1
-        }
-        return 0
-    })
-    if (direction == "descending") {
-        data.reverse()
-    }
-    tableState.selected = field
-    tableState.direction = direction
-}
-
-function repopulateTable(cluster, from, to, data, tableState) {
-    let tbl = document.getElementById("joblist")
-
-    // Nuke any existing table
-    tbl.replaceChildren()
-
-    // Create the header
-    let th = document.createElement("THEAD")
-    let index = 0
-    for (let name of names) {
-	let td = document.createElement("TD")
-        let marker = ""
-        if (tableState.selected == name) {
-            if (tableState.direction == "ascending")
-                marker = " ^"
-            else
-                marker = " v"
-        }
-	td.textContent = name + marker
-        td.addEventListener("click", function () {
-            sortDataBy(data, name, "opposite", tableState)
-            repopulateTable(cluster, from, to, data, tableState)
-        })
-	th.appendChild(td)
-        index++
-    }
-    tbl.appendChild(th)
-
-    // Create the rows
-    for (let row of data) {
-	let tr = document.createElement("TR")
-	for (let name of names) {
-	    let td = document.createElement("TD")
-	    let text = row[name]
-	    if (name.indexOf("/sec") != -1) {
-		text = new Date(parseInt(text)*1000).toLocaleString()
-	    }
-            // Don't break at spaces that exist, but at commas.  Generally this has the effect of
-            // keeping duration and timestamp fields together and breaking the command field apart.
-            text = text.replaceAll(" ", "\xA0").replaceAll(",", ", ")
-            if (name == "job") {
-                let a = document.createElement("A")
-	        a.textContent = text
-	        a.href = makeProfileURL(cluster, from, to, row)
-                a.target = "_blank"
-                td.appendChild(a)
-            } else {
-	        td.textContent = text
-            }
-	    tr.appendChild(td)
-	}
-	tbl.appendChild(tr)
-    }
-
-    // Add event handlers so that when somebody changes the profile settings, all the URLs in the
-    // table are rewritten.  This is pretty gross in principle but works OK.
-    for (let name of profnames) {
-        document.getElementById("p" + name).addEventListener("change", recomputeURLs)
+        profilingHooks = true
     }
 }
 

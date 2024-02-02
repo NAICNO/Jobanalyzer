@@ -6,6 +6,7 @@
     <script src="dash-shared.js"></script>
     <script src="bitset.js"></script> <!-- required by queryterm.js -->
     <script src="hostglob.js"></script> <!-- required by queryterm.js -->
+    <script src="table-logic.js"></script>
     <script src="queryterm.js"></script>
     <script src="dashboard.js"></script>
   </head>
@@ -30,7 +31,7 @@
       <div id=errormsg> </div>
       <p> </p>
     </center>
-    <div id=report></div>
+    <table id=report></table>
 
       <script>
 	window.addEventListener("keyup", function (ev) {

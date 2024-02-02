@@ -251,10 +251,9 @@ function populateDropdown(dd, vals) {
     }
 }
 
-// Create a table from the fields and attach it to the parent.  Return the table and table body
-// elements.
-function make_table(fields, parent) {
-    let tbl = document.createElement("table")
+// Create a table head and table body from the fields and attach them to the table.  Returns the
+// table body.
+function make_table(fields, table) {
     let thead = document.createElement("thead")
     for ( let {name,help} of fields ) {
         let th = document.createElement("th")
@@ -266,12 +265,12 @@ function make_table(fields, parent) {
         th.appendChild(sp)
         thead.appendChild(th)
     }
-    tbl.appendChild(thead)
+    table.appendChild(thead)
     let tbody = document.createElement("tbody")
-    tbl.appendChild(tbody)
-    parent.appendChild(tbl)
-    return [tbl, tbody]
+    table.appendChild(tbody)
+    return tbody
 }
+
 
 // Returns a promise that will fetch and render data in a table, which is made here.
 function render_table_from_file(file, fields, parent, cmp, filter) {
