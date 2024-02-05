@@ -5,10 +5,10 @@
 // with the -input option.
 //
 // Data not available from `sinfo` can optionally be provided by a file named by the -aux parameter.
-// This is a JSON file with the same format as the output (ie a system config file), where each
-// field for a given host supplies a default value for that field.  For hosts that are not revealed
-// by `sinfo`, it supplies all fields.  It also carries metadata that makes `slurminfo` modify the
-// data slightly.  See the README.md in this directory.
+// This is a JSON file with the same format as the output (ie a Jobanalyzer system-config file),
+// where each field for a given host supplies a default value for that field.  For hosts that are
+// not revealed by `sinfo`, it supplies all fields.  It also carries metadata that makes `slurminfo`
+// modify the data slightly.  See the README.md in this directory.
 //
 // TODO (none important):
 // - compress the entries coming from background information
@@ -55,15 +55,19 @@ func main() {
 
 	// Read sinfo data.
 
-	var out string
+	var stdout string
 	if inputFilename != "" {
 		bytes, err := os.ReadFile(inputFilename)
 		Check(err, "Reading input")
-		out = string(bytes)
+		stdout = string(bytes)
 	} else {
 		var err error
-		out, err = process.RunSubprocess("sinfo", []string{"-a", "-o", "%n/%f/%m/%X/%Y/%Z"})
+		var stderr string
+		stdout, stderr, err = process.RunSubprocess("sinfo", []string{"-a", "-o", "%n/%f/%m/%X/%Y/%Z"})
 		Check(err, "Running 'sinfo'")
+		if stderr != "" {
+			fmt.Fprintln(os.Stderr, stderr)
+		}
 	}
 
 	// Read aux information.  `referenced` will be used to track whether an entry is used for
@@ -90,7 +94,7 @@ func main() {
 
 	var systems = make(map[sysAttrs][]string)
 
-	inputLines := strings.Split(strings.TrimSpace(out), "\n")
+	inputLines := strings.Split(strings.TrimSpace(stdout), "\n")
 	Assert(len(inputLines) > 0, "Empty input")
 	Assert(inputLines[0] == header, "Bad header in input: "+inputLines[0])
 	inputLines = inputLines[1:]

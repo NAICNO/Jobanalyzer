@@ -589,9 +589,12 @@ func countDatabaseEntries(stateFilename string) ([]*badJobsByHost, error) {
 func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *optionsPkg, rawData any) error {
 	arguments = util.ForwardDateFilterOptions(arguments, progOpts.filterOpts)
 	arguments = util.ForwardDataFilesOptions(arguments, "--data-path", progOpts.fileOpts)
-	sonalyzeOutput, err := process.RunSubprocess(sonalyzePath, arguments)
+	sonalyzeOutput, sonalyzeErrOutput, err := process.RunSubprocess(sonalyzePath, arguments)
 	if err != nil {
 		return err
+	}
+	if sonalyzeErrOutput != "" {
+		fmt.Fprintln(os.Stderr, sonalyzeErrOutput)
 	}
 	err = json.Unmarshal([]byte(sonalyzeOutput), rawData)
 	if err != nil {

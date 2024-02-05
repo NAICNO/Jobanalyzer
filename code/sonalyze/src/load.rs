@@ -10,10 +10,10 @@ use anyhow::{bail, Result};
 use sonarlog::{
     self, add_day, add_half_day, add_half_hour, add_hour, empty_logentry, gpuset_to_string, now,
     truncate_to_day, truncate_to_half_day, truncate_to_half_hour, truncate_to_hour, HostFilter,
-    InputStreamSet, LogEntry, MergedSampleStreams, Timestamp,
+    InputStreamKey, InputStreamSet, LogEntry, MergedSampleStreams, Timestamp,
 };
 use std::boxed::Box;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io;
 
 #[derive(PartialEq, Clone, Copy)]
@@ -49,7 +49,7 @@ pub fn aggregate_and_print_load(
     filter_args: &LoadFilterAndAggregationArgs,
     print_args: &LoadPrintArgs,
     meta_args: &MetaArgs,
-    streams: InputStreamSet,
+    mut streams: InputStreamSet,
 ) -> Result<()> {
     if meta_args.verbose {
         return Ok(());
@@ -93,10 +93,15 @@ pub fn aggregate_and_print_load(
     // After this, everyone can assume there will be a system_config for every host in the data.
     if relative {
         if let Some(ref ht) = system_config {
-            for (_, s) in & streams {
+            let mut bad = HashSet::<InputStreamKey>::new();
+            for (k, s) in & streams {
                 if ht.get(&s[0].hostname).is_none() {
-                    bail!("Missing host configuration for {}", &s[0].hostname)
+                    bad.insert(k.clone());
+                    eprintln!("Warning: Missing host configuration for {}", &s[0].hostname)
                 }
+            }
+            for b in bad.drain() {
+                streams.remove(&b);
             }
         } else {
             bail!("Relative values requested without config file");
