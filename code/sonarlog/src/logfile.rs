@@ -168,12 +168,14 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                 let mut timestamp: Option<Timestamp> = None;
                 let mut hostname: Option<String> = None;
                 let mut num_cores: Option<u32> = None;
+                let mut memtotal_gb: Option<f64> = None;
                 let mut user: Option<String> = None;
                 let mut pid: Option<u32> = None;
                 let mut job_id: Option<u32> = None;
                 let mut command: Option<String> = None;
                 let mut cpu_pct: Option<f64> = None;
                 let mut mem_gb: Option<f64> = None;
+                let mut rssanon_gb: Option<f64> = None;
                 let mut gpus: Option<GpuSet> = None;
                 let mut gpu_pct: Option<f64> = None;
                 let mut gpumem_pct: Option<f64> = None;
@@ -314,6 +316,12 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                 continue 'outer;
                             }
                             (num_cores, failed) = get_u32(&field[6..]);
+                        } else if field.starts_with("memtotalkib=") {
+                            if memtotal_gb.is_some() {
+                                discarded += 1;
+                                continue 'outer;
+                            }
+                            (memtotal_gb, failed) = get_f64(&field[12..], 1.0 / (1024.0 * 1024.0));
                         } else if field.starts_with("user=") {
                             if user.is_some() {
                                 discarded += 1;
@@ -350,6 +358,12 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                 continue 'outer;
                             }
                             (mem_gb, failed) = get_f64(&field[7..], 1.0 / (1024.0 * 1024.0));
+                        } else if field.starts_with("rssanonkib=") {
+                            if rssanon_gb.is_some() {
+                                discarded += 1;
+                                continue 'outer;
+                            }
+                            (rssanon_gb, failed) = get_f64(&field[12..], 1.0 / (1024.0 * 1024.0));
                         } else if field.starts_with("gpus=") {
                             if gpus.is_some() {
                                 discarded += 1;
@@ -426,6 +440,12 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
 
                 // Fill in default data for optional fields.
 
+                if num_cores.is_none() {
+                    num_cores = Some(0);
+                }
+                if memtotal_gb.is_none() {
+                    memtotal_gb = Some(0.0);
+                }
                 if job_id.is_none() {
                     job_id = Some(0);
                 }
@@ -437,6 +457,9 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                 }
                 if mem_gb.is_none() {
                     mem_gb = Some(0.0);
+                }
+                if rssanon_gb.is_none() {
+                    rssanon_gb = Some(0.0);
                 }
                 if gpus.is_none() {
                     gpus = Some(empty_gpuset());
@@ -467,12 +490,14 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                     timestamp: timestamp.unwrap(),
                     hostname: hostname.unwrap(),
                     num_cores: num_cores.unwrap(),
+                    memtotal_gb: memtotal_gb.unwrap(),
                     user: user.unwrap(),
                     pid: pid.unwrap(),
                     job_id: job_id.unwrap(),
                     command: command.unwrap(),
                     cpu_pct: cpu_pct.unwrap(),
                     mem_gb: mem_gb.unwrap(),
+                    rssanon_gb: rssanon_gb.unwrap(),
                     gpus: gpus.unwrap(),
                     gpu_pct: gpu_pct.unwrap(),
                     gpumem_pct: gpumem_pct.unwrap(),
@@ -498,12 +523,14 @@ pub fn empty_logentry(t: Timestamp, hostname: &str) -> Box<LogEntry> {
         timestamp: t,
         hostname: hostname.to_string(),
         num_cores: 0,
+        memtotal_gb: 0.0,
         user: "_zero_".to_string(),
         pid: 0,
         job_id: 0,
         command: "_zero_".to_string(),
         cpu_pct: 0.0,
         mem_gb: 0.0,
+        rssanon_gb: 0.0,
         gpus: empty_gpuset(),
         gpu_pct: 0.0,
         gpumem_pct: 0.0,

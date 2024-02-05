@@ -220,6 +220,9 @@ pub struct LogEntry {
     /// Number of cores on the node.  This may be zero if there's no information.
     pub num_cores: u32,
 
+    /// Total memory installed on the node.  This may be zero if there's no information.
+    pub memtotal_gb: f64,
+
     /// Unix user name, or `_zombie_<PID>`
     pub user: String,
 
@@ -247,8 +250,13 @@ pub struct LogEntry {
     pub cpu_pct: f64,
 
     /// Main memory used by the job on the node (the memory is shared by all cores on the node) at
-    /// the time of sampling.
+    /// the time of sampling.  This is virtual memory, data+stack.
     pub mem_gb: f64,
+
+    /// Resident memory used by the job on the node at the time of sampling.  This should be real
+    /// memory, owned exclusively by the process.  RssAnon is not a perfect measure of that, but a
+    /// compromise; see comments in Sonar.
+    pub rssanon_gb: f64,
 
     /// The set of GPUs used by the job on the node, None for "none", Some({}) for "unknown",
     /// otherwise Some({m,n,...}).
