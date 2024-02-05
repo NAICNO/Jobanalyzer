@@ -194,6 +194,11 @@ The original request was for this machine:
 
 The tweaks below need to be applied.
 
+#### Tweak: More memory
+
+For some of the larger analysis job with the current pipeline, 8GB is not enough.  Memory was
+increased to 32GB.
+
 #### Tweak: Include the machine in the hpc_host group
 
 For general setup, the machine needs to have `hpc_host` privileges.  That way, sudo works and login
