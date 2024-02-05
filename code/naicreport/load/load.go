@@ -371,9 +371,6 @@ func max(i, j int) int {
 // date.  Then we can just slurp that in here and avoid overhead and complexity.
 
 func downtimeInitialArgs() []string {
-	if withDowntime == 0 {
-		panic("Should not happen")
-	}
 	return []string{
 		"uptime",
 		"--interval", fmt.Sprintf("%d", withDowntime),
