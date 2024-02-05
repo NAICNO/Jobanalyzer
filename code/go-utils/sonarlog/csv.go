@@ -52,6 +52,8 @@ outerLoop:
 				r.Host = val
 			case "cores":
 				r.Cores, err = strconv.ParseUint(val, 10, 64)
+			case "memtotalkib":
+				r.MemtotalKib, err = strconv.ParseUint(val, 10, 64)
 			case "user":
 				r.User = val
 			case "job":
@@ -64,6 +66,8 @@ outerLoop:
 				r.CpuPct, err = strconv.ParseFloat(val, 64)
 			case "cpukib":
 				r.CpuKib, err = strconv.ParseUint(val, 10, 64)
+			case "rssanonkib":
+				r.RssAnonKib, err = strconv.ParseUint(val, 10, 64)
 			case "gpus":
 				// We don't validate the gpu syntax here
 				r.Gpus = val
@@ -139,12 +143,14 @@ func (r *SonarReading) Csvnamed() []byte {
 		"time=" + r.Timestamp,
 		"host=" + r.Host,
 		"cores=" + strconv.FormatUint(r.Cores, 10),
+		"memtotalkib=" + strconv.FormatUint(r.MemtotalKib, 10),
 		"user=" + r.User,
 		"job=" + strconv.FormatUint(r.Job, 10),
 		"pid=" + strconv.FormatUint(r.Pid, 10),
 		"cmd=" + r.Cmd,
 		"cpu%=" + strconv.FormatFloat(r.CpuPct, 'g', -1, 64),
 		"cpukib=" + strconv.FormatUint(r.CpuKib, 10),
+		"rssanonkib=" + strconv.FormatUint(r.RssAnonKib, 10),
 		"gpus=" + r.Gpus,
 		"gpu%=" + strconv.FormatFloat(r.GpuPct, 'g', -1, 64),
 		"gpumem%=" + strconv.FormatFloat(r.GpuMemPct, 'g', -1, 64),

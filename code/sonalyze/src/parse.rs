@@ -74,6 +74,7 @@ fn my_formatters() -> (
     formatters.insert("time".to_string(), &format_time);
     formatters.insert("host".to_string(), &format_host);
     formatters.insert("cores".to_string(), &format_cores);
+    formatters.insert("memtotal".to_string(), &format_memtotal);
     formatters.insert("user".to_string(), &format_user);
     formatters.insert("pid".to_string(), &format_pid);
     formatters.insert("job".to_string(), &format_job);
@@ -81,6 +82,7 @@ fn my_formatters() -> (
     formatters.insert("cpu_pct".to_string(), &format_cpu_pct);
     formatters.insert("cpu%".to_string(), &format_cpu_pct);
     formatters.insert("mem_gb".to_string(), &format_mem_gb);
+    formatters.insert("res_gb".to_string(), &format_res_gb);
     formatters.insert("cpukib".to_string(), &format_cpukib);
     formatters.insert("gpus".to_string(), &format_gpus);
     formatters.insert("gpu_pct".to_string(), &format_gpu_pct);
@@ -102,12 +104,14 @@ fn my_formatters() -> (
             "localtime".to_string(),
             "host".to_string(),
             "cores".to_string(),
+            "memtotal".to_string(),
             "user".to_string(),
             "pid".to_string(),
             "job".to_string(),
             "cmd".to_string(),
             "cpu_pct".to_string(),
             "mem_gb".to_string(),
+            "res_gb".to_string(),
             "gpus".to_string(),
             "gpu_pct".to_string(),
             "gpumem_pct".to_string(),
@@ -168,6 +172,10 @@ fn format_cores(d: LogDatum, _: LogCtx) -> String {
     d.num_cores.to_string()
 }
 
+fn format_memtotal(d: LogDatum, _: LogCtx) -> String {
+    (d.memtotal_gb.round() as isize).to_string()
+}
+
 fn format_user(d: LogDatum, _: LogCtx) -> String {
     d.user.clone()
 }
@@ -194,6 +202,10 @@ fn format_cpu_pct(d: LogDatum, _: LogCtx) -> String {
 
 fn format_mem_gb(d: LogDatum, _: LogCtx) -> String {
     (d.mem_gb.round() as isize).to_string()
+}
+
+fn format_res_gb(d: LogDatum, _: LogCtx) -> String {
+    (d.rssanon_gb.round() as isize).to_string()
 }
 
 fn format_cpukib(d: LogDatum, _: LogCtx) -> String {

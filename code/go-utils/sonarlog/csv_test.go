@@ -44,6 +44,7 @@ func TestCsvnamed1(t *testing.T) {
 		Cmd:        "secret",
 		CpuPct:     0.5,
 		CpuKib:     12,
+		RssAnonKib: 15,
 		Gpus:       "none",
 		GpuPct:     0.25,
 		GpuMemPct:  10,
@@ -52,7 +53,7 @@ func TestCsvnamed1(t *testing.T) {
 		CpuTimeSec: 1234,
 		Rolledup:   1,
 	}
-	expected := "v=abc,time=123,host=hi,cores=5,user=me,job=37,pid=1337,cmd=secret,cpu%=0.5,cpukib=12,gpus=none,gpu%=0.25,gpumem%=10,gpukib=14,gpufail=2,cputime_sec=1234,rolledup=1\n"
+	expected := "v=abc,time=123,host=hi,cores=5,memtotalkib=0,user=me,job=37,pid=1337,cmd=secret,cpu%=0.5,cpukib=12,rssanonkib=15,gpus=none,gpu%=0.25,gpumem%=10,gpukib=14,gpufail=2,cputime_sec=1234,rolledup=1\n"
 	s := string(reading.Csvnamed())
 	if s != expected {
 		t.Fatalf("Bad csv: %s", s)

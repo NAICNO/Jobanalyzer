@@ -268,9 +268,11 @@ pub fn merge_across_hosts_by_time(streams: MergedSampleStreams) -> MergedSampleS
 //   - hostname, command,  user, and job_id are as given to the function
 //   - timestamp is synthesized from the timestamps of R
 //   - num_cores is 0
+//   - memtotal_gb is 0.0
 //   - pid is 0
 //   - cpu_pct is the sum across the cpu_pct of R
 //   - mem_gb is the sum across the mem_gb of R
+//   - rssanon_gb is the sum across the rssanon_gb of R
 //   - gpus is the union of the gpus across R
 //   - gpu_pct is the sum across the gpu_pct of R
 //   - gpumem_pct is the sum across the gpumem_pct of R
@@ -536,6 +538,7 @@ fn sum_records(
 ) -> Box<LogEntry> {
     let cpu_pct = selected.iter().fold(0.0, |acc, x| acc + x.cpu_pct);
     let mem_gb = selected.iter().fold(0.0, |acc, x| acc + x.mem_gb);
+    let rssanon_gb = selected.iter().fold(0.0, |acc, x| acc + x.rssanon_gb);
     let gpu_pct = selected.iter().fold(0.0, |acc, x| acc + x.gpu_pct);
     let gpumem_pct = selected.iter().fold(0.0, |acc, x| acc + x.gpumem_pct);
     let gpumem_gb = selected.iter().fold(0.0, |acc, x| acc + x.gpumem_gb);
@@ -559,12 +562,14 @@ fn sum_records(
         timestamp,
         hostname,
         num_cores: 0,
+        memtotal_gb: 0.0,
         user,
         pid: 0,
         job_id,
         command,
         cpu_pct,
         mem_gb,
+        rssanon_gb,
         gpus,
         gpu_pct,
         gpumem_pct,
