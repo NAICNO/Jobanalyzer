@@ -24,7 +24,9 @@
 
     <select id=frequency name="Frequency" onchange="render()"></select>
     <input type=checkbox id=show_data name="Show data" onchange="render()" checked>Show data</input>
-    <input type=checkbox id=show_downtime name="Show downtime" onchange="render()">Show downtime</input>
+    <span id=downtime_cluster>
+      <input type=checkbox id=show_downtime name="Show downtime" onchange="render()">Show downtime</input>
+    </span>
 
     <div><canvas id="machine_load"></canvas></div>
 
