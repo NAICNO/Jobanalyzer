@@ -19,7 +19,7 @@ $sonar_dir/naicreport load \
 		      -config-file $script_dir/$cluster-config.json \
 		      -report-dir $report_dir \
 		      -data-dir $data_dir \
-		      -with-downtime \
+		      -with-downtime 5 \
 		      -tag monthly \
 		      -daily \
 		      -from 30d
@@ -29,7 +29,7 @@ $sonar_dir/naicreport load \
 		      -config-file $script_dir/$cluster-config.json \
 		      -report-dir $report_dir \
 		      -data-dir $data_dir \
-		      -with-downtime \
+		      -with-downtime 5 \
 		      -tag quarterly \
 		      -daily \
 		      -from 90d
