@@ -1,0 +1,96 @@
+<html>
+  <head>
+    <title>Query help</title>
+  </head>
+  <body>
+    <h1>Query help</h1>
+    
+    <p> The query expression selects a subset of all nodes by applying filters.  </p>
+
+    <h2> Expressions </h2>
+    
+    <p> Query expression syntax is pretty simple.  These are all expressions: </p>
+
+    <ul>
+      <li> A <em>hostname glob</em> is a wildcard expression selecting some hosts where "*" is a
+	wildcard that stands for any number of characters, ie, "c1-*" selects all nodes in the
+	"c1" group of nodes, while "c1*" selects the "c1", "c10", and "c11" groups.  "*" by itself
+	selects all nodes.
+
+      <li> An <em>abbreviation</em> is a word that stands for a pre-defined expression, see the
+	list below.  For example, the abbreviation "busy" stands for a complex expression that
+	selects all nodes that are deemed busy.
+
+      <li> A <em>relational expression</em> on the form <tt>fieldname <b>relation</b> value</tt>
+	selects nodes whose field <em>fieldname</em> has a numeric <em>value</em> that satisfies
+	the relational operator, for example, "cpu% > 50" means that the node must be using more
+	than 50% of its CPU capacity.  The relational operators are "&lt;", "&lt;=", ">", ">=",
+	and "=".  The field names are listed below.
+
+      <li> The <em>logical operations</em> <b>and</b> and <b>or</b> are used to combine query expressions, and
+	parentheses <b>(</b> and <b>)</b> are used to group them:
+	<tt>login* and (cpu% > 50 or mem% > 50)</tt>.
+	
+      <li> A set of selected nodes can be complemented by the <b>~</b> operator,
+	eg, <tt>~login*</tt> is any node except the login nodes.
+    </ul>
+
+    <h2> Field names </h2>
+      
+    <p> The field names currently defined for the dashboard are those that appear in the table on the
+      dashboard.  The "recent" columns have uncapitalized names ("cpu%") while the "longer" columns have
+      captitalized names ("Cpu%").</p>
+
+    <ul>
+      <li> "cpu%" - the "cpu_recent" field
+      <li> "Cpu%" - the "cpu_longer" field (etc)
+      <li> "mem%" - the "mem_recent" field
+      <li> "gpu%" - the "gpu_recent" field
+      <li> "gpumem%" - the "gpumem_recent" field
+      <li> "cpufail" - the "cpu_status" field
+      <li> "gpufail" - the "gpu_status" field
+      <li> "users" - the "users_recent" field
+      <li> "jobs" - the "jobs_recent" field
+      <li> "violators" - the "violators" field
+      <li> "zombies" - the "zombies" field
+    </ul>
+    
+    <p> Note in the above that "cpu" means "main processor" regardless of node type. </p>
+
+    <h2> Abbreviations </h2>
+
+    <p> The predefined abbreviations are these:
+      <ul>
+	<li> "compute" is "c*"
+	<li> "gpu" is "gpu*"
+	<li> "hugemem" is "hugemem*"
+	<li> "login" is "login*"
+	<li> "cpu-busy" is "cpu% >= 50"
+	<li> "cpu-idle" is "cpu% &lt; 50"
+	<li> "mem-busy" is "mem% >= 50"
+	<li> "mem-idle" is "mem% &lt; 50"
+	<li> "gpu-busy" is "gpu and gpu% >= 50"
+	<li> "gpu-idle" is "gpu and gpu% &lt; 50"
+	<li> "gpumem-busy" is "gpu and gpumem% >= 50"
+	<li> "gpumem-idle" is "gpu and gpumem% &lt; 50"
+	<li> "cpu-down" is "cpufail > 0"
+	<li> "gpu-down" is "gpu and gpufail > 0"
+	<li> "busy" is "cpu-busy or gpu-busy or mem-busy or gpumem-busy"
+	<li> "idle" is "cpu-idle and mem-idle and (~gpu or gpu-idle and gpumem-idle)"
+	<li> "down" is "cpu-down or gpu-down"
+      </ul>
+
+    <p> These have Capitalized variants for the "_longer" data where that makes sense, eg, "Idle")</p>
+
+    <p> For example, to find nodes with spare capacity, simply run "idle".  ("Idle" is a poor
+      moniker for something running at 49% utilization, so perhaps we want something more subtle.
+      <a href="https://github.com/NAICNO/Jobanalyzer/issues">File an issue here.</a>)</p>
+
+    <p> Perhaps you want hugemem nodes with regular compute capacity: try "hugemem and idle".</p>
+
+    <p> It's easy to add abbreviations - but at this time the abbreviations must be added in the
+      query engine, they can't be added by the user.
+      <a href="https://github.com/NAICNO/Jobanalyzer/issues">File an issue here.</a></p>
+
+  </body>
+</html>
