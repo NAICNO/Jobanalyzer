@@ -7,6 +7,9 @@ function machine_detail_onload() {
     let params = new URLSearchParams(document.location.search)
     CURRENT_HOST = params.get("host")
     document.title = CURRENT_HOST + " machine details"
+    if (!cluster_info(CURRENT_CLUSTER).hasDowntime) {
+        document.getElementById("downtime_cluster").remove()
+    }
     with_systems_and_frequencies(function (systems, frequencies) {
 	frequencies = [{text: "Moment-to-moment (last 24h)", value: "minutely"}, ...frequencies]
 	populateDropdown(document.getElementById("frequency"), frequencies)
@@ -36,7 +39,7 @@ function render() {
 function render_machine_load() {
     let frequency = document.getElementById("frequency").value
     let show_data = document.getElementById("show_data").checked
-    let show_downtime = document.getElementById("show_downtime").checked
+    let show_downtime = document.getElementById("show_downtime")?.checked
     let chart_node = document.getElementById("machine_load")
     let desc_node = document.getElementById("system_description")
 

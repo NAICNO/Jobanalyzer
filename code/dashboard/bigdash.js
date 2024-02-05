@@ -97,7 +97,6 @@ function setupLinks() {
     if (info.deadweight) {
         document.getElementById("deadweight_link").href=`deadweight.html?cluster=${CURRENT_CLUSTER}`
     }
-
     document.getElementById("jobquery_link").href=`jobquery.html?cluster=${CURRENT_CLUSTER}`
 
     let subnames = info.subclusters
