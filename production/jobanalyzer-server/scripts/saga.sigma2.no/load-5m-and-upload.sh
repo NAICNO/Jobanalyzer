@@ -26,7 +26,7 @@ $sonar_dir/naicreport load \
 		      -config-file $script_dir/$cluster-config.json \
 		      -data-dir $data_dir \
 		      -report-dir $report_dir \
-		      -with-downtime \
+		      -with-downtime 5 \
 		      -tag minutely \
 		      -none
 

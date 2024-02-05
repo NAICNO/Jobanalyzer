@@ -47,8 +47,9 @@
 //  -none
 //    Do not bucket data.
 //
-//  -with-downtime
-//    Include downtime data for hosts and GPUs in the report.
+//  -with-downtime interval
+//    Include downtime data for hosts and GPUs in the report, the `interval` is the sampling
+//    interval in minutes for the cluster.
 //
 // Debugging / development options:
 //
@@ -88,21 +89,35 @@ import (
 	"naicreport/util"
 )
 
-var verbose bool
+// Command-line options
+var (
+	sonalyzePath   string
+	configFilename string
+	reportDir      string
+	tag            string
+	group          string
+	hourly         bool
+	daily          bool
+	none           bool
+	withDowntime   uint
+	filterOpts     *util.DateFilterOptions
+	filesOpts      *util.DataFilesOptions
+	verbose        bool
+)
 
 func Load(progname string, args []string) error {
-	sonalyzePath, configFilename, reportDir, tag, group, hourly, daily, none, downtime, logFilterOpts, logFileOpts, err := commandLine()
+	err := commandLine()
 	if err != nil {
 		return err
 	}
 
 	// Assemble sonalyze arguments
 
-	loadArguments := loadInitialArgs(configFilename)
+	loadArguments := loadInitialArgs()
 	downtimeArguments := downtimeInitialArgs()
 
-	loadArguments = util.ForwardDateFilterOptions(loadArguments, logFilterOpts)
-	downtimeArguments = util.ForwardDateFilterOptions(downtimeArguments, logFilterOpts)
+	loadArguments = util.ForwardDateFilterOptions(loadArguments, filterOpts)
+	downtimeArguments = util.ForwardDateFilterOptions(downtimeArguments, filterOpts)
 
 	// This handling of bucketing isn't completely clean but it's good enough for not-insane users.
 	// We can use flag.Visit() to do a better job, if we want.
@@ -125,7 +140,7 @@ func Load(progname string, args []string) error {
 		if bucketing == "none" {
 			return errors.New("Cannot --group together with --none")
 		}
-		if downtime {
+		if withDowntime > 0 {
 			return errors.New("Cannot --group together with --with-downtime")
 		}
 		loadArguments = append(loadArguments, "--group")
@@ -141,8 +156,8 @@ func Load(progname string, args []string) error {
 
 	// For -- this must come last, so do standard log options last always
 
-	loadArguments = util.ForwardDataFilesOptions(loadArguments, "--data-path", logFileOpts)
-	downtimeArguments = util.ForwardDataFilesOptions(downtimeArguments, "--data-path", logFileOpts)
+	loadArguments = util.ForwardDataFilesOptions(loadArguments, "--data-path", filesOpts)
+	downtimeArguments = util.ForwardDataFilesOptions(downtimeArguments, "--data-path", filesOpts)
 
 	// Obtain all the data
 
@@ -163,7 +178,7 @@ func Load(progname string, args []string) error {
 	}
 
 	var downtimeData []*downtimeDataByHost
-	if downtime {
+	if withDowntime > 0 {
 		if verbose {
 			fmt.Printf("Sonalyze downtime arguments\n%v", downtimeArguments)
 		}
@@ -180,11 +195,11 @@ func Load(progname string, args []string) error {
 		}
 	}
 
-	return writePlots(reportDir, tag, bucketing, group != "", loadData, downtimeData)
+	return writePlots(bucketing, group != "", loadData, downtimeData)
 }
 
 func writePlots(
-	reportDir, tag, bucketing string,
+	bucketing string,
 	grouping bool,
 	loadData []*loadDataBySystem,
 	downtimeData []*downtimeDataByHost,
@@ -356,9 +371,12 @@ func max(i, j int) int {
 // date.  Then we can just slurp that in here and avoid overhead and complexity.
 
 func downtimeInitialArgs() []string {
+	if withDowntime == 0 {
+		panic("Should not happen")
+	}
 	return []string{
 		"uptime",
-		"--interval", "4",
+		"--interval", fmt.Sprintf("%d", withDowntime),
 		"--only-down",
 		"--fmt=json,device,host,start,end",
 	}
@@ -464,7 +482,7 @@ type loadDataBySystem struct {
 // In the returned data, the point data in the inner list are sorted by ascending time, and the
 // outer list is sorted by ascending host name.
 
-func loadInitialArgs(configFilename string) []string {
+func loadInitialArgs() []string {
 	return []string{
 		"load",
 		"--config-file", configFilename,
@@ -541,19 +559,9 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 	return allData, nil
 }
 
-func commandLine() (
-	sonalyzePath string,
-	configFilename string,
-	reportDir string,
-	tag string,
-	group string,
-	hourly, daily, none, downtime bool,
-	filterOpts *util.DateFilterOptions,
-	fileOpts *util.DataFilesOptions,
-	err error,
-) {
+func commandLine() error {
 	opts := flag.NewFlagSet(os.Args[0]+" load", flag.ContinueOnError)
-	fileOpts = util.AddDataFilesOptions(opts, "data-dir", "Root `directory` of data store")
+	filesOpts = util.AddDataFilesOptions(opts, "data-dir", "Root `directory` of data store")
 	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
 	opts.StringVar(&configFilename, "config-file", "", "Read cluster configuration from `filename` (required)")
 	filterOpts = util.AddDateFilterOptions(opts)
@@ -564,30 +572,30 @@ func commandLine() (
 	opts.BoolVar(&hourly, "hourly", true, "Bucket data hourly")
 	opts.BoolVar(&daily, "daily", false, "Bucket data daily")
 	opts.BoolVar(&none, "none", false, "Do not bucket data")
-	opts.BoolVar(&downtime, "with-downtime", false, "Include downtime data")
+	opts.UintVar(&withDowntime, "with-downtime", 0, "Include downtime data for this sampling `interval` (minutes)")
 	opts.BoolVar(&verbose, "v", false, "Verbose (debugging) output")
 	var dataPath string
 	opts.StringVar(&dataPath, "data-path", "", "Obsolete name for -data-dir")
 	var outputPath string
 	opts.StringVar(&outputPath, "output-path", "", "Obsolete name for -report-dir")
-	err = opts.Parse(os.Args[2:])
+	err := opts.Parse(os.Args[2:])
 	if err == flag.ErrHelp {
 		os.Exit(0)
 	}
 	if err != nil {
-		return
+		return err
 	}
 	err5 := util.RectifyDateFilterOptions(filterOpts, opts)
-	if fileOpts.Path == "" && fileOpts.Files == nil && dataPath != "" {
-		fileOpts.Path = dataPath
+	if filesOpts.Path == "" && filesOpts.Files == nil && dataPath != "" {
+		filesOpts.Path = dataPath
 	}
-	err1 := util.RectifyDataFilesOptions(fileOpts, opts)
-	sonalyzePath, err2 := options.RequireCleanPath(sonalyzePath, "-sonalyze")
-	configFilename, err3 := options.RequireCleanPath(configFilename, "-config-file")
+	var err2, err3, err4 error
+	err1 := util.RectifyDataFilesOptions(filesOpts, opts)
+	sonalyzePath, err2 = options.RequireCleanPath(sonalyzePath, "-sonalyze")
+	configFilename, err3 = options.RequireCleanPath(configFilename, "-config-file")
 	if reportDir == defaultReportDir && outputPath != "" {
 		reportDir = outputPath
 	}
-	reportDir, err4 := options.RequireCleanPath(reportDir, "-report-dir")
-	err = errors.Join(err1, err2, err3, err4, err5)
-	return
+	reportDir, err4 = options.RequireCleanPath(reportDir, "-report-dir")
+	return errors.Join(err1, err2, err3, err4, err5)
 }

@@ -17,7 +17,7 @@ $sonar_dir/naicreport load \
 		      -sonalyze $sonar_dir/sonalyze \
 		      -config-file $script_dir/$cluster-config.json \
 		      -data-dir $data_dir \
-		      -with-downtime \
+		      -with-downtime 5 \
 		      -tag daily \
 		      -hourly \
 		      -report-dir $report_dir
@@ -26,7 +26,7 @@ $sonar_dir/naicreport load \
 		      -sonalyze $sonar_dir/sonalyze \
 		      -config-file $script_dir/$cluster-config.json \
 		      -data-dir $data_dir \
-		      -with-downtime \
+		      -with-downtime 5 \
 		      -tag weekly \
 		      -hourly \
 		      -from 7d \

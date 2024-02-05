@@ -14,7 +14,7 @@ $NAICREPORT load \
             -output-path $OUTPUT_DIR \
             -tag test \
             -hourly -from 2023-10-09 -to 2023-10-10 \
-            -with-downtime \
+            -with-downtime 5 \
             -- load-smoketest.csv
 exitcode=$?
 if (( $exitcode != 0 )); then
