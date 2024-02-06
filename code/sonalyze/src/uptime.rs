@@ -81,7 +81,7 @@ pub fn aggregate_and_print_uptime(
     from_incl: Timestamp,
     to_excl: Timestamp,
     print_args: &UptimePrintArgs,
-    _meta_args: &MetaArgs,
+    meta_args: &MetaArgs,
     mut entries: Vec<Box<LogEntry>>,
 ) -> Result<()> {
     // We work by sorting by hostname and timestamp and then scanning the sorted list
@@ -127,9 +127,16 @@ pub fn aggregate_and_print_uptime(
             continue;
         }
 
+        if meta_args.verbose {
+            println!("{}: {host_start}..{host_end} inclusive, i={i}", host_first.hostname);
+        }
+
         // If the host is down at the start, push out a record saying so.  Then we start in the "up"
         // state always.
         if !delta_t_le(from_incl, host_first.timestamp, cutoff) {
+            if meta_args.verbose {
+                println!("  Down at start");
+            }
             if !print_args.only_up {
                 reports.push(new_report(
                     "host",
@@ -146,6 +153,9 @@ pub fn aggregate_and_print_uptime(
         // If the host is down at the end, push out a record saying so. Note this is out of order;
         // we'll re-sort later anyway.
         if !delta_t_le(host_last.timestamp, to_excl, cutoff) {
+            if meta_args.verbose {
+                println!("  Down at end: {} {} {}", host_last.timestamp, to_excl, cutoff);
+            }
             if !print_args.only_up {
                 reports.push(new_report(
                     "host",
@@ -175,6 +185,9 @@ pub fn aggregate_and_print_uptime(
             // Now j points past the last record in the up window.  There's a chance here that start
             // and end are the same value (only one sample between two "down" windows); nothing to
             // be done about that.
+            if meta_args.verbose {
+                println!("  Up window {window_start}..{} inclusive", j-1);
+            }
             if !print_args.only_down {
                 reports.push(new_report(
                     "host",
@@ -195,6 +208,9 @@ pub fn aggregate_and_print_uptime(
 
             // System went down in the window.  The window in which it is down is entirely between
             // these two records.  The fact that there is a following record means it came up again.
+            if meta_args.verbose {
+                println!("  Down window {}..{} inclusive", j-1, j);
+            }
             if !print_args.only_up {
                 reports.push(new_report(
                     "host",

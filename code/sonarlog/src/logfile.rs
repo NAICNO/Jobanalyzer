@@ -363,7 +363,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                 discarded += 1;
                                 continue 'outer;
                             }
-                            (rssanon_gb, failed) = get_f64(&field[12..], 1.0 / (1024.0 * 1024.0));
+                            (rssanon_gb, failed) = get_f64(&field[11..], 1.0 / (1024.0 * 1024.0));
                         } else if field.starts_with("gpus=") {
                             if gpus.is_some() {
                                 discarded += 1;
