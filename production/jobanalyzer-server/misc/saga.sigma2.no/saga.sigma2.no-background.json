@@ -7,6 +7,7 @@
  },
  {
   "hostname": "gpu-12-[1-8]",
+  "cross_node_jobs":true,
   "gpu_cards": 4,
   "gpumem_gb": 160,
   "metadata":[{"k":"gpu","v":"NVIDIA A100"}]

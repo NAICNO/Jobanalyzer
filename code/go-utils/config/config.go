@@ -40,9 +40,6 @@ type SystemConfig struct {
 	// GB of installed main RAM
 	MemGB int `json:"mem_gb"`
 
-	// If true, then jobs can span nodes
-	MultiNode bool `json:"multinode,omitempty"`
-
 	// Number of installed cards
 	GpuCards int `json:"gpu_cards,omitempty"`
 

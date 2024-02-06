@@ -90,7 +90,7 @@ func main() {
 		memMB                                   uint64
 		sockets, cores, threads, gpus, gpuMemGB int
 		manufacturer, gpuModel, suffix          string
-		gpuMemPct, slurmNode                    bool
+		gpuMemPct, crossNode                    bool
 	}
 
 	var systems = make(map[sysAttrs][]string)
@@ -120,12 +120,14 @@ func main() {
 		if _, found := features["amd"]; found {
 			manufacturer = "amd"
 		}
+		var crossNodeJobs bool
 		var gpus int
 		var gpuMemGB int
 		var gpuMemPct bool
 		var gpuModel string
 		var suffix string
 		if background, found := auxConfig[name]; found {
+			crossNodeJobs = background.CrossNodeJobs
 			gpus = background.GpuCards
 			gpuMemGB = background.GpuMemGB
 			gpuMemPct = background.GpuMemPct
@@ -155,7 +157,7 @@ func main() {
 			manufacturer: manufacturer,
 			gpuModel:     gpuModel,
 			gpuMemPct:    gpuMemPct,
-			slurmNode:    true,
+			crossNode:    crossNodeJobs,
 			suffix:       suffix,
 		}
 		if bag, found := systems[sd]; found {
@@ -191,14 +193,14 @@ func main() {
 				gpu,
 			)
 			results = append(results, &config.SystemConfig{
-				Hostname:    h + desc.suffix,
-				Description: description,
-				CpuCores:    desc.sockets * desc.cores * desc.threads,
-				MemGB:       int(memgb),
-				MultiNode:   desc.slurmNode,
-				GpuCards:    desc.gpus,
-				GpuMemGB:    desc.gpuMemGB,
-				GpuMemPct:   desc.gpuMemPct,
+				Hostname:      h + desc.suffix,
+				Description:   description,
+				CrossNodeJobs: desc.crossNode,
+				CpuCores:      desc.sockets * desc.cores * desc.threads,
+				MemGB:         int(memgb),
+				GpuCards:      desc.gpus,
+				GpuMemGB:      desc.gpuMemGB,
+				GpuMemPct:     desc.gpuMemPct,
 			})
 		}
 	}
