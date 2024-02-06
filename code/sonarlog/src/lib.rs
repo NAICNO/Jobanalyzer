@@ -141,8 +141,8 @@ pub use logfile::union_gpuset;
 
 pub use logfile::gpuset_to_string;
 
-// Return an empty Box<LogEntry> with the given time and host.  The user and command fields are "_zero_",
-// so that we can recognize it; other fields are generally zero.
+// Return an empty Box<LogEntry> with the given time and host.  The user and command fields are
+// "_zero_", so that we can recognize it; other fields are generally zero.
 
 pub use logfile::empty_logentry;
 

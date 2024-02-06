@@ -41,6 +41,7 @@ const (
 
 // Sorting boilerplate.
 type configSlice []*config.SystemConfig
+
 func (a configSlice) Len() int           { return len(a) }
 func (a configSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a configSlice) Less(i, j int) bool { return a[i].Hostname < a[j].Hostname }

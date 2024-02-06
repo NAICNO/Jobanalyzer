@@ -7,16 +7,16 @@
 /// - Tagged and untagged records can be mixed in a file in any order; this allows files to be
 ///   catenated and sonar to be updated at any time.
 ///
-/// - It's an important feature of this program that a corrupted record is dropped silently.  (We can
-///   add a switch to be noisy about it if that is useful for interactive log testing.)  The reason
-///   is that appending-to-log is not atomic wrt reading-from-log and it is somewhat likely that
-///   there will be situations where the analysis code runs into a partly-written (corrupted-looking)
-///   record.
+/// - It's an important feature of this program that a corrupted record is dropped silently.  (We
+///   can add a switch to be noisy about it if that is useful for interactive log testing.)  The
+///   reason is that appending-to-log is not atomic wrt reading-from-log and it is somewhat likely
+///   that there will be situations where the analysis code runs into a partly-written
+///   (corrupted-looking) record.
 ///
-/// - There's an assumption here that if the CSV decoder encounters illegal UTF8 - or for that matter
-///   any other parse error, but bad UTF8 is a special case - it will make progress to the end of the
-///   record anyway (as CSV is line-oriented).  This is a reasonable assumption but I've found no
-///   documentation that guarantees it.
+/// - There's an assumption here that if the CSV decoder encounters illegal UTF8 - or for that
+///   matter any other parse error, but bad UTF8 is a special case - it will make progress to the
+///   end of the record anyway (as CSV is line-oriented).  This is a reasonable assumption but I've
+///   found no documentation that guarantees it.
 use crate::{parse_timestamp, GpuStatus, LogEntry, Timestamp};
 
 use anyhow::Result;
@@ -32,9 +32,9 @@ use std::str::FromStr;
 ///  - the set is known to be nonempty but have (some) unknown members, this is None
 ///
 /// During processing, the set starts out as Some({}).  If a device reports "unknown" GPUs then the
-/// set can transition from Some({}) to None or from Some({a,b,..}) to None.  Once in the None state,
-/// the set will stay in that state.  There is no representation for some known + some unknown GPUs,
-/// it is not believed to be worthwhile.
+/// set can transition from Some({}) to None or from Some({a,b,..}) to None.  Once in the None
+/// state, the set will stay in that state.  There is no representation for some known + some
+/// unknown GPUs, it is not believed to be worthwhile.
 
 pub type GpuSet = Option<HashSet<u32>>;
 

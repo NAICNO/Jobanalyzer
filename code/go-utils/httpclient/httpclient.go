@@ -13,9 +13,9 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"os"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"go-utils/status"

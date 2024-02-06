@@ -257,4 +257,3 @@ func compressRange(xs []int) string {
 	s = "[" + s + "]"
 	return s
 }
-

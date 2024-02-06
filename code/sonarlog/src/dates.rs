@@ -69,8 +69,8 @@ pub fn truncate_to_day(t: Timestamp) -> Timestamp {
     timestamp_from_ymd(t.year(), t.month(), t.day())
 }
 
-/// Zero out the minute, second, and subsecond components and clamp 0<=hour<12 to 0 and 12<=hour<24 to
-/// 12.  The contract for Timelike::hour() is that it returns a value<24.
+/// Zero out the minute, second, and subsecond components and clamp 0<=hour<12 to 0 and 12<=hour<24
+/// to 12.  The contract for Timelike::hour() is that it returns a value<24.
 
 pub fn truncate_to_half_day(t: Timestamp) -> Timestamp {
     timestamp_from_ymdhms(

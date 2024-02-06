@@ -59,4 +59,3 @@ func NewFileHandler(
 		// The write may have gone badly but there you have it.  Let the client mop it up.
 	}
 }
-

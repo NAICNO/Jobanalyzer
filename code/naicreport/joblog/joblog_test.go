@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	sonartime "go-utils/time"
-	"go-utils/freecsv"
 	"go-utils/filesys"
+	"go-utils/freecsv"
+	sonartime "go-utils/time"
 )
 
 func TestReadLogFiles(t *testing.T) {
