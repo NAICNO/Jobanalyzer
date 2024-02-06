@@ -20,6 +20,11 @@
 //    A tag for the report describing whose data it contains, typically a human-readable string.
 //    The tag is included in the report and may be displayed by the dashboard code.
 //
+// Developer options:
+//
+//  -v
+//    Misc debugging output, on stderr
+//
 // Description:
 //
 // The program examines raw Sonar data as well as the state databases for cpuhog/deadweight/... and
@@ -69,12 +74,23 @@ var longerCutoff = nowUTC.Add(-LONGER_MINS * 60 * nanosPerSec)
 var longCutoff = nowUTC.Add(-LONG_MINS * 60 * nanosPerSec)
 
 type optionsPkg struct {
-	fileOpts   *util.DataFilesOptions
+	filesOpts  *util.DataFilesOptions
 	filterOpts *util.DateFilterOptions
 }
 
+// Command-line arguments
+var (
+	sonalyzePath   string
+	configFilename string
+	stateDir       string
+	tag            string
+	filesOpts      *util.DataFilesOptions
+	filterOpts     *util.DateFilterOptions
+	verbose        bool
+)
+
 func Report(progname string, args []string) error {
-	sonalyzePath, configFilename, stateDir, tag, fileOpts, filterOpts, err := commandLine()
+	err := commandLine()
 	if err != nil {
 		return err
 	}
@@ -88,7 +104,7 @@ func Report(progname string, args []string) error {
 	// centralized database mapping host -> glanceRecord that is just passed around for everyone to
 	// use.  But it's not obvious the code would be as easy to understand.
 
-	logOpts := &optionsPkg{fileOpts, filterOpts}
+	logOpts := &optionsPkg{filesOpts, filterOpts}
 	ujbh, err := collectUsersAndJobs(sonalyzePath, logOpts)
 	if err != nil {
 		return err
@@ -343,7 +359,7 @@ func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStat
 	var rawData []*sonalyzeUptimeData
 	err := runAndUnmarshal(
 		sonalyzePath,
-		[]string{"uptime", "--interval", "4", "--fmt=json,host,device,state"},
+		[]string{"uptime", "--interval", "5", "--fmt=json,host,device,state"},
 		progOpts,
 		&rawData)
 	if err != nil {
@@ -357,19 +373,24 @@ func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStat
 	// worry about checking that.  Scanning from the end of the input and encountering a new host:
 	//
 	//  - if the state is "up"
-	//    - if the device is "cpu" then they are both up (they were both down but are now up)
+	//    - if the device is "host" then they are both up (they were both down but are now up)
 	//    - otherwise the device is "gpu", and they are both up (the gpu was down but is now up)
 	//  - else
 	//    - if the device is "gpu" then the cpu is up but the gpu is down
-	//    - otherwise the device is "cpu" and they are both down
+	//    - otherwise the device is "host" and they are both down
 
+	if verbose {
+		for _, r := range rawData {
+			fmt.Fprintln(os.Stderr, r)
+		}
+	}
 	hosts := make(map[string]*systemStatusByHost)
 	for i := len(rawData) - 1; i >= 0; i-- {
 		d := rawData[i]
 		if _, found := hosts[d.Host]; !found {
 			hosts[d.Host] = &systemStatusByHost{
 				hostname: d.Host,
-				cpu_down: d.State == "down" && d.Device == "cpu",
+				cpu_down: d.State == "down" && d.Device == "host",
 				gpu_down: d.State == "down",
 			}
 		}
@@ -390,8 +411,11 @@ func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStat
 // Load averages
 
 type loadAveragesByHost struct {
-	hostname                                                                                             string
-	cpu_recent, cpu_longer, mem_recent, mem_longer, gpu_recent, gpu_longer, gpumem_recent, gpumem_longer float64
+	hostname                     string
+	cpu_recent, cpu_longer       float64
+	mem_recent, mem_longer       float64
+	gpu_recent, gpu_longer       float64
+	gpumem_recent, gpumem_longer float64
 }
 
 func collectLoadAverages(
@@ -586,9 +610,14 @@ func countDatabaseEntries(stateFilename string) ([]*badJobsByHost, error) {
 //
 // Utilities
 
-func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *optionsPkg, rawData any) error {
+func runAndUnmarshal(
+	sonalyzePath string,
+	arguments []string,
+	progOpts *optionsPkg,
+	rawData any,
+) error {
 	arguments = util.ForwardDateFilterOptions(arguments, progOpts.filterOpts)
-	arguments = util.ForwardDataFilesOptions(arguments, "--data-path", progOpts.fileOpts)
+	arguments = util.ForwardDataFilesOptions(arguments, "--data-path", progOpts.filesOpts)
 	sonalyzeOutput, sonalyzeErrOutput, err := process.RunSubprocess(sonalyzePath, arguments)
 	if err != nil {
 		return err
@@ -610,44 +639,39 @@ func runAndUnmarshal(sonalyzePath string, arguments []string, progOpts *optionsP
 	return nil
 }
 
-func commandLine() (
-	sonalyzePath string,
-	configFilename string,
-	stateDir string,
-	tag string,
-	fileOpts *util.DataFilesOptions,
-	filterOpts *util.DateFilterOptions,
-	err error,
-) {
+func commandLine() error {
 	opts := flag.NewFlagSet(os.Args[0]+" at-a-glance", flag.ContinueOnError)
-	fileOpts = util.AddDataFilesOptions(opts, "data-dir", "Root `directory` of data store")
+	filesOpts = util.AddDataFilesOptions(opts, "data-dir", "Root `directory` of data store")
 	filterOpts = util.AddDateFilterOptions(opts)
 	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
-	opts.StringVar(&configFilename, "config-file", "", "Read cluster configuration from `filename` (required)")
-	opts.StringVar(&stateDir, "state-dir", "", "Directory holding databases for system state (required)")
+	opts.StringVar(&configFilename, "config-file", "",
+		"Read cluster configuration from `filename` (required)")
+	opts.StringVar(&stateDir, "state-dir", "",
+		"Directory holding databases for system state (required)")
 	opts.StringVar(&tag, "tag", "", "Annotate output with `cluster-name` (optional)")
 	var dataPath string
 	opts.StringVar(&dataPath, "data-path", "", "Obsolete name for -data-dir")
 	var statePath string
 	opts.StringVar(&statePath, "state-path", "", "Obsolete name for -state-dir")
-	err = opts.Parse(os.Args[2:])
+	opts.BoolVar(&verbose, "v", false, "Verbose and debug output")
+	err := opts.Parse(os.Args[2:])
 	if err == flag.ErrHelp {
 		os.Exit(0)
 	}
 	if err != nil {
-		return
+		return err
 	}
-	if fileOpts.Path == "" && fileOpts.Files == nil && dataPath != "" {
-		fileOpts.Path = dataPath
+	if filesOpts.Path == "" && filesOpts.Files == nil && dataPath != "" {
+		filesOpts.Path = dataPath
 	}
-	err1 := util.RectifyDataFilesOptions(fileOpts, opts)
-	err5 := util.RectifyDateFilterOptions(filterOpts, opts)
-	sonalyzePath, err2 := options.RequireCleanPath(sonalyzePath, "-sonalyze")
-	configFilename, err3 := options.RequireCleanPath(configFilename, "-config-file")
+	var err1, err2, err3, err4, err5 error
+	err1 = util.RectifyDataFilesOptions(filesOpts, opts)
+	err5 = util.RectifyDateFilterOptions(filterOpts, opts)
+	sonalyzePath, err2 = options.RequireCleanPath(sonalyzePath, "-sonalyze")
+	configFilename, err3 = options.RequireCleanPath(configFilename, "-config-file")
 	if stateDir == "" && statePath != "" {
 		stateDir = statePath
 	}
-	stateDir, err4 := options.RequireCleanPath(stateDir, "-state-dir")
-	err = errors.Join(err1, err2, err3, err4, err5)
-	return
+	stateDir, err4 = options.RequireCleanPath(stateDir, "-state-dir")
+	return errors.Join(err1, err2, err3, err4, err5)
 }
