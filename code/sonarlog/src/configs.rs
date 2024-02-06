@@ -5,6 +5,10 @@
 ///
 ///   hostname - string, the fully qualified and unique host name of the node
 ///   description - string, optional, arbitrary text describing the system
+///   cross_node_jobs - bool, optional, expressing that jobs on this node can be merged with
+///                     jobs on other nodes in the same cluster where the flag is also set,
+///                     because the job numbers come from the same cluster-wide source
+///                     (typically slurm).  Also see the --batch option.
 ///   cpu_cores - integer, the number of hyperthreads
 ///   mem_gb - integer, the amount of main memory in gigabytes
 ///   gpu_cards - integer, the number of gpu cards on the node
@@ -27,6 +31,7 @@ use std::path;
 pub struct System {
     pub hostname: String,
     pub description: String,
+    pub cross_node_jobs: bool,
     pub cpu_cores: usize,
     pub mem_gb: usize,
     pub gpu_cards: usize,
@@ -61,6 +66,8 @@ pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
                         bail!("Field 'description' must have a string value");
                     }
                 }
+                let cross_node_jobs = grab_bool_opt(&fields, "cross_node_jobs")?;
+                sys.cross_node_jobs = cross_node_jobs.or(Some(false)).unwrap();
                 sys.cpu_cores = grab_usize(&fields, "cpu_cores")?;
                 sys.mem_gb = grab_usize(&fields, "mem_gb")?;
                 let gpu_cards = grab_usize_opt(&fields, "gpu_cards")?;

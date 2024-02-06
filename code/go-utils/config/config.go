@@ -30,6 +30,10 @@ type SystemConfig struct {
 	// End-user description, not parseable
 	Description string `json:"description"`
 
+	// True iff a job on this node can be merged with a job from a different node within an
+	// appropriate time window if their job numbers are the same.
+	CrossNodeJobs bool `json:"cross_node_jobs,omitempty"`
+
 	// Total number of cores x threads
 	CpuCores int `json:"cpu_cores"`
 
@@ -54,7 +58,7 @@ type SystemConfig struct {
 }
 
 // Get the system config if possible, returning a map from expanded host name to information for the
-// host.  If `lenient` is true then checks for CpuCores and MemGB are omitted.
+// host.  If `lenient` is true then the checks for CpuCores and MemGB are omitted.
 
 func ReadConfig(configFilename string, lenient bool) (map[string]*SystemConfig, error) {
 	var configInfo []*SystemConfig
