@@ -291,7 +291,8 @@ pub fn aggregate_and_print_jobs(
 // This function collects the data per job and returns a vector of (aggregate, records) pairs where
 // the aggregate describes the job in aggregate and the records is a synthesized stream of sample
 // records for the job, based on all the input streams for the job.  The manner of the synthesis
-// depends on arguments to the program: with --batch we merge across hosts, otherwise not.
+// depends on arguments to the program: with --batch we merge across all hosts; otherwise the config
+// file can specify the hosts to merge across; otherwise we do not merge.
 //
 // TODO: Mildly worried about performance here.  We're computing a lot of attributes that we may or
 // may not need and testing them even if they are not relevant.  But macro-effects may be more
@@ -301,7 +302,7 @@ pub fn aggregate_and_print_jobs(
 fn aggregate_and_filter_jobs(
     system_config: &Option<HashMap<String, sonarlog::System>>,
     filter_args: &JobFilterAndAggregationArgs,
-    streams: InputStreamSet,
+    mut streams: InputStreamSet,
     bounds: &Timebounds,
 ) -> Vec<JobSummary> {
     // Convert the aggregation filter options to a useful form.
@@ -408,8 +409,47 @@ fn aggregate_and_filter_jobs(
 
     // Select streams and synthesize a merged stream, and then aggregate and print it.
 
+    // First compute whether any of the nodes allow jobs to be merged across nodes.
+    let any_mergeable_nodes =
+        if let Some(ref info) = system_config {
+            info.iter().any(|(_,sys)| sys.cross_node_jobs)
+        } else {
+            false
+        };
+
     let (mut jobs, bounds) = if filter_args.batch {
         sonarlog::merge_by_job(streams, bounds)
+    } else if any_mergeable_nodes {
+        // Look to the config to find nodes that have cross_node_jobs set, and merge their
+        // streams as if by --batch; the remaining streams are merged as if by !--batch, and the
+        // two sets of merged jobs are combined into one set.
+        let info = system_config.as_ref().unwrap();
+        let mut mergeable = InputStreamSet::new();
+        let mut m_bounds = Timebounds::new();
+        let mut solo = InputStreamSet::new();
+        let mut s_bounds = Timebounds::new();
+        for (k,v) in streams.drain() {
+            let bound = bounds.get(&k.0).unwrap();
+            if let Some(sys) = info.get(&k.0) {
+                if sys.cross_node_jobs {
+                    m_bounds.insert(k.0.clone(), bound.clone());
+                    mergeable.insert(k,v);
+                } else {
+                    s_bounds.insert(k.0.clone(), bound.clone());
+                    solo.insert(k,v);
+                }
+            } else {
+                s_bounds.insert(k.0.clone(), bound.clone());
+                solo.insert(k,v);
+            }
+        }
+        let (mut merged_jobs, mut merged_bounds) = sonarlog::merge_by_job(mergeable, &m_bounds);
+        let mut other_jobs = sonarlog::merge_by_host_and_job(solo);
+        merged_jobs.append(&mut other_jobs);
+        for (k, v) in s_bounds.drain() {
+            merged_bounds.insert(k, v);
+        }
+        (merged_jobs, merged_bounds)
     } else {
         (sonarlog::merge_by_host_and_job(streams), bounds.clone())
     };
