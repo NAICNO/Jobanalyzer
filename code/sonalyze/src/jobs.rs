@@ -483,14 +483,14 @@ fn aggregate_job(
             rmem_avg = (mem_avg * 100.0) / mem;
             rmem_peak = (mem_peak * 100.0) / mem;
 
-            rgpu_avg = gpu_avg / gpu_cards;
-            rgpu_peak = gpu_peak / gpu_cards;
+            rgpu_avg = if gpu_cards > 0.0 { gpu_avg / gpu_cards } else { 0.0 };
+            rgpu_peak = if gpu_cards > 0.0 { gpu_peak / gpu_cards } else { 0.0 };
 
             // If we have a config then logclean will have computed proper GPU memory values for the
             // job, so we need not look to conf.gpumem_pct here.  If we don't have a config then we
             // don't care about these figures anyway.
-            rgpumem_avg = gpumem_avg / gpumem;
-            rgpumem_peak = gpumem_peak / gpumem;
+            rgpumem_avg = if gpumem > 0.0 { gpumem_avg / gpumem } else { 0.0 };
+            rgpumem_peak = if gpumem > 0.0 { gpumem_peak / gpumem } else { 0.0 };
         }
     }
 
