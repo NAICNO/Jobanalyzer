@@ -69,6 +69,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"syscall"
 
 	"go-utils/alias"
@@ -276,7 +277,7 @@ func requestHandler(
 			path.Join(jobanalyzerPath, "data", clusterName),
 		)
 		switch command {
-		case "job", "load":
+		case "jobs", "load":
 			arguments = append(
 				arguments,
 				"--config-file",
@@ -286,6 +287,9 @@ func requestHandler(
 
 		// Run the command and report the result
 
+		if verbose {
+			status.Infof("Command: %s %s", path.Join(jobanalyzerPath, "sonalyze"), strings.Join(arguments, " "))
+		}
 		stdout, stderr, err := process.RunSubprocess(path.Join(jobanalyzerPath, "sonalyze"), arguments)
 		if err != nil {
 			w.WriteHeader(400)
