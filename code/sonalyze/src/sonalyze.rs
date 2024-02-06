@@ -357,7 +357,8 @@ impl UrlBuilder {
 
 #[derive(Args, Debug)]
 pub struct ConfigFileArg {
-    /// File containing JSON data with system information, for when we want to print or use system-relative values [default: none]
+    /// File containing JSON data with system information, for when we want to print or use
+    /// system-relative values [default: none]
     #[arg(long)]
     config_file: Option<String>,
 }
@@ -504,7 +505,8 @@ pub struct JobFilterAndAggregationArgs {
     #[arg(long, default_value_t = 0)]
     min_rgpumem_peak: usize,
 
-    /// Select only jobs with at least this much runtime, format `WwDdHhMm`, all parts optional [default: 0m]
+    /// Select only jobs with at least this much runtime, format `WwDdHhMm`, all parts
+    /// optional [default: 0m]
     #[arg(long, value_parser = run_time)]
     min_runtime: Option<chrono::Duration>,
 
@@ -528,7 +530,8 @@ pub struct JobFilterAndAggregationArgs {
     #[arg(long, default_value_t = false)]
     zombie: bool,
 
-    /// Aggregate data across hosts (appropriate for batch systems)
+    /// Aggregate data across all hosts (appropriate for batch systems, but usually specified in the
+    /// config file, not here)
     #[arg(long, short, default_value_t = false)]
     batch: bool,
 }
