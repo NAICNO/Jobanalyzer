@@ -79,18 +79,20 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
 /// Each output stream is sorted ascending by timestamp.  No two records have exactly the same time.
 /// All records within an output stream have the same host name, job ID, command name, and user.
 ///
-/// The command name for synthesized data collects all the commands that went into the synthesized stream.
-/// The host name for synthesized data collects all the hosts that went into the synthesized stream.
+/// The command name for synthesized data collects all the commands that went into the synthesized
+/// stream.  The host name for synthesized data collects all the hosts that went into the
+/// synthesized stream.
 ///
-/// This must also merge the metadata from the different hosts: the time bounds.  For a merged stream,
-/// the "earliest" time is the min across the earliest times for the different host streams that go
-/// into the merged stream, and the "latest" time is the max across the latest times ditto.
+/// This must also merge the metadata from the different hosts: the time bounds.  For a merged
+/// stream, the "earliest" time is the min across the earliest times for the different host streams
+/// that go into the merged stream, and the "latest" time is the max across the latest times ditto.
 
 pub fn merge_by_job(
     mut streams: InputStreamSet,
     bounds: &Timebounds,
 ) -> (MergedSampleStreams, Timebounds) {
-    // The value is a set of command names, a set of host names, and a vector of the individual streams.
+    // The value is a set of command names, a set of host names, and a vector of the individual
+    // streams.
     let mut collections: HashMap<u32, (HashSet<String>, HashSet<String>, Vec<Vec<Box<LogEntry>>>)> =
         HashMap::new();
 

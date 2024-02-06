@@ -94,7 +94,7 @@ pub fn aggregate_and_print_load(
     if relative {
         if let Some(ref ht) = system_config {
             let mut bad = HashSet::<InputStreamKey>::new();
-            for (k, s) in & streams {
+            for (k, s) in &streams {
                 if ht.get(&s[0].hostname).is_none() {
                     bad.insert(k.clone());
                     eprintln!("Warning: Missing host configuration for {}", &s[0].hostname)

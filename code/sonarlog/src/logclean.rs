@@ -27,7 +27,8 @@ pub type InputStreamSet = HashMap<InputStreamKey, Vec<Box<LogEntry>>>;
 /// Apply postprocessing to the records in the array:
 ///
 /// - reconstruct individual sample streams
-/// - compute the cpu_util_pct field from cputime_sec and timestamp for consecutive records in streams
+/// - compute the cpu_util_pct field from cputime_sec and timestamp for consecutive records in
+///   streams
 /// - if `configs` is not None and there is the necessary information for a given host, clean up the
 ///   gpumem_pct and gpumem_gb fields so that they are internally consistent
 /// - after all that, remove records for which the filter function returns false
@@ -129,8 +130,8 @@ where
             }
         } else {
             for i in 1..stream.len() {
-                let dt =
-                    ((stream[i].timestamp - stream[i - 1].timestamp) as Duration).num_seconds() as f64;
+                let dt = ((stream[i].timestamp - stream[i - 1].timestamp) as Duration).num_seconds()
+                    as f64;
                 let dc = stream[i].cputime_sec - stream[i - 1].cputime_sec;
                 // It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
                 // We filter these below.

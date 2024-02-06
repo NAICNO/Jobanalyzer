@@ -942,7 +942,7 @@ fn sonalyze() -> Result<()> {
 
     // When remoting we build a URL from all the options and then just pass it to curl.
 
-    let no_string : Option<String> = None;
+    let no_string: Option<String> = None;
     let (remote_arg, cluster_arg, data_path_arg, logfile_arg, config_file_arg) = match cli.command {
         Commands::Version => {
             panic!("Should not happen")

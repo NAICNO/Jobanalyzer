@@ -128,7 +128,10 @@ pub fn aggregate_and_print_uptime(
         }
 
         if meta_args.verbose {
-            println!("{}: {host_start}..{host_end} inclusive, i={i}", host_first.hostname);
+            println!(
+                "{}: {host_start}..{host_end} inclusive, i={i}",
+                host_first.hostname
+            );
         }
 
         // If the host is down at the start, push out a record saying so.  Then we start in the "up"
@@ -154,7 +157,10 @@ pub fn aggregate_and_print_uptime(
         // we'll re-sort later anyway.
         if !delta_t_le(host_last.timestamp, to_excl, cutoff) {
             if meta_args.verbose {
-                println!("  Down at end: {} {} {}", host_last.timestamp, to_excl, cutoff);
+                println!(
+                    "  Down at end: {} {} {}",
+                    host_last.timestamp, to_excl, cutoff
+                );
             }
             if !print_args.only_up {
                 reports.push(new_report(
@@ -186,7 +192,7 @@ pub fn aggregate_and_print_uptime(
             // and end are the same value (only one sample between two "down" windows); nothing to
             // be done about that.
             if meta_args.verbose {
-                println!("  Up window {window_start}..{} inclusive", j-1);
+                println!("  Up window {window_start}..{} inclusive", j - 1);
             }
             if !print_args.only_down {
                 reports.push(new_report(
@@ -209,7 +215,7 @@ pub fn aggregate_and_print_uptime(
             // System went down in the window.  The window in which it is down is entirely between
             // these two records.  The fact that there is a following record means it came up again.
             if meta_args.verbose {
-                println!("  Down window {}..{} inclusive", j-1, j);
+                println!("  Down window {}..{} inclusive", j - 1, j);
             }
             if !print_args.only_up {
                 reports.push(new_report(
