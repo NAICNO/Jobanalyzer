@@ -198,6 +198,10 @@ fn my_formatters() -> (
     formatters.insert("mem-peak".to_string(), &format_mem_peak);
     formatters.insert("rmem-avg".to_string(), &format_rmem_avg);
     formatters.insert("rmem-peak".to_string(), &format_rmem_peak);
+    formatters.insert("res-avg".to_string(), &format_res_avg);
+    formatters.insert("res-peak".to_string(), &format_res_peak);
+    formatters.insert("rres-avg".to_string(), &format_rres_avg);
+    formatters.insert("rres-peak".to_string(), &format_rres_peak);
     formatters.insert("gpu-avg".to_string(), &format_gpu_avg);
     formatters.insert("gpu-peak".to_string(), &format_gpu_peak);
     formatters.insert("rgpu-avg".to_string(), &format_rgpu_avg);
@@ -242,6 +246,14 @@ fn my_formatters() -> (
     aliases.insert(
         "rmem".to_string(),
         vec!["rmem-avg".to_string(), "rmem-peak".to_string()],
+    );
+    aliases.insert(
+        "res".to_string(),
+        vec!["res-avg".to_string(), "res-peak".to_string()],
+    );
+    aliases.insert(
+        "rres".to_string(),
+        vec!["rres-avg".to_string(), "rres-peak".to_string()],
     );
     aliases.insert(
         "gpu".to_string(),
@@ -479,6 +491,22 @@ fn format_rmem_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> Stri
 
 fn format_rmem_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
     format!("{}", a.rmem_peak)
+}
+
+fn format_res_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    format!("{}", a.res_avg)
+}
+
+fn format_res_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    format!("{}", a.res_peak)
+}
+
+fn format_rres_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    format!("{}", a.rres_avg)
+}
+
+fn format_rres_peak(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {
+    format!("{}", a.rres_peak)
 }
 
 fn format_gpu_avg(JobSummary { aggregate: a, .. }: LogDatum, _: LogCtx) -> String {

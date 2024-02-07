@@ -58,7 +58,7 @@ function render_violators(thirty_days_ago) {
 function violators_by_time(thirty_days_ago) {
     document.getElementById("violator_report_by_time").replaceChildren()
     render_violators_by_time(
-	"violator_report_by_time", 
+	"violator_report_by_time",
 	function (d) {
 	    return CURRENT_HOST == d["hostname"] &&
 		(parse_date(d["last-seen"]) >= thirty_days_ago || globalThis["TESTDATA"])
@@ -68,7 +68,7 @@ function violators_by_time(thirty_days_ago) {
 function violators_by_user(thirty_days_ago) {
     document.getElementById("violator_report_by_user").replaceChildren()
     render_violators_by_user(
-	"violator_report_by_user", 
+	"violator_report_by_user",
 	function (d) {
 	    return CURRENT_HOST == d["hostname"] &&
 		(parse_date(d["last-seen"]) >= thirty_days_ago || globalThis["TESTDATA"])

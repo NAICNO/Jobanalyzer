@@ -204,11 +204,16 @@ function compileQuery(query, knownFields, builtinOperations) {
         if (isFinite(probe)) {
             return probe
         }
-        if (t in knownFields) {
-            let alias = knownFields[t]
-            if (typeof alias == "string")
-                return alias
-            return t
+        while (knownFields.hasOwnProperty(t)) {
+            let mapping = knownFields[t]
+            if (mapping === true)
+                return t
+            if (typeof mapping != "string") {
+                // something strange
+                break
+            }
+            // alias
+            t = mapping
         }
         if (t in builtinOperations) {
             return builtinOperations[t]

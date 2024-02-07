@@ -45,8 +45,10 @@ fields.push(
     // Relative to system information.
     {name: "CPU%\n(recent)", tag: "cpu_recent", help:"Running average"},
     {name: "CPU%\n(longer)", tag: "cpu_longer", help:"Running average"},
-    {name: "Mem%\n(recent)", tag: "mem_recent", help:"Running average"},
-    {name: "Mem%\n(longer)", tag: "mem_longer", help:"Running average"},
+    {name: "Resident%\n(recent)", tag: "resident_recent", help:"Running average"},
+    {name: "Resident%\n(longer)", tag: "resident_longer", help:"Running average"},
+    {name: "Virt%\n(recent)", tag: "mem_recent", help:"Running average"},
+    {name: "Virt%\n(longer)", tag: "mem_longer", help:"Running average"},
     {name: "GPU%\n(recent)", tag: "gpu_recent", help:"Running average"},
     {name: "GPU%\n(longer)", tag: "gpu_longer", help:"Running average"},
     {name: "GPUMEM%\n(recent)", tag: "gpumem_recent", help:"Running average"},
@@ -142,6 +144,7 @@ function render() {
 
 let working_fields = [
     "cpu_recent","cpu_longer",
+    "resident_recent","resident_longer",
     "mem_recent","mem_longer",
     "gpu_recent","gpu_longer",
     "gpumem_recent","gpumem_longer",
@@ -238,11 +241,13 @@ function make_sort_records() {
 // Filter-by-query
 
 var knownFields = {
-    // Canonical
+    // Canonical, these have historical names
     "cpu_recent":true,
     "cpu_longer":true,
     "mem_recent":true,
     "mem_longer":true,
+    "resident_recent":true,
+    "resident_longer":true,
     "gpu_recent":true,
     "gpu_longer":true,
     "gpumem_recent":true,
@@ -256,11 +261,19 @@ var knownFields = {
     "violators":true,
     "zombies":true,
 
-    // Dash rather than underscore
+    // More sensible naming
+    "virt_recent":"mem_recent",
+    "virt_longer":"mem_longer",
+    "res_recent":"resident_recent",
+    "res_longer":"resident_longer",
+
+    // Dash rather than underscore for user-friendly naming
     "cpu-recent":"cpu_recent",
     "cpu-longer":"cpu_longer",
-    "mem-recent":"mem_recent",
-    "mem-longer":"mem_longer",
+    "virt-recent":"virt_recent",
+    "virt-longer":"virt_longer",
+    "res-recent":"res_recent",
+    "res-longer":"res_longer",
     "gpu-recent":"gpu_recent",
     "gpu-longer":"gpu_longer",
     "gpumem-recent":"gpumem_recent",
@@ -272,22 +285,23 @@ var knownFields = {
     "jobs-recent":"jobs_recent",
     "jobs-longer":"jobs_longer",
 
-    // Abbreviations - names are case-sensitive so use the Capitalized name for the "longer" field.
-    // Likely these are not very commonly used.
-    "cpu%":"cpu_recent",
-    "Cpu%":"cpu_longer",
-    "mem%":"mem_recent",
-    "Mem%":"mem_longer",
-    "gpu%":"gpu_recent",
-    "Gpu%":"gpu_longer",
-    "gpumem%":"gpumem_recent",
-    "Gpumem%":"gpumem_longer",
-    "cpufail":"cpu_status",
-    "gpufail":"gpu_status",
-    "users":"users_recent",
-    "Users":"users_longer",
-    "jobs":"jobs_recent",
-    "Jobs":"jobs_longer",
+    // Abbreviations - names are case-sensitive, use the Capitalized name for the "longer" field.
+    "cpu%":"cpu-recent",
+    "Cpu%":"cpu-longer",
+    "virt%":"virt-recent",
+    "Virt%":"virt-longer",
+    "res%":"res-recent",
+    "Res%":"res-longer",
+    "gpu%":"gpu-recent",
+    "Gpu%":"gpu-longer",
+    "gpumem%":"gpumem-recent",
+    "Gpumem%":"gpumem-longer",
+    "cpufail":"cpu-status",
+    "gpufail":"gpu-status",
+    "users":"users-recent",
+    "Users":"users-longer",
+    "jobs":"jobs-recent",
+    "Jobs":"jobs-longer",
 }
 
 // Built-in abbreviations.
@@ -302,10 +316,14 @@ builtinOperation["cpu-busy"] = compileQuery("cpu% >= 50", knownFields, builtinOp
 builtinOperation["Cpu-busy"] = compileQuery("Cpu% >= 50", knownFields, builtinOperation)
 builtinOperation["cpu-idle"] = compileQuery("cpu% < 50", knownFields, builtinOperation)
 builtinOperation["Cpu-idle"] = compileQuery("Cpu% < 50", knownFields, builtinOperation)
-builtinOperation["mem-busy"] = compileQuery("mem% >= 50", knownFields, builtinOperation)
-builtinOperation["Mem-busy"] = compileQuery("Mem% >= 50", knownFields, builtinOperation)
-builtinOperation["mem-idle"] = compileQuery("mem% < 50", knownFields, builtinOperation)
-builtinOperation["Mem-idle"] = compileQuery("Mem% < 50", knownFields, builtinOperation)
+builtinOperation["virt-busy"] = compileQuery("virt% >= 50", knownFields, builtinOperation)
+builtinOperation["Virt-busy"] = compileQuery("Virt% >= 50", knownFields, builtinOperation)
+builtinOperation["virt-idle"] = compileQuery("virt% < 50", knownFields, builtinOperation)
+builtinOperation["Virt-idle"] = compileQuery("Virt% < 50", knownFields, builtinOperation)
+builtinOperation["res-busy"] = compileQuery("res% >= 50", knownFields, builtinOperation)
+builtinOperation["Res-busy"] = compileQuery("Res% >= 50", knownFields, builtinOperation)
+builtinOperation["res-idle"] = compileQuery("res% < 50", knownFields, builtinOperation)
+builtinOperation["Res-idle"] = compileQuery("Res% < 50", knownFields, builtinOperation)
 builtinOperation["gpu-busy"] = compileQuery("gpu% >= 50", knownFields, builtinOperation)
 builtinOperation["Gpu-busy"] = compileQuery("Gpu% >= 50", knownFields, builtinOperation)
 builtinOperation["gpu-idle"] = compileQuery("gpu and gpu% < 50", knownFields, builtinOperation)
@@ -317,14 +335,16 @@ builtinOperation["Gpumem-idle"] = compileQuery("gpu and Gpumem% < 50", knownFiel
 builtinOperation["cpu-down"] = compileQuery("cpufail > 0", knownFields, builtinOperation)
 builtinOperation["gpu-down"] = compileQuery("gpu and gpufail > 0", knownFields, builtinOperation)
 builtinOperation["busy"] =
-    compileQuery("cpu-busy or gpu-busy or mem-busy or gpumem-busy", knownFields, builtinOperation)
+    compileQuery("cpu-busy or gpu-busy or res-busy or virt-busy or gpumem-busy",
+                 knownFields, builtinOperation)
 builtinOperation["Busy"] =
-    compileQuery("Cpu-busy or Gpu-busy or Mem-busy or Gpumem-busy", knownFields, builtinOperation)
+    compileQuery("Cpu-busy or Gpu-busy or Res-busy or Virt-busy or Gpumem-busy",
+                 knownFields, builtinOperation)
 builtinOperation["idle"] =
-    compileQuery("cpu-idle and mem-idle and (~gpu* or (gpu% < 50 and gpumem% < 50))",
+    compileQuery("cpu-idle and virt-idle and res-idle and (~gpu* or (gpu% < 50 and gpumem% < 50))",
                  knownFields, builtinOperation)
 builtinOperation["Idle"] =
-    compileQuery("Cpu-idle and Mem-idle and (~gpu* or (Gpu% < 50 and Gpumem% < 50))",
+    compileQuery("Cpu-idle and Virt-idle and Res-idle and (~gpu* or (Gpu% < 50 and Gpumem% < 50))",
                  knownFields, builtinOperation)
 builtinOperation["down"] = compileQuery("cpu-down or gpu-down", knownFields, builtinOperation)
 

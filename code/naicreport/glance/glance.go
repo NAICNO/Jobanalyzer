@@ -153,6 +153,8 @@ func Report(progname string, args []string) error {
 		r.CpuLonger = d.cpu_longer
 		r.MemRecent = d.mem_recent
 		r.MemLonger = d.mem_longer
+		r.ResidentRecent = d.resident_recent
+		r.ResidentLonger = d.resident_longer
 		if cfg, found := config[d.hostname]; found && cfg.GpuCards > 0 {
 			r.GpuRecent = d.gpu_recent
 			r.GpuLonger = d.gpu_longer
@@ -209,28 +211,30 @@ func glanceRecordForHost(
 }
 
 type glanceRecord struct {
-	Host         string  `json:"hostname"`
-	Tag          string  `json:"tag,omitempty"`
-	Machine      string  `json:"machine,omitempty"`
-	Recent       int     `json:"recent"`
-	Longer       int     `json:"longer"`
-	Long         int     `json:"long"`
-	CpuStatus    int     `json:"cpu_status"`
-	GpuStatus    int     `json:"gpu_status"`
-	JobsRecent   int     `json:"jobs_recent"`
-	JobsLonger   int     `json:"jobs_longer"`
-	UsersRecent  int     `json:"users_recent"`
-	UsersLonger  int     `json:"users_longer"`
-	CpuRecent    float64 `json:"cpu_recent"`
-	CpuLonger    float64 `json:"cpu_longer"`
-	MemRecent    float64 `json:"mem_recent"`
-	MemLonger    float64 `json:"mem_longer"`
-	GpuRecent    float64 `json:"gpu_recent,omitempty"`
-	GpuLonger    float64 `json:"gpu_longer,omitempty"`
-	GpumemRecent float64 `json:"gpumem_recent,omitempty"`
-	GpumemLonger float64 `json:"gpumem_longer,omitempty"`
-	Violators    int     `json:"violators_long"`
-	Deadweights  int     `json:"zombies_long"`
+	Host           string  `json:"hostname"`
+	Tag            string  `json:"tag,omitempty"`
+	Machine        string  `json:"machine,omitempty"`
+	Recent         int     `json:"recent"`
+	Longer         int     `json:"longer"`
+	Long           int     `json:"long"`
+	CpuStatus      int     `json:"cpu_status"`
+	GpuStatus      int     `json:"gpu_status"`
+	JobsRecent     int     `json:"jobs_recent"`
+	JobsLonger     int     `json:"jobs_longer"`
+	UsersRecent    int     `json:"users_recent"`
+	UsersLonger    int     `json:"users_longer"`
+	CpuRecent      float64 `json:"cpu_recent"`
+	CpuLonger      float64 `json:"cpu_longer"`
+	MemRecent      float64 `json:"mem_recent"`
+	MemLonger      float64 `json:"mem_longer"`
+	ResidentRecent float64 `json:"resident_recent"`
+	ResidentLonger float64 `json:"resident_longer"`
+	GpuRecent      float64 `json:"gpu_recent,omitempty"`
+	GpuLonger      float64 `json:"gpu_longer,omitempty"`
+	GpumemRecent   float64 `json:"gpumem_recent,omitempty"`
+	GpumemLonger   float64 `json:"gpumem_longer,omitempty"`
+	Violators      int     `json:"violators_long"`
+	Deadweights    int     `json:"zombies_long"`
 }
 
 type glanceRecordSlice []*glanceRecord
@@ -411,11 +415,12 @@ func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStat
 // Load averages
 
 type loadAveragesByHost struct {
-	hostname                     string
-	cpu_recent, cpu_longer       float64
-	mem_recent, mem_longer       float64
-	gpu_recent, gpu_longer       float64
-	gpumem_recent, gpumem_longer float64
+	hostname                         string
+	cpu_recent, cpu_longer           float64
+	mem_recent, mem_longer           float64
+	resident_recent, resident_longer float64
+	gpu_recent, gpu_longer           float64
+	gpumem_recent, gpumem_longer     float64
 }
 
 func collectLoadAverages(
@@ -461,6 +466,7 @@ func collectLoadAverages(
 		obj := all[k]
 		obj.cpu_recent = v.rcpu
 		obj.mem_recent = v.rmem
+		obj.resident_recent = v.rres
 		obj.gpu_recent = v.rgpu
 		obj.gpumem_recent = v.rgpumem
 	}
@@ -468,6 +474,7 @@ func collectLoadAverages(
 		obj := all[k]
 		obj.cpu_longer = v.rcpu
 		obj.mem_longer = v.rmem
+		obj.resident_longer = v.rres
 		obj.gpu_longer = v.rgpu
 		obj.gpumem_longer = v.rgpumem
 	}
@@ -484,6 +491,7 @@ type sonalyzeLoadData struct {
 	host    string
 	rcpu    float64
 	rmem    float64
+	rres    float64
 	rgpu    float64
 	rgpumem float64
 }
@@ -498,6 +506,7 @@ func collectLoadAveragesOnce(
 		Host    string `json:"host"`
 		Rcpu    string `json:"rcpu"`
 		Rmem    string `json:"rmem"`
+		Rres    string `json:"rres"`
 		Rgpu    string `json:"rgpu"`
 		Rgpumem string `json:"rgpumem"`
 	}
@@ -521,7 +530,7 @@ func collectLoadAveragesOnce(
 		[]string{
 			"load",
 			bucketArg,
-			"--fmt=json,host,rcpu,rmem,rgpu,rgpumem",
+			"--fmt=json,host,rcpu,rmem,rres,rgpu,rgpumem",
 			"--config-file", configFilename},
 		progOpts,
 		&rawData)
@@ -539,6 +548,7 @@ func collectLoadAveragesOnce(
 				host:    d.Host,
 				rcpu:    sonalyze.JsonFloat64(d.Rcpu),
 				rmem:    sonalyze.JsonFloat64(d.Rmem),
+				rres:    sonalyze.JsonFloat64(d.Rres),
 				rgpu:    sonalyze.JsonFloat64(d.Rgpu),
 				rgpumem: sonalyze.JsonFloat64(d.Rgpumem),
 			}

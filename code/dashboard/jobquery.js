@@ -65,10 +65,11 @@ function appendTo(elt, first, value) {
     }
 }
 
-var names = ["job","user","host","duration","start","end","cpu-peak","mem-peak","gpu-peak","gpumem-peak","cmd"]
+var names = ["job","user","host","duration","start","end","cpu-peak","res-peak","mem-peak","gpu-peak","gpumem-peak","cmd"]
 var sorting = {
     "job": "numeric",
     "cpu-peak": "numeric",
+    "res-peak": "numeric",
     "mem-peak": "numeric",
     "gpu-peak": "numeric",
     "gpumem-peak": "numeric",
