@@ -1,4 +1,4 @@
-// dashboard.js must be loaded before this
+// dash-shared.js must be loaded before this
 
 var policyNames = {
     "ml-cpuhog": {

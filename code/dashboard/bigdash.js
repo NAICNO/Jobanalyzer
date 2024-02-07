@@ -1,4 +1,4 @@
-// dashboard.js must have been loaded before this one.
+// dash-shared.js must have been loaded before this one.
 
 "use strict";
 
