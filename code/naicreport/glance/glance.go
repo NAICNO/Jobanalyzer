@@ -4,17 +4,17 @@
 //
 //  -data-dir directory
 //  -data-path directory (obsolete name)
-//    The root directory of the Sonar data store, for a particular cluster.
+//    Required: The root directory of the Sonar data store, for a particular cluster.
 //
 //  -sonalyze filename
-//    The `sonalyze` executable.
+//    Required: The `sonalyze` executable.
 //
 //  -config-file filename
-//    The machine configuration file for the cluster.
+//    Required: The machine configuration file for the cluster.
 //
 //  -state-dir directory
 //  -state-path directory (obsolete name)
-//     The directory that holds the database files for cpuhog and deadweight reports.
+//     Required: The directory that holds the database files for cpuhog and deadweight reports.
 //
 //  -tag tag-name
 //    A tag for the report describing whose data it contains, typically a human-readable string.
@@ -64,6 +64,13 @@ const (
 	RECENT_MINS = 30
 	LONGER_MINS = 12 * 60
 	LONG_MINS   = 24 * 60
+)
+
+// Sampling interval for "sonalyze uptime", this should be parameterized but this value is right
+// for the ML nodes, Fox, and Saga at this time.
+
+const (
+	UPTIME_MINS = 5
 )
 
 const nanosPerSec = 1000000000
@@ -363,7 +370,7 @@ func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStat
 	var rawData []*sonalyzeUptimeData
 	err := runAndUnmarshal(
 		sonalyzePath,
-		[]string{"uptime", "--interval", "5", "--fmt=json,host,device,state"},
+		[]string{"uptime", "--interval", fmt.Sprint(UPTIME_MINS), "--fmt=json,host,device,state"},
 		progOpts,
 		&rawData)
 	if err != nil {
@@ -651,7 +658,7 @@ func runAndUnmarshal(
 
 func commandLine() error {
 	opts := flag.NewFlagSet(os.Args[0]+" at-a-glance", flag.ContinueOnError)
-	filesOpts = util.AddDataFilesOptions(opts, "data-dir", "Root `directory` of data store")
+	filesOpts = util.AddDataFilesOptions(opts, "data-dir", "Root `directory` of data store (required)")
 	filterOpts = util.AddDateFilterOptions(opts)
 	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
 	opts.StringVar(&configFilename, "config-file", "",

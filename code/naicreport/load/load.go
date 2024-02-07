@@ -377,7 +377,7 @@ func max(i, j int) int {
 func downtimeInitialArgs() []string {
 	return []string{
 		"uptime",
-		"--interval", fmt.Sprintf("%d", withDowntime),
+		"--interval", fmt.Sprint(withDowntime),
 		"--only-down",
 		"--fmt=json,device,host,start,end",
 	}
