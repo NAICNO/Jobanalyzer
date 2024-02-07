@@ -13,8 +13,8 @@ function render_violators_by_time(elt_id, filter) {
 		  {name: "CPU peak", tag:"cpu-peak"},
 		  {name: "CPU% avg", tag:"rcpu-avg"},
 		  {name: "CPU% peak", tag:"rcpu-peak"},
-		  {name: "Mem% avg", tag:"rmem-avg"},
-		  {name: "Mem% peak", tag:"rmem-peak"},
+		  {name: "Virt% avg", tag:"rmem-avg"},
+		  {name: "Virt% peak", tag:"rmem-peak"},
 		 ]
     render_table_from_file(
 	tag_file("violator-report.json"),

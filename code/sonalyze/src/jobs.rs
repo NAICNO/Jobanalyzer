@@ -58,6 +58,11 @@ pub struct JobAggregate {
     pub rmem_avg: f64,  // Average main memory utilization, all memory = 100%
     pub rmem_peak: f64, // Peak memory utilization ditto
 
+    pub res_avg: f64,   // Average resident main memory utilization, GiB
+    pub res_peak: f64,  // Peak memory utilization ditto
+    pub rres_avg: f64,  // Average resident main memory utilization, all memory = 100%
+    pub rres_peak: f64, // Peak memory utilization ditto
+
     // If a system config is present and conf.gpumem_pct is true then gpumem_* are derived from the
     // recorded percentage figure, otherwise rgpumem_* are derived from the recorded absolute
     // figures.  If a system config is not present then all fields will represent the recorded
@@ -505,6 +510,11 @@ fn aggregate_job(
     let mut rmem_avg = 0.0;
     let mut rmem_peak = 0.0;
 
+    let res_avg = job.iter().fold(0.0, |acc, jr| acc + jr.rssanon_gb) / (job.len() as f64);
+    let res_peak = job.iter().fold(0.0, |acc, jr| f64::max(acc, jr.rssanon_gb));
+    let mut rres_avg = 0.0;
+    let mut rres_peak = 0.0;
+
     let gpumem_avg = job.iter().fold(0.0, |acc, jr| acc + jr.gpumem_gb) / (job.len() as f64);
     let gpumem_peak = job.iter().fold(0.0, |acc, jr| f64::max(acc, jr.gpumem_gb));
     let mut rgpumem_avg = 0.0;
@@ -522,6 +532,9 @@ fn aggregate_job(
 
             rmem_avg = (mem_avg * 100.0) / mem;
             rmem_peak = (mem_peak * 100.0) / mem;
+
+            rres_avg = (res_avg * 100.0) / mem;
+            rres_peak = (res_peak * 100.0) / mem;
 
             rgpu_avg = if gpu_cards > 0.0 { gpu_avg / gpu_cards } else { 0.0 };
             rgpu_peak = if gpu_cards > 0.0 { gpu_peak / gpu_cards } else { 0.0 };
@@ -563,6 +576,10 @@ fn aggregate_job(
         mem_peak: mem_peak.ceil(),
         rmem_avg: rmem_avg.ceil(),
         rmem_peak: rmem_peak.ceil(),
+        res_avg: res_avg.ceil(),
+        res_peak: res_peak.ceil(),
+        rres_avg: rres_avg.ceil(),
+        rres_peak: rres_peak.ceil(),
         gpumem_avg: gpumem_avg.ceil(),
         gpumem_peak: gpumem_peak.ceil(),
         rgpumem_avg: rgpumem_avg.ceil(),

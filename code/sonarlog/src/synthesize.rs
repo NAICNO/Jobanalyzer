@@ -626,6 +626,7 @@ fn fold_samples<'a>(
         let n = bucket.len() as f64;
         r.cpu_pct /= n;
         r.mem_gb /= n;
+        r.rssanon_gb /= n;
         r.gpu_pct /= n;
         r.gpumem_pct /= n;
         r.gpumem_gb /= n;

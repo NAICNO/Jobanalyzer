@@ -42,15 +42,16 @@
       captitalized names ("Cpu%").</p>
 
     <ul>
-      <li> "cpu%" - the "cpu_recent" field
-      <li> "Cpu%" - the "cpu_longer" field (etc)
-      <li> "mem%" - the "mem_recent" field
-      <li> "gpu%" - the "gpu_recent" field
-      <li> "gpumem%" - the "gpumem_recent" field
-      <li> "cpufail" - the "cpu_status" field
-      <li> "gpufail" - the "gpu_status" field
-      <li> "users" - the "users_recent" field
-      <li> "jobs" - the "jobs_recent" field
+      <li> "cpu%" - the "cpu-recent" field
+      <li> "Cpu%" - the "cpu-longer" field (etc)
+      <li> "virt%" - the "virt-recent" field
+      <li> "res%" - the "res-recent" field
+      <li> "gpu%" - the "gpu-recent" field
+      <li> "gpumem%" - the "gpumem-recent" field (this is physical RAM)
+      <li> "cpufail" - the "cpu-status" field
+      <li> "gpufail" - the "gpu-status" field
+      <li> "users" - the "users-recent" field
+      <li> "jobs" - the "jobs-recent" field
       <li> "violators" - the "violators" field
       <li> "zombies" - the "zombies" field
     </ul>
@@ -67,20 +68,22 @@
 	<li> "login" is "login*"
 	<li> "cpu-busy" is "cpu% >= 50"
 	<li> "cpu-idle" is "cpu% &lt; 50"
-	<li> "mem-busy" is "mem% >= 50"
-	<li> "mem-idle" is "mem% &lt; 50"
+	<li> "virt-busy" is "virt% >= 50"
+	<li> "virt-idle" is "virt% &lt; 50"
+	<li> "res-busy" is "res% >= 50"
+	<li> "res-idle" is "res% &lt; 50"
 	<li> "gpu-busy" is "gpu and gpu% >= 50"
 	<li> "gpu-idle" is "gpu and gpu% &lt; 50"
 	<li> "gpumem-busy" is "gpu and gpumem% >= 50"
 	<li> "gpumem-idle" is "gpu and gpumem% &lt; 50"
 	<li> "cpu-down" is "cpufail > 0"
 	<li> "gpu-down" is "gpu and gpufail > 0"
-	<li> "busy" is "cpu-busy or gpu-busy or mem-busy or gpumem-busy"
-	<li> "idle" is "cpu-idle and mem-idle and (~gpu or gpu-idle and gpumem-idle)"
+	<li> "busy" is "cpu-busy or gpu-busy or virt-busy or res-busy or gpumem-busy"
+	<li> "idle" is "cpu-idle and virt-idle and res-idle and (~gpu or gpu-idle and gpumem-idle)"
 	<li> "down" is "cpu-down or gpu-down"
       </ul>
 
-    <p> These have Capitalized variants for the "_longer" data where that makes sense, eg, "Idle")</p>
+    <p> These have Capitalized variants for the "*-longer" data where that makes sense, eg, "Idle")</p>
 
     <p> For example, to find nodes with spare capacity, simply run "idle".  ("Idle" is a poor
       moniker for something running at 49% utilization, so perhaps we want something more subtle.

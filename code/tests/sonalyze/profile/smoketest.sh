@@ -56,7 +56,7 @@ T() {
 
 # P command pid cpu mem gpu gpumem nproc
 P() {
-    echo "{\"command\":\"$1\",\"pid\":$2,\"cpu\":$3,\"mem\":$4,\"gpu\":$5,\"gpumem\":$6,\"nproc\":$7}"
+    echo "{\"command\":\"$1\",\"pid\":$2,\"cpu\":$3,\"mem\":$4,\"res\":0,\"gpu\":$5,\"gpumem\":$6,\"nproc\":$7}"
 }
 
 output=$($SONALYZE profile -j1119125 -f2023-10-21 --fmt=json,all -- smoketest.csv)

@@ -26,7 +26,7 @@ function render() {
 		  {name: "Last seen", tag:"last-seen", width: 16},
 		  {name: "CPU% avg", tag:"rcpu-avg"},
 		  {name: "CPU% peak", tag:"rcpu-peak"},
-		  {name: "Mem% avg", tag:"rmem-avg"},
+		  {name: "Virt% avg", tag:"rmem-avg"},
 		  {name: "Command", tag:"cmd", width: -1},
 		 ]
     fetch_data_from_file(tag_file("violator-report.json")).
