@@ -1,5 +1,5 @@
 # Cron script to run on compute nodes.  This just runs sonar every five minutes and captures its
-# output.  Copy this file to /etc/cron.d/sonar.
+# output.  Copy this file to /etc/cron.d/sonar (do not symlink).
 
 MAILTO=larstha@uio.no
 

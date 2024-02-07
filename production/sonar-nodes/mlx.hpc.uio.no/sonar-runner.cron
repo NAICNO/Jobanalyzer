@@ -1,5 +1,6 @@
-# Cron script to run on compute nodes.  This just runs sonar every five minutes and captures its
-# output.  Copy this file to /etc/cron.d/sonar.
+# Cron script to run on compute nodes WITHOUT A BATCH SYSTEM.  This just runs sonar WITH SYNTHESIZED
+# JOB IDs every five minutes and captures its output.  Copy this file to /etc/cron.d/sonar (do not
+# symlink).
 
 MAILTO=larstha@uio.no
 

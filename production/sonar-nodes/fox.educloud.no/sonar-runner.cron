@@ -1,13 +1,8 @@
-# This must be copied to /etc/cron.d/sonar on every compute node
-# It must be owned by root.root
-#
-# Before you think about symlinking it, be aware that the system cron does not pick
-# up changes to the script unless you also change the mtime on the link.  So you
-# might as well copy.
+# Cron script to run on compute nodes.  This just runs sonar every five minutes and captures its
+# output.  Copy this file to /etc/cron.d/sonar (do not symlink).
 
 SHELL=/bin/bash
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 MAILTO=larstha@uio.no
-# These are sequential so that the lock files don't interfere with each other
-# The original command will eventually go away.
+
 0-59/5 * * * * sonar /cluster/var/sonar/bin/sonar.sh
