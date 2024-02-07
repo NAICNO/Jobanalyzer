@@ -1,7 +1,7 @@
 // Subroutines to render policy violators in various ways.  Note this file is not specific to
 // violators.html, it is also used by machine-detail.{html,js}.
 
-// dashboard.js must be loaded before this
+// dash-shared.js must be loaded before this
 
 function render_violators_by_time(elt_id, filter) {
     var fields = [{name: "Host", tag: "hostname"},

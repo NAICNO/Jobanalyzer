@@ -1,52 +1,5 @@
 <html>
-  <head>
-    <link rel=stylesheet type=text/css href="table-style.css"/>
-    <title>CLUSTER Dashboard</title>
-    <script src="config.js"></script>
-    <script src="dashboard.js"></script>
-    <script src="queryterm.js"></script>
-    <script src="bigdash.js"></script>
-  </head>
-  <body onload="setup()">
-    <center>
-      <h1 id=main_title>CLUSTER: Jobanalyzer Dashboard</h2>
-
-      <div>
-      Click on hostname for machine details.&nbsp;&nbsp;
-      <a target=_blank id=jobquery_link>Job query</a>&nbsp;&nbsp;
-      <span id=subclusters></span>
-      Recent: <span id=recent_defn>?</span>&nbsp;&nbsp;
-      Longer: <span id=longer_defn>?</span>&nbsp;&nbsp;
-      <a id=violators_link target=_blank>Violators</a> and <a id=deadweight_link target=_blank>zombies</a>: <span id=long_defn>?</span>&nbsp;&nbsp;
-      <input type=checkbox id=autorefresh name="Auto-refresh" checked onchange="toggleReload()">Auto-refresh every 5min</input>
-      </div>
-
-      
-      <!-- The meaning of a filter is to remove nodes not matching the filter from the set displayed, ie, AND -->
-      <!-- But frequently we want OR -->
-      <!-- troubled AND compute OR gpu -->
-      <!-- default filter might be "troubled OR busy" where "busy" is an alias for "cpu-busy OR mem-busy OR gpu-busy OR gpumem-busy" -->
-      <!-- node names stand for themselves: c*-* -->
-
-      <div>
-      <p> </p>
-	<div>
-	  Node selection: <input type=text id=queryexpr size=30 value=""/> <input id=submitbutton type=button value="Submit" onclick="setup()"/> <a href=queryhelp.html target=_new>Help!</a>
-	</div>
-      <p> </p>
-      <div id=errormsg> </div>
-      <p> </p>
-
-    </center>
-
-      <div id=report></div>
-      <script>
-	window.addEventListener("keyup", function (ev) {
-	    if (ev.keyCode == 13) {
-		ev.preventDefault()
-		setup()
-	    }
-	})
-      </script>
+  <body>
+    This page is obsolete.  <a href="/">Home</a>
   </body>
 </html>

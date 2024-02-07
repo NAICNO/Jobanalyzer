@@ -1,4 +1,4 @@
-// dashboard.js must have been loaded before this
+// dash-shared.js must have been loaded before this
 
 let machine_load_chart = null
 let CURRENT_HOST = ""
