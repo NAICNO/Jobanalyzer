@@ -11,7 +11,7 @@ mkdir -p $tmpdir
 # Note if infiltrate fails on startup the `set -e` will not catch it because the server is run in
 # the background.  In this case, $infiltrate_pid will reference a process that is not there.
 
-$INFILTRATE -data-path $tmpdir -port $testport -auth-file test-auth.txt &
+$INFILTRATE -data-dir $tmpdir -port $testport -auth-file test-auth.txt &
 infiltrate_pid=$!
 
 # Always attempt to shut down the server on exit.  (Not sure if the HUP/INT are necessary or if they
@@ -24,19 +24,15 @@ sleep 1
 cat simple-data1.csv | \
     $EXFILTRATE \
         -window 0 \
-        -cluster test \
-        -source sonar/csvnamed \
-        -output json \
-        -target http://localhost:$testport \
-        -auth-file test-auth.txt
+        -auth-file test-auth.txt \
+        -mimetype text/csv \
+        http://localhost:$testport/sonar-freecsv?cluster=test
 cat simple-data2.csv | \
     $EXFILTRATE \
         -window 0 \
-        -cluster test \
-        -source sonar/csvnamed \
-        -output json \
-        -target http://localhost:$testport \
-        -auth-file test-auth.txt
+        -auth-file test-auth.txt \
+        -mimetype text/csv \
+        http://localhost:$testport/sonar-freecsv?cluster=test
 
 # Wait for messages to be processed by infiltrate
 sleep 1
