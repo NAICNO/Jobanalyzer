@@ -70,6 +70,12 @@ echo "======================================================================="
 ( cd slurminfo ; ./slurminfo -h 2&> /dev/null )
 
 echo "======================================================================="
+echo " MAKE-CLUSTER-CONFIG RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd make-cluster-config ; go build )
+( cd make-cluster-config ; ./make-cluster-config -h 2&> /dev/null )
+
+echo "======================================================================="
 echo " JSONCHECK RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd jsoncheck ; go build )
