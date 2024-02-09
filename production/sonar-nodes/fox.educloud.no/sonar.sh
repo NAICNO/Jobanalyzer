@@ -40,10 +40,8 @@ $sonar_bin_dir/sonar ps \
 		 --rollup \
 		 --lockdir=/var/tmp \
     | $sonar_bin_dir/exfiltrate \
-	  -cluster $cluster \
 	  -window $window \
-	  -source sonar/csvnamed \
-	  -output json \
 	  -auth-file $auth_file \
-	  -target $target_addr \
-	  -ca-cert $cert_file
+	  -ca-cert $cert_file \
+	  -mimetype text/csv \
+	  $target_addr/sonar-freecsv?cluster=$cluster
