@@ -24,8 +24,12 @@ type SystemMeta struct {
 }
 
 type SystemConfig struct {
-	// Full ISO timestamp of when the reading was taken, missing in older data
+	// Full ISO timestamp of when the reading was taken (missing in older data)
 	Timestamp string `json:"timestamp,omitempty"`
+
+	// Arbitrary text, useful to somebody, may or may not be preserved by a processor (missing in
+	// older data)
+	Comment string `json:"comment,omitempty"`
 
 	// Name that host is known by on the cluster
 	Hostname string `json:"hostname"`
@@ -34,7 +38,7 @@ type SystemConfig struct {
 	Description string `json:"description"`
 
 	// True iff a job on this node can be merged with a job from a different node within an
-	// appropriate time window if their job numbers are the same.
+	// appropriate time window if their job numbers are the same. (Missing in older data.)
 	CrossNodeJobs bool `json:"cross_node_jobs,omitempty"`
 
 	// Total number of cores x threads
@@ -49,11 +53,12 @@ type SystemConfig struct {
 	// Total GPU memory across all cards
 	GpuMemGB int `json:"gpumem_gb,omitempty"`
 
-	// If true, use the percentage-of-memory-per-process figure from the card
-	// rather than a memory measurement
+	// If true, use the percentage-of-memory-per-process figure from the card rather than a memory
+	// measurement
 	GpuMemPct bool `json:"gpumem_pct,omitempty"`
 
-	// Carries additional information used by code generators
+	// Carries additional information used by code generators.  This field is not intended to appear
+	// in "production" configuration files, only in background files.
 	Metadata []SystemMeta `json:"metadata,omitempty"`
 }
 

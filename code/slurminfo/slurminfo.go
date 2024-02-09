@@ -89,7 +89,7 @@ func main() {
 	type sysAttrs struct {
 		memMB                                   uint64
 		sockets, cores, threads, gpus, gpuMemGB int
-		manufacturer, gpuModel, suffix          string
+		manufacturer, gpuModel, suffix, comment string
 		gpuMemPct, crossNode                    bool
 	}
 
@@ -120,14 +120,18 @@ func main() {
 		if _, found := features["amd"]; found {
 			manufacturer = "amd"
 		}
-		var crossNodeJobs bool
-		var gpus int
-		var gpuMemGB int
-		var gpuMemPct bool
-		var gpuModel string
-		var suffix string
+		var (
+			crossNodeJobs bool
+			gpus          int
+			gpuMemGB      int
+			gpuMemPct     bool
+			gpuModel      string
+			suffix        string
+			comment       string
+		)
 		if background, found := auxConfig[name]; found {
 			crossNodeJobs = background.CrossNodeJobs
+			comment = background.Comment
 			gpus = background.GpuCards
 			gpuMemGB = background.GpuMemGB
 			gpuMemPct = background.GpuMemPct
@@ -159,6 +163,7 @@ func main() {
 			gpuMemPct:    gpuMemPct,
 			crossNode:    crossNodeJobs,
 			suffix:       suffix,
+			comment:      comment,
 		}
 		if bag, found := systems[sd]; found {
 			systems[sd] = append(bag, name)
@@ -196,6 +201,7 @@ func main() {
 				Hostname:      h + desc.suffix,
 				Description:   description,
 				CrossNodeJobs: desc.crossNode,
+				Comment:       desc.comment,
 				CpuCores:      desc.sockets * desc.cores * desc.threads,
 				MemGB:         int(memgb),
 				GpuCards:      desc.gpus,

@@ -3,8 +3,10 @@
 /// The file format is an array [...] of objects { ... }, each with the following named fields and
 /// value types:
 ///
+///   timestamp - string, an RFC3339 timestamp for when the data were obtained
 ///   hostname - string, the fully qualified and unique host name of the node
 ///   description - string, optional, arbitrary text describing the system
+///   comment - string, optional, arbitrary text for non-public documentation use
 ///   cross_node_jobs - bool, optional, expressing that jobs on this node can be merged with
 ///                     jobs on other nodes in the same cluster where the flag is also set,
 ///                     because the job numbers come from the same cluster-wide source
@@ -32,6 +34,7 @@ pub struct System {
     pub timestamp: String,
     pub hostname: String,
     pub description: String,
+    pub comment: String,
     pub cross_node_jobs: bool,
     pub cpu_cores: usize,
     pub mem_gb: usize,
@@ -84,6 +87,9 @@ pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
                 sys.gpumem_pct = gpumem_pct.or(Some(false)).unwrap();
                 if let Some(Value::String(ts)) = fields.get("timestamp") {
                     sys.timestamp = ts.clone();
+                }
+                if let Some(Value::String(ts)) = fields.get("comment") {
+                    sys.comment = ts.clone();
                 }
                 for exp in expand_hostname(&sys.hostname)?.drain(0..) {
                     let mut nsys = sys.clone();
