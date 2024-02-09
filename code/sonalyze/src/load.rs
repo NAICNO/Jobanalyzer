@@ -351,10 +351,12 @@ fn format_cpu(d: LoadDatum, _: LoadCtx) -> String {
 
 fn format_rcpu(d: LoadDatum, ctx: LoadCtx) -> String {
     let s = ctx.sys.unwrap();
-    format!(
-        "{}",
+    let rcpu = if s.cpu_cores == 0 {
+        0.0
+    } else {
         ((d.cpu_util_pct as f64) / (s.cpu_cores as f64)).round()
-    )
+    };
+    format!("{rcpu}")
 }
 
 fn format_mem(d: LoadDatum, _: LoadCtx) -> String {
@@ -363,10 +365,12 @@ fn format_mem(d: LoadDatum, _: LoadCtx) -> String {
 
 fn format_rmem(d: LoadDatum, ctx: LoadCtx) -> String {
     let s = ctx.sys.unwrap();
-    format!(
-        "{}",
+    let rmem = if s.mem_gb == 0 {
+        0.0
+    } else {
         ((d.mem_gb as f64) / (s.mem_gb as f64) * 100.0).round()
-    )
+    };
+    format!("{rmem}")
 }
 
 fn format_res(d: LoadDatum, _: LoadCtx) -> String {
@@ -375,10 +379,12 @@ fn format_res(d: LoadDatum, _: LoadCtx) -> String {
 
 fn format_rres(d: LoadDatum, ctx: LoadCtx) -> String {
     let s = ctx.sys.unwrap();
-    format!(
-        "{}",
+    let rres = if s.mem_gb == 0 {
+        0.0
+    } else {
         ((d.rssanon_gb as f64) / (s.mem_gb as f64) * 100.0).round()
-    )
+    };
+    format!("{rres}")
 }
 
 fn format_gpu(d: LoadDatum, _: LoadCtx) -> String {
@@ -387,7 +393,12 @@ fn format_gpu(d: LoadDatum, _: LoadCtx) -> String {
 
 fn format_rgpu(d: LoadDatum, ctx: LoadCtx) -> String {
     let s = ctx.sys.unwrap();
-    format!("{}", ((d.gpu_pct as f64) / (s.gpu_cards as f64)).round())
+    let rgpu = if s.gpu_cards == 0 {
+        0.0
+    } else {
+        ((d.gpu_pct as f64) / (s.gpu_cards as f64)).round()
+    };
+    format!("{rgpu}")
 }
 
 fn format_gpumem(d: LoadDatum, _: LoadCtx) -> String {
@@ -396,10 +407,12 @@ fn format_gpumem(d: LoadDatum, _: LoadCtx) -> String {
 
 fn format_rgpumem(d: LoadDatum, ctx: LoadCtx) -> String {
     let s = ctx.sys.unwrap();
-    format!(
-        "{}",
+    let rgpumem = if s.gpumem_gb == 0 {
+        0.0
+    } else {
         ((d.gpumem_gb as f64) / (s.gpumem_gb as f64) * 100.0).round()
-    )
+    };
+    format!("{rgpumem}")
 }
 
 fn format_gpus(d: LoadDatum, _: LoadCtx) -> String {
