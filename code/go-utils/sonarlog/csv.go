@@ -3,6 +3,7 @@ package sonarlog
 import (
 	"bytes"
 	"encoding/csv"
+	"errors"
 	"io"
 	"log"
 	"strconv"
@@ -181,3 +182,34 @@ func (r *SonarHeartbeat) Csvnamed() []byte {
 	csvw.Flush()
 	return bw.Bytes()
 }
+
+// Given one line of text on free csv format, return the pairs of field names and values.
+//
+// Errors:
+// - If the CSV reader returns an error err, returns (nil, err), including io.EOF.
+// - If any field is seen not to have a field name, return (fields, ErrNoName) with
+//   fields that were valid.
+
+func GetCsvFields(text string) (map[string]string, error) {
+	rdr := csv.NewReader(strings.NewReader(text))
+	rdr.FieldsPerRecord = -1 // Free form, though should not matter
+	fields, err := rdr.Read()
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]string)
+	for _, f := range fields {
+		ix := strings.IndexByte(f, '=')
+		if ix == -1 {
+			err = ErrNoName
+			continue
+		}
+		// TODO: I guess we should detect duplicates
+		result[f[0:ix]] = f[ix+1:]
+	}
+	return result, err
+}
+
+var (
+	ErrNoName = errors.New("CSV field without a field name")
+)
