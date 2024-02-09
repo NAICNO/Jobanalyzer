@@ -37,6 +37,7 @@ type HttpClient struct {
 type retry struct {
 	prevAttempts uint // number of attempts that have been performed
 	path         string
+	mimetype     string
 	buf          []byte // the content
 }
 
@@ -90,8 +91,8 @@ func NewClient(
 // If the URL is "http://host:port/service" and path is "/path" then the full URL will be
 // "http://host:port/service/path".
 
-func (c *HttpClient) PostDataByHttp(path string, buf []byte) {
-	c.postDataByHttp(0, path, buf)
+func (c *HttpClient) PostDataByHttp(path, mimetype string, buf []byte) {
+	c.postDataByHttp(0, path, mimetype, buf)
 }
 
 // Try sending pending packets.  This blocks until the retry queue is empty (all packets have been
@@ -103,12 +104,12 @@ func (c *HttpClient) ProcessRetries() {
 		rs := c.retries
 		c.retries = make([]retry, 0)
 		for _, r := range rs {
-			c.postDataByHttp(r.prevAttempts, r.path, r.buf)
+			c.postDataByHttp(r.prevAttempts, r.path, r.mimetype, r.buf)
 		}
 	}
 }
 
-func (c *HttpClient) postDataByHttp(prevAttempts uint, path string, buf []byte) {
+func (c *HttpClient) postDataByHttp(prevAttempts uint, path, mimetype string, buf []byte) {
 	if c.verbose {
 		fmt.Printf("Trying to send %s\n", string(buf))
 	}
@@ -119,7 +120,7 @@ func (c *HttpClient) postDataByHttp(prevAttempts uint, path string, buf []byte) 
 		status.Infof("Failed to post: %v", err)
 		return
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", mimetype)
 	if c.authUser != "" {
 		req.SetBasicAuth(c.authUser, c.authPass)
 	}
@@ -129,7 +130,7 @@ func (c *HttpClient) postDataByHttp(prevAttempts uint, path string, buf []byte) 
 		// vs all sorts of other errors that can happen along the way.  So when a sending error
 		// occurs, always retry.
 		if prevAttempts+1 <= c.maxAttempts {
-			c.addRetry(prevAttempts+1, path, buf)
+			c.addRetry(prevAttempts+1, path, mimetype, buf)
 		} else {
 			status.Infof("Failed to post to %s after max retries: %v", c.target, err)
 		}
@@ -148,7 +149,7 @@ func (c *HttpClient) postDataByHttp(prevAttempts uint, path string, buf []byte) 
 	// Plausible "temporarily borked" response codes.
 	if resp.StatusCode == 500 || resp.StatusCode == 503 || resp.StatusCode == 504 {
 		if prevAttempts+1 <= c.maxAttempts {
-			c.addRetry(prevAttempts+1, path, buf)
+			c.addRetry(prevAttempts+1, path, mimetype, buf)
 		}
 		// Fall through: must read response body
 	}
@@ -164,6 +165,6 @@ func (c *HttpClient) postDataByHttp(prevAttempts uint, path string, buf []byte) 
 	resp.Body.Close()
 }
 
-func (c *HttpClient) addRetry(prevAttempts uint, path string, buf []byte) {
-	c.retries = append(c.retries, retry{prevAttempts, path, buf})
+func (c *HttpClient) addRetry(prevAttempts uint, path, mimetype string, buf []byte) {
+	c.retries = append(c.retries, retry{prevAttempts, path, mimetype, buf})
 }

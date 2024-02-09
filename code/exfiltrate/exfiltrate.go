@@ -163,7 +163,7 @@ func main() {
 			if err != nil {
 				status.Fatalf("Failed to marshal: %v", err)
 			}
-			client.PostDataByHttp("/sonar-reading", buf)
+			client.PostDataByHttp("/sonar-reading", "application/json", buf)
 		}
 
 		if len(heartbeats) > 0 {
@@ -176,7 +176,7 @@ func main() {
 			if err != nil {
 				status.Fatalf("Failed to marshal: %v", err)
 			}
-			client.PostDataByHttp("/sonar-heartbeat", buf)
+			client.PostDataByHttp("/sonar-heartbeat", "application/json", buf)
 		}
 
 	default:
