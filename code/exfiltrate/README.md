@@ -8,18 +8,10 @@ See comment block at the beginning of exfiltrate.go for all information.
 
 ## Future developments
 
-In the future, I expect we'll want to do at least some other source formats:
+None expected.  This is basically a tiny subset of `curl` plus a random-wait feature.  It may be
+replaced by a shell script, or by an mqtt client if we switch from http to mqtt.
 
-"sysinfo/json"
-   The sysinfo program figures out the machine configuration and prints a json package with the
-   data
+## Past sins
 
-"diskstatus/json"
-  The diskstatus program prints the fullness of disks
+This used to be a lot more complicated, but the complications did not pay off.
 
-"slurm-seff/json"
-  Slurm data from "seff"
-
-In the future, at least some type of binary format is expected for the output.
-
-In the future, other protocols (mqtt?) are expected for the target
