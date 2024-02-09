@@ -37,7 +37,48 @@
  "gpumem_gb": 160
 },
 {
+ "comment": "The old name for these nodes",
  "hostname": "gpu-[4-6]",
+ "description": "2x32 (hyperthreaded) AMD EPYC 7452 32-Core Processor, 503 GB, 4x NVIDIA GeForce RTX 3090 @ 24GB",
+ "cross_node_jobs":true,
+ "cpu_cores": 128,
+ "mem_gb": 503,
+ "gpu_cards": 4,
+ "gpumem_gb": 96
+},
+{
+ "comment": "The new name for these nodes",
+ "hostname": "gpu-[4-6].fox",
+ "description": "2x32 (hyperthreaded) AMD EPYC 7452 32-Core Processor, 503 GB, 4x NVIDIA GeForce RTX 3090 @ 24GB",
+ "cross_node_jobs":true,
+ "cpu_cores": 128,
+ "mem_gb": 503,
+ "gpu_cards": 4,
+ "gpumem_gb": 96
+},
+{
+ "comment": "An intermediate name for this node due to a server config bug",
+ "hostname": "gpu-4-ib.fox",
+ "description": "2x32 (hyperthreaded) AMD EPYC 7452 32-Core Processor, 503 GB, 4x NVIDIA GeForce RTX 3090 @ 24GB",
+ "cross_node_jobs":true,
+ "cpu_cores": 128,
+ "mem_gb": 503,
+ "gpu_cards": 4,
+ "gpumem_gb": 96
+},
+{
+ "comment": "An intermediate name for this node due to a server config bug",
+ "hostname": "gpu-5-ib.fox",
+ "description": "2x32 (hyperthreaded) AMD EPYC 7452 32-Core Processor, 503 GB, 4x NVIDIA GeForce RTX 3090 @ 24GB",
+ "cross_node_jobs":true,
+ "cpu_cores": 128,
+ "mem_gb": 503,
+ "gpu_cards": 4,
+ "gpumem_gb": 96
+},
+{
+ "comment": "An intermediate name for this node due to a server config bug",
+ "hostname": "gpu-6-ib.fox",
  "description": "2x32 (hyperthreaded) AMD EPYC 7452 32-Core Processor, 503 GB, 4x NVIDIA GeForce RTX 3090 @ 24GB",
  "cross_node_jobs":true,
  "cpu_cores": 128,
