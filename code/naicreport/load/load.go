@@ -336,6 +336,9 @@ func generateDowntimeData(ld *loadDataBySystem, dd []*downtimeDataByHost, hasGpu
 		   it's possible for there to be no downtime in the time window. */
 		return
 	}
+	if dd[ddix].host > ld.system.host {
+		return
+	}
 	downtimeData := dd[ddix].data
 
 	loadData := ld.data
@@ -421,6 +424,9 @@ func parseDowntimeOutput(output string) ([]*downtimeDataByHost, error) {
 		start, startErr := time.Parse(sonarlog.DateTimeFormat, repr.Start)
 		end, endErr := time.Parse(sonarlog.DateTimeFormat, repr.End)
 		if startErr != nil || endErr != nil {
+			if verbose {
+				fmt.Fprintf(os.Stderr, "Skipping bad timestamp(s) %s %s\n", repr.Start, repr.End)
+			}
 			continue
 		}
 
