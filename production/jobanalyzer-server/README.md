@@ -85,6 +85,12 @@ Second, the web server must be configured.  These are my additions to nginx.conf
         location /sonar-heartbeat {
                 proxy_pass http://localhost:8086;
         }
+        location /sonar-freecsv {
+                proxy_pass http://localhost:8086;
+        }
+        location /sysinfo {
+                proxy_pass http://localhost:8086;
+        }
 
         # sonalyzed commands
         location /jobs {
