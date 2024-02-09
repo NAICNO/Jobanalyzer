@@ -527,14 +527,17 @@ fn aggregate_job(
             let gpu_cards = conf.gpu_cards as f64;
             let gpumem = conf.gpumem_gb as f64;
 
-            rcpu_avg = cpu_avg / cpu_cores;
-            rcpu_peak = cpu_peak / cpu_cores;
+            // You'd be amazed at what values can be zero if something goes wrong somewhere, or a
+            // process or system is unusual.
 
-            rmem_avg = (mem_avg * 100.0) / mem;
-            rmem_peak = (mem_peak * 100.0) / mem;
+            rcpu_avg = if cpu_cores > 0.0 { cpu_avg / cpu_cores } else { 0.0 };
+            rcpu_peak = if cpu_cores > 0.0 { cpu_peak / cpu_cores } else { 0.0 };
 
-            rres_avg = (res_avg * 100.0) / mem;
-            rres_peak = (res_peak * 100.0) / mem;
+            rmem_avg = if mem > 0.0 { (mem_avg * 100.0) / mem } else { 0.0 };
+            rmem_peak = if mem > 0.0 { (mem_peak * 100.0) / mem } else { 0.0 };
+
+            rres_avg = if mem > 0.0 { (res_avg * 100.0) / mem } else { 0.0 };
+            rres_peak = if mem > 0.0 { (res_peak * 100.0) / mem } else { 0.0 };
 
             rgpu_avg = if gpu_cards > 0.0 { gpu_avg / gpu_cards } else { 0.0 };
             rgpu_peak = if gpu_cards > 0.0 { gpu_peak / gpu_cards } else { 0.0 };
