@@ -16,11 +16,13 @@ auth_file=$sonar_dir/secrets/exfil-auth.txt
 # For HTTPS only.  Goes with the -cert-ca argument to exfiltrate command line below.
 cert_file=$sonar_dir/secrets/naic-monitor.uio.no_fullchain.crt
 
+# NOTE SPECIAL CASE FOR LOGIN NODES RUN BY CRONIC.SH - SHORT WINDOW.
+#
 # The upload window is set to 280 seconds so that the upload is almost certain to be done before
 # sonar runs the next time, assuming a 5-minute interval for sonar runs.  Correctness does not
 # depend on that - data can arrive at the server in any order, so long as they are tagged with the
 # correct timestamp - but it's nice to not have more processes running concurrently than necessary.
-window=280
+window=40
 
 # The canonical name of the cluster
 cluster=saga.sigma2.no
@@ -34,14 +36,12 @@ cluster=saga.sigma2.no
 $sonar_dir/sonar ps \
 		 --exclude-system-jobs \
 		 --exclude-commands=bash,ssh,zsh,tmux,systemd \
-		 --min-cpu-time=60 \
+		 --min-cpu-time=20 \
 		 --batchless \
 		 --rollup \
     | $sonar_dir/exfiltrate \
-	  -cluster $cluster \
 	  -window $window \
-	  -source sonar/csvnamed \
-	  -output json \
 	  -auth-file $auth_file \
-	  -target $target_addr \
-	  -ca-cert $cert_file
+	  -ca-cert $cert_file \
+	  -mimetype text/csv \
+	  $target_addr/sonar-freecsv?cluster=$cluster
