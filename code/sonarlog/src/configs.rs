@@ -29,6 +29,7 @@ use std::path;
 
 #[derive(Debug, Default, Clone)]
 pub struct System {
+    pub timestamp: String,
     pub hostname: String,
     pub description: String,
     pub cross_node_jobs: bool,
@@ -81,6 +82,9 @@ pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
                 sys.gpu_cards = gpu_cards.or(Some(0)).unwrap();
                 sys.gpumem_gb = gpumem_gb.or(Some(0)).unwrap();
                 sys.gpumem_pct = gpumem_pct.or(Some(false)).unwrap();
+                if let Some(Value::String(ts)) = fields.get("timestamp") {
+                    sys.timestamp = ts.clone();
+                }
                 for exp in expand_hostname(&sys.hostname)?.drain(0..) {
                     let mut nsys = sys.clone();
                     let key = exp.clone();

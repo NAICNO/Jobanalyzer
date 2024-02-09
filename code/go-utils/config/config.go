@@ -24,6 +24,9 @@ type SystemMeta struct {
 }
 
 type SystemConfig struct {
+	// Full ISO timestamp of when the reading was taken, missing in older data
+	Timestamp string `json:"timestamp,omitempty"`
+
 	// Name that host is known by on the cluster
 	Hostname string `json:"hostname"`
 

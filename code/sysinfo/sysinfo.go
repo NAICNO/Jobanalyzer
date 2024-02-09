@@ -10,7 +10,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"go-utils/config"
 	"go-utils/process"
 	"go-utils/sysinfo"
 )
@@ -46,16 +48,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	type repr struct {
-		Hostname  string `json:"hostname"`
-		Model     string `json:"description"`
-		Cores     int    `json:"cpu_cores"`
-		MemGB     int64  `json:"mem_gb"`
-		GpuCards  int    `json:"gpu_cards,omitempty"`
-		GpumemGB  int64  `json:"gpumem_gb,omitempty"`
-		GpumemPct bool   `json:"gpumem_pct,omitempty"`
-	}
-	var r repr
+	var r config.SystemConfig
+	r.Timestamp = time.Now().Format(time.RFC3339)
 	r.Hostname, err = os.Hostname()
 	if err != nil {
 		panic("Hostname")
@@ -64,13 +58,13 @@ func main() {
 	if threadsPerCore > 1 {
 		ht = " (hyperthreaded)"
 	}
-	r.MemGB = int64(math.Round(float64(memBy) / GiB))
-	r.Model = fmt.Sprintf("%dx%d%s %s, %d GB", sockets, coresPerSocket, ht, model, r.MemGB)
-	r.Cores = sockets * coresPerSocket * threadsPerCore
+	r.MemGB = int(math.Round(float64(memBy) / GiB))
+	r.Description = fmt.Sprintf("%dx%d%s %s, %d GB", sockets, coresPerSocket, ht, model, r.MemGB)
+	r.CpuCores = sockets * coresPerSocket * threadsPerCore
 	if gpuModel != "" {
-		r.Model += fmt.Sprintf(", %dx %s @ %dGB", gpuCards, gpuModel, gpuMemBy/GiB)
+		r.Description += fmt.Sprintf(", %dx %s @ %dGB", gpuCards, gpuModel, gpuMemBy/GiB)
 		r.GpuCards = gpuCards
-		r.GpumemGB = int64(math.Round((float64(gpuMemBy) * float64(gpuCards)) / GiB))
+		r.GpuMemGB = int(math.Round((float64(gpuMemBy) * float64(gpuCards)) / GiB))
 	}
 	bytes, err := json.MarshalIndent(r, "", " ")
 	if err != nil {
