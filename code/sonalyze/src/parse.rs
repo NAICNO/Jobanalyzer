@@ -153,7 +153,7 @@ type LogDatum<'a> = &'a Box<LogEntry>;
 type LogCtx<'a> = &'a bool;
 
 fn format_version(d: LogDatum, _: LogCtx) -> String {
-    d.version.clone()
+    format!("{}.{}.{}", d.major, d.minor, d.bugfix)
 }
 
 fn format_time(d: LogDatum, _: LogCtx) -> String {

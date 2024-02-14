@@ -36,6 +36,7 @@
 ///
 /// - Merge and fold sample streams, to create complete views of jobs or systems
 mod configs;
+mod csv;
 mod dates;
 mod hosts;
 mod logclean;
@@ -208,7 +209,9 @@ pub use logfile::merge_gpu_status;
 #[derive(Debug, Clone)] // TODO: Clone needed by a corner case in sonalyze/load
 pub struct LogEntry {
     /// Format "major.minor.bugfix"
-    pub version: String,
+    pub major: u16,
+    pub minor: u16,
+    pub bugfix: u16,
 
     /// The time is common to all records created by the same sonar invocation.  It has no subsecond
     /// precision.

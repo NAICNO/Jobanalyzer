@@ -515,7 +515,7 @@ fn merge_streams(
         }
 
         records.push(sum_records(
-            "0.0.0".to_string(),
+            (0u16, 0u16, 0u16),
             min_time,
             hostname.clone(),
             username.clone(),
@@ -530,7 +530,7 @@ fn merge_streams(
 }
 
 fn sum_records(
-    version: String,
+    version: (u16, u16, u16),
     timestamp: Timestamp,
     hostname: String,
     user: String,
@@ -560,7 +560,9 @@ fn sum_records(
 
     // Synthesize the record.
     Box::new(LogEntry {
-        version,
+        major: version.0,
+        minor: version.1,
+        bugfix: version.2,
         timestamp,
         hostname,
         num_cores: 0,
@@ -615,7 +617,7 @@ fn fold_samples<'a>(
             i += 1;
         }
         let mut r = sum_records(
-            "0.0.0".to_string(),
+            (0u16, 0u16, 0u16),
             t0,
             s0.hostname.clone(),
             "_merged_".to_string(),

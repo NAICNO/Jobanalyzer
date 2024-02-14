@@ -123,7 +123,7 @@ where
     streams.iter_mut().for_each(|(_, stream)| {
         // By construction, every stream is non-empty.
         stream[0].cpu_util_pct = stream[0].cpu_pct;
-        let (major, minor, _) = crate::logfile::parse_version(&stream[0].version);
+        let (major, minor) = (stream[0].major, stream[0].minor);
         if major == 0 && minor <= 6 {
             for i in 1..stream.len() {
                 stream[i].cpu_util_pct = stream[0].cpu_pct;

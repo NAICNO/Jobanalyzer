@@ -16,7 +16,6 @@ untagged_sonar_data = []
 [dependencies]
 anyhow = "1.0.72"
 chrono = "0.4.26"
-csv = "1.2.2"
 itertools = "0.11.0"
-serde = { version = "1.0.175", features = ["derive"] }
+serde = { version = "1.0.175" }
 serde_json = "1.0.104"
