@@ -165,7 +165,7 @@ fn format_localtime(d: LogDatum, _: LogCtx) -> String {
 }
 
 fn format_host(d: LogDatum, _: LogCtx) -> String {
-    d.hostname.clone()
+    d.hostname.to_string()
 }
 
 fn format_cores(d: LogDatum, _: LogCtx) -> String {
@@ -177,7 +177,7 @@ fn format_memtotal(d: LogDatum, _: LogCtx) -> String {
 }
 
 fn format_user(d: LogDatum, _: LogCtx) -> String {
-    d.user.clone()
+    d.user.to_string()
 }
 
 fn format_pid(d: LogDatum, nodefaults: LogCtx) -> String {
@@ -193,7 +193,7 @@ fn format_job(d: LogDatum, _: LogCtx) -> String {
 }
 
 fn format_cmd(d: LogDatum, _: LogCtx) -> String {
-    d.command.clone()
+    d.command.to_string()
 }
 
 fn format_cpu_pct(d: LogDatum, _: LogCtx) -> String {

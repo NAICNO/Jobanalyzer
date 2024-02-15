@@ -1,3 +1,4 @@
+use crate::csv::{Token, Tokenizer, EQ_SENTINEL};
 /// Simple parser / preprocessor / input filterer for the Sonar log file format.
 ///
 /// For the definition of the input file format, see the README.md on the sonar repo.
@@ -18,12 +19,12 @@
 ///   end of the record anyway (as CSV is line-oriented).  This is a reasonable assumption but I've
 ///   found no documentation that guarantees it.
 use crate::{parse_timestamp, GpuStatus, LogEntry, Timestamp};
-use crate::csv::{Token, Tokenizer, EQ_SENTINEL};
 
 use anyhow::Result;
 use std::boxed::Box;
 use std::collections::HashSet;
 use std::str::FromStr;
+use ustr::Ustr;
 
 /// The GpuSet has three states:
 ///
@@ -121,19 +122,19 @@ pub fn merge_gpu_status(lhs: GpuStatus, rhs: GpuStatus) -> GpuStatus {
 /// A sensible "zero" LogEntry for use when we need it.  The user name and command are "_zero_" so
 /// that we can recognize this weird LogEntry as intentional and not some mistake.
 
-pub fn empty_logentry(t: Timestamp, hostname: &str) -> Box<LogEntry> {
+pub fn empty_logentry(t: Timestamp, hostname: Ustr) -> Box<LogEntry> {
     Box::new(LogEntry {
         major: 0,
         minor: 0,
         bugfix: 0,
         timestamp: t,
-        hostname: hostname.to_string(),
+        hostname,
         num_cores: 0,
         memtotal_gb: 0.0,
-        user: "_zero_".to_string(),
+        user: Ustr::from("_zero_"),
         pid: 0,
         job_id: 0,
-        command: "_zero_".to_string(),
+        command: Ustr::from("_zero_"),
         cpu_pct: 0.0,
         mem_gb: 0.0,
         rssanon_gb: 0.0,
@@ -195,13 +196,13 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
         // fields are really required.
         let mut version: Option<(u16, u16, u16)> = None;
         let mut timestamp: Option<Timestamp> = None;
-        let mut hostname: Option<String> = None;
+        let mut hostname: Option<Ustr> = None;
         let mut num_cores: Option<u32> = None;
         let mut memtotal_gb: Option<f64> = None;
-        let mut user: Option<String> = None;
+        let mut user: Option<Ustr> = None;
         let mut pid: Option<u32> = None;
         let mut job_id: Option<u32> = None;
-        let mut command: Option<String> = None;
+        let mut command: Option<Ustr> = None;
         let mut cpu_pct: Option<f64> = None;
         let mut mem_gb: Option<f64> = None;
         let mut rssanon_gb: Option<f64> = None;
@@ -223,17 +224,15 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
             let mut failed = false;
             let mut matched = false;
             match t0 {
-                Err(e) => {
-                    match e.downcast_ref::<std::io::Error>() {
-                        Some(_) => {
-                            return Err(e.into());
-                        }
-                        None => {
-                            discarded += 1;
-                            continue 'line_loop;
-                        }
+                Err(e) => match e.downcast_ref::<std::io::Error>() {
+                    Some(_) => {
+                        return Err(e.into());
                     }
-                }
+                    None => {
+                        discarded += 1;
+                        continue 'line_loop;
+                    }
+                },
                 Ok(Token::EOL) => {
                     break 'field_loop;
                 }
@@ -289,7 +288,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     }
                                 },
                                 1 => {
-                                    hostname = Some(tokenizer.get_string(start, lim));
+                                    hostname = Some(Ustr::from(tokenizer.get_str(start, lim)));
                                     matched = true;
                                 }
                                 2 => {
@@ -297,7 +296,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     matched = true;
                                 }
                                 3 => {
-                                    user = Some(tokenizer.get_string(start, lim));
+                                    user = Some(Ustr::from(tokenizer.get_str(start, lim)));
                                     matched = true;
                                 }
                                 4 => {
@@ -310,7 +309,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     matched = true;
                                 }
                                 5 => {
-                                    command = Some(tokenizer.get_string(start, lim));
+                                    command = Some(Ustr::from(tokenizer.get_str(start, lim)));
                                     matched = true;
                                 }
                                 6 => {
@@ -372,7 +371,8 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                         if tokenizer.match_tag(b"cmd", start, eqloc)
                                             && command.is_none()
                                         {
-                                            command = Some(tokenizer.get_string(eqloc, lim));
+                                            command =
+                                                Some(Ustr::from(tokenizer.get_str(eqloc, lim)));
                                             matched = true;
                                         }
                                     }
@@ -450,7 +450,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     if tokenizer.match_tag(b"host", start, eqloc)
                                         && hostname.is_none()
                                     {
-                                        hostname = Some(tokenizer.get_string(eqloc, lim));
+                                        hostname = Some(Ustr::from(tokenizer.get_str(eqloc, lim)));
                                         matched = true;
                                     }
                                 }
@@ -518,7 +518,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                 b'u' => {
                                     if tokenizer.match_tag(b"user", start, eqloc) && user.is_none()
                                     {
-                                        user = Some(tokenizer.get_string(eqloc, lim));
+                                        user = Some(Ustr::from(tokenizer.get_str(eqloc, lim)));
                                         matched = true;
                                     }
                                 }

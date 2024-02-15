@@ -33,6 +33,7 @@
 use crate::pattern;
 
 use anyhow::Result;
+use ustr::Ustr;
 
 pub struct HostFilter {
     // The outer bool is `exhaustive`, the inner bool is `prefix`
@@ -192,12 +193,12 @@ fn test_expansion() {
 /// The input is a set and combine_hosts is a function on that set: that is, inputs [x,y] and [y,x]
 /// will yield the same output (and this is important for some consumers).
 
-pub fn combine_hosts(hosts: Vec<String>) -> String {
+pub fn combine_hosts(hosts: Vec<Ustr>) -> Ustr {
     // Split into groups of names a.b.c.d whose tails .b.c.d are the same, we will attempt to merge
     // their `a` elements.
     let mut splits = hosts
         .iter()
-        .map(|s| s.split(".").collect::<Vec<&str>>())
+        .map(|s| s.as_str().split(".").collect::<Vec<&str>>())
         .collect::<Vec<Vec<&str>>>();
 
     // Sort lexicographically by tail first and then hostname second - this will allow us to group
@@ -268,7 +269,7 @@ pub fn combine_hosts(hosts: Vec<String>) -> String {
         }
     }
 
-    results.join(",")
+    Ustr::from(&results.join(","))
 }
 
 fn same_strs(a: &[&str], b: &[&str]) -> bool {
@@ -310,22 +311,22 @@ fn combine(mut suffixes: Vec<usize>) -> String {
 fn test_combine_hosts() {
     assert!(
         combine_hosts(vec![
-            "a1".to_string(),
-            "a3".to_string(),
-            "a2".to_string(),
-            "a5".to_string()
-        ]) == "a[1-3,5]".to_string()
+            Ustr::from("a1"),
+            Ustr::from("a3"),
+            Ustr::from("a2"),
+            Ustr::from("a5")
+        ]) == "a[1-3,5]"
     );
     // Hosts are carefully ordered here to ensure that they are not sorted either by their first or
     // second elements.
     assert!(
         combine_hosts(vec![
-            "a3.fox".to_string(),
-            "a1.fox".to_string(),
-            "a3.fum".to_string(),
-            "a2.fox".to_string(),
-            "a5.fox".to_string(),
-        ]) == "a[1-3,5].fox,a3.fum".to_string()
+            Ustr::from("a3.fox"),
+            Ustr::from("a1.fox"),
+            Ustr::from("a3.fum"),
+            Ustr::from("a2.fox"),
+            Ustr::from("a5.fox"),
+        ]) == "a[1-3,5].fox,a3.fum"
     );
 }
 

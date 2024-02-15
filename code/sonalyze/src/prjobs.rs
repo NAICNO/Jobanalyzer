@@ -14,11 +14,12 @@ use sonarlog::{self, empty_gpuset, gpuset_to_string, now, union_gpuset, Timestam
 use std::collections::{HashMap, HashSet};
 use std::io;
 use std::ops::Add;
+use ustr::Ustr;
 
 pub fn print_jobs(
     output: &mut dyn io::Write,
     system_config: &Option<HashMap<String, sonarlog::System>>,
-    mut hosts: HashSet<String>,
+    mut hosts: HashSet<Ustr>,
     mut jobvec: Vec<JobSummary>,
     print_args: &JobPrintArgs,
     meta_args: &MetaArgs,
@@ -118,7 +119,7 @@ pub fn print_jobs(
         if relative {
             if let Some(ref ht) = system_config {
                 for host in hosts.drain() {
-                    if ht.get(&host).is_none() {
+                    if ht.get(host.as_str()).is_none() {
                         // Note that system_config is not actually used during printing.  What we're
                         // doing here is making somebody (hopefully) aware that there are problems.
                         // We have generated nonsense/zero data for relative fields for anything to
@@ -311,7 +312,7 @@ type LogDatum<'a> = &'a JobSummary;
 type LogCtx<'a> = &'a Context;
 
 fn format_user(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
-    job[0].user.clone()
+    job[0].user.to_string()
 }
 
 fn format_jobm_id(
@@ -353,17 +354,17 @@ fn format_job_id(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {
 
 fn format_host(JobSummary { job, .. }: LogDatum, c: LogCtx) -> String {
     // The hosts are in the jobs only, we aggregate only for presentation
-    let mut hosts = HashSet::<String>::new();
+    let mut hosts = HashSet::<Ustr>::new();
     if c.fixed_format {
         for j in job {
-            hosts.insert(j.hostname.split('.').next().unwrap().to_string());
+            hosts.insert(Ustr::from(j.hostname.split('.').next().unwrap()));
         }
     } else {
         for j in job {
-            hosts.insert(j.hostname.to_string());
+            hosts.insert(j.hostname);
         }
     }
-    sonarlog::combine_hosts(hosts.drain().collect::<Vec<String>>())
+    sonarlog::combine_hosts(hosts.drain().collect::<Vec<Ustr>>()).to_string()
 }
 
 fn format_gpus(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {

@@ -22,6 +22,7 @@ use crate::{MetaArgs, ProfileFilterAndAggregationArgs, ProfilePrintArgs};
 use anyhow::{bail, Result};
 use json;
 use sonarlog::{InputStreamSet, LogEntry, Timestamp};
+use ustr::Ustr;
 
 use std::cmp::max;
 use std::collections::HashMap;
@@ -405,7 +406,7 @@ fn format_nproc(d: LogDatum, _: LogCtx) -> String {
 }
 
 fn format_cmd(d: LogDatum, _: LogCtx) -> String {
-    d.r.command.clone()
+    d.r.command.to_string()
 }
 
 // Each of the inner vectors are commands, coherently sorted, for the same timestamp.  We write all
@@ -539,7 +540,7 @@ fn write_html(
         .join(",");
     // One dataset per process.
     let mut datasets = vec![];
-    let mut username = "".to_string();
+    let mut username = Ustr::from("");
     for i in 0..numprocs {
         // s has the rendered data for process i.
         let mut s = "".to_string();
@@ -550,7 +551,7 @@ fn write_html(
             }
             let val = if let Some(ref x) = data[i] {
                 if username.is_empty() {
-                    username = x.user.clone();
+                    username = x.user;
                 }
                 if cpu_field {
                     (x.cpu_util_pct.round() as isize).to_string()

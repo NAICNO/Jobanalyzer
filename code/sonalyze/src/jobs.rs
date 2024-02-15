@@ -13,6 +13,7 @@ use sonarlog::{
 use std::boxed::Box;
 use std::collections::{HashMap, HashSet};
 use std::io;
+use ustr::Ustr;
 
 /// Bit values for JobAggregate::classification.  Also defined in ~/naicreport/sonalyze/jobs.go.
 
@@ -109,9 +110,9 @@ pub fn aggregate_and_print_jobs(
     // values are requested; that won't be known until the printer parses the format string.  So
     // collect the set of hosts from the set of streams (usually very cheap) and pass that on.
 
-    let mut hosts = HashSet::<String>::new();
+    let mut hosts = HashSet::<Ustr>::new();
     for (_, s) in &streams {
-        hosts.insert(s[0].hostname.clone());
+        hosts.insert(s[0].hostname);
     }
 
     let /*mut*/ jobvec = aggregate_and_filter_jobs(system_config, filter_args, streams, bounds);
@@ -435,7 +436,7 @@ fn aggregate_and_filter_jobs(
         let mut s_bounds = Timebounds::new();
         for (k,v) in streams.drain() {
             let bound = bounds.get(&k.0).unwrap();
-            if let Some(sys) = info.get(&k.0) {
+            if let Some(sys) = info.get(k.0.as_str()) {
                 if sys.cross_node_jobs {
                     m_bounds.insert(k.0.clone(), bound.clone());
                     mergeable.insert(k,v);
@@ -521,7 +522,7 @@ fn aggregate_job(
     let mut rgpumem_peak = 0.0;
 
     if let Some(confs) = system_config {
-        if let Some(conf) = confs.get(host) {
+        if let Some(conf) = confs.get(host.as_str()) {
             let cpu_cores = conf.cpu_cores as f64;
             let mem = conf.mem_gb as f64;
             let gpu_cards = conf.gpu_cards as f64;

@@ -5,9 +5,10 @@ use anyhow::Result;
 use sonarlog::{Timebounds, Timestamp};
 use std::collections::HashMap;
 use std::io;
+use ustr::Ustr;
 
 struct Item {
-    host: String,
+    host: Ustr,
     earliest: Timestamp,
     latest: Timestamp,
 }
@@ -100,7 +101,7 @@ type LogDatum<'a> = &'a Item;
 type LogCtx<'a> = &'a bool;
 
 fn format_host(d: LogDatum, _: LogCtx) -> String {
-    d.host.clone()
+    d.host.to_string()
 }
 
 fn format_earliest(d: LogDatum, _: LogCtx) -> String {

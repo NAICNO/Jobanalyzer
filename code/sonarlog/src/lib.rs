@@ -218,7 +218,7 @@ pub struct LogEntry {
     pub timestamp: Timestamp,
 
     /// Fully qualified domain name.
-    pub hostname: String,
+    pub hostname: ustr::Ustr,
 
     /// Number of cores on the node.  This may be zero if there's no information.
     pub num_cores: u32,
@@ -227,7 +227,7 @@ pub struct LogEntry {
     pub memtotal_gb: f64,
 
     /// Unix user name, or `_zombie_<PID>`
-    pub user: String,
+    pub user: ustr::Ustr,
 
     /// For a unique process, this is its pid.
     ///
@@ -245,7 +245,7 @@ pub struct LogEntry {
     /// Semi-computed field.  For merged records, this is either a comma-joined sorted list of the
     /// command names of the original records, or the string "_merged_" when the record represents
     /// the merging of multiple jobs.
-    pub command: String,
+    pub command: ustr::Ustr,
 
     /// This is a running average of the CPU usage of the job, over the lifetime of the job, summed
     /// across all the processes of the job.  IT IS NOT A SAMPLE.  100.0=1 core's worth (100%).

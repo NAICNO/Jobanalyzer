@@ -1376,13 +1376,13 @@ fn sonalyze() -> Result<()> {
     // Record filtering logic is the same for all commands.
 
     let record_filter = |e: &LogEntry| {
-        ((&include_users).is_empty() || (&include_users).contains(&e.user))
-            && ((&include_hosts).is_empty() || (&include_hosts).contains(&e.hostname))
+        ((&include_users).is_empty() || (&include_users).contains(e.user.as_str()))
+            && ((&include_hosts).is_empty() || (&include_hosts).contains(e.hostname.as_str()))
             && ((&include_jobs).is_empty() || (&include_jobs).contains(&(e.job_id as usize)))
-            && ((&include_commands).is_empty() || (&include_commands).contains(&e.command))
-            && !(&exclude_users).contains(&e.user)
+            && ((&include_commands).is_empty() || (&include_commands).contains(e.command.as_str()))
+            && !(&exclude_users).contains(e.user.as_str())
             && !(&exclude_jobs).contains(&(e.job_id as usize))
-            && !(&exclude_commands).contains(&e.command)
+            && !(&exclude_commands).contains(e.command.as_str())
             && (!exclude_system_jobs || e.pid >= 1000)
             && (!have_from || from <= e.timestamp)
             && (!have_to || e.timestamp <= to)

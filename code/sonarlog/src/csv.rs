@@ -26,7 +26,6 @@
 /// This is much more efficient than the serde-derived CSV parser, since the best we could do with
 /// that - given the flexibility of the input format - was to parse the record as a vector of string
 /// fields.  The allocation volume was tremendous.
-
 use anyhow::{bail, Result};
 use std::io;
 
@@ -68,11 +67,6 @@ impl<'a> Tokenizer<'a> {
     // Token::Field from get().  This &str is only valid until the next call to get().
     pub fn get_str(&self, start: usize, lim: usize) -> &str {
         unsafe { std::str::from_utf8_unchecked(&self.buf[start..lim]) }
-    }
-
-    // As get_str(), but return a true String object that remains valid indefinitely.
-    pub fn get_string(&self, start: usize, lim: usize) -> String {
-        self.get_str(start, lim).to_string()
     }
 
     // Get the byte in the buffer at the given locations, this is valid exclusively for locations
@@ -193,12 +187,9 @@ impl<'a> Tokenizer<'a> {
             }
             #[cfg(test)]
             if self.fail_refill {
-                return Err(io::Error::new(io::ErrorKind::Unsupported,
-                                          "Test failure").into());
+                return Err(io::Error::new(io::ErrorKind::Unsupported, "Test failure").into());
             }
-            let nread = self
-                .reader
-                .read(&mut self.buf[self.lim..BUFSIZ - 1])?;
+            let nread = self.reader.read(&mut self.buf[self.lim..BUFSIZ - 1])?;
             self.lim += nread;
             self.buf[self.lim] = b'\n';
             if nread == 0 {
@@ -409,7 +400,7 @@ fn test_csv_tokenizer7() {
     // Token+newline must straddle the buffer boundary in some interesting way
     assert!(BUFSIZ % 27 != 0 && BUFSIZ % 27 != 1 && BUFSIZ % 27 != 26);
     let mut text = "".to_string();
-    let count = BUFSIZ*3 / 27;
+    let count = BUFSIZ * 3 / 27;
     for _i in 0..count {
         text += "abcdefghijklmnopqrstuvwxyz\n";
     }
@@ -446,13 +437,13 @@ fn test_csv_tokenizer7() {
 fn test_csv_tokenizer8() {
     // This is the same input as test_csv_tokenizer7() for a reason, see below.
     let mut text = "".to_string();
-    let count = BUFSIZ*3 / 27;
+    let count = BUFSIZ * 3 / 27;
     for _i in 0..count {
         text += "abcdefghijklmnopqrstuvwxyz\n";
     }
     let mut bs = text.as_bytes();
     let mut tokenizer = Tokenizer::new(&mut bs);
-    tokenizer.get().unwrap();   // Fill once
+    tokenizer.get().unwrap(); // Fill once
     tokenizer.set_fail_refill();
     loop {
         match tokenizer.get() {
