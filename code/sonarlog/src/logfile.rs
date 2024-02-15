@@ -22,7 +22,6 @@ use crate::{parse_timestamp, GpuStatus, LogEntry, Timestamp};
 
 use anyhow::Result;
 use std::boxed::Box;
-use std::collections::HashSet;
 use std::str::FromStr;
 use ustr::Ustr;
 
@@ -36,16 +35,19 @@ use ustr::Ustr;
 /// set can transition from Some({}) to None or from Some({a,b,..}) to None.  Once in the None
 /// state, the set will stay in that state.  There is no representation for some known + some
 /// unknown GPUs, it is not believed to be worthwhile.
+///
+/// To conserve space in the LogEntry we use a bitmap for cards rather than a HashSet.  The HashSet
+/// is quite large.
 
-pub type GpuSet = Option<HashSet<u32>>;
+pub type GpuSet = Option<u32>;
 
 pub fn empty_gpuset() -> GpuSet {
-    Some(HashSet::new())
+    Some(0)
 }
 
 pub fn is_empty_gpuset(s: &GpuSet) -> bool {
     if let Some(set) = s {
-        set.is_empty()
+        *set == 0
     } else {
         false
     }
@@ -61,9 +63,8 @@ pub fn is_unknown_gpuset(s: &GpuSet) -> bool {
 
 pub fn singleton_gpuset(maybe_device: Option<u32>) -> GpuSet {
     if let Some(dev) = maybe_device {
-        let mut gpus = HashSet::new();
-        gpus.insert(dev);
-        Some(gpus)
+        assert!(dev < 32);
+        Some(1 << dev)
     } else {
         None
     }
@@ -71,7 +72,8 @@ pub fn singleton_gpuset(maybe_device: Option<u32>) -> GpuSet {
 
 pub fn adjoin_gpuset(lhs: &mut GpuSet, rhs: u32) {
     if let Some(gpus) = lhs {
-        gpus.insert(rhs);
+        assert!(rhs < 32);
+        *gpus |= 1 << rhs;
     }
 }
 
@@ -81,19 +83,25 @@ pub fn union_gpuset(lhs: &mut GpuSet, rhs: &GpuSet) {
     } else if rhs.is_none() {
         *lhs = None;
     } else {
-        lhs.as_mut().unwrap().extend(rhs.as_ref().unwrap());
+        *lhs.as_mut().unwrap() |= rhs.as_ref().unwrap();
     }
 }
 
 // For testing, we need a predictable order, so accumulate as numbers and sort
 pub fn gpuset_to_string(gpus: &GpuSet) -> String {
     if let Some(gpus) = gpus {
-        if gpus.is_empty() {
+        if *gpus == 0 {
             "none".to_string()
         } else {
             let mut cards = vec![];
-            for g in gpus {
-                cards.push(*g);
+            let mut g = *gpus;
+            let mut i = 0;
+            while g != 0 {
+                if (g & 1) == 1 {
+                    cards.push(i);
+                }
+                g >>= 1;
+                i += 1;
             }
             cards.sort();
             let mut term = "";
@@ -197,19 +205,19 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
         let mut version: Option<(u16, u16, u16)> = None;
         let mut timestamp: Option<Timestamp> = None;
         let mut hostname: Option<Ustr> = None;
-        let mut num_cores: Option<u32> = None;
-        let mut memtotal_gb: Option<f64> = None;
+        let mut num_cores: Option<u16> = None;
+        let mut memtotal_gb: Option<f32> = None;
         let mut user: Option<Ustr> = None;
         let mut pid: Option<u32> = None;
         let mut job_id: Option<u32> = None;
         let mut command: Option<Ustr> = None;
-        let mut cpu_pct: Option<f64> = None;
-        let mut mem_gb: Option<f64> = None;
-        let mut rssanon_gb: Option<f64> = None;
+        let mut cpu_pct: Option<f32> = None;
+        let mut mem_gb: Option<f32> = None;
+        let mut rssanon_gb: Option<f32> = None;
         let mut gpus: Option<GpuSet> = None;
-        let mut gpu_pct: Option<f64> = None;
-        let mut gpumem_pct: Option<f64> = None;
-        let mut gpumem_gb: Option<f64> = None;
+        let mut gpu_pct: Option<f32> = None;
+        let mut gpumem_pct: Option<f32> = None;
+        let mut gpumem_gb: Option<f32> = None;
         let mut gpu_status: Option<GpuStatus> = None;
         let mut cputime_sec: Option<f64> = None;
         let mut rolledup: Option<u32> = None;
@@ -292,7 +300,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     matched = true;
                                 }
                                 2 => {
-                                    (num_cores, failed) = get_u32(tokenizer.get_str(start, lim));
+                                    (num_cores, failed) = get_u16(tokenizer.get_str(start, lim));
                                     matched = true;
                                 }
                                 3 => {
@@ -313,11 +321,11 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     matched = true;
                                 }
                                 6 => {
-                                    (cpu_pct, failed) = get_f64(tokenizer.get_str(start, lim), 1.0);
+                                    (cpu_pct, failed) = get_f32(tokenizer.get_str(start, lim), 1.0);
                                     matched = true;
                                 }
                                 7 => {
-                                    (mem_gb, failed) = get_f64(
+                                    (mem_gb, failed) = get_f32(
                                         tokenizer.get_str(start, lim),
                                         1.0 / (1024.0 * 1024.0),
                                     );
@@ -329,16 +337,16 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     matched = true;
                                 }
                                 9 => {
-                                    (gpu_pct, failed) = get_f64(tokenizer.get_str(start, lim), 1.0);
+                                    (gpu_pct, failed) = get_f32(tokenizer.get_str(start, lim), 1.0);
                                     matched = true;
                                 }
                                 10 => {
                                     (gpumem_pct, failed) =
-                                        get_f64(tokenizer.get_str(start, lim), 1.0);
+                                        get_f32(tokenizer.get_str(start, lim), 1.0);
                                     matched = true;
                                 }
                                 11 => {
-                                    (gpumem_gb, failed) = get_f64(
+                                    (gpumem_gb, failed) = get_f32(
                                         tokenizer.get_str(start, lim),
                                         1.0 / (1024.0 * 1024.0),
                                     );
@@ -381,7 +389,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                             && num_cores.is_none()
                                         {
                                             (num_cores, failed) =
-                                                get_u32(tokenizer.get_str(eqloc, lim));
+                                                get_u16(tokenizer.get_str(eqloc, lim));
                                             matched = true;
                                         }
                                     }
@@ -390,13 +398,13 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                         if tokenizer.match_tag(b"cpu%", start, eqloc)
                                             && cpu_pct.is_none()
                                         {
-                                            (cpu_pct, failed) = get_f64(field, 1.0);
+                                            (cpu_pct, failed) = get_f32(field, 1.0);
                                             matched = true;
                                         } else if tokenizer.match_tag(b"cpukib", start, eqloc)
                                             && mem_gb.is_none()
                                         {
                                             (mem_gb, failed) =
-                                                get_f64(field, 1.0 / (1024.0 * 1024.0));
+                                                get_f32(field, 1.0 / (1024.0 * 1024.0));
                                             matched = true;
                                         } else if tokenizer.match_tag(b"cputime_sec", start, eqloc)
                                             && cputime_sec.is_none()
@@ -416,18 +424,18 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     } else if tokenizer.match_tag(b"gpu%", start, eqloc)
                                         && gpu_pct.is_none()
                                     {
-                                        (gpu_pct, failed) = get_f64(field, 1.0);
+                                        (gpu_pct, failed) = get_f32(field, 1.0);
                                         matched = true;
                                     } else if tokenizer.match_tag(b"gpumem%", start, eqloc)
                                         && gpumem_pct.is_none()
                                     {
-                                        (gpumem_pct, failed) = get_f64(field, 1.0);
+                                        (gpumem_pct, failed) = get_f32(field, 1.0);
                                         matched = true;
                                     } else if tokenizer.match_tag(b"gpukib", start, eqloc)
                                         && gpumem_gb.is_none()
                                     {
                                         (gpumem_gb, failed) =
-                                            get_f64(field, 1.0 / (1024.0 * 1024.0));
+                                            get_f32(field, 1.0 / (1024.0 * 1024.0));
                                         matched = true;
                                     } else if tokenizer.match_tag(b"gpufail", start, eqloc)
                                         && gpu_status.is_none()
@@ -465,7 +473,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     if tokenizer.match_tag(b"memtotalkib", start, eqloc)
                                         && memtotal_gb.is_none()
                                     {
-                                        (memtotal_gb, failed) = get_f64(
+                                        (memtotal_gb, failed) = get_f32(
                                             tokenizer.get_str(eqloc, lim),
                                             1.0 / (1024.0 * 1024.0),
                                         );
@@ -486,7 +494,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                                 && rssanon_gb.is_none()
                                             {
                                                 (rssanon_gb, failed) =
-                                                    get_f64(field, 1.0 / (1024.0 * 1024.0));
+                                                    get_f32(field, 1.0 / (1024.0 * 1024.0));
                                                 matched = true;
                                             }
                                         }
@@ -586,7 +594,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
         // Fill in default data for optional fields.
 
         if num_cores.is_none() {
-            num_cores = Some(0);
+            num_cores = Some(0u16);
         }
         if memtotal_gb.is_none() {
             memtotal_gb = Some(0.0);
@@ -669,6 +677,14 @@ fn get_u32(s: &str) -> (Option<u32>, bool) {
     }
 }
 
+fn get_u16(s: &str) -> (Option<u16>, bool) {
+    if let Ok(n) = u16::from_str(s) {
+        (Some(n), false)
+    } else {
+        (None, true)
+    }
+}
+
 fn get_f64(s: &str, scale: f64) -> (Option<f64>, bool) {
     if let Ok(n) = f64::from_str(s) {
         if f64::is_infinite(n) {
@@ -681,26 +697,21 @@ fn get_f64(s: &str, scale: f64) -> (Option<f64>, bool) {
     }
 }
 
-fn get_gpus_from_bitvector(s: &str) -> (Option<GpuSet>, bool) {
-    match usize::from_str_radix(s, 2) {
-        Ok(mut bit_mask) => {
-            let mut gpus = None;
-            if bit_mask != 0 {
-                let mut set = HashSet::new();
-                if bit_mask != !0usize {
-                    let mut shift = 0;
-                    while bit_mask != 0 {
-                        if (bit_mask & 1) != 0 {
-                            set.insert(shift);
-                        }
-                        shift += 1;
-                        bit_mask >>= 1;
-                    }
-                }
-                gpus = Some(set);
-            }
-            (Some(gpus), false)
+fn get_f32(s: &str, scale: f32) -> (Option<f32>, bool) {
+    if let Ok(n) = f32::from_str(s) {
+        if f32::is_infinite(n) {
+            (None, true)
+        } else {
+            (Some(n * scale), false)
         }
+    } else {
+        (None, true)
+    }
+}
+
+fn get_gpus_from_bitvector(s: &str) -> (Option<GpuSet>, bool) {
+    match u32::from_str_radix(s, 2) {
+        Ok(bit_mask) => (Some(Some(bit_mask)), false),
         Err(_) => (None, true),
     }
 }

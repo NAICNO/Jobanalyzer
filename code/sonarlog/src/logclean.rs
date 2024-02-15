@@ -136,7 +136,7 @@ where
                 let dc = stream[i].cputime_sec - stream[i - 1].cputime_sec;
                 // It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
                 // We filter these below.
-                stream[i].cpu_util_pct = (dc / dt) * 100.0;
+                stream[i].cpu_util_pct = ((dc / dt) * 100.0) as f32;
             }
         }
     });
@@ -146,7 +146,7 @@ where
     if let Some(confs) = configs {
         streams.iter_mut().for_each(|(_, stream)| {
             if let Some(conf) = confs.get(stream[0].hostname.as_str()) {
-                let cardsize = (conf.gpumem_gb as f64) / (conf.gpu_cards as f64);
+                let cardsize = (conf.gpumem_gb as f32) / (conf.gpu_cards as f32);
                 for entry in stream {
                     if conf.gpumem_pct {
                         entry.gpumem_gb = entry.gpumem_pct * cardsize;

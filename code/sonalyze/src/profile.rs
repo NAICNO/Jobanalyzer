@@ -237,11 +237,11 @@ pub fn print(
                             }
                         }
                         if let Some(ref mut avg) = avg {
-                            avg.cpu_util_pct = cpu_util_pct / (count as f64);
-                            avg.mem_gb = mem_gb / (count as f64);
-                            avg.rssanon_gb = res_gb / (count as f64);
-                            avg.gpu_pct = gpu_pct / (count as f64);
-                            avg.gpumem_gb = gpumem_gb / (count as f64);
+                            avg.cpu_util_pct = cpu_util_pct / (count as f32);
+                            avg.mem_gb = mem_gb / (count as f32);
+                            avg.rssanon_gb = res_gb / (count as f32);
+                            avg.gpu_pct = gpu_pct / (count as f32);
+                            avg.gpumem_gb = gpumem_gb / (count as f32);
                         }
                         recs.push(avg);
                     }
@@ -648,8 +648,9 @@ fn clamp_fields(r: &Box<LogEntry>, filter_args: &ProfileFilterAndAggregationArgs
 // than twice the value of the clamp, in which case return 0 - the assumption is that it's a wild
 // outlier / noise.
 
-fn clamp_max(x: f64, c: Option<f64>) -> f64 {
-    if let Some(c) = c {
+fn clamp_max(x: f32, c: Option<f64>) -> f32 {
+    if let Some(d) = c {
+        let c = d as f32;
         if x > c {
             if x > 2.0 * c {
                 0.0
