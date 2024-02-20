@@ -212,12 +212,12 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
         let mut job_id: Option<u32> = None;
         let mut command: Option<Ustr> = None;
         let mut cpu_pct: Option<f32> = None;
-        let mut mem_gb: Option<f32> = None;
+        let mut mem_gb: Option<f64> = None;
         let mut rssanon_gb: Option<f32> = None;
         let mut gpus: Option<GpuSet> = None;
         let mut gpu_pct: Option<f32> = None;
         let mut gpumem_pct: Option<f32> = None;
-        let mut gpumem_gb: Option<f32> = None;
+        let mut gpumem_gb: Option<f64> = None;
         let mut gpu_status: Option<GpuStatus> = None;
         let mut cputime_sec: Option<f64> = None;
         let mut rolledup: Option<u32> = None;
@@ -325,7 +325,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     matched = true;
                                 }
                                 7 => {
-                                    (mem_gb, failed) = get_f32(
+                                    (mem_gb, failed) = get_f64(
                                         tokenizer.get_str(start, lim),
                                         1.0 / (1024.0 * 1024.0),
                                     );
@@ -346,7 +346,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                     matched = true;
                                 }
                                 11 => {
-                                    (gpumem_gb, failed) = get_f32(
+                                    (gpumem_gb, failed) = get_f64(
                                         tokenizer.get_str(start, lim),
                                         1.0 / (1024.0 * 1024.0),
                                     );
@@ -404,7 +404,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                             && mem_gb.is_none()
                                         {
                                             (mem_gb, failed) =
-                                                get_f32(field, 1.0 / (1024.0 * 1024.0));
+                                                get_f64(field, 1.0 / (1024.0 * 1024.0));
                                             matched = true;
                                         } else if tokenizer.match_tag(b"cputime_sec", start, eqloc)
                                             && cputime_sec.is_none()
@@ -435,7 +435,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                         && gpumem_gb.is_none()
                                     {
                                         (gpumem_gb, failed) =
-                                            get_f32(field, 1.0 / (1024.0 * 1024.0));
+                                            get_f64(field, 1.0 / (1024.0 * 1024.0));
                                         matched = true;
                                     } else if tokenizer.match_tag(b"gpufail", start, eqloc)
                                         && gpu_status.is_none()

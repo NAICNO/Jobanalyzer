@@ -506,8 +506,8 @@ fn aggregate_job(
     let mut rgpu_avg = 0.0f32;
     let mut rgpu_peak = 0.0f32;
 
-    let mem_avg = job.iter().fold(0.0, |acc, jr| acc + jr.mem_gb) / (job.len() as f32);
-    let mem_peak = job.iter().fold(0.0, |acc, jr| f32::max(acc, jr.mem_gb));
+    let mem_avg = job.iter().fold(0.0, |acc, jr| acc + jr.mem_gb) / (job.len() as f64);
+    let mem_peak = job.iter().fold(0.0, |acc, jr| f64::max(acc, jr.mem_gb));
     let mut rmem_avg = 0.0f32;
     let mut rmem_peak = 0.0f32;
 
@@ -516,8 +516,8 @@ fn aggregate_job(
     let mut rres_avg = 0.0f32;
     let mut rres_peak = 0.0f32;
 
-    let gpumem_avg = job.iter().fold(0.0, |acc, jr| acc + jr.gpumem_gb) / (job.len() as f32);
-    let gpumem_peak = job.iter().fold(0.0, |acc, jr| f32::max(acc, jr.gpumem_gb));
+    let gpumem_avg = job.iter().fold(0.0, |acc, jr| acc + jr.gpumem_gb) / (job.len() as f64);
+    let gpumem_peak = job.iter().fold(0.0, |acc, jr| f64::max(acc, jr.gpumem_gb));
     let mut rgpumem_avg = 0.0;
     let mut rgpumem_peak = 0.0;
 
@@ -534,8 +534,8 @@ fn aggregate_job(
             rcpu_avg = if cpu_cores > 0.0 { cpu_avg / cpu_cores } else { 0.0 };
             rcpu_peak = if cpu_cores > 0.0 { cpu_peak / cpu_cores } else { 0.0 };
 
-            rmem_avg = if mem > 0.0 { (mem_avg * 100.0) / mem } else { 0.0 };
-            rmem_peak = if mem > 0.0 { (mem_peak * 100.0) / mem } else { 0.0 };
+            rmem_avg = if mem > 0.0 { (mem_avg * 100.0) as f32 / mem } else { 0.0 };
+            rmem_peak = if mem > 0.0 { (mem_peak * 100.0) as f32 / mem } else { 0.0 };
 
             rres_avg = if mem > 0.0 { (res_avg * 100.0) / mem } else { 0.0 };
             rres_peak = if mem > 0.0 { (res_peak * 100.0) / mem } else { 0.0 };
@@ -546,8 +546,8 @@ fn aggregate_job(
             // If we have a config then logclean will have computed proper GPU memory values for the
             // job, so we need not look to conf.gpumem_pct here.  If we don't have a config then we
             // don't care about these figures anyway.
-            rgpumem_avg = if gpumem > 0.0 { gpumem_avg / gpumem } else { 0.0 };
-            rgpumem_peak = if gpumem > 0.0 { gpumem_peak / gpumem } else { 0.0 };
+            rgpumem_avg = if gpumem > 0.0 { gpumem_avg as f32 / gpumem } else { 0.0 };
+            rgpumem_peak = if gpumem > 0.0 { gpumem_peak as f32 / gpumem } else { 0.0 };
         }
     }
 
@@ -576,16 +576,16 @@ fn aggregate_job(
         gpu_peak: gpu_peak.ceil(),
         rgpu_avg: rgpu_avg.ceil(),
         rgpu_peak: rgpu_peak.ceil(),
-        mem_avg: mem_avg.ceil(),
-        mem_peak: mem_peak.ceil(),
+        mem_avg: mem_avg.ceil() as f32,
+        mem_peak: mem_peak.ceil() as f32,
         rmem_avg: rmem_avg.ceil(),
         rmem_peak: rmem_peak.ceil(),
         res_avg: res_avg.ceil(),
         res_peak: res_peak.ceil(),
         rres_avg: rres_avg.ceil(),
         rres_peak: rres_peak.ceil(),
-        gpumem_avg: gpumem_avg.ceil(),
-        gpumem_peak: gpumem_peak.ceil(),
+        gpumem_avg: gpumem_avg.ceil() as f32,
+        gpumem_peak: gpumem_peak.ceil() as f32,
         rgpumem_avg: rgpumem_avg.ceil(),
         rgpumem_peak: rgpumem_peak.ceil(),
         selected: true,

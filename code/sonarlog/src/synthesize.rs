@@ -620,15 +620,16 @@ fn fold_samples<'a>(
             Ustr::from("_merged_"),
             &bucket,
         );
-        let n = bucket.len() as f32;
-        r.cpu_pct /= n;
-        r.mem_gb /= n;
-        r.rssanon_gb /= n;
-        r.gpu_pct /= n;
-        r.gpumem_pct /= n;
-        r.gpumem_gb /= n;
-        r.cpu_util_pct /= n;
-        r.cputime_sec /= bucket.len() as f64;
+        let n32 = bucket.len() as f32;
+        let n64 = bucket.len() as f64;
+        r.cpu_pct /= n32;
+        r.mem_gb /= n64;
+        r.rssanon_gb /= n32;
+        r.gpu_pct /= n32;
+        r.gpumem_pct /= n32;
+        r.gpumem_gb /= n64;
+        r.cpu_util_pct /= n32;
+        r.cputime_sec /= n64;
         result.push(r);
     }
 

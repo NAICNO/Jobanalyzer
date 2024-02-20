@@ -146,12 +146,12 @@ where
     if let Some(confs) = configs {
         streams.iter_mut().for_each(|(_, stream)| {
             if let Some(conf) = confs.get(stream[0].hostname.as_str()) {
-                let cardsize = (conf.gpumem_gb as f32) / (conf.gpu_cards as f32);
+                let cardsize = (conf.gpumem_gb as f64) / (conf.gpu_cards as f64);
                 for entry in stream {
                     if conf.gpumem_pct {
-                        entry.gpumem_gb = entry.gpumem_pct * cardsize;
+                        entry.gpumem_gb = entry.gpumem_pct as f64 * cardsize;
                     } else {
-                        entry.gpumem_pct = entry.gpumem_gb / cardsize;
+                        entry.gpumem_pct = (entry.gpumem_gb / cardsize) as f32;
                     }
                 }
             }

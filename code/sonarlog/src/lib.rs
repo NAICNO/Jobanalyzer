@@ -261,8 +261,9 @@ pub struct LogEntry {
     pub cpu_pct: f32,
 
     /// Main memory used by the job on the node (the memory is shared by all cores on the node) at
-    /// the time of sampling.  This is virtual memory, data+stack.
-    pub mem_gb: f32,
+    /// the time of sampling.  This is virtual memory, data+stack.  It is f64 because the extra
+    /// precision is needed in some cases when we convert back to KiB.
+    pub mem_gb: f64,
 
     /// Resident memory used by the job on the node at the time of sampling.  This should be real
     /// memory, owned exclusively by the process.  RssAnon is not a perfect measure of that, but a
@@ -293,7 +294,8 @@ pub struct LogEntry {
     ///
     /// Semi-computed field.  This is not always reliable in its raw form (see Sonar documentation).
     /// The logclean module will tidy this up if presented with an appropriate system configuration.
-    pub gpumem_gb: f32,
+    /// It is f64 because the extra precision is needed in some cases when we convert back to KiB.
+    pub gpumem_gb: f64,
 
     /// Status of GPUs, as seen by sonar at the time.
     pub gpu_status: GpuStatus,
