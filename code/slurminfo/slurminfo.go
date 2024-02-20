@@ -5,10 +5,10 @@
 // with the -input option.
 //
 // Data not available from `sinfo` can optionally be provided by a file named by the -aux parameter.
-// This is a JSON file with the same format as the output (ie a Jobanalyzer system-config file),
-// where each field for a given host supplies a default value for that field.  For hosts that are
-// not revealed by `sinfo`, it supplies all fields.  It also carries metadata that makes `slurminfo`
-// modify the data slightly.  See the README.md in this directory.
+// This is a JSON file containing an array of NodeConfigRecords, where each field for a given host
+// supplies a default value for that field.  For hosts that are not revealed by `sinfo`, it supplies
+// all fields.  It also carries metadata that makes `slurminfo` modify the data slightly.  See the
+// README.md in this directory.
 //
 // TODO (none important):
 // - compress the entries coming from background information
@@ -22,9 +22,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -38,13 +36,6 @@ const (
 	// First line expected from sinfo
 	header = "HOSTNAMES/AVAIL_FEATURES/MEMORY/SOCKETS/CORES/THREADS"
 )
-
-// Sorting boilerplate.
-type configSlice []*config.SystemConfig
-
-func (a configSlice) Len() int           { return len(a) }
-func (a configSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a configSlice) Less(i, j int) bool { return a[i].Hostname < a[j].Hostname }
 
 func main() {
 	var auxFilename string
@@ -74,14 +65,18 @@ func main() {
 	// Read aux information.  `referenced` will be used to track whether an entry is used for
 	// background information or entirely.
 
-	var auxConfig map[string]*config.SystemConfig
+	var auxConfig map[string]*config.NodeConfigRecord
 	var referenced = make(map[string]bool)
 	if auxFilename != "" {
-		var err error
-		auxConfig, err = config.ReadConfig(auxFilename, true)
-		Check(err, "Reading aux")
+		auxBytes, err := os.ReadFile(auxFilename)
+		Check(err, "Reading background (aux) data")
+		var auxArray []*config.NodeConfigRecord
+		err = json.Unmarshal(auxBytes, &auxArray)
+		Check(err, "Unmarshaling background (aux) data")
+		auxConfig, err = config.ExpandNodeConfigs(auxArray)
+		Check(err, "expanding background (aux) data")
 	} else {
-		auxConfig = make(map[string]*config.SystemConfig)
+		auxConfig = make(map[string]*config.NodeConfigRecord)
 	}
 
 	// Build a map from system attributes to sets of host names.
@@ -174,7 +169,7 @@ func main() {
 
 	// Construct the output from the system attribute map.
 
-	results := make([]*config.SystemConfig, 0)
+	results := config.NewClusterConfig()
 	for desc, hosts := range systems {
 		names, err := hostglob.CompressHostnames(hosts)
 		Check(err, fmt.Sprintf("%v", hosts))
@@ -197,7 +192,7 @@ func main() {
 				memgb,
 				gpu,
 			)
-			results = append(results, &config.SystemConfig{
+			results.Insert(&config.NodeConfigRecord{
 				Hostname:      h + desc.suffix,
 				Description:   description,
 				CrossNodeJobs: desc.crossNode,
@@ -218,7 +213,7 @@ func main() {
 
 	for name, aux := range auxConfig {
 		if _, found := referenced[name]; !found {
-			Assert(aux.CpuCores > 0 && aux.MemGB > 0, "Bad system default "+aux.Hostname)
+			Assert(aux.CpuCores > 0 && aux.MemGB > 0, "Bad system default "+name)
 			for _, m := range aux.Metadata {
 				switch m.Key {
 				case "host-suffix":
@@ -226,14 +221,11 @@ func main() {
 				}
 			}
 			aux.Metadata = nil
-			results = append(results, aux)
+			results.Insert(aux)
 		}
 	}
 
-	// We print in host name order.
+	// Save the config.  It is JSON text and is just dumped on stdout.
 
-	sort.Sort(configSlice(results))
-	outBytes, err := json.MarshalIndent(&results, "", " ")
-	Check(err, "JSON data")
-	io.WriteString(os.Stdout, string(outBytes)+"\n")
+	config.WriteConfigTo(os.Stdout, results)
 }

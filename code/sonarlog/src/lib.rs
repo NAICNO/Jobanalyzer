@@ -329,6 +329,7 @@ pub use hosts::combine_hosts;
 
 // A structure representing the configuration of one host.
 
+pub use configs::ClusterConfig;
 pub use configs::System;
 
 // Read a set of host configurations from a file, and return a map from hostname to configuration.

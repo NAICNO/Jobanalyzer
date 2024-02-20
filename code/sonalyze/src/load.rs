@@ -42,7 +42,7 @@ struct PrintContext<'a> {
 
 pub fn aggregate_and_print_load(
     output: &mut dyn io::Write,
-    system_config: &Option<HashMap<String, sonarlog::System>>,
+    system_config: &Option<sonarlog::ClusterConfig>,
     _include_hosts: &HostFilter,
     from: Timestamp,
     to: Timestamp,
@@ -95,7 +95,7 @@ pub fn aggregate_and_print_load(
         if let Some(ref ht) = system_config {
             let mut bad = HashSet::<InputStreamKey>::new();
             for (k, s) in &streams {
-                if ht.get(s[0].hostname.as_str()).is_none() {
+                if ht.lookup(s[0].hostname.as_str()).is_none() {
                     bad.insert(k.clone());
                     eprintln!("Warning: Missing host configuration for {}", &s[0].hostname)
                 }
@@ -136,7 +136,7 @@ pub fn aggregate_and_print_load(
     if filter_args.group {
         if let Some(ref ht) = system_config {
             for stream in &merged_streams {
-                let probe = ht.get(stream[0].hostname.as_str()).unwrap();
+                let probe = ht.lookup(stream[0].hostname.as_str()).unwrap();
                 if the_conf.description != "" {
                     the_conf.description += "|||"; // JSON-compatible separator
                 }
@@ -178,10 +178,16 @@ pub fn aggregate_and_print_load(
                 .unwrap();
         }
 
+        let conf_copy: sonarlog::System;
         let sysconf = if let Some(_) = merged_conf {
             merged_conf
         } else if let Some(ref ht) = system_config {
-            ht.get(hostname.as_str())
+            if let Some(info) = ht.lookup(hostname.as_str()) {
+                conf_copy = (*info).clone();
+                Some(&conf_copy)
+            } else {
+                None
+            }
         } else {
             None
         };

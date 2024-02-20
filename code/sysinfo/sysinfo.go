@@ -59,7 +59,7 @@ func main() {
 		cards = amdInfo(amdPath)
 	}
 
-	var r config.SystemConfig
+	var r config.NodeConfigRecord
 	r.Timestamp = time.Now().Format(time.RFC3339)
 
 	r.Hostname, err = os.Hostname()

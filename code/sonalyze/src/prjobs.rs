@@ -18,7 +18,7 @@ use ustr::Ustr;
 
 pub fn print_jobs(
     output: &mut dyn io::Write,
-    system_config: &Option<HashMap<String, sonarlog::System>>,
+    system_config: &Option<sonarlog::ClusterConfig>,
     mut hosts: HashSet<Ustr>,
     mut jobvec: Vec<JobSummary>,
     print_args: &JobPrintArgs,
@@ -119,7 +119,7 @@ pub fn print_jobs(
         if relative {
             if let Some(ref ht) = system_config {
                 for host in hosts.drain() {
-                    if ht.get(host.as_str()).is_none() {
+                    if ht.lookup(host.as_str()).is_none() {
                         // Note that system_config is not actually used during printing.  What we're
                         // doing here is making somebody (hopefully) aware that there are problems.
                         // We have generated nonsense/zero data for relative fields for anything to
