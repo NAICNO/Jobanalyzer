@@ -95,7 +95,7 @@ pub fn aggregate_and_print_load(
         if let Some(ref ht) = system_config {
             let mut bad = HashSet::<InputStreamKey>::new();
             for (k, s) in &streams {
-                if ht.get(&s[0].hostname).is_none() {
+                if ht.get(s[0].hostname.as_str()).is_none() {
                     bad.insert(k.clone());
                     eprintln!("Warning: Missing host configuration for {}", &s[0].hostname)
                 }
@@ -136,7 +136,7 @@ pub fn aggregate_and_print_load(
     if filter_args.group {
         if let Some(ref ht) = system_config {
             for stream in &merged_streams {
-                let probe = ht.get(&stream[0].hostname).unwrap();
+                let probe = ht.get(stream[0].hostname.as_str()).unwrap();
                 if the_conf.description != "" {
                     the_conf.description += "|||"; // JSON-compatible separator
                 }
@@ -171,7 +171,7 @@ pub fn aggregate_and_print_load(
             }
             first = false;
         }
-        let hostname = stream[0].hostname.clone();
+        let hostname = stream[0].hostname;
         if !opts.csv && !opts.json && !explicit_host {
             output
                 .write(format!("HOST: {}\n", hostname).as_bytes())
@@ -181,7 +181,7 @@ pub fn aggregate_and_print_load(
         let sysconf = if let Some(_) = merged_conf {
             merged_conf
         } else if let Some(ref ht) = system_config {
-            ht.get(&hostname)
+            ht.get(hostname.as_str())
         } else {
             None
         };
@@ -310,7 +310,7 @@ fn insert_missing_records(
 
     for r in records.drain(0..) {
         while t < r.timestamp {
-            result.push(empty_logentry(t, &host));
+            result.push(empty_logentry(t, host));
             t = step(t);
         }
         result.push(r);
@@ -318,7 +318,7 @@ fn insert_missing_records(
     }
     let ending = trunc(to);
     while t <= ending {
-        result.push(empty_logentry(t, &host));
+        result.push(empty_logentry(t, host));
         t = step(t);
     }
     result

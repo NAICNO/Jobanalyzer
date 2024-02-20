@@ -6,6 +6,7 @@ use core::cmp::{max, min};
 use std::boxed::Box;
 use std::collections::HashMap;
 use std::path;
+use ustr::Ustr;
 
 /// Create a set of plausible log file names within a directory tree, for a date range and a set of
 /// included host files.  The returned names are sorted lexicographically.
@@ -99,7 +100,7 @@ pub fn find_logfiles(
 /// synthesized (merged) hosts it maps the merged host name to the earliest and latest times seen
 /// for all the merged streams for all those hosts.
 
-pub type Timebounds = HashMap<String, Timebound>;
+pub type Timebounds = HashMap<Ustr, Timebound>;
 
 #[derive(Clone)]
 pub struct Timebound {
@@ -123,13 +124,13 @@ pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timebou
 
     let mut bounds = Timebounds::new();
     for e in &entries {
-        let h = &e.hostname;
-        if let Some(v) = bounds.get_mut(h) {
+        let h = e.hostname;
+        if let Some(v) = bounds.get_mut(&h) {
             v.earliest = min(v.earliest, e.timestamp);
             v.latest = max(v.latest, e.timestamp);
         } else {
             bounds.insert(
-                h.to_string(),
+                h,
                 Timebound {
                     earliest: e.timestamp,
                     latest: e.timestamp,

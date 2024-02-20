@@ -1,3 +1,4 @@
+use crate::csv::{Token, Tokenizer, EQ_SENTINEL};
 /// Simple parser / preprocessor / input filterer for the Sonar log file format.
 ///
 /// For the definition of the input file format, see the README.md on the sonar repo.
@@ -20,10 +21,9 @@
 use crate::{parse_timestamp, GpuStatus, LogEntry, Timestamp};
 
 use anyhow::Result;
-use serde::Deserialize;
 use std::boxed::Box;
-use std::collections::HashSet;
 use std::str::FromStr;
+use ustr::Ustr;
 
 /// The GpuSet has three states:
 ///
@@ -35,16 +35,19 @@ use std::str::FromStr;
 /// set can transition from Some({}) to None or from Some({a,b,..}) to None.  Once in the None
 /// state, the set will stay in that state.  There is no representation for some known + some
 /// unknown GPUs, it is not believed to be worthwhile.
+///
+/// To conserve space in the LogEntry we use a bitmap for cards rather than a HashSet.  The HashSet
+/// is quite large.
 
-pub type GpuSet = Option<HashSet<u32>>;
+pub type GpuSet = Option<u32>;
 
 pub fn empty_gpuset() -> GpuSet {
-    Some(HashSet::new())
+    Some(0)
 }
 
 pub fn is_empty_gpuset(s: &GpuSet) -> bool {
     if let Some(set) = s {
-        set.is_empty()
+        *set == 0
     } else {
         false
     }
@@ -60,9 +63,8 @@ pub fn is_unknown_gpuset(s: &GpuSet) -> bool {
 
 pub fn singleton_gpuset(maybe_device: Option<u32>) -> GpuSet {
     if let Some(dev) = maybe_device {
-        let mut gpus = HashSet::new();
-        gpus.insert(dev);
-        Some(gpus)
+        assert!(dev < 32);
+        Some(1 << dev)
     } else {
         None
     }
@@ -70,7 +72,8 @@ pub fn singleton_gpuset(maybe_device: Option<u32>) -> GpuSet {
 
 pub fn adjoin_gpuset(lhs: &mut GpuSet, rhs: u32) {
     if let Some(gpus) = lhs {
-        gpus.insert(rhs);
+        assert!(rhs < 32);
+        *gpus |= 1 << rhs;
     }
 }
 
@@ -80,19 +83,25 @@ pub fn union_gpuset(lhs: &mut GpuSet, rhs: &GpuSet) {
     } else if rhs.is_none() {
         *lhs = None;
     } else {
-        lhs.as_mut().unwrap().extend(rhs.as_ref().unwrap());
+        *lhs.as_mut().unwrap() |= rhs.as_ref().unwrap();
     }
 }
 
 // For testing, we need a predictable order, so accumulate as numbers and sort
 pub fn gpuset_to_string(gpus: &GpuSet) -> String {
     if let Some(gpus) = gpus {
-        if gpus.is_empty() {
+        if *gpus == 0 {
             "none".to_string()
         } else {
             let mut cards = vec![];
-            for g in gpus {
-                cards.push(*g);
+            let mut g = *gpus;
+            let mut i = 0;
+            while g != 0 {
+                if (g & 1) == 1 {
+                    cards.push(i);
+                }
+                g >>= 1;
+                i += 1;
             }
             cards.sort();
             let mut term = "";
@@ -118,416 +127,22 @@ pub fn merge_gpu_status(lhs: GpuStatus, rhs: GpuStatus) -> GpuStatus {
     }
 }
 
-/// Parse a version string.
-
-pub fn parse_version(v: &str) -> (usize, usize, usize) {
-    let parts: Vec<&str> = v.split('.').collect();
-    let major = parts[0].parse::<usize>().unwrap();
-    let minor = parts[1].parse::<usize>().unwrap();
-    let bugfix = parts[2].parse::<usize>().unwrap();
-    (major, minor, bugfix)
-}
-
-/// Parse a log file into a set of LogEntry structures, and append to `entries` in the order
-/// encountered.  Entries are boxed so that later processing won't copy these increasingly large
-/// structures all the time.  Return an error in the case of I/O errors, but silently drop records
-/// with parse errors.  Returns the number of discarded records.
-///
-/// TODO: This should possibly take a Path, not a &str filename.  See comments in logtree.rs.
-///
-/// TODO: Use Ustr to avoid allocating lots and lots of duplicate strings, both here and elsewhere.
-
-pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Result<usize> {
-    #[derive(Debug, Deserialize)]
-    struct LogRecord {
-        fields: Vec<String>,
-    }
-
-    let mut discarded: usize = 0;
-
-    // An error here is going to be an I/O error so always propagate it.
-    let mut reader = csv::ReaderBuilder::new()
-        .has_headers(false)
-        .flexible(true)
-        .from_path(file_name)?;
-
-    'outer: for deserialized_record in reader.deserialize::<LogRecord>() {
-        match deserialized_record {
-            Err(e) => {
-                if e.is_io_error() {
-                    return Err(e.into());
-                }
-                // Otherwise drop the record
-                discarded += 1;
-                continue 'outer;
-            }
-            Ok(record) => {
-                // Find the fields and then convert them.  Duplicates are not allowed.  Mandatory
-                // fields are really required.
-                let mut version: Option<String> = None;
-                let mut timestamp: Option<Timestamp> = None;
-                let mut hostname: Option<String> = None;
-                let mut num_cores: Option<u32> = None;
-                let mut memtotal_gb: Option<f64> = None;
-                let mut user: Option<String> = None;
-                let mut pid: Option<u32> = None;
-                let mut job_id: Option<u32> = None;
-                let mut command: Option<String> = None;
-                let mut cpu_pct: Option<f64> = None;
-                let mut mem_gb: Option<f64> = None;
-                let mut rssanon_gb: Option<f64> = None;
-                let mut gpus: Option<GpuSet> = None;
-                let mut gpu_pct: Option<f64> = None;
-                let mut gpumem_pct: Option<f64> = None;
-                let mut gpumem_gb: Option<f64> = None;
-                let mut gpu_status: Option<GpuStatus> = None;
-                let mut cputime_sec: Option<f64> = None;
-                let mut rolledup: Option<u32> = None;
-
-                if let Ok(t) = parse_timestamp(&record.fields[0]) {
-                    // This is an untagged record.  It does not carry a version number and has
-                    // evolved a bit over time.
-                    //
-                    // Old old format (current on Saga as of 2023-10-13)
-                    // 0  timestamp
-                    // 1  hostname
-                    // 2  numcores
-                    // 3  username
-                    // 4  jobid
-                    // 5  command
-                    // 6  cpu_pct
-                    // 7  mem_kib
-                    //
-                    // New old format (what was briefly deployed on the UiO ML nodes)
-                    // 8  gpus bitvector
-                    // 9  gpu_pct
-                    // 10 gpumem_pct
-                    // 11 gpumem_kib
-                    //
-                    // Newer old format (again briefly used on the UiO ML nodes)
-                    // 12 cputime_sec
-
-                    if cfg!(feature = "untagged_sonar_data") {
-                        if record.fields.len() != 8
-                            && record.fields.len() != 12
-                            && record.fields.len() != 13
-                        {
-                            continue 'outer;
-                        }
-                        let mut failed;
-                        version = Some("0.6.0".to_string());
-                        timestamp = Some(t);
-                        hostname = Some(record.fields[1].to_string());
-                        (num_cores, failed) = get_u32(&record.fields[2]);
-                        if failed {
-                            discarded += 1;
-                            continue 'outer;
-                        }
-                        user = Some(record.fields[3].to_string());
-                        (job_id, failed) = get_u32(&record.fields[4]);
-                        if failed {
-                            discarded += 1;
-                            continue 'outer;
-                        }
-                        // Untagged data do not carry a PID, so use the job ID in its place.  This
-                        // should be mostly OK.  However, sometimes the job ID is also zero, for
-                        // root jobs.  Client code needs to either filter those records or handle
-                        // the problem.
-                        pid = job_id;
-                        command = Some(record.fields[5].to_string());
-                        (cpu_pct, failed) = get_f64(&record.fields[6], 1.0);
-                        if failed {
-                            discarded += 1;
-                            continue 'outer;
-                        }
-                        (mem_gb, failed) = get_f64(&record.fields[7], 1.0 / (1024.0 * 1024.0));
-                        if failed {
-                            continue 'outer;
-                        }
-                        if record.fields.len() == 12 || record.fields.len() == 13 {
-                            (gpus, failed) = get_gpus_from_bitvector(&record.fields[8]);
-                            if failed {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (gpu_pct, failed) = get_f64(&record.fields[9], 1.0);
-                            if failed {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (gpumem_pct, failed) = get_f64(&record.fields[10], 1.0);
-                            if failed {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (gpumem_gb, failed) =
-                                get_f64(&record.fields[11], 1.0 / (1024.0 * 1024.0));
-                            if failed {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            if record.fields.len() == 13 {
-                                (cputime_sec, failed) = get_f64(&record.fields[12], 1.0);
-                                if failed {
-                                    discarded += 1;
-                                    continue 'outer;
-                                }
-                            }
-                        }
-                    } else {
-                        // Drop the record on the floor
-                        discarded += 1;
-                        continue 'outer;
-                    }
-                } else {
-                    // This must be a tagged record
-                    for field in record.fields {
-                        // TODO: Performance: Would it be better to extract the keyword, hash
-                        // it, extract a code for it from a hash table, and then switch on that?
-                        // It's bad either way.  Or we could run a state machine across the
-                        // string here, that would likely be best.
-                        let mut failed = false;
-                        if field.starts_with("v=") {
-                            if version.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            version = Some(field[2..].to_string())
-                        } else if field.starts_with("time=") {
-                            if timestamp.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            if let Ok(t) = parse_timestamp(&field[5..]) {
-                                timestamp = Some(t.into());
-                            } else {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                        } else if field.starts_with("host=") {
-                            if hostname.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            hostname = Some(field[5..].to_string())
-                        } else if field.starts_with("cores=") {
-                            if num_cores.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (num_cores, failed) = get_u32(&field[6..]);
-                        } else if field.starts_with("memtotalkib=") {
-                            if memtotal_gb.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (memtotal_gb, failed) = get_f64(&field[12..], 1.0 / (1024.0 * 1024.0));
-                        } else if field.starts_with("user=") {
-                            if user.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            user = Some(field[5..].to_string())
-                        } else if field.starts_with("pid=") {
-                            if pid.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (pid, failed) = get_u32(&field[4..]);
-                        } else if field.starts_with("job=") {
-                            if job_id.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (job_id, failed) = get_u32(&field[4..]);
-                        } else if field.starts_with("cmd=") {
-                            if command.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            command = Some(field[4..].to_string())
-                        } else if field.starts_with("cpu%=") {
-                            if cpu_pct.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (cpu_pct, failed) = get_f64(&field[5..], 1.0);
-                        } else if field.starts_with("cpukib=") {
-                            if mem_gb.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (mem_gb, failed) = get_f64(&field[7..], 1.0 / (1024.0 * 1024.0));
-                        } else if field.starts_with("rssanonkib=") {
-                            if rssanon_gb.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (rssanon_gb, failed) = get_f64(&field[11..], 1.0 / (1024.0 * 1024.0));
-                        } else if field.starts_with("gpus=") {
-                            if gpus.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (gpus, failed) = get_gpus_from_list(&field[5..]);
-                        } else if field.starts_with("gpu%=") {
-                            if gpu_pct.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (gpu_pct, failed) = get_f64(&field[5..], 1.0);
-                        } else if field.starts_with("gpumem%=") {
-                            if gpumem_pct.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (gpumem_pct, failed) = get_f64(&field[8..], 1.0);
-                        } else if field.starts_with("gpukib=") {
-                            if gpumem_gb.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (gpumem_gb, failed) = get_f64(&field[7..], 1.0 / (1024.0 * 1024.0));
-                        } else if field.starts_with("gpufail=") {
-                            if gpu_status.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            let val;
-                            (val, failed) = get_u32(&field[8..]);
-                            if !failed {
-                                match val {
-                                    Some(0u32) => {}
-                                    Some(1u32) => gpu_status = Some(GpuStatus::UnknownFailure),
-                                    _ => gpu_status = Some(GpuStatus::UnknownFailure),
-                                }
-                            }
-                        } else if field.starts_with("cputime_sec=") {
-                            if cputime_sec.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (cputime_sec, failed) = get_f64(&field[12..], 1.0);
-                        } else if field.starts_with("rolledup=") {
-                            if rolledup.is_some() {
-                                discarded += 1;
-                                continue 'outer;
-                            }
-                            (rolledup, failed) = get_u32(&field[9..]);
-                        } else {
-                            // Unknown field, ignore it silently, this is benign (mostly - it could
-                            // be a field whose tag was chopped off, so maybe we should look for
-                            // `=`).
-                        }
-                        if failed {
-                            discarded += 1;
-                            continue 'outer;
-                        }
-                    }
-                }
-
-                // Check that mandatory fields are present.
-
-                if version.is_none()
-                    || timestamp.is_none()
-                    || hostname.is_none()
-                    || user.is_none()
-                    || command.is_none()
-                {
-                    discarded += 1;
-                    continue 'outer;
-                }
-
-                // Fill in default data for optional fields.
-
-                if num_cores.is_none() {
-                    num_cores = Some(0);
-                }
-                if memtotal_gb.is_none() {
-                    memtotal_gb = Some(0.0);
-                }
-                if job_id.is_none() {
-                    job_id = Some(0);
-                }
-                if pid.is_none() {
-                    pid = Some(0);
-                }
-                if cpu_pct.is_none() {
-                    cpu_pct = Some(0.0);
-                }
-                if mem_gb.is_none() {
-                    mem_gb = Some(0.0);
-                }
-                if rssanon_gb.is_none() {
-                    rssanon_gb = Some(0.0);
-                }
-                if gpus.is_none() {
-                    gpus = Some(empty_gpuset());
-                }
-                if gpu_pct.is_none() {
-                    gpu_pct = Some(0.0)
-                }
-                if gpumem_pct.is_none() {
-                    gpumem_pct = Some(0.0)
-                }
-                if gpumem_gb.is_none() {
-                    gpumem_gb = Some(0.0)
-                }
-                if gpu_status.is_none() {
-                    gpu_status = Some(GpuStatus::Ok)
-                }
-                if cputime_sec.is_none() {
-                    cputime_sec = Some(0.0);
-                }
-                if rolledup.is_none() {
-                    rolledup = Some(0);
-                }
-
-                // Ship it!
-
-                entries.push(Box::new(LogEntry {
-                    version: version.unwrap(),
-                    timestamp: timestamp.unwrap(),
-                    hostname: hostname.unwrap(),
-                    num_cores: num_cores.unwrap(),
-                    memtotal_gb: memtotal_gb.unwrap(),
-                    user: user.unwrap(),
-                    pid: pid.unwrap(),
-                    job_id: job_id.unwrap(),
-                    command: command.unwrap(),
-                    cpu_pct: cpu_pct.unwrap(),
-                    mem_gb: mem_gb.unwrap(),
-                    rssanon_gb: rssanon_gb.unwrap(),
-                    gpus: gpus.unwrap(),
-                    gpu_pct: gpu_pct.unwrap(),
-                    gpumem_pct: gpumem_pct.unwrap(),
-                    gpumem_gb: gpumem_gb.unwrap(),
-                    gpu_status: gpu_status.unwrap(),
-                    cputime_sec: cputime_sec.unwrap(),
-                    rolledup: rolledup.unwrap(),
-                    // Computed fields
-                    cpu_util_pct: 0.0,
-                }));
-            }
-        }
-    }
-    Ok(discarded)
-}
-
 /// A sensible "zero" LogEntry for use when we need it.  The user name and command are "_zero_" so
 /// that we can recognize this weird LogEntry as intentional and not some mistake.
 
-pub fn empty_logentry(t: Timestamp, hostname: &str) -> Box<LogEntry> {
+pub fn empty_logentry(t: Timestamp, hostname: Ustr) -> Box<LogEntry> {
     Box::new(LogEntry {
-        version: "0.0.0".to_string(),
+        major: 0,
+        minor: 0,
+        bugfix: 0,
         timestamp: t,
-        hostname: hostname.to_string(),
+        hostname,
         num_cores: 0,
         memtotal_gb: 0.0,
-        user: "_zero_".to_string(),
+        user: Ustr::from("_zero_"),
         pid: 0,
         job_id: 0,
-        command: "_zero_".to_string(),
+        command: Ustr::from("_zero_"),
         cpu_pct: 0.0,
         mem_gb: 0.0,
         rssanon_gb: 0.0,
@@ -542,8 +157,528 @@ pub fn empty_logentry(t: Timestamp, hostname: &str) -> Box<LogEntry> {
     })
 }
 
+/// Parse a version string.  Avoid allocation here, we parse *a lot* of these.
+
+pub fn parse_version(v1: &str) -> (u16, u16, u16) {
+    let mut major = 0u16;
+    let mut minor = 0u16;
+    let mut bugfix = 0u16;
+    if let Some(p1) = v1.find('.') {
+        major = v1[0..p1].parse::<u16>().unwrap();
+        let v2 = &v1[p1 + 1..];
+        if let Some(p2) = v2.find('.') {
+            minor = v2[0..p2].parse::<u16>().unwrap();
+            let v3 = &v2[p2 + 1..];
+            bugfix = v3.parse::<u16>().unwrap();
+        }
+    }
+    (major, minor, bugfix)
+}
+
+/// Parse a log file into a set of LogEntry structures, and append to `entries` in the order
+/// encountered.  Entries are boxed so that later processing won't copy these increasingly large
+/// structures all the time.  Return an error in the case of I/O errors, but silently drop records
+/// with parse errors.  Returns the number of discarded records.
+///
+/// TODO: This should possibly take a Path, not a &str filename.  See comments in logtree.rs.
+///
+/// TODO: Use Ustr to avoid allocating lots and lots of duplicate strings, both here and elsewhere.
+
+pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Result<usize> {
+    let mut file = std::fs::File::open(file_name)?;
+    let mut tokenizer = Tokenizer::new(&mut file);
+    let mut discarded: usize = 0;
+    let mut end_of_input = false;
+
+    #[derive(PartialEq)]
+    enum Format {
+        Unknown,
+        Untagged,
+        Tagged,
+    }
+
+    'line_loop: while !end_of_input
+    /* every line */
+    {
+        // Find the fields and then convert them.  Duplicates are not allowed.  Mandatory
+        // fields are really required.
+        let mut version: Option<(u16, u16, u16)> = None;
+        let mut timestamp: Option<Timestamp> = None;
+        let mut hostname: Option<Ustr> = None;
+        let mut num_cores: Option<u16> = None;
+        let mut memtotal_gb: Option<f32> = None;
+        let mut user: Option<Ustr> = None;
+        let mut pid: Option<u32> = None;
+        let mut job_id: Option<u32> = None;
+        let mut command: Option<Ustr> = None;
+        let mut cpu_pct: Option<f32> = None;
+        let mut mem_gb: Option<f32> = None;
+        let mut rssanon_gb: Option<f32> = None;
+        let mut gpus: Option<GpuSet> = None;
+        let mut gpu_pct: Option<f32> = None;
+        let mut gpumem_pct: Option<f32> = None;
+        let mut gpumem_gb: Option<f32> = None;
+        let mut gpu_status: Option<GpuStatus> = None;
+        let mut cputime_sec: Option<f64> = None;
+        let mut rolledup: Option<u32> = None;
+        let mut untagged_position = 0;
+        let mut format = Format::Unknown;
+        let mut any_fields = false;
+
+        'field_loop: loop
+        /* every field on a line */
+        {
+            let t0 = tokenizer.get();
+            let mut failed = false;
+            let mut matched = false;
+            match t0 {
+                Err(e) => match e.downcast_ref::<std::io::Error>() {
+                    Some(_) => {
+                        return Err(e.into());
+                    }
+                    None => {
+                        discarded += 1;
+                        continue 'line_loop;
+                    }
+                },
+                Ok(Token::EOL) => {
+                    break 'field_loop;
+                }
+                Ok(Token::EOF) => {
+                    end_of_input = true;
+                    break 'field_loop;
+                }
+                Ok(Token::Field(start, lim, eqloc)) => {
+                    any_fields = true;
+                    if format == Format::Unknown {
+                        format = if eqloc == EQ_SENTINEL {
+                            Format::Untagged
+                        } else {
+                            Format::Tagged
+                        };
+                    }
+                    match format {
+                        Format::Unknown => {
+                            panic!("Unexpected");
+                        }
+                        Format::Untagged => {
+                            // This is an untagged record.  It does not carry a version number and
+                            // has evolved a bit over time.
+                            //
+                            // Old old format (current on Saga as of 2023-10-13)
+                            // 0  timestamp
+                            // 1  hostname
+                            // 2  numcores
+                            // 3  username
+                            // 4  jobid
+                            // 5  command
+                            // 6  cpu_pct
+                            // 7  mem_kib
+                            //
+                            // New old format (what was briefly deployed on the UiO ML nodes)
+                            // 8  gpus bitvector
+                            // 9  gpu_pct
+                            // 10 gpumem_pct
+                            // 11 gpumem_kib
+                            //
+                            // Newer old format (again briefly used on the UiO ML nodes)
+                            // 12 cputime_sec
+
+                            version = Some((0u16, 6u16, 0u16));
+                            match untagged_position {
+                                0 => match parse_timestamp(tokenizer.get_str(start, lim)) {
+                                    Ok(t) => {
+                                        timestamp = Some(t);
+                                        matched = true;
+                                    }
+                                    Err(_) => {
+                                        failed = true;
+                                    }
+                                },
+                                1 => {
+                                    hostname = Some(Ustr::from(tokenizer.get_str(start, lim)));
+                                    matched = true;
+                                }
+                                2 => {
+                                    (num_cores, failed) = get_u16(tokenizer.get_str(start, lim));
+                                    matched = true;
+                                }
+                                3 => {
+                                    user = Some(Ustr::from(tokenizer.get_str(start, lim)));
+                                    matched = true;
+                                }
+                                4 => {
+                                    (job_id, failed) = get_u32(tokenizer.get_str(start, lim));
+                                    // Untagged data do not carry a PID, so use the job ID in its
+                                    // place.  This should be mostly OK.  However, sometimes the job
+                                    // ID is also zero, for root jobs.  Client code needs to either
+                                    // filter those records or handle the problem.
+                                    pid = job_id;
+                                    matched = true;
+                                }
+                                5 => {
+                                    command = Some(Ustr::from(tokenizer.get_str(start, lim)));
+                                    matched = true;
+                                }
+                                6 => {
+                                    (cpu_pct, failed) = get_f32(tokenizer.get_str(start, lim), 1.0);
+                                    matched = true;
+                                }
+                                7 => {
+                                    (mem_gb, failed) = get_f32(
+                                        tokenizer.get_str(start, lim),
+                                        1.0 / (1024.0 * 1024.0),
+                                    );
+                                    matched = true;
+                                }
+                                8 => {
+                                    (gpus, failed) =
+                                        get_gpus_from_bitvector(tokenizer.get_str(start, lim));
+                                    matched = true;
+                                }
+                                9 => {
+                                    (gpu_pct, failed) = get_f32(tokenizer.get_str(start, lim), 1.0);
+                                    matched = true;
+                                }
+                                10 => {
+                                    (gpumem_pct, failed) =
+                                        get_f32(tokenizer.get_str(start, lim), 1.0);
+                                    matched = true;
+                                }
+                                11 => {
+                                    (gpumem_gb, failed) = get_f32(
+                                        tokenizer.get_str(start, lim),
+                                        1.0 / (1024.0 * 1024.0),
+                                    );
+                                    matched = true;
+                                }
+                                12 => {
+                                    (cputime_sec, failed) =
+                                        get_f64(tokenizer.get_str(start, lim), 1.0);
+                                    matched = true;
+                                }
+                                _ => {
+                                    // Drop the field, we may learn about it later
+                                    matched = true;
+                                }
+                            }
+                            untagged_position += 1;
+                        }
+                        Format::Tagged => {
+                            if eqloc == EQ_SENTINEL {
+                                // Invalid field syntax: Drop the record on the floor
+                                discarded += 1;
+                                continue 'field_loop;
+                            }
+
+                            // The first two characters will always be present because eqloc >= 1.
+
+                            match tokenizer.buf_at(start) {
+                                b'c' => match tokenizer.buf_at(start + 1) {
+                                    b'm' => {
+                                        if tokenizer.match_tag(b"cmd", start, eqloc)
+                                            && command.is_none()
+                                        {
+                                            command =
+                                                Some(Ustr::from(tokenizer.get_str(eqloc, lim)));
+                                            matched = true;
+                                        }
+                                    }
+                                    b'o' => {
+                                        if tokenizer.match_tag(b"cores", start, eqloc)
+                                            && num_cores.is_none()
+                                        {
+                                            (num_cores, failed) =
+                                                get_u16(tokenizer.get_str(eqloc, lim));
+                                            matched = true;
+                                        }
+                                    }
+                                    b'p' => {
+                                        let field = tokenizer.get_str(eqloc, lim);
+                                        if tokenizer.match_tag(b"cpu%", start, eqloc)
+                                            && cpu_pct.is_none()
+                                        {
+                                            (cpu_pct, failed) = get_f32(field, 1.0);
+                                            matched = true;
+                                        } else if tokenizer.match_tag(b"cpukib", start, eqloc)
+                                            && mem_gb.is_none()
+                                        {
+                                            (mem_gb, failed) =
+                                                get_f32(field, 1.0 / (1024.0 * 1024.0));
+                                            matched = true;
+                                        } else if tokenizer.match_tag(b"cputime_sec", start, eqloc)
+                                            && cputime_sec.is_none()
+                                        {
+                                            (cputime_sec, failed) = get_f64(field, 1.0);
+                                            matched = true;
+                                        }
+                                    }
+                                    _ => {}
+                                },
+                                b'g' => {
+                                    let field = tokenizer.get_str(eqloc, lim);
+                                    if tokenizer.match_tag(b"gpus", start, eqloc) && gpus.is_none()
+                                    {
+                                        (gpus, failed) = get_gpus_from_list(field);
+                                        matched = true;
+                                    } else if tokenizer.match_tag(b"gpu%", start, eqloc)
+                                        && gpu_pct.is_none()
+                                    {
+                                        (gpu_pct, failed) = get_f32(field, 1.0);
+                                        matched = true;
+                                    } else if tokenizer.match_tag(b"gpumem%", start, eqloc)
+                                        && gpumem_pct.is_none()
+                                    {
+                                        (gpumem_pct, failed) = get_f32(field, 1.0);
+                                        matched = true;
+                                    } else if tokenizer.match_tag(b"gpukib", start, eqloc)
+                                        && gpumem_gb.is_none()
+                                    {
+                                        (gpumem_gb, failed) =
+                                            get_f32(field, 1.0 / (1024.0 * 1024.0));
+                                        matched = true;
+                                    } else if tokenizer.match_tag(b"gpufail", start, eqloc)
+                                        && gpu_status.is_none()
+                                    {
+                                        let val;
+                                        (val, failed) = get_u32(field);
+                                        if !failed {
+                                            match val {
+                                                Some(0u32) => {}
+                                                Some(1u32) => {
+                                                    gpu_status = Some(GpuStatus::UnknownFailure)
+                                                }
+                                                _ => gpu_status = Some(GpuStatus::UnknownFailure),
+                                            }
+                                            matched = true;
+                                        }
+                                    }
+                                }
+                                b'h' => {
+                                    if tokenizer.match_tag(b"host", start, eqloc)
+                                        && hostname.is_none()
+                                    {
+                                        hostname = Some(Ustr::from(tokenizer.get_str(eqloc, lim)));
+                                        matched = true;
+                                    }
+                                }
+                                b'j' => {
+                                    if tokenizer.match_tag(b"job", start, eqloc) && job_id.is_none()
+                                    {
+                                        (job_id, failed) = get_u32(tokenizer.get_str(eqloc, lim));
+                                        matched = true;
+                                    }
+                                }
+                                b'm' => {
+                                    if tokenizer.match_tag(b"memtotalkib", start, eqloc)
+                                        && memtotal_gb.is_none()
+                                    {
+                                        (memtotal_gb, failed) = get_f32(
+                                            tokenizer.get_str(eqloc, lim),
+                                            1.0 / (1024.0 * 1024.0),
+                                        );
+                                        matched = true;
+                                    }
+                                }
+                                b'p' => {
+                                    if tokenizer.match_tag(b"pid", start, eqloc) && pid.is_none() {
+                                        (pid, failed) = get_u32(tokenizer.get_str(eqloc, lim));
+                                        matched = true;
+                                    }
+                                }
+                                b'r' => {
+                                    let field = tokenizer.get_str(eqloc, lim);
+                                    match tokenizer.buf_at(start + 1) {
+                                        b's' => {
+                                            if tokenizer.match_tag(b"rssanonkib", start, eqloc)
+                                                && rssanon_gb.is_none()
+                                            {
+                                                (rssanon_gb, failed) =
+                                                    get_f32(field, 1.0 / (1024.0 * 1024.0));
+                                                matched = true;
+                                            }
+                                        }
+                                        b'o' => {
+                                            if tokenizer.match_tag(b"rolledup", start, eqloc)
+                                                && rolledup.is_none()
+                                            {
+                                                (rolledup, failed) = get_u32(field);
+                                                matched = true;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                b't' => {
+                                    if tokenizer.match_tag(b"time", start, eqloc)
+                                        && timestamp.is_none()
+                                    {
+                                        if let Ok(t) =
+                                            parse_timestamp(tokenizer.get_str(eqloc, lim))
+                                        {
+                                            timestamp = Some(t.into());
+                                            matched = true;
+                                        } else {
+                                            failed = true;
+                                        }
+                                    }
+                                }
+                                b'u' => {
+                                    if tokenizer.match_tag(b"user", start, eqloc) && user.is_none()
+                                    {
+                                        user = Some(Ustr::from(tokenizer.get_str(eqloc, lim)));
+                                        matched = true;
+                                    }
+                                }
+                                b'v' => {
+                                    if tokenizer.match_tag(b"v", start, eqloc) && version.is_none()
+                                    {
+                                        version =
+                                            Some(parse_version(tokenizer.get_str(eqloc, lim)));
+                                        matched = true;
+                                    }
+                                }
+                                _ => {
+                                    // Unknown field, ignore it silently, this is benign (mostly - it
+                                    // could be a field whose tag was chopped off, so maybe we should
+                                    // look for `=`).
+                                    matched = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // Four cases:
+            //
+            //   matched && !failed - field matched a tag, value is good
+            //   matched && failed - field matched a tag, value is bad
+            //   !matched && !failed - field did not match any tag
+            //   !matched && failed - impossible
+            //
+            // The second case suggests something bad, so discard the record in this case.  Note
+            // this is actually the same as just `failed` due to the fourth case.
+            if matched && failed {
+                discarded += 1;
+                continue 'line_loop;
+            }
+        } // Field loop
+
+        if end_of_input && !any_fields {
+            break 'line_loop;
+        }
+
+        // Check that untagged records have a sensible number of fields.
+
+        if format == Format::Untagged
+            && untagged_position != 8
+            && untagged_position != 12
+            && untagged_position != 13
+        {
+            discarded += 1;
+            continue 'line_loop;
+        }
+
+        // Check that mandatory fields are present.
+
+        if version.is_none()
+            || timestamp.is_none()
+            || hostname.is_none()
+            || user.is_none()
+            || command.is_none()
+        {
+            discarded += 1;
+            continue 'line_loop;
+        }
+
+        // Fill in default data for optional fields.
+
+        if num_cores.is_none() {
+            num_cores = Some(0u16);
+        }
+        if memtotal_gb.is_none() {
+            memtotal_gb = Some(0.0);
+        }
+        if job_id.is_none() {
+            job_id = Some(0);
+        }
+        if pid.is_none() {
+            pid = Some(0);
+        }
+        if cpu_pct.is_none() {
+            cpu_pct = Some(0.0);
+        }
+        if mem_gb.is_none() {
+            mem_gb = Some(0.0);
+        }
+        if rssanon_gb.is_none() {
+            rssanon_gb = Some(0.0);
+        }
+        if gpus.is_none() {
+            gpus = Some(empty_gpuset());
+        }
+        if gpu_pct.is_none() {
+            gpu_pct = Some(0.0)
+        }
+        if gpumem_pct.is_none() {
+            gpumem_pct = Some(0.0)
+        }
+        if gpumem_gb.is_none() {
+            gpumem_gb = Some(0.0)
+        }
+        if gpu_status.is_none() {
+            gpu_status = Some(GpuStatus::Ok)
+        }
+        if cputime_sec.is_none() {
+            cputime_sec = Some(0.0);
+        }
+        if rolledup.is_none() {
+            rolledup = Some(0);
+        }
+
+        // Ship it!
+
+        let (major, minor, bugfix) = version.unwrap();
+        entries.push(Box::new(LogEntry {
+            major,
+            minor,
+            bugfix,
+            timestamp: timestamp.unwrap(),
+            hostname: hostname.unwrap(),
+            num_cores: num_cores.unwrap(),
+            memtotal_gb: memtotal_gb.unwrap(),
+            user: user.unwrap(),
+            pid: pid.unwrap(),
+            job_id: job_id.unwrap(),
+            command: command.unwrap(),
+            cpu_pct: cpu_pct.unwrap(),
+            mem_gb: mem_gb.unwrap(),
+            rssanon_gb: rssanon_gb.unwrap(),
+            gpus: gpus.unwrap(),
+            gpu_pct: gpu_pct.unwrap(),
+            gpumem_pct: gpumem_pct.unwrap(),
+            gpumem_gb: gpumem_gb.unwrap(),
+            gpu_status: gpu_status.unwrap(),
+            cputime_sec: cputime_sec.unwrap(),
+            rolledup: rolledup.unwrap(),
+            // Computed fields
+            cpu_util_pct: 0.0,
+        }));
+    } // Line loop
+
+    Ok(discarded)
+}
+
 fn get_u32(s: &str) -> (Option<u32>, bool) {
     if let Ok(n) = u32::from_str(s) {
+        (Some(n), false)
+    } else {
+        (None, true)
+    }
+}
+
+fn get_u16(s: &str) -> (Option<u16>, bool) {
+    if let Ok(n) = u16::from_str(s) {
         (Some(n), false)
     } else {
         (None, true)
@@ -562,26 +697,21 @@ fn get_f64(s: &str, scale: f64) -> (Option<f64>, bool) {
     }
 }
 
-fn get_gpus_from_bitvector(s: &str) -> (Option<GpuSet>, bool) {
-    match usize::from_str_radix(s, 2) {
-        Ok(mut bit_mask) => {
-            let mut gpus = None;
-            if bit_mask != 0 {
-                let mut set = HashSet::new();
-                if bit_mask != !0usize {
-                    let mut shift = 0;
-                    while bit_mask != 0 {
-                        if (bit_mask & 1) != 0 {
-                            set.insert(shift);
-                        }
-                        shift += 1;
-                        bit_mask >>= 1;
-                    }
-                }
-                gpus = Some(set);
-            }
-            (Some(gpus), false)
+fn get_f32(s: &str, scale: f32) -> (Option<f32>, bool) {
+    if let Ok(n) = f32::from_str(s) {
+        if f32::is_infinite(n) {
+            (None, true)
+        } else {
+            (Some(n * scale), false)
         }
+    } else {
+        (None, true)
+    }
+}
+
+fn get_gpus_from_bitvector(s: &str) -> (Option<GpuSet>, bool) {
+    match u32::from_str_radix(s, 2) {
+        Ok(bit_mask) => (Some(Some(bit_mask)), false),
         Err(_) => (None, true),
     }
 }
@@ -633,5 +763,4 @@ fn test_get_gpus_from_list() {
     adjoin_gpuset(&mut s2, 1);
     assert!(s2 == unknown_gpuset());
 }
-
 // Other test cases are black-box, see ../../tests/sonarlog

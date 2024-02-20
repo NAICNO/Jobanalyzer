@@ -8,6 +8,7 @@ use std::boxed::Box;
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 use std::iter::Iterator;
+use ustr::Ustr;
 
 /// A bag of merged streams.  The constraints on the individual streams in terms of uniqueness and
 /// so on depends on how they were merged and are not implied by the type.
@@ -24,12 +25,12 @@ pub type MergedSampleStreams = Vec<Vec<Box<LogEntry>>>;
 
 pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams {
     // The value is a set of command names and a vector of the individual streams.
-    let mut collections: HashMap<(String, u32), (HashSet<String>, Vec<Vec<Box<LogEntry>>>)> =
+    let mut collections: HashMap<(Ustr, u32), (HashSet<Ustr>, Vec<Vec<Box<LogEntry>>>)> =
         HashMap::new();
 
     // The value is a map (by host) of the individual streams with job ID zero, these can't be
     // merged and must just be passed on.
-    let mut zero: HashMap<String, Vec<Vec<Box<LogEntry>>>> = HashMap::new();
+    let mut zero: HashMap<Ustr, Vec<Vec<Box<LogEntry>>>> = HashMap::new();
 
     streams.drain().for_each(|((host, _, cmd), v)| {
         let id = v[0].job_id;
@@ -57,14 +58,14 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
         if let Some(zeroes) = zero.remove(&hostname) {
             vs.extend(zeroes);
         }
-        let mut commands = cmds.drain().collect::<Vec<String>>();
+        let mut commands = cmds.drain().collect::<Vec<Ustr>>();
         commands.sort();
         // Any user from any record is fine.  There should be an invariant that no stream is empty,
         // so this should always be safe.
         let user = streams[0][0].user.clone();
         vs.push(merge_streams(
             hostname,
-            commands.join(","),
+            ustr_join(commands, ","),
             user,
             job_id,
             streams,
@@ -93,7 +94,7 @@ pub fn merge_by_job(
 ) -> (MergedSampleStreams, Timebounds) {
     // The value is a set of command names, a set of host names, and a vector of the individual
     // streams.
-    let mut collections: HashMap<u32, (HashSet<String>, HashSet<String>, Vec<Vec<Box<LogEntry>>>)> =
+    let mut collections: HashMap<u32, (HashSet<Ustr>, HashSet<Ustr>, Vec<Vec<Box<LogEntry>>>)> =
         HashMap::new();
 
     // The value is a vector of the individual streams with job ID zero, these can't be merged and
@@ -119,32 +120,31 @@ pub fn merge_by_job(
 
     let mut new_bounds = HashMap::new();
     for z in zero.iter() {
-        let hn = &z[0].hostname;
-        if !new_bounds.contains_key(hn) {
-            let probe = bounds.get(hn).expect("Host should be in bounds");
-            new_bounds.insert(hn.clone(), probe.clone());
+        let hn = z[0].hostname;
+        if !new_bounds.contains_key(&hn) {
+            let probe = bounds.get(&hn).expect("Host should be in bounds");
+            new_bounds.insert(hn, probe.clone());
         }
     }
     let mut vs: MergedSampleStreams = zero;
     for (job_id, (mut cmds, hosts, streams)) in collections.drain() {
-        let hostname =
-            hosts::combine_hosts(hosts.iter().map(|x| x.clone()).collect::<Vec<String>>());
+        let hostname = hosts::combine_hosts(hosts.iter().map(|x| x.clone()).collect::<Vec<Ustr>>());
         if !new_bounds.contains_key(&hostname) {
             assert!(hosts.len() > 0);
             let (earliest, latest) = hosts.iter().fold((now(), epoch()), |(acc_e, acc_l), hn| {
-                let probe = bounds.get(hn).expect("Host should be in bounds");
+                let probe = bounds.get(&hn).expect("Host should be in bounds");
                 (min(acc_e, probe.earliest), max(acc_l, probe.latest))
             });
-            new_bounds.insert(hostname.clone(), Timebound { earliest, latest });
+            new_bounds.insert(hostname, Timebound { earliest, latest });
         }
-        let mut commands = cmds.drain().collect::<Vec<String>>();
+        let mut commands = cmds.drain().collect::<Vec<Ustr>>();
         commands.sort();
         // Any user from any record is fine.  There should be an invariant that no stream is empty,
         // so this should always be safe.
         let user = streams[0][0].user.clone();
         vs.push(merge_streams(
-            hostname,
-            commands.join(","),
+            Ustr::from(&hostname),
+            ustr_join(commands, ","),
             user,
             job_id,
             streams,
@@ -167,7 +167,7 @@ pub fn merge_by_job(
 
 pub fn merge_by_host(mut streams: InputStreamSet) -> MergedSampleStreams {
     // The key is the host name.
-    let mut collections: HashMap<String, Vec<Vec<Box<LogEntry>>>> = HashMap::new();
+    let mut collections: HashMap<Ustr, Vec<Vec<Box<LogEntry>>>> = HashMap::new();
 
     streams.drain().for_each(|((host, _, _), v)| {
         // This lumps jobs with job ID 0 in with the others.
@@ -180,8 +180,8 @@ pub fn merge_by_host(mut streams: InputStreamSet) -> MergedSampleStreams {
 
     let mut vs: MergedSampleStreams = vec![];
     for (hostname, streams) in collections.drain() {
-        let cmdname = "_merged_".to_string();
-        let username = "_merged_".to_string();
+        let cmdname = Ustr::from("_merged_");
+        let username = Ustr::from("_merged_");
         let job_id = 0;
         vs.push(merge_streams(hostname, cmdname, username, job_id, streams));
     }
@@ -193,16 +193,11 @@ pub fn merge_across_hosts_by_time(streams: MergedSampleStreams) -> MergedSampleS
     if streams.len() == 0 {
         return vec![];
     }
-    let hostname = combine_hosts(
-        streams
-            .iter()
-            .map(|s| s[0].hostname.clone())
-            .collect::<Vec<String>>(),
-    );
+    let hostname = combine_hosts(streams.iter().map(|s| s[0].hostname).collect::<Vec<Ustr>>());
     vec![merge_streams(
         hostname,
-        "_merged_".to_string(),
-        "_merged_".to_string(),
+        Ustr::from("_merged_"),
+        Ustr::from("_merged_"),
         0,
         streams,
     )]
@@ -294,9 +289,9 @@ pub fn merge_across_hosts_by_time(streams: MergedSampleStreams) -> MergedSampleS
 // - records may be obtained from the same host and the streams may therefore be synchronized
 
 fn merge_streams(
-    hostname: String,
-    command: String,
-    username: String,
+    hostname: Ustr,
+    command: Ustr,
+    username: Ustr,
     job_id: u32,
     streams: Vec<Vec<Box<LogEntry>>>,
 ) -> Vec<Box<LogEntry>> {
@@ -515,7 +510,7 @@ fn merge_streams(
         }
 
         records.push(sum_records(
-            "0.0.0".to_string(),
+            (0u16, 0u16, 0u16),
             min_time,
             hostname.clone(),
             username.clone(),
@@ -530,12 +525,12 @@ fn merge_streams(
 }
 
 fn sum_records(
-    version: String,
+    version: (u16, u16, u16),
     timestamp: Timestamp,
-    hostname: String,
-    user: String,
+    hostname: Ustr,
+    user: Ustr,
     job_id: u32,
-    command: String,
+    command: Ustr,
     selected: &[&Box<LogEntry>],
 ) -> Box<LogEntry> {
     let cpu_pct = selected.iter().fold(0.0, |acc, x| acc + x.cpu_pct);
@@ -560,7 +555,9 @@ fn sum_records(
 
     // Synthesize the record.
     Box::new(LogEntry {
-        version,
+        major: version.0,
+        minor: version.1,
+        bugfix: version.2,
         timestamp,
         hostname,
         num_cores: 0,
@@ -615,25 +612,37 @@ fn fold_samples<'a>(
             i += 1;
         }
         let mut r = sum_records(
-            "0.0.0".to_string(),
+            (0u16, 0u16, 0u16),
             t0,
-            s0.hostname.clone(),
-            "_merged_".to_string(),
+            s0.hostname,
+            Ustr::from("_merged_"),
             0,
-            "_merged_".to_string(),
+            Ustr::from("_merged_"),
             &bucket,
         );
-        let n = bucket.len() as f64;
+        let n = bucket.len() as f32;
         r.cpu_pct /= n;
         r.mem_gb /= n;
         r.rssanon_gb /= n;
         r.gpu_pct /= n;
         r.gpumem_pct /= n;
         r.gpumem_gb /= n;
-        r.cputime_sec /= n;
         r.cpu_util_pct /= n;
+        r.cputime_sec /= bucket.len() as f64;
         result.push(r);
     }
 
     result
+}
+
+fn ustr_join(ss: Vec<Ustr>, joiner: &str) -> Ustr {
+    if ss.len() == 0 {
+        return Ustr::from("");
+    }
+    let mut s = ss[0].to_string();
+    for t in ss[1..].iter() {
+        s += joiner;
+        s += t.as_str();
+    }
+    return Ustr::from(&s);
 }

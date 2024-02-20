@@ -22,6 +22,7 @@ use crate::{MetaArgs, ProfileFilterAndAggregationArgs, ProfilePrintArgs};
 use anyhow::{bail, Result};
 use json;
 use sonarlog::{InputStreamSet, LogEntry, Timestamp};
+use ustr::Ustr;
 
 use std::cmp::max;
 use std::collections::HashMap;
@@ -236,11 +237,11 @@ pub fn print(
                             }
                         }
                         if let Some(ref mut avg) = avg {
-                            avg.cpu_util_pct = cpu_util_pct / (count as f64);
-                            avg.mem_gb = mem_gb / (count as f64);
-                            avg.rssanon_gb = res_gb / (count as f64);
-                            avg.gpu_pct = gpu_pct / (count as f64);
-                            avg.gpumem_gb = gpumem_gb / (count as f64);
+                            avg.cpu_util_pct = cpu_util_pct / (count as f32);
+                            avg.mem_gb = mem_gb / (count as f32);
+                            avg.rssanon_gb = res_gb / (count as f32);
+                            avg.gpu_pct = gpu_pct / (count as f32);
+                            avg.gpumem_gb = gpumem_gb / (count as f32);
                         }
                         recs.push(avg);
                     }
@@ -405,7 +406,7 @@ fn format_nproc(d: LogDatum, _: LogCtx) -> String {
 }
 
 fn format_cmd(d: LogDatum, _: LogCtx) -> String {
-    d.r.command.clone()
+    d.r.command.to_string()
 }
 
 // Each of the inner vectors are commands, coherently sorted, for the same timestamp.  We write all
@@ -539,7 +540,7 @@ fn write_html(
         .join(",");
     // One dataset per process.
     let mut datasets = vec![];
-    let mut username = "".to_string();
+    let mut username = Ustr::from("");
     for i in 0..numprocs {
         // s has the rendered data for process i.
         let mut s = "".to_string();
@@ -550,7 +551,7 @@ fn write_html(
             }
             let val = if let Some(ref x) = data[i] {
                 if username.is_empty() {
-                    username = x.user.clone();
+                    username = x.user;
                 }
                 if cpu_field {
                     (x.cpu_util_pct.round() as isize).to_string()
@@ -647,8 +648,9 @@ fn clamp_fields(r: &Box<LogEntry>, filter_args: &ProfileFilterAndAggregationArgs
 // than twice the value of the clamp, in which case return 0 - the assumption is that it's a wild
 // outlier / noise.
 
-fn clamp_max(x: f64, c: Option<f64>) -> f64 {
-    if let Some(c) = c {
+fn clamp_max(x: f32, c: Option<f64>) -> f32 {
+    if let Some(d) = c {
+        let c = d as f32;
         if x > c {
             if x > 2.0 * c {
                 0.0

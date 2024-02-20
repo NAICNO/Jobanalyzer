@@ -4,6 +4,7 @@ use crate::{LogEntry, System};
 use chrono::Duration;
 use std::boxed::Box;
 use std::collections::HashMap;
+use ustr::Ustr;
 
 #[cfg(test)]
 use crate::read_logfiles;
@@ -11,7 +12,7 @@ use crate::read_logfiles;
 /// The InputStreamKey is (hostname, stream-id, cmd), where the stream-id is defined below; it is
 /// meaningful only for non-merged streams.
 
-pub type InputStreamKey = (String, u32, String);
+pub type InputStreamKey = (Ustr, u32, Ustr);
 
 /// A InputStreamSet maps a InputStreamKey to a list of records pertinent to that key.  It is named
 /// as it is because the InputStreamKey is meaningful only for non-merged streams.
@@ -123,7 +124,7 @@ where
     streams.iter_mut().for_each(|(_, stream)| {
         // By construction, every stream is non-empty.
         stream[0].cpu_util_pct = stream[0].cpu_pct;
-        let (major, minor, _) = crate::logfile::parse_version(&stream[0].version);
+        let (major, minor) = (stream[0].major, stream[0].minor);
         if major == 0 && minor <= 6 {
             for i in 1..stream.len() {
                 stream[i].cpu_util_pct = stream[0].cpu_pct;
@@ -135,7 +136,7 @@ where
                 let dc = stream[i].cputime_sec - stream[i - 1].cputime_sec;
                 // It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
                 // We filter these below.
-                stream[i].cpu_util_pct = (dc / dt) * 100.0;
+                stream[i].cpu_util_pct = ((dc / dt) * 100.0) as f32;
             }
         }
     });
@@ -144,8 +145,8 @@ where
     // available.
     if let Some(confs) = configs {
         streams.iter_mut().for_each(|(_, stream)| {
-            if let Some(conf) = confs.get(&stream[0].hostname) {
-                let cardsize = (conf.gpumem_gb as f64) / (conf.gpu_cards as f64);
+            if let Some(conf) = confs.get(stream[0].hostname.as_str()) {
+                let cardsize = (conf.gpumem_gb as f32) / (conf.gpu_cards as f32);
                 for entry in stream {
                     if conf.gpumem_pct {
                         entry.gpumem_gb = entry.gpumem_pct * cardsize;
@@ -199,14 +200,14 @@ fn test_postprocess_log_cpu_util_pct() {
     assert!(streams.len() == 4);
 
     let s1 = streams.get(&(
-        "ml4.hpc.uio.no".to_string(),
+        Ustr::from("ml4.hpc.uio.no"),
         JOB_ID_TAG + 4093,
-        "zabbix_agentd".to_string(),
+        Ustr::from("zabbix_agentd"),
     ));
     assert!(s1.is_some());
     assert!(s1.unwrap().len() == 1);
 
-    let s2 = streams.get(&("ml4.hpc.uio.no".to_string(), 1090, "python".to_string()));
+    let s2 = streams.get(&(Ustr::from("ml4.hpc.uio.no"), 1090, Ustr::from("python")));
     assert!(s2.is_some());
     let v2 = s2.unwrap();
     assert!(v2.len() == 3);
@@ -222,12 +223,12 @@ fn test_postprocess_log_cpu_util_pct() {
 
     // This has the same pid *but* a different host, so the utilization for the first record should
     // once again be set to the cpu_pct value.
-    let s3 = streams.get(&("ml5.hpc.uio.no".to_string(), 1090, "python".to_string()));
+    let s3 = streams.get(&(Ustr::from("ml5.hpc.uio.no"), 1090, Ustr::from("python")));
     assert!(s3.is_some());
     assert!(s3.unwrap().len() == 1);
     assert!(s3.unwrap()[0].cpu_util_pct == 128.0);
 
-    let s4 = streams.get(&("ml4.hpc.uio.no".to_string(), 1089, "python".to_string()));
+    let s4 = streams.get(&(Ustr::from("ml4.hpc.uio.no"), 1089, Ustr::from("python")));
     assert!(s4.is_some());
     assert!(s4.unwrap().len() == 1);
 }
