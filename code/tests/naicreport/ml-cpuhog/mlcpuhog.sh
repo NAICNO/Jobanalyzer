@@ -35,9 +35,9 @@ CHECK cpuhog_final_state 8 "$output"
 rm -f $statefile
 
 output=$($NAICREPORT ml-cpuhog --state-file $statefile --summary --json -- cpuhog1.csv | sort)
-CHECK cpuhog_regression_220_part1 "1" "$(echo $output | grep pubuduss | wc -l)"
+CHECK cpuhog_regression_220_part1 "1" "$(echo $output | grep pubuduss | wc -l | tr -d ' ')"
 
 output=$($NAICREPORT ml-cpuhog --to 2023-10-25 --state-file $statefile --summary --json -- cpuhog2.csv | sort)
-CHECK cpuhog_regression_220_part2 "1" "$(echo $output | grep tsauren | wc -l)"
+CHECK cpuhog_regression_220_part2 "1" "$(echo $output | grep tsauren | wc -l | tr -d ' ')"
 
 rm -f $statefile

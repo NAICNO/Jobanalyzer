@@ -30,8 +30,10 @@
 #
 # The pattern is a regex pattern that must match the name of the test filname.
 
-TEST_DIRECTORIES="sonarlog sonalyze sonard naicreport transport slurminfo"
-
+TEST_DIRECTORIES="sonarlog sonalyze naicreport slurminfo"
+if [[ $(uname) != Darwin ]]; then
+    TEST_DIRECTORIES="$TEST_DIRECTORIES sonard transport"
+fi
 export TEST_ROOT=$(pwd)
 export SONALYZE=$TEST_ROOT/../sonalyze/target/debug/sonalyze
 export NAICREPORT=$TEST_ROOT/../naicreport/naicreport
