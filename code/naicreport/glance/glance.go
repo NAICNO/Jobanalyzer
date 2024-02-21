@@ -102,7 +102,7 @@ func Report(progname string, args []string) error {
 		return err
 	}
 
-	config, err := config.ReadConfig(configFilename, false)
+	config, err := config.ReadConfig(configFilename)
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func Report(progname string, args []string) error {
 		r.MemLonger = d.mem_longer
 		r.ResidentRecent = d.resident_recent
 		r.ResidentLonger = d.resident_longer
-		if cfg, found := config[d.hostname]; found && cfg.GpuCards > 0 {
+		if cfg := config.LookupHost(d.hostname); cfg != nil && cfg.GpuCards > 0 {
 			r.GpuRecent = d.gpu_recent
 			r.GpuLonger = d.gpu_longer
 			r.GpumemRecent = d.gpumem_recent
@@ -195,14 +195,14 @@ func Report(progname string, args []string) error {
 func glanceRecordForHost(
 	recordsByHost map[string]*glanceRecord,
 	hostname string,
-	config map[string]*config.SystemConfig,
+	config *config.ClusterConfig,
 	tag string,
 ) *glanceRecord {
 	if r, found := recordsByHost[hostname]; found {
 		return r
 	}
 	machine := ""
-	if cfg, found := config[hostname]; found {
+	if cfg := config.LookupHost(hostname); cfg != nil {
 		machine = cfg.Description
 	}
 	r := &glanceRecord{

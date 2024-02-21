@@ -1,5 +1,5 @@
 /// Postprocess and clean up log data after ingestion.
-use crate::{LogEntry, System};
+use crate::{ClusterConfig, LogEntry};
 
 use chrono::Duration;
 use std::boxed::Box;
@@ -63,7 +63,7 @@ pub const JOB_ID_TAG: u32 = 10000000;
 pub fn postprocess_log<F>(
     mut entries: Vec<Box<LogEntry>>,
     filter: F,
-    configs: &Option<HashMap<String, System>>,
+    configs: &Option<ClusterConfig>,
 ) -> InputStreamSet
 where
     F: Fn(&LogEntry) -> bool,
@@ -145,7 +145,7 @@ where
     // available.
     if let Some(confs) = configs {
         streams.iter_mut().for_each(|(_, stream)| {
-            if let Some(conf) = confs.get(stream[0].hostname.as_str()) {
+            if let Some(conf) = confs.lookup(stream[0].hostname.as_str()) {
                 let cardsize = (conf.gpumem_gb as f64) / (conf.gpu_cards as f64);
                 for entry in stream {
                     if conf.gpumem_pct {

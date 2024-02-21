@@ -1,7 +1,7 @@
-/// Read system configuration data from a json file into a hashmap with the host name as key.
+/// Read system configuration data from a json file into a map with the host name as key.
 ///
-/// The file format is an array [...] of objects { ... }, each with the following named fields and
-/// value types:
+/// The current file format is an array [...] of objects { ... }, each with the following named
+/// fields and value types:
 ///
 ///   timestamp - string, an RFC3339 timestamp for when the data were obtained
 ///   hostname - string, the fully qualified and unique host name of the node
@@ -17,7 +17,12 @@
 ///   gpumem_gb - integer, the amount of gpu memory in gigabytes across all cards
 ///   gpumem_pct - bool, optional, expressing a preference for the GPU memory reading
 ///
-/// See ../../production/ml-nodes/ml-nodes.json for an example.
+/// See ../../production/sonar-nodes/mlx.hpc.uio.no/mlx.hpc.uio.no-config.json for an example.
+///
+/// This is a partial implementation.  There will be another method on ClusterConfig to lookup by
+/// host name and timestamp, and the data structure and file format will be more complicated to
+/// support that.
+
 use crate::hosts;
 
 use anyhow::{bail, Result};
@@ -26,6 +31,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path;
+use std::rc::Rc;
 
 // See above comment block for field documentation.
 
@@ -43,13 +49,27 @@ pub struct System {
     pub gpumem_pct: bool,
 }
 
+pub struct ClusterConfig {
+    nodes: HashMap<String, Rc<System>>
+}
+
+impl ClusterConfig {
+    pub fn lookup(&self, hostname: &str) -> Option<Rc<System>> {
+        self.nodes.get(hostname).cloned()
+    }
+
+    pub fn cross_node_jobs(&self) -> bool {
+        self.nodes.iter().any(|(_,sys)| sys.cross_node_jobs)
+    }
+}
+
 /// Returns a map from host name to config info, or an error message.
 ///
 /// Since the input is human-generated, may vary a bit over time, and have optional fields, I've
 /// opted to use the generic JSON parser followed by explicit decoding of the fields, rather than a
 /// (derived) strongly-typed parser.
 
-pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
+pub fn read_from_json(filename: &str) -> Result<ClusterConfig> {
     let file = File::open(path::Path::new(filename))?;
     let reader = BufReader::new(file);
     let v = serde_json::from_reader(reader)?;
@@ -92,13 +112,11 @@ pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
                     sys.comment = ts.clone();
                 }
                 for exp in expand_hostname(&sys.hostname)?.drain(0..) {
-                    let mut nsys = sys.clone();
-                    let key = exp.clone();
-                    nsys.hostname = exp;
-                    if m.contains_key(&key) {
-                        bail!("System info for host {key} already defined");
+                    if m.contains_key(&exp) {
+                        bail!("System info for host {exp} already defined");
                     }
-                    m.insert(key, nsys);
+                    let key = exp.to_string();
+                    m.insert(key, Rc::new(System{hostname: exp, ..sys.clone()}));
                 }
             } else {
                 bail!("Expected an object value")
@@ -107,7 +125,7 @@ pub fn read_from_json(filename: &str) -> Result<HashMap<String, System>> {
     } else {
         bail!("Expected an array value")
     }
-    Ok(m)
+    Ok(ClusterConfig{ nodes: m })
 }
 
 fn grab_usize(fields: &serde_json::Map<String, Value>, name: &str) -> Result<usize> {
@@ -174,11 +192,10 @@ fn expand_hostname(hn: &str) -> Result<Vec<String>> {
 #[test]
 fn test_config() {
     let conf = read_from_json("../tests/sonarlog/whitebox-config.json").unwrap();
-    assert!(conf.len() == 5);
-    let c0 = conf.get("ml1.hpc.uio.no").unwrap();
-    let c1 = conf.get("ml8.hpc.uio.no").unwrap();
-    let c2 = conf.get("c1-23").unwrap();
-    let c4 = conf.get("c1-25").unwrap();
+    let c0 = conf.lookup("ml1.hpc.uio.no").unwrap();
+    let c1 = conf.lookup("ml8.hpc.uio.no").unwrap();
+    let c2 = conf.lookup("c1-23").unwrap();
+    let c4 = conf.lookup("c1-25").unwrap();
 
     assert!(&c0.hostname == "ml1.hpc.uio.no");
     assert!(c0.cpu_cores == 56);
@@ -201,5 +218,5 @@ fn test_config() {
     assert!(c4.gpumem_gb == 0);
     assert!(c4.gpumem_pct == false);
 
-    assert!(conf.get("ml2.hpc.uio.no").is_none());
+    assert!(conf.lookup("ml2.hpc.uio.no").is_none());
 }

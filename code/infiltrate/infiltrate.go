@@ -66,9 +66,10 @@
 //    rejected.
 //
 // /sysinfo?cluster=clusterName
-//    Input is JSON-format system information data: a single record of go-utils/config.SystemConfig.
-//    The cluster parameter is required; cluster name checking is as for /sonar-freecsv.  The record
-//    must have sensible `timestamp` and `hostname` fields, or it will be rejected.
+//    Input is JSON-format system information data: a single record of
+//    go-utils/config.NodeConfigRecord.  The cluster parameter is required; cluster name checking
+//    is as for /sonar-freecsv.  The record must have sensible `timestamp` and `hostname` fields, or
+//    it will be rejected.
 //
 // Notes about services:
 //
@@ -311,7 +312,7 @@ func sysinfo(query url.Values, payload []byte, clusterName string) (int, string,
 		return 400, "Bad parameters", "Bad parameters - missing or repeated 'cluster'"
 	}
 	cluster := vs[0]
-	var info config.SystemConfig
+	var info config.NodeConfigRecord
 	err := json.Unmarshal(payload, &info)
 	if err != nil {
 		return 400, "Bad content",

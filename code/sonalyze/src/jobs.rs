@@ -11,7 +11,7 @@ use sonarlog::{
     Timebounds, Timestamp,
 };
 use std::boxed::Box;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::io;
 use ustr::Ustr;
 
@@ -87,7 +87,7 @@ pub struct JobSummary {
 
 pub fn aggregate_and_print_jobs(
     output: &mut dyn io::Write,
-    system_config: &Option<HashMap<String, sonarlog::System>>,
+    system_config: &Option<sonarlog::ClusterConfig>,
     filter_args: &JobFilterAndAggregationArgs,
     print_args: &JobPrintArgs,
     meta_args: &MetaArgs,
@@ -306,7 +306,7 @@ pub fn aggregate_and_print_jobs(
 // filtering so that we can bail out at the first moment the aggregated datum is not required.
 
 fn aggregate_and_filter_jobs(
-    system_config: &Option<HashMap<String, sonarlog::System>>,
+    system_config: &Option<sonarlog::ClusterConfig>,
     filter_args: &JobFilterAndAggregationArgs,
     mut streams: InputStreamSet,
     bounds: &Timebounds,
@@ -418,7 +418,7 @@ fn aggregate_and_filter_jobs(
     // First compute whether any of the nodes allow jobs to be merged across nodes.
     let any_mergeable_nodes =
         if let Some(ref info) = system_config {
-            info.iter().any(|(_,sys)| sys.cross_node_jobs)
+            info.cross_node_jobs()
         } else {
             false
         };
@@ -436,7 +436,7 @@ fn aggregate_and_filter_jobs(
         let mut s_bounds = Timebounds::new();
         for (k,v) in streams.drain() {
             let bound = bounds.get(&k.0).unwrap();
-            if let Some(sys) = info.get(k.0.as_str()) {
+            if let Some(sys) = info.lookup(k.0.as_str()) {
                 if sys.cross_node_jobs {
                     m_bounds.insert(k.0.clone(), bound.clone());
                     mergeable.insert(k,v);
@@ -479,7 +479,7 @@ fn aggregate_and_filter_jobs(
 // TODO: Are the ceil() calls desirable here or should they be applied during presentation?
 
 fn aggregate_job(
-    system_config: &Option<HashMap<String, sonarlog::System>>,
+    system_config: &Option<sonarlog::ClusterConfig>,
     job: &[Box<LogEntry>],
     bounds: &Timebounds,
 ) -> JobAggregate {
@@ -522,7 +522,7 @@ fn aggregate_job(
     let mut rgpumem_peak = 0.0;
 
     if let Some(confs) = system_config {
-        if let Some(conf) = confs.get(host.as_str()) {
+        if let Some(conf) = confs.lookup(host.as_str()) {
             let cpu_cores = conf.cpu_cores as f32;
             let mem = conf.mem_gb as f32;
             let gpu_cards = conf.gpu_cards as f32;
