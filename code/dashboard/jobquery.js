@@ -150,7 +150,7 @@ function selectJobs() {
 	query += `&to=${to}`
     }
     switch (gpusel) {
-    case "none": break;
+    case "either": break;
     case "some": query += "&some-gpu" + trueVal; break;
     case "none": query += "&no-gpu" + trueVal; break;
     }
