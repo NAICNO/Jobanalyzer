@@ -135,7 +135,10 @@ func ReadConfigFrom(input io.Reader) (*ClusterConfig, error) {
 func ExpandNodeConfigs(configInfo []*NodeConfigRecord) (map[string]*NodeConfigRecord, error) {
 	moreInfo := []*NodeConfigRecord{}
 	for _, c := range configInfo {
-		expanded := hostglob.ExpandPatterns(c.Hostname)
+		expanded, err := hostglob.ExpandPattern(c.Hostname)
+		if err != nil {
+			return nil, err
+		}
 		switch len(expanded) {
 		case 0:
 			panic("No way")

@@ -171,8 +171,7 @@ func main() {
 
 	results := config.NewClusterConfig()
 	for desc, hosts := range systems {
-		names, err := hostglob.CompressHostnames(hosts)
-		Check(err, fmt.Sprintf("%v", hosts))
+		names := hostglob.CompressHostnames(hosts)
 		for _, h := range names {
 			ht := ""
 			if desc.threads > 1 {

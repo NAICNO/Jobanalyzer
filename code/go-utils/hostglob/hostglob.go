@@ -1,20 +1,37 @@
-// Expand, split, and otherwise manipulate host name sets.
+// There are three operations on host name patterns and sets of host names.
 //
-// For a specification of this, see the block comment starting sonarlog/src/hosts.rs and the code
-// for expand_patterns() in that file, and the code for expand_element() in sonarlog/src/pattern.rs.
+// - We can *match* a pattern or multi-pattern against a set of concrete host names, yielding a
+//   selection of those host names
+// - We can *expand* a pattern or multi-pattern into a set of concrete host names
+// - We can *compress* a set of concrete host names into a pattern or multi-pattern
 //
-// This is a very limited version, for now.  We expand single trailing ranges of node indices in
-// each element of the host name, according to this grammar:
+// The following grammar pertains to all of these:
 //
-//  hostname ::= element ("." element)*
-//  element ::= literal range?
-//  literal ::= <nonempty string of characters not containing '[' or ',' or '*'>
-//  range ::= '[' range-elt ("," range-elt)* ']'
-//  range-elt ::= number | number "-" number
-//  number ::= <nonempty string of 0..9, to be interpreted as decimal>
+//   multi-pattern ::= pattern ("," pattern)*
+//   pattern       ::= element ("." element)*
+//   element       ::= fragment+
+//   fragment      ::= literal | range | wildcard
+//   literal       ::= <longest nonempty string of characters not containing "[" or "," or "*" or ".">
+//   range         ::= "[" range-elt ("," range-elt)* "]"
+//   range-elt     ::= number | number "-" number
+//   number        ::= <nonempty string of 0..9, to be interpreted as decimal>
+//   wildcard      ::= "*"
 //
-// If the element is syntactically invalid, the unexpanded value is returned.  In a range A-B, A
-// must be no greater than B.
+//   hostname      ::= host-element ("." host-element)*
+//   host-element  ::= literal
+//
+// The following restrictions apply:
+//
+// - In a range A-B, A must be no greater than B or the pattern is invalid
+// - It is not possible to expand a pattern or multi-pattern that contains a wildcard
+// - The expansion of the result of compression of a set of hostnames H must yield exactly
+//   the set H
+// - Compression does not have a unique result and is not required to be optimal
+//
+// Note: There is no implementation of matching here, as it is not yet needed by the Go code.
+//
+// Note: There are implementations of the algorithms here both in the Rust code (sonarlog) and in
+// the JS code (dashboard).
 
 package hostglob
 
@@ -22,16 +39,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 )
 
-// This takes as its input a string representing a comma-separated list of hostnames (according to
-// the grammar above) and returns a list of individual hostnames in that list.  It requires a bit of
-// logic because each hostname may contain a pattern that contains a comma.
+// This takes a <multi-pattern> according to the grammar above and returns a list of individual
+// <pattern>s in that list.  It requires a bit of logic because each pattern may contain an element
+// that contains a comma.
 
-func SplitHostnames(s string) ([]string, error) {
+func SplitMultiPattern(s string) ([]string, error) {
 	strings := make([]string, 0)
 	if s == "" {
 		return strings, nil
@@ -69,69 +87,107 @@ func SplitHostnames(s string) ([]string, error) {
 	return strings, nil
 }
 
-func ExpandPatterns(s string) []string {
+// This takes a single <pattern> from the grammar above and expands it.  Restriction: The pattern
+// must contain no "*" wildcards.
+
+func ExpandPattern(s string) ([]string, error) {
 	before, after, has_tail := strings.Cut(s, ".")
-	head_expansions := ExpandPattern(before)
+	head_expansions, err := expandElement(before)
+	if err != nil {
+		return nil, err
+	}
 	if !has_tail {
-		return head_expansions
+		return head_expansions, nil
 	}
 
-	tail_expansions := ExpandPatterns(after)
+	tail_expansions, err := ExpandPattern(after)
+	if err != nil {
+		return nil, err
+	}
 	expansions := []string{}
 	for _, h := range head_expansions {
 		for _, t := range tail_expansions {
 			expansions = append(expansions, h+"."+t)
 		}
 	}
-	return expansions
+	return expansions, nil
 }
 
-func ExpandPattern(s string) []string {
-	prefix, nodenums := parseElement(s)
-	if len(nodenums) == 0 {
-		return []string{s}
-	}
+var noMoreFragments = errors.New("No more fragments")
 
-	expansions := []string{}
-	for _, nn := range nodenums {
-		expansions = append(expansions, fmt.Sprintf("%s%d", prefix, nn))
-	}
-	return expansions
-}
+type wildcard struct{}
 
-func parseElement(element string) (string, []int) {
-	r := strings.NewReader(element)
-	literal := ""
+func expandElement(s string) ([]string, error) {
+	r := strings.NewReader(s)
+	fragments := make([]any, 0)
 	for {
-		c := getc(r)
-		if c == 0 || c == '[' || c == '*' || c == ',' {
-			ungetc(r, c)
-			break
+		fragment, err := parseFragment(r)
+		if err != nil {
+			if err == noMoreFragments {
+				break
+			}
+			return nil, err
 		}
-		literal = literal + string(c)
+		if _, ok := fragment.(*wildcard); ok {
+			return nil, errors.New("Wildcard not allowed in expansions")
+		}
+		fragments = append(fragments, fragment)
 	}
-	nodes := []int{}
-	needOne := false
-	switch getc(r) {
+	if len(fragments) == 0 {
+		return nil, errors.New("Empty element")
+	}
+	tails := []string{""}
+	for i := len(fragments) - 1; i >= 0; i-- {
+		switch f := fragments[i].(type) {
+		case string:
+			xs := make([]string, 0, len(tails))
+			for _, t := range tails {
+				xs = append(xs, f+t)
+			}
+			tails = xs
+		case []int:
+			xs := make([]string, 0, len(tails)*len(f))
+			for _, t := range tails {
+				for _, n := range f {
+					xs = append(xs, fmt.Sprintf("%d%s", n, t))
+				}
+			}
+			tails = xs
+		default:
+			panic("???")
+		}
+	}
+	return tails, nil
+}
+
+func parseFragment(r *strings.Reader) (any, error) {
+	switch c := getc(r); c {
 	case 0:
-		// Nothing
+		return nil, noMoreFragments
+	case '*':
+		return &wildcard{}, nil
 	case '[':
+		needOne := true
+		nodes := []int{}
 		for {
 			if eatc(r, ']') {
 				if needOne {
-					goto fail
+					return nil, errors.New("Expected number")
 				}
 				break
 			}
 			needOne = false
 			n, err := readNumber(r)
 			if err != nil {
-				goto fail
+				return nil, err
 			}
 			if eatc(r, '-') {
 				m, err := readNumber(r)
-				if err != nil || n > m {
-					goto fail
+				if err != nil {
+					return nil, err
+				}
+				if n > m {
+					return nil, errors.New("Bad range")
 				}
 				for n <= m {
 					nodes = append(nodes, n)
@@ -145,19 +201,26 @@ func parseElement(element string) (string, []int) {
 			} else if eatc(r, ']') {
 				ungetc(r, ']')
 			} else {
-				goto fail
+				return nil, errors.New("Unexpected character")
 			}
 		}
-		if getc(r) != 0 {
-			goto fail
-		}
+		return nodes, nil
+	case ',':
+		return nil, errors.New("Unexpected ','")
+	case '.':
+		return nil, errors.New("Unexpected '.'")
 	default:
-		goto fail
+		literal := string(c)
+		for {
+			c := getc(r)
+			if c == 0 || c == '[' || c == ',' || c == '.' || c == '*' {
+				ungetc(r, c)
+				break
+			}
+			literal = literal + string(c)
+		}
+		return literal, nil
 	}
-	return literal, nodes
-
-fail:
-	return element, []int{}
 }
 
 func readNumber(r io.RuneScanner) (int, error) {
@@ -199,36 +262,72 @@ func ungetc(r io.RuneScanner, c rune) {
 	}
 }
 
-// Given a list of host names, return an abbreviated list that uses host number sets where possible.
+// Given a list of valid <hostname>s by the grammar above, return an abbreviated list that uses
+// <pattern> syntax where possible.  The patterns will contain no "*" wildcards.
 //
-// Good enough: Host names match /^(.*)-(\d+)$/ and we can compress the values of \2 for equal \1.
+// In general, if there are several compressible ranges within the host names we must pick one.  For
+// example, for the set {a1.b1, a2.b2} we naively have two ranges if we consider the elements
+// separately, but a[1,2].b[1,2] is not a valid compression as it names too many hosts.  While there
+// are sets of host names that would allow multiple ranges to be compressed (for example, the set
+// resulting from the expansion of that incorrect pattern), this is not a special case worth looking
+// for.
 //
-// Better: there can be several runs of digits that could be compressed individually, but let's not
-// worry about that yet.
+// For simplicity, for host names of the form `a.b.c...` we will not try to compress anything in the
+// `b.c...` portion, and within the `a` portions we will try to compress only the rightmost digit
+// strings.  This will yield good results in general.
 
-func CompressHostnames(hosts []string) ([]string, error) {
-	same := make(map[string][]int)
+var withDigitsRe = regexp.MustCompile(`^(.*?)(\d+)(\D*)$`)
+
+func CompressHostnames(hosts []string) []string {
+	// Suffixes is a map from `b.c...` portion to `a` portion of name.
+	suffixes := make(map[string][]string)
 	for _, h := range hosts {
-		k := strings.LastIndexAny(h, "-")
-		if !(k > 0 && k < len(h)-1) {
-			return nil, fmt.Errorf("Bad host name %s", h)
-		}
-		n, err := strconv.ParseInt(h[k+1:], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		name := h[:k+1]
-		if bag, found := same[name]; found {
-			same[name] = append(bag, int(n))
+		before, after, _ := strings.Cut(h, ".")
+		if probe, ok := suffixes[after]; ok {
+			suffixes[after] = append(probe, before)
 		} else {
-			same[name] = []int{int(n)}
+			suffixes[after] = []string{before}
 		}
 	}
+
+	// Complete host names
 	result := make([]string, 0)
-	for k, v := range same {
-		result = append(result, k+compressRange(v))
+
+	// Compress the first elements, catenate with suffixes
+	for suffix, firstelts := range suffixes {
+		same := make(map[string][]int)
+		for _, elt := range firstelts {
+			ms := withDigitsRe.FindStringSubmatch(elt)
+			if ms == nil {
+				result = pushHostName(result, elt, suffix)
+				continue
+			}
+			n, err := strconv.ParseInt(ms[2], 10, 64)
+			if err != nil {
+				result = pushHostName(result, elt, suffix)
+				continue
+			}
+			name := ms[1] + "," + ms[3]
+			if bag, found := same[name]; found {
+				same[name] = append(bag, int(n))
+			} else {
+				same[name] = []int{int(n)}
+			}
+		}
+		for k, v := range same {
+			a, b, _ := strings.Cut(k, ",")
+			result = pushHostName(result, a + compressRange(v) + b, suffix)
+		}
 	}
-	return result, nil
+
+	return result
+}
+
+func pushHostName(result []string, elt, suffix string) []string {
+	if suffix != "" {
+		return append(result, elt + "." + suffix)
+	}
+	return append(result, elt)
 }
 
 func compressRange(xs []int) string {

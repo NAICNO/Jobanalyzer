@@ -145,7 +145,7 @@ func Load(progname string, args []string) error {
 		}
 		loadArguments = append(loadArguments, "--group")
 
-		patterns, err := hostglob.SplitHostnames(group)
+		patterns, err := hostglob.SplitMultiPattern(group)
 		if err != nil {
 			return err
 		}
