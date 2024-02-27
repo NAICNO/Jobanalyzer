@@ -1,6 +1,6 @@
 /// Helpers for merging sample streams.
 use crate::{
-    combine_hosts, empty_gpuset, epoch, far_future, hosts, merge_gpu_status, now, union_gpuset,
+    compress_hostnames, empty_gpuset, epoch, far_future, hostglob, merge_gpu_status, now, union_gpuset,
     GpuStatus, InputStreamSet, LogEntry, Timebound, Timebounds, Timestamp,
 };
 
@@ -128,7 +128,7 @@ pub fn merge_by_job(
     }
     let mut vs: MergedSampleStreams = zero;
     for (job_id, (mut cmds, hosts, streams)) in collections.drain() {
-        let hostname = hosts::combine_hosts(hosts.iter().map(|x| x.clone()).collect::<Vec<Ustr>>());
+        let hostname = Ustr::from(&hostglob::compress_hostnames(&hosts.iter().map(|x| x.clone()).collect::<Vec<Ustr>>()).join(","));
         if !new_bounds.contains_key(&hostname) {
             assert!(hosts.len() > 0);
             let (earliest, latest) = hosts.iter().fold((now(), epoch()), |(acc_e, acc_l), hn| {
@@ -193,7 +193,7 @@ pub fn merge_across_hosts_by_time(streams: MergedSampleStreams) -> MergedSampleS
     if streams.len() == 0 {
         return vec![];
     }
-    let hostname = combine_hosts(streams.iter().map(|s| s[0].hostname).collect::<Vec<Ustr>>());
+    let hostname = Ustr::from(&compress_hostnames(&streams.iter().map(|s| s[0].hostname).collect::<Vec<Ustr>>()).join(","));
     vec![merge_streams(
         hostname,
         Ustr::from("_merged_"),

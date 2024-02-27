@@ -361,7 +361,7 @@ function makeFilter() {
     // This is super dumb with massive amounts of allocation behind the scenes, so rethink either
     // filtering or selection.
     return function(d) {
-        let s = new bitset(1)
+        let s = new Bitset(1)
         s.fill()
         let r = q.eval([d], s)
         return r.isSet(0)

@@ -7,18 +7,18 @@
 //
 // The following grammar pertains to all of these:
 //
-//   multi-pattern ::= pattern ("," pattern)*
-//   pattern       ::= element ("." element)*
-//   element       ::= fragment+
-//   fragment      ::= literal | range | wildcard
-//   literal       ::= <longest nonempty string of characters not containing "[" or "," or "*" or ".">
-//   range         ::= "[" range-elt ("," range-elt)* "]"
-//   range-elt     ::= number | number "-" number
-//   number        ::= <nonempty string of 0..9, to be interpreted as decimal>
-//   wildcard      ::= "*"
+//   multi-pattern   ::= pattern ("," pattern)*
+//   pattern         ::= pattern-element ("." pattern-element)*
+//   pattern-element ::= fragment+
+//   fragment        ::= literal | range | wildcard
+//   literal         ::= <longest nonempty string of characters not containing "[" or "," or "*" or ".">
+//   range           ::= "[" range-elt ("," range-elt)* "]"
+//   range-elt       ::= number | number "-" number
+//   number          ::= <nonempty string of 0..9, to be interpreted as decimal>
+//   wildcard        ::= "*"
 //
-//   hostname      ::= host-element ("." host-element)*
-//   host-element  ::= literal
+//   hostname        ::= host-element ("." host-element)*
+//   host-element    ::= literal
 //
 // The following restrictions apply:
 //
@@ -27,11 +27,29 @@
 // - The expansion of the result of compression of a set of hostnames H must yield exactly
 //   the set H
 // - Compression does not have a unique result and is not required to be optimal
+// - However, compressing the list [y,x] and the list [x,y] must yield the same result (modulo the
+//   ordering of the names in the result set), this is important for some consumers.
+// - The semantics of matching currently follow the semantics of the regular expression expansion of
+//   the pattern-element.  Numbers a, b, ..., z in a range mean /(:?a|b|...|z)/.  A wildcard means
+//   /[^.]*/.  The expansion of a pattern-element always starts with /^/ and ends with /$/.  Hence
+//   "a[1-3]*b" becomes /^a(?:1|2|3)[^.]*b$/.  This can be confusing: "a[1-3]*b" will actually match
+//   the host-element "a14b" because the "1" is matched by the disjunction and the "4" is matched by
+//   the wildcard.
 //
 // Note: There is no implementation of matching here, as it is not yet needed by the Go code.
 //
 // Note: There are implementations of the algorithms here both in the Rust code (sonarlog) and in
-// the JS code (dashboard).
+// the JS code (dashboard/hostglob.js).
+//
+// Note: matching can be exact (the number of pattern-elements must equal the number of
+// host-elements in the hostname) or by prefix (there are fewer pattern-elements than
+// host-elements).  In both cases the pattern-elements must match the corresponding host-elements,
+// from left towards the right.  In particular, if the pattern is "a*" and the host name is "a.b",
+// these must not match if the matching is exact.
+//
+// Note: an argument can be made that glob semantics are better, so that "a[1-3]*b" would not match
+// "a14b": The 14 would be considered "a number" and read as such and matched against {1,2,3}, and
+// that would fail.
 
 package hostglob
 
@@ -46,7 +64,7 @@ import (
 )
 
 // This takes a <multi-pattern> according to the grammar above and returns a list of individual
-// <pattern>s in that list.  It requires a bit of logic because each pattern may contain an element
+// <pattern>s in that list.  It requires a bit of logic because each pattern may contain a fragment
 // that contains a comma.
 
 func SplitMultiPattern(s string) ([]string, error) {
@@ -92,7 +110,7 @@ func SplitMultiPattern(s string) ([]string, error) {
 
 func ExpandPattern(s string) ([]string, error) {
 	before, after, has_tail := strings.Cut(s, ".")
-	head_expansions, err := expandElement(before)
+	head_expansions, err := expandPatternElement(before)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +135,7 @@ var noMoreFragments = errors.New("No more fragments")
 
 type wildcard struct{}
 
-func expandElement(s string) ([]string, error) {
+func expandPatternElement(s string) ([]string, error) {
 	r := strings.NewReader(s)
 	fragments := make([]any, 0)
 	for {
@@ -266,7 +284,7 @@ func ungetc(r io.RuneScanner, c rune) {
 // <pattern> syntax where possible.  The patterns will contain no "*" wildcards.
 //
 // In general, if there are several compressible ranges within the host names we must pick one.  For
-// example, for the set {a1.b1, a2.b2} we naively have two ranges if we consider the elements
+// example, for the set {a1.b1, a2.b2} we naively have two ranges if we consider the host-elements
 // separately, but a[1,2].b[1,2] is not a valid compression as it names too many hosts.  While there
 // are sets of host names that would allow multiple ranges to be compressed (for example, the set
 // resulting from the expansion of that incorrect pattern), this is not a special case worth looking
@@ -293,7 +311,7 @@ func CompressHostnames(hosts []string) []string {
 	// Complete host names
 	result := make([]string, 0)
 
-	// Compress the first elements, catenate with suffixes
+	// Compress the first host-elements, catenate with suffixes
 	for suffix, firstelts := range suffixes {
 		same := make(map[string][]int)
 		for _, elt := range firstelts {

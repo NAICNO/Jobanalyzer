@@ -1,5 +1,5 @@
 /// Enumerate log files in a log tree; read sets of files.
-use crate::{dates, parse_logfile, HostFilter, LogEntry, Timestamp};
+use crate::{dates, parse_logfile, HostGlobber, LogEntry, Timestamp};
 
 use anyhow::{bail, Result};
 use core::cmp::{max, min};
@@ -37,7 +37,7 @@ use ustr::Ustr;
 
 pub fn find_logfiles(
     data_path: &str,
-    hostnames: &HostFilter,
+    hostnames: &HostGlobber,
     from: Timestamp,
     to: Timestamp,
 ) -> Result<Vec<String>> {
@@ -85,7 +85,7 @@ pub fn find_logfiles(
                 }
                 let stem = h.unwrap().to_str().unwrap();
                 // Filter the stem against the host names.
-                if hostnames.contains(stem) {
+                if hostnames.match_hostname(stem) {
                     filenames.push(pstr.unwrap().to_string());
                     continue;
                 }
@@ -145,7 +145,7 @@ pub fn read_logfiles(logfiles: &[String]) -> Result<(Vec<Box<LogEntry>>, Timebou
 fn test_find_logfiles1() {
     // Use the precise date bounds for the files in the directory to test that we get exactly the
     // expected files.  This will encounter non-csv files, which should not be listed.
-    let hosts = HostFilter::new();
+    let hosts = HostGlobber::new(true);
     let xs = find_logfiles(
         "../tests/sonarlog/whitebox-tree",
         &hosts,
@@ -171,7 +171,7 @@ fn test_find_logfiles1() {
 fn test_find_logfiles2() {
     // Use early date bounds for both limits to test that we get a subset.  Also this will run
     // into 2023/05/29 which is a file, not a directory.
-    let hosts = HostFilter::new();
+    let hosts = HostGlobber::new(true);
     let xs = find_logfiles(
         "../tests/sonarlog/whitebox-tree",
         &hosts,
@@ -193,7 +193,7 @@ fn test_find_logfiles2() {
 #[test]
 fn test_find_logfiles3() {
     // Filter by host name.
-    let mut hosts = HostFilter::new();
+    let mut hosts = HostGlobber::new(true);
     hosts.insert("a").unwrap();
     let xs = find_logfiles(
         "../tests/sonarlog/whitebox-tree",
@@ -214,7 +214,7 @@ fn test_find_logfiles3() {
 #[test]
 fn test_find_logfiles4() {
     // Nonexistent data_path
-    let hosts = HostFilter::new();
+    let hosts = HostGlobber::new(true);
     assert!(find_logfiles(
         "../sonar_test_data77",
         &hosts,

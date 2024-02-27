@@ -9,7 +9,7 @@ use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};
 use anyhow::{bail, Result};
 use sonarlog::{
     self, add_day, add_half_day, add_half_hour, add_hour, empty_logentry, gpuset_to_string, now,
-    truncate_to_day, truncate_to_half_day, truncate_to_half_hour, truncate_to_hour, HostFilter,
+    truncate_to_day, truncate_to_half_day, truncate_to_half_hour, truncate_to_hour, HostGlobber,
     InputStreamKey, InputStreamSet, LogEntry, MergedSampleStreams, Timestamp,
 };
 use std::boxed::Box;
@@ -43,7 +43,7 @@ struct PrintContext<'a> {
 pub fn aggregate_and_print_load(
     output: &mut dyn io::Write,
     system_config: &Option<sonarlog::ClusterConfig>,
-    _include_hosts: &HostFilter,
+    _include_hosts: &HostGlobber,
     from: Timestamp,
     to: Timestamp,
     filter_args: &LoadFilterAndAggregationArgs,

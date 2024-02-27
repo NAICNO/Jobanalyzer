@@ -45,7 +45,7 @@
 //   additional fields.
 
 use crate::format;
-use crate::{HostFilter, MetaArgs, UptimePrintArgs};
+use crate::{HostGlobber, MetaArgs, UptimePrintArgs};
 
 use anyhow::Result;
 use sonarlog::{GpuStatus, LogEntry, Timestamp};
@@ -77,7 +77,7 @@ fn delta_t_le(prev: Timestamp, next: Timestamp, duration: i64) -> bool {
 
 pub fn aggregate_and_print_uptime(
     output: &mut dyn io::Write,
-    include_hosts: &HostFilter,
+    include_hosts: &HostGlobber,
     from_incl: Timestamp,
     to_excl: Timestamp,
     print_args: &UptimePrintArgs,
@@ -123,7 +123,7 @@ pub fn aggregate_and_print_uptime(
             i += 1;
         }
 
-        if !include_hosts.is_empty() && !include_hosts.contains(&host_first.hostname) {
+        if !include_hosts.is_empty() && !include_hosts.match_hostname(&host_first.hostname) {
             continue;
         }
 

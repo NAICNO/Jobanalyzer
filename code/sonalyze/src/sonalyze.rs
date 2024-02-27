@@ -35,7 +35,7 @@ use crate::command::run_with_timeout;
 use anyhow::{bail, Result};
 use chrono::{Datelike, NaiveDate};
 use clap::{Args, Parser, Subcommand};
-use sonarlog::{self, HostFilter, LogEntry, Timestamp};
+use sonarlog::{self, HostGlobber, LogEntry, Timestamp};
 use std::collections::HashSet;
 use std::env;
 use std::fs::File;
@@ -1139,7 +1139,7 @@ fn sonalyze() -> Result<()> {
 
         // Included host set, empty means "all"
 
-        let mut include_hosts = HostFilter::new();
+        let mut include_hosts = HostGlobber::new(/* prefix= */ true);
         for host in &record_filter_args.host {
             include_hosts.insert(host)?;
         }
@@ -1377,7 +1377,7 @@ fn sonalyze() -> Result<()> {
 
     let record_filter = |e: &LogEntry| {
         ((&include_users).is_empty() || (&include_users).contains(e.user.as_str()))
-            && ((&include_hosts).is_empty() || (&include_hosts).contains(e.hostname.as_str()))
+            && ((&include_hosts).is_empty() || (&include_hosts).match_hostname(e.hostname.as_str()))
             && ((&include_jobs).is_empty() || (&include_jobs).contains(&(e.job_id as usize)))
             && ((&include_commands).is_empty() || (&include_commands).contains(e.command.as_str()))
             && !(&exclude_users).contains(e.user.as_str())

@@ -23,7 +23,7 @@
 /// host name and timestamp, and the data structure and file format will be more complicated to
 /// support that.
 
-use crate::hosts;
+use crate::hostglob;
 
 use anyhow::{bail, Result};
 use serde_json::Value;
@@ -111,7 +111,7 @@ pub fn read_from_json(filename: &str) -> Result<ClusterConfig> {
                 if let Some(Value::String(ts)) = fields.get("comment") {
                     sys.comment = ts.clone();
                 }
-                for exp in expand_hostname(&sys.hostname)?.drain(0..) {
+                for exp in hostglob::expand_pattern(&sys.hostname)?.drain(0..) {
                     if m.contains_key(&exp) {
                         bail!("System info for host {exp} already defined");
                     }
@@ -163,27 +163,6 @@ fn grab_bool_opt(fields: &serde_json::Map<String, Value>, name: &str) -> Result<
     } else {
         Ok(None)
     }
-}
-
-fn expand_hostname(hn: &str) -> Result<Vec<String>> {
-    let elements = hn
-        .split('.')
-        .map(|x| x.to_string())
-        .collect::<Vec<String>>();
-    let expansions = hosts::expand_patterns(&elements)?;
-    let mut result = vec![];
-    for mut exps in expansions {
-        if exps.iter().any(|(prefix, _)| *prefix) {
-            bail!("Suffix wildcard not allowed in expandable hostname in config file")
-        }
-        result.push(
-            exps.drain(0..)
-                .map(|(_, elt)| elt)
-                .collect::<Vec<String>>()
-                .join("."),
-        )
-    }
-    Ok(result)
 }
 
 // Basic whitebox test that the reading works.  Error conditions are tested blackbox, see
