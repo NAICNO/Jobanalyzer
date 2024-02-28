@@ -170,7 +170,7 @@ function selectJobs() {
             message("Invalid `min-peak-cpu` value, must be finite and nonnegative")
 	    return
 	}
-	query += `&min-peak-cpu=${n}`
+	query += `&min-cpu-peak=${n*100}`
     }
     if (minPeakRamVal != "") {
 	let n = parseInt(minPeakRamVal)
@@ -178,7 +178,7 @@ function selectJobs() {
             message("Invalid `min-peak-mem` value, must be finite and nonnegative")
 	    return
 	}
-	query += `&min-peak-mem=${n}`
+	query += `&min-res-peak=${n}`
     }
 
     // Display a URL that will take us back to this window with the form fields filled in

@@ -441,21 +441,37 @@ pub struct JobFilterAndAggregationArgs {
     #[arg(long, default_value_t = 100)]
     max_rcpu_peak: usize,
 
-    /// Select only jobs with at least this much average main memory use (GB)
+    /// Select only jobs with at least this much average virtual memory use (GB)
     #[arg(long, default_value_t = 0)]
     min_mem_avg: usize,
 
-    /// Select only jobs with at least this much peak main memory use (GB)
+    /// Select only jobs with at least this much peak virtual memory use (GB)
     #[arg(long, default_value_t = 0)]
     min_mem_peak: usize,
 
-    /// Select only jobs with at least this much relative average main memory use (100=all memory)
+    /// Select only jobs with at least this much relative average virtual memory use (100=all memory)
     #[arg(long, default_value_t = 0)]
     min_rmem_avg: usize,
 
-    /// Select only jobs with at least this much relative peak main memory use (100=all memory)
+    /// Select only jobs with at least this much relative peak virtual memory use (100=all memory)
     #[arg(long, default_value_t = 0)]
     min_rmem_peak: usize,
+
+    /// Select only jobs with at least this much average resident memory use (GB)
+    #[arg(long, default_value_t = 0)]
+    min_res_avg: usize,
+
+    /// Select only jobs with at least this much peak resident memory use (GB)
+    #[arg(long, default_value_t = 0)]
+    min_res_peak: usize,
+
+    /// Select only jobs with at least this much relative average resident memory use (100=all memory)
+    #[arg(long, default_value_t = 0)]
+    min_rres_avg: usize,
+
+    /// Select only jobs with at least this much relative peak resident memory use (100=all memory)
+    #[arg(long, default_value_t = 0)]
+    min_rres_peak: usize,
 
     /// Select only jobs with at least this much average GPU use (100=1 full GPU card)
     #[arg(long, default_value_t = 0)]
@@ -553,6 +569,10 @@ impl UrlBuilder {
         self.add_defaulted_usize("min-mem-peak", a.min_mem_peak, 0);
         self.add_defaulted_usize("min-rmem-avg", a.min_rmem_avg, 0);
         self.add_defaulted_usize("min-rmem-peak", a.min_rmem_peak, 0);
+        self.add_defaulted_usize("min-res-avg", a.min_res_avg, 0);
+        self.add_defaulted_usize("min-res-peak", a.min_res_peak, 0);
+        self.add_defaulted_usize("min-rres-avg", a.min_rres_avg, 0);
+        self.add_defaulted_usize("min-rres-peak", a.min_rres_peak, 0);
         self.add_defaulted_usize("min-gpu-avg", a.min_gpu_avg, 0);
         self.add_defaulted_usize("min-gpu-peak", a.min_gpu_peak, 0);
         self.add_defaulted_usize("max-gpu-avg", a.max_gpu_avg, BIG_VALUE);
