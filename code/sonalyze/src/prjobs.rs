@@ -10,7 +10,8 @@ use crate::jobs::{JobSummary, LIVE_AT_END, LIVE_AT_START};
 use crate::{JobPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
-use sonarlog::{self, empty_gpuset, gpuset_to_string, now, union_gpuset, Timestamp};
+use rustutils::{now, ClusterConfig, Timestamp};
+use sonarlog::{self, empty_gpuset, gpuset_to_string, union_gpuset};
 use std::collections::{HashMap, HashSet};
 use std::io;
 use std::ops::Add;
@@ -18,7 +19,7 @@ use ustr::Ustr;
 
 pub fn print_jobs(
     output: &mut dyn io::Write,
-    system_config: &Option<sonarlog::ClusterConfig>,
+    system_config: &Option<ClusterConfig>,
     mut hosts: HashSet<Ustr>,
     mut jobvec: Vec<JobSummary>,
     print_args: &JobPrintArgs,
@@ -85,7 +86,7 @@ pub fn print_jobs(
     if meta_args.raw {
         jobvec.iter().for_each(|JobSummary { aggregate, job, .. }| {
             output
-                .write(
+                .write_all(
                     format!(
                         "{} job records\n\n{:?}\n\n{:?}\n",
                         job.len(),
@@ -161,10 +162,7 @@ pub fn print_jobs(
 pub fn fmt_help() -> format::Help {
     let (formatters, aliases) = my_formatters();
     format::Help {
-        fields: formatters
-            .iter()
-            .map(|(k, _)| k.clone())
-            .collect::<Vec<String>>(),
+        fields: formatters.keys().cloned().collect::<Vec<String>>(),
         aliases: aliases
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))
@@ -364,7 +362,7 @@ fn format_host(JobSummary { job, .. }: LogDatum, c: LogCtx) -> String {
             hosts.insert(j.hostname);
         }
     }
-    sonarlog::compress_hostnames(&hosts.drain().collect::<Vec<Ustr>>()).join(",")
+    rustutils::compress_hostnames(&hosts.drain().collect::<Vec<Ustr>>()).join(",")
 }
 
 fn format_gpus(JobSummary { job, .. }: LogDatum, _: LogCtx) -> String {

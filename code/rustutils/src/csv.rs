@@ -17,11 +17,12 @@
 ///  - newlines and EOF are not allowed inside double-quoted fields
 ///  - a double-quote is represented as two double-quotes in a double-quoted field
 ///
-/// The tokenizer is opened on an io::Read and provides tokens.  A token is one of Tok::Field,
-/// Tok::EOL, and Tok::EOF.  The Tok::Field is a triplet: start index into byte buffer, one-past-end
-/// index into byte buffer, and index within that range of the character following the first '=', if
-/// present, otherwise EQ_SENTINEL.  The indices are valid until the next call to get() and can be
-/// passed to buf_at(), get_str() and get_string() to retrieve contents from the internal buffer.
+/// The tokenizer is opened on an io::Read and provides tokens.  A token is one of CsvToken::Field,
+/// CsvToken::EOL, and CsvToken::EOF.  The CsvToken::Field is a triplet: start index into byte
+/// buffer, one-past-end index into byte buffer, and index within that range of the character
+/// following the first '=', if present, otherwise CSV_EQ_SENTINEL.  The indices are valid until the
+/// next call to get() and can be passed to buf_at() and get_str() to retrieve contents from the
+/// internal buffer.
 ///
 /// This is much more efficient than the serde-derived CSV parser, since the best we could do with
 /// that - given the flexibility of the input format - was to parse the record as a vector of string
@@ -29,18 +30,18 @@
 use anyhow::{bail, Result};
 use std::io;
 
-pub enum Token {
+pub enum CsvToken {
     Field(usize, usize, usize),
     EOL,
     EOF,
 }
 
-pub const EQ_SENTINEL: usize = usize::MAX;
+pub const CSV_EQ_SENTINEL: usize = usize::MAX;
 
 const BUFSIZ: usize = 65536;
 const MAXLINE: usize = 1024;
 
-pub struct Tokenizer<'a> {
+pub struct CsvTokenizer<'a> {
     ix: usize,
     lim: usize,
     start_of_line: bool,
@@ -50,13 +51,13 @@ pub struct Tokenizer<'a> {
     fail_refill: bool,
 }
 
-impl<'a> Tokenizer<'a> {
-    pub fn new(reader: &'a mut dyn io::Read) -> Box<Tokenizer> {
-        Box::new(Tokenizer {
+impl<'a> CsvTokenizer<'a> {
+    pub fn new(reader: &'a mut dyn io::Read) -> Box<CsvTokenizer> {
+        Box::new(CsvTokenizer {
             ix: 0,
             lim: 0,
             start_of_line: true,
-            reader: reader,
+            reader,
             buf: [0u8; BUFSIZ],
             #[cfg(test)]
             fail_refill: false,
@@ -76,18 +77,18 @@ impl<'a> Tokenizer<'a> {
     }
 
     // Get the next token, or an error for syntax errors or I/O errors.
-    pub fn get(&mut self) -> Result<Token> {
+    pub fn get(&mut self) -> Result<CsvToken> {
         self.maybe_refill()?;
 
         // The following logic assumes \n is a sentinel at self.buf[self.lim].
 
         if self.buf[self.ix] == b'\n' {
             if self.ix == self.lim {
-                return Ok(Token::EOF);
+                return Ok(CsvToken::EOF);
             }
             self.ix += 1;
             self.start_of_line = true;
-            return Ok(Token::EOL);
+            return Ok(CsvToken::EOL);
         }
 
         if !self.start_of_line {
@@ -96,12 +97,12 @@ impl<'a> Tokenizer<'a> {
         }
 
         // Parse a field, terminated by EOF, EOL, or comma.
-        let mut eqloc = EQ_SENTINEL;
+        let mut eqloc = CSV_EQ_SENTINEL;
         self.start_of_line = false;
         match self.buf[self.ix] {
             b'\n' | b',' => {
                 // Empty field at EOL or EOF or comma
-                return Ok(Token::Field(self.ix, self.ix, eqloc));
+                Ok(CsvToken::Field(self.ix, self.ix, eqloc))
             }
             b'"' => {
                 // This is a little hairy because every doubled quote has to be collapsed into a
@@ -115,7 +116,7 @@ impl<'a> Tokenizer<'a> {
                             bail!("Unexpected end of line or end of file");
                         }
                         b'=' => {
-                            if eqloc == EQ_SENTINEL {
+                            if eqloc == CSV_EQ_SENTINEL {
                                 eqloc = self.ix + 1
                             }
                         }
@@ -127,7 +128,7 @@ impl<'a> Tokenizer<'a> {
                                 if self.buf[self.ix] != b',' && self.buf[self.ix] != b'\n' {
                                     bail!("Expected comma or newline after quoted field")
                                 }
-                                return Ok(Token::Field(startix, destix, eqloc));
+                                return Ok(CsvToken::Field(startix, destix, eqloc));
                             }
                         }
                         _ => {}
@@ -142,10 +143,10 @@ impl<'a> Tokenizer<'a> {
                 loop {
                     match self.buf[self.ix] {
                         b'\n' | b',' => {
-                            return Ok(Token::Field(startix, self.ix, eqloc));
+                            return Ok(CsvToken::Field(startix, self.ix, eqloc));
                         }
                         b'=' => {
-                            if eqloc == EQ_SENTINEL {
+                            if eqloc == CSV_EQ_SENTINEL {
                                 eqloc = self.ix + 1
                             }
                         }
@@ -174,7 +175,7 @@ impl<'a> Tokenizer<'a> {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     fn maybe_refill(&mut self) -> Result<()> {
@@ -217,76 +218,76 @@ fn test_csv_tokenizer1() {
 
 A,B"#;
     let mut bs = text.as_bytes();
-    let mut tokenizer = Tokenizer::new(&mut bs);
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    let mut tokenizer = CsvTokenizer::new(&mut bs);
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "a");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "b=1");
         assert!(c == a + 2);
     } else {
         assert!(false);
     }
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "cc=2");
         assert!(c == a + 3);
     } else {
         assert!(false);
     }
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "e");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "f=1,2,3");
         assert!(c == a + 2);
     } else {
         assert!(false);
     }
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "g,\"y\",z");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
-    if let Token::EOL = tokenizer.get().unwrap() {
+    if let CsvToken::EOL = tokenizer.get().unwrap() {
     } else {
         assert!(false);
     }
-    if let Token::EOL = tokenizer.get().unwrap() {
+    if let CsvToken::EOL = tokenizer.get().unwrap() {
     } else {
         assert!(false);
     }
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "A");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "B");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
-    if let Token::EOF = tokenizer.get().unwrap() {
+    if let CsvToken::EOF = tokenizer.get().unwrap() {
     } else {
         assert!(false);
     }
@@ -299,20 +300,20 @@ A,B"#;
 fn test_csv_tokenizer2() {
     let text = r#"a,"#;
     let mut bs = text.as_bytes();
-    let mut tokenizer = Tokenizer::new(&mut bs);
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    let mut tokenizer = CsvTokenizer::new(&mut bs);
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "a");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
-    if let Token::EOF = tokenizer.get().unwrap() {
+    if let CsvToken::EOF = tokenizer.get().unwrap() {
     } else {
         assert!(false);
     }
@@ -326,10 +327,10 @@ fn test_csv_tokenizer3() {
     let text = r#"a,"hi
 ho"#;
     let mut bs = text.as_bytes();
-    let mut tokenizer = Tokenizer::new(&mut bs);
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    let mut tokenizer = CsvTokenizer::new(&mut bs);
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "a");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
@@ -343,10 +344,10 @@ ho"#;
 fn test_csv_tokenizer4() {
     let text = r#"a,"hi"#;
     let mut bs = text.as_bytes();
-    let mut tokenizer = Tokenizer::new(&mut bs);
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    let mut tokenizer = CsvTokenizer::new(&mut bs);
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "a");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
@@ -360,10 +361,10 @@ fn test_csv_tokenizer4() {
 fn test_csv_tokenizer5() {
     let text = r#"a,"hi"x,y"#;
     let mut bs = text.as_bytes();
-    let mut tokenizer = Tokenizer::new(&mut bs);
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    let mut tokenizer = CsvTokenizer::new(&mut bs);
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "a");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
@@ -377,10 +378,10 @@ fn test_csv_tokenizer5() {
 fn test_csv_tokenizer6() {
     let text = r#"a,hi"x,y"#;
     let mut bs = text.as_bytes();
-    let mut tokenizer = Tokenizer::new(&mut bs);
-    if let Token::Field(a, b, c) = tokenizer.get().unwrap() {
+    let mut tokenizer = CsvTokenizer::new(&mut bs);
+    if let CsvToken::Field(a, b, c) = tokenizer.get().unwrap() {
         assert!(tokenizer.get_str(a, b) == "a");
-        assert!(c == EQ_SENTINEL);
+        assert!(c == CSV_EQ_SENTINEL);
     } else {
         assert!(false);
     }
@@ -405,23 +406,23 @@ fn test_csv_tokenizer7() {
         text += "abcdefghijklmnopqrstuvwxyz\n";
     }
     let mut bs = text.as_bytes();
-    let mut tokenizer = Tokenizer::new(&mut bs);
+    let mut tokenizer = CsvTokenizer::new(&mut bs);
     let mut state = 0;
     let mut found = 0;
     loop {
         match tokenizer.get().unwrap() {
-            Token::Field(a, b, c) => {
+            CsvToken::Field(a, b, c) => {
                 assert!(state == 0);
                 assert!(tokenizer.get_str(a, b) == "abcdefghijklmnopqrstuvwxyz");
-                assert!(c == EQ_SENTINEL);
+                assert!(c == CSV_EQ_SENTINEL);
                 state = 1;
                 found += 1;
             }
-            Token::EOL => {
+            CsvToken::EOL => {
                 assert!(state == 1);
                 state = 0;
             }
-            Token::EOF => {
+            CsvToken::EOF => {
                 assert!(state == 0);
                 break;
             }
@@ -442,12 +443,12 @@ fn test_csv_tokenizer8() {
         text += "abcdefghijklmnopqrstuvwxyz\n";
     }
     let mut bs = text.as_bytes();
-    let mut tokenizer = Tokenizer::new(&mut bs);
+    let mut tokenizer = CsvTokenizer::new(&mut bs);
     tokenizer.get().unwrap(); // Fill once
     tokenizer.set_fail_refill();
     loop {
         match tokenizer.get() {
-            Ok(Token::EOF) => {
+            Ok(CsvToken::EOF) => {
                 assert!(false);
             }
             Ok(_) => {}

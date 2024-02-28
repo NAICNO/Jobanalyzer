@@ -14,10 +14,9 @@ untagged_sonar_data = []
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rustutils = { path = "../rustutils" }
 anyhow = "1.0.72"
 chrono = "0.4.26"
 itertools = "0.11.0"
-regex = "1.10.3"
 serde = { version = "1.0.175" }
-serde_json = "1.0.104"
 ustr = "1.0.0"

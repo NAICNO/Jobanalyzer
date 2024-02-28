@@ -16,6 +16,7 @@ default = [ "untagged_sonar_data" ]
 untagged_sonar_data = [ "sonarlog/untagged_sonar_data" ]
 
 [dependencies]
+rustutils = { path = "../rustutils" }
 sonarlog = { path = "../sonarlog" }
 chrono = "0.4"
 clap = { version = "4.3.8", features = ["derive"] }

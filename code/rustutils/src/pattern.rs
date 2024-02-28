@@ -1,7 +1,6 @@
 /// Qua the pattern grammar in go-utils/hostglob/hostglob.rs, `expand_element` syntax checks and
 /// expands the number ranges of an "element" nonterminal and returns the vector of the expanded
 /// strings.  Each string may still be suffixed by '*'.
-
 use anyhow::{bail, Result};
 use std::str::FromStr;
 
@@ -143,7 +142,7 @@ impl Parser {
     }
 
     fn consume_nonempty(&mut self) -> Result<()> {
-        if self.ss.len() == 1 && self.ss[0].len() == 0 {
+        if self.ss.len() == 1 && self.ss[0].is_empty() {
             bail!("Empty pattern in input")
         }
         self.result.extend_from_slice(&self.ss);

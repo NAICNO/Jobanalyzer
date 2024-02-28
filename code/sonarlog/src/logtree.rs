@@ -1,12 +1,16 @@
 /// Enumerate log files in a log tree; read sets of files.
-use crate::{dates, parse_logfile, HostGlobber, LogEntry, Timestamp};
+use crate::{parse_logfile, LogEntry};
 
 use anyhow::{bail, Result};
 use core::cmp::{max, min};
+use rustutils::{date_range, HostGlobber, Timestamp};
 use std::boxed::Box;
 use std::collections::HashMap;
 use std::path;
 use ustr::Ustr;
+
+#[cfg(test)]
+use rustutils::timestamp_from_ymd;
 
 /// Create a set of plausible log file names within a directory tree, for a date range and a set of
 /// included host files.  The returned names are sorted lexicographically.
@@ -46,13 +50,13 @@ pub fn find_logfiles(
     }
 
     let mut filenames = vec![];
-    for (year, month, day) in dates::date_range(from, to) {
+    for (year, month, day) in date_range(from, to) {
         let dir_name = format!("{}/{}/{:02}/{:02}", data_path, year, month, day);
         let p = std::path::Path::new(&dir_name);
         if p.is_dir() {
             let rd = p.read_dir()?;
             for entry in rd {
-                if let Err(_) = entry {
+                if entry.is_err() {
                     // Bad directory entries are ignored, though these would probably be I/O errors.
                     // Note there is an assumption here that forward progress is guaranteed despite
                     // the error.  This is not properly documented but the example for the read_dir
@@ -149,8 +153,8 @@ fn test_find_logfiles1() {
     let xs = find_logfiles(
         "../tests/sonarlog/whitebox-tree",
         &hosts,
-        dates::timestamp_from_ymd(2023, 5, 30),
-        dates::timestamp_from_ymd(2023, 6, 4),
+        timestamp_from_ymd(2023, 5, 30),
+        timestamp_from_ymd(2023, 6, 4),
     )
     .unwrap();
     assert!(xs.eq(&vec![
@@ -175,8 +179,8 @@ fn test_find_logfiles2() {
     let xs = find_logfiles(
         "../tests/sonarlog/whitebox-tree",
         &hosts,
-        dates::timestamp_from_ymd(2023, 5, 29),
-        dates::timestamp_from_ymd(2023, 6, 2),
+        timestamp_from_ymd(2023, 5, 29),
+        timestamp_from_ymd(2023, 6, 2),
     )
     .unwrap();
     assert!(xs.eq(&vec![
@@ -198,8 +202,8 @@ fn test_find_logfiles3() {
     let xs = find_logfiles(
         "../tests/sonarlog/whitebox-tree",
         &hosts,
-        dates::timestamp_from_ymd(2023, 5, 20),
-        dates::timestamp_from_ymd(2023, 6, 2),
+        timestamp_from_ymd(2023, 5, 20),
+        timestamp_from_ymd(2023, 6, 2),
     )
     .unwrap();
     assert!(xs.eq(&vec![
@@ -218,8 +222,8 @@ fn test_find_logfiles4() {
     assert!(find_logfiles(
         "../sonar_test_data77",
         &hosts,
-        dates::timestamp_from_ymd(2023, 5, 30),
-        dates::timestamp_from_ymd(2023, 6, 4)
+        timestamp_from_ymd(2023, 5, 30),
+        timestamp_from_ymd(2023, 6, 4)
     )
     .is_err());
 }

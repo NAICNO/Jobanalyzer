@@ -2,8 +2,6 @@
 /// columnar, as csv, or as json, and (except for json) with or without a header and with or without
 /// named fields.
 use anyhow::{bail, Result};
-use csv;
-use json;
 use std::collections::{HashMap, HashSet};
 use std::io;
 
@@ -26,12 +24,12 @@ where
             for f in help.fields {
                 println!("  {f}");
             }
-            if help.aliases.len() > 0 {
+            if !help.aliases.is_empty() {
                 println!("\nAliases:");
                 help.aliases.sort();
                 for (name, mut fields) in help.aliases {
                     fields.sort();
-                    let explication = (&fields).join(",");
+                    let explication = fields.join(",");
                     println!("  {name} --> {explication}");
                 }
             }
@@ -40,7 +38,7 @@ where
             return true;
         }
     }
-    return false;
+    false
 }
 
 /// Return a vector of the known fields in `spec` wrt the formatters, and a HashSet of any other
@@ -72,7 +70,7 @@ where
             others.insert(x);
         }
     }
-    if fields.len() == 0 {
+    if fields.is_empty() {
         bail!("No output fields were selected")
     }
     Ok((fields, others))
@@ -98,7 +96,7 @@ pub fn standard_options(others: &HashSet<&str>) -> FormatOptions {
     let fixed = others.get("fixed").is_some() && !csv && !json && !awk;
     let nodefaults = others.get("nodefaults").is_some();
     // json and awk get no header, even if one is requested
-    let header = (!csv && !json && !awk && !others.get("noheader").is_some())
+    let header = (!csv && !json && !awk && others.get("noheader").is_none())
         || (csv && others.get("header").is_some());
     let mut tag: Option<String> = None;
     for x in others {
@@ -124,9 +122,9 @@ pub fn standard_options(others: &HashSet<&str>) -> FormatOptions {
 /// header (independent of csv).  Set `opts.csv` to true to get CSV output instead of fixed-format.
 /// Set `opts.tag` to Some(s) to print a tag=s field in the output.
 
-pub fn format_data<'a, DataT, FmtT, CtxT>(
+pub fn format_data<DataT, FmtT, CtxT>(
     output: &mut dyn io::Write,
-    fields: &[&'a str],
+    fields: &[&str],
     formatters: &HashMap<String, FmtT>,
     opts: &FormatOptions,
     data: Vec<DataT>,
@@ -141,8 +139,7 @@ pub fn format_data<'a, DataT, FmtT, CtxT>(
     // TODO: For performance this could cache the results of the hash table lookups in a local
     // array, it's wasteful to perform a lookup for each field for each iteration.
     data.iter().for_each(|x| {
-        let mut i = 0;
-        for kwd in fields {
+        for (i, kwd) in fields.iter().enumerate() {
             let val = formatters.get(*kwd).unwrap()(x, ctx);
             if i == 0 {
                 if let Some(f) = formatters.get("*prefix*") {
@@ -153,7 +150,6 @@ pub fn format_data<'a, DataT, FmtT, CtxT>(
             } else {
                 cols[i].push(val)
             }
-            i += 1;
         }
     });
 
@@ -168,16 +164,15 @@ pub fn format_data<'a, DataT, FmtT, CtxT>(
     }
 }
 
-fn format_fixed_width<'a>(
+fn format_fixed_width(
     output: &mut dyn io::Write,
-    fields: &[&'a str],
+    fields: &[&str],
     opts: &FormatOptions,
     cols: Vec<Vec<String>>,
 ) {
     // The column width is the max across all the entries in the column (including header,
     // if present).  If there's a tag, it is printed in the last column.
-    let mut widths = vec![];
-    widths.resize(fields.len() + if opts.tag.is_some() { 1 } else { 0 }, 0);
+    let mut widths = vec![0; fields.len() + if opts.tag.is_some() { 1 } else { 0 }];
 
     if opts.header {
         let mut i = 0;
@@ -242,9 +237,9 @@ fn format_fixed_width<'a>(
     }
 }
 
-fn format_csv<'a>(
+fn format_csv(
     output: &mut dyn io::Write,
-    fields: &[&'a str],
+    fields: &[&str],
     opts: &FormatOptions,
     cols: Vec<Vec<String>>,
 ) {
@@ -272,7 +267,7 @@ fn format_csv<'a>(
             } else if opts.named {
                 out_fields.push(format!("{}={}", fields[col], val));
             } else {
-                out_fields.push(format!("{}", val));
+                out_fields.push(val.to_string());
             }
             col += 1;
         }
@@ -290,9 +285,9 @@ fn format_csv<'a>(
     writer.flush().unwrap();
 }
 
-fn format_json<'a>(
+fn format_json(
     output: &mut dyn io::Write,
-    fields: &[&'a str],
+    fields: &[&str],
     opts: &FormatOptions,
     cols: Vec<Vec<String>>,
 ) {
@@ -316,15 +311,17 @@ fn format_json<'a>(
         objects.push(obj);
         row += 1;
     }
-    output.write(json::stringify(objects).as_bytes()).unwrap();
+    output
+        .write_all(json::stringify(objects).as_bytes())
+        .unwrap();
 }
 
 // awk output: fields are space-separated and spaces are not allowed within fields, they
 // are replaced by `_`.
 
-fn format_awk<'a>(
+fn format_awk(
     output: &mut dyn io::Write,
-    fields: &[&'a str],
+    fields: &[&str],
     opts: &FormatOptions,
     cols: Vec<Vec<String>>,
 ) {
@@ -338,7 +335,7 @@ fn format_awk<'a>(
                 if !line.is_empty() {
                     line += " ";
                 }
-                line += val.replace(" ", "_").as_str();
+                line += val.replace(' ', "_").as_str();
             }
         }
         if let Some(ref tag) = opts.tag {
@@ -348,6 +345,6 @@ fn format_awk<'a>(
             line += tag;
         }
         line += "\n";
-        output.write(line.as_bytes()).unwrap();
+        output.write_all(line.as_bytes()).unwrap();
     }
 }

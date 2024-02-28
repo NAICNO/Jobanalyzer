@@ -1,7 +1,8 @@
 /// Postprocess and clean up log data after ingestion.
-use crate::{ClusterConfig, LogEntry};
+use crate::LogEntry;
 
 use chrono::Duration;
+use rustutils::ClusterConfig;
 use std::boxed::Box;
 use std::collections::HashMap;
 use ustr::Ustr;
@@ -79,7 +80,7 @@ where
         } else {
             e.pid
         };
-        let key = (e.hostname.clone(), synthetic_pid, e.command.clone());
+        let key = (e.hostname, synthetic_pid, e.command);
         if let Some(stream) = streams.get_mut(&key) {
             stream.push(e);
         } else {
@@ -174,7 +175,7 @@ where
     // Some streams may now be empty; remove them.
     let dead = streams
         .iter()
-        .filter_map(|(k, v)| if v.len() == 0 { Some(k.clone()) } else { None })
+        .filter_map(|(k, v)| if v.is_empty() { Some(*k) } else { None })
         .collect::<Vec<InputStreamKey>>();
 
     for d in dead {

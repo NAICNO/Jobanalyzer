@@ -2,12 +2,11 @@
 ///
 /// This closely follows the grammar and semantics defined in the corresponding Go and JS code, see
 /// go-utils/hostglob/hostglob.go and dashboard/hostglob.js.  They must all be kept in sync.
-
 use crate::pattern;
 
 use anyhow::{bail, Result};
-use ustr::Ustr;
 use regex::Regex;
+use ustr::Ustr;
 
 /// A `HostGlobber` is a matcher of patterns against hostnames.
 ///
@@ -38,7 +37,8 @@ impl HostGlobber {
     /// Add the pattern to the set of patterns in the matcher.
 
     pub fn insert(&mut self, pattern: &str) -> Result<()> {
-        self.matchers.push(compile_globber(pattern, self.is_prefix_matcher)?);
+        self.matchers
+            .push(compile_globber(pattern, self.is_prefix_matcher)?);
         Ok(())
     }
 
@@ -53,10 +53,10 @@ impl HostGlobber {
     pub fn match_hostname(&self, s: &str) -> bool {
         for m in &self.matchers {
             if m.0.is_match(s) {
-                return true
+                return true;
             }
         }
-        return false
+        false
     }
 }
 
@@ -135,8 +135,8 @@ fn compile_globber(p: &str, prefix: bool) -> Result<(Regex, String)> {
 fn read_int(cs: &[char], mut i: usize) -> Result<(usize, usize)> {
     let first = i;
     let mut n = 0u64;
-    while i < cs.len() && cs[i].is_digit(10) {
-        n = n*10 + (u32::from(cs[i]) - 48) as u64;
+    while i < cs.len() && cs[i].is_ascii_digit() {
+        n = n * 10 + (u32::from(cs[i]) - 48) as u64;
         if n > 0xFFFFFFFF {
             bail!("Number out of range in glob set");
         }
@@ -194,10 +194,7 @@ fn test_hostfilter3() {
 /// Restriction: The pattern must contain no "*" wildcards.
 
 pub fn expand_pattern(p: &str) -> Result<Vec<String>> {
-    let elements = p
-        .split('.')
-        .map(|x| x.to_string())
-        .collect::<Vec<String>>();
+    let elements = p.split('.').map(|x| x.to_string()).collect::<Vec<String>>();
     let expansions = expand_elements(&elements)?;
     let mut result = vec![];
     for mut exps in expansions {
@@ -217,7 +214,7 @@ pub fn expand_pattern(p: &str) -> Result<Vec<String>> {
 // TODO: Test cases
 
 fn expand_elements(xs: &[String]) -> Result<Vec<Vec<(bool, String)>>> {
-    if xs.len() == 0 {
+    if xs.is_empty() {
         Ok(vec![vec![]])
     } else {
         let rest = expand_elements(&xs[1..])?;
@@ -232,7 +229,7 @@ fn expand_elements(xs: &[String]) -> Result<Vec<Vec<(bool, String)>>> {
                     e.to_string()
                 };
                 let mut m = vec![(is_prefix, text)];
-                m.extend_from_slice(&r);
+                m.extend_from_slice(r);
                 result.push(m);
             }
         }
@@ -271,7 +268,7 @@ pub fn compress_hostnames(hosts: &[Ustr]) -> Vec<String> {
     // their `a` elements.
     let mut splits = hosts
         .iter()
-        .map(|s| s.as_str().split(".").collect::<Vec<&str>>())
+        .map(|s| s.as_str().split('.').collect::<Vec<&str>>())
         .collect::<Vec<Vec<&str>>>();
 
     // Sort lexicographically by tail first and then hostname second - this will allow us to group
@@ -281,7 +278,7 @@ pub fn compress_hostnames(hosts: &[Ustr]) -> Vec<String> {
         while i < a.len() || i < b.len() {
             if i < a.len() && i < b.len() {
                 if a[i] != b[i] {
-                    return a[i].cmp(&b[i]);
+                    return a[i].cmp(b[i]);
                 }
             } else if i < a.len() {
                 return std::cmp::Ordering::Greater;
@@ -290,7 +287,7 @@ pub fn compress_hostnames(hosts: &[Ustr]) -> Vec<String> {
             }
             i += 1;
         }
-        return a[0].cmp(&b[0]);
+        a[0].cmp(b[0])
     });
 
     let mut groups: Vec<&[Vec<&str>]> = vec![];
@@ -298,7 +295,7 @@ pub fn compress_hostnames(hosts: &[Ustr]) -> Vec<String> {
     while i < splits.len() {
         let mut j = i + 1;
         while j < splits.len() && same_strs(&splits[i][1..], &splits[j][1..]) {
-            j = j + 1
+            j += 1
         }
         groups.push(&splits[i..j]);
         i = j
@@ -354,7 +351,7 @@ fn same_strs(a: &[&str], b: &[&str]) -> bool {
             return false;
         }
     }
-    return true;
+    true
 }
 
 // It is known that the prefixes can be combined.
@@ -388,7 +385,9 @@ fn test_compress_hostnames() {
             Ustr::from("a3"),
             Ustr::from("a2"),
             Ustr::from("a5")
-        ]).join(",") == "a[1-3,5]"
+        ])
+        .join(",")
+            == "a[1-3,5]"
     );
     // Hosts are carefully ordered here to ensure that they are not sorted either by their first or
     // second elements.
@@ -399,7 +398,9 @@ fn test_compress_hostnames() {
             Ustr::from("a3.fum"),
             Ustr::from("a2.fox"),
             Ustr::from("a5.fox"),
-        ]).join(",") == "a[1-3,5].fox,a3.fum"
+        ])
+        .join(",")
+            == "a[1-3,5].fox,a3.fum"
     );
 }
 
@@ -432,7 +433,7 @@ fn combinable(a: &str, b: &str) -> Option<usize> {
     if xs[..i] != ys[..j] {
         return None;
     }
-    return Some(i);
+    Some(i)
 }
 
 #[test]

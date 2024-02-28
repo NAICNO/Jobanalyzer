@@ -47,10 +47,7 @@ pub fn print_parsed_data(
 pub fn fmt_help() -> format::Help {
     let (formatters, aliases) = my_formatters();
     format::Help {
-        fields: formatters
-            .iter()
-            .map(|(k, _)| k.clone())
-            .collect::<Vec<String>>(),
+        fields: formatters.keys().cloned().collect::<Vec<String>>(),
         aliases: aliases
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))
