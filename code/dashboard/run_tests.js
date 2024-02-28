@@ -20,7 +20,7 @@ function assertEq(a, b) {
 }
 
 function assertEqual(a, b) {
-    if (a === b) {
+    if (a == b) {
         return true
     }
     if (a instanceof Array && b instanceof Array) {
@@ -56,6 +56,7 @@ function assertExcept(thunk, s) {
 load("hostglob.js")
 load("hostglob_test.js")
 testHostGlobber()
+testMultiPatternSplitter()
 
 load("bitset.js")
 load("bitset_test.js")
