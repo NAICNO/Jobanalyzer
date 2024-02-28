@@ -21,9 +21,13 @@
 //
 // Note that the actual defined variable terms ("mem%" etc) and predefined operators for node
 // selection ("login", "down", etc) are defined by the client of this library.
-
-///////////////////////////////////////////////////////////////////////////////////////////////
 //
+// For test cases, see queryterm_test.js.
+
+// Dependencies:
+//   "bitset.js"
+//   "hostglob.js"
+
 // Query compiler.
 //
 // The `query` is the query expression.  The `knownFields` is a map from known field names to either
@@ -97,7 +101,9 @@ function compileQuery(query, knownFields, builtinOperations) {
     let pending = ""
     let pending_i = -1
 
-    var operatorNames = { "<":true, "<=":true, ">":true, ">=":true, "=":true, "and":true, "or":true, "~":true }
+    var operatorNames = {
+        "<":true, "<=":true, ">":true, ">=":true, "=":true, "and":true, "or":true, "~":true,
+    }
 
     // Place a token in pending if not yet there, return false if no more tokens could be extracted.
     function fill() {
@@ -197,7 +203,7 @@ function compileQuery(query, knownFields, builtinOperations) {
         }
         if (eatToken("~")) {
             let e = exprPrim()
-            return new notOperation(e)
+            return new NotOperation(e)
         }
         let t = get()
         let probe = parseFloat(t)
@@ -221,12 +227,12 @@ function compileQuery(query, knownFields, builtinOperations) {
         if (t in operatorNames || t == "(" || t == ")") {
             fail(`Misplaced operator or punctuation '${t}'`)
         }
-        return new nodeglob(t)
+        return new GlobOperation(t)
     }
 
-    var exprRelop = exprBin(exprPrim, relOperation, "<", "<=", ">", ">=", "=")
-    var exprAnd = exprBin(exprRelop, setOperation, "and")
-    var exprOr = exprBin(exprAnd, setOperation, "or")
+    var exprRelop = exprBin(exprPrim, RelOperation, "<", "<=", ">", ">=", "=")
+    var exprAnd = exprBin(exprRelop, SetOperation, "and")
+    var exprOr = exprBin(exprAnd, SetOperation, "or")
 
     function expr() {
         let e = exprOr()
@@ -243,7 +249,7 @@ function compileQuery(query, knownFields, builtinOperations) {
     }
 }
 
-function relOperation(op, fld, n) {
+function RelOperation(op, fld, n) {
     if (!(typeof fld == "string" && typeof n == "number")) {
         throw `Wrong type of arguments to relational operator ${op}`
     }
@@ -271,12 +277,12 @@ function relOperation(op, fld, n) {
     }
 }
 
-relOperation.prototype.toString = function () {
+RelOperation.prototype.toString = function () {
     return `(${this.op} ${this.fld} ${this.n})`
 }
 
-relOperation.prototype.eval = function (data, elems) {
-    let result = new bitset(elems.length)
+RelOperation.prototype.eval = function (data, elems) {
+    let result = new Bitset(elems.length)
     let fn = this.fn
     let fld = this.fld
     elems.enumerate(function (n) {
@@ -287,17 +293,17 @@ relOperation.prototype.eval = function (data, elems) {
     return result
 }
 
-function notOperation(e) {
+function NotOperation(e) {
     this.e = e
 }
 
-notOperation.prototype.toString = function() {
+NotOperation.prototype.toString = function() {
     return `(~ ${this.e})`
 }
 
 // not(e) is (universe \ e)
-notOperation.prototype.eval = function (data, elems) {
-    let result = new bitset(data.length)
+NotOperation.prototype.eval = function (data, elems) {
+    let result = new Bitset(data.length)
     result.fill()
     let xs = this.e.eval(data, elems)
     xs.enumerate(function (n) {
@@ -306,52 +312,37 @@ notOperation.prototype.eval = function (data, elems) {
     return result
 }
 
-function nodeglob(g) {
+function GlobOperation(g) {
     this.glob = g
-    this.matcher = makeGlobber(g)
+    this.matcher = new HostGlobber(g)
 }
 
-nodeglob.prototype.toString = function () {
+GlobOperation.prototype.toString = function () {
     return `(node ${this.glob})`
 }
 
-nodeglob.prototype.eval = function (data, elems) {
-    let result = new bitset(elems.length)
+GlobOperation.prototype.eval = function (data, elems) {
+    let result = new Bitset(elems.length)
     let matcher = this.matcher
     elems.enumerate(function (n) {
-        if (data[n].hostname.match(matcher)) {
+        if (matcher.match(data[n].hostname)) {
             result.setBit(n)
         }
     })
     return result
 }
 
-function makeGlobber(g) {
-    let r = "^"
-    // FIXME: Escape special characters
-    // FIXME: Ranges of digits, as per normal
-    for ( let i=0 ; i < g.length ; i++ ) {
-        if (g.charAt(i) == '*') {
-            r += ".*"
-        } else {
-            r += g.charAt(i)
-        }
-    }
-    r += "$"
-    return new RegExp(r)
-}
-
-function setOperation(op, e1, e2) {
+function SetOperation(op, e1, e2) {
     this.op = op
     this.e1 = e1
     this.e2 = e2
 }
 
-setOperation.prototype.toString = function () {
+SetOperation.prototype.toString = function () {
     return `(${this.op} ${this.e1} ${this.e2})`
 }
 
-setOperation.prototype.eval = function (data, elems) {
+SetOperation.prototype.eval = function (data, elems) {
     if (this.op == "or") {
         let v1 = this.e1.eval(data, elems)
         let v2 = this.e2.eval(data, elems)
@@ -361,144 +352,4 @@ setOperation.prototype.eval = function (data, elems) {
     let v1 = this.e1.eval(data, elems)
     let v2 = this.e2.eval(data, elems)
     return bitsetIntersection(v1, v2)
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Simple dense set-of-numbers as bitvector.
-//
-// For some reason I'm using 24 bits per element, this is probably not optimal.  (32 is dangerous
-// due to how browsers represent integers, and 16 seemed too little but might be better.)
-
-function bitset(size) {
-    this.elts = new Array(Math.ceil(size/24))
-    this.length = size
-    for ( let i=0 ; i < this.elts.length ; i++ )
-        this.elts[i] = 0
-}
-
-bitset.prototype.fill = function() {
-    let full = Math.floor(this.length/24)
-    for (let i=0 ; i < full ; i++) {
-        this.elts[i] = 0xFFFFFF
-    }
-    if ((this.length % 24) != 0) {
-        this.elts[this.elts.length-1] = (1 << (this.length % 24)) - 1
-    }
-}
-
-bitset.prototype.enumerate = function(f) {
-    for (let k = 0 ; k < this.elts.length ; k++) {
-        let v = this.elts[k]
-        if (v != 0) {
-            for (let j = 0 ; j < 24 ; j++) {
-                if (v & (1 << j)) {
-                    f((k * 24) + j)
-                }
-            }
-        }
-    }
-}
-
-bitset.prototype.setBit = function (n) {
-    this.elts[(n / 24)|0] |= 1 << (n % 24)
-}
-
-bitset.prototype.clearBit = function (n) {
-    this.elts[(n / 24)|0] &= ~(1 << (n % 24))
-}
-
-bitset.prototype.isSet = function (n) {
-    return (this.elts[(n / 24)|0] & (1 << (n %24))) != 0
-}
-
-function bitsetUnion(a, b) {
-    let result = new bitset(Math.max(a.length, b.length))
-    for (let i=0 ; i < a.length ; i++) {
-        result.elts[i] = a.elts[i]
-    }
-    for (let i=0 ; i < b.length ; i++) {
-        result.elts[i] |= b.elts[i]
-    }
-    return result
-}
-
-function bitsetIntersection(a, b) {
-    let result = new bitset(Math.max(a.length, b.length))
-    for (let i=0 ; i < result.elts.length; i++) {
-        let v0 = a.elts.length >= i ? a.elts[i] : 0
-        let v1 = b.elts.length >= i ? b.elts[i] : 0
-        result.elts[i] = v0 & v1
-    }
-    return result
-}
-
-// For console use
-function testBitset() {
-    function assertEq(a, b) {
-        if (a != b) {
-            throw new Error(`Failed assertion: ${a} ${b}`)
-        }
-    }
-
-    let bs = new bitset(33)
-    assertEq(bs.length, 33)
-    assertEq(bs.elts.length, 2)
-    assertEq(bs.elts[0], 0)
-    assertEq(bs.elts[1], 0)
-
-    bs.fill()
-    assertEq(bs.elts[0], 0xFFFFFF)
-    assertEq(bs.elts[1], 0x0001FF)
-
-    bs = new bitset(33)
-    bs.setBit(1)
-    bs.setBit(8)
-    bs.setBit(27)
-    assertEq(bs.elts[0], (1 << 1) | (1 << 8))
-    assertEq(bs.elts[1], (1 << (27 - 24)))
-
-    let bs2 = new bitset(32)
-    bs2.setBit(2)
-    bs2.setBit(8)
-    bs2.setBit(24)
-    let bs3 = bitsetUnion(bs, bs2)
-    assertEq(bs3.length, 33)
-    assertEq(bs3.elts[0], (1 << 1) | (1 << 2) | (1 << 8))
-    assertEq(bs3.elts[1], (1 << (24 - 24)) | (1 << (27 - 24)))
-    assertEq(bs3.isSet(1), true)
-    assertEq(bs3.isSet(2), true)
-    assertEq(bs3.isSet(8), true)
-    assertEq(bs3.isSet(24), true)
-    assertEq(bs3.isSet(27), true)
-    assertEq(bs3.isSet(0), false)
-    assertEq(bs3.isSet(3), false)
-    assertEq(bs3.isSet(25), false)
-
-    let bs4 = new bitset(16)
-    bs4.setBit(1)
-    bs4.setBit(2)
-    let bs5 = bitsetIntersection(bs3, bs4)
-    assertEq(bs5.length, 16)
-    assertEq(bs5.elts[0], (1 << 1) | (1 << 2))
-
-    let res = []
-    bs3.enumerate(function (x) { res.push(x) })
-    assertEq(res.length, 5)
-    assertEq(res[0], 1)
-    assertEq(res[1], 2)
-    assertEq(res[2], 8)
-    assertEq(res[3], 24)
-    assertEq(res[4], 27)
-
-    bs3.clearBit(1)
-    bs3.clearBit(27)
-    assertEq(bs3.isSet(1), false)
-    assertEq(bs3.isSet(2), true)
-    assertEq(bs3.isSet(8), true)
-    assertEq(bs3.isSet(24), true)
-    assertEq(bs3.isSet(27), false)
-    assertEq(bs3.isSet(0), false)
-    assertEq(bs3.isSet(3), false)
-    assertEq(bs3.isSet(25), false)
 }

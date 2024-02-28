@@ -38,7 +38,7 @@
 mod configs;
 mod csv;
 mod dates;
-mod hosts;
+mod hostglob;
 mod logclean;
 mod logfile;
 mod logtree;
@@ -321,11 +321,11 @@ pub struct LogEntry {
 // Structure representing a host name filter: basically a restricted automaton matching host names
 // in useful ways.
 
-pub use hosts::HostFilter;
+pub use hostglob::HostGlobber;
 
 // Formatter for sets of host names
 
-pub use hosts::combine_hosts;
+pub use hostglob::compress_hostnames;
 
 // A structure representing the configuration of one host.
 
