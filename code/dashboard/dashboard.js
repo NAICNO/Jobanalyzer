@@ -101,7 +101,7 @@ function setupLinks() {
     }
     document.getElementById("jobquery_link").href=`jobquery.html?cluster=${CURRENT_CLUSTER}`
 
-    let subnames = info.subclusters
+    let subnames = info.subclusters.map(i => i.name)
     let subs = document.getElementById("subclusters")
     subs.replaceChildren()
     if (subnames && subs) {
