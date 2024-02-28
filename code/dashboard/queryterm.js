@@ -314,7 +314,7 @@ NotOperation.prototype.eval = function (data, elems) {
 
 function GlobOperation(g) {
     this.glob = g
-    this.matcher = new HostGlobber(g)
+    this.matcher = new HostGlobber(g, true)
 }
 
 GlobOperation.prototype.toString = function () {

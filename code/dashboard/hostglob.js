@@ -56,8 +56,8 @@ function splitMultiPattern(s) {
 //
 // In the event of an error in the pattern, this throws an Error.
 
-function HostGlobber(pattern) {
-    let [re, reSrc] = compileGlobber(pattern)
+function HostGlobber(pattern, prefix) {
+    let [re, reSrc] = compileGlobber(pattern, prefix)
     this.re = re
     this.reSrc = reSrc
     this.pattern = pattern
