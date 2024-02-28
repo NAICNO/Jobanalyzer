@@ -10,6 +10,8 @@ function machine_detail_onload() {
     if (!cluster_info(CURRENT_CLUSTER).hasDowntime) {
         document.getElementById("downtime_cluster").remove()
     }
+    document.getElementById("jobquery_link").href =
+        `jobquery.html?cluster=${CURRENT_CLUSTER}&host=${CURRENT_HOST}`
     with_systems_and_frequencies(function (systems, frequencies) {
 	frequencies = [{text: "Moment-to-moment (last 24h)", value: "minutely"}, ...frequencies]
 	populateDropdown(document.getElementById("frequency"), frequencies)

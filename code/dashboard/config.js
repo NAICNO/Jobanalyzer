@@ -4,7 +4,8 @@
 var TESTDATA = false;
 
 // Cluster-info returns information about the cluster.  This function must be manually updated
-// whenever we add a cluster.
+// whenever we add a cluster or subcluster.  THIS IS BRITTLE.  Bug #379 wants to fix this,
+// eventually.
 
 function cluster_info(cluster) {
     switch (cluster) {
@@ -13,7 +14,7 @@ function cluster_info(cluster) {
     case "ml":
         return {
             cluster,
-            subclusters: ["nvidia"],
+            subclusters: [{name:"nvidia", nodes:"ml[1-3,6-9]"}],
             uptime: true,
             violators: true,
             deadweight: true,
@@ -27,7 +28,10 @@ function cluster_info(cluster) {
     case "fox":
         return {
             cluster,
-            subclusters: ["cpu","gpu","int","login"],
+            subclusters: [{name:"cpu", nodes:"c*"},
+                          {name:"gpu", nodes:"gpu*"},
+                          {name:"int", nodes:"int*"},
+                          {name:"login", nodes:"login*"}],
             uptime: true,
             violators: false,
             deadweight: true,
@@ -41,7 +45,7 @@ function cluster_info(cluster) {
     case "saga":
         return {
             cluster,
-            subclusters: ["login"],
+            subclusters: [{name:"login", nodes:"login*"}],
             uptime: false,
             violators: false,
             deadweight: false,
