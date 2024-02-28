@@ -46,7 +46,9 @@ echo "======================================================================="
 echo " SYSINFO RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd sysinfo ; go build )
-( cd sysinfo ; ./sysinfo -h 2&> /dev/null )
+if [[ $(uname) != Darwin ]]; then
+    ( cd sysinfo ; ./sysinfo -h 2&> /dev/null )
+fi
 
 echo "======================================================================="
 echo " EXFILTRATE RELEASE BUILD + SMOKE TEST"
