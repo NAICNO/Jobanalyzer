@@ -115,7 +115,7 @@ function selectJobs() {
     }
 
     if (nodeVal != "") {
-        for ( let node of splitAndEncode(nodeVal) ) {
+        for ( let node of encodeStrings(splitMultiPattern(nodeVal))) {
 	      query += `&host=${node}`
 	}
     }
@@ -351,8 +351,11 @@ function makeProfileURL(cluster, from, to, row) {
 // Split s at "," and return non-empty trimmed strings
 
 function splitAndEncode(s) {
+    return encodeStrings(s.split(","))
+}
+
+function encodeStrings(vals) {
     let result = []
-    let vals = s.split(",")
     for (let v of vals) {
 	v = v.trim()
 	if (v != "") {

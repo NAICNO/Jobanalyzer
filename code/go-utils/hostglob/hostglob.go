@@ -4,7 +4,7 @@
 //   selection of those host names
 // - We can *expand* a pattern or multi-pattern into a set of concrete host names
 // - We can *compress* a set of concrete host names into a pattern or multi-pattern
-// - We can *split* a multi-pattern onto a set of patterns
+// - We can *split* a multi-pattern into a set of patterns
 //
 // The following grammar pertains to all of these:
 //
