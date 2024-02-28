@@ -6,6 +6,49 @@
 //
 // See hostglob_test.js for test cases.
 
+// This takes a <multi-pattern> according to the grammar referenced above and returns a list of
+// individual <pattern>s in that list.  It requires a bit of logic because each pattern may contain
+// a fragment that contains a comma.  It throws an error if it encounters bad syntax.
+
+function splitMultiPattern(s) {
+    let strings = []
+    if (s == "") {
+	return strings
+    }
+    let insideBrackets = false
+    let start = -1
+    for ( let ix=0 ; ix < s.length ; ix++ ) {
+        let c = s.charAt(ix)
+	if (c == '[') {
+	    if (insideBrackets) {
+		throw new Error("Illegal pattern: nested brackets")
+            }
+	    insideBrackets = true
+	} else if (c == ']') {
+	    if (!insideBrackets) {
+		throw new Error("Illegal pattern: unmatched end bracket")
+	    }
+	    insideBrackets = false
+	} else if (c == ',' && !insideBrackets) {
+	    if (start == -1) {
+		throw new Error("Illegal pattern: Empty host name")
+	    }
+	    strings.push(s.substring(start, ix))
+	    start = -1
+	} else if (start == -1) {
+	    start = ix
+	}
+    }
+    if (insideBrackets) {
+	throw new Error("Illegal pattern: Missing end bracket")
+    }
+    if (start == s.length || start == -1) {
+	throw new Error("Illegal pattern: Empty host name")
+    }
+    strings.push(s.substring(start))
+    return strings
+}
+
 // Given a <pattern> expression in the grammar referenced above, `new HostGlobber(pattern)` returns
 // a matcher object with a method `match(hostname)` which returns true iff the hostname is matched
 // exactly by the pattern (the number of pattern-elements must equal the number of host-elements and

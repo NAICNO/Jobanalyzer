@@ -28,3 +28,16 @@ function testHostGlobber() {
     assertExcept(_ => new HostGlobber("a,b"), "',' not allowed here")
 }
 
+function testMultiPatternSplitter() {
+    assertEqual(splitMultiPattern(""), [])
+    assertEqual(splitMultiPattern("a"), ["a"])
+    assertEqual(splitMultiPattern("a,b"), ["a", "b"])
+    assertEqual(splitMultiPattern("yes.no,ml[1-3].hi,ml[1,2],zappa"),
+                ["yes.no", "ml[1-3].hi", "ml[1,2]", "zappa"])
+    assertExcept(_ => splitMultiPattern("yes[hi"), "Missing end bracket")
+    assertExcept(_ => splitMultiPattern("yes[hi[]"), "nested brackets")
+    assertExcept(_ => splitMultiPattern("yes]"), "unmatched end bracket")
+    assertExcept(_ => splitMultiPattern(",yes"), "Empty host name")
+    assertExcept(_ => splitMultiPattern("yes,"), "Empty host name")
+    assertExcept(_ => splitMultiPattern("yes,,no"), "Empty host name")
+}

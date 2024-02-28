@@ -1,9 +1,10 @@
-// There are three operations on host name patterns and sets of host names.
+// There are four operations on host name patterns and sets of host names.
 //
 // - We can *match* a pattern or multi-pattern against a set of concrete host names, yielding a
 //   selection of those host names
 // - We can *expand* a pattern or multi-pattern into a set of concrete host names
 // - We can *compress* a set of concrete host names into a pattern or multi-pattern
+// - We can *split* a multi-pattern into a set of patterns
 //
 // The following grammar pertains to all of these:
 //
