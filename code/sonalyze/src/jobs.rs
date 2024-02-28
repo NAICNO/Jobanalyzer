@@ -325,6 +325,10 @@ fn aggregate_and_filter_jobs(
     let min_mem_peak = filter_args.min_mem_peak;
     let min_rmem_avg = filter_args.min_rmem_avg as f32;
     let min_rmem_peak = filter_args.min_rmem_peak as f32;
+    let min_res_avg = filter_args.min_res_avg;
+    let min_res_peak = filter_args.min_res_peak;
+    let min_rres_avg = filter_args.min_rres_avg as f32;
+    let min_rres_peak = filter_args.min_rres_peak as f32;
     let min_gpu_avg = filter_args.min_gpu_avg as f32;
     let min_gpu_peak = filter_args.min_gpu_peak as f32;
     let max_gpu_avg = filter_args.max_gpu_avg as f32;
@@ -355,6 +359,8 @@ fn aggregate_and_filter_jobs(
             && aggregate.cpu_peak <= max_cpu_peak
             && aggregate.mem_avg >= min_mem_avg as f32
             && aggregate.mem_peak >= min_mem_peak as f32
+            && aggregate.res_avg >= min_res_avg as f32
+            && aggregate.res_peak >= min_res_peak as f32
             && aggregate.gpu_avg >= min_gpu_avg
             && aggregate.gpu_peak >= min_gpu_peak
             && aggregate.gpu_avg <= max_gpu_avg
@@ -369,6 +375,8 @@ fn aggregate_and_filter_jobs(
                     && aggregate.rcpu_peak <= max_rcpu_peak
                     && aggregate.rmem_avg >= min_rmem_avg
                     && aggregate.rmem_peak >= min_rmem_peak
+                    && aggregate.rres_avg >= min_rres_avg
+                    && aggregate.rres_peak >= min_rres_peak
                     && aggregate.rgpu_avg >= min_rgpu_avg
                     && aggregate.rgpu_peak >= min_rgpu_peak
                     && aggregate.rgpu_avg <= max_rgpu_avg
