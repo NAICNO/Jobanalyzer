@@ -54,5 +54,14 @@
     <table id=joblist>
     </table>
 
+    <script>
+      window.addEventListener("keyup", function (ev) {
+	  if (ev.keyCode == 13) {
+	      ev.preventDefault()
+	      selectJobs()
+	  }
+      })
+    </script>
+
   </body>
 </html>
