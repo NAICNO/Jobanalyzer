@@ -1,5 +1,5 @@
 /// Helpers for merging sample streams.
-use crate::{GpuStatus, InputStreamSet, LogEntry, Timebound, Timebounds};
+use crate::{merge_gpu_status, GpuStatus, InputStreamSet, LogEntry, Timebound, Timebounds};
 
 use rustutils::{
     compress_hostnames, empty_gpuset, epoch, far_future, now, union_gpuset, Timestamp,
@@ -527,15 +527,6 @@ fn merge_streams(
     }
 
     records
-}
-
-pub fn merge_gpu_status(lhs: GpuStatus, rhs: GpuStatus) -> GpuStatus {
-    match (lhs, rhs) {
-        (v, w) if v == w => v,
-        (v, GpuStatus::Ok) => v,
-        (GpuStatus::Ok, v) => v,
-        (_, _) => GpuStatus::UnknownFailure,
-    }
 }
 
 fn sum_records(

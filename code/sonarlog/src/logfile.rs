@@ -28,36 +28,6 @@ use std::boxed::Box;
 use std::str::FromStr;
 use ustr::Ustr;
 
-/// A sensible "zero" LogEntry for use when we need it.  The user name and command are "_zero_" so
-/// that we can recognize this weird LogEntry as intentional and not some mistake.
-
-pub fn empty_logentry(t: Timestamp, hostname: Ustr) -> Box<LogEntry> {
-    Box::new(LogEntry {
-        major: 0,
-        minor: 0,
-        bugfix: 0,
-        timestamp: t,
-        hostname,
-        num_cores: 0,
-        memtotal_gb: 0.0,
-        user: Ustr::from("_zero_"),
-        pid: 0,
-        job_id: 0,
-        command: Ustr::from("_zero_"),
-        cpu_pct: 0.0,
-        mem_gb: 0.0,
-        rssanon_gb: 0.0,
-        gpus: empty_gpuset(),
-        gpu_pct: 0.0,
-        gpumem_pct: 0.0,
-        gpumem_gb: 0.0,
-        gpu_status: GpuStatus::Ok,
-        cputime_sec: 0.0,
-        rolledup: 0,
-        cpu_util_pct: 0.0,
-    })
-}
-
 /// Parse a version string.  Avoid allocation here, we parse *a lot* of these.
 
 pub fn parse_version(v1: &str) -> (u16, u16, u16) {
