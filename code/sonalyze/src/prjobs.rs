@@ -10,8 +10,7 @@ use crate::jobs::{JobSummary, LIVE_AT_END, LIVE_AT_START};
 use crate::{JobPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
-use rustutils::{now, ClusterConfig, Timestamp};
-use sonarlog::{self, empty_gpuset, gpuset_to_string, union_gpuset};
+use rustutils::{empty_gpuset, gpuset_to_string, now, union_gpuset, ClusterConfig, Timestamp};
 use std::collections::{HashMap, HashSet};
 use std::io;
 use std::ops::Add;

@@ -6,10 +6,9 @@ use crate::{JobFilterAndAggregationArgs, JobPrintArgs, MetaArgs};
  * use anyhow::bail;
  */
 use anyhow::Result;
-use rustutils::{ClusterConfig, Timestamp};
+use rustutils::{is_empty_gpuset, ClusterConfig, Timestamp};
 use sonarlog::{
-    self, is_empty_gpuset, merge_gpu_status, GpuStatus, InputStreamSet, LogEntry, Timebound,
-    Timebounds,
+    self, merge_gpu_status, GpuStatus, InputStreamSet, LogEntry, Timebound, Timebounds,
 };
 use std::boxed::Box;
 use std::collections::HashSet;

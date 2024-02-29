@@ -1,10 +1,9 @@
 /// Helpers for merging sample streams.
-use crate::{
-    empty_gpuset, merge_gpu_status, union_gpuset, GpuStatus, InputStreamSet, LogEntry, Timebound,
-    Timebounds,
-};
+use crate::{merge_gpu_status, GpuStatus, InputStreamSet, LogEntry, Timebound, Timebounds};
 
-use rustutils::{compress_hostnames, epoch, far_future, now, Timestamp};
+use rustutils::{
+    compress_hostnames, empty_gpuset, epoch, far_future, now, union_gpuset, Timestamp,
+};
 use std::boxed::Box;
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};

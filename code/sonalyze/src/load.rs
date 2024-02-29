@@ -8,12 +8,12 @@ use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
 use rustutils::{
-    add_day, add_half_day, add_half_hour, add_hour, now, truncate_to_day, truncate_to_half_day,
-    truncate_to_half_hour, truncate_to_hour, ClusterConfig, HostGlobber, System, Timestamp,
+    add_day, add_half_day, add_half_hour, add_hour, gpuset_to_string, now, truncate_to_day,
+    truncate_to_half_day, truncate_to_half_hour, truncate_to_hour, ClusterConfig, HostGlobber,
+    System, Timestamp,
 };
 use sonarlog::{
-    self, empty_logentry, gpuset_to_string, InputStreamKey, InputStreamSet, LogEntry,
-    MergedSampleStreams,
+    self, empty_logentry, InputStreamKey, InputStreamSet, LogEntry, MergedSampleStreams,
 };
 use std::boxed::Box;
 use std::collections::{HashMap, HashSet};

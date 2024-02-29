@@ -3,6 +3,7 @@
 mod configs;
 mod csv;
 mod dates;
+mod gpuset;
 mod hostglob;
 mod pattern;
 
@@ -66,6 +67,45 @@ pub use dates::add_hour;
 // ...
 
 pub use dates::date_range;
+
+// A GpuSet is None, Some({}), or Some({a,b,...}), representing unknown, empty, or non-empty.
+
+pub use gpuset::GpuSet;
+
+// Create an empty GpuSet.
+
+pub use gpuset::empty_gpuset;
+
+// Test if a GpuSet is known to be the empty set (not unknown).
+
+pub use gpuset::is_empty_gpuset;
+
+// Create a GpuSet with unknown contents.
+
+pub use gpuset::unknown_gpuset;
+
+// Test if a GpuSet is known to be the unknown set.
+
+pub use gpuset::is_unknown_gpuset;
+
+// Create a GpuSet that is either None or Some({a}), depending on input.
+
+pub use gpuset::singleton_gpuset;
+
+// Union one GPU into a GpuSet (destructively).
+
+pub use gpuset::adjoin_gpuset;
+
+// Union one GpuSet into another (destructively).
+
+pub use gpuset::union_gpuset;
+
+// Convert to "unknown" or "none" or a list of numbers.
+
+pub use gpuset::gpuset_to_string;
+
+pub use gpuset::gpuset_from_bitvector;
+pub use gpuset::gpuset_from_list;
 
 // Structure representing a host name filter: basically a restricted automaton matching host names
 // in useful ways.

@@ -40,7 +40,7 @@ mod logfile;
 mod logtree;
 mod synthesize;
 
-use rustutils::Timestamp;
+use rustutils::{GpuSet, Timestamp};
 use ustr::Ustr;
 
 // Compute a set of plausible log file names within a directory tree, for a date range and a set of
@@ -61,42 +61,6 @@ pub use logtree::read_logfiles;
 // each record while reading.
 
 pub use logfile::parse_logfile;
-
-// A GpuSet is None, Some({}), or Some({a,b,...}), representing unknown, empty, or non-empty.
-
-pub use logfile::GpuSet;
-
-// Create an empty GpuSet.
-
-pub use logfile::empty_gpuset;
-
-// Test if a GpuSet is known to be the empty set (not unknown).
-
-pub use logfile::is_empty_gpuset;
-
-// Create a GpuSet with unknown contents.
-
-pub use logfile::unknown_gpuset;
-
-// Test if a GpuSet is known to be the unknown set.
-
-pub use logfile::is_unknown_gpuset;
-
-// Create a GpuSet that is either None or Some({a}), depending on input.
-
-pub use logfile::singleton_gpuset;
-
-// Union one GPU into a GpuSet (destructively).
-
-pub use logfile::adjoin_gpuset;
-
-// Union one GpuSet into another (destructively).
-
-pub use logfile::union_gpuset;
-
-// Convert to "unknown" or "none" or a list of numbers.
-
-pub use logfile::gpuset_to_string;
 
 // Return an empty Box<LogEntry> with the given time and host.  The user and command fields are
 // "_zero_", so that we can recognize it; other fields are generally zero.

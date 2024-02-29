@@ -2,7 +2,8 @@ use crate::format;
 use crate::{MetaArgs, ParsePrintArgs};
 
 use anyhow::Result;
-use sonarlog::{gpuset_to_string, is_empty_gpuset, GpuStatus, LogEntry};
+use rustutils::{gpuset_to_string, is_empty_gpuset};
+use sonarlog::{GpuStatus, LogEntry};
 use std::boxed::Box;
 use std::collections::HashMap;
 use std::io;
