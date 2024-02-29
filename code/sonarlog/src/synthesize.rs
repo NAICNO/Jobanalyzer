@@ -1,9 +1,10 @@
 /// Helpers for merging sample streams.
 use crate::{
-    compress_hostnames, empty_gpuset, epoch, far_future, hostglob, merge_gpu_status, now, union_gpuset,
-    GpuStatus, InputStreamSet, LogEntry, Timebound, Timebounds, Timestamp,
+    empty_gpuset, merge_gpu_status, union_gpuset, GpuStatus, InputStreamSet, LogEntry, Timebound,
+    Timebounds,
 };
 
+use rustutils::{compress_hostnames, epoch, far_future, now, Timestamp};
 use std::boxed::Box;
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
@@ -38,7 +39,7 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
             if let Some(vs) = zero.get_mut(&host) {
                 vs.push(v);
             } else {
-                zero.insert(host.clone(), vec![v]);
+                zero.insert(host, vec![v]);
             }
         } else {
             let key = (host, id);
@@ -62,7 +63,7 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
         commands.sort();
         // Any user from any record is fine.  There should be an invariant that no stream is empty,
         // so this should always be safe.
-        let user = streams[0][0].user.clone();
+        let user = streams[0][0].user;
         vs.push(merge_streams(
             hostname,
             ustr_join(commands, ","),
@@ -128,11 +129,13 @@ pub fn merge_by_job(
     }
     let mut vs: MergedSampleStreams = zero;
     for (job_id, (mut cmds, hosts, streams)) in collections.drain() {
-        let hostname = Ustr::from(&hostglob::compress_hostnames(&hosts.iter().map(|x| x.clone()).collect::<Vec<Ustr>>()).join(","));
+        let hostname = Ustr::from(
+            &compress_hostnames(&hosts.iter().copied().collect::<Vec<Ustr>>()).join(","),
+        );
         if !new_bounds.contains_key(&hostname) {
-            assert!(hosts.len() > 0);
+            assert!(!hosts.is_empty());
             let (earliest, latest) = hosts.iter().fold((now(), epoch()), |(acc_e, acc_l), hn| {
-                let probe = bounds.get(&hn).expect("Host should be in bounds");
+                let probe = bounds.get(hn).expect("Host should be in bounds");
                 (min(acc_e, probe.earliest), max(acc_l, probe.latest))
             });
             new_bounds.insert(hostname, Timebound { earliest, latest });
@@ -141,7 +144,7 @@ pub fn merge_by_job(
         commands.sort();
         // Any user from any record is fine.  There should be an invariant that no stream is empty,
         // so this should always be safe.
-        let user = streams[0][0].user.clone();
+        let user = streams[0][0].user;
         vs.push(merge_streams(
             Ustr::from(&hostname),
             ustr_join(commands, ","),
@@ -190,10 +193,13 @@ pub fn merge_by_host(mut streams: InputStreamSet) -> MergedSampleStreams {
 }
 
 pub fn merge_across_hosts_by_time(streams: MergedSampleStreams) -> MergedSampleStreams {
-    if streams.len() == 0 {
+    if streams.is_empty() {
         return vec![];
     }
-    let hostname = Ustr::from(&compress_hostnames(&streams.iter().map(|s| s[0].hostname).collect::<Vec<Ustr>>()).join(","));
+    let hostname = Ustr::from(
+        &compress_hostnames(&streams.iter().map(|s| s[0].hostname).collect::<Vec<Ustr>>())
+            .join(","),
+    );
     vec![merge_streams(
         hostname,
         Ustr::from("_merged_"),
@@ -512,10 +518,10 @@ fn merge_streams(
         records.push(sum_records(
             (0u16, 0u16, 0u16),
             min_time,
-            hostname.clone(),
-            username.clone(),
+            hostname,
+            username,
             job_id,
-            command.clone(),
+            command,
             &selected,
         ));
         selected.clear();
@@ -581,22 +587,22 @@ fn sum_records(
 }
 
 pub fn fold_samples_hourly(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
-    fold_samples(samples, crate::truncate_to_hour)
+    fold_samples(samples, rustutils::truncate_to_hour)
 }
 
 pub fn fold_samples_half_hourly(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
-    fold_samples(samples, crate::truncate_to_half_hour)
+    fold_samples(samples, rustutils::truncate_to_half_hour)
 }
 
 pub fn fold_samples_daily(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
-    fold_samples(samples, crate::truncate_to_day)
+    fold_samples(samples, rustutils::truncate_to_day)
 }
 
 pub fn fold_samples_half_daily(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
-    fold_samples(samples, crate::truncate_to_half_day)
+    fold_samples(samples, rustutils::truncate_to_half_day)
 }
 
-fn fold_samples<'a>(
+fn fold_samples(
     samples: Vec<Box<LogEntry>>,
     get_time: fn(Timestamp) -> Timestamp,
 ) -> Vec<Box<LogEntry>> {
@@ -637,7 +643,7 @@ fn fold_samples<'a>(
 }
 
 fn ustr_join(ss: Vec<Ustr>, joiner: &str) -> Ustr {
-    if ss.len() == 0 {
+    if ss.is_empty() {
         return Ustr::from("");
     }
     let mut s = ss[0].to_string();
@@ -645,5 +651,5 @@ fn ustr_join(ss: Vec<Ustr>, joiner: &str) -> Ustr {
         s += joiner;
         s += t.as_str();
     }
-    return Ustr::from(&s);
+    Ustr::from(&s)
 }

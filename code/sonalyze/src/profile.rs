@@ -20,8 +20,8 @@ use crate::format;
 use crate::{MetaArgs, ProfileFilterAndAggregationArgs, ProfilePrintArgs};
 
 use anyhow::{bail, Result};
-use json;
-use sonarlog::{InputStreamSet, LogEntry, Timestamp};
+use rustutils::Timestamp;
+use sonarlog::{InputStreamSet, LogEntry};
 use ustr::Ustr;
 
 use std::cmp::max;
@@ -59,7 +59,6 @@ pub fn print(
     }
     let hostname = host.unwrap_or("unknown").to_string();
 
-    let fixed_output;
     let mut json_output = false;
     let mut csv_output = false;
     let mut html_output = false;
@@ -82,7 +81,7 @@ pub fn print(
     if outputs > 1 {
         bail!("one type of output at a time")
     }
-    fixed_output = outputs == 0;
+    let fixed_output = outputs == 0;
 
     // The input is a matrix of per-process-per-point-in-time data, with time running down the
     // column, process index running across the row, and where each datum can have one or more
@@ -115,7 +114,7 @@ pub fn print(
             commands += &format!(",{} ({})", process[0].command, process[0].pid);
         }
         commands += "\n";
-        output.write(commands.as_bytes())?;
+        output.write_all(commands.as_bytes())?;
     }
 
     // Indices into those streams of the next record we want.
@@ -145,7 +144,7 @@ pub fn print(
         while i < processes.len() {
             if indices[i] < processes[i].len() {
                 let candidate = processes[i][indices[i]].timestamp;
-                if mintime == None || mintime.unwrap() > candidate {
+                if mintime.is_none() || mintime.unwrap() > candidate {
                     mintime = Some(candidate);
                 }
             }
@@ -164,7 +163,7 @@ pub fn print(
             if indices[i] < processes[i].len() {
                 let r = &processes[i][indices[i]];
                 if r.timestamp == mintime {
-                    let newr = clamp_fields(&r, filter_args);
+                    let newr = clamp_fields(r, filter_args);
                     if fixed_output {
                         if first {
                             fixed_reports.push(ReportLine {
@@ -283,7 +282,7 @@ pub fn print(
     // solved with a clever encoding but for JSON and CSV we'll do some crude things.
 
     if html_output {
-        let bucketing = max(filter_args.bucket.or(Some(1)).unwrap(), 1);
+        let bucketing = max(filter_args.bucket.unwrap_or(1), 1);
         let html_labels = processes
             .iter()
             .map(|p| format!("{} ({})", p[0].command, p[0].pid))
@@ -313,10 +312,7 @@ pub fn print(
 pub fn fmt_help() -> format::Help {
     let (formatters, aliases) = my_formatters();
     format::Help {
-        fields: formatters
-            .iter()
-            .map(|(k, _)| k.clone())
-            .collect::<Vec<String>>(),
+        fields: formatters.keys().cloned().collect::<Vec<String>>(),
         aliases: aliases
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))
@@ -429,12 +425,12 @@ fn write_json(output: &mut dyn io::Write, data: &[Vec<Box<LogEntry>>]) -> Result
             point["gpu"] = (y.gpu_pct.round() as isize).into();
             point["gpumem"] = (y.gpumem_gb.round() as isize).into();
             point["nproc"] = (y.rolledup + 1).into();
-            points.push(point.into())
+            points.push(point);
         }
         obj["points"] = points.into();
         objects.push(obj);
     }
-    output.write(json::stringify(objects).as_bytes())?;
+    output.write_all(json::stringify(objects).as_bytes())?;
     Ok(())
 }
 
@@ -511,7 +507,7 @@ fn write_csv(
             }
         }
         s += "\n";
-        output.write(s.as_bytes())?;
+        output.write_all(s.as_bytes())?;
     }
     Ok(())
 }
@@ -626,7 +622,7 @@ function render() {
  </body>
 <html>
 ";
-    output.write(text.as_bytes())?;
+    output.write_all(text.as_bytes())?;
     Ok(())
 }
 

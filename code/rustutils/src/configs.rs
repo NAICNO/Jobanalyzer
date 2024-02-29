@@ -22,9 +22,6 @@
 /// This is a partial implementation.  There will be another method on ClusterConfig to lookup by
 /// host name and timestamp, and the data structure and file format will be more complicated to
 /// support that.
-
-use crate::hostglob;
-
 use anyhow::{bail, Result};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -50,7 +47,7 @@ pub struct System {
 }
 
 pub struct ClusterConfig {
-    nodes: HashMap<String, Rc<System>>
+    nodes: HashMap<String, Rc<System>>,
 }
 
 impl ClusterConfig {
@@ -59,7 +56,7 @@ impl ClusterConfig {
     }
 
     pub fn cross_node_jobs(&self) -> bool {
-        self.nodes.iter().any(|(_,sys)| sys.cross_node_jobs)
+        self.nodes.iter().any(|(_, sys)| sys.cross_node_jobs)
     }
 }
 
@@ -69,7 +66,7 @@ impl ClusterConfig {
 /// opted to use the generic JSON parser followed by explicit decoding of the fields, rather than a
 /// (derived) strongly-typed parser.
 
-pub fn read_from_json(filename: &str) -> Result<ClusterConfig> {
+pub fn read_cluster_config(filename: &str) -> Result<ClusterConfig> {
     let file = File::open(path::Path::new(filename))?;
     let reader = BufReader::new(file);
     let v = serde_json::from_reader(reader)?;
@@ -91,32 +88,36 @@ pub fn read_from_json(filename: &str) -> Result<ClusterConfig> {
                     }
                 }
                 let cross_node_jobs = grab_bool_opt(&fields, "cross_node_jobs")?;
-                sys.cross_node_jobs = cross_node_jobs.or(Some(false)).unwrap();
+                sys.cross_node_jobs = cross_node_jobs.unwrap_or(false);
                 sys.cpu_cores = grab_usize(&fields, "cpu_cores")?;
                 sys.mem_gb = grab_usize(&fields, "mem_gb")?;
                 let gpu_cards = grab_usize_opt(&fields, "gpu_cards")?;
                 let gpumem_gb = grab_usize_opt(&fields, "gpumem_gb")?;
                 let gpumem_pct = grab_bool_opt(&fields, "gpumem_pct")?;
-                if gpu_cards.is_none() {
-                    if gpumem_gb.is_some() || gpumem_pct.is_some() {
-                        bail!("Without gpu_cards there should be no gpumem_gb or gpumem_pct")
-                    }
+                if gpu_cards.is_none() && (gpumem_gb.is_some() || gpumem_pct.is_some()) {
+                    bail!("Without gpu_cards there should be no gpumem_gb or gpumem_pct")
                 }
-                sys.gpu_cards = gpu_cards.or(Some(0)).unwrap();
-                sys.gpumem_gb = gpumem_gb.or(Some(0)).unwrap();
-                sys.gpumem_pct = gpumem_pct.or(Some(false)).unwrap();
+                sys.gpu_cards = gpu_cards.unwrap_or(0);
+                sys.gpumem_gb = gpumem_gb.unwrap_or(0);
+                sys.gpumem_pct = gpumem_pct.unwrap_or(false);
                 if let Some(Value::String(ts)) = fields.get("timestamp") {
                     sys.timestamp = ts.clone();
                 }
                 if let Some(Value::String(ts)) = fields.get("comment") {
                     sys.comment = ts.clone();
                 }
-                for exp in hostglob::expand_pattern(&sys.hostname)?.drain(0..) {
+                for exp in crate::expand_pattern(&sys.hostname)?.drain(0..) {
                     if m.contains_key(&exp) {
                         bail!("System info for host {exp} already defined");
                     }
                     let key = exp.to_string();
-                    m.insert(key, Rc::new(System{hostname: exp, ..sys.clone()}));
+                    m.insert(
+                        key,
+                        Rc::new(System {
+                            hostname: exp,
+                            ..sys.clone()
+                        }),
+                    );
                 }
             } else {
                 bail!("Expected an object value")
@@ -125,7 +126,7 @@ pub fn read_from_json(filename: &str) -> Result<ClusterConfig> {
     } else {
         bail!("Expected an array value")
     }
-    Ok(ClusterConfig{ nodes: m })
+    Ok(ClusterConfig { nodes: m })
 }
 
 fn grab_usize(fields: &serde_json::Map<String, Value>, name: &str) -> Result<usize> {
@@ -170,7 +171,7 @@ fn grab_bool_opt(fields: &serde_json::Map<String, Value>, name: &str) -> Result<
 
 #[test]
 fn test_config() {
-    let conf = read_from_json("../tests/sonarlog/whitebox-config.json").unwrap();
+    let conf = read_cluster_config("../tests/sonarlog/whitebox-config.json").unwrap();
     let c0 = conf.lookup("ml1.hpc.uio.no").unwrap();
     let c1 = conf.lookup("ml8.hpc.uio.no").unwrap();
     let c2 = conf.lookup("c1-23").unwrap();

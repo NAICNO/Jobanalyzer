@@ -35,7 +35,8 @@ use crate::command::run_with_timeout;
 use anyhow::{bail, Result};
 use chrono::{Datelike, NaiveDate};
 use clap::{Args, Parser, Subcommand};
-use sonarlog::{self, HostGlobber, LogEntry, Timestamp};
+use rustutils::{read_cluster_config, HostGlobber, Timestamp};
+use sonarlog::{self, LogEntry};
 use std::collections::HashSet;
 use std::env;
 use std::fs::File;
@@ -96,7 +97,7 @@ impl UrlBuilder {
         }
         self.options += name;
         self.options += "=";
-        self.options += &encode(val).into_owned();
+        self.options += &encode(val);
     }
 
     fn add_option_usize(&mut self, name: &str, val: &Option<usize>) {
@@ -123,12 +124,12 @@ impl UrlBuilder {
 
     fn add_option_string(&mut self, name: &str, val: &Option<String>) {
         if let Some(ref val) = val {
-            self.add_string(name, &val);
+            self.add_string(name, val);
         }
     }
 
     fn encoded_arguments(&self) -> String {
-        return self.options.to_string();
+        self.options.to_string()
     }
 }
 
@@ -758,20 +759,20 @@ impl UrlBuilder {
 fn parse_time(s: &str, end_of_day: bool) -> Result<Timestamp> {
     if let Some(n) = s.strip_suffix('d') {
         if let Ok(k) = usize::from_str(n) {
-            Ok(sonarlog::now() - chrono::Duration::days(k as i64))
+            Ok(rustutils::now() - chrono::Duration::days(k as i64))
         } else {
             bail!("Invalid date")
         }
     } else if let Some(n) = s.strip_suffix('w') {
         if let Ok(k) = usize::from_str(n) {
-            Ok(sonarlog::now() - chrono::Duration::weeks(k as i64))
+            Ok(rustutils::now() - chrono::Duration::weeks(k as i64))
         } else {
             bail!("Invalid date")
         }
     } else {
         let parts = s
             .split('-')
-            .map(|x| usize::from_str(x))
+            .map(usize::from_str)
             .collect::<Vec<Result<usize, ParseIntError>>>();
         if !parts.iter().all(|x| x.is_ok()) || parts.len() != 3 {
             bail!("Invalid date syntax");
@@ -781,13 +782,13 @@ fn parse_time(s: &str, end_of_day: bool) -> Result<Timestamp> {
             .map(|x| *x.as_ref().unwrap())
             .collect::<Vec<usize>>();
         let d = NaiveDate::from_ymd_opt(vals[0] as i32, vals[1] as u32, vals[2] as u32);
-        if !d.is_some() {
+        if d.is_none() {
             bail!("Invalid date");
         }
         // TODO: This is roughly right, but what we want here is the day + 1 day and then use `<`
         // rather than `<=` in the filter.
         let (h, m, s) = if end_of_day { (23, 59, 59) } else { (0, 0, 0) };
-        Ok(sonarlog::timestamp_from_ymdhms(
+        Ok(rustutils::timestamp_from_ymdhms(
             d.unwrap().year(),
             d.unwrap().month(),
             d.unwrap().day(),
@@ -819,7 +820,7 @@ fn run_time(s: &str) -> Result<chrono::Duration> {
     let mut have_minutes = false;
     let mut ds = "".to_string();
     for ch in s.chars() {
-        if ch.is_digit(10) {
+        if ch.is_ascii_digit() {
             ds = ds + &ch.to_string();
         } else {
             if ds == ""
@@ -832,7 +833,7 @@ fn run_time(s: &str) -> Result<chrono::Duration> {
                 bail!("Bad suffix")
             }
             let v = u64::from_str(&ds);
-            if !v.is_ok() {
+            if v.is_err() {
                 bail!("Bad number")
             }
             let val = v.unwrap();
@@ -930,23 +931,23 @@ fn sonalyze() -> Result<()> {
 
     if match cli.command {
         Commands::Jobs(ref jobs_args) => {
-            format::maybe_help(&jobs_args.print_args.fmt, &prjobs::fmt_help)
+            format::maybe_help(&jobs_args.print_args.fmt, prjobs::fmt_help)
         }
         Commands::Load(ref load_args) => {
-            format::maybe_help(&load_args.print_args.fmt, &load::fmt_help)
+            format::maybe_help(&load_args.print_args.fmt, load::fmt_help)
         }
         Commands::Uptime(ref uptime_args) => {
-            format::maybe_help(&uptime_args.print_args.fmt, &uptime::fmt_help)
+            format::maybe_help(&uptime_args.print_args.fmt, uptime::fmt_help)
         }
         Commands::Profile(ref profile_args) => {
-            format::maybe_help(&profile_args.print_args.fmt, &profile::fmt_help)
+            format::maybe_help(&profile_args.print_args.fmt, profile::fmt_help)
         }
         Commands::Version => false,
         Commands::Parse(ref parse_args) => {
-            format::maybe_help(&parse_args.print_args.fmt, &parse::fmt_help)
+            format::maybe_help(&parse_args.print_args.fmt, parse::fmt_help)
         }
         Commands::Metadata(ref parse_args) => {
-            format::maybe_help(&parse_args.print_args.fmt, &metadata::fmt_help)
+            format::maybe_help(&parse_args.print_args.fmt, metadata::fmt_help)
         }
     } {
         return Ok(());
@@ -1030,7 +1031,7 @@ fn sonalyze() -> Result<()> {
         let mut b = UrlBuilder::new();
         let mut request = remote_arg.as_ref().unwrap().to_string();
         let auth_file;
-        b.add_string("cluster", &cluster_arg.as_ref().unwrap());
+        b.add_string("cluster", cluster_arg.as_ref().unwrap());
         match cli.command {
             Commands::Jobs(ref args) => {
                 request += "/jobs";
@@ -1339,14 +1340,14 @@ fn sonalyze() -> Result<()> {
             (x, true)
         } else {
             (
-                sonarlog::now() - chrono::Duration::days(1),
+                rustutils::now() - chrono::Duration::days(1),
                 source_args.logfiles.len() == 0,
             )
         };
         let (to, have_to) = if let Some(x) = source_args.to {
             (x, true)
         } else {
-            (sonarlog::now(), source_args.logfiles.len() == 0)
+            (rustutils::now(), source_args.logfiles.len() == 0)
         };
         if have_from && have_to && from > to {
             bail!("The --from time is greater than the --to time");
@@ -1396,13 +1397,13 @@ fn sonalyze() -> Result<()> {
     // Record filtering logic is the same for all commands.
 
     let record_filter = |e: &LogEntry| {
-        ((&include_users).is_empty() || (&include_users).contains(e.user.as_str()))
-            && ((&include_hosts).is_empty() || (&include_hosts).match_hostname(e.hostname.as_str()))
-            && ((&include_jobs).is_empty() || (&include_jobs).contains(&(e.job_id as usize)))
-            && ((&include_commands).is_empty() || (&include_commands).contains(e.command.as_str()))
-            && !(&exclude_users).contains(e.user.as_str())
-            && !(&exclude_jobs).contains(&(e.job_id as usize))
-            && !(&exclude_commands).contains(e.command.as_str())
+        (include_users.is_empty() || include_users.contains(e.user.as_str()))
+            && (include_hosts.is_empty() || include_hosts.match_hostname(e.hostname.as_str()))
+            && (include_jobs.is_empty() || include_jobs.contains(&(e.job_id as usize)))
+            && (include_commands.is_empty() || include_commands.contains(e.command.as_str()))
+            && !exclude_users.contains(e.user.as_str())
+            && !exclude_jobs.contains(&(e.job_id as usize))
+            && !exclude_commands.contains(e.command.as_str())
             && (!exclude_system_jobs || e.pid >= 1000)
             && (!have_from || from <= e.timestamp)
             && (!have_to || e.timestamp <= to)
@@ -1417,7 +1418,7 @@ fn sonalyze() -> Result<()> {
             _ => &None,
         };
         if let Some(ref config_filename) = config_filename {
-            Some(sonarlog::read_from_json(&config_filename)?)
+            Some(read_cluster_config(config_filename)?)
         } else {
             None
         }
@@ -1430,8 +1431,8 @@ fn sonalyze() -> Result<()> {
         from
     } else {
         bounds
-            .iter()
-            .map(|(_, x)| x.earliest)
+            .values()
+            .map(|x| x.earliest)
             .reduce(|a, b| if a < b { a } else { b })
             .unwrap()
     };
@@ -1439,8 +1440,8 @@ fn sonalyze() -> Result<()> {
         to
     } else {
         bounds
-            .iter()
-            .map(|(_, x)| x.latest)
+            .values()
+            .map(|x| x.latest)
             .reduce(|a, b| if a > b { a } else { b })
             .unwrap()
     };
@@ -1458,7 +1459,7 @@ fn sonalyze() -> Result<()> {
 
         Commands::Jobs(_) | Commands::Load(_) => {
             let records_read = entries.len();
-            let streams = sonarlog::postprocess_log(entries, &record_filter, &system_config);
+            let streams = sonarlog::postprocess_log(entries, record_filter, &system_config);
 
             match cli.command {
                 Commands::Load(ref load_args) => load::aggregate_and_print_load(
@@ -1476,8 +1477,8 @@ fn sonalyze() -> Result<()> {
                     if meta_args.verbose {
                         println!("Number of samples read: {records_read}");
                         let numrec = streams
-                            .iter()
-                            .map(|(_, recs)| recs.len())
+                            .values()
+                            .map(|recs| recs.len())
                             .reduce(usize::add)
                             .unwrap_or_default();
                         println!("Number of samples after input filtering: {}", numrec);
@@ -1498,7 +1499,7 @@ fn sonalyze() -> Result<()> {
         }
 
         Commands::Profile(ref profile_args) => {
-            let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
+            let streams = sonarlog::postprocess_log(entries, record_filter, &None);
             profile::print(
                 &mut io::stdout(),
                 usize::from_str(&profile_args.record_filter_args.job[0]).unwrap(),
@@ -1511,18 +1512,18 @@ fn sonalyze() -> Result<()> {
 
         Commands::Parse(ref parse_args) => {
             let (old_entries, new_entries) = if parse_args.print_args.clean {
-                let mut streams = sonarlog::postprocess_log(entries, &record_filter, &None);
+                let mut streams = sonarlog::postprocess_log(entries, record_filter, &None);
                 let streams = streams
                     .drain()
                     .map(|(_, v)| v)
                     .collect::<Vec<Vec<Box<LogEntry>>>>();
                 (None, Some(streams))
             } else if parse_args.print_args.merge_by_job {
-                let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
+                let streams = sonarlog::postprocess_log(entries, record_filter, &None);
                 let (entries, _) = sonarlog::merge_by_job(streams, &bounds);
                 (None, Some(entries))
             } else if parse_args.print_args.merge_by_host_and_job {
-                let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
+                let streams = sonarlog::postprocess_log(entries, record_filter, &None);
                 (None, Some(sonarlog::merge_by_host_and_job(streams)))
             } else {
                 let streams = entries
@@ -1544,7 +1545,7 @@ fn sonalyze() -> Result<()> {
                     }
                 });
                 for entries in merged_streams {
-                    io::stdout().write(b"*\n").expect("Write should work");
+                    io::stdout().write_all(b"*\n").expect("Write should work");
                     parse::print_parsed_data(
                         &mut io::stdout(),
                         &parse_args.print_args,
@@ -1565,7 +1566,7 @@ fn sonalyze() -> Result<()> {
 
         Commands::Metadata(ref parse_args) => {
             let bounds = if parse_args.print_args.merge_by_job {
-                let streams = sonarlog::postprocess_log(entries, &record_filter, &None);
+                let streams = sonarlog::postprocess_log(entries, record_filter, &None);
                 let (_, bounds) = sonarlog::merge_by_job(streams, &bounds);
                 bounds
             } else {

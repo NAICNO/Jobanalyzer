@@ -6,9 +6,10 @@ use crate::{JobFilterAndAggregationArgs, JobPrintArgs, MetaArgs};
  * use anyhow::bail;
  */
 use anyhow::Result;
+use rustutils::{ClusterConfig, Timestamp};
 use sonarlog::{
     self, is_empty_gpuset, merge_gpu_status, GpuStatus, InputStreamSet, LogEntry, Timebound,
-    Timebounds, Timestamp,
+    Timebounds,
 };
 use std::boxed::Box;
 use std::collections::HashSet;
@@ -87,7 +88,7 @@ pub struct JobSummary {
 
 pub fn aggregate_and_print_jobs(
     output: &mut dyn io::Write,
-    system_config: &Option<sonarlog::ClusterConfig>,
+    system_config: &Option<ClusterConfig>,
     filter_args: &JobFilterAndAggregationArgs,
     print_args: &JobPrintArgs,
     meta_args: &MetaArgs,
@@ -111,7 +112,7 @@ pub fn aggregate_and_print_jobs(
     // collect the set of hosts from the set of streams (usually very cheap) and pass that on.
 
     let mut hosts = HashSet::<Ustr>::new();
-    for (_, s) in &streams {
+    for s in streams.values() {
         hosts.insert(s[0].hostname);
     }
 
@@ -169,7 +170,7 @@ pub fn aggregate_and_print_jobs(
  * // Then attach these aggregates to the job
  *
  * fn attach_breakdown(
- *     system_config: &Option<HashMap<String, sonarlog::System>>,
+ *     system_config: &Option<HashMap<String, System>>,
  *     filter_args: &JobFilterAndAggregationArgs,
  *     kwds: &[&str],
  *     kwdix: usize,
@@ -216,7 +217,7 @@ pub fn aggregate_and_print_jobs(
  * }
  *
  * fn attach_one_breakdown(
- *     system_config: &Option<HashMap<String, sonarlog::System>>,
+ *     system_config: &Option<HashMap<String, System>>,
  *     filter_args: &JobFilterAndAggregationArgs,
  *     kwds: &[&str],
  *     kwdix: usize,
@@ -306,7 +307,7 @@ pub fn aggregate_and_print_jobs(
 // filtering so that we can bail out at the first moment the aggregated datum is not required.
 
 fn aggregate_and_filter_jobs(
-    system_config: &Option<sonarlog::ClusterConfig>,
+    system_config: &Option<ClusterConfig>,
     filter_args: &JobFilterAndAggregationArgs,
     mut streams: InputStreamSet,
     bounds: &Timebounds,
@@ -424,12 +425,11 @@ fn aggregate_and_filter_jobs(
     // Select streams and synthesize a merged stream, and then aggregate and print it.
 
     // First compute whether any of the nodes allow jobs to be merged across nodes.
-    let any_mergeable_nodes =
-        if let Some(ref info) = system_config {
-            info.cross_node_jobs()
-        } else {
-            false
-        };
+    let any_mergeable_nodes = if let Some(ref info) = system_config {
+        info.cross_node_jobs()
+    } else {
+        false
+    };
 
     let (mut jobs, bounds) = if filter_args.batch {
         sonarlog::merge_by_job(streams, bounds)
@@ -442,19 +442,19 @@ fn aggregate_and_filter_jobs(
         let mut m_bounds = Timebounds::new();
         let mut solo = InputStreamSet::new();
         let mut s_bounds = Timebounds::new();
-        for (k,v) in streams.drain() {
+        for (k, v) in streams.drain() {
             let bound = bounds.get(&k.0).unwrap();
             if let Some(sys) = info.lookup(k.0.as_str()) {
                 if sys.cross_node_jobs {
-                    m_bounds.insert(k.0.clone(), bound.clone());
-                    mergeable.insert(k,v);
+                    m_bounds.insert(k.0, bound.clone());
+                    mergeable.insert(k, v);
                 } else {
-                    s_bounds.insert(k.0.clone(), bound.clone());
-                    solo.insert(k,v);
+                    s_bounds.insert(k.0, bound.clone());
+                    solo.insert(k, v);
                 }
             } else {
-                s_bounds.insert(k.0.clone(), bound.clone());
-                solo.insert(k,v);
+                s_bounds.insert(k.0, bound.clone());
+                solo.insert(k, v);
             }
         }
         let (mut merged_jobs, mut merged_bounds) = sonarlog::merge_by_job(mergeable, &m_bounds);
@@ -487,7 +487,7 @@ fn aggregate_and_filter_jobs(
 // TODO: Are the ceil() calls desirable here or should they be applied during presentation?
 
 fn aggregate_job(
-    system_config: &Option<sonarlog::ClusterConfig>,
+    system_config: &Option<ClusterConfig>,
     job: &[Box<LogEntry>],
     bounds: &Timebounds,
 ) -> JobAggregate {
@@ -539,23 +539,63 @@ fn aggregate_job(
             // You'd be amazed at what values can be zero if something goes wrong somewhere, or a
             // process or system is unusual.
 
-            rcpu_avg = if cpu_cores > 0.0 { cpu_avg / cpu_cores } else { 0.0 };
-            rcpu_peak = if cpu_cores > 0.0 { cpu_peak / cpu_cores } else { 0.0 };
+            rcpu_avg = if cpu_cores > 0.0 {
+                cpu_avg / cpu_cores
+            } else {
+                0.0
+            };
+            rcpu_peak = if cpu_cores > 0.0 {
+                cpu_peak / cpu_cores
+            } else {
+                0.0
+            };
 
-            rmem_avg = if mem > 0.0 { (mem_avg * 100.0) as f32 / mem } else { 0.0 };
-            rmem_peak = if mem > 0.0 { (mem_peak * 100.0) as f32 / mem } else { 0.0 };
+            rmem_avg = if mem > 0.0 {
+                (mem_avg * 100.0) as f32 / mem
+            } else {
+                0.0
+            };
+            rmem_peak = if mem > 0.0 {
+                (mem_peak * 100.0) as f32 / mem
+            } else {
+                0.0
+            };
 
-            rres_avg = if mem > 0.0 { (res_avg * 100.0) / mem } else { 0.0 };
-            rres_peak = if mem > 0.0 { (res_peak * 100.0) / mem } else { 0.0 };
+            rres_avg = if mem > 0.0 {
+                (res_avg * 100.0) / mem
+            } else {
+                0.0
+            };
+            rres_peak = if mem > 0.0 {
+                (res_peak * 100.0) / mem
+            } else {
+                0.0
+            };
 
-            rgpu_avg = if gpu_cards > 0.0 { gpu_avg / gpu_cards } else { 0.0 };
-            rgpu_peak = if gpu_cards > 0.0 { gpu_peak / gpu_cards } else { 0.0 };
+            rgpu_avg = if gpu_cards > 0.0 {
+                gpu_avg / gpu_cards
+            } else {
+                0.0
+            };
+            rgpu_peak = if gpu_cards > 0.0 {
+                gpu_peak / gpu_cards
+            } else {
+                0.0
+            };
 
             // If we have a config then logclean will have computed proper GPU memory values for the
             // job, so we need not look to conf.gpumem_pct here.  If we don't have a config then we
             // don't care about these figures anyway.
-            rgpumem_avg = if gpumem > 0.0 { gpumem_avg as f32 / gpumem } else { 0.0 };
-            rgpumem_peak = if gpumem > 0.0 { gpumem_peak as f32 / gpumem } else { 0.0 };
+            rgpumem_avg = if gpumem > 0.0 {
+                gpumem_avg as f32 / gpumem
+            } else {
+                0.0
+            };
+            rgpumem_peak = if gpumem > 0.0 {
+                gpumem_peak as f32 / gpumem
+            } else {
+                0.0
+            };
         }
     }
 

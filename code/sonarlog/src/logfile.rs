@@ -1,4 +1,3 @@
-use crate::csv::{Token, Tokenizer, EQ_SENTINEL};
 /// Simple parser / preprocessor / input filterer for the Sonar log file format.
 ///
 /// For the definition of the input file format, see the README.md on the sonar repo.
@@ -18,9 +17,10 @@ use crate::csv::{Token, Tokenizer, EQ_SENTINEL};
 ///   matter any other parse error, but bad UTF8 is a special case - it will make progress to the
 ///   end of the record anyway (as CSV is line-oriented).  This is a reasonable assumption but I've
 ///   found no documentation that guarantees it.
-use crate::{parse_timestamp, GpuStatus, LogEntry, Timestamp};
+use crate::{GpuStatus, LogEntry};
 
 use anyhow::Result;
+use rustutils::{parse_timestamp, CsvToken, CsvTokenizer, Timestamp, CSV_EQ_SENTINEL};
 use std::boxed::Box;
 use std::str::FromStr;
 use ustr::Ustr;
@@ -186,7 +186,7 @@ pub fn parse_version(v1: &str) -> (u16, u16, u16) {
 
 pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Result<usize> {
     let mut file = std::fs::File::open(file_name)?;
-    let mut tokenizer = Tokenizer::new(&mut file);
+    let mut tokenizer = CsvTokenizer::new(&mut file);
     let mut discarded: usize = 0;
     let mut end_of_input = false;
 
@@ -234,24 +234,24 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
             match t0 {
                 Err(e) => match e.downcast_ref::<std::io::Error>() {
                     Some(_) => {
-                        return Err(e.into());
+                        return Err(e);
                     }
                     None => {
                         discarded += 1;
                         continue 'line_loop;
                     }
                 },
-                Ok(Token::EOL) => {
+                Ok(CsvToken::EOL) => {
                     break 'field_loop;
                 }
-                Ok(Token::EOF) => {
+                Ok(CsvToken::EOF) => {
                     end_of_input = true;
                     break 'field_loop;
                 }
-                Ok(Token::Field(start, lim, eqloc)) => {
+                Ok(CsvToken::Field(start, lim, eqloc)) => {
                     any_fields = true;
                     if format == Format::Unknown {
-                        format = if eqloc == EQ_SENTINEL {
+                        format = if eqloc == CSV_EQ_SENTINEL {
                             Format::Untagged
                         } else {
                             Format::Tagged
@@ -365,7 +365,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                             untagged_position += 1;
                         }
                         Format::Tagged => {
-                            if eqloc == EQ_SENTINEL {
+                            if eqloc == CSV_EQ_SENTINEL {
                                 // Invalid field syntax: Drop the record on the floor
                                 discarded += 1;
                                 continue 'field_loop;
@@ -516,7 +516,7 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
                                         if let Ok(t) =
                                             parse_timestamp(tokenizer.get_str(eqloc, lim))
                                         {
-                                            timestamp = Some(t.into());
+                                            timestamp = Some(t);
                                             matched = true;
                                         } else {
                                             failed = true;

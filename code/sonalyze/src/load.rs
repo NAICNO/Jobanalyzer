@@ -7,10 +7,13 @@ use crate::format;
 use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
+use rustutils::{
+    add_day, add_half_day, add_half_hour, add_hour, now, truncate_to_day, truncate_to_half_day,
+    truncate_to_half_hour, truncate_to_hour, ClusterConfig, HostGlobber, System, Timestamp,
+};
 use sonarlog::{
-    self, add_day, add_half_day, add_half_hour, add_hour, empty_logentry, gpuset_to_string, now,
-    truncate_to_day, truncate_to_half_day, truncate_to_half_hour, truncate_to_hour, HostGlobber,
-    InputStreamKey, InputStreamSet, LogEntry, MergedSampleStreams, Timestamp,
+    self, empty_logentry, gpuset_to_string, InputStreamKey, InputStreamSet, LogEntry,
+    MergedSampleStreams,
 };
 use std::boxed::Box;
 use std::collections::{HashMap, HashSet};
@@ -32,7 +35,7 @@ enum PrintOpt {
 }
 
 struct PrintContext<'a> {
-    sys: Option<&'a sonarlog::System>,
+    sys: Option<&'a System>,
     t: Timestamp,
 }
 
@@ -42,7 +45,7 @@ struct PrintContext<'a> {
 
 pub fn aggregate_and_print_load(
     output: &mut dyn io::Write,
-    system_config: &Option<sonarlog::ClusterConfig>,
+    system_config: &Option<ClusterConfig>,
     _include_hosts: &HostGlobber,
     from: Timestamp,
     to: Timestamp,
@@ -96,7 +99,7 @@ pub fn aggregate_and_print_load(
             let mut bad = HashSet::<InputStreamKey>::new();
             for (k, s) in &streams {
                 if ht.lookup(s[0].hostname.as_str()).is_none() {
-                    bad.insert(k.clone());
+                    bad.insert(*k);
                     eprintln!("Warning: Missing host configuration for {}", &s[0].hostname)
                 }
             }
@@ -131,7 +134,7 @@ pub fn aggregate_and_print_load(
     // If grouping, merge the streams across hosts and compute a system config that represents the
     // sum of the hosts in the group.
 
-    let mut the_conf: sonarlog::System = Default::default();
+    let mut the_conf: System = Default::default();
     let mut merged_conf = None;
     if filter_args.group {
         if let Some(ref ht) = system_config {
@@ -162,24 +165,24 @@ pub fn aggregate_and_print_load(
     let explicit_host = fields.iter().any(|x| *x == "host");
     let mut first = true;
     if opts.json {
-        output.write("[".as_bytes())?;
+        output.write_all("[".as_bytes())?;
     }
     for stream in merged_streams {
         if opts.json {
             if !first {
-                output.write(",".as_bytes())?;
+                output.write_all(",".as_bytes())?;
             }
             first = false;
         }
         let hostname = stream[0].hostname;
         if !opts.csv && !opts.json && !explicit_host {
             output
-                .write(format!("HOST: {}\n", hostname).as_bytes())
+                .write_all(format!("HOST: {}\n", hostname).as_bytes())
                 .unwrap();
         }
 
-        let conf_copy: sonarlog::System;
-        let sysconf = if let Some(_) = merged_conf {
+        let conf_copy: System;
+        let sysconf = if merged_conf.is_some() {
             merged_conf
         } else if let Some(ref ht) = system_config {
             if let Some(info) = ht.lookup(hostname.as_str()) {
@@ -200,14 +203,14 @@ pub fn aggregate_and_print_load(
         // For JSON, add richer information about the host so that the client does not have to
         // synthesize this information itself.
         if opts.json {
-            let (description, gpu_cards) = if let Some(ref s) = sysconf {
+            let (description, gpu_cards) = if let Some(s) = sysconf {
                 (s.description.clone(), s.gpu_cards)
             } else {
                 ("Unknown".to_string(), 0)
             };
             // TODO: This is not completely safe because the description could contain a non-JSON
             // compatible character such as \t or \n, or a double-quote.
-            output.write(format!("{{\"system\":{{\"hostname\":\"{}\",\"description\":\"{}\",\"gpucards\":\"{}\"}},\"records\":",
+            output.write_all(format!("{{\"system\":{{\"hostname\":\"{}\",\"description\":\"{}\",\"gpucards\":\"{}\"}},\"records\":",
                                  &hostname,
                                  &description,
                                  gpu_cards).as_bytes())?;
@@ -244,11 +247,11 @@ pub fn aggregate_and_print_load(
         }
 
         if opts.json {
-            output.write("}".as_bytes())?;
+            output.write_all("}".as_bytes())?;
         }
     }
     if opts.json {
-        output.write("]".as_bytes())?;
+        output.write_all("]".as_bytes())?;
     }
 
     Ok(())
@@ -257,10 +260,7 @@ pub fn aggregate_and_print_load(
 pub fn fmt_help() -> format::Help {
     let (formatters, aliases) = my_formatters();
     format::Help {
-        fields: formatters
-            .iter()
-            .map(|(k, _)| k.clone())
-            .collect::<Vec<String>>(),
+        fields: formatters.keys().cloned().collect::<Vec<String>>(),
         aliases: aliases
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))
@@ -310,7 +310,7 @@ fn insert_missing_records(
         BucketOpt::HalfDaily => (truncate_to_half_day, add_half_day),
         BucketOpt::Daily | BucketOpt::None => (truncate_to_day, add_day),
     };
-    let host = records[0].hostname.clone();
+    let host = records[0].hostname;
     let mut t = trunc(from);
     let mut result = vec![];
 
@@ -374,7 +374,7 @@ fn format_rmem(d: LoadDatum, ctx: LoadCtx) -> String {
     let rmem = if s.mem_gb == 0 {
         0.0
     } else {
-        ((d.mem_gb as f64) / (s.mem_gb as f64) * 100.0).round()
+        (d.mem_gb / (s.mem_gb as f64) * 100.0).round()
     };
     format!("{rmem}")
 }
@@ -416,7 +416,7 @@ fn format_rgpumem(d: LoadDatum, ctx: LoadCtx) -> String {
     let rgpumem = if s.gpumem_gb == 0 {
         0.0
     } else {
-        ((d.gpumem_gb as f64) / (s.gpumem_gb as f64) * 100.0).round()
+        (d.gpumem_gb / (s.gpumem_gb as f64) * 100.0).round()
     };
     format!("{rgpumem}")
 }
