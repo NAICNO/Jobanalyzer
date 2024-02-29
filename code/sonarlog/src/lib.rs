@@ -117,7 +117,7 @@ pub enum GpuStatus {
     UnknownFailure = 1,
 }
 
-pub use logfile::merge_gpu_status;
+pub use synthesize::merge_gpu_status;
 
 /// The LogEntry structure holds slightly processed data from a log record: Percentages have been
 /// normalized to the range [0.0,1.0] (except that the CPU and GPU percentages are sums across

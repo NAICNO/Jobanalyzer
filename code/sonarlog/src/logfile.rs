@@ -28,15 +28,6 @@ use std::boxed::Box;
 use std::str::FromStr;
 use ustr::Ustr;
 
-pub fn merge_gpu_status(lhs: GpuStatus, rhs: GpuStatus) -> GpuStatus {
-    match (lhs, rhs) {
-        (v, w) if v == w => v,
-        (v, GpuStatus::Ok) => v,
-        (GpuStatus::Ok, v) => v,
-        (_, _) => GpuStatus::UnknownFailure,
-    }
-}
-
 /// A sensible "zero" LogEntry for use when we need it.  The user name and command are "_zero_" so
 /// that we can recognize this weird LogEntry as intentional and not some mistake.
 
