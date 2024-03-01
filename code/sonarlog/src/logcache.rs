@@ -45,6 +45,30 @@
 /// TODO: Ideally we have a format that allows streaming reading and streaming writing; reading is
 /// probably OK but writing is trickier since the header needs a ton of information - though
 /// fortunately not file offsets.
+///
+/// A streaming format would allow the intermingling of "things": strings can show up anywhere.  So
+/// instead of string pool / field pool / log entries there would be a stream of items, each of which
+/// could be of any of the kinds, except all strings need to be defined before they are used and
+/// all fields must be defined before any log entries are seen.  The file prefix would just be magic and
+/// version.  Each entry would be prefixed by a byte stating its type and its size in bytes, total 4 bytes.
+///
+///    string | (strlen << 8)
+///    bytes
+///
+///    field | (string-index-of-field-name << 8)
+///    field type could be encoded in field - we only have a handful
+///
+///    logentry
+///    bytes
+///
+/// STR | (9 << 8); "timestamp"
+/// STR | (6 << 7); "mem_gb"
+/// ...
+/// FI64 | (0 << 8); 0  // timestamp field
+/// FF64 | (1 << 8); 8  // mem_gb field
+/// FF64 | (2 << 8); 16 // gpumem_gb field
+/// ...
+/// LOG | (n << 8); ... // logentry, n is the byte size (redundant but simplifies verification?)
 
 /// This has been packed manually.  If there's a directive to say "don't fuck with this" we should use it.
 /// TODO: Assert sensible size
