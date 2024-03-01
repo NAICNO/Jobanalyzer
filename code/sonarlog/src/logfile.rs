@@ -28,24 +28,6 @@ use std::boxed::Box;
 use std::str::FromStr;
 use ustr::Ustr;
 
-/// Parse a version string.  Avoid allocation here, we parse *a lot* of these.
-
-pub fn parse_version(v1: &str) -> (u16, u16, u16) {
-    let mut major = 0u16;
-    let mut minor = 0u16;
-    let mut bugfix = 0u16;
-    if let Some(p1) = v1.find('.') {
-        major = v1[0..p1].parse::<u16>().unwrap();
-        let v2 = &v1[p1 + 1..];
-        if let Some(p2) = v2.find('.') {
-            minor = v2[0..p2].parse::<u16>().unwrap();
-            let v3 = &v2[p2 + 1..];
-            bugfix = v3.parse::<u16>().unwrap();
-        }
-    }
-    (major, minor, bugfix)
-}
-
 /// Parse a log file into a set of LogEntry structures, and append to `entries` in the order
 /// encountered.  Entries are boxed so that later processing won't copy these increasingly large
 /// structures all the time.  Return an error in the case of I/O errors, but silently drop records
@@ -538,6 +520,24 @@ pub fn parse_logfile(file_name: &str, entries: &mut Vec<Box<LogEntry>>) -> Resul
     } // Line loop
 
     Ok(discarded)
+}
+
+// Parse a version string.  Avoid allocation here, we parse *a lot* of these.
+
+fn parse_version(v1: &str) -> (u16, u16, u16) {
+    let mut major = 0u16;
+    let mut minor = 0u16;
+    let mut bugfix = 0u16;
+    if let Some(p1) = v1.find('.') {
+        major = v1[0..p1].parse::<u16>().unwrap();
+        let v2 = &v1[p1 + 1..];
+        if let Some(p2) = v2.find('.') {
+            minor = v2[0..p2].parse::<u16>().unwrap();
+            let v3 = &v2[p2 + 1..];
+            bugfix = v3.parse::<u16>().unwrap();
+        }
+    }
+    (major, minor, bugfix)
 }
 
 fn get_u32(s: &str) -> (Option<u32>, bool) {
