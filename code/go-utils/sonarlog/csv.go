@@ -12,6 +12,18 @@ import (
 	"time"
 )
 
+func match(f, k string) (string, bool) {
+	if len(f) <= len(k) || f[len(k)] != '=' {
+		return "", false
+	}
+	for i, c := range k {
+		if rune(f[i]) != c {
+			return "", false
+		}
+	}
+	return f[len(k)+1:], true
+}
+
 // Sonar data intermingle readings and heartbeats (though really only in the tagged format).  Read a
 // stream of records, parse them into separate buckets and return the buckets.  Returns the number
 // of benign errors, and non-nil error if non-benign error.  The records in the buckets are in the
@@ -24,19 +36,21 @@ import (
 
 func ParseSonarLog(
 	input io.Reader,
+	ustrs UstrAllocator,
 ) (
 	readings []*SonarReading,
 	heartbeats []*SonarHeartbeat,
 	badRecords int,
 	err error,
 ) {
+
 	rdr := csv.NewReader(input)
 	// CSV rows are arbitrarily wide and possibly uneven.
 	rdr.FieldsPerRecord = -1
 	readings = make([]*SonarReading, 0)
 	heartbeats = make([]*SonarHeartbeat, 0)
-	v060 := StringToUstr("0.6.0")
-	heartbeat := StringToUstr("_heartbeat_")
+	v060 := ustrs.Alloc("0.6.0")
+	heartbeat := ustrs.Alloc("_heartbeat_")
 outerLoop:
 	for {
 		var fields []string
@@ -82,26 +96,26 @@ outerLoop:
 			r.Version = v060
 			ts, err := time.Parse(time.RFC3339Nano, fields[0])
 			if err != nil {
- 				badRecords++
- 				continue outerLoop
- 			}
+				badRecords++
+				continue outerLoop
+			}
 			r.Timestamp = ts.Unix()
-			r.Host = StringToUstr(fields[1])
+			r.Host = ustrs.Alloc(fields[1])
 			cores, err := strconv.ParseUint(fields[2], 10, 64)
 			if err != nil {
- 				badRecords++
+				badRecords++
 				continue outerLoop
- 			}
+			}
 			r.Cores = uint32(cores)
-			r.User = StringToUstr(fields[3])
+			r.User = ustrs.Alloc(fields[3])
 			jobno, err := strconv.ParseUint(fields[4], 10, 64)
- 			if err != nil {
- 				badRecords++
+			if err != nil {
+				badRecords++
 				continue outerLoop
 			}
 			r.Job = uint32(jobno)
 			r.Pid = r.Job
-			r.Cmd = StringToUstr(fields[5])
+			r.Cmd = ustrs.Alloc(fields[5])
 			cpupct, err := strconv.ParseFloat(fields[6], 64)
 			if err != nil {
 				badRecords++
@@ -116,79 +130,122 @@ outerLoop:
 			// Skip any remaining fields - they are not in most untagged data.
 		} else {
 			for _, f := range fields {
-				ix := strings.IndexByte(f, '=')
-				if ix == -1 {
-					log.Printf("Dropping field with illegal syntax: %s", f)
-					badRecords++
-					continue
-				}
-				var tmp uint64
-				var ftmp float64
+				var cores, jobno, pidno, gpufail, rolledup uint64
+				var cpupct, gpupct, gpumempct float64
 				var ts time.Time
-				val := f[ix+1:]
-				switch f[:ix] {
-				case "v":
-					r.Version = StringToUstr(val)
-				case "time":
-					// This is really the format we use in the logs, but the nano part is often omitted
-					// by our formatters:
-					//
-					//  "2006-01-02T15:04:05.999999999-07:00"
-					//
-					// RFC3339Nano handles +/- for the tz offset and also will allow the nano part to be
-					// missing.
-					ts, err = time.Parse(time.RFC3339Nano, val)
-					if err == nil {
-						r.Timestamp = ts.Unix()
+				matched := false
+				if len(f) < 2 {
+					badRecords++
+					continue outerLoop
+				}
+				switch f[0] {
+				case 'c':
+					switch f[1] {
+					case 'o':
+						if val, ok := match(f, "cores"); ok {
+							cores, err = strconv.ParseUint(val, 10, 64)
+							r.Cores = uint32(cores)
+							matched = true
+						}
+					case 'm':
+						if val, ok := match(f, "cmd"); ok {
+							r.Cmd = ustrs.Alloc(val)
+							matched = true
+						}
+					case 'p':
+						if val, ok := match(f, "cpu%"); ok {
+							cpupct, err = strconv.ParseFloat(val, 64)
+							r.CpuPct = float32(cpupct)
+							matched = true
+						} else if val, ok := match(f, "cpukib"); ok {
+							r.CpuKib, err = strconv.ParseUint(val, 10, 64)
+							matched = true
+						} else if val, ok := match(f, "cputime_sec"); ok {
+							r.CpuTimeSec, err = strconv.ParseUint(val, 10, 64)
+							matched = true
+						}
 					}
-				case "host":
-					r.Host = StringToUstr(val)
-				case "cores":
-					tmp, err = strconv.ParseUint(val, 10, 64)
-					r.Cores = uint32(tmp)
-				case "memtotalkib":
-					r.MemtotalKib, err = strconv.ParseUint(val, 10, 64)
-				case "user":
-					r.User = StringToUstr(val)
-				case "job":
-					tmp, err = strconv.ParseUint(val, 10, 64)
-					r.Job = uint32(tmp)
-				case "pid":
-					tmp, err = strconv.ParseUint(val, 10, 64)
-					r.Pid = uint32(tmp)
-				case "cmd":
-					r.Cmd = StringToUstr(val)
-				case "cpu%":
-					ftmp, err = strconv.ParseFloat(val, 64)
-					r.CpuPct = float32(ftmp)
-				case "cpukib":
-					r.CpuKib, err = strconv.ParseUint(val, 10, 64)
-				case "rssanonkib":
-					r.RssAnonKib, err = strconv.ParseUint(val, 10, 64)
-				case "gpus":
-					r.Gpus, err = NewGpuSet(val)
-				case "gpu%":
-					ftmp, err = strconv.ParseFloat(val, 64)
-					r.GpuPct = float32(ftmp)
-				case "gpumem%":
-					ftmp, err = strconv.ParseFloat(val, 64)
-					r.GpuMemPct = float32(ftmp)
-				case "gpukib":
-					r.GpuKib, err = strconv.ParseUint(val, 10, 64)
-				case "gpufail":
-					tmp, err = strconv.ParseUint(val, 10, 64)
-					r.GpuFail = uint8(tmp)
-				case "cputime_sec":
-					r.CpuTimeSec, err = strconv.ParseUint(val, 10, 64)
-				case "rolledup":
-					tmp, err = strconv.ParseUint(val, 10, 64)
-					r.Rolledup = uint32(tmp)
-				default:
+				case 'g':
+					if val, ok := match(f, "gpu%"); ok {
+						gpupct, err = strconv.ParseFloat(val, 64)
+						r.GpuPct = float32(gpupct)
+						matched = true
+					} else if val, ok := match(f, "gpumem%"); ok {
+						gpumempct, err = strconv.ParseFloat(val, 64)
+						r.GpuMemPct = float32(gpumempct)
+						matched = true
+					} else if val, ok := match(f, "gpukib"); ok {
+						r.GpuKib, err = strconv.ParseUint(val, 10, 64)
+						matched = true
+					} else if val, ok := match(f, "gpufail"); ok {
+						gpufail, err = strconv.ParseUint(val, 10, 64)
+						r.GpuFail = uint8(gpufail)
+						matched = true
+					} else if val, ok := match(f, "gpus"); ok {
+						r.Gpus, err = NewGpuSet(val)
+						matched = true
+					}
+				case 'h':
+					if val, ok := match(f, "host"); ok {
+						r.Host = ustrs.Alloc(val)
+						matched = true
+					}
+				case 'j':
+					if val, ok := match(f, "job"); ok {
+						jobno, err = strconv.ParseUint(val, 10, 64)
+						r.Job = uint32(jobno)
+						matched = true
+					}
+				case 'm':
+					if val, ok := match(f, "memtotalkib"); ok {
+						r.MemtotalKib, err = strconv.ParseUint(val, 10, 64)
+						matched = true
+					}
+				case 'p':
+					if val, ok := match(f, "pid"); ok {
+						pidno, err = strconv.ParseUint(val, 10, 64)
+						r.Pid = uint32(pidno)
+						matched = true
+					}
+				case 'r':
+					if val, ok := match(f, "rssanonkib"); ok {
+						r.RssAnonKib, err = strconv.ParseUint(val, 10, 64)
+						matched = true
+					} else if val, ok := match(f, "rolledup"); ok {
+						rolledup, err = strconv.ParseUint(val, 10, 64)
+						r.Rolledup = uint32(rolledup)
+						matched = true
+					}
+				case 't':
+					if val, ok := match(f, "time"); ok {
+						// This is really the format we use in the logs, but the nano part is often
+						// omitted by our formatters:
+						//
+						//  "2006-01-02T15:04:05.999999999-07:00"
+						//
+						// RFC3339Nano handles +/- for the tz offset and also will allow the nano
+						// part to be missing.
+						ts, err = time.Parse(time.RFC3339Nano, val)
+						r.Timestamp = ts.Unix()
+						matched = true
+					}
+				case 'u':
+					if val, ok := match(f, "user"); ok {
+						r.User = ustrs.Alloc(val)
+						matched = true
+					}
+				case 'v':
+					if val, ok := match(f, "v"); ok {
+						r.Version = ustrs.Alloc(val)
+						matched = true
+					}
+				}
+				if !matched {
 					log.Printf("Dropping field with unknown name: %s", f)
 					badRecords++
 				}
 				if err != nil {
-					log.Printf("Dropping record with illegal/unparseable value: %s", f)
+					log.Printf("Dropping record with illegal/unparseable value: %s %v", f, err)
 					badRecords++
 					continue outerLoop
 				}
