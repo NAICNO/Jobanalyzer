@@ -27,17 +27,20 @@ impl Sonarlog {
         // append events to right files
     }
 
+    // Probably wants filter and config both, config optional
     pub fn get_streams(&self, filter: F) -> Result<InputStreamSet> {
         let events = self.read()?;
         ...;
     }
 
+    // Ditto
     pub fn get_events(&self, filter: F) -> Result<Vec<Box<LogEntry>>> {
         let events = self.read()?;
         logfile::basic_cleaning(events)?;
         ...;
     }
 
+    // Ditto
     fn read(&self) -> Result<Vec<Box<LogEntry>>> {
         // Read records and return raw events
     }
