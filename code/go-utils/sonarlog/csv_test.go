@@ -9,7 +9,8 @@ import (
 
 func TestParseSonarLogTagged(t *testing.T) {
 	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-intermingled.csv")
-	readings, heartbeats, bad, err := ParseSonarLog(bytes.NewReader(bs))
+	uf := NewUstrFacade()
+	readings, heartbeats, bad, err := ParseSonarLog(bytes.NewReader(bs), uf)
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
@@ -34,7 +35,8 @@ func TestParseSonarLogTagged(t *testing.T) {
 
 func TestParseSonarLogUntagged(t *testing.T) {
 	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-untagged-intermingled.csv")
-	readings, heartbeats, bad, err := ParseSonarLog(bytes.NewReader(bs))
+	uf := NewUstrFacade()
+	readings, heartbeats, bad, err := ParseSonarLog(bytes.NewReader(bs), uf)
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
@@ -61,26 +63,26 @@ func TestCsvnamed1(t *testing.T) {
 	now := time.Now().UTC().Unix()
 	noSet, _ := NewGpuSet("unknown")
 	reading := &SonarReading{
-		Version:    StringToUstr("abc"),
-		Timestamp:  now,
-		Cluster:    StringToUstr("bad"), // This is not currently in the csv representation
-		Host:       StringToUstr("hi"),
-		Cores:      5,
+		Version:     StringToUstr("abc"),
+		Timestamp:   now,
+		Cluster:     StringToUstr("bad"), // This is not currently in the csv representation
+		Host:        StringToUstr("hi"),
+		Cores:       5,
 		MemtotalKib: 10,
-		User:       StringToUstr("me"),
-		Job:        37,
-		Pid:        1337,
-		Cmd:        StringToUstr("secret"),
-		CpuPct:     0.5,
-		CpuKib:     12,
-		RssAnonKib: 15,
-		Gpus:       noSet,
-		GpuPct:     0.25,
-		GpuMemPct:  10,
-		GpuKib:     14,
-		GpuFail:    2,
-		CpuTimeSec: 1234,
-		Rolledup:   1,
+		User:        StringToUstr("me"),
+		Job:         37,
+		Pid:         1337,
+		Cmd:         StringToUstr("secret"),
+		CpuPct:      0.5,
+		CpuKib:      12,
+		RssAnonKib:  15,
+		Gpus:        noSet,
+		GpuPct:      0.25,
+		GpuMemPct:   10,
+		GpuKib:      14,
+		GpuFail:     2,
+		CpuTimeSec:  1234,
+		Rolledup:    1,
 	}
 	expected := "v=abc,time=" + time.Unix(now, 0).Format(time.RFC3339) + ",host=hi,user=me,cmd=secret,cores=5,memtotalkib=10,job=37,pid=1337,cpu%=0.5,cpukib=12,rssanonkib=15,gpus=unknown,gpu%=0.25,gpumem%=10,gpukib=14,gpufail=2,cputime_sec=1234,rolledup=1\n"
 	s := string(reading.Csvnamed())
@@ -90,7 +92,7 @@ func TestCsvnamed1(t *testing.T) {
 }
 
 func TestCsvnamed2(t *testing.T) {
-	now := time.Now().UTC().Unix();
+	now := time.Now().UTC().Unix()
 	heartbeat := &SonarHeartbeat{
 		Version:   StringToUstr("abc"),
 		Timestamp: now,
