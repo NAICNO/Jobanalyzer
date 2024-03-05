@@ -41,14 +41,20 @@ func ParseRelativeDate(s string) (time.Time, error) {
 	probe = daysRe.FindSubmatch([]byte(s))
 	if probe != nil {
 		days, _ := strconv.ParseUint(string(probe[1]), 10, 32)
-		t := time.Now().UTC().AddDate(0, 0, -int(days))
-		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), nil
+		return ThisDay(time.Now().UTC().AddDate(0, 0, -int(days))), nil
 	}
 	probe = weeksRe.FindSubmatch([]byte(s))
 	if probe != nil {
 		weeks, _ := strconv.ParseUint(string(probe[1]), 10, 32)
-		t := time.Now().UTC().AddDate(0, 0, -int(weeks)*7)
-		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC), nil
+		return ThisDay(time.Now().UTC().AddDate(0, 0, -int(weeks)*7)), nil
 	}
 	return time.Now(), errors.New("Bad time specification")
+}
+
+func ThisDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+func NextDay(t time.Time) time.Time {
+	return ThisDay(t.AddDate(0, 0, 1))
 }

@@ -103,6 +103,8 @@ func RectifyDateFilterOptions(s *DateFilterOptions, opts *flag.FlagSet) error {
 	if err != nil {
 		return err
 	}
+	// Strip h/m/s
+	s.From = ut.ThisDay(s.From)
 
 	if s.ToStr == "" {
 		s.To = time.Now().UTC()
@@ -114,10 +116,9 @@ func RectifyDateFilterOptions(s *DateFilterOptions, opts *flag.FlagSet) error {
 		}
 	}
 
-	// For To, we really want tomorrow's date because the date range is not inclusive on the right.
-
-	s.To = s.To.AddDate(0, 0, 1)
-	s.To = time.Date(s.To.Year(), s.To.Month(), s.To.Day(), 0, 0, 0, 0, time.UTC)
+	// For To, we want tomorrow's date because the date range is not inclusive on the right.  Then
+	// strip h/m/s.
+	s.To = ut.NextDay(s.To)
 
 	return nil
 }
