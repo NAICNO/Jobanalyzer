@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"go-utils/sonarlog"
+	gut "go-utils/time"
 )
 
 // General "free CSV" reader, returns array of maps from field names to field values.
@@ -155,10 +155,10 @@ func GetBool(record map[string]string, tag string, success *bool) bool {
 
 // Sonar DateTime field.  The Sonar logs use this format uniformly (for better or worse).
 
-func GetSonarDateTime(record map[string]string, tag string, success *bool) time.Time {
+func GetCommonDateTime(record map[string]string, tag string, success *bool) time.Time {
 	s, found := record[tag]
 	*success = *success && found
-	value, err := time.Parse(sonarlog.DateTimeFormat, s)
+	value, err := time.Parse(gut.CommonDateTimeFormat, s)
 	*success = *success && err == nil
 	return value
 }

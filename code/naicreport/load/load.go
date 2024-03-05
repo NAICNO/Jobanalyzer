@@ -85,7 +85,7 @@ import (
 	"go-utils/options"
 	"go-utils/process"
 	"go-utils/sonalyze"
-	"go-utils/sonarlog"
+	gut "go-utils/time"
 	"naicreport/util"
 )
 
@@ -235,7 +235,7 @@ func writePlots(
 	//  quantized already
 
 	// Use the same timestamp for all records
-	now := time.Now().Format(sonarlog.DateTimeFormat)
+	now := time.Now().Format(gut.CommonDateTimeFormat)
 
 	for _, hd := range loadData {
 		var basename string
@@ -270,7 +270,7 @@ func writePlots(
 			rgpumemData = make([]float64, 0)
 		}
 		for _, d := range hd.data {
-			labels = append(labels, d.datetime.Format(sonarlog.DateTimeFormat))
+			labels = append(labels, d.datetime.Format(gut.CommonDateTimeFormat))
 			rcpuData = append(rcpuData, d.rcpu)
 			rmemData = append(rmemData, d.rmem)
 			rresData = append(rresData, d.rres)
@@ -421,8 +421,8 @@ func parseDowntimeOutput(output string) ([]*downtimeDataByHost, error) {
 	var innerData = make([]*downtimeDatum, 0)
 	for _, repr := range rawData {
 		// Convert some values
-		start, startErr := time.Parse(sonarlog.DateTimeFormat, repr.Start)
-		end, endErr := time.Parse(sonarlog.DateTimeFormat, repr.End)
+		start, startErr := time.Parse(gut.CommonDateTimeFormat, repr.Start)
+		end, endErr := time.Parse(gut.CommonDateTimeFormat, repr.End)
 		if startErr != nil || endErr != nil {
 			if verbose {
 				fmt.Fprintf(os.Stderr, "Skipping bad timestamp(s) %s %s\n", repr.Start, repr.End)

@@ -96,8 +96,7 @@ import (
 	"time"
 
 	"go-utils/freecsv"
-	"go-utils/sonarlog"
-	sonartime "go-utils/time"
+	gut "go-utils/time"
 	"naicreport/joblog"
 	"naicreport/jobstate"
 	"naicreport/util"
@@ -178,7 +177,7 @@ func MlCpuhog(progname string, args []string) error {
 
 	from := filterOpts.From
 	to := filterOpts.To
-	purgeDate := sonartime.MinTime(from, to.AddDate(0, 0, -2))
+	purgeDate := gut.MinTime(from, to.AddDate(0, 0, -2))
 	purged := jobstate.PurgeJobsBefore(db, purgeDate)
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%d jobs purged\n", purged)
@@ -261,9 +260,9 @@ func makePerJobReport(jobState *jobstate.JobState) *perJobReport {
 		Id:                jobState.Id,
 		User:              job.user,
 		Cmd:               job.cmd,
-		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(sonarlog.DateTimeFormat),
-		FirstViolation:    jobState.FirstViolation.Format(sonarlog.DateTimeFormat),
-		LastSeen:          jobState.LastSeen.Format(sonarlog.DateTimeFormat),
+		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(gut.CommonDateTimeFormat),
+		FirstViolation:    jobState.FirstViolation.Format(gut.CommonDateTimeFormat),
+		LastSeen:          jobState.LastSeen.Format(gut.CommonDateTimeFormat),
 		CpuPeak:           uint32(job.cpuPeak / 100),
 		RCpuAvg:           uint32(job.rcpuAvg),
 		RCpuPeak:          uint32(job.rcpuPeak),
@@ -330,10 +329,10 @@ type cpuhogJob struct {
 }
 
 func integrateCpuhogRecords(record, probe *cpuhogJob) {
-	record.LastSeen = sonartime.MaxTime(record.LastSeen, probe.LastSeen)
-	record.firstSeen = sonartime.MinTime(record.firstSeen, probe.firstSeen)
-	record.start = sonartime.MinTime(record.start, probe.start)
-	record.end = sonartime.MaxTime(record.end, probe.end)
+	record.LastSeen = gut.MaxTime(record.LastSeen, probe.LastSeen)
+	record.firstSeen = gut.MinTime(record.firstSeen, probe.firstSeen)
+	record.start = gut.MinTime(record.start, probe.start)
+	record.end = gut.MaxTime(record.end, probe.end)
 	record.cpuPeak = math.Max(record.cpuPeak, probe.cpuPeak)
 	record.gpuPeak = math.Max(record.gpuPeak, probe.gpuPeak)
 	record.rcpuAvg = math.Max(record.rcpuAvg, probe.rcpuAvg)
@@ -347,7 +346,7 @@ func parseCpuhogRecord(r map[string]string) (*cpuhogJob, bool) {
 
 	tag := freecsv.GetString(r, "tag", &success)
 	success = success && tag == "cpuhog"
-	timestamp := freecsv.GetSonarDateTime(r, "now", &success)
+	timestamp := freecsv.GetCommonDateTime(r, "now", &success)
 	id := freecsv.GetJobMark(r, "jobm", &success)
 	user := freecsv.GetString(r, "user", &success)
 	host := freecsv.GetString(r, "host", &success)
@@ -358,8 +357,8 @@ func parseCpuhogRecord(r map[string]string) (*cpuhogJob, bool) {
 	rcpuPeak := freecsv.GetFloat64(r, "rcpu-peak", &success)
 	rmemAvg := freecsv.GetFloat64(r, "rmem-avg", &success)
 	rmemPeak := freecsv.GetFloat64(r, "rmem-peak", &success)
-	start := freecsv.GetSonarDateTime(r, "start", &success)
-	end := freecsv.GetSonarDateTime(r, "end", &success)
+	start := freecsv.GetCommonDateTime(r, "start", &success)
+	end := freecsv.GetCommonDateTime(r, "end", &success)
 
 	if !success {
 		return nil, false
@@ -433,7 +432,7 @@ func commandLine() (
 	}
 	if nowOpt != "" {
 		var n time.Time
-		n, err = time.Parse(nowOpt, sonarlog.DateTimeFormat)
+		n, err = time.Parse(nowOpt, gut.CommonDateTimeFormat)
 		if err != nil {
 			err = fmt.Errorf("Argument to -now could not be parsed: %w", err)
 			return

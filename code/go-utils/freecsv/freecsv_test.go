@@ -171,16 +171,16 @@ func TestFieldGetters(t *testing.T) {
 	}
 
 	success = true
-	if GetSonarDateTime(map[string]string{"now": "2023-09-12 08:37"}, "now", &success) !=
+	if GetCommonDateTime(map[string]string{"now": "2023-09-12 08:37"}, "now", &success) !=
 		time.Date(2023, 9, 12, 8, 37, 0, 0, time.UTC) || !success {
 		t.Fatalf("Failed GetDateTime #1")
 	}
-	GetSonarDateTime(map[string]string{"now": "2023-09-12 08:37"}, "then", &success)
+	GetCommonDateTime(map[string]string{"now": "2023-09-12 08:37"}, "then", &success)
 	if success {
 		t.Fatalf("Failed GetDateTime #2")
 	}
 	success = true
-	GetSonarDateTime(map[string]string{"now": "2023-09-12T08:37"}, "now", &success)
+	GetCommonDateTime(map[string]string{"now": "2023-09-12T08:37"}, "now", &success)
 	if success {
 		t.Fatalf("Failed GetDateTime #3")
 	}

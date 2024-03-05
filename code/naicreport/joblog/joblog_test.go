@@ -8,7 +8,7 @@ import (
 
 	"go-utils/filesys"
 	"go-utils/freecsv"
-	sonartime "go-utils/time"
+	gut "go-utils/time"
 )
 
 func TestReadLogFiles(t *testing.T) {
@@ -137,12 +137,12 @@ func parseJobRecord(r map[string]string) (*testJob, bool) {
 
 	tag := freecsv.GetString(r, "tag", &success)
 	success = success && tag == "mytag"
-	timestamp := freecsv.GetSonarDateTime(r, "now", &success)
+	timestamp := freecsv.GetCommonDateTime(r, "now", &success)
 	id := freecsv.GetJobMark(r, "jobm", &success)
 	user := freecsv.GetString(r, "user", &success)
 	host := freecsv.GetString(r, "host", &success)
-	start := freecsv.GetSonarDateTime(r, "start", &success)
-	end := freecsv.GetSonarDateTime(r, "end", &success)
+	start := freecsv.GetCommonDateTime(r, "start", &success)
+	end := freecsv.GetCommonDateTime(r, "end", &success)
 
 	if !success {
 		return nil, false
@@ -163,10 +163,10 @@ func parseJobRecord(r map[string]string) (*testJob, bool) {
 }
 
 func integrateJobRecords(record, probe *testJob) {
-	record.LastSeen = sonartime.MaxTime(record.LastSeen, probe.LastSeen)
-	record.firstSeen = sonartime.MinTime(record.firstSeen, probe.firstSeen)
-	record.start = sonartime.MinTime(record.start, probe.start)
-	record.end = sonartime.MaxTime(record.end, probe.end)
+	record.LastSeen = gut.MaxTime(record.LastSeen, probe.LastSeen)
+	record.firstSeen = gut.MinTime(record.firstSeen, probe.firstSeen)
+	record.start = gut.MinTime(record.start, probe.start)
+	record.end = gut.MaxTime(record.end, probe.end)
 }
 
 // These are real cpuhog data, but anonymized and slightly cleaned up to deal with some artifacts

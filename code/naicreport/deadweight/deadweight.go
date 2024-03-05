@@ -94,8 +94,7 @@ import (
 	"time"
 
 	"go-utils/freecsv"
-	"go-utils/sonarlog"
-	sonartime "go-utils/time"
+	gut "go-utils/time"
 	"naicreport/joblog"
 	"naicreport/jobstate"
 	"naicreport/util"
@@ -176,7 +175,7 @@ func Deadweight(progname string, args []string) error {
 
 	from := filterOpts.From
 	to := filterOpts.To
-	purgeDate := sonartime.MinTime(from, to.AddDate(0, 0, -2))
+	purgeDate := gut.MinTime(from, to.AddDate(0, 0, -2))
 	purged := jobstate.PurgeJobsBefore(db, purgeDate)
 	if verbose {
 		fmt.Fprintf(os.Stderr, "%d purged\n", purged)
@@ -254,9 +253,9 @@ func makePerJobReport(jobState *jobstate.JobState) *perJobReport {
 		Id:                jobState.Id,
 		User:              job.user,
 		Cmd:               job.cmd,
-		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(sonarlog.DateTimeFormat),
-		FirstViolation:    jobState.FirstViolation.Format(sonarlog.DateTimeFormat),
-		LastSeen:          jobState.LastSeen.Format(sonarlog.DateTimeFormat),
+		StartedOnOrBefore: jobState.StartedOnOrBefore.Format(gut.CommonDateTimeFormat),
+		FirstViolation:    jobState.FirstViolation.Format(gut.CommonDateTimeFormat),
+		LastSeen:          jobState.LastSeen.Format(gut.CommonDateTimeFormat),
 		jobState:          jobState,
 	}
 }
@@ -302,10 +301,10 @@ type deadweightJob struct {
 }
 
 func integrateDeadweightRecords(record, other *deadweightJob) {
-	record.firstSeen = sonartime.MinTime(record.firstSeen, other.firstSeen)
-	record.LastSeen = sonartime.MaxTime(record.LastSeen, other.LastSeen)
-	record.start = sonartime.MinTime(record.start, other.start)
-	record.end = sonartime.MaxTime(record.end, other.end)
+	record.firstSeen = gut.MinTime(record.firstSeen, other.firstSeen)
+	record.LastSeen = gut.MaxTime(record.LastSeen, other.LastSeen)
+	record.start = gut.MinTime(record.start, other.start)
+	record.end = gut.MaxTime(record.end, other.end)
 }
 
 func parseDeadweightRecord(r map[string]string) (*deadweightJob, bool) {
@@ -313,13 +312,13 @@ func parseDeadweightRecord(r map[string]string) (*deadweightJob, bool) {
 	tag := freecsv.GetString(r, "tag", &success)
 	// Old files used "bughunt" for the tag
 	success = success && (tag == "deadweight" || tag == "bughunt")
-	timestamp := freecsv.GetSonarDateTime(r, "now", &success)
+	timestamp := freecsv.GetCommonDateTime(r, "now", &success)
 	id := freecsv.GetJobMark(r, "jobm", &success)
 	user := freecsv.GetString(r, "user", &success)
 	cmd := freecsv.GetString(r, "cmd", &success)
 	host := freecsv.GetString(r, "host", &success)
-	start := freecsv.GetSonarDateTime(r, "start", &success)
-	end := freecsv.GetSonarDateTime(r, "end", &success)
+	start := freecsv.GetCommonDateTime(r, "start", &success)
+	end := freecsv.GetCommonDateTime(r, "end", &success)
 
 	if !success {
 		return nil, false
@@ -387,7 +386,7 @@ func commandLine() (
 	}
 	if nowOpt != "" {
 		var n time.Time
-		n, err = time.Parse(nowOpt, sonarlog.DateTimeFormat)
+		n, err = time.Parse(nowOpt, gut.CommonDateTimeFormat)
 		if err != nil {
 			err = fmt.Errorf("Argument to -now could not be parsed: %w", err)
 			return

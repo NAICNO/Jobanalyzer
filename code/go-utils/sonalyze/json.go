@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"go-utils/sonarlog"
+	gut "go-utils/time"
 )
 
 func JsonInt(s string) int {
@@ -20,7 +21,7 @@ func JsonInt(s string) int {
 }
 
 func JsonDateTime(s string) time.Time {
-	t, err := time.Parse(sonarlog.DateTimeFormat, s)
+	t, err := time.Parse(gut.CommonDateTimeFormat, s)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to convert JSON value to time, should not happen: %s", s))
 	}

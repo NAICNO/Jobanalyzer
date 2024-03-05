@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"go-utils/options"
-	ut "go-utils/time"
+	gut "go-utils/time"
 )
 
 type DataFilesOptions struct {
@@ -99,18 +99,18 @@ func RectifyDateFilterOptions(s *DateFilterOptions, opts *flag.FlagSet) error {
 	// grab current day if nothing is specified.
 
 	s.HaveFrom = true
-	s.From, err = ut.ParseRelativeDate(s.FromStr)
+	s.From, err = gut.ParseRelativeDate(s.FromStr)
 	if err != nil {
 		return err
 	}
 	// Strip h/m/s
-	s.From = ut.ThisDay(s.From)
+	s.From = gut.ThisDay(s.From)
 
 	if s.ToStr == "" {
 		s.To = time.Now().UTC()
 	} else {
 		s.HaveTo = true
-		s.To, err = ut.ParseRelativeDate(s.ToStr)
+		s.To, err = gut.ParseRelativeDate(s.ToStr)
 		if err != nil {
 			return err
 		}
@@ -118,7 +118,7 @@ func RectifyDateFilterOptions(s *DateFilterOptions, opts *flag.FlagSet) error {
 
 	// For To, we want tomorrow's date because the date range is not inclusive on the right.  Then
 	// strip h/m/s.
-	s.To = ut.NextDay(s.To)
+	s.To = gut.NextDay(s.To)
 
 	return nil
 }
