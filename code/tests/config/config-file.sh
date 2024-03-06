@@ -25,3 +25,12 @@ CHECK_ERR nocpu_host_config $exitcode "$output" "No such file or directory"
 output=$($SONALYZE jobs -u- --fmt=csv,job,rcpu --config-file badcpu-host-config.json -- dummy-data.csv 2>&1)
 exitcode=$?
 CHECK_ERR nocpu_host_config $exitcode "$output" "Field 'cpu_cores' must have unsigned integer value"
+
+# Syntax error
+output=$($SONALYZE jobs -u- --config-file bad-syntax-host-config.json -- dummy-data.csv 2>&1)
+exitcode=$?
+CHECK_ERR badsyntax_host_config $exitcode "$output" "ERROR.*at line"
+
+# Smoketest
+output=$($SONALYZE jobs -ueinarvid --fmt=csv,job,rcpu  --config-file good-config-v2.json -- dummy-data.csv 2>&1)
+CHECK good_config_v2 "1269178,43,86" "$output"

@@ -74,6 +74,12 @@ echo "======================================================================="
 ( cd slurminfo ; go build )
 ( cd slurminfo ; ./slurminfo -h 2&> /dev/null )
 
+echo "======================================================================="
+echo " JSONCHECK RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd jsoncheck ; go build )
+( cd jsoncheck ; ./jsoncheck ../tests/config/good-config.json )
+
 # GO-UTIL TESTS
 ( cd go-utils ; ./run_tests.sh )
 
@@ -99,6 +105,14 @@ echo "======================================================================="
 echo " DASHBOARD JS LIBRARIES SELFTEST"
 echo "======================================================================="
 ( cd dashboard ; ./run_tests.sh )
+
+echo "======================================================================="
+echo " CONFIG FILES TEST"
+echo "======================================================================="
+( cd jsoncheck ; ./jsoncheck ../../production/jobanalyzer-server/scripts/mlx.hpc.uio.no/mlx.hpc.uio.no-config.json )
+( cd jsoncheck ; ./jsoncheck ../../production/jobanalyzer-server/scripts/fox.educloud.no/fox.educloud.no-config.json )
+( cd jsoncheck ; ./jsoncheck ../../production/jobanalyzer-server/scripts/saga.sigma2.no/saga.sigma2.no-config.json )
+( cd jsoncheck ; ./jsoncheck ../../production/jobanalyzer-server/cluster-aliases.json )
 
 echo "======================================================================="
 echo "======================================================================="

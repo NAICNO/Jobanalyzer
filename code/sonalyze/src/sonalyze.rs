@@ -1145,7 +1145,7 @@ fn sonalyze() -> Result<()> {
         include_jobs,
         exclude_jobs,
         include_users,
-        exclude_users,
+        mut exclude_users,
         include_commands,
         exclude_commands,
         exclude_system_jobs,
@@ -1397,21 +1397,6 @@ fn sonalyze() -> Result<()> {
         (from, have_from, to, have_to, logfiles)
     };
 
-    // Record filtering logic is the same for all commands.
-
-    let record_filter = |e: &LogEntry| {
-        (include_users.is_empty() || include_users.contains(e.user.as_str()))
-            && (include_hosts.is_empty() || include_hosts.match_hostname(e.hostname.as_str()))
-            && (include_jobs.is_empty() || include_jobs.contains(&(e.job_id as usize)))
-            && (include_commands.is_empty() || include_commands.contains(e.command.as_str()))
-            && !exclude_users.contains(e.user.as_str())
-            && !exclude_jobs.contains(&(e.job_id as usize))
-            && !exclude_commands.contains(e.command.as_str())
-            && (!exclude_system_jobs || e.pid >= 1000)
-            && (!have_from || from <= e.timestamp)
-            && (!have_to || e.timestamp <= to)
-    };
-
     // System configuration, if specified.
 
     let system_config = {
@@ -1426,6 +1411,27 @@ fn sonalyze() -> Result<()> {
         } else {
             None
         }
+    };
+
+    if let Some(ref config) = system_config {
+        for u in &config.exclude_user {
+            exclude_users.insert(u.to_string());
+        }
+    };
+
+    // Record filtering logic is the same for all commands.
+
+    let record_filter = |e: &LogEntry| {
+        (include_users.is_empty() || include_users.contains(e.user.as_str()))
+            && (include_hosts.is_empty() || include_hosts.match_hostname(e.hostname.as_str()))
+            && (include_jobs.is_empty() || include_jobs.contains(&(e.job_id as usize)))
+            && (include_commands.is_empty() || include_commands.contains(e.command.as_str()))
+            && !exclude_users.contains(e.user.as_str())
+            && !exclude_jobs.contains(&(e.job_id as usize))
+            && !exclude_commands.contains(e.command.as_str())
+            && (!exclude_system_jobs || e.pid >= 1000)
+            && (!have_from || from <= e.timestamp)
+            && (!have_to || e.timestamp <= to)
     };
 
     let (mut entries, bounds, discarded) = sonarlog::read_logfiles(&logfiles)?;
