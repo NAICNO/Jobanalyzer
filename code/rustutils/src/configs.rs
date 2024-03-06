@@ -22,6 +22,7 @@
 /// This is a partial implementation.  There will be another method on ClusterConfig to lookup by
 /// host name and timestamp, and the data structure and file format will be more complicated to
 /// support that.
+use crate::Timestamp;
 use anyhow::{bail, Result};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -53,6 +54,12 @@ pub struct ClusterConfig {
 impl ClusterConfig {
     pub fn lookup(&self, hostname: &str) -> Option<Rc<System>> {
         self.nodes.get(hostname).cloned()
+    }
+
+    // Returns the hosts that were defined within the time window.  With our current structure we don't
+    // have reliable time window information, so just return all hosts.
+    pub fn hosts_in_time_window(&self, _from_incl: Timestamp, _to_excl: Timestamp) -> Vec<String> {
+        self.nodes.iter().map(|(k,_)| k.to_string()).collect::<Vec<String>>()
     }
 
     pub fn cross_node_jobs(&self) -> bool {

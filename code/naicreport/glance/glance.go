@@ -370,7 +370,12 @@ func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStat
 	var rawData []*sonalyzeUptimeData
 	err := runAndUnmarshal(
 		sonalyzePath,
-		[]string{"uptime", "--interval", fmt.Sprint(UPTIME_MINS), "--fmt=json,host,device,state"},
+		[]string{
+			"uptime",
+			"--config-file", configFilename,
+			"--interval", fmt.Sprint(UPTIME_MINS),
+			"--fmt=json,host,device,state",
+		},
 		progOpts,
 		&rawData)
 	if err != nil {
