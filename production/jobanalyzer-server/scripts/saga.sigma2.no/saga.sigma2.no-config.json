@@ -1,93 +1,100 @@
-[
- {
-  "hostname": "c1-[1-56]",
-  "description": "2x20 intel (hyperthreaded), 178GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 80,
-  "mem_gb": 178
- },
- {
-  "hostname": "c10-[1-60]",
-  "description": "2x26 intel (hyperthreaded), 178GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 104,
-  "mem_gb": 178
- },
- {
-  "hostname": "c11-[1-60]",
-  "description": "2x26 intel (hyperthreaded), 178GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 104,
-  "mem_gb": 178
- },
- {
-  "hostname": "c2-[1-56]",
-  "description": "2x20 intel (hyperthreaded), 178GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 80,
-  "mem_gb": 178
- },
- {
-  "hostname": "c3-[1-28]",
-  "description": "2x20 intel (hyperthreaded), 178GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 80,
-  "mem_gb": 178
- },
- {
-  "hostname": "c3-[29-56]",
-  "description": "2x20 intel (hyperthreaded), 362GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 80,
-  "mem_gb": 362
- },
- {
-  "hostname": "c5-[1-60]",
-  "description": "2x20 intel (hyperthreaded), 178GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 80,
-  "mem_gb": 178
- },
- {
-  "hostname": "c6-[1-8]",
-  "description": "4x16 intel (hyperthreaded), 3021GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 128,
-  "mem_gb": 3021
- },
- {
-  "hostname": "c7-[1-8]",
-  "description": "2x12 intel (hyperthreaded), 364GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 48,
-  "mem_gb": 364
- },
- {
-  "hostname": "gpu-12-[1-8]",
-  "description": "1x32 amd (hyperthreaded), 1000GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 64,
-  "mem_gb": 1000
- },
- {
-  "hostname": "hugemem-8-1",
-  "description": "4x16 intel (hyperthreaded), 6040GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 128,
-  "mem_gb": 6040
- },
- {
-  "hostname": "hugemem-9-1",
-  "description": "4x16 intel (hyperthreaded), 6040GB",
-  "cross_node_jobs":true,
-  "cpu_cores": 128,
-  "mem_gb": 6040
- },
- {
-  "hostname": "login-[1-5]",
-  "description": "2x16 (hyperthreaded) Intel(R) Xeon(R) Gold 6130 CPU @ 2.10GHz, 755 GB",
-  "cpu_cores": 64,
-  "mem_gb": 755
- }
-]
-
+{
+    "name":"saga.sigma2.no",
+    "aliases":["saga"],
+    "description":"Sigma2 'Saga' supercomputer",
+    "# batch-system":"slurm",
+    "exclude-user":["root"],
+    "# exclude-user":"Most data for Saga are from older Sonar, and it did not exclude root processes.  But these pollute the data.",
+    "nodes":[
+        {
+            "hostname": "c1-[1-56]",
+            "description": "2x20 intel (hyperthreaded), 178GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 80,
+            "mem_gb": 178
+        },
+        {
+            "hostname": "c10-[1-60]",
+            "description": "2x26 intel (hyperthreaded), 178GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 104,
+            "mem_gb": 178
+        },
+        {
+            "hostname": "c11-[1-60]",
+            "description": "2x26 intel (hyperthreaded), 178GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 104,
+            "mem_gb": 178
+        },
+        {
+            "hostname": "c2-[1-56]",
+            "description": "2x20 intel (hyperthreaded), 178GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 80,
+            "mem_gb": 178
+        },
+        {
+            "hostname": "c3-[1-28]",
+            "description": "2x20 intel (hyperthreaded), 178GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 80,
+            "mem_gb": 178
+        },
+        {
+            "hostname": "c3-[29-56]",
+            "description": "2x20 intel (hyperthreaded), 362GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 80,
+            "mem_gb": 362
+        },
+        {
+            "hostname": "c5-[1-60]",
+            "description": "2x20 intel (hyperthreaded), 178GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 80,
+            "mem_gb": 178
+        },
+        {
+            "hostname": "c6-[1-8]",
+            "description": "4x16 intel (hyperthreaded), 3021GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 128,
+            "mem_gb": 3021
+        },
+        {
+            "hostname": "c7-[1-8]",
+            "description": "2x12 intel (hyperthreaded), 364GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 48,
+            "mem_gb": 364
+        },
+        {
+            "hostname": "gpu-12-[1-8]",
+            "description": "1x32 amd (hyperthreaded), 1000GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 64,
+            "mem_gb": 1000
+        },
+        {
+            "hostname": "hugemem-8-1",
+            "description": "4x16 intel (hyperthreaded), 6040GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 128,
+            "mem_gb": 6040
+        },
+        {
+            "hostname": "hugemem-9-1",
+            "description": "4x16 intel (hyperthreaded), 6040GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 128,
+            "mem_gb": 6040
+        },
+        {
+            "hostname": "login-[1-5]",
+            "description": "2x16 (hyperthreaded) Intel(R) Xeon(R) Gold 6130 CPU @ 2.10GHz, 755 GB",
+            "cpu_cores": 64,
+            "mem_gb": 755
+        }
+    ]
+}

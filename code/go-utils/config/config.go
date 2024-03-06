@@ -8,10 +8,52 @@
 // timestamp.  Alternatively, the latest config record for a host can be found.
 //
 // At this time, the time dimension has not been implemented.
+//
+// See ../../../production/sonar-nodes/$CLUSTER/$CLUSTER-config.json for examples of config files.
+
+// File formats.
+//
+// v2 file format:
+//
+// An object { ... } with the following named fields and value types:
+//
+//   name - string, the canonical name of the cluster
+//   description - string, optional, arbitrary text describing the cluster
+//   aliases - array of strings, optional, aliases / short names for the cluster
+//   exclude-user - array of strings, optional, user names whose records should
+//      be excluded when filtering records
+//   nodes - array of objects, the list of nodes in the v1 format (see below)
+//
+// Any field name starting with '#' is reserved for arbitrary comments.
+//
+// The `exclude-user` option is a hack and is used to add post-hoc filtering of data (when Sonar
+// should have filtered it to begin with, but didn't).  It is on purpose very limited, in contrast
+// with e.g. a mechanism to add arbitrary arguments to the command line.  Additional filters, eg
+// for command names, can be added as needed.
+//
+// v1 file format:
+//
+// An array [...] of objects { ... }, each with the following named fields and value types:
+//
+//   timestamp - string, optional, an RFC3339 timestamp for when the data were obtained
+//   hostname - string, the fully qualified and unique host name of the node
+//   description - string, optional, arbitrary text describing the node
+//   cross_node_jobs - bool, optional, expressing that jobs on this node can be merged with
+//                     jobs on other nodes in the same cluster where the flag is also set,
+//                     because the job numbers come from the same cluster-wide source
+//                     (typically slurm).  Also see the --batch option.
+//   cpu_cores - integer, the number of hyperthreads
+//   mem_gb - integer, the amount of main memory in gigabytes
+//   gpu_cards - integer, the number of gpu cards on the node
+//   gpumem_gb - integer, the amount of gpu memory in gigabytes across all cards
+//   gpumem_pct - bool, optional, expressing a preference for the GPU memory reading
+//
+// Any field name starting with '#' is reserved for arbitrary comments.
 
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -29,10 +71,6 @@ type NodeMeta struct {
 type NodeConfigRecord struct {
 	// Full ISO timestamp of when the reading was taken (missing in older data)
 	Timestamp string `json:"timestamp,omitempty"`
-
-	// Arbitrary text, useful to somebody, may or may not be preserved by a processor (missing in
-	// older data)
-	Comment string `json:"comment,omitempty"`
 
 	// Name that host is known by on the cluster
 	Hostname string `json:"hostname"`
@@ -65,13 +103,26 @@ type NodeConfigRecord struct {
 	Metadata []NodeMeta `json:"metadata,omitempty"`
 }
 
+type ClusterConfigV2Repr struct {
+	Name        string              `json:"name"`
+	Description string              `json:"description"`
+	Aliases     []string            `json:"aliases,omitempty"`
+	ExcludeUser []string            `json:"exclude-user,omitempty"`
+	Nodes       []*NodeConfigRecord `json:"nodes"`
+}
+
 type ClusterConfig struct {
-	// Currently only one dimension
+	Version     int
+	Name        string
+	Description string
+	Aliases     []string
+	ExcludeUser []string
+	// Currently only one dimension of data
 	nodes map[string]*NodeConfigRecord
 }
 
 func NewClusterConfig() *ClusterConfig {
-	return &ClusterConfig{ nodes: make(map[string]*NodeConfigRecord) }
+	return &ClusterConfig{nodes: make(map[string]*NodeConfigRecord)}
 }
 
 func (cc *ClusterConfig) Insert(r *NodeConfigRecord) {
@@ -105,13 +156,39 @@ func ReadConfig(configFilename string) (*ClusterConfig, error) {
 
 func ReadConfigFrom(input io.Reader) (*ClusterConfig, error) {
 	var configInfo []*NodeConfigRecord
-
-	bytes, err := io.ReadAll(input)
+	bs, err := io.ReadAll(input)
 	if err != nil {
 		return nil, err
 	}
 
-	err = json.Unmarshal(bytes, &configInfo)
+	dec := json.NewDecoder(bytes.NewReader(bs))
+	tok, err := dec.Token()
+	if err != nil {
+		return nil, fmt.Errorf("While unmarshaling config data: %w", err)
+	}
+	config := new(ClusterConfig)
+	if delim, ok := tok.(json.Delim); ok {
+		switch delim {
+		case '[':
+			config.Version = 1
+			config.Name = "v1 config"
+			config.Description = "v1 config"
+			err = json.Unmarshal(bs, &configInfo)
+		case '{':
+			var v2 ClusterConfigV2Repr
+			err = json.Unmarshal(bs, &v2)
+			config.Version = 2
+			config.Name = v2.Name
+			config.Description = v2.Description
+			config.Aliases = v2.Aliases
+			config.ExcludeUser = v2.ExcludeUser
+			configInfo = v2.Nodes
+		default:
+			err = fmt.Errorf("Unexpected delimiter in JSON file %c", delim)
+		}
+	} else {
+		err = fmt.Errorf("Unexpected non-delimiter in JSON file")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("While unmarshaling config data: %w", err)
 	}
@@ -129,7 +206,8 @@ func ReadConfigFrom(input io.Reader) (*ClusterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ClusterConfig{ m }, nil
+	config.nodes = m
+	return config, nil
 }
 
 func ExpandNodeConfigs(configInfo []*NodeConfigRecord) (map[string]*NodeConfigRecord, error) {
@@ -179,17 +257,29 @@ func (a configSlice) Less(i, j int) bool { return a[i].Hostname < a[j].Hostname 
 
 func WriteConfigTo(output io.Writer, config *ClusterConfig) error {
 	records := make([]*NodeConfigRecord, 0, len(config.nodes))
-
 	for _, v := range config.nodes {
 		records = append(records, v)
 	}
-
 	sort.Sort(configSlice(records))
-	outBytes, err := json.MarshalIndent(&records, "", " ")
+
+	var err error
+	var outBytes []byte
+	if config.Version <= 1 {
+		outBytes, err = json.MarshalIndent(&records, "", " ")
+	} else {
+		var v2repr ClusterConfigV2Repr
+		v2repr.Name = config.Name
+		v2repr.Description = config.Description
+		v2repr.Aliases = config.Aliases
+		v2repr.ExcludeUser = config.ExcludeUser
+		v2repr.Nodes = records
+		outBytes, err = json.MarshalIndent(&v2repr, "", " ")
+	}
 	if err != nil {
 		return err
 	}
+
 	// Ignore write errors here
-	io.WriteString(os.Stdout, string(outBytes)+"\n")
+	io.WriteString(output, string(outBytes)+"\n")
 	return nil
 }
