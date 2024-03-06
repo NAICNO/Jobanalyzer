@@ -48,10 +48,10 @@ use crate::format;
 use crate::{HostGlobber, MetaArgs, UptimePrintArgs};
 
 use anyhow::Result;
-use rustutils::Timestamp;
+use rustutils::{ClusterConfig, Timestamp};
 use sonarlog::{GpuStatus, LogEntry};
 use std::cmp::min;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io;
 
 struct Report {
@@ -78,7 +78,8 @@ fn delta_t_le(prev: Timestamp, next: Timestamp, duration: i64) -> bool {
 
 pub fn aggregate_and_print_uptime(
     output: &mut dyn io::Write,
-    include_hosts: &HostGlobber,
+    system_config: &Option<ClusterConfig>,
+    host_filter: &HostGlobber,
     from_incl: Timestamp,
     to_excl: Timestamp,
     print_args: &UptimePrintArgs,
@@ -94,9 +95,39 @@ pub fn aggregate_and_print_uptime(
         }
     });
 
+    let mut reports = vec![];
+
+    // If there is a system_config then this induces a set of host names.  If there is a host in
+    // that set that is not in the list of entries *and* which passes the host filter, if not empty,
+    // then that host is down for the entire window.
+
+    if !print_args.only_up {
+        if let Some(config) = system_config {
+            let mut hs = HashSet::<String>::new();
+            for s in config.hosts_in_time_window(from_incl, to_excl) {
+                hs.insert(s);
+            }
+            for e in &entries {
+                hs.remove(e.hostname.as_str());
+            }
+            for h in hs.drain() {
+                if !host_filter.is_empty() && !host_filter.match_hostname(&h) {
+                    continue;
+                }
+                // h is down in the entire window
+                reports.push(new_report(
+                    "host",
+                    &h,
+                    "down",
+                    from_incl,
+                    to_excl,
+                ));
+            }
+        }
+    }
+
     let lim = entries.len();
     let cutoff = print_args.interval as i64 * 60 * 2;
-    let mut reports = vec![];
     let mut i = 0;
     let mut host_up_windows = vec![];
     while i < lim {
@@ -124,7 +155,7 @@ pub fn aggregate_and_print_uptime(
             i += 1;
         }
 
-        if !include_hosts.is_empty() && !include_hosts.match_hostname(&host_first.hostname) {
+        if !host_filter.is_empty() && !host_filter.match_hostname(&host_first.hostname) {
             continue;
         }
 

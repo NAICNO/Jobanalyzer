@@ -230,6 +230,9 @@ pub struct UptimeCmdArgs {
     record_filter_args: RecordFilterArgs,
 
     #[command(flatten)]
+    config_arg: ConfigFileArg,
+
+    #[command(flatten)]
     print_args: UptimePrintArgs,
 
     #[command(flatten)]
@@ -990,7 +993,7 @@ fn sonalyze() -> Result<()> {
             &args.source_args.cluster,
             &args.source_args.data_path,
             &args.source_args.logfiles,
-            &no_string,
+            &args.config_arg.config_file,
         ),
         Commands::Profile(ref args) => (
             &args.source_args.remote,
@@ -1415,6 +1418,7 @@ fn sonalyze() -> Result<()> {
         let config_filename = match cli.command {
             Commands::Jobs(ref jobs_args) => &jobs_args.config_arg.config_file,
             Commands::Load(ref load_args) => &load_args.config_arg.config_file,
+            Commands::Uptime(ref uptime_args) => &uptime_args.config_arg.config_file,
             _ => &None,
         };
         if let Some(ref config_filename) = config_filename {
@@ -1579,6 +1583,7 @@ fn sonalyze() -> Result<()> {
 
         Commands::Uptime(ref uptime_args) => uptime::aggregate_and_print_uptime(
             &mut io::stdout(),
+            &system_config,
             &include_hosts,
             from,
             to,
