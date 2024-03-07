@@ -1,0 +1,47 @@
+<!-- test code for the table abstraction in ../table-logic.js -->
+<html>
+  <head>
+    <style>
+      #mytable {
+	  width: 100%;
+	  border: 1px solid #333;
+      }
+      #mytable td {
+	  border: 1px solid #333;
+      }
+      #mytable thead, #mytable tfoot {
+	  background-color: #333;
+	  color: #fff;
+      }
+    </style>
+    <script src="../dashboard/table-logic.js"></script>
+  </head>
+  <body>
+    <table id=mytable></table>
+    <script>
+      var tbl = new Table(
+	  document.getElementById("mytable"),
+	  [{name:"A", tag:"a", sort:"numeric", help:"Abra", display:(r) => r.a*10 },
+	   {name:"B", tag:"b", sort:"duration", help:"Help is on the way", display: displayAnchor},
+	   {name:"C", tag:"c", help:"Cadabra", display: displayAnchor}]
+      )
+      tbl.sortAndRepopulateFromData(
+	  [{"a":"2", "b":"1d3h5m", "c":"hi"},
+	   {"a":"3", "b":"4d17h12m", "c":"ho"}],
+	  "b",
+	  "descending"
+      )
+      function displayAnchor(row, field) {
+	  if (field.tag == "b") {
+	      let a = document.createElement("A")
+	      a.textContent = row.b
+	      a.href = "http://www.naic.no?c=" + row.a
+	      a.title = "This is " + row.a
+	      return a
+	  } else {
+	      return row[field.tag]
+	  }
+      }
+      </script>
+  </body>
+</html>
