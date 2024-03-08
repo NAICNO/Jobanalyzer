@@ -165,50 +165,72 @@ outerLoop:
 	return
 }
 
-// TODO: Omit fields with default values
-
 func (r *SonarReading) Csvnamed() []byte {
 	var bw bytes.Buffer
+	fields := []string{
+		fmt.Sprintf("v=%v", r.Version),
+		fmt.Sprintf("time=%s", time.Unix(r.Timestamp, 0).Format(time.RFC3339)),
+		fmt.Sprintf("host=%v", r.Host),
+		fmt.Sprintf("user=%v", r.User),
+		fmt.Sprintf("cmd=%v", r.Cmd),
+	}
+	if r.Cores > 0 {
+		fields = append(fields, fmt.Sprintf("cores=%d", r.Cores))
+	}
+	if r.MemtotalKib > 0 {
+		fields = append(fields, fmt.Sprintf("memtotalkib=%d", r.MemtotalKib))
+	}
+	if r.Job > 0 {
+		fields = append(fields, fmt.Sprintf("job=%d", r.Job))
+	}
+	if r.Pid > 0 {
+		fields = append(fields, fmt.Sprintf("pid=%d", r.Pid))
+	}
+	if r.CpuPct > 0 {
+		fields = append(fields, fmt.Sprintf("cpu%%=%g", r.CpuPct))
+	}
+	if r.CpuKib > 0 {
+		fields = append(fields, fmt.Sprintf("cpukib=%d", r.CpuKib))
+	}
+	if r.RssAnonKib > 0 {
+		fields = append(fields, fmt.Sprintf("rssanonkib=%d", r.RssAnonKib))
+	}
+	if r.Gpus != UstrEmpty {
+		fields = append(fields, fmt.Sprintf("gpus=%v", r.Gpus))
+	}
+	if r.GpuPct > 0 {
+		fields = append(fields, fmt.Sprintf("gpu%%=%g", r.GpuPct))
+	}
+	if r.GpuMemPct > 0 {
+		fields = append(fields, fmt.Sprintf("gpumem%%=%g", r.GpuMemPct))
+	}
+	if r.GpuKib > 0 {
+		fields = append(fields, fmt.Sprintf("gpukib=%d", r.GpuKib))
+	}
+	if r.GpuFail != 0 {
+		fields = append(fields, fmt.Sprintf("gpufail=%d", r.GpuFail))
+	}
+	if r.CpuTimeSec > 0 {
+		fields = append(fields, fmt.Sprintf("cputime_sec=%d", r.CpuTimeSec))
+	}
+	if r.Rolledup > 0 {
+		fields = append(fields, fmt.Sprintf("rolledup=%d", r.Rolledup))
+	}
 	csvw := csv.NewWriter(&bw)
-	csvw.Write([]string{
-		"v=" + r.Version.String(),
-		"time=" + fmt.Sprint(r.Timestamp),
-		"host=" + r.Host.String(),
-		"cores=" + fmt.Sprint(r.Cores),
-		"memtotalkib=" + fmt.Sprint(r.MemtotalKib),
-		"user=" + r.User.String(),
-		"job=" + fmt.Sprint(r.Job),
-		"pid=" + fmt.Sprint(r.Pid),
-		"cmd=" + r.Cmd.String(),
-		"cpu%=" + strconv.FormatFloat(float64(r.CpuPct), 'g', -1, 64),
-		"cpukib=" + fmt.Sprint(r.CpuKib),
-		"rssanonkib=" + fmt.Sprint(r.RssAnonKib),
-		"gpus=" + r.Gpus.String(),
-		"gpu%=" + strconv.FormatFloat(float64(r.GpuPct), 'g', -1, 64),
-		"gpumem%=" + strconv.FormatFloat(float64(r.GpuMemPct), 'g', -1, 64),
-		"gpukib=" + fmt.Sprint(r.GpuKib),
-		"gpufail=" + fmt.Sprint(r.GpuFail),
-		"cputime_sec=" + fmt.Sprint(r.CpuTimeSec),
-		"rolledup=" + fmt.Sprint(r.Rolledup),
-	})
+	csvw.Write(fields)
 	csvw.Flush()
 	return bw.Bytes()
 }
-
-// TODO: Omit more fields with default values
 
 func (r *SonarHeartbeat) Csvnamed() []byte {
 	var bw bytes.Buffer
 	csvw := csv.NewWriter(&bw)
 	csvw.Write([]string{
-		"v=" + r.Version.String(),
-		"time=" + fmt.Sprint(r.Timestamp),
-		"host=" + r.Host.String(),
-		"cores=0",
-		"user=_sonar_",
-		"job=0",
-		"pid=0",
-		"cmd=_heartbeat_",
+		fmt.Sprintf("v=%v", r.Version),
+		fmt.Sprintf("time=%s", time.Unix(r.Timestamp, 0).Format(time.RFC3339)),
+		fmt.Sprintf("host=%v", r.Host),
+		fmt.Sprintf("user=_sonar_"),
+		fmt.Sprintf("cmd=_heartbeat_"),
 	})
 	csvw.Flush()
 	return bw.Bytes()

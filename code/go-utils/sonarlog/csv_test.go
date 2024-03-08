@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestParseSonarCSVNamed(t *testing.T) {
@@ -32,12 +33,14 @@ func TestParseSonarCSVNamed(t *testing.T) {
 }
 
 func TestCsvnamed1(t *testing.T) {
+	now := time.Now().UTC().Unix();
 	reading := &SonarReading{
 		Version:    StringToUstr("abc"),
-		Timestamp:  123,
+		Timestamp:  now,
 		Cluster:    StringToUstr("bad"), // This is not currently in the csv representation
 		Host:       StringToUstr("hi"),
 		Cores:      5,
+		MemtotalKib: 10,
 		User:       StringToUstr("me"),
 		Job:        37,
 		Pid:        1337,
@@ -53,21 +56,22 @@ func TestCsvnamed1(t *testing.T) {
 		CpuTimeSec: 1234,
 		Rolledup:   1,
 	}
-	expected := "v=abc,time=123,host=hi,cores=5,memtotalkib=0,user=me,job=37,pid=1337,cmd=secret,cpu%=0.5,cpukib=12,rssanonkib=15,gpus=none,gpu%=0.25,gpumem%=10,gpukib=14,gpufail=2,cputime_sec=1234,rolledup=1\n"
+	expected := "v=abc,time=" + time.Unix(now, 0).Format(time.RFC3339) + ",host=hi,user=me,cmd=secret,cores=5,memtotalkib=10,job=37,pid=1337,cpu%=0.5,cpukib=12,rssanonkib=15,gpus=none,gpu%=0.25,gpumem%=10,gpukib=14,gpufail=2,cputime_sec=1234,rolledup=1\n"
 	s := string(reading.Csvnamed())
 	if s != expected {
-		t.Fatalf("Bad csv: %s", s)
+		t.Fatalf("Bad csv:\nWant: %s\nGot:  %s", expected, s)
 	}
 }
 
 func TestCsvnamed2(t *testing.T) {
+	now := time.Now().UTC().Unix();
 	heartbeat := &SonarHeartbeat{
 		Version:   StringToUstr("abc"),
-		Timestamp: 123,
+		Timestamp: now,
 		Cluster:   StringToUstr("bad"),
 		Host:      StringToUstr("hi"),
 	}
-	expected := "v=abc,time=123,host=hi,cores=0,user=_sonar_,job=0,pid=0,cmd=_heartbeat_\n"
+	expected := "v=abc,time=" + time.Unix(now, 0).Format(time.RFC3339) + ",host=hi,user=_sonar_,cmd=_heartbeat_\n"
 	s := string(heartbeat.Csvnamed())
 	if s != expected {
 		t.Fatalf("Bad csv: %s", s)
