@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"os"
 	"testing"
+	"time"
 )
 
-func TestParseSonarCSVNamed(t *testing.T) {
+func TestParseSonarLogTagged(t *testing.T) {
 	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-intermingled.csv")
-	readings, heartbeats, bad, err := ParseSonarCsvnamed(bytes.NewReader(bs))
+	readings, heartbeats, bad, err := ParseSonarLog(bytes.NewReader(bs))
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
@@ -26,26 +27,53 @@ func TestParseSonarCSVNamed(t *testing.T) {
 		t.Errorf("Expected 1 heartbeats, got %d", len(heartbeats))
 	}
 	x := readings[0]
-	if x.Host != "ml4.hpc.uio.no" || x.User != "root" || x.Cmd != "tuned" {
+	if x.Host.String() != "ml4.hpc.uio.no" || x.User.String() != "root" || x.Cmd.String() != "tuned" {
+		t.Errorf("First record is bogus: %v", x)
+	}
+}
+
+func TestParseSonarLogUntagged(t *testing.T) {
+	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-untagged-intermingled.csv")
+	readings, heartbeats, bad, err := ParseSonarLog(bytes.NewReader(bs))
+	if err != nil {
+		t.Fatalf("Unexpected fatal error during parsing: %v", err)
+	}
+	if bad != 4 {
+		// First record is missing user
+		// Second record has blank field for cores
+		// Fourth record has bad syntax for cores
+		// Sixth record has a spurious field and so the others are shifted and fail syntax check
+		t.Errorf("Expected 4 irritants, got %d", bad)
+	}
+	if len(readings) != 2 {
+		t.Errorf("Expected 2 readings, got %d", len(readings))
+	}
+	if len(heartbeats) != 0 {
+		t.Errorf("Expected 0 heartbeats, got %d", len(heartbeats))
+	}
+	x := readings[0]
+	if x.Host.String() != "ml3.hpc.uio.no" || x.User.String() != "larsbent" || x.Cmd.String() != "python" {
 		t.Errorf("First record is bogus: %v", x)
 	}
 }
 
 func TestCsvnamed1(t *testing.T) {
+	now := time.Now().UTC().Unix();
 	reading := &SonarReading{
-		Version:    "abc",
-		Timestamp:  "123",
-		Cluster:    "bad", // This is not currently in the csv representation
-		Host:       "hi",
+		Version:    StringToUstr("abc"),
+		Timestamp:  now,
+		Cluster:    StringToUstr("bad"), // This is not currently in the csv representation
+		Host:       StringToUstr("hi"),
 		Cores:      5,
-		User:       "me",
+		MemtotalKib: 10,
+		User:       StringToUstr("me"),
 		Job:        37,
 		Pid:        1337,
-		Cmd:        "secret",
+		Cmd:        StringToUstr("secret"),
 		CpuPct:     0.5,
 		CpuKib:     12,
 		RssAnonKib: 15,
-		Gpus:       "none",
+		Gpus:       StringToUstr("none"),
 		GpuPct:     0.25,
 		GpuMemPct:  10,
 		GpuKib:     14,
@@ -53,21 +81,22 @@ func TestCsvnamed1(t *testing.T) {
 		CpuTimeSec: 1234,
 		Rolledup:   1,
 	}
-	expected := "v=abc,time=123,host=hi,cores=5,memtotalkib=0,user=me,job=37,pid=1337,cmd=secret,cpu%=0.5,cpukib=12,rssanonkib=15,gpus=none,gpu%=0.25,gpumem%=10,gpukib=14,gpufail=2,cputime_sec=1234,rolledup=1\n"
+	expected := "v=abc,time=" + time.Unix(now, 0).Format(time.RFC3339) + ",host=hi,user=me,cmd=secret,cores=5,memtotalkib=10,job=37,pid=1337,cpu%=0.5,cpukib=12,rssanonkib=15,gpus=none,gpu%=0.25,gpumem%=10,gpukib=14,gpufail=2,cputime_sec=1234,rolledup=1\n"
 	s := string(reading.Csvnamed())
 	if s != expected {
-		t.Fatalf("Bad csv: %s", s)
+		t.Fatalf("Bad csv:\nWant: %s\nGot:  %s", expected, s)
 	}
 }
 
 func TestCsvnamed2(t *testing.T) {
+	now := time.Now().UTC().Unix();
 	heartbeat := &SonarHeartbeat{
-		Version:   "abc",
-		Timestamp: "123",
-		Cluster:   "bad",
-		Host:      "hi",
+		Version:   StringToUstr("abc"),
+		Timestamp: now,
+		Cluster:   StringToUstr("bad"),
+		Host:      StringToUstr("hi"),
 	}
-	expected := "v=abc,time=123,host=hi,cores=0,user=_sonar_,job=0,pid=0,cmd=_heartbeat_\n"
+	expected := "v=abc,time=" + time.Unix(now, 0).Format(time.RFC3339) + ",host=hi,user=_sonar_,cmd=_heartbeat_\n"
 	s := string(heartbeat.Csvnamed())
 	if s != expected {
 		t.Fatalf("Bad csv: %s", s)

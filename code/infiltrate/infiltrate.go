@@ -90,6 +90,7 @@ import (
 	"net/url"
 	"os"
 	"syscall"
+	"time"
 
 	"go-utils/auth"
 	"go-utils/config"
@@ -256,9 +257,14 @@ func sonarReading(_ url.Values, payload []byte, clusterName string) (int, string
 		return 400, "Bad content",
 			fmt.Sprintf("Bad content - can't unmarshal SonarReading JSON: %v", err)
 	}
+	clusterUstr := sonarlog.StringToUstr(clusterName)
 	for _, r := range rs {
-		if !matchUserAndCluster || clusterName == "" || r.Cluster == clusterName {
-			ds.Write(r.Cluster, r.Host, r.Timestamp, "%s.csv", r.Csvnamed())
+		if !matchUserAndCluster || clusterUstr == sonarlog.UstrEmpty || r.Cluster == clusterUstr {
+			ds.Write(
+				r.Cluster.String(), r.Host.String(), time.Unix(r.Timestamp, 0).Format(time.RFC3339),
+				"%s.csv",
+				r.Csvnamed(),
+			)
 		}
 	}
 	return 200, "", ""
@@ -271,9 +277,14 @@ func sonarHeartbeat(_ url.Values, payload []byte, clusterName string) (int, stri
 		return 400, "Bad content",
 			fmt.Sprintf("Bad content - can't unmarshal SonarHeartbeat JSON: %v", err)
 	}
+	clusterUstr := sonarlog.StringToUstr(clusterName)
 	for _, r := range rs {
-		if !matchUserAndCluster || clusterName == "" || r.Cluster == clusterName {
-			ds.Write(r.Cluster, r.Host, r.Timestamp, "%s.csv", r.Csvnamed())
+		if !matchUserAndCluster || clusterUstr == sonarlog.UstrEmpty || r.Cluster == clusterUstr {
+			ds.Write(
+				r.Cluster.String(), r.Host.String(), time.Unix(r.Timestamp, 0).Format(time.RFC3339),
+				"%s.csv",
+				r.Csvnamed(),
+			)
 		}
 	}
 	return 200, "", ""
