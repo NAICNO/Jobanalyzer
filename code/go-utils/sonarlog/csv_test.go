@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-func TestParseSonarCSVNamed(t *testing.T) {
+func TestParseSonarLogTagged(t *testing.T) {
 	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-intermingled.csv")
-	readings, heartbeats, bad, err := ParseSonarCsvnamed(bytes.NewReader(bs))
+	readings, heartbeats, bad, err := ParseSonarLog(bytes.NewReader(bs))
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
@@ -28,6 +28,31 @@ func TestParseSonarCSVNamed(t *testing.T) {
 	}
 	x := readings[0]
 	if x.Host.String() != "ml4.hpc.uio.no" || x.User.String() != "root" || x.Cmd.String() != "tuned" {
+		t.Errorf("First record is bogus: %v", x)
+	}
+}
+
+func TestParseSonarLogUntagged(t *testing.T) {
+	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-untagged-intermingled.csv")
+	readings, heartbeats, bad, err := ParseSonarLog(bytes.NewReader(bs))
+	if err != nil {
+		t.Fatalf("Unexpected fatal error during parsing: %v", err)
+	}
+	if bad != 4 {
+		// First record is missing user
+		// Second record has blank field for cores
+		// Fourth record has bad syntax for cores
+		// Sixth record has a spurious field and so the others are shifted and fail syntax check
+		t.Errorf("Expected 4 irritants, got %d", bad)
+	}
+	if len(readings) != 2 {
+		t.Errorf("Expected 2 readings, got %d", len(readings))
+	}
+	if len(heartbeats) != 0 {
+		t.Errorf("Expected 0 heartbeats, got %d", len(heartbeats))
+	}
+	x := readings[0]
+	if x.Host.String() != "ml3.hpc.uio.no" || x.User.String() != "larsbent" || x.Cmd.String() != "python" {
 		t.Errorf("First record is bogus: %v", x)
 	}
 }

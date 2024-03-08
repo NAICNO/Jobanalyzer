@@ -12,16 +12,17 @@ import (
 	"time"
 )
 
-// Sonar "csvnamed" data intermingle readings and heartbeats.  Read a stream of records, parse them
-// into separate buckets and return the buckets.  Returns the number of benign errors, and non-nil
-// error if non-benign error.  The records in the buckets are in the order they appear in the input.
+// Sonar data intermingle readings and heartbeats (though really only in the tagged format).  Read a
+// stream of records, parse them into separate buckets and return the buckets.  Returns the number
+// of benign errors, and non-nil error if non-benign error.  The records in the buckets are in the
+// order they appear in the input.
 //
 // Note wrt parsing floats: According to documentation, strconv.ParseFloat() accepts nan, inf, +inf,
 // -inf, infinity, +infinity and -infinity, case-insensitively.  Based on experimentation, the rust
 // to_string() formatter will produce "NaN", "inf" and "-inf", with that capitalization (weird).  So
 // ingesting CSV data from Rust should not be a problem.
 
-func ParseSonarCsvnamed(
+func ParseSonarLog(
 	input io.Reader,
 ) (
 	readings []*SonarReading,
@@ -34,6 +35,7 @@ func ParseSonarCsvnamed(
 	rdr.FieldsPerRecord = -1
 	readings = make([]*SonarReading, 0)
 	heartbeats = make([]*SonarHeartbeat, 0)
+	v060 := StringToUstr("0.6.0")
 	heartbeat := StringToUstr("_heartbeat_")
 outerLoop:
 	for {
@@ -45,84 +47,152 @@ outerLoop:
 		if err != nil {
 			return
 		}
+		if len(fields) == 0 {
+			badRecords++
+			continue outerLoop
+		}
 		r := new(SonarReading)
-		for _, f := range fields {
-			ix := strings.IndexByte(f, '=')
-			if ix == -1 {
-				log.Printf("Dropping field with illegal syntax: %s", f)
-				badRecords++
-				continue
-			}
-			var tmp uint64
-			var ftmp float64
-			var ts time.Time
-			val := f[ix+1:]
-			switch f[:ix] {
-			case "v":
-				r.Version = StringToUstr(val)
-			case "time":
-				// This is really the format we use in the logs, but the nano part is often omitted
-				// by our formatters:
-				//
-				//  "2006-01-02T15:04:05.999999999-07:00"
-				//
-				// RFC3339Nano handles +/- for the tz offset and also will allow the nano part to be
-				// missing.
-				ts, err = time.Parse(time.RFC3339Nano, val)
-				if err == nil {
-					r.Timestamp = ts.Unix()
-				}
-			case "host":
-				r.Host = StringToUstr(val)
-			case "cores":
-				tmp, err = strconv.ParseUint(val, 10, 64)
-				r.Cores = uint32(tmp)
-			case "memtotalkib":
-				r.MemtotalKib, err = strconv.ParseUint(val, 10, 64)
-			case "user":
-				r.User = StringToUstr(val)
-			case "job":
-				tmp, err = strconv.ParseUint(val, 10, 64)
-				r.Job = uint32(tmp)
-			case "pid":
-				tmp, err = strconv.ParseUint(val, 10, 64)
-				r.Pid = uint32(tmp)
-			case "cmd":
-				r.Cmd = StringToUstr(val)
-			case "cpu%":
-				ftmp, err = strconv.ParseFloat(val, 64)
-				r.CpuPct = float32(ftmp)
-			case "cpukib":
-				r.CpuKib, err = strconv.ParseUint(val, 10, 64)
-			case "rssanonkib":
-				r.RssAnonKib, err = strconv.ParseUint(val, 10, 64)
-			case "gpus":
-				// We don't validate the gpu syntax here
-				r.Gpus = StringToUstr(val)
-			case "gpu%":
-				ftmp, err = strconv.ParseFloat(val, 64)
-				r.GpuPct = float32(ftmp)
-			case "gpumem%":
-				ftmp, err = strconv.ParseFloat(val, 64)
-				r.GpuMemPct = float32(ftmp)
-			case "gpukib":
-				r.GpuKib, err = strconv.ParseUint(val, 10, 64)
-			case "gpufail":
-				tmp, err = strconv.ParseUint(val, 10, 64)
-				r.GpuFail = uint8(tmp)
-			case "cputime_sec":
-				r.CpuTimeSec, err = strconv.ParseUint(val, 10, 64)
-			case "rolledup":
-				tmp, err = strconv.ParseUint(val, 10, 64)
-				r.Rolledup = uint32(tmp)
-			default:
-				log.Printf("Dropping field with unknown name: %s", f)
-				badRecords++
-			}
-			if err != nil {
-				log.Printf("Dropping record with illegal/unparseable value: %s", f)
+		// If the first field starts with a '2' then this is the old untagged format because that's
+		// the first byte in an untagged timestamp, and no tags start with that value.
+		if []byte(fields[0])[0] == '2' {
+			// Old old format (current on Saga and Fram as of 2024-03-04)
+			// 0  timestamp
+			// 1  hostname
+			// 2  numcores
+			// 3  username
+			// 4  jobid
+			// 5  command
+			// 6  cpu_pct
+			// 7  mem_kib
+			//
+			// New old format (what was briefly deployed on the UiO ML nodes)
+			// 8  gpus bitvector
+			// 9  gpu_pct
+			// 10 gpumem_pct
+			// 11 gpumem_kib
+			//
+			// Newer old format (again briefly used on the UiO ML nodes)
+			// 12 cputime_sec
+
+			if len(fields) < 8 {
 				badRecords++
 				continue outerLoop
+			}
+
+			r.Version = v060
+			ts, err := time.Parse(time.RFC3339Nano, fields[0])
+			if err != nil {
+ 				badRecords++
+ 				continue outerLoop
+ 			}
+			r.Timestamp = ts.Unix()
+			r.Host = StringToUstr(fields[1])
+			cores, err := strconv.ParseUint(fields[2], 10, 64)
+			if err != nil {
+ 				badRecords++
+				continue outerLoop
+ 			}
+			r.Cores = uint32(cores)
+			r.User = StringToUstr(fields[3])
+			jobno, err := strconv.ParseUint(fields[4], 10, 64)
+ 			if err != nil {
+ 				badRecords++
+				continue outerLoop
+			}
+			r.Job = uint32(jobno)
+			r.Pid = r.Job
+			r.Cmd = StringToUstr(fields[5])
+			cpupct, err := strconv.ParseFloat(fields[6], 64)
+			if err != nil {
+				badRecords++
+				continue outerLoop
+			}
+			r.CpuPct = float32(cpupct)
+			r.CpuKib, err = strconv.ParseUint(fields[7], 10, 64)
+			if err != nil {
+				badRecords++
+				continue outerLoop
+			}
+			// Skip any remaining fields - they are not in most untagged data.
+		} else {
+			for _, f := range fields {
+				ix := strings.IndexByte(f, '=')
+				if ix == -1 {
+					log.Printf("Dropping field with illegal syntax: %s", f)
+					badRecords++
+					continue
+				}
+				var tmp uint64
+				var ftmp float64
+				var ts time.Time
+				val := f[ix+1:]
+				switch f[:ix] {
+				case "v":
+					r.Version = StringToUstr(val)
+				case "time":
+					// This is really the format we use in the logs, but the nano part is often omitted
+					// by our formatters:
+					//
+					//  "2006-01-02T15:04:05.999999999-07:00"
+					//
+					// RFC3339Nano handles +/- for the tz offset and also will allow the nano part to be
+					// missing.
+					ts, err = time.Parse(time.RFC3339Nano, val)
+					if err == nil {
+						r.Timestamp = ts.Unix()
+					}
+				case "host":
+					r.Host = StringToUstr(val)
+				case "cores":
+					tmp, err = strconv.ParseUint(val, 10, 64)
+					r.Cores = uint32(tmp)
+				case "memtotalkib":
+					r.MemtotalKib, err = strconv.ParseUint(val, 10, 64)
+				case "user":
+					r.User = StringToUstr(val)
+				case "job":
+					tmp, err = strconv.ParseUint(val, 10, 64)
+					r.Job = uint32(tmp)
+				case "pid":
+					tmp, err = strconv.ParseUint(val, 10, 64)
+					r.Pid = uint32(tmp)
+				case "cmd":
+					r.Cmd = StringToUstr(val)
+				case "cpu%":
+					ftmp, err = strconv.ParseFloat(val, 64)
+					r.CpuPct = float32(ftmp)
+				case "cpukib":
+					r.CpuKib, err = strconv.ParseUint(val, 10, 64)
+				case "rssanonkib":
+					r.RssAnonKib, err = strconv.ParseUint(val, 10, 64)
+				case "gpus":
+					// We don't validate the gpu syntax here
+					r.Gpus = StringToUstr(val)
+				case "gpu%":
+					ftmp, err = strconv.ParseFloat(val, 64)
+					r.GpuPct = float32(ftmp)
+				case "gpumem%":
+					ftmp, err = strconv.ParseFloat(val, 64)
+					r.GpuMemPct = float32(ftmp)
+				case "gpukib":
+					r.GpuKib, err = strconv.ParseUint(val, 10, 64)
+				case "gpufail":
+					tmp, err = strconv.ParseUint(val, 10, 64)
+					r.GpuFail = uint8(tmp)
+				case "cputime_sec":
+					r.CpuTimeSec, err = strconv.ParseUint(val, 10, 64)
+				case "rolledup":
+					tmp, err = strconv.ParseUint(val, 10, 64)
+					r.Rolledup = uint32(tmp)
+				default:
+					log.Printf("Dropping field with unknown name: %s", f)
+					badRecords++
+				}
+				if err != nil {
+					log.Printf("Dropping record with illegal/unparseable value: %s", f)
+					badRecords++
+					continue outerLoop
+				}
 			}
 		}
 
