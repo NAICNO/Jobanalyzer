@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Sonar "csvnamed" data intermingle readings and heartbeats.  Read a stream of records, parse them
@@ -19,12 +21,20 @@ import (
 // to_string() formatter will produce "NaN", "inf" and "-inf", with that capitalization (weird).  So
 // ingesting CSV data from Rust should not be a problem.
 
-func ParseSonarCsvnamed(input io.Reader) (readings []*SonarReading, heartbeats []*SonarHeartbeat, badRecords int, err error) {
+func ParseSonarCsvnamed(
+	input io.Reader,
+) (
+	readings []*SonarReading,
+	heartbeats []*SonarHeartbeat,
+	badRecords int,
+	err error,
+) {
 	rdr := csv.NewReader(input)
 	// CSV rows are arbitrarily wide and possibly uneven.
 	rdr.FieldsPerRecord = -1
 	readings = make([]*SonarReading, 0)
 	heartbeats = make([]*SonarHeartbeat, 0)
+	heartbeat := StringToUstr("_heartbeat_")
 outerLoop:
 	for {
 		var fields []string
@@ -43,47 +53,68 @@ outerLoop:
 				badRecords++
 				continue
 			}
+			var tmp uint64
+			var ftmp float64
+			var ts time.Time
 			val := f[ix+1:]
 			switch f[:ix] {
 			case "v":
-				r.Version = val
+				r.Version = StringToUstr(val)
 			case "time":
-				r.Timestamp = val
+				// This is really the format we use in the logs, but the nano part is often omitted
+				// by our formatters:
+				//
+				//  "2006-01-02T15:04:05.999999999-07:00"
+				//
+				// RFC3339Nano handles +/- for the tz offset and also will allow the nano part to be
+				// missing.
+				ts, err = time.Parse(time.RFC3339Nano, val)
+				if err == nil {
+					r.Timestamp = ts.Unix()
+				}
 			case "host":
-				r.Host = val
+				r.Host = StringToUstr(val)
 			case "cores":
-				r.Cores, err = strconv.ParseUint(val, 10, 64)
+				tmp, err = strconv.ParseUint(val, 10, 64)
+				r.Cores = uint32(tmp)
 			case "memtotalkib":
 				r.MemtotalKib, err = strconv.ParseUint(val, 10, 64)
 			case "user":
-				r.User = val
+				r.User = StringToUstr(val)
 			case "job":
-				r.Job, err = strconv.ParseUint(val, 10, 64)
+				tmp, err = strconv.ParseUint(val, 10, 64)
+				r.Job = uint32(tmp)
 			case "pid":
-				r.Pid, err = strconv.ParseUint(val, 10, 64)
+				tmp, err = strconv.ParseUint(val, 10, 64)
+				r.Pid = uint32(tmp)
 			case "cmd":
-				r.Cmd = val
+				r.Cmd = StringToUstr(val)
 			case "cpu%":
-				r.CpuPct, err = strconv.ParseFloat(val, 64)
+				ftmp, err = strconv.ParseFloat(val, 64)
+				r.CpuPct = float32(ftmp)
 			case "cpukib":
 				r.CpuKib, err = strconv.ParseUint(val, 10, 64)
 			case "rssanonkib":
 				r.RssAnonKib, err = strconv.ParseUint(val, 10, 64)
 			case "gpus":
 				// We don't validate the gpu syntax here
-				r.Gpus = val
+				r.Gpus = StringToUstr(val)
 			case "gpu%":
-				r.GpuPct, err = strconv.ParseFloat(val, 64)
+				ftmp, err = strconv.ParseFloat(val, 64)
+				r.GpuPct = float32(ftmp)
 			case "gpumem%":
-				r.GpuMemPct, err = strconv.ParseFloat(val, 64)
+				ftmp, err = strconv.ParseFloat(val, 64)
+				r.GpuMemPct = float32(ftmp)
 			case "gpukib":
 				r.GpuKib, err = strconv.ParseUint(val, 10, 64)
 			case "gpufail":
-				r.GpuFail, err = strconv.ParseUint(val, 10, 64)
+				tmp, err = strconv.ParseUint(val, 10, 64)
+				r.GpuFail = uint8(tmp)
 			case "cputime_sec":
 				r.CpuTimeSec, err = strconv.ParseUint(val, 10, 64)
 			case "rolledup":
-				r.Rolledup, err = strconv.ParseUint(val, 10, 64)
+				tmp, err = strconv.ParseUint(val, 10, 64)
+				r.Rolledup = uint32(tmp)
 			default:
 				log.Printf("Dropping field with unknown name: %s", f)
 				badRecords++
@@ -96,21 +127,21 @@ outerLoop:
 		}
 
 		irritants := ""
-		if r.Version == "" || r.Timestamp == "" || r.Host == "" || r.Cmd == "" {
-			if r.Version == "" {
+		if r.Version == UstrEmpty || r.Timestamp == 0 || r.Host == UstrEmpty || r.Cmd == UstrEmpty {
+			if r.Version == UstrEmpty {
 				irritants += "version "
 			}
-			if r.Timestamp == "" {
+			if r.Timestamp == 0 {
 				irritants += "timestamp "
 			}
-			if r.Host == "" {
+			if r.Host == UstrEmpty {
 				irritants += "host "
 			}
-			if r.Cmd == "" {
+			if r.Cmd == UstrEmpty {
 				irritants += "cmd "
 			}
 		}
-		if r.Cmd != "_heartbeat_" && r.User == "" {
+		if r.Cmd != heartbeat && r.User == UstrEmpty {
 			irritants += "user "
 		}
 		if irritants != "" {
@@ -119,7 +150,7 @@ outerLoop:
 			continue outerLoop
 		}
 
-		if r.Cmd == "_heartbeat_" {
+		if r.Cmd == heartbeat {
 			heartbeats = append(heartbeats, &SonarHeartbeat{
 				Version:   r.Version,
 				Timestamp: r.Timestamp,
@@ -140,25 +171,25 @@ func (r *SonarReading) Csvnamed() []byte {
 	var bw bytes.Buffer
 	csvw := csv.NewWriter(&bw)
 	csvw.Write([]string{
-		"v=" + r.Version,
-		"time=" + r.Timestamp,
-		"host=" + r.Host,
-		"cores=" + strconv.FormatUint(r.Cores, 10),
-		"memtotalkib=" + strconv.FormatUint(r.MemtotalKib, 10),
-		"user=" + r.User,
-		"job=" + strconv.FormatUint(r.Job, 10),
-		"pid=" + strconv.FormatUint(r.Pid, 10),
-		"cmd=" + r.Cmd,
-		"cpu%=" + strconv.FormatFloat(r.CpuPct, 'g', -1, 64),
-		"cpukib=" + strconv.FormatUint(r.CpuKib, 10),
-		"rssanonkib=" + strconv.FormatUint(r.RssAnonKib, 10),
-		"gpus=" + r.Gpus,
-		"gpu%=" + strconv.FormatFloat(r.GpuPct, 'g', -1, 64),
-		"gpumem%=" + strconv.FormatFloat(r.GpuMemPct, 'g', -1, 64),
-		"gpukib=" + strconv.FormatUint(r.GpuKib, 10),
-		"gpufail=" + strconv.FormatUint(r.GpuFail, 10),
-		"cputime_sec=" + strconv.FormatUint(r.CpuTimeSec, 10),
-		"rolledup=" + strconv.FormatUint(r.Rolledup, 10),
+		"v=" + r.Version.String(),
+		"time=" + fmt.Sprint(r.Timestamp),
+		"host=" + r.Host.String(),
+		"cores=" + fmt.Sprint(r.Cores),
+		"memtotalkib=" + fmt.Sprint(r.MemtotalKib),
+		"user=" + r.User.String(),
+		"job=" + fmt.Sprint(r.Job),
+		"pid=" + fmt.Sprint(r.Pid),
+		"cmd=" + r.Cmd.String(),
+		"cpu%=" + strconv.FormatFloat(float64(r.CpuPct), 'g', -1, 64),
+		"cpukib=" + fmt.Sprint(r.CpuKib),
+		"rssanonkib=" + fmt.Sprint(r.RssAnonKib),
+		"gpus=" + r.Gpus.String(),
+		"gpu%=" + strconv.FormatFloat(float64(r.GpuPct), 'g', -1, 64),
+		"gpumem%=" + strconv.FormatFloat(float64(r.GpuMemPct), 'g', -1, 64),
+		"gpukib=" + fmt.Sprint(r.GpuKib),
+		"gpufail=" + fmt.Sprint(r.GpuFail),
+		"cputime_sec=" + fmt.Sprint(r.CpuTimeSec),
+		"rolledup=" + fmt.Sprint(r.Rolledup),
 	})
 	csvw.Flush()
 	return bw.Bytes()
@@ -170,9 +201,9 @@ func (r *SonarHeartbeat) Csvnamed() []byte {
 	var bw bytes.Buffer
 	csvw := csv.NewWriter(&bw)
 	csvw.Write([]string{
-		"v=" + r.Version,
-		"time=" + r.Timestamp,
-		"host=" + r.Host,
+		"v=" + r.Version.String(),
+		"time=" + fmt.Sprint(r.Timestamp),
+		"host=" + r.Host.String(),
 		"cores=0",
 		"user=_sonar_",
 		"job=0",

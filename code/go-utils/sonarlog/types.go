@@ -1,42 +1,56 @@
 package sonarlog
 
-// Version 0.5.0 had fields through CpuKib
+// Memory use.
 //
-// Version 0.6.0 added GPU fields
+// A huge number of these (about 10e6 records per month for Saga) may be in memory at the same time
+// when processing logs, so several optimizations have been applied:
 //
-// Version 0.7.0 added CpuTimeSec and Rolledup and GpuFail, and mostly deprecated CpuPct b/c it is
-// percent-since-start, not since last measurement
+//  - all fields are pointer free, so these structures don't need to be traced by the GC
+//  - strings are hash-consed into Ustr, which takes 4 bytes
+//  - fields in the structure have been ordered largest-to-smallest in order to pack the structure,
+//    the Go compiler does not do this
+//  - the timestamp has been reduced from a 24-byte structure with a pointer to an 8-byte second
+//    value, we lose tz info but we never used that anyway and always assumed UTC
 //
-// Version 0.8.0 added MemtotalKib and RssAnonKib.
+// Optimizations so far have brought the size from 240 bytes to 104 bytes.
 //
-// Cluster is implied in sonar data, it is added during json encoding
+// Further optimizations are possible:
+//
+//  - Timestamp can be reduced to uint32
+//  - CpuPct, GpuMemPct, GpuPct can be float16 or 16-bit fixedpoint.
+//  - There are many fields that have unused bits, for example, Ustr is unlikely ever to need
+//    more than 24 bits, most memory sizes need more than 32 bits but not more than 38, Job and
+//    Process IDs are probably 24 bits or so, and Rolledup is unlikely to be more than 16 bits.
+//    GpuFail is a single bit at present.
+//
+// It seems likely that if we applied all of these we could save another 30 bytes easily.
 
 type SonarReading struct {
-	Version     string  `json:"version"` // semver
-	Timestamp   string  `json:"time"`    // Full ISO timestamp: yyyy-mm-ddThh:mm:ss+hh:mm
-	Cluster     string  `json:"cluster"`
-	Host        string  `json:"host"`
-	Cores       uint64  `json:"cores,omitempty"`
-	MemtotalKib uint64  `json:"memtotalkib,omitempty"`
-	User        string  `json:"user"`
-	Job         uint64  `json:"job,omitempty"`
-	Pid         uint64  `json:"pid,omitempty"`
-	Cmd         string  `json:"cmd"`
-	CpuPct      float64 `json:"cpu%,omitempty"`
-	CpuKib      uint64  `json:"cpukib,omitempty"`
-	RssAnonKib  uint64  `json:"rssanonkib,omitempty"`
-	Gpus        string  `json:"gpus,omitempty"` // unknown, none, or k,n,m,...
-	GpuPct      float64 `json:"gpu%,omitempty"`
-	GpuMemPct   float64 `json:"gpumem%,omitempty"`
-	GpuKib      uint64  `json:"gpukib,omitempty"`
-	GpuFail     uint64  `json:"gpufail,omitempty"`
-	CpuTimeSec  uint64  `json:"cputime_sec,omitempty"`
-	Rolledup    uint64  `json:"rolledup,omitempty"`
+	Timestamp   int64 // seconds since year 1
+	MemtotalKib uint64
+	CpuKib      uint64
+	RssAnonKib  uint64
+	GpuKib      uint64
+	CpuTimeSec  uint64
+	Version     Ustr
+	Cluster     Ustr
+	Host        Ustr
+	Cores       uint32
+	User        Ustr
+	Job         uint32
+	Pid         uint32
+	Cmd         Ustr
+	CpuPct      float32
+	Gpus        Ustr
+	GpuPct      float32
+	GpuMemPct   float32
+	Rolledup    uint32
+	GpuFail     uint8
 }
 
 type SonarHeartbeat struct {
-	Version   string `json:"version"`
-	Timestamp string `json:"time"`
-	Cluster   string `json:"cluster"`
-	Host      string `json:"host"`
+	Timestamp int64 // seconds since year 1
+	Version   Ustr
+	Cluster   Ustr
+	Host      Ustr
 }

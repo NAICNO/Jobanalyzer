@@ -26,26 +26,26 @@ func TestParseSonarCSVNamed(t *testing.T) {
 		t.Errorf("Expected 1 heartbeats, got %d", len(heartbeats))
 	}
 	x := readings[0]
-	if x.Host != "ml4.hpc.uio.no" || x.User != "root" || x.Cmd != "tuned" {
+	if x.Host.String() != "ml4.hpc.uio.no" || x.User.String() != "root" || x.Cmd.String() != "tuned" {
 		t.Errorf("First record is bogus: %v", x)
 	}
 }
 
 func TestCsvnamed1(t *testing.T) {
 	reading := &SonarReading{
-		Version:    "abc",
-		Timestamp:  "123",
-		Cluster:    "bad", // This is not currently in the csv representation
-		Host:       "hi",
+		Version:    StringToUstr("abc"),
+		Timestamp:  123,
+		Cluster:    StringToUstr("bad"), // This is not currently in the csv representation
+		Host:       StringToUstr("hi"),
 		Cores:      5,
-		User:       "me",
+		User:       StringToUstr("me"),
 		Job:        37,
 		Pid:        1337,
-		Cmd:        "secret",
+		Cmd:        StringToUstr("secret"),
 		CpuPct:     0.5,
 		CpuKib:     12,
 		RssAnonKib: 15,
-		Gpus:       "none",
+		Gpus:       StringToUstr("none"),
 		GpuPct:     0.25,
 		GpuMemPct:  10,
 		GpuKib:     14,
@@ -62,10 +62,10 @@ func TestCsvnamed1(t *testing.T) {
 
 func TestCsvnamed2(t *testing.T) {
 	heartbeat := &SonarHeartbeat{
-		Version:   "abc",
-		Timestamp: "123",
-		Cluster:   "bad",
-		Host:      "hi",
+		Version:   StringToUstr("abc"),
+		Timestamp: 123,
+		Cluster:   StringToUstr("bad"),
+		Host:      StringToUstr("hi"),
 	}
 	expected := "v=abc,time=123,host=hi,cores=0,user=_sonar_,job=0,pid=0,cmd=_heartbeat_\n"
 	s := string(heartbeat.Csvnamed())
