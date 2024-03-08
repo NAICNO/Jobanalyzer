@@ -141,3 +141,71 @@ func testCompress(t *testing.T, hosts []string, expect map[string]bool) {
 		}
 	}
 }
+
+func TestGlobber1(t *testing.T) {
+    hf := NewGlobber(true)
+    if hf.Insert("ml8") != nil {
+		t.Fatal("Insert 1")
+	}
+    if hf.Insert("ml3.hpc") != nil {
+		t.Fatal("Insert 2")
+	}
+
+    // Single-element prefix match against this
+    if !hf.Match("ml8.hpc.uio.no") {
+		t.Fatal("Match 1")
+	}
+
+    // Multi-element prefix match against this
+    if !hf.Match("ml3.hpc.uio.no") {
+		t.Fatal("Match 2")
+	}
+
+    hf = NewGlobber(false)
+    if hf.Insert("ml4.hpc.uio.no") != nil {
+		t.Fatal("Insert 3")
+	}
+
+    // Exhaustive match against this
+    if !hf.Match("ml4.hpc.uio.no") {
+		t.Fatal("Match 3")
+	}
+    if hf.Match("ml4.hpc.uio.no.yes") {
+		t.Fatal("Match 4")
+	}
+}
+
+func TestGlobber2(t *testing.T) {
+    hf := NewGlobber(true)
+	err := hf.Insert("ml[1-3]*")
+    if err != nil {
+		t.Fatal(err)
+	}
+    if !hf.Match("ml1") {
+		t.Fatal("Match 1")
+	}
+    if !hf.Match("ml1x") {
+		t.Fatal("Match 2")
+	}
+    if !hf.Match("ml1.uio") {
+		t.Fatal("Match 3")
+	}
+}
+
+func TestGlobber3(t *testing.T) {
+    hf := NewGlobber(false)
+	err := hf.Insert("c[1-3]-[2,4]")
+    if err != nil {
+		t.Fatal(err)
+	}
+    if !hf.Match("c1-2") {
+		t.Fatal("Match 1")
+	}
+    if !hf.Match("c2-2") {
+		t.Fatal("Match 2")
+	}
+    if hf.Match("c2-3") {
+		t.Fatal("Match 3")
+	}
+}
+

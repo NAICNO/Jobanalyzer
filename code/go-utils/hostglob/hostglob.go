@@ -37,8 +37,6 @@
 //   the host-element "a14b" because the "1" is matched by the disjunction and the "4" is matched by
 //   the wildcard.
 //
-// Note: There is no implementation of matching here, as it is not yet needed by the Go code.
-//
 // Note: There are implementations of the algorithms here both in the Rust code (sonarlog) and in
 // the JS code (dashboard/hostglob.js).
 //
@@ -151,6 +149,9 @@ func expandPatternElement(s string) ([]string, error) {
 			return nil, errors.New("Wildcard not allowed in expansions")
 		}
 		fragments = append(fragments, fragment)
+		if len(fragments) > 100 {
+			return nil, errors.New("Unlikely hostname pattern")
+		}
 	}
 	if len(fragments) == 0 {
 		return nil, errors.New("Empty element")
@@ -164,7 +165,7 @@ func expandPatternElement(s string) ([]string, error) {
 				xs = append(xs, f+t)
 			}
 			tails = xs
-		case []int:
+		case []uint64:
 			xs := make([]string, 0, len(tails)*len(f))
 			for _, t := range tails {
 				for _, n := range f {
@@ -187,8 +188,11 @@ func parseFragment(r *strings.Reader) (any, error) {
 		return &wildcard{}, nil
 	case '[':
 		needOne := true
-		nodes := []int{}
+		nodes := []uint64{}
 		for {
+			if len(nodes) > 50000 {
+				return nil, errors.New("Too many elements")
+			}
 			if eatc(r, ']') {
 				if needOne {
 					return nil, errors.New("Expected number")
@@ -209,6 +213,9 @@ func parseFragment(r *strings.Reader) (any, error) {
 					return nil, errors.New("Bad range")
 				}
 				for n <= m {
+					if len(nodes) > 50000 {
+						return nil, errors.New("Too many elements")
+					}
 					nodes = append(nodes, n)
 					n++
 				}
@@ -239,45 +246,6 @@ func parseFragment(r *strings.Reader) (any, error) {
 			literal = literal + string(c)
 		}
 		return literal, nil
-	}
-}
-
-func readNumber(r io.RuneScanner) (int, error) {
-	cs := ""
-	for {
-		c := getc(r)
-		if c < '0' || c > '9' {
-			ungetc(r, c)
-			break
-		}
-		cs = cs + string(c)
-	}
-	if cs == "" {
-		return 0, errors.New("Expected number")
-	}
-	return strconv.Atoi(cs)
-}
-
-func eatc(r io.RuneScanner, x rune) bool {
-	c := getc(r)
-	if c == x {
-		return true
-	}
-	ungetc(r, c)
-	return false
-}
-
-func getc(r io.RuneScanner) rune {
-	c, _, err := r.ReadRune()
-	if err == io.EOF {
-		return 0
-	}
-	return c
-}
-
-func ungetc(r io.RuneScanner, c rune) {
-	if c != 0 {
-		r.UnreadRune()
 	}
 }
 
@@ -375,3 +343,183 @@ func compressRange(xs []int) string {
 	s = "[" + s + "]"
 	return s
 }
+
+type hostGlob struct {
+	re      *regexp.Regexp
+	pattern string
+}
+
+// A `HostGlobber` is a matcher of patterns against hostnames.
+//
+// The matcher holds a number of patterns, added with `insert`.  Each `pattern` is a <pattern> in
+// the sense of the grammar referenced above.
+//
+// The `match_hostname` method attempts to match its argument against the patterns in the matcher,
+// returning true if any of them match.
+
+type HostGlobber struct {
+	isPrefixMatcher bool
+	matchers        []hostGlob
+}
+
+// Create a new, empty filter.  The flag indicates whether the globbers in the filter could match
+// only a prefix of the hostname elements or must match all of them.
+
+func NewGlobber(isPrefixMatcher bool) *HostGlobber {
+	return &HostGlobber{
+		isPrefixMatcher: isPrefixMatcher,
+		matchers: make([]hostGlob, 0),
+	}
+}
+
+// Add the pattern to the set of patterns in the matcher.
+
+func (hg *HostGlobber) Insert(pattern string) error {
+	re, pattern, err := compileGlobber(pattern, hg.isPrefixMatcher)
+	if err != nil {
+		return err
+	}
+	hg.matchers = append(hg.matchers, hostGlob{ re, pattern })
+	return nil
+}
+
+// Return true iff the filter has no patterns.
+
+func (hg *HostGlobber) IsEmpty() bool {
+	return len(hg.matchers) == 0
+}
+
+// Match s against the patterns and return true iff it matches at least one pattern.
+
+func (hg *HostGlobber) Match(host string) bool {
+	for _, m := range hg.matchers {
+		if m.re.Match([]byte(host)) {
+			return true
+		}
+	}
+	return false
+}
+
+func compileGlobber(p string, prefix bool) (*regexp.Regexp, string, error) {
+	in := strings.NewReader(p)
+	r := "^"
+Parser:
+	for {
+		if len(r) > 50000 {
+			return nil, "", errors.New("Expression too large, use more '*'")
+		}
+		switch c := getc(in); c {
+		case 0:
+			break Parser
+		case '*':
+			r += "[^.]*"
+		case '[':
+			ns := make([]string, 0)
+			for {
+				n0, err := readNumberLimited(in, 0xFFFFFFFF)
+				if err != nil {
+					return nil, "", err
+				}
+				if eatc(in, '-') {
+					n1, err := readNumberLimited(in, 0xFFFFFFFF)
+					if err != nil {
+						return nil, "", err
+					}
+					if n0 > n1 {
+						return nil, "", errors.New("Invalid range")
+					}
+					for n0 <= n1 {
+						ns = append(ns, fmt.Sprint(n0))
+						n0++
+						if len(ns) > 10000 {
+							return nil, "", errors.New("Range too large, use more '*'")
+						}
+					}
+				} else {
+					ns = append(ns, fmt.Sprint(n0))
+				}
+				if eatc(in, ']') {
+					break
+				}
+				if !eatc(in, ',') {
+					return nil, "", errors.New("Expected ','")
+				}
+			}
+			r += "(?:"
+			r += strings.Join(ns, "|")
+			r += ")"
+		case '.', '$', '^', '?', '\\', '(', ')', '{', '}', ']':
+			// Mostly these special chars are not allowed in hostnames, but it doesn't hurt to
+			// try to avoid disasters.
+			r += "\\"
+			r += string(c)
+		default:
+			r += string(c)
+		}
+	}
+    if prefix {
+        // Matching a prefix: we need to match entire host-elements, so following a prefix there
+        // should either be EOS or `.` followed by whatever until EOS.
+        r += "(?:\\..*)?$"
+    } else {
+        r += "$"
+    }
+	re, err := regexp.Compile(r)
+	if err != nil {
+		return nil, "", err
+	}
+	return re, r, nil
+}
+
+// Common operations on a RuneScanner
+
+func readNumberLimited(r io.RuneScanner, max uint64) (uint64, error) {
+	n, err := readNumber(r)
+	if err != nil {
+		return n, err
+	}
+	if n > max {
+		return 0, errors.New("Number out of range")
+	}
+	return n, nil
+}
+
+func readNumber(r io.RuneScanner) (uint64, error) {
+	cs := ""
+	for {
+		c := getc(r)
+		if c < '0' || c > '9' {
+			ungetc(r, c)
+			break
+		}
+		cs = cs + string(c)
+	}
+	if cs == "" {
+		return 0, errors.New("Expected number")
+	}
+	return strconv.ParseUint(cs, 10, 64)
+}
+
+func eatc(r io.RuneScanner, x rune) bool {
+	c := getc(r)
+	if c == x {
+		return true
+	}
+	ungetc(r, c)
+	return false
+}
+
+func getc(r io.RuneScanner) rune {
+	c, _, err := r.ReadRune()
+	if err == io.EOF {
+		return 0
+	}
+	return c
+}
+
+func ungetc(r io.RuneScanner, c rune) {
+	if c != 0 {
+		r.UnreadRune()
+	}
+}
+
