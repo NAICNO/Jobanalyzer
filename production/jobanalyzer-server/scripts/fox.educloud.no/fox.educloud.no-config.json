@@ -108,6 +108,15 @@
             "mem_gb": 1007,
             "gpu_cards": 2,
             "gpumem_gb": 159
+        },
+        {
+            "hostname": "gpu-13.fox",
+            "description": "2x48 (hyperthreaded) AMD EPYC 7642 48-Core Processor, 1007 GB, 4x NVIDIA A100-PCIE-40GB @ 40GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 192,
+            "mem_gb": 1007,
+            "gpu_cards": 4,
+            "gpumem_gb": 160
         }
     ]
 }
