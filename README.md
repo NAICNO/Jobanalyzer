@@ -1,6 +1,6 @@
 # Cross system Jobanalyzer
 
-Jobanalyzer: Easy-to-use resource usage reporting and analyses.
+Jobanalyzer: Easy-to-use resource usage reporting and post-hoc job analyses.
 
 ## Overview
 
@@ -14,21 +14,29 @@ The tool set is expected to grow over time.
 
 Current tools are based on a system sampler, and provide information based on collected samples.
 See [doc/DESIGN.md](doc/DESIGN.md) for more information on the technical architecture and its
-implementation.  See [doc/REQUIREMENTS.md](doc.REQUIREMENTS.md) for requirements and a list of specific use
-cases.
+implementation.  See [doc/REQUIREMENTS.md](doc.REQUIREMENTS.md) for requirements and a list of
+specific use cases.
+
+The central feature of Jobanalyzer is that it aggregates and analyzes historical data, making it
+possible to look into the past to examine both systems and individual jobs - more "what happened?"
+than "what's going on?".  That said, up-to-date data are also available and current system and job
+status are exposed in useful ways.
 
 
 ### Admins
 
-Admins will come to Jobanalyzer via [its web interface](http://naic-monitor.uio.no).  The current
-interface is bare-bones and consists of a cluster- and node-centric load dashboard, allowing the
-current and historical load of each cluster and node to be examined, along with some reports of
-programs that mis-use the systems.  The UiO ML nodes and the UiO Fox supercomputer are currently
+Admins will mostly come to Jobanalyzer via [its web interface](http://naic-monitor.uio.no).  The
+current interface is simple and consists of a cluster- and node-centric load dashboard (allowing the
+current and historical load of each cluster and node to be examined, along with some example reports
+of programs that mis-use the systems) and an interactive job querying and profiling facility.  The
+UiO ML nodes, the UiO "Fox" supercomputer, and the Sigma2 "Saga" supercomputer are currently
 represented.
 
-Data for the web interface are produced firstly by periodic analysis by the low-level `sonalyze`
-tool and secondly by the higher-level `naicreport` tool, and the results of these analyses are
-uploaded periodically to the web server.
+Data for the web interface dashboard are produced firstly by periodic analyses by the low-level
+`sonalyze` tool, secondly by the higher-level `naicreport` tool and some ad-hoc reports.  The
+results of these analyses are uploaded periodically to the web server.
+
+Data for the interactive queries are produced on demand.
 
 The web interface will be extended with more functional dashboards, including alerts for actionable
 items.  (Currently those alerts are emailed.)
@@ -36,17 +44,20 @@ items.  (Currently those alerts are emailed.)
 
 ### Users
 
-Users will currently come to Jobanalyzer via its command line interface (there is room here for a
-web interface or other GUI).  The primary interface is via the low-level `sonalyze` tool.  This tool
-can be hard to use effectively, but does serve many use cases as described elsewhere in the
-documentation.
+Users will currently come to Jobanalyzer via its web interface for job query and profiling, or will
+use it from the command line (the primary interface being the low-level `sonalyze` tool, which can
+be run remotely).  These tools can be hard to use effectively, and need to be improved, but do serve
+many use cases as described elsewhere in the documentation.
 
 
 ## Setup
 
-Jobanalyzer is a collective of programs running on three systems: compute nodes run `sonar` and
-`sysinfo` to collect data; analysis nodes run `sonalyze`, `naicreport` and various other programs
-and scripts to produce reports; and web nodes run a web server serving HTML, JS, and data.
+Jobanalyzer is a collective of programs running on two groups of systems: compute nodes run `sonar`
+collect data; while analysis nodes run `sonalyze`, `naicreport` and various other programs and
+scripts to produce reports, as well as a web server serving HTML, JS, and data to remote clients.
+
+Sample data are collected within a "cluster" and the data for a cluster has to be located on a
+single analysis node, but beyond that there can be different analysis nodes for different clusters.
 
 See `production/README.md` for instructions about how to set everything up.
 
