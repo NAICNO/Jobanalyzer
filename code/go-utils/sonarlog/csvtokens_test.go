@@ -239,4 +239,3 @@ func TestCsvTokenizer9(t *testing.T) {
 	checkMatchTag(t, tokenizer, "dd", "")
 	checkSentinel(t, tokenizer, CsvEof)
 }
-
