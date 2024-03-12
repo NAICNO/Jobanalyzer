@@ -29,6 +29,7 @@ package sonarlog
 
 import (
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -45,7 +46,7 @@ const (
 	// buffer.
 	bufferSize = 65400
 	// 1KB ought to be enough for anyone.
-	maxLine    = 1024
+	maxLine = 1024
 )
 
 type CsvTokenizer struct {
@@ -79,7 +80,14 @@ func (t *CsvTokenizer) BufAt(loc int) uint8 {
 	return t.buf[loc]
 }
 
-// Get the next token, or an error for syntax errors or I/O errors.
+func (t *CsvTokenizer) BufSubstring(start, lim int) string {
+	return string(t.buf[start:lim])
+}
+
+var SyntaxErr = errors.New("CSV syntax error")
+
+// Get the next token, or an error for syntax errors or I/O errors.  Syntax errors wrap SyntaxErr.
+// Every other error is an I/O error.
 func (t *CsvTokenizer) Get() (int, int, int, error) {
 	err := t.maybeRefill()
 	if err != nil {
@@ -98,7 +106,7 @@ func (t *CsvTokenizer) Get() (int, int, int, error) {
 
 	if !t.startOfLine {
 		if t.buf[t.ix] != ',' {
-			panic("Must have comma here")
+			panic("Inconsistent: Must have comma here")
 		}
 		t.ix++
 	}
@@ -120,7 +128,7 @@ func (t *CsvTokenizer) Get() (int, int, int, error) {
 		for {
 			switch t.buf[t.ix] {
 			case '\n':
-				return 0, 0, 0, errors.New("Unexpected end of line or end of file")
+				return 0, 0, 0, fmt.Errorf("%w: Unexpected end of line or end of file", SyntaxErr)
 			case '=':
 				if eqloc == CsvEqSentinel {
 					eqloc = t.ix + 1
@@ -131,7 +139,10 @@ func (t *CsvTokenizer) Get() (int, int, int, error) {
 					// We're done.  We've already consumed the quote.  Check that the
 					// syntax is sane.
 					if t.buf[t.ix] != ',' && t.buf[t.ix] != '\n' {
-						return 0, 0, 0, errors.New("Expected comma or newline after quoted field")
+						return 0, 0, 0, fmt.Errorf(
+							"%w: Expected comma or newline after quoted field",
+							SyntaxErr,
+						)
 					}
 					return startix, destix, eqloc, nil
 				}
@@ -153,15 +164,22 @@ func (t *CsvTokenizer) Get() (int, int, int, error) {
 					eqloc = t.ix + 1
 				}
 			case '"':
-				return 0, 0, 0, errors.New("Unexpected '\"'")
+				return 0, 0, 0, fmt.Errorf("%w: Unexpected '\"'", SyntaxErr)
 			}
 			t.ix++
 		}
 	}
 }
 
-// Given start and non-sentinel eqloc values returned with a token and a string <tag>,
-// check if the buffer has the string <tag>= from location start.
+func (t *CsvTokenizer) ScanEol() {
+	for t.buf[t.ix] != '\n' {
+		t.ix++
+	}
+}
+
+// Given start and non-sentinel eqloc values returned with a token and a string <tag>, check if the
+// buffer has the string <tag>= from location start.  Note there's no need to check that we're in
+// bounds if we assume that eqloc is legitimate.
 func (t *CsvTokenizer) MatchTag(tag string, start, eqloc int) bool {
 	if start+len(tag)+1 != eqloc {
 		return false
