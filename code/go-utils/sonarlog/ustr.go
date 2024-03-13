@@ -103,11 +103,19 @@ func stringToUstrAndString(s string) (Ustr, string) {
 	return n, ns
 }
 
+type UstrAllocator interface {
+	Alloc(s string) Ustr
+}
+
 // This is an unsynchronized cache that is a facade for the global Ustr store.  Use this in a
 // thread-local way if the global store is very contended.
 
 type UstrCache struct {
 	m map[string]Ustr
+}
+
+func NewUstrCache() *UstrCache {
+	return &UstrCache{m: make(map[string]Ustr)}
 }
 
 func (uc *UstrCache) Alloc(s string) Ustr {
@@ -117,4 +125,18 @@ func (uc *UstrCache) Alloc(s string) Ustr {
 	u, s2 := stringToUstrAndString(s)
 	uc.m[s2] = u
 	return u
+}
+
+// This is just an entry point into the global Ustr store, with the same API as the cache above.
+
+type UstrFacade struct {
+	dummy int
+}
+
+func NewUstrFacade() *UstrFacade {
+	return &UstrFacade{dummy: 37}
+}
+
+func (uf *UstrFacade) Alloc(s string) Ustr {
+	return StringToUstr(s)
 }
