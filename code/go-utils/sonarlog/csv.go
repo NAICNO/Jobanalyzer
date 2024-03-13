@@ -166,8 +166,7 @@ outerLoop:
 				case "rssanonkib":
 					r.RssAnonKib, err = strconv.ParseUint(val, 10, 64)
 				case "gpus":
-					// We don't validate the gpu syntax here
-					r.Gpus = StringToUstr(val)
+					r.Gpus, err = NewGpuSet(val)
 				case "gpu%":
 					ftmp, err = strconv.ParseFloat(val, 64)
 					r.GpuPct = float32(ftmp)
@@ -265,7 +264,7 @@ func (r *SonarReading) Csvnamed() []byte {
 	if r.RssAnonKib > 0 {
 		fields = append(fields, fmt.Sprintf("rssanonkib=%d", r.RssAnonKib))
 	}
-	if r.Gpus != UstrEmpty {
+	if !r.Gpus.IsEmpty() {
 		fields = append(fields, fmt.Sprintf("gpus=%v", r.Gpus))
 	}
 	if r.GpuPct > 0 {

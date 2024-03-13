@@ -36,8 +36,8 @@ func JsonFloat64(s string) float64 {
 	return f
 }
 
-func JsonGpulist(s string) []uint32 {
-	gpuData, err := sonarlog.ParseGpulist(s)
+func JsonGpulist(s string) sonarlog.GpuSet {
+	gpuData, err := sonarlog.NewGpuSet(s)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to convert JSON value to gpu set, should not happen: %s", err.Error()))
 	}

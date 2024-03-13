@@ -85,6 +85,7 @@ import (
 	"go-utils/options"
 	"go-utils/process"
 	"go-utils/sonalyze"
+	"go-utils/sonarlog"
 	gut "go-utils/time"
 	"naicreport/util"
 )
@@ -468,7 +469,7 @@ type loadDatum struct {
 	mem      float64
 	gpu      float64
 	gpumem   float64
-	gpus     []uint32 // nil for "unknown"
+	gpus     sonarlog.GpuSet
 	rcpu     float64
 	rmem     float64
 	rres     float64

@@ -41,7 +41,7 @@ type SonarReading struct {
 	Pid         uint32
 	Cmd         Ustr
 	CpuPct      float32
-	Gpus        Ustr
+	Gpus        GpuSet
 	GpuPct      float32
 	GpuMemPct   float32
 	Rolledup    uint32
