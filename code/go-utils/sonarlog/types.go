@@ -43,6 +43,7 @@ type SonarReading struct {
 	CpuPct      float32
 	Gpus        GpuSet
 	GpuPct      float32
+	CpuUtilPct  float32
 	GpuMemPct   float32
 	Rolledup    uint32
 	GpuFail     uint8
@@ -54,3 +55,13 @@ type SonarHeartbeat struct {
 	Cluster   Ustr
 	Host      Ustr
 }
+
+// A sample stream is just a list of samples.
+
+type SampleStream []*SonarReading
+
+// A bag of streams.  The constraints on the individual streams in terms of uniqueness and so on
+// depends on how they were merged and are not implied by the type.
+
+type SampleStreams []*SampleStream
+
