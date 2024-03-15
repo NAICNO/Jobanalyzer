@@ -47,16 +47,6 @@
 //
 // Services and input formats:
 //
-// /sonar-reading
-//    Input is JSON-format Sonar monitoring data: array of go-utils/sonarlog.SonarReading.  Input
-//    fields are checked against that record type: fields that are not known to the type are
-//    dropped.
-//
-// /sonar-heartbeat
-//    Input is JSON-format Sonar heartbeat data: array of go-utils/sonarlog.SonarHeartbeat.  Input
-//    fields are checked against that record type: fields that are not known to the type are
-//    dropped.
-//
 // /sonar-freecsv?cluster=clusterName
 //    Input is "free CSV" format Sonar monitoring and heartbeat data, intermixed, one record per
 //    line.  If -match-user-and-cluster is used then the the user name provided by the HTTP
@@ -90,7 +80,6 @@ import (
 	"net/url"
 	"os"
 	"syscall"
-	"time"
 
 	"go-utils/auth"
 	"go-utils/config"
@@ -147,8 +136,6 @@ func mainLogic() {
 	ds = datastore.Open(dataDir, verbose)
 	defer ds.Close()
 
-	http.HandleFunc("/sonar-reading", incomingData(authenticator, "application/json", sonarReading))
-	http.HandleFunc("/sonar-heartbeat", incomingData(authenticator, "application/json", sonarHeartbeat))
 	http.HandleFunc("/sonar-freecsv", incomingData(authenticator, "text/csv", sonarFreeCsv))
 	http.HandleFunc("/sysinfo", incomingData(authenticator, "application/json", sysinfo))
 	if verbose {
@@ -248,46 +235,6 @@ func incomingData(
 			}
 		}
 	}
-}
-
-func sonarReading(_ url.Values, payload []byte, clusterName string) (int, string, string) {
-	var rs []*sonarlog.SonarReading
-	err := json.Unmarshal(payload, &rs)
-	if err != nil {
-		return 400, "Bad content",
-			fmt.Sprintf("Bad content - can't unmarshal SonarReading JSON: %v", err)
-	}
-	clusterUstr := sonarlog.StringToUstr(clusterName)
-	for _, r := range rs {
-		if !matchUserAndCluster || clusterUstr == sonarlog.UstrEmpty || r.Cluster == clusterUstr {
-			ds.Write(
-				r.Cluster.String(), r.Host.String(), time.Unix(r.Timestamp, 0).Format(time.RFC3339),
-				"%s.csv",
-				r.Csvnamed(),
-			)
-		}
-	}
-	return 200, "", ""
-}
-
-func sonarHeartbeat(_ url.Values, payload []byte, clusterName string) (int, string, string) {
-	var rs []*sonarlog.SonarHeartbeat
-	err := json.Unmarshal(payload, &rs)
-	if err != nil {
-		return 400, "Bad content",
-			fmt.Sprintf("Bad content - can't unmarshal SonarHeartbeat JSON: %v", err)
-	}
-	clusterUstr := sonarlog.StringToUstr(clusterName)
-	for _, r := range rs {
-		if !matchUserAndCluster || clusterUstr == sonarlog.UstrEmpty || r.Cluster == clusterUstr {
-			ds.Write(
-				r.Cluster.String(), r.Host.String(), time.Unix(r.Timestamp, 0).Format(time.RFC3339),
-				"%s.csv",
-				r.Csvnamed(),
-			)
-		}
-	}
-	return 200, "", ""
 }
 
 func sonarFreeCsv(query url.Values, payload []byte, clusterName string) (int, string, string) {
