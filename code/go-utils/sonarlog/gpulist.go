@@ -21,8 +21,12 @@ type GpuSet uint32
 
 const (
 	unknown = GpuSet(0x8000_0000)
-	empty = GpuSet(0x0000_0000)
+	empty   = GpuSet(0x0000_0000)
 )
+
+func EmptyGpuSet() GpuSet {
+	return empty
+}
 
 func NewGpuSet(s string) (GpuSet, error) {
 	gpuData := unknown
@@ -61,12 +65,12 @@ func (g GpuSet) Size() int {
 	if g == unknown {
 		panic("Size of unknown set")
 	}
-    g = (g & 0x55555555) + ((g >> 1) & 0x55555555);
-    g = (g & 0x33333333) + ((g >> 2) & 0x33333333);
-    g = (g & 0x0f0f0f0f) + ((g >> 4) & 0x0f0f0f0f);
-    g = (g & 0x00ff00ff) + ((g >> 8) & 0x00ff00ff);
-    g = (g & 0x0000ffff) + ((g >> 16) & 0x0000ffff);
-    return int(g);
+	g = (g & 0x55555555) + ((g >> 1) & 0x55555555)
+	g = (g & 0x33333333) + ((g >> 2) & 0x33333333)
+	g = (g & 0x0f0f0f0f) + ((g >> 4) & 0x0f0f0f0f)
+	g = (g & 0x00ff00ff) + ((g >> 8) & 0x00ff00ff)
+	g = (g & 0x0000ffff) + ((g >> 16) & 0x0000ffff)
+	return int(g)
 }
 
 func (g GpuSet) IsSet(n int) bool {
@@ -79,7 +83,7 @@ func (g GpuSet) IsSet(n int) bool {
 func (g GpuSet) AsSlice() []int {
 	xs := make([]int, 0)
 	if g != unknown {
-		for k := 0 ; k < 31 ; k++ {
+		for k := 0; k < 31; k++ {
 			if (g & (1 << k)) != 0 {
 				xs = append(xs, k)
 			}
@@ -96,7 +100,7 @@ func (g GpuSet) String() string {
 		return "none"
 	}
 	s := ""
-	for k := 0 ; k < 31 ; k++ {
+	for k := 0; k < 31; k++ {
 		if (g & (1 << k)) != 0 {
 			if s != "" {
 				s += ","
@@ -106,4 +110,3 @@ func (g GpuSet) String() string {
 	}
 	return s
 }
-

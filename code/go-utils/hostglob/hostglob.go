@@ -522,4 +522,3 @@ func ungetc(r io.RuneScanner, c rune) {
 		r.UnreadRune()
 	}
 }
-
