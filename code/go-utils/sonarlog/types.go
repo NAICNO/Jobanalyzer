@@ -17,16 +17,21 @@ package sonarlog
 // Further optimizations are possible:
 //
 //  - Timestamp can be reduced to uint32
-//  - CpuPct, GpuMemPct, GpuPct can be float16 or 16-bit fixedpoint.
+//  - CpuPct, GpuMemPct, GpuPct can be float16 or 16-bit fixedpoint or simply uint16, the value
+//    scaled by 10 (ie integer per mille - change the field names)
 //  - There are many fields that have unused bits, for example, Ustr is unlikely ever to need
 //    more than 24 bits, most memory sizes need more than 32 bits but not more than 38, Job and
 //    Process IDs are probably 24 bits or so, and Rolledup is unlikely to be more than 16 bits.
-//    GpuFail is a single bit at present.
+//    GpuFail and Flags are single bits at present.
 //
 // It seems likely that if we applied all of these we could save another 30 bytes easily.
 
-type SonarReading struct {
-	Timestamp   int64 // seconds since year 1
+const (
+	FlagHeartbeat = 1 // Record is a heartbeat record
+)
+
+type Sample struct {
+	Timestamp   int64
 	MemtotalKib uint64
 	CpuKib      uint64
 	RssAnonKib  uint64
@@ -43,14 +48,25 @@ type SonarReading struct {
 	CpuPct      float32
 	Gpus        GpuSet
 	GpuPct      float32
+	CpuUtilPct  float32
 	GpuMemPct   float32
 	Rolledup    uint32
 	GpuFail     uint8
+	Flags       uint8
 }
 
-type SonarHeartbeat struct {
-	Timestamp int64 // seconds since year 1
-	Version   Ustr
-	Cluster   Ustr
-	Host      Ustr
+// A sample stream is just a list of samples.
+
+type SampleStream []*Sample
+
+// A bag of streams.  The constraints on the individual streams in terms of uniqueness and so on
+// depends on how they were merged and are not implied by the type.
+
+type SampleStreams []*SampleStream
+
+// Earliest and latest time stamps found in a set of records.
+
+type Timebound struct {
+	Earliest int64
+	Latest   int64
 }

@@ -1,6 +1,7 @@
 package sonarlog
 
 import (
+	"fmt"
 	"testing"
 	"unsafe"
 )
@@ -69,5 +70,107 @@ func TestUstrFacade(t *testing.T) {
 func zappa(t *testing.T, hi Ustr, a UstrAllocator) {
 	if a.Alloc("hi") != hi {
 		t.Fatal("Interface")
+	}
+}
+
+func TestUstrJoin(t *testing.T) {
+	c := NewUstrFacade()
+	v := c.Alloc("hi")
+	w := c.Alloc("ho")
+	x := c.Alloc("hum")
+	j := c.Alloc("-")
+	z := UstrJoin([]Ustr{v, w, x}, j)
+	if z.String() != "hi-ho-hum" {
+		t.Fatalf("Join: %s", z.String())
+	}
+}
+
+func TestUstrSort(t *testing.T) {
+	c := NewUstrFacade()
+	v := c.Alloc("hi")
+	w := c.Alloc("ho")
+	x := c.Alloc("hum")
+	xs := []Ustr{w, x, v}
+	j := c.Alloc("-")
+	z := UstrJoin(xs, j)
+	if z.String() != "ho-hum-hi" {
+		t.Fatalf("Join: %s", z.String())
+	}
+	UstrSortAscending(xs)
+	z = UstrJoin(xs, j)
+	if z.String() != "hi-ho-hum" {
+		t.Fatalf("Join: %s", z.String())
+	}
+}
+
+func TestBytesToUstr(t *testing.T) {
+	a := StringToUstr("hello world")
+	b := BytesToUstr([]byte("hello world"))
+	if a != b {
+		t.Fatal("BytesToUstr")
+	}
+}
+
+func TestAllocBytesFacade(t *testing.T) {
+	a := StringToUstr("hello world")
+	c := NewUstrFacade()
+	b := c.AllocBytes([]byte("hello world"))
+	if a != b {
+		t.Fatal("AllocBytes (facade)")
+	}
+}
+
+func TestAllocBytesCache(t *testing.T) {
+	a := StringToUstr("hello world")
+	c := NewUstrCache()
+	b := c.AllocBytes([]byte("hello world"))
+	if a != b {
+		t.Fatal("AllocBytes (cache)")
+	}
+}
+
+func TestHashFunctions(t *testing.T) {
+	// h and j will tend to diverge if hashString operates on runes and hashBytes operates on bytes.
+	h := hashString("abcæøå")
+	j := hashBytes([]byte("abcæøå"))
+	if h != j {
+		t.Fatal("Hash function is inconsistent")
+	}
+}
+
+func TestHashtable(t *testing.T) {
+	ht := newHashtable()
+	s := "supercalifragilistic"
+	hcs := hashString(s)
+	ht.insert(hcs, s, Ustr(37))
+
+	bs := []byte(s)
+	hcb := hashBytes(bs)
+	hnb := ht.getBytes(hcb, bs)
+
+	// getString and getBytes should return the same node for same input
+	if hnb == nil {
+		t.Fatal("Nil node")
+	}
+
+	hns := ht.getString(hcs, s)
+	if hns == nil {
+		t.Fatal("Nil node")
+	}
+
+	if hnb != hns {
+		t.Fatal("Nodes unequal")
+	}
+
+	// getString should return the same node before and after rehashing
+	k := ht.rehashes
+	for i := 1000; ht.rehashes == k; i++ {
+		s := fmt.Sprintf("x%d", i)
+		hcs := hashString(s)
+		ht.insert(hcs, s, Ustr(i))
+	}
+	hns2 := ht.getString(hcs, s)
+	if hns != hns2 {
+		t.Fatal("Nodes unequal")
 	}
 }
