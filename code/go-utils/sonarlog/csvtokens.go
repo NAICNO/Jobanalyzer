@@ -124,7 +124,8 @@ func (t *CsvTokenizer) Get() (int, int, int, error) {
 
 	case '"':
 		// This is a little hairy because every doubled quote has to be collapsed into a single one.
-		// We do this in the buffer, hence `destix`.
+		// We do this in the buffer, hence `destix`.  We could optimize this in the same way as the
+		// nonquoted scanning loop below but it's probably not worth the bother.
 		t.ix++
 		startix := t.ix
 		destix := startix
@@ -157,20 +158,27 @@ func (t *CsvTokenizer) Get() (int, int, int, error) {
 		}
 
 	default:
-		startix := t.ix
+		// The scanning loop is very hot so let's optimize by simplifying it and hoisting the index.
+		// But hoisting buf is not helpful.
+		ix := t.ix
+		startix := ix
 		eqloc := CsvEqSentinel
 		for {
-			switch t.buf[t.ix] {
-			case '\n', ',':
-				return startix, t.ix, eqloc, nil
-			case '=':
+			for t.buf[ix] != '\n' && t.buf[ix] != ',' && t.buf[ix] != '"' && t.buf[ix] != '=' {
+				ix++
+			}
+			if t.buf[ix] == '=' {
 				if eqloc == CsvEqSentinel {
-					eqloc = t.ix + 1
+					eqloc = ix + 1
 				}
-			case '"':
+				ix++
+				continue
+			}
+			t.ix = ix
+			if t.buf[ix] == '"' {
 				return 0, 0, 0, fmt.Errorf("%w: Unexpected '\"'", SyntaxErr)
 			}
-			t.ix++
+			return startix, ix, eqloc, nil
 		}
 	}
 }
