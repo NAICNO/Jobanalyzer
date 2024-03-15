@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"math"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -203,7 +202,7 @@ LineLoop:
 				if eqloc == CsvEqSentinel {
 					// Invalid field syntax: Drop the field but keep the record
 					log.Printf(
-						"Dropping field with bad form: %s", tokenizer.BufSubstring(start, lim),
+						"Dropping field with bad form: %s", "elided" /*tokenizer.BufSubstring(start, lim)*/,
 					)
 					discarded++
 					continue FieldLoop
@@ -216,109 +215,109 @@ LineLoop:
 					case 'o':
 						if val, ok := match(tokenizer, start, lim, eqloc, "cores"); ok {
 							var tmp uint64
-							tmp, err = strconv.ParseUint(val, 10, 64)
+							tmp, err = parseUint(val)
 							numCores = uint32(tmp)
 							matched = true
 						}
 					case 'm':
 						if val, ok := match(tokenizer, start, lim, eqloc, "cmd"); ok {
-							command = ustrs.Alloc(val)
+							command = ustrs.AllocBytes(val)
 							matched = true
 						}
 					case 'p':
 						if val, ok := match(tokenizer, start, lim, eqloc, "cpu%"); ok {
 							var tmp float64
-							tmp, err = strconv.ParseFloat(val, 64)
+							tmp, err = parseFloat(val)
 							cpuPct = float32(tmp)
 							matched = true
 						} else if val, ok := match(tokenizer, start, lim, eqloc, "cpukib"); ok {
-							cpuKib, err = strconv.ParseUint(val, 10, 64)
+							cpuKib, err = parseUint(val)
 							matched = true
 						} else if val, ok := match(tokenizer, start, lim, eqloc, "cputime_sec"); ok {
-							cpuTimeSec, err = strconv.ParseUint(val, 10, 64)
+							cpuTimeSec, err = parseUint(val)
 							matched = true
 						}
 					}
 				case 'g':
 					if val, ok := match(tokenizer, start, lim, eqloc, "gpu%"); ok {
 						var tmp float64
-						tmp, err = strconv.ParseFloat(val, 64)
+						tmp, err = parseFloat(val)
 						gpuPct = float32(tmp)
 						matched = true
 					} else if val, ok := match(tokenizer, start, lim, eqloc, "gpumem%"); ok {
 						var tmp float64
-						tmp, err = strconv.ParseFloat(val, 64)
+						tmp, err = parseFloat(val)
 						gpuMemPct = float32(tmp)
 						matched = true
 					} else if val, ok := match(tokenizer, start, lim, eqloc, "gpukib"); ok {
-						gpuKib, err = strconv.ParseUint(val, 10, 64)
+						gpuKib, err = parseUint(val)
 						matched = true
 					} else if val, ok := match(tokenizer, start, lim, eqloc, "gpufail"); ok {
 						var tmp uint64
-						tmp, err = strconv.ParseUint(val, 10, 64)
+						tmp, err = parseUint(val)
 						gpuFail = uint8(tmp)
 						matched = true
 					} else if val, ok := match(tokenizer, start, lim, eqloc, "gpus"); ok {
-						gpus, err = NewGpuSet(val)
+						gpus, err = NewGpuSet(string(val))
 						haveGpus = true
 						matched = true
 					}
 				case 'h':
 					if val, ok := match(tokenizer, start, lim, eqloc, "host"); ok {
-						hostname = ustrs.Alloc(val)
+						hostname = ustrs.AllocBytes(val)
 						matched = true
 					}
 				case 'j':
 					if val, ok := match(tokenizer, start, lim, eqloc, "job"); ok {
 						var tmp uint64
-						tmp, err = strconv.ParseUint(val, 10, 64)
+						tmp, err = parseUint(val)
 						jobId = uint32(tmp)
 						matched = true
 					}
 				case 'm':
 					if val, ok := match(tokenizer, start, lim, eqloc, "memtotalkib"); ok {
-						memTotalKib, err = strconv.ParseUint(val, 10, 64)
+						memTotalKib, err = parseUint(val)
 						matched = true
 					}
 				case 'p':
 					if val, ok := match(tokenizer, start, lim, eqloc, "pid"); ok {
 						var tmp uint64
-						tmp, err = strconv.ParseUint(val, 10, 64)
+						tmp, err = parseUint(val)
 						pid = uint32(tmp)
 						matched = true
 					}
 				case 'r':
 					// TODO: Switch on second letter?
 					if val, ok := match(tokenizer, start, lim, eqloc, "rssanonkib"); ok {
-						rssAnonKib, err = strconv.ParseUint(val, 10, 64)
+						rssAnonKib, err = parseUint(val)
 						matched = true
 					} else if val, ok := match(tokenizer, start, lim, eqloc, "rolledup"); ok {
 						var tmp uint64
-						tmp, err = strconv.ParseUint(val, 10, 64)
+						tmp, err = parseUint(val)
 						rolledup = uint32(tmp)
 						matched = true
 					}
 				case 't':
 					if val, ok := match(tokenizer, start, lim, eqloc, "time"); ok {
 						var tmp time.Time
-						tmp, err = time.Parse(time.RFC3339Nano, val)
+						tmp, err = time.Parse(time.RFC3339Nano, string(val))
 						timestamp = tmp.Unix()
 						matched = true
 					}
 				case 'u':
 					if val, ok := match(tokenizer, start, lim, eqloc, "user"); ok {
-						user = ustrs.Alloc(val)
+						user = ustrs.AllocBytes(val)
 						matched = true
 					}
 				case 'v':
 					if val, ok := match(tokenizer, start, lim, eqloc, "v"); ok {
-						version = ustrs.Alloc(val)
+						version = ustrs.AllocBytes(val)
 						matched = true
 					}
 				}
 				if !matched {
 					log.Printf(
-						"Dropping field with unknown name: %s", tokenizer.BufSubstring(start, eqloc-1),
+						"Dropping field with unknown name: %s", "elided" /*tokenizer.BufSubstring(start, eqloc-1)*/,
 					)
 					if err == nil {
 						discarded++
@@ -327,7 +326,7 @@ LineLoop:
 				if err != nil {
 					log.Printf(
 						"Dropping record with illegal/unparseable value: %s %v",
-						tokenizer.BufSubstring(start, lim),
+						"elided" /*tokenizer.BufSubstring(start, lim)*/,
 						err,
 					)
 					discarded++
@@ -448,11 +447,11 @@ LineLoop:
 	return
 }
 
-func match(tokenizer *CsvTokenizer, start, lim, eqloc int, tag string) (string, bool) {
+func match(tokenizer *CsvTokenizer, start, lim, eqloc int, tag string) ([]byte, bool) {
 	if tokenizer.MatchTag(tag, start, eqloc) {
-		return tokenizer.BufSubstring(eqloc, lim), true
+		return tokenizer.BufSubarray(eqloc, lim), true
 	}
-	return "", false
+	return nil, false
 }
 
 func parseUint(bs []byte) (uint64, error) {
