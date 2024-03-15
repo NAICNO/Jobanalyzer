@@ -188,8 +188,9 @@ func (uf *UstrFacade) AllocBytes(bs []byte) Ustr {
 // node carries the name and the Ustr value of that name.
 
 const (
-	inverseLoad uint32 = 3
-	initialCapacity uint32 = 100
+	// These matter.  L=10 is pretty aggressive.
+	inverseLoad uint32 = 10
+	initialCapacity uint32 = 93
 )
 
 type hashtable struct {
@@ -290,7 +291,7 @@ type hashcode uint32
 func hashString(s string) hashcode {
 	h := uint32(0)
 	for i := range s {
-		h = (h << 3) ^ uint32(s[i])
+		h = (h << 4) + uint32(s[i]) + (h >> 28)
 	}
 	return hashcode(h)
 }
@@ -298,7 +299,7 @@ func hashString(s string) hashcode {
 func hashBytes(bs []byte) hashcode {
 	h := uint32(0)
 	for _, c := range bs {
-		h = (h << 3) ^ uint32(c)
+		h = (h << 4) + uint32(c) + (h >> 28)
 	}
 	return hashcode(h)
 }
