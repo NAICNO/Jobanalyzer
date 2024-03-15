@@ -41,9 +41,9 @@ type InputStreamSet map[InputStreamKey]*SampleStream
 //   gpumem_pct and gpumem_gb fields so that they are internally consistent
 // - after all that, remove records for which the filter function returns false
 //
-// Returns the individual streams as a map from (hostname, id, cmd) to a vector of LogEntries,
-// where each vector is sorted in ascending order of time.  In each vector, there may be no
-// adjacent records with the same timestamp.
+// Returns the individual streams as a map from (hostname, id, cmd) to a vector of Samples, where
+// each vector is sorted in ascending order of time.  In each vector, there may be no adjacent
+// records with the same timestamp.
 //
 // The id is necessary to distinguish the different event streams for a single job.  Consider a run
 // of records from the same host.  There may be multiple records per job in that run, and they may
@@ -67,7 +67,7 @@ type InputStreamSet map[InputStreamKey]*SampleStream
 
 const JobIdTag = 10000000
 
-type TimeSortableReadings []*SonarReading
+type TimeSortableReadings SampleStream
 
 func (t TimeSortableReadings) Len() int { return len(t) }
 func (t TimeSortableReadings) Less(i, j int) bool {
@@ -79,7 +79,7 @@ func (t TimeSortableReadings) Swap(i, j int) {
 
 func PostprocessLog(
 	entries SampleStream,
-	filter func(*SonarReading) bool,
+	filter func(*Sample) bool,
 	configs *config.ClusterConfig,
 ) InputStreamSet {
 	streams := make(InputStreamSet)
@@ -96,8 +96,7 @@ func PostprocessLog(
 		if stream, found := streams[key]; found {
 			*stream = append(*stream, e)
 		} else {
-			ss := SampleStream([]*SonarReading{e})
-			streams[key] = &ss
+			streams[key] = &SampleStream{e}
 		}
 	}
 

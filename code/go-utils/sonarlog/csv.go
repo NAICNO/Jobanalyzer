@@ -27,8 +27,7 @@ func ParseSonarLog(
 	input io.Reader,
 	ustrs UstrAllocator,
 ) (
-	readings []*SonarReading,
-	heartbeats []*SonarHeartbeat,
+	readings []*Sample,
 	discarded int,
 	err error,
 ) {
@@ -38,8 +37,7 @@ func ParseSonarLog(
 		taggedFormat
 	)
 
-	readings = make([]*SonarReading, 0)
-	heartbeats = make([]*SonarHeartbeat, 0)
+	readings = make([]*Sample, 0)
 	tokenizer := NewTokenizer(input)
 	v060 := ustrs.Alloc("0.6.0")
 	heartbeat := ustrs.Alloc("_heartbeat_")
@@ -418,35 +416,32 @@ LineLoop:
 			rolledup = 0
 		}
 
+		flags := uint8(0)
 		if command == heartbeat {
-			heartbeats = append(heartbeats, &SonarHeartbeat{
-				Version:   version,
-				Timestamp: timestamp,
-				Host:      hostname,
-			})
-		} else {
-			readings = append(readings, &SonarReading{
-				Version:     version,
-				Timestamp:   timestamp,
-				Host:        hostname,
-				Cores:       numCores,
-				MemtotalKib: memTotalKib,
-				User:        user,
-				Pid:         pid,
-				Job:         jobId,
-				Cmd:         command,
-				CpuPct:      cpuPct,
-				CpuKib:      cpuKib,
-				RssAnonKib:  rssAnonKib,
-				Gpus:        gpus,
-				GpuPct:      gpuPct,
-				GpuMemPct:   gpuMemPct,
-				GpuKib:      gpuKib,
-				GpuFail:     gpuFail,
-				CpuTimeSec:  cpuTimeSec,
-				Rolledup:    rolledup,
-			})
+			flags |= FlagHeartbeat
 		}
+		readings = append(readings, &Sample{
+			Version:     version,
+			Timestamp:   timestamp,
+			Host:        hostname,
+			Cores:       numCores,
+			MemtotalKib: memTotalKib,
+			User:        user,
+			Pid:         pid,
+			Job:         jobId,
+			Cmd:         command,
+			CpuPct:      cpuPct,
+			CpuKib:      cpuKib,
+			RssAnonKib:  rssAnonKib,
+			Gpus:        gpus,
+			GpuPct:      gpuPct,
+			GpuMemPct:   gpuMemPct,
+			GpuKib:      gpuKib,
+			GpuFail:     gpuFail,
+			CpuTimeSec:  cpuTimeSec,
+			Rolledup:    rolledup,
+			Flags:       flags,
+		})
 	}
 
 	err = nil
@@ -460,7 +455,7 @@ func match(tokenizer *CsvTokenizer, start, lim, eqloc int, tag string) (string, 
 	return "", false
 }
 
-func (r *SonarReading) Csvnamed() []byte {
+func (r *Sample) Csvnamed() []byte {
 	var bw bytes.Buffer
 	fields := []string{
 		fmt.Sprintf("v=%v", r.Version),
@@ -513,20 +508,6 @@ func (r *SonarReading) Csvnamed() []byte {
 	}
 	csvw := csv.NewWriter(&bw)
 	csvw.Write(fields)
-	csvw.Flush()
-	return bw.Bytes()
-}
-
-func (r *SonarHeartbeat) Csvnamed() []byte {
-	var bw bytes.Buffer
-	csvw := csv.NewWriter(&bw)
-	csvw.Write([]string{
-		fmt.Sprintf("v=%v", r.Version),
-		fmt.Sprintf("time=%s", time.Unix(r.Timestamp, 0).Format(time.RFC3339)),
-		fmt.Sprintf("host=%v", r.Host),
-		fmt.Sprintf("user=_sonar_"),
-		fmt.Sprintf("cmd=_heartbeat_"),
-	})
 	csvw.Flush()
 	return bw.Bytes()
 }
