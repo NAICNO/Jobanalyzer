@@ -78,12 +78,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	readings, heartbeats, dropped, err := log.LogEntries(fromDate, toDate, nil, nil, verbose)
+	readings, dropped, err := log.LogEntries(fromDate, toDate, nil, nil, verbose)
 	if err != nil {
 		panic(err)
 	}
 	if verbose {
-		fmt.Printf("%d records, %d heartbeats, %d dropped\n", len(readings), len(heartbeats), dropped)
-		sonarlog.UstrStats()
+		fmt.Printf("%d records, %d dropped\n", len(readings), dropped)
+		sonarlog.UstrStats(false)
 	}
 }
