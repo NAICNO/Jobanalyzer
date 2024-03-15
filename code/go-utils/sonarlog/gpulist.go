@@ -14,7 +14,7 @@ import (
 //
 // There will be *a lot* of these both in input and in memory, so:
 // - representation compactness is important
-// - avoiding pointers in the representation is important (or SonarReading will have pointers too)
+// - avoiding pointers in the representation is important (or Sample will have pointers too)
 // - avoiding a lot of garbage generation during parsing is important
 
 type GpuSet uint32

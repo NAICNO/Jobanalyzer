@@ -21,12 +21,16 @@ package sonarlog
 //  - There are many fields that have unused bits, for example, Ustr is unlikely ever to need
 //    more than 24 bits, most memory sizes need more than 32 bits but not more than 38, Job and
 //    Process IDs are probably 24 bits or so, and Rolledup is unlikely to be more than 16 bits.
-//    GpuFail is a single bit at present.
+//    GpuFail and Flags are single bits at present.
 //
 // It seems likely that if we applied all of these we could save another 30 bytes easily.
 
-type SonarReading struct {
-	Timestamp   int64 // seconds since year 1
+const (
+	FlagHeartbeat = 1 // Record is a heartbeat record
+)
+
+type Sample struct {
+	Timestamp   int64
 	MemtotalKib uint64
 	CpuKib      uint64
 	RssAnonKib  uint64
@@ -47,21 +51,14 @@ type SonarReading struct {
 	GpuMemPct   float32
 	Rolledup    uint32
 	GpuFail     uint8
-}
-
-type SonarHeartbeat struct {
-	Timestamp int64 // seconds since year 1
-	Version   Ustr
-	Cluster   Ustr
-	Host      Ustr
+	Flags       uint8
 }
 
 // A sample stream is just a list of samples.
 
-type SampleStream []*SonarReading
+type SampleStream []*Sample
 
 // A bag of streams.  The constraints on the individual streams in terms of uniqueness and so on
 // depends on how they were merged and are not implied by the type.
 
 type SampleStreams []*SampleStream
-

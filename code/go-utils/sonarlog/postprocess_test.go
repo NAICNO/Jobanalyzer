@@ -13,7 +13,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries, _, discarded, err := ParseSonarLog(f, NewUstrFacade())
+	entries, discarded, err := ParseSonarLog(f, NewUstrFacade())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	}
 
 	root := StringToUstr("root")
-	streams := PostprocessLog(entries, func(r *SonarReading) bool { return r.User != root }, nil)
+	streams := PostprocessLog(entries, func(r *Sample) bool { return r.User != root }, nil)
 
 	if len(streams) != 4 {
 		t.Fatalf("Expected 4 streams, got %d", len(streams))
