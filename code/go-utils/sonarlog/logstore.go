@@ -50,9 +50,9 @@ func OpenDir(dir string) (*LogStore, error) {
 func (s *LogStore) LogEntries(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
-	recordFilter func(*SonarReading) bool,
+	recordFilter func(*Sample) bool,
 	verbose bool,
-) (readings []*SonarReading, heartbeats []*SonarHeartbeat, dropped int, err error) {
+) (readings SampleStream, dropped int, err error) {
 	files, err := filesys.EnumerateFiles(s.dataDir, fromDate, toDate, "*.csv")
 	if err != nil {
 		return
@@ -73,8 +73,7 @@ func (s *LogStore) LogEntries(
 	}
 	pendingFiles := make(chan string, len(files))
 	type resultrec struct {
-		rs []*SonarReading
-		hs []*SonarHeartbeat
+		rs SampleStream
 		dr int
 	}
 	results := make(chan *resultrec, len(files))
@@ -86,10 +85,9 @@ func (s *LogStore) LogEntries(
 				res := new(resultrec)
 				inputFile, err := os.Open(fn)
 				if err == nil {
-					readings, heartbeats, badRecords, err := ParseSonarLog(inputFile, uf)
+					readings, badRecords, err := ParseSonarLog(inputFile, uf)
 					if err == nil {
 						res.rs = readings
-						res.hs = heartbeats
 						res.dr = badRecords
 					}
 					inputFile.Close()
@@ -99,8 +97,7 @@ func (s *LogStore) LogEntries(
 		})()
 	}
 
-	readings = make([]*SonarReading, 0)
-	heartbeats = make([]*SonarHeartbeat, 0)
+	readings = make(SampleStream, 0)
 
 	// TODO: Merge these loops using select, then reduce the sizes of the channels.
 
@@ -113,7 +110,6 @@ func (s *LogStore) LogEntries(
 	for _, _ = range files {
 		res := <-results
 		readings = append(readings, res.rs...)
-		heartbeats = append(heartbeats, res.hs...)
 		dropped += res.dr
 	}
 

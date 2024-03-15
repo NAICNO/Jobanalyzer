@@ -72,7 +72,7 @@ func main() {
 	}
 
 	if verbose {
-		fmt.Printf("Size of SonarReading: %d\n", unsafe.Sizeof(sonarlog.SonarReading{}))
+		fmt.Printf("Size of Sample: %d\n", unsafe.Sizeof(sonarlog.Sample{}))
 	}
 	log, err := sonarlog.OpenDir(dataDir)
 	if err != nil {
