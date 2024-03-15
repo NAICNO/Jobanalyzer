@@ -1,8 +1,0 @@
-# Cron script to run on compute nodes.  This just runs sonar every five minutes and captures its
-# output.  Copy this file to /etc/cron.d/sonar (do not symlink).
-
-SHELL=/bin/bash
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
-MAILTO=larstha@uio.no
-
-0-59/5 * * * * sonar /cluster/var/sonar/bin/sonar.sh

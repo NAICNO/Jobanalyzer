@@ -1,0 +1,11 @@
+# Cron script to run on compute nodes.  This just runs sonar every five minutes and captures its
+# output.  Copy this file to /etc/cron.d/sonar (do not symlink).
+
+MAILTO=larstha@uio.no
+
+# Run `sonar sysinfo` periodically to capture and exfiltrate system configuration data.
+@reboot sonar-runner /cluster/shared/sonar/sysinfo.sh
+@daily sonar-runner /cluster/shared/sonar/sysinfo.sh
+
+# Run `sonar ps` every five minutes and exfiltrate its output.
+0-59/5 * * * * sonar-runner /cluster/shared/sonar/sonar-slurm.sh
