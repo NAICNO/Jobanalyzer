@@ -150,7 +150,7 @@ LineLoop:
 					}
 					timestamp = tmp.Unix()
 				case 1:
-					hostname = ustrs.Alloc(string(val))
+					hostname = ustrs.AllocBytes(val)
 				case 2:
 					var tmp uint64
 					tmp, err = parseUint(val)
@@ -161,7 +161,7 @@ LineLoop:
 					}
 					numCores = uint32(tmp)
 				case 3:
-					user = ustrs.Alloc(string(val))
+					user = ustrs.AllocBytes(val)
 				case 4:
 					var tmp uint64
 					tmp, err = parseUint(val)
@@ -173,7 +173,7 @@ LineLoop:
 					jobId = uint32(tmp)
 					pid = jobId
 				case 5:
-					command = ustrs.Alloc(string(val))
+					command = ustrs.AllocBytes(val)
 				case 6:
 					var tmp float64
 					tmp, err = parseFloat(val)
