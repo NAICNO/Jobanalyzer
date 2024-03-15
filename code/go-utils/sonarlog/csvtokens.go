@@ -84,6 +84,10 @@ func (t *CsvTokenizer) BufSubstring(start, lim int) string {
 	return string(t.buf[start:lim])
 }
 
+func (t *CsvTokenizer) BufSubarray(start, lim int) []byte {
+	return t.buf[start:lim]
+}
+
 var SyntaxErr = errors.New("CSV syntax error")
 
 // Get the next token, or an error for syntax errors or I/O errors.  Syntax errors wrap SyntaxErr.

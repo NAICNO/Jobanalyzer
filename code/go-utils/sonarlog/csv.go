@@ -138,11 +138,11 @@ LineLoop:
 				//
 				// Newer old format (again briefly used on the UiO ML nodes)
 				// 12 cputime_sec
-				val := tokenizer.BufSubstring(start, lim)
+				val := tokenizer.BufSubarray(start, lim)
 				switch untaggedPosition {
 				case 0:
 					var tmp time.Time
-					tmp, err = time.Parse(time.RFC3339Nano, val)
+					tmp, err = time.Parse(time.RFC3339Nano, string(val))
 					if err != nil {
 						discarded++
 						tokenizer.ScanEol()
@@ -150,10 +150,10 @@ LineLoop:
 					}
 					timestamp = tmp.Unix()
 				case 1:
-					hostname = ustrs.Alloc(val)
+					hostname = ustrs.Alloc(string(val))
 				case 2:
 					var tmp uint64
-					tmp, err = strconv.ParseUint(val, 10, 64)
+					tmp, err = parseUint(val)
 					if err != nil {
 						discarded++
 						tokenizer.ScanEol()
@@ -161,10 +161,10 @@ LineLoop:
 					}
 					numCores = uint32(tmp)
 				case 3:
-					user = ustrs.Alloc(val)
+					user = ustrs.Alloc(string(val))
 				case 4:
 					var tmp uint64
-					tmp, err = strconv.ParseUint(val, 10, 64)
+					tmp, err = parseUint(val)
 					if err != nil {
 						discarded++
 						tokenizer.ScanEol()
@@ -173,10 +173,10 @@ LineLoop:
 					jobId = uint32(tmp)
 					pid = jobId
 				case 5:
-					command = ustrs.Alloc(val)
+					command = ustrs.Alloc(string(val))
 				case 6:
 					var tmp float64
-					tmp, err = strconv.ParseFloat(val, 64)
+					tmp, err = parseFloat(val)
 					if err != nil {
 						discarded++
 						tokenizer.ScanEol()
@@ -185,7 +185,7 @@ LineLoop:
 					cpuPct = float32(tmp)
 				case 7:
 					var tmp uint64
-					tmp, err = strconv.ParseUint(val, 10, 64)
+					tmp, err = parseUint(val)
 					if err != nil {
 						discarded++
 						tokenizer.ScanEol()
@@ -453,6 +453,71 @@ func match(tokenizer *CsvTokenizer, start, lim, eqloc int, tag string) (string, 
 		return tokenizer.BufSubstring(eqloc, lim), true
 	}
 	return "", false
+}
+
+func parseUint(bs []byte) (uint64, error) {
+	var n uint64
+	if len(bs) == 0 {
+		return 0, errors.New("Empty")
+	}
+	for _, c := range bs {
+		if c < '0' || c > '9' {
+			return 0, errors.New("Not a digit")
+		}
+		m := n*10 + uint64(c - '0')
+		if m < n {
+			return 0, errors.New("Out of range")
+		}
+		n = m
+	}
+	return n, nil
+}
+
+// This is primitive and handles only simple unsigned numbers with a fraction, no exponent.
+// Accuracy is not great either.  But it's good enough for the Sonar output.
+func parseFloat(bs []byte) (float64, error) {
+	var n float64
+	if len(bs) == 0 {
+		return 0, errors.New("Empty")
+	}
+	i := 0
+	for ; i < len(bs); i++ {
+		c := bs[i]
+		if c == '.' {
+			break
+		}
+		if c < '0' || c > '9' {
+			return 0, errors.New("Not a digit")
+		}
+		m := n*10 + float64(c - '0')
+		if m < n {
+			return 0, errors.New("Out of range")
+		}
+		n = m
+	}
+	if i < len(bs) {
+		if bs[i] != '.' {
+			return 0, errors.New("Only decimal point allowed")
+		}
+		i++
+		if i == len(bs) {
+			return 0, errors.New("Empty fraction")
+		}
+		f := 0.1
+		for ; i < len(bs) ; i++ {
+			c := bs[i]
+			if c < '0' || c > '9' {
+				return 0, errors.New("Not a digit")
+			}
+			m := n + float64(c - '0')*f
+			if m < n {
+				return 0, errors.New("Out of range")
+			}
+			n = m
+			f *= 0.1
+		}
+	}
+	return n, nil
 }
 
 func (r *Sample) Csvnamed() []byte {
