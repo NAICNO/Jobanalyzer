@@ -46,7 +46,8 @@ pub fn find_logfiles(
     to: Timestamp,
 ) -> Result<Vec<String>> {
     if !path::Path::new(data_path).is_dir() {
-        bail!("Not a viable log directory: {}", data_path);
+        // Path redacted so as not to reveal secrets
+        bail!("Not a viable data directory");
     }
 
     let mut filenames = vec![];

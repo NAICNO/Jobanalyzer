@@ -13,8 +13,11 @@ import (
 // in running the program or the program exits with a nonzero code then an error is returned along
 // with stderr and stdout is empty, otherwise stdout and stderr are returned but the assumption is
 // that the command exited with code zero.
+//
+// "name" should be a string that names the program being run but without revealing paths or
+// secrets.
 
-func RunSubprocess(programPath string, arguments []string) (string, string, error) {
+func RunSubprocess(name, programPath string, arguments []string) (string, string, error) {
 	cmd := exec.Command(programPath, arguments...)
 	var stdout strings.Builder
 	var stderr strings.Builder
@@ -23,7 +26,7 @@ func RunSubprocess(programPath string, arguments []string) (string, string, erro
 	err := cmd.Run()
 	errs := stderr.String()
 	if err != nil {
-		return "", errs, errors.Join(fmt.Errorf("While running %s", programPath), err)
+		return "", errs, errors.Join(fmt.Errorf("While running %s", name), err)
 	}
 	outs := stdout.String()
 	return outs, errs, nil

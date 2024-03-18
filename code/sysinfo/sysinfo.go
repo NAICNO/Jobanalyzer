@@ -121,7 +121,7 @@ func nvidiaInfo(nvidiaSmiPath string) gpuCards {
 		lookingForTotal = false
 		modelName       = ""
 	)
-	for _, l := range run(nvidiaSmiPath, "-a") {
+	for _, l := range run("nvidia-smi", nvidiaSmiPath, "-a") {
 		bs := []byte(l)
 		if lookingForTotal {
 			if ms := totalRe.FindSubmatch(bs); ms != nil {
@@ -171,7 +171,7 @@ func amdInfo(rocmSmiPath string) gpuCards {
 		cardSeriesRe = regexp.MustCompile(`^GPU\[(\d+)\].*Card series:\s*(.*)$`)
 		cards        = make(gpuCards, 0)
 	)
-	for _, l := range run(rocmSmiPath, "--showproductname") {
+	for _, l := range run("rocm-smi", rocmSmiPath, "--showproductname") {
 		if ms := cardSeriesRe.FindSubmatch([]byte(l)); ms != nil {
 			cards = append(cards, gpuCard{string(ms[2]), 0})
 		}
@@ -179,8 +179,8 @@ func amdInfo(rocmSmiPath string) gpuCards {
 	return cards
 }
 
-func run(command string, arguments ...string) []string {
-	stdout, _, err := process.RunSubprocess(command, arguments)
+func run(name, command string, arguments ...string) []string {
+	stdout, _, err := process.RunSubprocess(name, command, arguments)
 	if err != nil {
 		return []string{}
 	}

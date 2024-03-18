@@ -640,8 +640,11 @@ func runAndUnmarshal(
 ) error {
 	arguments = util.ForwardDateFilterOptions(arguments, progOpts.filterOpts)
 	arguments = util.ForwardDataFilesOptions(arguments, "--data-path", progOpts.filesOpts)
-	sonalyzeOutput, sonalyzeErrOutput, err := process.RunSubprocess(sonalyzePath, arguments)
+	sonalyzeOutput, sonalyzeErrOutput, err := process.RunSubprocess("sonalyze", sonalyzePath, arguments)
 	if err != nil {
+		if sonalyzeErrOutput != "" {
+			return errors.Join(err, fmt.Errorf("With stderr:\n%s", sonalyzeErrOutput))
+		}
 		return err
 	}
 	if sonalyzeErrOutput != "" {

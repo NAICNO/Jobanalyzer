@@ -51,7 +51,7 @@ pub fn print(
         }
         if let Some(hn) = host {
             if k.as_str() != hn {
-                bail!("profile only implemented for single-host jobs")
+                bail!("`profile` only implemented for single-host jobs")
             }
         } else {
             host = Some(k.as_str());
@@ -79,7 +79,7 @@ pub fn print(
         }
     }
     if outputs > 1 {
-        bail!("one type of output at a time")
+        bail!("Select only one type of output (csv, json, ...) at a time")
     }
     let fixed_output = outputs == 0;
 
@@ -249,10 +249,10 @@ pub fn print(
                 .collect::<Vec<(Timestamp, Vec<Option<Box<LogEntry>>>)>>();
         }
         if b > 1 && json_output {
-            bail!("Bucketing not implemented for json output");
+            bail!("Bucketing is not implemented for json output");
         }
         if b > 1 && fixed_output {
-            bail!("Bucketing not implemented for fixed output");
+            bail!("Bucketing is not implemented for fixed output");
         }
     }
 
@@ -274,7 +274,7 @@ pub fn print(
     let (fields, others) = format::parse_fields(spec, &formatters, &aliases)?;
     let mut opts = format::standard_options(&others);
     if opts.named {
-        bail!("Named fields are not supported")
+        bail!("Named fields are not supported for `profile`")
     }
     opts.nodefaults = false;
 

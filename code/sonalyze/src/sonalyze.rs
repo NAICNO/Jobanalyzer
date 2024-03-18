@@ -764,13 +764,13 @@ fn parse_time(s: &str, end_of_day: bool) -> Result<Timestamp> {
         if let Ok(k) = usize::from_str(n) {
             Ok(rustutils::now() - chrono::Duration::days(k as i64))
         } else {
-            bail!("Invalid date")
+            bail!("Invalid date with `d` suffix")
         }
     } else if let Some(n) = s.strip_suffix('w') {
         if let Ok(k) = usize::from_str(n) {
             Ok(rustutils::now() - chrono::Duration::weeks(k as i64))
         } else {
-            bail!("Invalid date")
+            bail!("Invalid date with `w` suffix")
         }
     } else {
         let parts = s
@@ -778,7 +778,7 @@ fn parse_time(s: &str, end_of_day: bool) -> Result<Timestamp> {
             .map(usize::from_str)
             .collect::<Vec<Result<usize, ParseIntError>>>();
         if !parts.iter().all(|x| x.is_ok()) || parts.len() != 3 {
-            bail!("Invalid date syntax");
+            bail!("Invalid date syntax, we need YYYY-MM-DD");
         }
         let vals = parts
             .iter()
@@ -786,7 +786,7 @@ fn parse_time(s: &str, end_of_day: bool) -> Result<Timestamp> {
             .collect::<Vec<usize>>();
         let d = NaiveDate::from_ymd_opt(vals[0] as i32, vals[1] as u32, vals[2] as u32);
         if d.is_none() {
-            bail!("Invalid date");
+            bail!("Invalid date, probably some components are out of range");
         }
         // TODO: This is roughly right, but what we want here is the day + 1 day and then use `<`
         // rather than `<=` in the filter.
@@ -833,7 +833,7 @@ fn run_time(s: &str) -> Result<chrono::Duration> {
                 || (ch == 'm' && have_minutes)
                 || (ch == 'w' && have_weeks)
             {
-                bail!("Bad suffix")
+                bail!("Bad time range specifier, we want w(eeks), d(ays), h(ours), m(inutes)")
             }
             let v = u64::from_str(&ds);
             if v.is_err() {
@@ -857,7 +857,7 @@ fn run_time(s: &str) -> Result<chrono::Duration> {
         }
     }
     if ds != "" || (!have_days && !have_hours && !have_minutes && !have_weeks) {
-        bail!("Inconsistent")
+        bail!("Inconsistent time range")
     }
 
     days += weeks * 7;
@@ -1091,8 +1091,9 @@ fn sonalyze() -> Result<()> {
         if let Some(filename) = auth_file {
             let mut file = File::open(path::Path::new(&filename))?;
             match file.read_to_string(&mut buf) {
-                Err(e) => {
-                    bail!("Failed to read auth file: {:?}", e);
+                Err(_e) => {
+                    // Note, path to file redacted here
+                    bail!("Failed to read the auth file");
                 }
                 Ok(_) => {
                     let xs = buf.trim().split(':').collect::<Vec<&str>>();
@@ -1127,6 +1128,8 @@ fn sonalyze() -> Result<()> {
                 return Ok(());
             }
             Err(e) => {
+                // Print this unredacted on the assumption that the remote sonalyzed/sonalyze don't
+                // reveal anything they shouldn't.
                 bail!("{e}")
             }
         }
