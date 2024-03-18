@@ -303,9 +303,15 @@ function recomputeURLs() {
 var profnames = ["cpu", "mem", "gpu", "gpumem"]
 
 function makeProfileURL(cluster, from, to, row) {
-    // FIXME
-    // Oh, this is bad - for the ML cluster the host is necessary but for Fox et al it is wrong!!
-    // Really the data could be self-identifying?
+    // About adding "host" here always:
+    //
+    // On clusters where all the nodes uniformly run eg slurm and the job IDs are system-wide, the
+    // host filter is not necessary nor all that meaningful (though it should be benign).  An
+    // example of this is an HPC cluster where we collect samples only on the nodes that run slurm,
+    // ie, on compute nodes, but not on, say, login nodes.
+    //
+    // On clusters where at least some nodes do not run eg slurm and there are some jobs where the
+    // job IDs are node-relative, the host filter must be used to disambiguate (at least for those jobs).
     let host = encodeURIComponent(row.host)
     let job = encodeURIComponent(row.job)
     let profname = "cpu"
