@@ -77,6 +77,16 @@ func (s *LogStore) LogEntries(
 		dr int
 	}
 	results := make(chan *resultrec, len(files))
+	// Here, NumCPU() or NumCPU()+1 seem to be good, this brings us up to about 360% utilization on
+	// a quad core VM (probably backed by SSD), testing with 8w of Saga data.  NumCPU()-1 is not
+	// good, nor NumCPU()*2 on this machine.  We would expect some blocking on the Ustr table, esp
+	// early in the run, and and some waiting for file I/O, but I've not explored these yet - the
+	// tracer could be helpful.
+	//
+	// Utilization with Fox data - which look pretty different - is at the same level.
+	//
+	// With cold data, utilization drops to about 270%, as expected.  This is still pretty good,
+	// though in this case a larger number of goroutines might help some.
 	for i := 0; i < runtime.NumCPU(); i++ {
 		go (func() {
 			uf := NewUstrCache()
