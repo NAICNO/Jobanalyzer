@@ -84,7 +84,7 @@ fn compile_globber(p: &str, prefix: bool) -> Result<(Regex, String)> {
                         let n1;
                         (n1, i) = read_int(&cs, i)?;
                         if n0 > n1 {
-                            bail!("Invalid range");
+                            bail!("Invalid range, start greater than end");
                         }
                         while n0 <= n1 {
                             set.push(n0.to_string());

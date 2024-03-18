@@ -290,10 +290,13 @@ func requestHandler(
 		if verbose {
 			status.Infof("Command: %s %s", path.Join(jobanalyzerPath, "sonalyze"), strings.Join(arguments, " "))
 		}
-		stdout, stderr, err := process.RunSubprocess(path.Join(jobanalyzerPath, "sonalyze"), arguments)
+		stdout, stderr, err := process.RunSubprocess("sonalyze", path.Join(jobanalyzerPath, "sonalyze"), arguments)
 		if err != nil {
 			w.WriteHeader(400)
 			fmt.Fprint(w, err.Error())
+			if stderr != "" {
+				fmt.Fprint(w, "\n", stderr)
+			}
 			if verbose {
 				status.Warningf("ERROR: %v", err)
 			}

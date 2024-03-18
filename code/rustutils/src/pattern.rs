@@ -116,7 +116,7 @@ impl Parser {
             self.i += 1;
         }
         if self.i == start {
-            bail!("Expected number");
+            bail!("Expected number in host name pattern");
         }
         Ok(u32::from_str(&s)?)
     }

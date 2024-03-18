@@ -165,8 +165,11 @@ func Load(progname string, args []string) error {
 	if verbose {
 		fmt.Printf("Sonalyze load arguments\n%v", loadArguments)
 	}
-	loadOutput, loadErrOutput, err := process.RunSubprocess(sonalyzePath, loadArguments)
+	loadOutput, loadErrOutput, err := process.RunSubprocess("sonalyze", sonalyzePath, loadArguments)
 	if err != nil {
+		if loadErrOutput != "" {
+			return errors.Join(err, fmt.Errorf("With stderr:\n%s", loadErrOutput))
+		}
 		return err
 	}
 	if loadErrOutput != "" {
@@ -183,8 +186,11 @@ func Load(progname string, args []string) error {
 		if verbose {
 			fmt.Printf("Sonalyze downtime arguments\n%v", downtimeArguments)
 		}
-		downtimeOutput, downtimeErrOutput, err := process.RunSubprocess(sonalyzePath, downtimeArguments)
+		downtimeOutput, downtimeErrOutput, err := process.RunSubprocess("sonalyze", sonalyzePath, downtimeArguments)
 		if err != nil {
+			if downtimeErrOutput != "" {
+				return errors.Join(err, fmt.Errorf("With stderr:\n%s", downtimeErrOutput))
+			}
 			return err
 		}
 		if downtimeErrOutput != "" {

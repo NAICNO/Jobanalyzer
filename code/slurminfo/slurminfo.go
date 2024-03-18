@@ -55,7 +55,7 @@ func main() {
 	} else {
 		var err error
 		var stderr string
-		stdout, stderr, err = process.RunSubprocess("sinfo", []string{"-a", "-o", "%n/%f/%m/%X/%Y/%Z"})
+		stdout, stderr, err = process.RunSubprocess("sinfo", "sinfo", []string{"-a", "-o", "%n/%f/%m/%X/%Y/%Z"})
 		Check(err, "Running 'sinfo'")
 		if stderr != "" {
 			fmt.Fprintln(os.Stderr, stderr)

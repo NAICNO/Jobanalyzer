@@ -71,7 +71,7 @@ where
         }
     }
     if fields.is_empty() {
-        bail!("No output fields were selected")
+        bail!("No output fields were selected in format string")
     }
     Ok((fields, others))
 }
