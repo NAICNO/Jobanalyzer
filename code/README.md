@@ -14,6 +14,7 @@
 * `infiltrate/` - Go source code for a program that receives Sonar data on a server
 * `jsoncheck/` - Go source code for a simple utility that syntax checks JSON data
 * `naicreport/` - Go source code for a program that queries the Sonar data and generates reports
+* `netsink/` - Go source code for a program that receives random input from a port and logs it
 * `rustutils/` - Rust source code for utility functions used by all the Rust programs in this repo
 * `slurminfo/` - Go source code for a utility that runs `sinfo` and constructs a cluster config file
 * `sonalyze/` - Rust source code for a program that queries the Sonar data

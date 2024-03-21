@@ -78,7 +78,9 @@ func (s *Server) Start() {
 		if err != http.ErrServerClosed {
 			status.Error(err.Error())
 			status.Error("SERVER NOT RUNNING")
-			s.failed(err)
+			if s.failed != nil {
+				s.failed(err)
+			}
 		} else {
 			status.Info(err.Error())
 		}
