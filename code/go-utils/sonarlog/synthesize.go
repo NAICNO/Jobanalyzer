@@ -217,15 +217,15 @@ func sumRecords(
 	var gpuFail uint8
 	var gpus = EmptyGpuSet()
 	for _, s := range selected {
-		cpuPct += (*s).CpuPct
-		gpuPct += (*s).GpuPct
-		gpuMemPct += (*s).GpuMemPct
-		cpuUtilPct += (*s).CpuUtilPct
-		cpuKib += (*s).CpuKib
-		rssAnonKib += (*s).RssAnonKib
-		gpuKib += (*s).GpuKib
-		cpuTimeSec += (*s).CpuTimeSec
-		rolledup += (*s).Rolledup
+		cpuPct += s.CpuPct
+		gpuPct += s.GpuPct
+		gpuMemPct += s.GpuMemPct
+		cpuUtilPct += s.CpuUtilPct
+		cpuKib += s.CpuKib
+		rssAnonKib += s.RssAnonKib
+		gpuKib += s.GpuKib
+		cpuTimeSec += s.CpuTimeSec
+		rolledup += s.Rolledup
 		gpuFail = mergeGpuFail(gpuFail, s.GpuFail)
 		gpus = UnionGpuSets(gpus, s.Gpus)
 	}
