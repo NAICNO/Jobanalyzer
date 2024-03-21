@@ -202,7 +202,7 @@ LineLoop:
 				if eqloc == CsvEqSentinel {
 					// Invalid field syntax: Drop the field but keep the record
 					log.Printf(
-						"Dropping field with bad form: %s", "elided" /*tokenizer.BufSubstring(start, lim)*/,
+						"Dropping field with bad form: %s", "elided", /*tokenizer.BufSubstring(start, lim)*/
 					)
 					discarded++
 					continue FieldLoop
@@ -317,7 +317,7 @@ LineLoop:
 				}
 				if !matched {
 					log.Printf(
-						"Dropping field with unknown name: %s", "elided" /*tokenizer.BufSubstring(start, eqloc-1)*/,
+						"Dropping field with unknown name: %s", "elided", /*tokenizer.BufSubstring(start, eqloc-1)*/
 					)
 					if err == nil {
 						discarded++
@@ -326,7 +326,7 @@ LineLoop:
 				if err != nil {
 					log.Printf(
 						"Dropping record with illegal/unparseable value: %s %v",
-						"elided" /*tokenizer.BufSubstring(start, lim)*/,
+						"elided", /*tokenizer.BufSubstring(start, lim)*/
 						err,
 					)
 					discarded++
@@ -463,7 +463,7 @@ func parseUint(bs []byte) (uint64, error) {
 		if c < '0' || c > '9' {
 			return 0, errors.New("Not a digit")
 		}
-		m := n*10 + uint64(c - '0')
+		m := n*10 + uint64(c-'0')
 		if m < n {
 			return 0, errors.New("Out of range")
 		}
@@ -488,7 +488,7 @@ func parseFloat(bs []byte) (float64, error) {
 		if c < '0' || c > '9' {
 			return 0, errors.New("Not a digit")
 		}
-		m := n*10 + float64(c - '0')
+		m := n*10 + float64(c-'0')
 		if m < n {
 			return 0, errors.New("Out of range")
 		}
@@ -503,12 +503,12 @@ func parseFloat(bs []byte) (float64, error) {
 			return 0, errors.New("Empty fraction")
 		}
 		f := 0.1
-		for ; i < len(bs) ; i++ {
+		for ; i < len(bs); i++ {
 			c := bs[i]
 			if c < '0' || c > '9' {
 				return 0, errors.New("Not a digit")
 			}
-			m := n + float64(c - '0')*f
+			m := n + float64(c-'0')*f
 			if m < n {
 				return 0, errors.New("Out of range")
 			}

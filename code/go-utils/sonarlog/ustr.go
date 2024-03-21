@@ -24,6 +24,7 @@
 package sonarlog
 
 import (
+	"sort"
 	"strings"
 	"sync"
 )
@@ -35,6 +36,12 @@ var (
 	internTable hashtable
 	revTable    []string
 )
+
+type Ustrs []Ustr
+
+func (us Ustrs) Len() int           { return len(us) }
+func (us Ustrs) Swap(i, j int)      { us[i], us[j] = us[j], us[i] }
+func (us Ustrs) Less(i, j int) bool { return us[i].String() < us[j].String() }
 
 // The zero value of Ustr is the empty string
 
@@ -62,6 +69,22 @@ func (u Ustr) String() string {
 	tableLock.RLock()
 	defer tableLock.RUnlock()
 	return revTable[u]
+}
+
+func UstrSortAscending(us []Ustr) {
+	sort.Sort(Ustrs(us))
+}
+
+func UstrJoin(ustrs []Ustr, joiner Ustr) Ustr {
+	s := ""
+	j := joiner.String()
+	for _, u := range ustrs {
+		if s != "" {
+			s += j
+		}
+		s += u.String()
+	}
+	return StringToUstr(s)
 }
 
 func UstrStats(printStrings bool) {
@@ -189,7 +212,7 @@ func (uf *UstrFacade) AllocBytes(bs []byte) Ustr {
 
 const (
 	// These matter.  L=10 is pretty aggressive.
-	inverseLoad uint32 = 10
+	inverseLoad     uint32 = 10
 	initialCapacity uint32 = 93
 )
 
@@ -210,9 +233,9 @@ type hashnode struct {
 func newHashtable() hashtable {
 	size := inverseLoad * initialCapacity
 	return hashtable{
-		table: make([]*hashnode, size),
-		size: 0,
-		divisor: size,
+		table:     make([]*hashnode, size),
+		size:      0,
+		divisor:   size,
 		remaining: initialCapacity,
 	}
 }
@@ -255,7 +278,7 @@ func (ht *hashtable) insert(h hashcode, name string, ustr Ustr) {
 	ht.remaining--
 	ht.size++
 	slot := uint32(h) % ht.divisor
-	node := &hashnode {
+	node := &hashnode{
 		hash: h,
 		ustr: ustr,
 		name: name,
@@ -303,4 +326,3 @@ func hashBytes(bs []byte) hashcode {
 	}
 	return hashcode(h)
 }
-
