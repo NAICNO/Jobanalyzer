@@ -1,6 +1,8 @@
 # Exfiltrate
 
-`exfiltrate` - data forwarder for on-node agents.
+`exfiltrate` - OBSOLETE data forwarder for on-node agents.
+
+This program is not currently in use, as nodes use `curl` to send data.
 
 ## How to run
 

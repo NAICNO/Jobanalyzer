@@ -13,7 +13,7 @@ Command line parsing in the commands follows the Go standard, so:
   as mentioned above)
 - option names can use single dashes `-option` or double dashes `--option`
 - option values can be stated with `-option value` or `-option=value`
-- single-letter option names *can not* be merged with their values, as in `-f5d`
+- single-letter option names *cannot* be merged with their values, as in `-f5d`
 
 ## Warning
 

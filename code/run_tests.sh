@@ -17,14 +17,9 @@ echo "======================================================================="
 ( cd sonarlog ; cargo test -F "untagged_sonar_data" )
 
 echo "======================================================================="
-echo " SONALYZE UNIT TEST, NO FEATURES"
+echo " SONALYZE UNIT TEST"
 echo "======================================================================="
-( cd sonalyze ; cargo test --no-default-features -F "" )
-
-echo "======================================================================="
-echo " SONALYZE UNIT TEST, FEATURE: UNTAGGED DATA"
-echo "======================================================================="
-( cd sonalyze ; cargo test --no-default-features -F "untagged_sonar_data" )
+( cd sonalyze ; cargo test )
 
 echo "======================================================================="
 echo " SONALYZE BUILD + SMOKE TEST"
@@ -90,15 +85,9 @@ echo "======================================================================="
 ( cd rustutils ; cargo test )
 
 echo "======================================================================="
-echo " SONALYZE REGRESSION TEST, NO FEATURES"
+echo " SONALYZE REGRESSION TEST"
 echo "======================================================================="
-( cd sonalyze ; cargo build --no-default-features -F "" )
-( cd tests ; ./run_tests.sh )
-
-echo "======================================================================="
-echo " SONALYZE REGRESSION TEST, FEATURE: UNTAGGED DATA"
-echo "======================================================================="
-( cd sonalyze ; cargo build --no-default-features -F "untagged_sonar_data" )
+( cd sonalyze ; cargo build )
 ( cd tests ; ./run_tests.sh )
 
 echo "======================================================================="
