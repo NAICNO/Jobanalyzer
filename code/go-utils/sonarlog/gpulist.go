@@ -53,6 +53,16 @@ func NewGpuSet(s string) (GpuSet, error) {
 	return gpuData, nil
 }
 
+func UnionGpuSets(a, b GpuSet) GpuSet {
+	if a == unknown {
+		return a
+	}
+	if b == unknown {
+		return b
+	}
+	return a | b
+}
+
 func (g GpuSet) IsEmpty() bool {
 	return g == empty
 }
