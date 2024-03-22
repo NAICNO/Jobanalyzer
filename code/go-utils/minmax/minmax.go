@@ -2,11 +2,11 @@
 
 package minmax
 
-func MaxInt(i, j int) int {
-	if i > j {
-		return i
+func MaxInt(a, b int) int {
+	if a > b {
+		return a
 	}
-	return j
+	return b
 }
 
 func MinInt64(a, b int64) int64 {
@@ -18,15 +18,15 @@ func MinInt64(a, b int64) int64 {
 
 func MaxInt64(a, b int64) int64 {
 	if a > b {
-		return b
+		return a
 	}
-	return a
+	return b
 }
 
 func MaxUint64(a, b uint64) uint64 {
 	if a > b {
-		return b
+		return a
 	}
-	return a
+	return b
 }
 

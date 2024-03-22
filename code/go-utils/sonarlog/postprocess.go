@@ -227,19 +227,21 @@ func parseVersion(v Ustr) (major, minor, bugfix int) {
 	return
 }
 
-func ComputeTimeBounds(streams InputStreamSet) map[Ustr]Timebound {
+// Bounds are computed from a (normally unsorted) sample stream, because we compute bounds on the
+// entire input set before filtering or other postprocessing.  This is closest to what's expected.
+func ComputeTimeBounds(samples SampleStream) map[Ustr]Timebound {
 	bounds := make(map[Ustr]Timebound)
-	for k, s := range streams {
-		host := k.Host
+	for _, s := range samples {
+		host := s.Host
 		if bound, found := bounds[host]; found {
 			bounds[host] = Timebound{
-				Earliest: minmax.MinInt64(bound.Earliest, (*s)[0].Timestamp),
-				Latest: minmax.MaxInt64(bound.Latest, (*s)[len(*s)-1].Timestamp),
+				Earliest: minmax.MinInt64(bound.Earliest, s.Timestamp),
+				Latest: minmax.MaxInt64(bound.Latest, s.Timestamp),
 			}
 		} else {
 			bounds[host] = Timebound{
-				Earliest: (*s)[0].Timestamp,
-				Latest: (*s)[len(*s)-1].Timestamp,
+				Earliest: s.Timestamp,
+				Latest: s.Timestamp,
 			}
 		}
 	}
