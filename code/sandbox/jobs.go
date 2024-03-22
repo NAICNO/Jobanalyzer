@@ -11,41 +11,39 @@ import (
 
 	"go-utils/hostglob"
 	"go-utils/minmax"
+	"go-utils/sonalyze"
 	"go-utils/sonarlog"
 )
 
 const (
 	minSamples = 2
-	LiveAtStart = 1
-	LiveAtEnd = 2
 )
 
 type jobSummary struct {
 	aggregate jobAggregate
-	job sonarlog.SampleStream
+	job       sonarlog.SampleStream
 }
 
 // The float fields of this are not rounded.
-
 type jobAggregate struct {
-	first int64					// seconds since epoch
-	last int64					// seconds since epoch
-	duration int64				// total seconds
-	minutes int64				// m part of d:h:m
-	hours int64					// h part of d:h:m
-	days int64					// d part of d:h:m
-	usesGpu bool
-	gpuFail uint8
-	cpuPctAvg float64
-	cpuPctPeak float64
-	cpuKibAvg uint64
-	cpuKibPeak uint64
-	rssAnonKibAvg uint64
+	first          int64 // seconds since epoch
+	last           int64 // seconds since epoch
+	duration       int64 // total seconds
+	minutes        int64 // m part of d:h:m
+	hours          int64 // h part of d:h:m
+	days           int64 // d part of d:h:m
+	usesGpu        bool
+	gpuFail        uint8
+	cpuPctAvg      float64
+	cpuPctPeak     float64
+	cpuKibAvg      uint64
+	cpuKibPeak     uint64
+	rssAnonKibAvg  uint64
 	rssAnonKibPeak uint64
-	gpuPctAvg float64
-	gpuPctPeak float64
-	gpuKibAvg uint64
-	gpuKibPeak uint64
+	gpuPctAvg      float64
+	gpuPctPeak     float64
+	gpuKibAvg      uint64
+	gpuKibPeak     uint64
 	classification int
 
 	// For printing
@@ -53,13 +51,13 @@ type jobAggregate struct {
 }
 
 type jobCtx struct {
-	now int64
+	now         int64
 	fixedFormat bool
 }
 
 type SortableSummaries []*jobSummary
 
-func (ss SortableSummaries) Len() int { return len(ss) }
+func (ss SortableSummaries) Len() int      { return len(ss) }
 func (ss SortableSummaries) Swap(i, j int) { ss[i], ss[j] = ss[j], ss[i] }
 func (ss SortableSummaries) Less(i, j int) bool {
 	if ss[i].aggregate.first == ss[j].aggregate.first {
@@ -68,17 +66,26 @@ func (ss SortableSummaries) Less(i, j int) bool {
 	return ss[i].aggregate.first < ss[j].aggregate.first
 }
 
-
 func jobs(readings sonarlog.SampleStream) error {
-	streams := sonarlog.PostprocessLog(readings, func(s *sonarlog.Sample) bool { return true }, nil)
-	bounds := sonarlog.ComputeTimeBounds(streams)
+	// Time bounds are computed from the full set of samples before filtering.
+	bounds := sonarlog.ComputeTimeBounds(readings)
+
+	// TODO: if -from or -to or there are no bounds then we do further processing here.
+
+	streams := sonarlog.PostprocessLog(
+		readings,
+		func(s *sonarlog.Sample) bool {
+			return true // s.Job == 25153
+		},
+		nil,
+	)
 	jobs := sonarlog.MergeByHostAndJob(streams)
 	summaries := make([]*jobSummary, 0)
 	for _, job := range jobs {
 		if len(*job) >= minSamples {
 			summaries = append(summaries, &jobSummary{
 				aggregate: aggregateJob(*job, bounds),
-				job: *job,
+				job:       *job,
 			})
 		}
 	}
@@ -101,11 +108,11 @@ func jobs(readings sonarlog.SampleStream) error {
 		jobFields,
 		jobFormatters,
 		&FormatOptions{
-			Fixed: true,
+			Fixed:  true,
 			Header: true,
 		},
 		summaries,
-		jobCtx(jobCtx{ now: time.Now().UTC().Unix(), fixedFormat: true }),
+		jobCtx(jobCtx{now: time.Now().UTC().Unix(), fixedFormat: true}),
 	)
 	return nil
 }
@@ -122,9 +129,9 @@ func aggregateJob(job sonarlog.SampleStream, bounds map[sonarlog.Ustr]sonarlog.T
 	minutes := int64(math.Round(float64(duration) / 60))
 	// Accumulators
 	var (
-		usesGpu bool
-		gpuFail uint8
-		cpuPctAvg, gpuPctAvg, cpuPctPeak, gpuPctPeak float64
+		usesGpu                                                                     bool
+		gpuFail                                                                     uint8
+		cpuPctAvg, gpuPctAvg, cpuPctPeak, gpuPctPeak                                float64
 		cpuKibAvg, cpuKibPeak, rssAnonKibAvg, rssAnonKibPeak, gpuKibAvg, gpuKibPeak uint64
 	)
 	for _, s := range job {
@@ -147,62 +154,63 @@ func aggregateJob(job sonarlog.SampleStream, bounds map[sonarlog.Ustr]sonarlog.T
 		panic("Expected to find bound")
 	}
 	if first == bound.Earliest {
-		classification |= LiveAtStart
+		classification |= sonalyze.LIVE_AT_START
 	}
 	if last == bound.Latest {
-		classification |= LiveAtEnd
+		classification |= sonalyze.LIVE_AT_END
 	}
+	//    fmt.Println(classification, time.Unix(first, 0), time.Unix(bound.Earliest, 0), time.Unix(last, 0), time.Unix(bound.Latest, 0));
 	n := uint64(len(job))
 	fn := float64(len(job))
 	return jobAggregate{
-        first: first,
-		last: last,
-        duration: duration,
-        minutes: minutes % 60,
-        hours: (minutes / 60) % 24,
-        days: minutes / (60 * 24),
-        usesGpu: usesGpu,
-        gpuFail: gpuFail,
-        cpuPctAvg: cpuPctAvg / fn,
-        cpuPctPeak: cpuPctPeak,
-		cpuKibAvg: cpuKibAvg / n,
-		cpuKibPeak: cpuKibPeak,
-		rssAnonKibAvg: rssAnonKibAvg / n,
+		first:          first,
+		last:           last,
+		duration:       duration,
+		minutes:        minutes % 60,
+		hours:          (minutes / 60) % 24,
+		days:           minutes / (60 * 24),
+		usesGpu:        usesGpu,
+		gpuFail:        gpuFail,
+		cpuPctAvg:      cpuPctAvg / fn,
+		cpuPctPeak:     cpuPctPeak,
+		cpuKibAvg:      cpuKibAvg / n,
+		cpuKibPeak:     cpuKibPeak,
+		rssAnonKibAvg:  rssAnonKibAvg / n,
 		rssAnonKibPeak: rssAnonKibPeak,
-        gpuPctAvg: gpuPctAvg / fn,
-        gpuPctPeak: gpuPctPeak,
-		gpuKibAvg: gpuKibAvg / n,
-		gpuKibPeak: gpuKibPeak,
-        classification: classification,
-        selected: true,
-    }
+		gpuPctAvg:      gpuPctAvg / fn,
+		gpuPctPeak:     gpuPctPeak,
+		gpuKibAvg:      gpuKibAvg / n,
+		gpuKibPeak:     gpuKibPeak,
+		classification: classification,
+		selected:       true,
+	}
 }
 
 var jobDefaultFields = "std,cpu,mem,gpu,gpumem,cmd"
 
 var jobAliases = map[string][]string{
-	"std": []string{"jobm","user","duration","host"},
-	"cpu": []string{"cpu-avg","cpu-peak"},
-	"mem": []string{"mem-avg","mem-peak"},
-	"gpu": []string{"gpu-avg","gpu-peak"},
-	"gpumem": []string{"gpumem-avg","gpumem-peak"},
+	"std":    []string{"jobm", "user", "duration", "host"},
+	"cpu":    []string{"cpu-avg", "cpu-peak"},
+	"mem":    []string{"mem-avg", "mem-peak"},
+	"gpu":    []string{"gpu-avg", "gpu-peak"},
+	"gpumem": []string{"gpumem-avg", "gpumem-peak"},
 }
 
 const (
 	KibToGibFactor = 1024 * 1024
 )
 
-var jobFormatters = map[string]func(d *jobSummary, ctx jobCtx) string {
+var jobFormatters = map[string]func(d *jobSummary, ctx jobCtx) string{
 
 	"jobm": func(d *jobSummary, _ jobCtx) string {
 		mark := ""
 		c := d.aggregate.classification
 		switch {
-		case c & (LiveAtStart|LiveAtEnd) == (LiveAtStart|LiveAtEnd):
+		case c & (sonalyze.LIVE_AT_START|sonalyze.LIVE_AT_END) == (sonalyze.LIVE_AT_START|sonalyze.LIVE_AT_END):
 			mark = "!"
-		case c & LiveAtStart != 0:
+		case c & sonalyze.LIVE_AT_START != 0:
 			mark = "<"
-		case c & LiveAtEnd != 0:
+		case c & sonalyze.LIVE_AT_END != 0:
 			mark = ">"
 		}
 		return fmt.Sprint(d.job[0].Job, mark)
@@ -243,30 +251,30 @@ var jobFormatters = map[string]func(d *jobSummary, ctx jobCtx) string {
 	},
 
 	"mem-avg": func(d *jobSummary, _ jobCtx) string {
-		return fmt.Sprintf("%g", math.Ceil(float64(d.aggregate.cpuKibAvg) / KibToGibFactor))
+		return fmt.Sprintf("%g", math.Ceil(float64(d.aggregate.cpuKibAvg)/KibToGibFactor))
 	},
 
 	"mem-peak": func(d *jobSummary, _ jobCtx) string {
-		return fmt.Sprintf("%g", math.Ceil(float64(d.aggregate.cpuKibPeak) / KibToGibFactor))
+		return fmt.Sprintf("%g", math.Ceil(float64(d.aggregate.cpuKibPeak)/KibToGibFactor))
 	},
 
-	"gpu-avg":func(d *jobSummary, _ jobCtx) string {
+	"gpu-avg": func(d *jobSummary, _ jobCtx) string {
 		return fmt.Sprintf("%g", math.Ceil(d.aggregate.gpuPctAvg))
 	},
 
-	"gpu-peak":func(d *jobSummary, _ jobCtx) string {
+	"gpu-peak": func(d *jobSummary, _ jobCtx) string {
 		return fmt.Sprintf("%g", math.Ceil(d.aggregate.gpuPctPeak))
 	},
 
-	"gpumem-avg":func(d *jobSummary, _ jobCtx) string {
-		return fmt.Sprintf("%g", math.Ceil(float64(d.aggregate.gpuKibAvg) / KibToGibFactor))
+	"gpumem-avg": func(d *jobSummary, _ jobCtx) string {
+		return fmt.Sprintf("%g", math.Ceil(float64(d.aggregate.gpuKibAvg)/KibToGibFactor))
 	},
 
-	"gpumem-peak":func(d *jobSummary, _ jobCtx) string {
-		return fmt.Sprintf("%g", math.Ceil(float64(d.aggregate.gpuKibPeak) / KibToGibFactor))
+	"gpumem-peak": func(d *jobSummary, _ jobCtx) string {
+		return fmt.Sprintf("%g", math.Ceil(float64(d.aggregate.gpuKibPeak)/KibToGibFactor))
 	},
 
-	"cmd":func(d *jobSummary, _ jobCtx) string {
+	"cmd": func(d *jobSummary, _ jobCtx) string {
 		names := make(map[sonarlog.Ustr]bool)
 		name := ""
 		for _, sample := range d.job {

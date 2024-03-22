@@ -606,6 +606,7 @@ fn aggregate_job(
     if last == *latest {
         classification |= LIVE_AT_END;
     }
+    println!("{} {} {} {} {}", classification, first, earliest, last, latest);
     JobAggregate {
         first,
         last,

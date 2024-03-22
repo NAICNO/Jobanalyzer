@@ -18,11 +18,11 @@ import (
 )
 
 var (
-	dataDir  string
-	fromDate time.Time
-	toDate   time.Time
+	dataDir    string
+	fromDate   time.Time
+	toDate     time.Time
 	cpuProfile string
-	verbose bool
+	verbose    bool
 )
 
 func main() {
@@ -92,4 +92,3 @@ func main() {
 		panic(err)
 	}
 }
-
