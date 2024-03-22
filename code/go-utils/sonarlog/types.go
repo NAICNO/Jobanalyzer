@@ -63,3 +63,10 @@ type SampleStream []*Sample
 // depends on how they were merged and are not implied by the type.
 
 type SampleStreams []*SampleStream
+
+// Earliest and latest time stamps found in a set of records.
+
+type Timebound struct {
+	Earliest int64
+	Latest int64
+}

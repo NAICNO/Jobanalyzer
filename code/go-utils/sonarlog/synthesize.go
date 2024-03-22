@@ -94,7 +94,6 @@ func mergeStreams(
 	streams SampleStreams,
 ) *SampleStream {
 	// FIXME: Lots of comments
-	panic("NYI")
 
 	records := make(SampleStream, 0)
 
@@ -112,7 +111,7 @@ func mergeStreams(
 
 		minTime := sentinelTime
 		for i := live; i < len(streams); i++ {
-			if indices[i] > len(*streams[i]) {
+			if indices[i] >= len(*streams[i]) {
 				continue
 			}
 			if minTime > (*streams[i])[indices[i]].Timestamp {

@@ -1,8 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"unicode/utf8"
+
+	"go-utils/minmax"
 )
 
 type FormatOptions struct {
@@ -15,6 +19,41 @@ type FormatOptions struct {
     Header bool // true if nothing requested b/c fixed+header is default
     NoDefaults bool // if true and the string returned is "*skip*" and the
                       //   mode is csv or json then print nothing
+}
+
+// Returns list of fields, list of other strings, and error.  Expansion is not recursive: Aliases
+// must map to fundamental names.
+
+func ParseFields[T, C any](
+	spec string,
+	formatters map[string]func(datum T, ctx C) string,
+	aliases map[string][]string,
+) ([]string, []string, error) {
+	others := make(map[string]bool)
+	fields := make([]string, 0)
+	for _, x := range strings.Split(spec, ",") {
+		if _, found := formatters[x]; found {
+			fields = append(fields, x)
+		} else if expansion, found := aliases[x]; found {
+			for _, alias := range expansion {
+				if _, found := formatters[alias]; found {
+					fields = append(fields, alias)
+				} else {
+					others[alias] = true
+				}
+			}
+		} else {
+			others[x] = true
+		}
+	}
+	if len(fields) == 0 {
+		return nil, nil, errors.New("No output fields were selected in format string")
+	}
+	otherFields := make([]string, 0)
+	for k := range others {
+		otherFields = append(otherFields, k)
+	}
+	return fields, otherFields, nil
 }
 
 func FormatData[T, C any](
@@ -62,19 +101,19 @@ func formatFixed(fields []string, opts *FormatOptions, cols [][]string) {
 
     if opts.Header {
 		for col := 0 ; col < len(fields); col++ {
-            widths[col] = maxi(widths[col], utf8.RuneCountInString(fields[col]))
+            widths[col] = minmax.MaxInt(widths[col], utf8.RuneCountInString(fields[col]))
         }
         if tagCol >= 0 {
-            widths[tagCol] = maxi(widths[tagCol], len("tag"))
+            widths[tagCol] = minmax.MaxInt(widths[tagCol], len("tag"))
         }
     }
 
     for row := 0 ; row < len(cols[0]) ; row++ {
         for col := 0 ; col < len(fields); col++ {
-            widths[col] = maxi(widths[col], utf8.RuneCountInString(cols[col][row]))
+            widths[col] = minmax.MaxInt(widths[col], utf8.RuneCountInString(cols[col][row]))
         }
         if tagCol >= 0 {
-            widths[tagCol] = maxi(widths[tagCol], utf8.RuneCountInString(opts.Tag))
+            widths[tagCol] = minmax.MaxInt(widths[tagCol], utf8.RuneCountInString(opts.Tag))
         }
     }
 
@@ -82,30 +121,23 @@ func formatFixed(fields []string, opts *FormatOptions, cols [][]string) {
     if opts.Header {
         s := ""
 		for col := 0 ; col < len(fields); col++ {
-			s += fmt.Sprintf("%*s  ", widths[col], fields[col])
+			s += fmt.Sprintf("%-*s  ", widths[col], fields[col])
         }
         if tagCol >= 0 {
-			s += fmt.Sprintf("%*s  ", widths[tagCol], "tag")
+			s += fmt.Sprintf("%-*s  ", widths[tagCol], "tag")
         }
-		println(s)
+		println(strings.TrimRight(s, " "))
     }
 
     // Body
     for row := 0 ; row < len(cols[0]); row++ {
 		s := ""
 		for col := 0 ; col < len(fields); col++ {
-			s += fmt.Sprintf("%*s  ", widths[col], cols[col][row])
+			s += fmt.Sprintf("%-*s  ", widths[col], cols[col][row])
         }
         if tagCol >= 0 {
-			s += fmt.Sprintf("%*s  ", widths[tagCol], opts.Tag)
+			s += fmt.Sprintf("%-*s  ", widths[tagCol], opts.Tag)
 		}
-		println(s)
+		println(strings.TrimRight(s, " "))
     }
-}
-
-func maxi(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
