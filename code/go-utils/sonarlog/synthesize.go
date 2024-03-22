@@ -8,10 +8,6 @@ const (
 	farFuture int64 = math.MaxInt64
 )
 
-// Merged streams are represented as a bag of streams.
-
-type MergedSampleStreams SampleStreams
-
 // Merge streams that have the same host and job ID into synthesized data.
 //
 // Each output stream is sorted ascending by timestamp.  No two records have exactly the same time.
@@ -20,18 +16,19 @@ type MergedSampleStreams SampleStreams
 // The command name for synthesized data collects all the commands that went into the synthesized
 // stream.
 
-func MergeByHostAndJob(streams InputStreamSet) *MergedSampleStreams {
+func MergeByHostAndJob(streams InputStreamSet) SampleStreams {
 	type HostAndJob struct {
 		host Ustr
 		job  uint32
 	}
+
 	type CommandsAndSampleStreams struct {
 		commands map[Ustr]bool
-		streams  *SampleStreams
+		streams  SampleStreams
 	}
 
 	// The value is a set of command names and a vector of the individual streams.
-	collections := make(map[HostAndJob]CommandsAndSampleStreams)
+	collections := make(map[HostAndJob]*CommandsAndSampleStreams)
 
 	// The value is a map (by host) of the individual streams with job ID zero, these can't be
 	// merged and must just be passed on.
@@ -51,18 +48,17 @@ func MergeByHostAndJob(streams InputStreamSet) *MergedSampleStreams {
 			k := HostAndJob{key.Host, id}
 			if box, found := collections[k]; found {
 				box.commands[key.Cmd] = true
-				*box.streams = append(*box.streams, stream)
+				box.streams = append(box.streams, stream)
 			} else {
-				box := CommandsAndSampleStreams{
+				collections[k] = &CommandsAndSampleStreams{
 					commands: map[Ustr]bool{key.Cmd: true},
-					streams:  &SampleStreams{stream},
+					streams:  SampleStreams{stream},
 				}
-				collections[k] = box
 			}
 		}
 	}
 
-	merged := make(MergedSampleStreams, 0)
+	merged := make(SampleStreams, 0)
 
 	for key, cmdsAndStreams := range collections {
 		if zeroes, found := zero[key.host]; found {
@@ -74,17 +70,19 @@ func MergeByHostAndJob(streams InputStreamSet) *MergedSampleStreams {
 			commands = append(commands, c)
 		}
 		UstrSortAscending(commands)
-		username := (*(*cmdsAndStreams.streams)[0])[0].User
+        // Any user from any record is fine.  There should be an invariant that no stream is empty,
+        // so this should always be safe.
+		username := (*cmdsAndStreams.streams[0])[0].User
 		merged = append(merged, mergeStreams(
 			key.host,
 			UstrJoin(commands, StringToUstr(",")),
 			username,
 			key.job,
-			*cmdsAndStreams.streams,
+			cmdsAndStreams.streams,
 		))
 	}
 
-	return &merged
+	return merged
 }
 
 // FIXME: Lots of comments
@@ -195,7 +193,7 @@ func mergeStreams(
 	return &records
 }
 
-func mergeGpuFail(a, b uint8) uint8 {
+func MergeGpuFail(a, b uint8) uint8 {
 	if a > 0 || b > 0 {
 		return 1
 	}
@@ -226,7 +224,7 @@ func sumRecords(
 		gpuKib += s.GpuKib
 		cpuTimeSec += s.CpuTimeSec
 		rolledup += s.Rolledup
-		gpuFail = mergeGpuFail(gpuFail, s.GpuFail)
+		gpuFail = MergeGpuFail(gpuFail, s.GpuFail)
 		gpus = UnionGpuSets(gpus, s.Gpus)
 	}
 	// The invariant is that rolledup is the number of *other* processes rolled up into this one.

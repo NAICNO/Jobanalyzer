@@ -86,4 +86,7 @@ func main() {
 		fmt.Printf("%d records, %d dropped\n", len(readings), dropped)
 		sonarlog.UstrStats(false)
 	}
+
+	jobs(readings)
 }
+

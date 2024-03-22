@@ -17,7 +17,8 @@ package sonarlog
 // Further optimizations are possible:
 //
 //  - Timestamp can be reduced to uint32
-//  - CpuPct, GpuMemPct, GpuPct can be float16 or 16-bit fixedpoint.
+//  - CpuPct, GpuMemPct, GpuPct can be float16 or 16-bit fixedpoint or simply uint16, the value
+//    scaled by 10 (ie integer per mille - change the field names)
 //  - There are many fields that have unused bits, for example, Ustr is unlikely ever to need
 //    more than 24 bits, most memory sizes need more than 32 bits but not more than 38, Job and
 //    Process IDs are probably 24 bits or so, and Rolledup is unlikely to be more than 16 bits.
