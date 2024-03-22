@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"go-utils/config"
+	"go-utils/minmax"
 )
 
 // The InputStreamKey is (hostname, stream-id, cmd), where the stream-id is defined below; it is
@@ -224,4 +225,23 @@ func parseVersion(v Ustr) (major, minor, bugfix int) {
 	}
 	bugfix = tmp
 	return
+}
+
+func ComputeTimeBounds(streams InputStreamSet) map[Ustr]Timebound {
+	bounds := make(map[Ustr]Timebound)
+	for k, s := range streams {
+		host := k.Host
+		if bound, found := bounds[host]; found {
+			bounds[host] = Timebound{
+				Earliest: minmax.MinInt64(bound.Earliest, (*s)[0].Timestamp),
+				Latest: minmax.MaxInt64(bound.Latest, (*s)[len(*s)-1].Timestamp),
+			}
+		} else {
+			bounds[host] = Timebound{
+				Earliest: (*s)[0].Timestamp,
+				Latest: (*s)[len(*s)-1].Timestamp,
+			}
+		}
+	}
+	return bounds
 }

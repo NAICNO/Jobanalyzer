@@ -87,6 +87,9 @@ func main() {
 		sonarlog.UstrStats(false)
 	}
 
-	jobs(readings)
+	err = jobs(readings)
+	if err != nil {
+		panic(err)
+	}
 }
 
