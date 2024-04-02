@@ -14,7 +14,7 @@ The tool set is expected to grow over time.
 
 Current tools are based on a system sampler, and provide information based on collected samples.
 See [doc/DESIGN.md](doc/DESIGN.md) for more information on the technical architecture and its
-implementation.  See [doc/REQUIREMENTS.md](doc.REQUIREMENTS.md) for requirements and a list of
+implementation.  See [doc/REQUIREMENTS.md](doc/REQUIREMENTS.md) for requirements and a list of
 specific use cases.
 
 The central feature of Jobanalyzer is that it aggregates and analyzes historical data, making it
