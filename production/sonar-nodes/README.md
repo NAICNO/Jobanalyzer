@@ -55,7 +55,8 @@ Since none of the nodes have slurm, the sonar script is `sonar-batchless.sh`.
 
 Currently, `~sonar-runner` is `/var/lib/sonar-runner` on all nodes.  As this directory is private to
 each machine, the binaries and scripts have to be updated everywhere every time there is an update.
-
+It is hard to use a shared directory since the UID of `sonar-runner` is not the same on every
+machine.
 
 ### A procedure for installing or updating sonar on the ML nodes
 
@@ -78,7 +79,7 @@ Now, consider whether to edit these files:
 
 - `*-batchless.sh` and `sonar-runner-batchless.cron`, to change the sonar root directory
 - `sonar-config.sh`, to change any other settings
-- `sonar-runner-batchless.cron`, to change cron's MAILTO variable
+- `sonar-runner-batchless.cron`, to change cron's `MAILTO` variable
 
 Now we can create a tar file that contains everything except the password (and is therefore freely
 copyable):
@@ -103,6 +104,7 @@ Create the user if necessary:
 ```
   $ sudo -i
   # useradd -r -m -d /var/lib/sonar-runner -s /sbin/nologin -c "Sonar monitor account" sonar-runner
+  # <edit /etc/security/access.conf and add "+ : sonar-runner : cron" before any deny-all lines>
 ```
 
 Then set everything up:
@@ -112,7 +114,6 @@ Then set everything up:
   $ tar xzf /tmp/sonar-mlnodes.tar.gz
   $ <edit secrets/upload-auth.netrc to add the PASSWORD>
   $ ^D
-  # <edit /etc/security/access.conf and add "+ : sonar-runner : cron" before any deny-all lines>
   # cp /var/lib/sonar-runner/sonar-runner-batchless.cron /etc/cron.d/sonar
   # ^D
   $ rm /tmp/sonar-mlnodes.tar.gz
@@ -173,7 +174,8 @@ The following additional conditions have to be met on interactive nodes and logi
 
 ### Setting up
 
-The setup procedure (building, creating a tar file, installing it) is largely as for the ML nodes.
+The setup procedure (building, creating a tar file, installing it) is largely as for the ML nodes
+except that the user is `sonar` and not `sonar-runner`.
 
 
 ## Saga (cluster name: saga.sigma2.no)
