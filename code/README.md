@@ -13,6 +13,7 @@
 * `go-utils/` - Go source code for utility functions used by all the Go programs in this repo
 * `infiltrate/` - Go source code for a program that receives Sonar data on a server
 * `jsoncheck/` - Go source code for a simple utility that syntax checks JSON data
+* `make-cluster-config/` - Go source code for a utility that collects sysinfo data into cluster config files
 * `naicreport/` - Go source code for a program that queries the Sonar data and generates reports
 * `netsink/` - Go source code for a program that receives random input from a port and logs it
 * `rustutils/` - Rust source code for utility functions used by all the Rust programs in this repo

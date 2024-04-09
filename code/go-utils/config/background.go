@@ -4,6 +4,10 @@
 // A background file is currently a JSON array datum each with a (partial) NodeConfigRecord, where
 // each host name may be a host pattern.  The information is expanded into a map from a hostname to
 // the (partial) background information for the host.
+//
+// Some background information is "deep background" and does not represent eg hosts that were not
+// found by sysinfo, and their information should not be emitted into cluster config files.  These
+// records are marked with cpu_cores==0 or mem_gb==0.
 
 package config
 
