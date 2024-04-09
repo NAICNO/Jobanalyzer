@@ -19,7 +19,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -68,13 +67,9 @@ func main() {
 	var auxConfig map[string]*config.NodeConfigRecord
 	var referenced = make(map[string]bool)
 	if auxFilename != "" {
-		auxBytes, err := os.ReadFile(auxFilename)
-		Check(err, "Reading background (aux) data")
-		var auxArray []*config.NodeConfigRecord
-		err = json.Unmarshal(auxBytes, &auxArray)
-		Check(err, "Unmarshaling background (aux) data")
-		auxConfig, err = config.ExpandNodeConfigs(auxArray)
-		Check(err, "expanding background (aux) data")
+		var err error
+		auxConfig, err = config.ReadBackgroundFile(auxFilename)
+		Check(err, "Background")
 	} else {
 		auxConfig = make(map[string]*config.NodeConfigRecord)
 	}

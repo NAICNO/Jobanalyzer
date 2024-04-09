@@ -58,3 +58,7 @@ func ThisDay(t time.Time) time.Time {
 func NextDay(t time.Time) time.Time {
 	return ThisDay(t.AddDate(0, 0, 1))
 }
+
+func PreviousDay(t time.Time) time.Time {
+	return ThisDay(t.AddDate(0, 0, -1))
+}
