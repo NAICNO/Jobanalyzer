@@ -17,7 +17,7 @@ import (
 func ReadBackgroundFile(filename string) (map[string]*NodeConfigRecord, error) {
 	input, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("Opening background data: %w")
+		return nil, fmt.Errorf("Opening background data: %w", err)
 	}
 	defer input.Close()
 	return ReadBackground(input)
