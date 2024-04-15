@@ -128,7 +128,7 @@ where
         let (major, minor) = (stream[0].major, stream[0].minor);
         if major == 0 && minor <= 6 {
             for i in 1..stream.len() {
-                stream[i].cpu_util_pct = stream[0].cpu_pct;
+                stream[i].cpu_util_pct = stream[i].cpu_pct;
             }
         } else {
             for i in 1..stream.len() {
