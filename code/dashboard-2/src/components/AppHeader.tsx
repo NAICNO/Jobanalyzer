@@ -7,7 +7,7 @@ import {
 } from '@chakra-ui/react'
 import { NavLink } from 'react-router-dom'
 
-import { APP_NAME } from '../constants.ts'
+import { APP_NAME } from '../Constants.ts'
 import { LightDarkModeButton } from './LightDarkModeButton.tsx'
 import { HamburgerButton } from './HamburgerButton.tsx'
 
