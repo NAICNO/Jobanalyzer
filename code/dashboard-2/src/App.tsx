@@ -7,17 +7,14 @@ import {
 } from 'react-router-dom'
 
 import RootLayout from './layouts/RootLayout.tsx'
-import MlNodesHomePage from './pages/MlNodesHomePage.tsx'
-import FoxHomePage from './pages/FoxHomePage.tsx'
-import SagaHomePage from './pages/SagaHomePage.tsx'
+import DashboardPage from './pages/DashboardPage.tsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<RootLayout/>}>
-      <Route index element={<Navigate to="ml" replace/>}/>
-      <Route path="ml" element={<MlNodesHomePage/>}/>
-      <Route path="fox" element={<FoxHomePage/>}/>
-      <Route path="saga" element={<SagaHomePage/>}/>
+      <Route index element={<Navigate to="dashboard/ml" replace/>}/>
+      <Route path="dashboard" element={<DashboardPage/>}/>
+      <Route path="dashboard/:clusterName" element={<DashboardPage/>}/>
     </Route>
   )
 )

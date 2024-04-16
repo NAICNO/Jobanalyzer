@@ -8,7 +8,8 @@ import {
   DrawerOverlay, HStack,
   List,
   ListIcon,
-  ListItem, Spacer,
+  ListItem,
+  Spacer,
   useBreakpointValue,
   useColorMode, VStack,
 } from '@chakra-ui/react'
@@ -20,17 +21,17 @@ import { LightDarkModeButton } from './LightDarkModeButton.tsx'
 
 const sidebarItems = [
   {
-    path: '/ml',
+    path: '/dashboard/ml',
     text: 'ML Nodes',
     icon: GrNodes
   },
   {
-    path: '/fox',
+    path: '/dashboard/fox',
     text: 'Fox',
     icon: GiFox
   },
   {
-    path: '/saga',
+    path: '/dashboard/saga',
     text: 'Saga',
     icon: GrServers
   }
