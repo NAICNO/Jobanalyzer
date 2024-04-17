@@ -49,7 +49,7 @@ pub fn print(
         .collect::<Vec<Item>>();
     data.sort_by(|a, b| {
         if a.host == b.host {
-            a.earliest.cmp(&b.latest)
+            a.earliest.cmp(&b.earliest)
         } else {
             a.host.cmp(&b.host)
         }

@@ -1,6 +1,8 @@
 # This just tests that --fmt=help works and produces at least the syntax help.
-output=$($SONALYZE parse --fmt=help | grep -e "--fmt")
-CHECK format_help "  --fmt=(field|alias|control),..." "$output"
+# Rust and Go have slightly different output due to the - / -- discrepancy.
+# Also, Rust prints on stdout and Go on stderr (the latter to do what -h would do)
+output=$($SONALYZE parse --fmt=help 2>&1 | grep -e "-fmt" | sed 's/^ *-*//g')
+CHECK format_help "fmt=(field|alias|control),..." "$output"
 
 output=$($SONALYZE parse --fmt=csv,host,user,job,gpus -- format-smoketest.csv)
 CHECK format_csv "ml4.hpc.uio.no,einarvid,1269178,none" "$output"

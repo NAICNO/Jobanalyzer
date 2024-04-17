@@ -103,7 +103,7 @@ pub fn aggregate_and_print_load(
             for (k, s) in &streams {
                 if ht.lookup(s[0].hostname.as_str()).is_none() {
                     bad.insert(*k);
-                    eprintln!("Warning: Missing host configuration for {}", &s[0].hostname)
+                    eprintln!("Warning: Missing host configuration for {}", &s[0].hostname.as_str())
                 }
             }
             for b in bad.drain() {
@@ -178,6 +178,7 @@ pub fn aggregate_and_print_load(
             }
             first = false;
         }
+        // Hm, should this not be hostname.as_str()?
         let hostname = stream[0].hostname;
         if !opts.csv && !opts.json && !opts.awk && !explicit_host {
             output

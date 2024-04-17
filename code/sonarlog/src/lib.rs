@@ -44,7 +44,7 @@ mod synthesize;
 // Postprocess a vector of log data: compute the cpu_util_pct field, apply a record filter, clean up
 // the GPU memory data, and bucket data for different sample streams properly.
 
-pub use logclean::postprocess_log; // -> InputSampleStreams
+pub use logclean::postprocess_log; // -> (InputSampleStreams, usize)
 
 // A datum representing a key in the map of sample streams: (hostname, stream-id, command).
 

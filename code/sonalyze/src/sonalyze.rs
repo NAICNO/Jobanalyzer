@@ -311,7 +311,7 @@ pub struct RecordFilterArgs {
     #[arg(long)]
     exclude_user: Vec<String>,
 
-    /// Select records with this command name equals this string (repeatable) [default: all]
+    /// Select records where the command name equals this string (repeatable) [default: all]
     #[arg(long)]
     command: Vec<String>,
 
@@ -410,6 +410,9 @@ impl UrlBuilder {
     }
 }
 
+// This is "so large that even extreme outliers resulting from bugs will not reach this value" and
+// is used as the "initial" value for max attributes.  When the property has this value, filtering
+// on the property is effectively disabled.
 const BIG_VALUE: usize = 100000000;
 
 #[derive(Args, Debug, Default)]
@@ -443,11 +446,11 @@ pub struct JobFilterAndAggregationArgs {
     min_rcpu_peak: usize,
 
     /// Select only jobs with at most this much relative average CPU use (100=all cpus)
-    #[arg(long, default_value_t = 100)]
+    #[arg(long, default_value_t = BIG_VALUE)]
     max_rcpu_avg: usize,
 
     /// Select only jobs with at most this much relative peak CPU use (100=all cpus)
-    #[arg(long, default_value_t = 100)]
+    #[arg(long, default_value_t = BIG_VALUE)]
     max_rcpu_peak: usize,
 
     /// Select only jobs with at least this much average virtual memory use (GB)
@@ -507,11 +510,11 @@ pub struct JobFilterAndAggregationArgs {
     min_rgpu_peak: usize,
 
     /// Select only jobs with at most this much relative average GPU use (100=all cards)
-    #[arg(long, default_value_t = 100)]
+    #[arg(long, default_value_t = BIG_VALUE)]
     max_rgpu_avg: usize,
 
     /// Select only jobs with at most this much relative peak GPU use (100=all cards)
-    #[arg(long, default_value_t = 100)]
+    #[arg(long, default_value_t = BIG_VALUE)]
     max_rgpu_peak: usize,
 
     /// Select only jobs with at least this much average GPU memory use (100=1 full GPU card)
@@ -562,7 +565,7 @@ pub struct JobFilterAndAggregationArgs {
 }
 
 impl UrlBuilder {
-    // It's annoying to repeat the "0" and the "100" default values, but they can't be otherwise, so
+    // It's annoying to repeat the "0" and the "BIG_VALUE" default values, but they can't be otherwise, so
     // it's not really a maintenance problem.
     fn add_job_filter_and_aggregation_args(&mut self, a: &JobFilterAndAggregationArgs) {
         self.add_option_usize("min-samples", &a.min_samples);
@@ -572,8 +575,8 @@ impl UrlBuilder {
         self.add_defaulted_usize("max-cpu-peak", a.max_cpu_peak, BIG_VALUE);
         self.add_defaulted_usize("min-rcpu-avg", a.min_rcpu_avg, 0);
         self.add_defaulted_usize("min-rcpu-peak", a.min_rcpu_peak, 0);
-        self.add_defaulted_usize("max-rcpu-avg", a.max_rcpu_avg, 100);
-        self.add_defaulted_usize("max-rcpu-peak", a.max_rcpu_peak, 100);
+        self.add_defaulted_usize("max-rcpu-avg", a.max_rcpu_avg, BIG_VALUE);
+        self.add_defaulted_usize("max-rcpu-peak", a.max_rcpu_peak, BIG_VALUE);
         self.add_defaulted_usize("min-mem-avg", a.min_mem_avg, 0);
         self.add_defaulted_usize("min-mem-peak", a.min_mem_peak, 0);
         self.add_defaulted_usize("min-rmem-avg", a.min_rmem_avg, 0);
@@ -588,8 +591,8 @@ impl UrlBuilder {
         self.add_defaulted_usize("max-gpu-peak", a.max_gpu_peak, BIG_VALUE);
         self.add_defaulted_usize("min-rgpu-avg", a.min_rgpu_avg, 0);
         self.add_defaulted_usize("min-rgpu-peak", a.min_rgpu_peak, 0);
-        self.add_defaulted_usize("max-rgpu-avg", a.max_rgpu_avg, 100);
-        self.add_defaulted_usize("max-rgpu-peak", a.max_rgpu_peak, 100);
+        self.add_defaulted_usize("max-rgpu-avg", a.max_rgpu_avg, BIG_VALUE);
+        self.add_defaulted_usize("max-rgpu-peak", a.max_rgpu_peak, BIG_VALUE);
         self.add_defaulted_usize("min-gpumem-avg", a.min_gpumem_avg, 0);
         self.add_defaulted_usize("min-gpumem-peak", a.min_gpumem_peak, 0);
         self.add_defaulted_usize("min-rgpumem-avg", a.min_rgpumem_avg, 0);
@@ -929,9 +932,9 @@ fn sonalyze() -> Result<()> {
         //  - "features" carries a comma-separated list of enabled features
         cfg_if::cfg_if! {
             if #[cfg(feature = "untagged_sonar_data")] {
-                println!("sonalyze version(0.1.0) features(untagged_sonar_data)");
+                println!("sonalyze-rs version(0.1.0) features(untagged_sonar_data)");
             } else {
-                println!("sonalyze version(0.1.0) features()");
+                println!("sonalyze-rs version(0.1.0) features()");
             }
         }
         return Ok(());
@@ -1477,7 +1480,7 @@ fn sonalyze() -> Result<()> {
 
         Commands::Jobs(_) | Commands::Load(_) => {
             let records_read = entries.len();
-            let streams = sonarlog::postprocess_log(entries, record_filter, &system_config);
+            let (streams, _) = sonarlog::postprocess_log(entries, record_filter, &system_config);
 
             match cli.command {
                 Commands::Load(ref load_args) => load::aggregate_and_print_load(
@@ -1517,7 +1520,7 @@ fn sonalyze() -> Result<()> {
         }
 
         Commands::Profile(ref profile_args) => {
-            let streams = sonarlog::postprocess_log(entries, record_filter, &None);
+            let (streams, _) = sonarlog::postprocess_log(entries, record_filter, &None);
             profile::print(
                 &mut io::stdout(),
                 usize::from_str(&profile_args.record_filter_args.job[0]).unwrap(),
@@ -1530,18 +1533,27 @@ fn sonalyze() -> Result<()> {
 
         Commands::Parse(ref parse_args) => {
             let (old_entries, new_entries) = if parse_args.print_args.clean {
-                let mut streams = sonarlog::postprocess_log(entries, record_filter, &None);
+                let (mut streams, removed) = sonarlog::postprocess_log(entries, record_filter, &None);
                 let streams = streams
                     .drain()
                     .map(|(_, v)| v)
                     .collect::<Vec<Vec<Box<LogEntry>>>>();
+                if meta_args.verbose {
+                    println!("Number of samples removed in cleaning: {removed}");
+                }
                 (None, Some(streams))
             } else if parse_args.print_args.merge_by_job {
-                let streams = sonarlog::postprocess_log(entries, record_filter, &None);
+                let (streams, removed) = sonarlog::postprocess_log(entries, record_filter, &None);
                 let (entries, _) = sonarlog::merge_by_job(streams, &bounds);
+                if meta_args.verbose {
+                    println!("Number of samples removed in cleaning: {removed}");
+                }
                 (None, Some(entries))
             } else if parse_args.print_args.merge_by_host_and_job {
-                let streams = sonarlog::postprocess_log(entries, record_filter, &None);
+                let (streams, removed) = sonarlog::postprocess_log(entries, record_filter, &None);
+                if meta_args.verbose {
+                    println!("Number of samples removed in cleaning: {removed}");
+                }
                 (None, Some(sonarlog::merge_by_host_and_job(streams)))
             } else {
                 let streams = entries
@@ -1551,10 +1563,15 @@ fn sonalyze() -> Result<()> {
                 (Some(streams), None)
             };
             if let Some(mut merged_streams) = new_entries {
+                // All elements that are part of the InputStreamKey must be part of the sort key here.
                 merged_streams.sort_by(|a, b| {
                     if a[0].hostname == b[0].hostname {
                         if a[0].timestamp == b[0].timestamp {
-                            a[0].job_id.cmp(&b[0].job_id)
+                            if a[0].job_id == b[0].job_id {
+                                a[0].command.cmp(&b[0].command)
+                            } else {
+                                a[0].job_id.cmp(&b[0].job_id)
+                            }
                         } else {
                             a[0].timestamp.cmp(&b[0].timestamp)
                         }
@@ -1584,7 +1601,7 @@ fn sonalyze() -> Result<()> {
 
         Commands::Metadata(ref parse_args) => {
             let bounds = if parse_args.print_args.merge_by_job {
-                let streams = sonarlog::postprocess_log(entries, record_filter, &None);
+                let (streams, _) = sonarlog::postprocess_log(entries, record_filter, &None);
                 let (_, bounds) = sonarlog::merge_by_job(streams, &bounds);
                 bounds
             } else {

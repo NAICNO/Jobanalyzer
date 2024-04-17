@@ -152,6 +152,15 @@ func (cc *ClusterConfig) HostsDefinedInTimeWindow(fromIncl, toExcl int64) []stri
 	return result
 }
 
+func (cc *ClusterConfig) HasCrossNodeJobs() bool {
+	for _, n := range cc.nodes {
+		if n.CrossNodeJobs {
+			return true
+		}
+	}
+	return false
+}
+
 // Get the system config if possible, returning a map from node names to node information.
 
 func ReadConfig(configFilename string) (*ClusterConfig, error) {
@@ -204,8 +213,11 @@ func ReadConfigFrom(input io.Reader) (*ClusterConfig, error) {
 	}
 
 	for _, c := range configInfo {
-		if c.CpuCores == 0 || c.MemGB == 0 {
-			return nil, fmt.Errorf("Nonsensical CPU/memory information for %s", c.Hostname)
+		if c.CpuCores == 0 {
+			return nil, fmt.Errorf("Zero or missing 'cpu_cores' in information for %s", c.Hostname)
+		}
+		if c.MemGB == 0 {
+			return nil, fmt.Errorf("Zero or missing 'mem_gb' in information for %s", c.Hostname)
 		}
 		if c.GpuCards == 0 && (c.GpuMemGB != 0 || c.GpuMemPct) {
 			return nil, fmt.Errorf("Inconsistent GPU information for %s", c.Hostname)
@@ -229,7 +241,7 @@ func ExpandNodeConfigs(configInfo []*NodeConfigRecord) (map[string]*NodeConfigRe
 		}
 		switch len(expanded) {
 		case 0:
-			panic("No way")
+			panic("Unexpected case")
 		case 1:
 			c.Hostname = expanded[0]
 		default:

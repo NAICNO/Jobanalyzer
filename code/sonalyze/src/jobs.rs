@@ -115,7 +115,7 @@ pub fn aggregate_and_print_jobs(
         hosts.insert(s[0].hostname);
     }
 
-    let /*mut*/ jobvec = aggregate_and_filter_jobs(system_config, filter_args, streams, bounds);
+    let /*mut*/ jobvec = aggregate_and_filter_jobs(system_config, filter_args, streams, bounds, meta_args.verbose);
 
     if meta_args.verbose {
         println!(
@@ -310,6 +310,7 @@ fn aggregate_and_filter_jobs(
     filter_args: &JobFilterAndAggregationArgs,
     mut streams: InputStreamSet,
     bounds: &Timebounds,
+    verbose: bool,
 ) -> Vec<JobSummary> {
     // Convert the aggregation filter options to a useful form.
 
@@ -466,6 +467,9 @@ fn aggregate_and_filter_jobs(
     } else {
         (sonarlog::merge_by_host_and_job(streams), bounds.clone())
     };
+    if verbose {
+        println!("Jobs constructed by merging: {}", jobs.len());
+    }
     jobs.drain(0..)
         .filter(|job| job.len() >= min_samples)
         .map(|job| JobSummary {
@@ -586,12 +590,12 @@ fn aggregate_job(
             // job, so we need not look to conf.gpumem_pct here.  If we don't have a config then we
             // don't care about these figures anyway.
             rgpumem_avg = if gpumem > 0.0 {
-                gpumem_avg as f32 / gpumem
+                (gpumem_avg as f32) * 100.0 / gpumem
             } else {
                 0.0
             };
             rgpumem_peak = if gpumem > 0.0 {
-                gpumem_peak as f32 / gpumem
+                (gpumem_peak as f32) * 100.0 / gpumem
             } else {
                 0.0
             };

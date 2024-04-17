@@ -1,4 +1,4 @@
-output=$($SONALYZE profile -j1119125 -f2023-10-21 -- smoketest.csv)
+output=$($SONALYZE profile -j 1119125 -f 2023-10-21 -- smoketest.csv)
 CHECK profile_smoketest \
       "time              cpu   mem  gpu  gpumem  cmd
 2023-10-21 08:35  3075  5    0    0       bwa
@@ -19,7 +19,7 @@ CHECK profile_smoketest \
                   13    262  0    0       samtools" \
       "$output"
 
-output=$($SONALYZE profile -j1119125 -f2023-10-21 --fmt=csv,cpu -- smoketest.csv)
+output=$($SONALYZE profile -j 1119125 -f 2023-10-21 --fmt=csv,cpu -- smoketest.csv)
 CHECK profile_smoketest_csv \
       "time,bwa (1119426),samtools (1119428)
 2023-10-21 08:35,3075,
@@ -59,7 +59,7 @@ P() {
     echo "{\"command\":\"$1\",\"pid\":$2,\"cpu\":$3,\"mem\":$4,\"res\":0,\"gpu\":$5,\"gpumem\":$6,\"nproc\":$7}"
 }
 
-output=$($SONALYZE profile -j1119125 -f2023-10-21 --fmt=json,all -- smoketest.csv)
+output=$($SONALYZE profile -j 1119125 -f 2023-10-21 --fmt=json,all -- smoketest.csv)
 R1=$(T "2023-10-21 08:35" $(P "bwa" 1119426 3075 5 0 0 1))
 R2=$(T "2023-10-21 08:40" $(P "bwa" 1119426 3094 5 0 0 1))
 R3=$(T "2023-10-21 08:45" $(P "bwa" 1119426 3092 5 0 0 1) $(P "samtools" 1119428 11 259 0 0 1))

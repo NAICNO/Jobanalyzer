@@ -139,7 +139,10 @@ func TestParseFloat(t *testing.T) {
 
 func TestParseSonarLogTagged(t *testing.T) {
 	// This test file has a blank line that should be skipped
-	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-intermingled.csv")
+	bs, err := os.ReadFile("../../../tests/sonarlog/whitebox-intermingled.csv")
+	if err != nil {
+		t.Fatalf("Unexpected fatal error during parsing: %v", err)
+	}
 	uf := NewUstrFacade()
 	readings, bad, err := ParseSonarLog(bytes.NewReader(bs), uf, true)
 	if err != nil {
@@ -175,7 +178,10 @@ func TestParseSonarLogTagged(t *testing.T) {
 
 func TestParseSonarLogUntagged(t *testing.T) {
 	// This test file has a blank line that should be skipped
-	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-untagged-intermingled.csv")
+	bs, err := os.ReadFile("../../../tests/sonarlog/whitebox-untagged-intermingled.csv")
+	if err != nil {
+		t.Fatalf("Unexpected fatal error during parsing: %v", err)
+	}
 	uf := NewUstrFacade()
 	readings, bad, err := ParseSonarLog(bytes.NewReader(bs), uf, true)
 	if err != nil {

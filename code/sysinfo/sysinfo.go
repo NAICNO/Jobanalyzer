@@ -76,7 +76,7 @@ func main() {
 	r.CpuCores = sockets * coresPerSocket * threadsPerCore
 	if len(cards) > 0 {
 		// Bucket the cards that are the same in the description
-		sort.Sort(cards)
+		sort.Stable(cards)
 		i := 0
 		for i < len(cards) {
 			first := i

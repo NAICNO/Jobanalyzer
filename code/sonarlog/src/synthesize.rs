@@ -60,9 +60,7 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
         }
         let mut commands = cmds.drain().collect::<Vec<Ustr>>();
         commands.sort();
-        // Any user from any record is fine.  There should be an invariant that no stream is empty,
-        // so this should always be safe.
-        let user = streams[0][0].user;
+        let user = merged_user_names(&streams);
         vs.push(merge_streams(
             hostname,
             ustr_join(commands, ","),
@@ -73,6 +71,19 @@ pub fn merge_by_host_and_job(mut streams: InputStreamSet) -> MergedSampleStreams
     }
 
     vs
+}
+
+// Any user from any record is fine because we really should never be merging records from different
+// users.  However, in some testing scenarios we sometimes do merge records from different users and
+// to make that predictable we sort and join the names.
+fn merged_user_names(streams: &Vec<Vec<Box<LogEntry>>>) -> Ustr {
+    let mut nameset = HashSet::<Ustr>::new();
+    for s in streams {
+        nameset.insert(s[0].user);
+    }
+    let mut names = nameset.drain().collect::<Vec<Ustr>>();
+    names.sort();
+    return ustr_join(names, ",");
 }
 
 /// Merge streams that have the same job ID (across hosts) into synthesized data.
@@ -141,9 +152,7 @@ pub fn merge_by_job(
         }
         let mut commands = cmds.drain().collect::<Vec<Ustr>>();
         commands.sort();
-        // Any user from any record is fine.  There should be an invariant that no stream is empty,
-        // so this should always be safe.
-        let user = streams[0][0].user;
+        let user = merged_user_names(&streams);
         vs.push(merge_streams(
             Ustr::from(&hostname),
             ustr_join(commands, ","),

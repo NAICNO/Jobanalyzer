@@ -3,11 +3,11 @@ package sonarlog
 import (
 	"bytes"
 	"errors"
+	"go-utils/gpuset"
 	"io"
 	"log"
 	"math"
 	"time"
-	"go-utils/gpuset"
 )
 
 // Read a stream of Sonar data records, parse them and return them in order.  Returns the number of
@@ -109,7 +109,7 @@ LineLoop:
 
 			switch format {
 			case unknownFormat:
-				panic("Unexpected state - unknown format")
+				panic("Unexpected case")
 
 			case untaggedFormat:
 				// Old old format (current on Saga and Fram as of 2024-03-04)
@@ -371,7 +371,7 @@ LineLoop:
 				}
 
 			default:
-				panic("Unexpected state")
+				panic("Unexpected case")
 			}
 		} // end FieldLoop
 
@@ -534,6 +534,15 @@ func parseUint(bs []byte) (uint64, error) {
 //
 // Based on experimentation, the Go formatter produces "NaN", "+Inf" and "-Inf".
 func parseFloat(bs []byte, filterInfNaN bool) (float64, error) {
+	// Canonical code
+	// x, err := strconv.ParseFloat(string(bs), 64)
+	// if err != nil {
+	// 	return 0, err
+	// }
+	// if filterInfNaN && (math.IsInf(x, 0) || math.IsNaN(x)) {
+	// 	return 0, errors.New("Infinity / NaN")
+	// }
+	// return x, nil
 	var n float64
 	if len(bs) == 0 {
 		return 0, errors.New("Empty")

@@ -113,7 +113,7 @@ pub fn print_jobs(
         let opts = format::standard_options(&others);
         let relative = fields.iter().any(|x| match *x {
             "rcpu-avg" | "rcpu-peak" | "rmem-avg" | "rmem-peak" | "rgpu-avg" | "rgpu-peak"
-            | "rgpumem-avg" | "rgpumem-peak" => true,
+                | "rgpumem-avg" | "rgpumem-peak" | "rres-avg" | "rres-peak" => true,
             _ => false,
         });
         if relative {

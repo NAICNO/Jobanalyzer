@@ -81,6 +81,12 @@ echo "======================================================================="
 ( cd jsoncheck ; go build )
 ( cd jsoncheck ; ./jsoncheck ../tests/config/good-config.json )
 
+echo "======================================================================="
+echo " NUMDIFF RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd numdiff ; go build )
+( cd numdiff ; ./numdiff numdiff.go numdiff.go )
+
 # GO-UTIL TESTS
 ( cd go-utils ; ./run_tests.sh )
 

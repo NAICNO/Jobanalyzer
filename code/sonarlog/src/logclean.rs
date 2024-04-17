@@ -65,7 +65,7 @@ pub fn postprocess_log<F>(
     mut entries: Vec<Box<LogEntry>>,
     filter: F,
     configs: &Option<ClusterConfig>,
-) -> InputStreamSet
+) -> (InputStreamSet, usize)
 where
     F: Fn(&LogEntry) -> bool,
 {
@@ -160,6 +160,7 @@ where
     }
 
     // Remove elements that don't pass the filter and pack the array.  This preserves ordering.
+    let mut removed = 0;
     streams.iter_mut().for_each(|(_, stream)| {
         let mut dst = 0;
         for src in 0..stream.len() {
@@ -169,6 +170,7 @@ where
                 dst += 1;
             }
         }
+        removed += stream.len() - dst;
         stream.truncate(dst);
     });
 
@@ -182,7 +184,7 @@ where
         streams.remove(&d);
     }
 
-    streams
+    (streams, removed)
 }
 
 #[test]
@@ -195,7 +197,7 @@ fn test_postprocess_log_cpu_util_pct() {
     assert!(discarded == 1);
 
     let any = |e: &LogEntry| e.user != "root";
-    let streams = postprocess_log(entries, any, &None);
+    let (streams, _) = postprocess_log(entries, any, &None);
 
     // Filtering removed one entry and grouped the rest into four streams.
     assert!(streams.len() == 4);

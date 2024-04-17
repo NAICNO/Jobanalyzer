@@ -298,7 +298,7 @@ pub fn print(
             &csv_reports,
         )?;
     } else if json_output {
-        write_json(output, &json_reports)?;
+        write_json(output, &json_reports, others.contains("nomemory"))?;
     } else if csv_output {
         write_csv(output, &fields, &csv_reports)?;
     } else {
@@ -408,7 +408,7 @@ fn format_cmd(d: LogDatum, _: LogCtx) -> String {
 // Each of the inner vectors are commands, coherently sorted, for the same timestamp.  We write all
 // fields.
 
-fn write_json(output: &mut dyn io::Write, data: &[Vec<Box<LogEntry>>]) -> Result<()> {
+fn write_json(output: &mut dyn io::Write, data: &[Vec<Box<LogEntry>>], no_memory: bool) -> Result<()> {
     let mut objects: Vec<json::JsonValue> = vec![];
     for x in data {
         let mut obj = json::JsonValue::new_object();
@@ -417,20 +417,24 @@ fn write_json(output: &mut dyn io::Write, data: &[Vec<Box<LogEntry>>]) -> Result
         let mut points: Vec<json::JsonValue> = vec![];
         for y in x {
             let mut point = json::JsonValue::new_object();
+            let cpu_gb = if no_memory { 0 } else { y.mem_gb.round() as isize };
+            let gpu_gb = if no_memory { 0 } else { y.gpumem_gb.round() as isize };
             point["command"] = y.command.to_string().into();
             point["pid"] = y.pid.into();
             point["cpu"] = (y.cpu_util_pct.round() as isize).into();
-            point["mem"] = (y.mem_gb.round() as isize).into();
+            point["mem"] = cpu_gb.into();
             point["res"] = (y.rssanon_gb.round() as isize).into();
             point["gpu"] = (y.gpu_pct.round() as isize).into();
-            point["gpumem"] = (y.gpumem_gb.round() as isize).into();
+            point["gpumem"] = gpu_gb.into();
             point["nproc"] = (y.rolledup + 1).into();
             points.push(point);
         }
         obj["points"] = points.into();
         objects.push(obj);
     }
+    // The final newline is for compatibility with the Go code.
     output.write_all(json::stringify(objects).as_bytes())?;
+    output.write(b"\n")?;
     Ok(())
 }
 

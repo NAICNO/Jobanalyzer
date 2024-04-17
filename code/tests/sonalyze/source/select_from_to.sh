@@ -8,5 +8,5 @@
 # records, so the job should be perceived as running from midnight to midnight that day.  The file
 # has data for the same job outside that date range.
 
-output=$($SONALYZE jobs -u- --min-samples=1 -f 2023-10-03 -t 2023-10-03 --fmt=csv,job,start,end -- select_from_to.csv)
+output=$($SONALYZE jobs --user - --min-samples=1 -f 2023-10-03 -t 2023-10-03 --fmt=csv,job,start,end -- select_from_to.csv)
 CHECK exact_range "3485500,2023-10-03 00:00,2023-10-03 23:55" "$output"

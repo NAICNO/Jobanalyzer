@@ -24,8 +24,8 @@
 package sonarlog
 
 import (
-	"fmt"
 	"io"
+	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -98,10 +98,10 @@ func UstrStats(out io.Writer, printStrings bool) {
 	tableLock.RLock()
 	defer tableLock.RUnlock()
 
-	fmt.Fprintln(out, internTable.size)
+	log.Printf("Interned strings table size = %d\n", internTable.size)
 	if printStrings {
 		for _, v := range revTable {
-			fmt.Fprintln(out, v)
+			log.Printf("  %s\n", v)
 		}
 	}
 }

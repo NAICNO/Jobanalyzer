@@ -12,7 +12,8 @@ echo "======================================================================="
 ( cd freecsv ; go test )
 ( cd gpuset ; go test )
 ( cd hostglob ; go test )
-( cd sonarlog ; go test )
+( cd sysinfo ; go test )
+( cd time ; go test )
 if [[ $(uname) != Darwin ]]; then
     ( cd sysinfo ; go test )
 fi
