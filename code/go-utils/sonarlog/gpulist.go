@@ -14,7 +14,7 @@ import (
 //
 // There will be *a lot* of these both in input and in memory, so:
 // - representation compactness is important
-// - avoiding pointers in the representation is important (or SonarReading will have pointers too)
+// - avoiding pointers in the representation is important (or Sample will have pointers too)
 // - avoiding a lot of garbage generation during parsing is important
 
 type GpuSet uint32
@@ -51,6 +51,16 @@ func NewGpuSet(s string) (GpuSet, error) {
 		}
 	}
 	return gpuData, nil
+}
+
+func UnionGpuSets(a, b GpuSet) GpuSet {
+	if a == unknown {
+		return a
+	}
+	if b == unknown {
+		return b
+	}
+	return a | b
 }
 
 func (g GpuSet) IsEmpty() bool {
