@@ -17,8 +17,8 @@ use ustr::Ustr;
 
 /// Bit values for JobAggregate::classification.  Also defined in ~/naicreport/sonalyze/jobs.go.
 
-pub const LIVE_AT_END: u32 = 1; // Earliest timestamp coincides with earliest record read
-pub const LIVE_AT_START: u32 = 2; // Ditto latest/latest
+pub const LIVE_AT_END: u32 = 1; // Latest timestamp coincides with last record read
+pub const LIVE_AT_START: u32 = 2; // Ditto earliest/first
                                   // Subjob level is eight bits at this offset
                                   /* BREAKDOWN
                                    * pub const LEVEL_SHIFT: u32 = 8;
