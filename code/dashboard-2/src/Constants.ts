@@ -1,8 +1,20 @@
+import { WorkingFieldCell } from './components/table/WorkingFieldCell.tsx'
+import { GpuFieldCell } from './components/table/GpuFieldCell.tsx'
+import { HostNameFieldCell } from './components/table/HostNameFieldCell.tsx'
+
 export const APP_NAME = 'NAIC Jobanalyzer'
 export const API_ENDPOINT = 'http://localhost:5173/api'
 
 export const QueryKeys = {
   DASHBOARD_TABLE: 'DASHBOARD_TABLE',
+}
+
+export const CELL_BACKGROUND_COLORS = {
+  NA: 'transparent',
+  DOWN: 'tomato', // #ff6347
+  WORKING_HARD: 'deepskyblue', // #00bfff
+  WORKING: 'lightskyblue', // #87cefa
+  COASTING: 'lightcyan', // #e0ffff
 }
 
 export const CLUSTER_INFO: Record<string, Cluster> = {
@@ -73,6 +85,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     key: 'hostname',
     title: 'Hostname',
     sortable: true,
+    renderFn: HostNameFieldCell,
   },
   cpu_status: {
     key: 'cpu_status',
@@ -87,6 +100,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     shortTitle: 'GPU',
     helpText: '0=up, 1=down',
     sortable: true,
+    renderFn: GpuFieldCell
   },
   users_recent: {
     key: 'users_recent',
@@ -122,6 +136,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     shortTitle: 'Recent',
     helpText: 'Running average',
     sortable: true,
+    renderFn: WorkingFieldCell,
   },
   cpu_longer: {
     key: 'cpu_longer',
@@ -129,54 +144,63 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     shortTitle: 'Longer',
     helpText: 'Running average',
     sortable: true,
+    renderFn: WorkingFieldCell,
   },
   resident_recent: {
     key: 'resident_recent',
     title: 'Resident% (recent)',
     shortTitle: 'Recent',
     helpText: 'Running average',
+    renderFn: WorkingFieldCell,
   },
   resident_longer: {
     key: 'resident_longer',
     title: 'Resident% (longer)',
     shortTitle: 'Longer',
     helpText: 'Running average',
+    renderFn: WorkingFieldCell,
   },
   mem_recent: {
     key: 'mem_recent',
     title: 'Virt % (recent)',
     shortTitle: 'Recent',
     helpText: 'Running average',
+    renderFn: WorkingFieldCell,
   },
   mem_longer: {
     key: 'mem_longer',
     title: 'Virt % (longer)',
     shortTitle: 'Longer',
     helpText: 'Running average',
+    renderFn: WorkingFieldCell,
   },
   gpu_recent: {
     key: 'gpu_recent',
     title: 'GPU % (recent)',
     shortTitle: 'Recent',
     helpText: 'Running average',
+    renderFn: WorkingFieldCell,
   },
   gpu_longer: {
     key: 'gpu_longer',
     title: 'GPU % (longer)',
     shortTitle: 'Longer',
     helpText: 'Running average',
+    renderFn: WorkingFieldCell,
   },
   gpumem_recent: {
     key: 'gpumem_recent',
     title: 'GPU Mem % (recent)',
     shortTitle: 'Recent',
     helpText: 'Running average',
+    renderFn: WorkingFieldCell,
   },
   gpumem_longer: {
     key: 'gpumem_longer',
     title: 'GPU Mem % (longer)',
     shortTitle: 'Longer',
     helpText: 'Running average',
+    renderFn: WorkingFieldCell,
   },
   violators_long: {
     key: 'violators_long',
