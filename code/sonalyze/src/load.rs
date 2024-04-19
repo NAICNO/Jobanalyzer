@@ -175,7 +175,7 @@ pub fn aggregate_and_print_load(
             first = false;
         }
         let hostname = stream[0].hostname;
-        if !opts.csv && !opts.json && !explicit_host {
+        if !opts.csv && !opts.json && !opts.awk && !explicit_host {
             output
                 .write_all(format!("HOST: {}\n", hostname).as_bytes())
                 .unwrap();

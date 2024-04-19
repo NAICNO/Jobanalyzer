@@ -35,7 +35,7 @@ pub fn print(
     let mut opts = format::standard_options(&others);
     // `metadata` defaults to headerless un-named csv.  Would be more elegant to pass defaults to
     // standard_options, not hack it in afterwards.
-    if !opts.fixed && !opts.csv && !opts.json {
+    if !opts.fixed && !opts.csv && !opts.json && !opts.awk {
         opts.csv = true;
         opts.header = false;
     }

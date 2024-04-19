@@ -150,7 +150,7 @@ pub fn print_jobs(
         }
         let c = Context {
             t: now(),
-            fixed_format: !opts.json && !opts.csv,
+            fixed_format: !opts.json && !opts.csv && !opts.awk,
         };
         format::format_data(output, &fields, &formatters, &opts, selected, &c);
     }
