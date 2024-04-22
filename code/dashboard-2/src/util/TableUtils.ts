@@ -63,9 +63,13 @@ function createColumn<K extends keyof DashboardTableItem>(key: K) {
 
   // Accessor and Header are always used, but other properties like cell and meta are added as needed
   return columnHelper.accessor(key, {
-    cell: info => info.getValue(),
+    cell: props => {
+      if (columnDef.renderFn) {
+        return columnDef.renderFn({value: props.getValue()})
+      }
+      return props.getValue()
+    },
     header: columnDef.title,
     meta: columnDef,
   })
 }
-

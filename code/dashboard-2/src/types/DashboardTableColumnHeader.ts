@@ -5,4 +5,5 @@ interface DashboardTableColumnHeader {
   helpText?: string;
   sortable?: boolean;
   description?: string;
+  renderFn?: (value: any) => any;
 }

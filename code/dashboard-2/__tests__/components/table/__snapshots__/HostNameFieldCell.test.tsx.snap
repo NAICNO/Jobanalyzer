@@ -1,0 +1,29 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`HostNameFieldCell > renders correctly when value is in HOSTNAMES_ALIAS 1`] = `
+<DocumentFragment>
+  <div
+    class="css-1phsvop"
+  >
+    <b
+      class="chakra-text css-0"
+    >
+      ML1
+    </b>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`HostNameFieldCell > renders correctly when value is not in HOSTNAMES_ALIAS 1`] = `
+<DocumentFragment>
+  <div
+    class="css-1phsvop"
+  >
+    <b
+      class="chakra-text css-0"
+    >
+      999
+    </b>
+  </div>
+</DocumentFragment>
+`;
