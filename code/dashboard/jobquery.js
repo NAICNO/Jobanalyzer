@@ -254,19 +254,35 @@ function selectJobs() {
     }
 
     // Display a URL that will take us back to this window with the form fields filled in
-    message(query.replace("/jobs", window.location.origin + window.location.pathname))
+    let theQuery = query.replace("/jobs", window.location.origin + window.location.pathname)
+    message(theQuery)
 
     fetch(query).
-	then(response => response.json()).
+	then(function (response) {
+            // Sonalyzed reports a 400 for errors so checking response.ok should be sufficient to
+            // determine whether we should be looking for text or for json.
+            if (response.ok) {
+                return response.json()
+            }
+            return response.text().then(function (data) {
+                return {
+                    queryError: "error",
+                    message: data,
+                }
+            }
+        }).
 	then(function (data) {
-            theTable.sortAndRepopulateFromData(
-                data,
-                "end",
-                "descending")
+            if (data.hasOwnProperty("queryError")) {
+                message("Query failed\n\n" + theQuery + "\n\n" + data.message)
+            } else {
+                theTable.sortAndRepopulateFromData(
+                    data,
+                    "end",
+                    "descending")
+            }
         }).
         catch(function (e) {
-            console.log(e)
-            message("Query failed - is your cluster name correct?")
+            message("Query failed!\n\n" + theQuery + "\n\n" + e)
         })
 }
 
