@@ -8,9 +8,9 @@ use crate::{LoadFilterAndAggregationArgs, LoadPrintArgs, MetaArgs};
 
 use anyhow::{bail, Result};
 use rustutils::{
-    add_day, add_half_day, add_half_hour, add_hour, gpuset_to_string, now, truncate_to_day,
-    truncate_to_half_day, truncate_to_half_hour, truncate_to_hour, ClusterConfig, HostGlobber,
-    System, Timestamp,
+    add_day, add_half_day, add_half_hour, add_hour, add_week, gpuset_to_string, now,
+    truncate_to_day, truncate_to_half_day, truncate_to_half_hour, truncate_to_hour,
+    truncate_to_week, ClusterConfig, HostGlobber, System, Timestamp,
 };
 use sonarlog::{
     self, empty_logentry, InputStreamKey, InputStreamSet, LogEntry, MergedSampleStreams,
@@ -26,6 +26,7 @@ enum BucketOpt {
     Hourly,
     HalfDaily,
     Daily,
+    Weekly,
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -66,6 +67,8 @@ pub fn aggregate_and_print_load(
         BucketOpt::None
     } else if filter_args.half_hourly {
         BucketOpt::HalfHourly
+    } else if filter_args.weekly {
+        BucketOpt::Weekly
     } else {
         BucketOpt::Hourly // Default
     };
@@ -126,6 +129,7 @@ pub fn aggregate_and_print_load(
                 BucketOpt::HalfHourly => sonarlog::fold_samples_half_hourly(stream),
                 BucketOpt::Daily => sonarlog::fold_samples_daily(stream),
                 BucketOpt::HalfDaily => sonarlog::fold_samples_half_daily(stream),
+                BucketOpt::Weekly => sonarlog::fold_samples_weekly(stream),
                 BucketOpt::None => panic!("Unexpected"),
             })
             .collect::<MergedSampleStreams>();
@@ -217,7 +221,11 @@ pub fn aggregate_and_print_load(
         }
 
         match bucket_opt {
-            BucketOpt::Hourly | BucketOpt::HalfHourly | BucketOpt::Daily | BucketOpt::HalfDaily => {
+            BucketOpt::Hourly
+            | BucketOpt::HalfHourly
+            | BucketOpt::Daily
+            | BucketOpt::HalfDaily
+            | BucketOpt::Weekly => {
                 if print_opt == PrintOpt::All {
                     let stream = if print_args.compact {
                         stream
@@ -308,6 +316,7 @@ fn insert_missing_records(
         BucketOpt::Hourly => (truncate_to_hour, add_hour),
         BucketOpt::HalfHourly => (truncate_to_half_hour, add_half_hour),
         BucketOpt::HalfDaily => (truncate_to_half_day, add_half_day),
+        BucketOpt::Weekly => (truncate_to_week, add_week),
         BucketOpt::Daily | BucketOpt::None => (truncate_to_day, add_day),
     };
     let host = records[0].hostname;

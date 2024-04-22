@@ -95,6 +95,20 @@ pub fn add_half_hour(t: Timestamp) -> Timestamp {
     t + Duration::minutes(30)
 }
 
+/// Add one week to the timestamp.
+
+pub fn add_week(t: Timestamp) -> Timestamp {
+    t + Duration::days(7)
+}
+
+/// Round the time down to the start of the current week, which starts on midnight on Monday
+/// morning.
+
+pub fn truncate_to_week(t: Timestamp) -> Timestamp {
+    let x = timestamp_from_ymd(t.year(), t.month(), t.day());
+    x - Duration::days(x.weekday().num_days_from_monday() as i64)
+}
+
 /// epoch: "a long long time ago", before any of our timestamps
 
 pub fn epoch() -> Timestamp {

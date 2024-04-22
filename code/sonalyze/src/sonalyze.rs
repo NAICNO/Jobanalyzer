@@ -385,6 +385,10 @@ pub struct LoadFilterAndAggregationArgs {
     #[arg(long)]
     half_daily: bool,
 
+    /// Bucket and average records by week, starting midnight Monday
+    #[arg(long)]
+    weekly: bool,
+
     /// Do not bucket and average records
     #[arg(long)]
     none: bool,
@@ -400,6 +404,7 @@ impl UrlBuilder {
         self.add_bool("half-hourly", a.half_hourly);
         self.add_bool("daily", a.daily);
         self.add_bool("half-daily", a.half_daily);
+        self.add_bool("weekly", a.weekly);
         self.add_bool("none", a.none);
         self.add_bool("group", a.group);
     }

@@ -107,9 +107,9 @@ pub use synthesize::fold_samples_daily;
 pub use synthesize::fold_samples_half_daily;
 pub use synthesize::fold_samples_half_hourly;
 pub use synthesize::fold_samples_hourly;
+pub use synthesize::fold_samples_weekly;
 
 // A datum representing a bag of merged streams, with no implied constraints on uniqueness of any
 // type of key or any ordering.
 
 pub use synthesize::MergedSampleStreams;
-

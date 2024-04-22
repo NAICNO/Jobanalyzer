@@ -56,6 +56,7 @@ pub use dates::truncate_to_day;
 pub use dates::truncate_to_half_day;
 pub use dates::truncate_to_half_hour;
 pub use dates::truncate_to_hour;
+pub use dates::truncate_to_week;
 
 // Add various quantities to the timestamp
 
@@ -63,6 +64,7 @@ pub use dates::add_day;
 pub use dates::add_half_day;
 pub use dates::add_half_hour;
 pub use dates::add_hour;
+pub use dates::add_week;
 
 // ...
 

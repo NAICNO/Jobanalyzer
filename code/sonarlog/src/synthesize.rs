@@ -601,6 +601,10 @@ pub fn fold_samples_half_daily(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>
     fold_samples(samples, rustutils::truncate_to_half_day)
 }
 
+pub fn fold_samples_weekly(samples: Vec<Box<LogEntry>>) -> Vec<Box<LogEntry>> {
+    fold_samples(samples, rustutils::truncate_to_week)
+}
+
 fn fold_samples(
     samples: Vec<Box<LogEntry>>,
     get_time: fn(Timestamp) -> Timestamp,
