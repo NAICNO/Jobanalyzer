@@ -26,7 +26,6 @@ export const useFetchViolations = (clusterName: string) => {
             u.count++
             u.earliest = u.earliest < violatingJob['started-on-or-before'] ? u.earliest : violatingJob['started-on-or-before']
             u.latest = u.latest > violatingJob['last-seen'] ? u.latest : violatingJob['last-seen']
-            // u.jobs.push(violatingJob)
           } else {
             users[violatingJob.user] = {
               user: {text: violatingJob.user, link: `${violatingJob.user}`},
