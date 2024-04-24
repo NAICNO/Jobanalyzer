@@ -1,24 +1,23 @@
 import { Table, Tbody } from '@chakra-ui/react'
 import { Table as TableType } from '@tanstack/react-table'
-import DashboardTableRow from './DashboardTableRow.tsx'
+import TableRow from './TableRow.tsx'
 import TableHeader from './TableHeader.tsx'
 
-interface DashboardTableProps {
-  table: TableType<DashboardTableItem>
-  cluster: Cluster
+interface ViolatingUserTableProps {
+  table: TableType<ViolatingUserTableItem>
 }
 
-const DashboardTable = ({table, cluster}: DashboardTableProps) => {
+const ViolatingUserTable = ({table}: ViolatingUserTableProps) => {
   return (
     <Table size="sm" border="1px solid" borderColor="gray.200">
       <TableHeader table={table}/>
       <Tbody>
         {table.getRowModel().rows.map((row) =>
-          <DashboardTableRow row={row} cluster={cluster} key={row.id}/>
+          <TableRow row={row} key={row.id}/>
         )}
       </Tbody>
     </Table>
   )
 }
 
-export default DashboardTable
+export default ViolatingUserTable

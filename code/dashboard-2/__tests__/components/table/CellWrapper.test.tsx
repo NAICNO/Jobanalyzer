@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
-import CellWrapper from '../../../src/components/table/CellWrapper'
+import { CellWrapper } from '../../../src/components/table/cell'
 
 describe('CellWrapper', () => {
   it('renders correctly', () => {

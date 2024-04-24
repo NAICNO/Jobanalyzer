@@ -1,60 +1,65 @@
 import { AccessorKeyColumnDef, createColumnHelper } from '@tanstack/react-table'
-import { DASHBOARD_COLUMN } from '../Constants.ts'
+import {
+  DASHBOARD_COLUMN,
+  DEAD_WEIGHT_COLUMN,
+  VIOLATING_JOB_SUMMARY_COLUMN,
+  VIOLATING_USER_SUMMARY_COLUMN
+} from '../Constants.ts'
 
-export const getTableColumns = (selectedCluster: Cluster) => {
+export const getDashboardTableColumns = (selectedCluster: Cluster) => {
   const columns: AccessorKeyColumnDef<DashboardTableItem, any>[] = [
-    createColumn('hostname'),
+    createDashboardTableColumn('hostname'),
   ]
 
   if (selectedCluster.uptime) {
     columns.push(
-      createColumn('cpu_status'),
-      createColumn('gpu_status')
+      createDashboardTableColumn('cpu_status'),
+      createDashboardTableColumn('gpu_status')
     )
   }
 
   columns.push(
     // Unique users in the period.  This will never be greater than jobs; a user can have
     // several jobs, but not zero, and jobs can only have one user.
-    createColumn('users_recent'),
-    createColumn('users_longer'),
+    createDashboardTableColumn('users_recent'),
+    createDashboardTableColumn('users_longer'),
 
     // Unique jobs running within the period.
-    createColumn('jobs_recent'),
-    createColumn('jobs_longer'),
+    createDashboardTableColumn('jobs_recent'),
+    createDashboardTableColumn('jobs_longer'),
 
     // Relative to system information.
-    createColumn('cpu_recent'),
-    createColumn('cpu_longer'),
-    createColumn('resident_recent'),
-    createColumn('resident_longer'),
-    createColumn('mem_recent'),
-    createColumn('mem_longer'),
-    createColumn('gpu_recent'),
-    createColumn('gpu_longer'),
-    createColumn('gpumem_recent'),
-    createColumn('gpumem_longer'),
+    createDashboardTableColumn('cpu_recent'),
+    createDashboardTableColumn('cpu_longer'),
+    createDashboardTableColumn('resident_recent'),
+    createDashboardTableColumn('resident_longer'),
+    createDashboardTableColumn('mem_recent'),
+    createDashboardTableColumn('mem_longer'),
+    createDashboardTableColumn('gpu_recent'),
+    createDashboardTableColumn('gpu_longer'),
+    createDashboardTableColumn('gpumem_recent'),
+    createDashboardTableColumn('gpumem_longer'),
   )
 
   // Number of *new* violators and zombies encountered in the period, as of the last
   // generated report.  This currently changes rarely.
   if (selectedCluster.violators) {
     columns.push(
-      createColumn('violators_long')
+      createDashboardTableColumn('violators_long')
     )
   }
 
   if (selectedCluster.deadweight) {
     columns.push(
-      createColumn('zombies_long')
+      createDashboardTableColumn('zombies_long')
     )
   }
   return columns
 }
 
-const columnHelper = createColumnHelper<DashboardTableItem>()
+const dashboardTableColumnHelper = createColumnHelper<DashboardTableItem>()
 
-function createColumn<K extends keyof DashboardTableItem>(key: K) {
+function createDashboardTableColumn<K extends keyof DashboardTableItem>(key: K) {
   // Ensure that column definition exists in the constants
   const columnDef = DASHBOARD_COLUMN[key]
   if (!columnDef) {
@@ -62,7 +67,127 @@ function createColumn<K extends keyof DashboardTableItem>(key: K) {
   }
 
   // Accessor and Header are always used, but other properties like cell and meta are added as needed
-  return columnHelper.accessor(key, {
+  return dashboardTableColumnHelper.accessor(key, {
+    cell: props => {
+      if (columnDef.renderFn) {
+        return columnDef.renderFn({value: props.getValue()})
+      }
+      return props.getValue()
+    },
+    header: columnDef.title,
+    meta: columnDef,
+  })
+}
+
+export const getViolatingUserTableColumns = () => {
+  const columns: AccessorKeyColumnDef<ViolatingUserTableItem, any>[] = [
+    createViolatingUserTableColumn('user'),
+    createViolatingUserTableColumn('count'),
+    createViolatingUserTableColumn('latest'),
+    createViolatingUserTableColumn('earliest'),
+  ]
+  return columns
+}
+
+const violatingUserTableColumnHelper = createColumnHelper<ViolatingUserTableItem>()
+
+function createViolatingUserTableColumn<K extends keyof ViolatingUserTableItem>(key: K) {
+  // Ensure that column definition exists in the constants
+  const columnDef = VIOLATING_USER_SUMMARY_COLUMN[key]
+  if (!columnDef) {
+    throw new Error(`Column definition for key '${key}' not found.`)
+  }
+
+  // Accessor and Header are always used, but other properties like cell and meta are added as needed
+  return violatingUserTableColumnHelper.accessor(key, {
+    cell: props => {
+      if (columnDef.renderFn) {
+        return columnDef.renderFn({value: props.getValue()})
+      }
+      return props.getValue()
+    },
+    header: columnDef.title,
+    meta: columnDef,
+  })
+}
+
+export const getViolatingJobTableColumns = () => {
+  const columns: AccessorKeyColumnDef<ViolatingJobTableItem, any>[] = [
+    createViolatingJobTableColumn('hostname'),
+    createViolatingJobTableColumn('user'),
+    createViolatingJobTableColumn('id'),
+    createViolatingJobTableColumn('cmd'),
+    createViolatingJobTableColumn('started-on-or-before'),
+    createViolatingJobTableColumn('last-seen'),
+    createViolatingJobTableColumn('cpu-peak'),
+    createViolatingJobTableColumn('rcpu-avg'),
+    createViolatingJobTableColumn('rcpu-peak'),
+    createViolatingJobTableColumn('rmem-avg'),
+    createViolatingJobTableColumn('rmem-peak'),
+  ]
+  return columns
+}
+
+export const getUserViolatingJobTableColumns = () => {
+  const columns: AccessorKeyColumnDef<ViolatingJobTableItem, any>[] = [
+    createViolatingJobTableColumn('hostname'),
+    createViolatingJobTableColumn('id'),
+    createViolatingJobTableColumn('policyName'),
+    createViolatingJobTableColumn('started-on-or-before'),
+    createViolatingJobTableColumn('last-seen'),
+    createViolatingJobTableColumn('rcpu-avg'),
+    createViolatingJobTableColumn('rcpu-peak'),
+    createViolatingJobTableColumn('rmem-avg'),
+    createViolatingJobTableColumn('cmd'),
+  ]
+  return columns
+}
+
+const violatingJobTableColumnHelper = createColumnHelper<ViolatingJobTableItem>()
+
+function createViolatingJobTableColumn<K extends keyof ViolatingJobTableItem>(key: K) {
+  // Ensure that column definition exists in the constants
+  const columnDef = VIOLATING_JOB_SUMMARY_COLUMN[key]
+  if (!columnDef) {
+    throw new Error(`Column definition for key '${key}' not found.`)
+  }
+
+  // Accessor and Header are always used, but other properties like cell and meta are added as needed
+  return violatingJobTableColumnHelper.accessor(key, {
+    cell: props => {
+      if (columnDef.renderFn) {
+        return columnDef.renderFn({value: props.getValue()})
+      }
+      return props.getValue()
+    },
+    header: columnDef.title,
+    meta: columnDef,
+  })
+}
+
+export const getDeadWeightTableColumns = () => {
+  const columns: AccessorKeyColumnDef<DeadWeightTableItem, any>[] = [
+    createDeadWeightTableColumn('hostname'),
+    createDeadWeightTableColumn('user'),
+    createDeadWeightTableColumn('id'),
+    createDeadWeightTableColumn('cmd'),
+    createDeadWeightTableColumn('started-on-or-before'),
+    createDeadWeightTableColumn('last-seen'),
+  ]
+  return columns
+}
+
+const deadWeightTableColumnHelper = createColumnHelper<DeadWeightTableItem>()
+
+function createDeadWeightTableColumn<K extends keyof DeadWeightTableItem>(key: K) {
+  // Ensure that column definition exists in the constants
+  const columnDef = DEAD_WEIGHT_COLUMN[key]
+  if (!columnDef) {
+    throw new Error(`Column definition for key '${key}' not found.`)
+  }
+
+  // Accessor and Header are always used, but other properties like cell and meta are added as needed
+  return deadWeightTableColumnHelper.accessor(key, {
     cell: props => {
       if (columnDef.renderFn) {
         return columnDef.renderFn({value: props.getValue()})

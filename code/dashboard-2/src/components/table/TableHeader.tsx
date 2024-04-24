@@ -3,11 +3,11 @@ import { flexRender } from '@tanstack/react-table'
 import { TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons'
 import { Table as TableType } from '@tanstack/react-table'
 
-interface DashboardTableHeaderProps {
-  table: TableType<DashboardTableItem>
+interface TableHeaderProps<T> {
+  table: TableType<T>
 }
 
-const DashboardTableHeader = ({table}: DashboardTableHeaderProps) => {
+const TableHeader = ({table}: TableHeaderProps<any>) => {
   return (
     <Thead borderBottom="1px solid" borderColor="gray.200">
       {table.getHeaderGroups().map((headerGroup) => (
@@ -48,4 +48,4 @@ const DashboardTableHeader = ({table}: DashboardTableHeaderProps) => {
   )
 }
 
-export default DashboardTableHeader
+export default TableHeader

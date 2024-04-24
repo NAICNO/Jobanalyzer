@@ -8,6 +8,9 @@ import {
 
 import RootLayout from './layouts/RootLayout.tsx'
 import DashboardPage from './pages/DashboardPage.tsx'
+import ViolatorsPage from './pages/ViolatorsPage.tsx'
+import ViolatorPage from './pages/ViolatorPage.tsx'
+import DeadWeightPage from './pages/DeadWeightPage.tsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -15,6 +18,9 @@ const router = createBrowserRouter(
       <Route index element={<Navigate to="dashboard/ml" replace/>}/>
       <Route path="dashboard" element={<DashboardPage/>}/>
       <Route path="dashboard/:clusterName" element={<DashboardPage/>}/>
+      <Route path="dashboard/:clusterName/violators" element={<ViolatorsPage/>}/>
+      <Route path="dashboard/:clusterName/violators/:violator" element={<ViolatorPage/>}/>
+      <Route path="dashboard/:clusterName/deadweight" element={<DeadWeightPage/>}/>
     </Route>
   )
 )
