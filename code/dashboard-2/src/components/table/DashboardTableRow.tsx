@@ -1,7 +1,8 @@
-import { flexRender, Row } from '@tanstack/react-table'
-import { Td, Tr } from '@chakra-ui/react'
-import { CELL_BACKGROUND_COLORS } from '../../Constants.ts'
 import React from 'react'
+import { Row } from '@tanstack/react-table'
+
+import { CELL_BACKGROUND_COLORS } from '../../Constants.ts'
+import TableRow from './TableRow.tsx'
 
 interface DashboardTableRowProps {
   row: Row<DashboardTableItem>
@@ -29,22 +30,7 @@ const DashboardTableRow = ({row, cluster}: DashboardTableRowProps) => {
   }
 
   return (
-    <Tr key={row.id} style={{...rowStyles}}>
-      {row.getAllCells().map((cell, cellIndex, cellArray) => {
-        const meta: any = cell.column.columnDef.meta
-        return (
-          <Td
-            key={cell.id}
-            isNumeric={meta?.isNumeric}
-            borderRight={cellIndex !== cellArray.length - 1 ? '1px solid' : 'none'}
-            borderColor="gray.200"
-            padding={0}
-          >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </Td>
-        )
-      })}
-    </Tr>
+    <TableRow row={row} styles={rowStyles} />
   )
 }
 

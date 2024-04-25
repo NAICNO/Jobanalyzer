@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { HostNameFieldCell } from '../../../src/components/table/HostNameFieldCell'
+import { HostNameFieldCell } from '../../../src/components/table/cell'
 
 describe('HostNameFieldCell', () => {
   it('renders correctly when value is in HOSTNAMES_ALIAS', () => {

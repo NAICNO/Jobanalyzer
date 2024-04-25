@@ -1,12 +1,12 @@
 import { Text } from '@chakra-ui/react'
-import { CELL_BACKGROUND_COLORS } from '../../Constants.ts'
+import { CELL_BACKGROUND_COLORS } from '../../../Constants.ts'
 import CellWrapper from './CellWrapper.tsx'
 
 interface WorkingFieldCellProps {
   value: number;
 }
 
-export const WorkingFieldCell = ({value}: WorkingFieldCellProps) => {
+const WorkingFieldCell = ({value}: WorkingFieldCellProps) => {
   let backgroundColor = CELL_BACKGROUND_COLORS.NA
   if (value >= 75) {
     backgroundColor = CELL_BACKGROUND_COLORS.WORKING_HARD
@@ -21,3 +21,5 @@ export const WorkingFieldCell = ({value}: WorkingFieldCellProps) => {
     </CellWrapper>
   )
 }
+
+export default WorkingFieldCell

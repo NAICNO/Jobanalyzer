@@ -5,11 +5,11 @@ exports[`HostNameFieldCell > renders correctly when value is in HOSTNAMES_ALIAS 
   <div
     class="css-1phsvop"
   >
-    <b
+    <p
       class="chakra-text css-0"
     >
       ML1
-    </b>
+    </p>
   </div>
 </DocumentFragment>
 `;
@@ -19,11 +19,11 @@ exports[`HostNameFieldCell > renders correctly when value is not in HOSTNAMES_AL
   <div
     class="css-1phsvop"
   >
-    <b
+    <p
       class="chakra-text css-0"
     >
       999
-    </b>
+    </p>
   </div>
 </DocumentFragment>
 `;

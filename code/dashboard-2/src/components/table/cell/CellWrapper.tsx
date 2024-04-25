@@ -6,10 +6,12 @@ interface CellWrapperProps {
   children: ReactNode
 }
 
-export default function CellWrapper({styleProps, children}: CellWrapperProps) {
+const CellWrapper = ({styleProps, children}: CellWrapperProps) => {
   return (
     <Box padding={1} {...styleProps}>
       {children}
     </Box>
   )
 }
+
+export default CellWrapper

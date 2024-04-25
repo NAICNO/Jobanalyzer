@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CellWithLink > renders correctly 1`] = `
+<DocumentFragment>
+  <div
+    class="css-1phsvop"
+  >
+    <a
+      class="chakra-link css-0"
+      href="/test-link"
+    >
+      Test Link
+    </a>
+  </div>
+</DocumentFragment>
+`;

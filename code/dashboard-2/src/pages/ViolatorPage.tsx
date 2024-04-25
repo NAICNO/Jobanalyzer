@@ -1,0 +1,126 @@
+import { useMemo, useState } from 'react'
+import {
+  Box,
+  Card,
+  CardBody,
+  Heading,
+  HStack,
+  List,
+  ListIcon,
+  ListItem,
+  Text,
+  UnorderedList,
+  VStack
+} from '@chakra-ui/react'
+import { Navigate, useParams } from 'react-router-dom'
+import {
+  getCoreRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable
+} from '@tanstack/react-table'
+import { WarningTwoIcon } from '@chakra-ui/icons'
+import moment from 'moment-timezone'
+
+import { CLUSTER_INFO, POLICIES } from '../Constants.ts'
+import { isValidateClusterName } from '../util'
+import { getUserViolatingJobTableColumns } from '../util/TableUtils.ts'
+import ViolatingJobTable from '../components/table/ViolatingJobTable.tsx'
+import { useFetchViolator } from '../hooks/useFetchViolator.ts'
+import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
+
+const emptyArray: any[] = []
+
+export default function ViolatorPage() {
+  const {clusterName, violator} = useParams<string>()
+
+  if (!isValidateClusterName(clusterName) || !violator) {
+    return (
+      <Navigate to="/"/>
+    )
+  }
+
+  const cluster = CLUSTER_INFO[clusterName!]
+
+  const {data: allJobsOfUser} = useFetchViolator(clusterName!, violator)
+
+  const violatingJobTableColumns = useMemo(() => getUserViolatingJobTableColumns(), [cluster])
+  const [violatingJobTableSorting, setViolatingJobTableSorting] = useState<SortingState>([])
+
+  const violatingJobTable = useReactTable({
+    columns: violatingJobTableColumns,
+    data: allJobsOfUser || emptyArray,
+    getCoreRowModel: getCoreRowModel(),
+    onSortingChange: setViolatingJobTableSorting,
+    getSortedRowModel: getSortedRowModel(),
+    state: {
+      sorting: violatingJobTableSorting,
+    }
+  })
+
+  const allPolicyNamesOfAllJobs = allJobsOfUser?.map(job => job.policyName) || emptyArray
+
+  const violatedPolicyNames = Array.from(new Set<string>(allPolicyNamesOfAllJobs))
+
+  const violatedPolicies = violatedPolicyNames.map(policyName => {
+    return POLICIES[clusterName!].find(policy => policy.name === policyName)
+  })
+
+  const timestamp = moment.utc()
+  timestamp.tz('Europe/Oslo')
+  const formattedTimestamp = timestamp.format('ddd MMM DD YYYY HH:mm:ss [GMT]ZZ (z)')
+
+  return (
+    <VStack alignItems={'start'}>
+      <HStack mb="20px">
+        <NavigateBackButton/>
+        <Heading ml="20px">{cluster.name} individual policy violator report</Heading>
+      </HStack>
+      <Card>
+        <CardBody>
+          <VStack alignItems="start">
+            <Text>Hi,</Text>
+            <Text>To ensure that computing resources are used in the best possible way,
+              we monitor how jobs are using the systems and ask users to move when
+              they are using a particular system in a way that is contrary to the
+              intended use of that system.</Text>
+            <Text>
+              You are receiving this message because you have been running jobs
+              in just such a manner, as detailed below. Please apply the suggested
+              remedies (usually this means moving your work to another system).
+            </Text>
+            <Text mt="20px">"{cluster.name}" individual policy violator report</Text>
+            <Text mt="10px">Report generated on {formattedTimestamp}</Text>
+            <Text mt="10px">User: {violator}</Text>
+            <Text mt="10px">Policies violated:</Text>
+            <List ml="20px">
+              {
+                violatedPolicies.map(policy => {
+                  if (!policy) {
+                    return null
+                  }
+                  return (
+                    <ListItem key={policy.name}>
+                      <ListIcon as={WarningTwoIcon} color="red.500"/>
+                      {policy.name}
+                      <Box ml="20px" mt="5px">
+                        <UnorderedList>
+                          <ListItem>Trigger: {policy.trigger}</ListItem>
+                          <ListItem>Problem: {policy.problem}</ListItem>
+                          <ListItem>Remedy: {policy.remedy}</ListItem>
+                        </UnorderedList>
+                      </Box>
+                    </ListItem>
+                  )
+                })
+              }
+            </List>
+            <Text marginY="20px">(Times below are UTC, job numbers are derived from session leader if not running under
+              Slurm)</Text>
+            <ViolatingJobTable table={violatingJobTable}/>
+          </VStack>
+        </CardBody>
+      </Card>
+    </VStack>
+  )
+}
