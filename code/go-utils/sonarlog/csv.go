@@ -20,6 +20,7 @@ import (
 func ParseSonarLog(
 	input io.Reader,
 	ustrs UstrAllocator,
+	verbose bool,
 ) (
 	readings []*Sample,
 	discarded int,
@@ -169,7 +170,7 @@ LineLoop:
 					command = ustrs.AllocBytes(val)
 				case 6:
 					var tmp float64
-					tmp, err = parseFloat(val)
+					tmp, err = parseFloat(val, true)
 					if err != nil {
 						discarded++
 						tokenizer.ScanEol()
@@ -198,10 +199,12 @@ LineLoop:
 
 				if eqloc == CsvEqSentinel {
 					// Invalid field syntax: Drop the field but keep the record
-					log.Printf(
-						"Dropping field with bad form: %s",
-						"(elided)", /*tokenizer.BufSubstringSlow(start, lim) - see NOTE above*/
-					)
+					if verbose {
+						log.Printf(
+							"Dropping field with bad form: %s",
+							"(elided)", /*tokenizer.BufSubstringSlow(start, lim) - see NOTE above*/
+						)
+					}
 					discarded++
 					continue FieldLoop
 				}
@@ -230,7 +233,7 @@ LineLoop:
 							case '%':
 								if val, ok := match(tokenizer, start, lim, eqloc, "cpu%"); ok {
 									var tmp float64
-									tmp, err = parseFloat(val)
+									tmp, err = parseFloat(val, true)
 									cpuPct = float32(tmp)
 									matched = true
 								}
@@ -253,7 +256,7 @@ LineLoop:
 						case '%':
 							if val, ok := match(tokenizer, start, lim, eqloc, "gpu%"); ok {
 								var tmp float64
-								tmp, err = parseFloat(val)
+								tmp, err = parseFloat(val, true)
 								gpuPct = float32(tmp)
 								matched = true
 							}
@@ -272,7 +275,7 @@ LineLoop:
 						case 'm':
 							if val, ok := match(tokenizer, start, lim, eqloc, "gpumem%"); ok {
 								var tmp float64
-								tmp, err = parseFloat(val)
+								tmp, err = parseFloat(val, true)
 								gpuMemPct = float32(tmp)
 								matched = true
 							}
@@ -336,21 +339,34 @@ LineLoop:
 						matched = true
 					}
 				}
+				// Four cases:
+				//
+				//   matched && !failed - field matched a tag, value is good
+				//   matched && failed - field matched a tag, value is bad
+				//   !matched && !failed - field did not match any tag
+				//   !matched && failed - impossible
+				//
+				// The second case suggests something bad, so discard the record in this case.  Note
+				// this is actually the same as just `failed` due to the fourth case.
 				if !matched {
-					log.Printf(
-						"Dropping field with unknown name: %s",
-						"(elided)", /*tokenizer.BufSubstringSlow(start, eqloc-1) - see NOTE above */
-					)
+					if verbose {
+						log.Printf(
+							"Dropping field with unknown name: %s",
+							"(elided)", /*tokenizer.BufSubstringSlow(start, eqloc-1) - see NOTE above */
+						)
+					}
 					if err == nil {
 						discarded++
 					}
 				}
 				if err != nil {
-					log.Printf(
-						"Dropping record with illegal/unparseable value: %s %v",
-						"(elided)", /*tokenizer.BufSubstringSlow(start, lim) - see NOTE above */
-						err,
-					)
+					if verbose {
+						log.Printf(
+							"Dropping record with illegal/unparseable value: %s %v",
+							"(elided)", /*tokenizer.BufSubstringSlow(start, lim) - see NOTE above */
+							err,
+						)
+					}
 					discarded++
 					tokenizer.ScanEol()
 					continue LineLoop
@@ -368,7 +384,9 @@ LineLoop:
 
 		// Untagged records do not have optional trailing fields.
 		if format == untaggedFormat && untaggedPosition < 8 {
-			log.Printf("Dropping untagged record with missing fields, got only %d fields", untaggedPosition)
+			if verbose {
+				log.Printf("Dropping untagged record with missing fields, got only %d fields", untaggedPosition)
+			}
 			discarded++
 			continue LineLoop
 		}
@@ -394,7 +412,9 @@ LineLoop:
 			irritants += "user "
 		}
 		if irritants != "" {
-			log.Printf("Dropping record with missing mandatory field(s): %s", irritants)
+			if verbose {
+				log.Printf("Dropping record with missing mandatory field(s): %s", irritants)
+			}
 			discarded++
 			continue LineLoop
 		}
@@ -515,7 +535,7 @@ func parseUint(bs []byte) (uint64, error) {
 // with that capitalization.
 //
 // Based on experimentation, the Go formatter produces "NaN", "+Inf" and "-Inf".
-func parseFloat(bs []byte) (float64, error) {
+func parseFloat(bs []byte, filterInfNaN bool) (float64, error) {
 	var n float64
 	if len(bs) == 0 {
 		return 0, errors.New("Empty")
@@ -527,17 +547,26 @@ func parseFloat(bs []byte) (float64, error) {
 	case '+':
 		if bytes.EqualFold(bs, []byte{'+', 'i', 'n', 'f', 'i', 'n', 'i', 't', 'y'}) ||
 			bytes.EqualFold(bs, []byte{'+', 'i', 'n', 'f'}) {
+			if filterInfNaN {
+				return 0, errors.New("Infinity")
+			}
 			return math.Inf(1), nil
 		}
 		return 0, errors.New("Not a digit")
 	case 'i', 'I':
 		if bytes.EqualFold(bs, []byte{'i', 'n', 'f', 'i', 'n', 'i', 't', 'y'}) ||
 			bytes.EqualFold(bs, []byte{'i', 'n', 'f'}) {
+			if filterInfNaN {
+				return 0, errors.New("Infinity")
+			}
 			return math.Inf(1), nil
 		}
 		return 0, errors.New("Not a digit")
 	case 'n', 'N':
 		if bytes.EqualFold(bs, []byte{'n', 'a', 'n'}) {
+			if filterInfNaN {
+				return 0, errors.New("NaN")
+			}
 			return math.NaN(), nil
 		}
 		return 0, errors.New("Not a digit")

@@ -70,3 +70,7 @@ type Timebound struct {
 	Earliest int64
 	Latest   int64
 }
+
+// Map from host name to bounds for the host name
+
+type Timebounds map[Ustr]Timebound

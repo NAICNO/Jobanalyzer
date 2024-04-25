@@ -35,7 +35,7 @@ if [[ $(uname) != Darwin ]]; then
     TEST_DIRECTORIES="$TEST_DIRECTORIES sonard transport"
 fi
 export TEST_ROOT=$(pwd)
-export SONALYZE=$TEST_ROOT/../sonalyze/target/debug/sonalyze
+export SONALYZE=${SONALYZE:-$TEST_ROOT/../sonalyze/target/debug/sonalyze}
 export NAICREPORT=$TEST_ROOT/../naicreport/naicreport
 export SONARD=$TEST_ROOT/../sonard/sonard
 export INFILTRATE=$TEST_ROOT/../infiltrate/infiltrate

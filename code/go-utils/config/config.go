@@ -142,6 +142,16 @@ func (cc *ClusterConfig) LookupHost(hostname string) *NodeConfigRecord {
 	return nil
 }
 
+// Returns the hosts that were defined within the time window.  With our current structure we don't
+// have reliable time window information, so just return all hosts.
+func (cc *ClusterConfig) HostsDefinedInTimeWindow(fromIncl, toExcl int64) []string {
+	result := make([]string, 0)
+	for _, n := range cc.nodes {
+		result = append(result, n.Hostname)
+	}
+	return result
+}
+
 // Get the system config if possible, returning a map from node names to node information.
 
 func ReadConfig(configFilename string) (*ClusterConfig, error) {

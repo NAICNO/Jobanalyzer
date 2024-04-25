@@ -13,6 +13,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -111,7 +112,7 @@ func (c *HttpClient) ProcessRetries() {
 
 func (c *HttpClient) postDataByHttp(prevAttempts uint, path, mimetype string, buf []byte) {
 	if c.verbose {
-		fmt.Printf("Trying to send %s\n", string(buf))
+		log.Printf("Trying to send %s\n", string(buf))
 	}
 
 	// Go down a level from http.Post() in order to be able to set authentication header.
@@ -138,7 +139,7 @@ func (c *HttpClient) postDataByHttp(prevAttempts uint, path, mimetype string, bu
 	}
 
 	if c.verbose {
-		fmt.Printf("Response %s\n", resp.Status)
+		log.Printf("Response %s\n", resp.Status)
 	}
 
 	// Codes in the 200 range indicate everything is OK, for now.

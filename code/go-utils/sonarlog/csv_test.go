@@ -39,100 +39,100 @@ func TestParseUint(t *testing.T) {
 }
 
 func TestParseFloat(t *testing.T) {
-	n, err := parseFloat([]byte{})
+	n, err := parseFloat([]byte{}, false)
 	if err == nil {
 		t.Fatal("Expected error for empty string")
 	}
-	n, err = parseFloat([]byte("-12"))
+	n, err = parseFloat([]byte("-12"), false)
 	if err == nil {
 		t.Fatal("Expected error for negative number")
 	}
-	n, err = parseFloat([]byte("+12"))
+	n, err = parseFloat([]byte("+12"), false)
 	if err == nil {
 		t.Fatal("Expected error for positive sign")
 	}
-	n, err = parseFloat([]byte("+iNf"))
+	n, err = parseFloat([]byte("+iNf"), false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !math.IsInf(n, 1) {
 		t.Fatal("+inf should be positive infinity")
 	}
-	n, err = parseFloat([]byte("Inf"))
+	n, err = parseFloat([]byte("Inf"), false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !math.IsInf(n, 1) {
 		t.Fatal("+inf should be positive infinity")
 	}
-	n, err = parseFloat([]byte("-inF"))
+	n, err = parseFloat([]byte("-inF"), false)
 	if err == nil {
 		t.Fatal("Expected error for negative infinity")
 	}
-	n, err = parseFloat([]byte("+infinitY"))
+	n, err = parseFloat([]byte("+infinitY"), false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !math.IsInf(n, 1) {
 		t.Fatal("+inf should be positive infinity")
 	}
-	n, err = parseFloat([]byte("infInity"))
+	n, err = parseFloat([]byte("infInity"), false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !math.IsInf(n, 1) {
 		t.Fatal("+inf should be positive infinity")
 	}
-	n, err = parseFloat([]byte("nAn"))
+	n, err = parseFloat([]byte("nAn"), false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !math.IsNaN(n) {
 		t.Fatal("nAn should be NaN")
 	}
-	n, err = parseFloat([]byte("12"))
+	n, err = parseFloat([]byte("12"), false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if n != 12 {
 		t.Fatalf("Expected 12 got %v", n)
 	}
-	n, err = parseFloat([]byte("12.25"))
+	n, err = parseFloat([]byte("12.25"), false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if n != 12.25 {
 		t.Fatalf("Expected 12.25 got %v", n)
 	}
-	n, err = parseFloat([]byte("12a"))
+	n, err = parseFloat([]byte("12a"), false)
 	if err == nil {
 		t.Fatal("Expected error (non-digit)")
 	}
 	// Is this too harsh?
-	n, err = parseFloat([]byte("12."))
+	n, err = parseFloat([]byte("12."), false)
 	if err == nil {
 		t.Fatal("Expected error (empty fraction)")
 	}
-	n, err = parseFloat([]byte(".25"))
+	n, err = parseFloat([]byte(".25"), false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if n != 0.25 {
 		t.Fatalf("Expected 0.25 got %v", n)
 	}
-	n, err = parseFloat([]byte("12.a"))
+	n, err = parseFloat([]byte("12.a"), false)
 	if err == nil {
 		t.Fatal("Expected error (non-digit in fraction)")
 	}
-	n, err = parseFloat([]byte("12e+7"))
+	n, err = parseFloat([]byte("12e+7"), false)
 	if err == nil {
 		t.Fatal("Expected error (non-digit)")
 	}
-	n, err = parseFloat([]byte("12e7"))
+	n, err = parseFloat([]byte("12e7"), false)
 	if err == nil {
 		t.Fatal("Expected error (non-digit)")
 	}
-	n, err = parseFloat([]byte("12e-7"))
+	n, err = parseFloat([]byte("12e-7"), false)
 	if err == nil {
 		t.Fatal("Expected error (non-digit)")
 	}
@@ -142,7 +142,7 @@ func TestParseSonarLogTagged(t *testing.T) {
 	// This test file has a blank line that should be skipped
 	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-intermingled.csv")
 	uf := NewUstrFacade()
-	readings, bad, err := ParseSonarLog(bytes.NewReader(bs), uf)
+	readings, bad, err := ParseSonarLog(bytes.NewReader(bs), uf, true)
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
@@ -178,7 +178,7 @@ func TestParseSonarLogUntagged(t *testing.T) {
 	// This test file has a blank line that should be skipped
 	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-untagged-intermingled.csv")
 	uf := NewUstrFacade()
-	readings, bad, err := ParseSonarLog(bytes.NewReader(bs), uf)
+	readings, bad, err := ParseSonarLog(bytes.NewReader(bs), uf, true)
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}

@@ -287,12 +287,22 @@ pub fn aggregate_and_print_uptime(
         }
     }
 
-    // Sort the reports by hostname and start time.
+    // Sort the reports by hostname, start time, device type, end time
     reports.sort_by(|a, b| {
-        if a.host != b.host {
-            a.host.cmp(&b.host)
+        if a.host == b.host {
+            if a.start == b.start {
+                if a.device == b.device {
+                    a.end.cmp(&b.end)
+                } else if a.device == "host" {
+                    std::cmp::Ordering::Less
+                } else {
+                    std::cmp::Ordering::Greater
+                }
+            } else {
+                a.start.cmp(&b.start)
+            }
         } else {
-            a.start.cmp(&b.start)
+            a.host.cmp(&b.host)
         }
     });
 
