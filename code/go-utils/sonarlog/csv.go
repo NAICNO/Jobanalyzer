@@ -2,15 +2,11 @@ package sonarlog
 
 import (
 	"bytes"
-	"encoding/csv"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"math"
-	"strings"
 	"time"
-
 	"go-utils/gpuset"
 )
 
@@ -604,91 +600,3 @@ func parseFloat(bs []byte, filterInfNaN bool) (float64, error) {
 	}
 	return n, nil
 }
-
-func (r *Sample) Csvnamed() []byte {
-	var bw bytes.Buffer
-	fields := []string{
-		fmt.Sprintf("v=%v", r.Version),
-		fmt.Sprintf("time=%s", time.Unix(r.Timestamp, 0).Format(time.RFC3339)),
-		fmt.Sprintf("host=%v", r.Host),
-		fmt.Sprintf("user=%v", r.User),
-		fmt.Sprintf("cmd=%v", r.Cmd),
-	}
-	if r.Cores > 0 {
-		fields = append(fields, fmt.Sprintf("cores=%d", r.Cores))
-	}
-	if r.MemtotalKib > 0 {
-		fields = append(fields, fmt.Sprintf("memtotalkib=%d", r.MemtotalKib))
-	}
-	if r.Job > 0 {
-		fields = append(fields, fmt.Sprintf("job=%d", r.Job))
-	}
-	if r.Pid > 0 {
-		fields = append(fields, fmt.Sprintf("pid=%d", r.Pid))
-	}
-	if r.CpuPct > 0 {
-		fields = append(fields, fmt.Sprintf("cpu%%=%g", r.CpuPct))
-	}
-	if r.CpuKib > 0 {
-		fields = append(fields, fmt.Sprintf("cpukib=%d", r.CpuKib))
-	}
-	if r.RssAnonKib > 0 {
-		fields = append(fields, fmt.Sprintf("rssanonkib=%d", r.RssAnonKib))
-	}
-	if !r.Gpus.IsEmpty() {
-		fields = append(fields, fmt.Sprintf("gpus=%v", r.Gpus))
-	}
-	if r.GpuPct > 0 {
-		fields = append(fields, fmt.Sprintf("gpu%%=%g", r.GpuPct))
-	}
-	if r.GpuMemPct > 0 {
-		fields = append(fields, fmt.Sprintf("gpumem%%=%g", r.GpuMemPct))
-	}
-	if r.GpuKib > 0 {
-		fields = append(fields, fmt.Sprintf("gpukib=%d", r.GpuKib))
-	}
-	if r.GpuFail != 0 {
-		fields = append(fields, fmt.Sprintf("gpufail=%d", r.GpuFail))
-	}
-	if r.CpuTimeSec > 0 {
-		fields = append(fields, fmt.Sprintf("cputime_sec=%d", r.CpuTimeSec))
-	}
-	if r.Rolledup > 0 {
-		fields = append(fields, fmt.Sprintf("rolledup=%d", r.Rolledup))
-	}
-	csvw := csv.NewWriter(&bw)
-	csvw.Write(fields)
-	csvw.Flush()
-	return bw.Bytes()
-}
-
-// Given one line of text on free csv format, return the pairs of field names and values.
-//
-// Errors:
-// - If the CSV reader returns an error err, returns (nil, err), including io.EOF.
-// - If any field is seen not to have a field name, return (fields, ErrNoName) with
-//   fields that were valid.
-
-func GetCsvFields(text string) (map[string]string, error) {
-	rdr := csv.NewReader(strings.NewReader(text))
-	rdr.FieldsPerRecord = -1 // Free form, though should not matter
-	fields, err := rdr.Read()
-	if err != nil {
-		return nil, err
-	}
-	result := make(map[string]string)
-	for _, f := range fields {
-		ix := strings.IndexByte(f, '=')
-		if ix == -1 {
-			err = ErrNoName
-			continue
-		}
-		// TODO: I guess we should detect duplicates
-		result[f[0:ix]] = f[ix+1:]
-	}
-	return result, err
-}
-
-var (
-	ErrNoName = errors.New("CSV field without a field name")
-)

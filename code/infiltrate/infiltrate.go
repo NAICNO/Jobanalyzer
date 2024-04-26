@@ -72,13 +72,16 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"syscall"
 
 	"go-utils/auth"
@@ -87,7 +90,6 @@ import (
 	"go-utils/httpsrv"
 	"go-utils/options"
 	"go-utils/process"
-	"go-utils/sonarlog"
 	"go-utils/status"
 )
 
@@ -246,7 +248,7 @@ func sonarFreeCsv(query url.Values, payload []byte, clusterName string) (int, st
 	scanner := bufio.NewScanner(bytes.NewReader(payload))
 	for scanner.Scan() {
 		text := scanner.Text()
-		fields, err := sonarlog.GetCsvFields(text)
+		fields, err := getCsvFields(text)
 		if err != nil {
 			return 400, "Bad content",
 				fmt.Sprintf("Bad content - can't unmarshal Sonar free CSV: %v", err)
@@ -263,6 +265,37 @@ func sonarFreeCsv(query url.Values, payload []byte, clusterName string) (int, st
 	}
 	return 200, "", ""
 }
+
+// Given one line of text on free csv format, return the pairs of field names and values.
+//
+// Errors:
+// - If the CSV reader returns an error err, returns (nil, err), including io.EOF.
+// - If any field is seen not to have a field name, return (fields, errNoName) with
+//   fields that were valid.
+
+func getCsvFields(text string) (map[string]string, error) {
+	rdr := csv.NewReader(strings.NewReader(text))
+	rdr.FieldsPerRecord = -1 // Free form, though should not matter
+	fields, err := rdr.Read()
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]string)
+	for _, f := range fields {
+		ix := strings.IndexByte(f, '=')
+		if ix == -1 {
+			err = errNoName
+			continue
+		}
+		// TODO: I guess we should detect duplicates
+		result[f[0:ix]] = f[ix+1:]
+	}
+	return result, err
+}
+
+var (
+	errNoName = errors.New("CSV field without a field name")
+)
 
 func sysinfo(query url.Values, payload []byte, clusterName string) (int, string, string) {
 	vs, found := query["cluster"]
