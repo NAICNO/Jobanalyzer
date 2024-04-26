@@ -1,5 +1,9 @@
 package sonarlog
 
+import (
+	"go-utils/gpuset"
+)
+
 // Memory use.
 //
 // A huge number of these (about 10e6 records per month for Saga) may be in memory at the same time
@@ -46,7 +50,7 @@ type Sample struct {
 	Pid         uint32
 	Cmd         Ustr
 	CpuPct      float32
-	Gpus        GpuSet
+	Gpus        gpuset.GpuSet
 	GpuPct      float32
 	CpuUtilPct  float32
 	GpuMemPct   float32

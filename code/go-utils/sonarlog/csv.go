@@ -10,6 +10,8 @@ import (
 	"math"
 	"strings"
 	"time"
+
+	"go-utils/gpuset"
 )
 
 // Read a stream of Sonar data records, parse them and return them in order.  Returns the number of
@@ -57,7 +59,7 @@ LineLoop:
 			cpuPct           float32 = math.MaxFloat32
 			cpuKib           uint64  = math.MaxUint64
 			rssAnonKib       uint64  = math.MaxUint64
-			gpus                     = EmptyGpuSet()
+			gpus                     = gpuset.EmptyGpuSet()
 			haveGpus                 = false
 			gpuPct           float32 = math.MaxFloat32
 			gpuMemPct        float32 = math.MaxFloat32
@@ -281,7 +283,7 @@ LineLoop:
 							}
 						case 's':
 							if val, ok := match(tokenizer, start, lim, eqloc, "gpus"); ok {
-								gpus, err = NewGpuSet(string(val))
+								gpus, err = gpuset.NewGpuSet(string(val))
 								haveGpus = true
 								matched = true
 							}
@@ -443,7 +445,7 @@ LineLoop:
 			rssAnonKib = 0
 		}
 		if !haveGpus {
-			gpus = EmptyGpuSet()
+			gpus = gpuset.EmptyGpuSet()
 		}
 		if gpuPct == math.MaxFloat32 {
 			gpuPct = 0

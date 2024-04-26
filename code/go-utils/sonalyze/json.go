@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"go-utils/sonarlog"
+	"go-utils/gpuset"
 	gut "go-utils/time"
 )
 
@@ -36,8 +36,8 @@ func JsonFloat64(s string) float64 {
 	return f
 }
 
-func JsonGpulist(s string) sonarlog.GpuSet {
-	gpuData, err := sonarlog.NewGpuSet(s)
+func JsonGpuSet(s string) gpuset.GpuSet {
+	gpuData, err := gpuset.NewGpuSet(s)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to convert JSON value to gpu set, should not happen: %s", err.Error()))
 	}

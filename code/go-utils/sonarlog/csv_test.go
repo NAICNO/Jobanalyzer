@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"go-utils/gpuset"
 )
 
 func TestParseUint(t *testing.T) {
@@ -204,7 +206,7 @@ func TestParseSonarLogUntagged(t *testing.T) {
 
 func TestFormatCsvnamed(t *testing.T) {
 	now := time.Now().UTC().Unix()
-	noSet, _ := NewGpuSet("unknown")
+	noSet, _ := gpuset.NewGpuSet("unknown")
 	reading := &Sample{
 		Version:     StringToUstr("abc"),
 		Timestamp:   now,

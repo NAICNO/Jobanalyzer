@@ -81,12 +81,12 @@ import (
 	"sort"
 	"time"
 
+	"go-utils/gpuset"
 	"go-utils/hostglob"
 	"go-utils/minmax"
 	"go-utils/options"
 	"go-utils/process"
 	"go-utils/sonalyze"
-	"go-utils/sonarlog"
 	gut "go-utils/time"
 	"naicreport/util"
 )
@@ -469,7 +469,7 @@ type loadDatum struct {
 	mem      float64
 	gpu      float64
 	gpumem   float64
-	gpus     sonarlog.GpuSet
+	gpus     gpuset.GpuSet
 	rcpu     float64
 	rmem     float64
 	rres     float64
@@ -548,7 +548,7 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 				mem:      sonalyze.JsonFloat64(r.Mem),
 				gpu:      sonalyze.JsonFloat64(r.Gpu),
 				gpumem:   sonalyze.JsonFloat64(r.Gpumem),
-				gpus:     sonalyze.JsonGpulist(r.Gpus),
+				gpus:     sonalyze.JsonGpuSet(r.Gpus),
 				rcpu:     sonalyze.JsonFloat64(r.Rcpu),
 				rmem:     sonalyze.JsonFloat64(r.Rmem),
 				rres:     sonalyze.JsonFloat64(r.Rres),
