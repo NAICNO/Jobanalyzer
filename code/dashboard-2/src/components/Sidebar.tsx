@@ -13,7 +13,7 @@ import {
   useBreakpointValue,
   useColorMode, VStack,
 } from '@chakra-ui/react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useMatch } from 'react-router-dom'
 import { GrNodes, GrServers } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
 
@@ -44,14 +44,11 @@ interface SidebarProps {
 
 export default function Sidebar({onCloseDrawer, isDrawerOpen}: SidebarProps) {
 
-  const location = useLocation()
   const {colorMode} = useColorMode()
   const isDrawer = useBreakpointValue({base: true, md: false})
 
   const hoverBgColor = colorMode === 'light' ? 'gray.200' : 'blue.500'
   const activeBgColor = colorMode === 'light' ? 'gray.300' : 'blue.600'
-
-  const isActive = (path: string) => location.pathname === path
 
   const SideBarContent = () => (
     <List fontSize={{base: '1em', md: '1.2em'}} spacing="1">
@@ -61,7 +58,6 @@ export default function Sidebar({onCloseDrawer, isDrawerOpen}: SidebarProps) {
           path={item.path}
           text={item.text}
           icon={item.icon}
-          isActive={isActive(item.path)}
           hoverBgColor={hoverBgColor}
           activeBgColor={activeBgColor}
           onCloseDrawer={onCloseDrawer}
@@ -101,21 +97,22 @@ export default function Sidebar({onCloseDrawer, isDrawerOpen}: SidebarProps) {
   )
 }
 
-const SidebarItem = ({path, text, icon, isActive, hoverBgColor, activeBgColor, onCloseDrawer}: {
+const SidebarItem = ({path, text, icon, hoverBgColor, activeBgColor, onCloseDrawer}: {
   path: string,
   text: string,
   icon: any,
-  isActive: boolean,
   hoverBgColor: string,
   activeBgColor: string,
   onCloseDrawer: () => void
 }) => {
+
+  const match = useMatch({path: path, end: false})
   return (
     <Box>
       <NavLink to={path} onClick={onCloseDrawer}>
         <ListItem
           _hover={{bg: hoverBgColor}}
-          bg={isActive ? activeBgColor : 'transparent'}
+          bg={match ? activeBgColor : 'transparent'}
           px={{base: '12px', md: '16px'}}
           py="8px"
           borderRadius="md"
