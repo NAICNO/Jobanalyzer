@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useRef, useState } from 'react'
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useParams, Link as ReactRouterLink } from 'react-router-dom'
 import {
   Container,
@@ -40,6 +40,10 @@ export default function DashboardPage() {
   const defaultQuery = selectedCluster.defaultQuery
 
   const [query, setQuery] = useState<string>(defaultQuery)
+
+  useEffect(() => {
+    setQuery(defaultQuery)
+  }, [selectedCluster])
 
   const {data} = useFetchDashboard(clusterName!, query)
 
