@@ -13,13 +13,19 @@ const fetchDashboard = async (axios: AxiosInstance, clusterName: string) => {
 
 export const useFetchDashboard = (clusterName: string, query: string) => {
   const axios = useAxios()
-  return useQuery<DashboardTableItem[]>(
+  return useQuery(
     {
       queryKey: [QueryKeys.DASHBOARD_TABLE, clusterName],
       queryFn: () => fetchDashboard(axios, clusterName),
       select: data => {
         const filter = makeFilter(query)
-        return data.filter(filter)
+        const filtered = data.filter(filter)
+        return filtered.map((item: Partial<DashboardTableItem>) => {
+          return {
+            ...item,
+            hostname: {text: item.hostname, link: `/${clusterName}/${item.hostname}`},
+          }
+        })
       },
     }
   )

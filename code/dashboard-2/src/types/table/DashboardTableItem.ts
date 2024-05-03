@@ -1,5 +1,5 @@
 interface DashboardTableItem {
-  hostname: string;
+  hostname: TextWithLink;
   tag: string;
   machine: string;
   recent: number;

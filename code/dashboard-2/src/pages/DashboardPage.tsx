@@ -7,6 +7,7 @@ import {
   Text,
   Link as ChakraLink,
   useDisclosure,
+  SlideFade,
 } from '@chakra-ui/react'
 import { ExternalLinkIcon } from '@chakra-ui/icons'
 import {
@@ -45,7 +46,7 @@ export default function DashboardPage() {
     setQuery(defaultQuery)
   }, [selectedCluster])
 
-  const {data} = useFetchDashboard(clusterName!, query)
+  const {data, isFetched} = useFetchDashboard(clusterName!, query)
 
   const [sorting, setSorting] = useState<SortingState>([])
 
@@ -88,7 +89,9 @@ export default function DashboardPage() {
             onClickHelp={onOpenHelpSidebar}
             focusRef={focusRef}
           />
-          <DashboardTable table={table} cluster={selectedCluster}/>
+          <SlideFade in={isFetched}>
+            < DashboardTable table={table} cluster={selectedCluster}/>
+          </SlideFade>
         </VStack>
       </Container>
       <NodeSelectionHelpDrawer isOpen={isOpenHelpSidebar} onClose={onClose} finalFocusRef={focusRef}/>
@@ -121,15 +124,18 @@ const ViolatorsAndZombiesLinks = ({cluster}: { cluster: Cluster }) => {
     )
   }
 
-  const {violators, deadweight} = cluster
+  const {violators, deadweight, cluster: clusterName} = cluster
+
+  const violatorsLink = `/${clusterName}/violators`
+  const deadweightLink = `/${clusterName}/deadweight`
 
   return (
     <Text>
-      <ConditionalLink isActive={violators} to="violators">
+      <ConditionalLink isActive={violators} to={violatorsLink}>
         Violators
       </ConditionalLink>
       {violators && deadweight && ' and '}
-      <ConditionalLink isActive={deadweight} to="deadweight">
+      <ConditionalLink isActive={deadweight} to={deadweightLink}>
         Zombies
       </ConditionalLink>
     </Text>

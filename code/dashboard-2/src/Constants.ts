@@ -9,7 +9,17 @@ export const QueryKeys = {
   VIOLATIONS: 'VIOLATIONS',
   VIOLATOR: 'VIOLATOR',
   DEAD_WEIGHT: 'DEAD_WEIGHT',
+  HOSTNAME_LIST: 'HOSTNAME_LIST',
+  HOSTNAME: 'HOSTNAME',
 }
+
+export const FETCH_FREQUENCIES = [
+  {text: 'Moment-to-moment (last 24h)', value: 'minutely'},
+  {text: 'Daily, by hour', value: 'daily'},
+  {text: 'Weekly, by hour', value: 'weekly'},
+  {text: 'Monthly, by day', value: 'monthly'},
+  {text: 'Quarterly, by day', value: 'quarterly'},
+]
 
 export const CELL_BACKGROUND_COLORS = {
   NA: 'transparent',
@@ -87,7 +97,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     key: 'hostname',
     title: 'Hostname',
     sortable: true,
-    renderFn: HostNameFieldCell,
+    renderFn: CellWithLink,
   },
   cpu_status: {
     key: 'cpu_status',

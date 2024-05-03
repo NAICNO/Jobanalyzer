@@ -8,6 +8,7 @@ import {
   List,
   ListIcon,
   ListItem,
+  SlideFade,
   Text,
   UnorderedList,
   VStack
@@ -42,7 +43,7 @@ export default function ViolatorPage() {
 
   const cluster = CLUSTER_INFO[clusterName!]
 
-  const {data: allJobsOfUser} = useFetchViolator(clusterName!, violator)
+  const {data: allJobsOfUser, isFetched} = useFetchViolator(clusterName!, violator)
 
   const violatingJobTableColumns = useMemo(() => getUserViolatingJobTableColumns(), [cluster])
   const [violatingJobTableSorting, setViolatingJobTableSorting] = useState<SortingState>([])
@@ -80,6 +81,7 @@ export default function ViolatorPage() {
         <CardBody>
           <VStack alignItems="start">
             <Text>Hi,</Text>
+            <Text>This is a message from your friendly UiO systems administrator.</Text>
             <Text>To ensure that computing resources are used in the best possible way,
               we monitor how jobs are using the systems and ask users to move when
               they are using a particular system in a way that is contrary to the
@@ -117,7 +119,9 @@ export default function ViolatorPage() {
             </List>
             <Text marginY="20px">(Times below are UTC, job numbers are derived from session leader if not running under
               Slurm)</Text>
-            <ViolatingJobTable table={violatingJobTable}/>
+            <SlideFade in={isFetched}>
+              <ViolatingJobTable table={violatingJobTable}/>
+            </SlideFade>
           </VStack>
         </CardBody>
       </Card>

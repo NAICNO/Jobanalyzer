@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Heading, HStack, Text, VStack } from '@chakra-ui/react'
+import { Heading, HStack, SlideFade, Text, VStack } from '@chakra-ui/react'
 import { Navigate, useParams } from 'react-router-dom'
 import {
   getCoreRowModel,
@@ -29,7 +29,7 @@ export default function ViolatorsPage() {
 
   const cluster = CLUSTER_INFO[clusterName!]
 
-  const {data} = useFetchViolations(clusterName!)
+  const {data, isFetched} = useFetchViolations(clusterName!)
 
   const violatingUserTableColumns = useMemo(() => getViolatingUserTableColumns(), [cluster])
   const [violatingUserTableSorting, setViolatingUserTableSorting] = useState<SortingState>([])
@@ -71,11 +71,15 @@ export default function ViolatorsPage() {
       <Heading as="h4" size="lg" mt="20px">
         By user
       </Heading>
-      <ViolatingUserTable table={violatingUserTable}/>
+      <SlideFade in={isFetched}>
+        <ViolatingUserTable table={violatingUserTable}/>
+      </SlideFade>
       <Heading as="h4" size="lg" mt="20px">
         By job and time
       </Heading>
-      <ViolatingJobTable table={violatingJobTable}/>
+      <SlideFade in={isFetched}>
+        <ViolatingJobTable table={violatingJobTable}/>
+      </SlideFade>
     </VStack>
   )
 }
