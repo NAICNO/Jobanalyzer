@@ -423,3 +423,48 @@ export const DEAD_WEIGHT_COLUMN: { [K in keyof DeadWeightTableItem]: DeadWeightT
   },
 }
 
+export const CHART_SERIES_CONFIGS: Record<string, ChartSeriesConfig> = {
+  rcpu: {
+    dataKey: 'rcpu',
+    label: 'CPU %',
+    lineColor: '#36A2EB',
+    strokeWidth: 2
+  },
+  rmem: {
+    dataKey: 'rmem',
+    label: 'VIRT %',
+    lineColor: '#FF6384',
+    strokeWidth: 2
+  },
+  rres: {
+    dataKey: 'rres',
+    label: 'RAM %',
+    lineColor: '#FF9F40',
+    strokeWidth: 2
+  },
+  rgpu: {
+    dataKey: 'rgpu',
+    label: 'GPU %',
+    lineColor: '#FFCD56',
+    strokeWidth: 2
+  },
+  rgpumem: {
+    dataKey: 'rgpumem',
+    label: 'VRAM %',
+    lineColor: '#4BC0C0',
+    strokeWidth: 2
+  },
+  downhost: {
+    dataKey: 'downhost',
+    label: 'DOWN',
+    lineColor: '#4b74c0',
+    strokeWidth: 2
+  },
+  downgpu: {
+    dataKey: 'downgpu',
+    label: 'GPU_DOWN',
+    lineColor: '#9966FF',
+    strokeWidth: 2
+  }
+}
+
