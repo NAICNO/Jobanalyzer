@@ -1,0 +1,80 @@
+import { Bitset, bitsetIntersection, bitsetUnion } from '../../../src/util/query/Bitset'
+
+describe('Bitset', () => {
+  it('should be tested', () => {
+    let bs = new Bitset(33)
+
+    assert.equal(bs.length, 33)
+    assert.equal(bs.elts.length, 2)
+    assert.equal(bs.elts[0], 0)
+    assert.equal(bs.elts[1], 0)
+
+    bs.fill()
+    assert.equal(bs.elts[0], 0xFFFFFF)
+    assert.equal(bs.elts[1], 0x0001FF)
+
+    bs = new Bitset(33)
+    bs.setBit(1)
+    bs.setBit(8)
+    bs.setBit(27)
+    assert.equal(bs.elts[0], (1 << 1) | (1 << 8))
+    assert.equal(bs.elts[1], (1 << (27 - 24)))
+
+    let bs2 = new Bitset(32)
+    bs2.setBit(2)
+    bs2.setBit(8)
+    bs2.setBit(24)
+    assert.deepEqual(bs2.toArray(), [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
+    assert.equal(bs2.toString(), '2,8,24')
+
+    let bs3 = bitsetUnion(bs, bs2)
+    assert.equal(bs3.length, 33)
+    assert.equal(bs3.elts[0], (1 << 1) | (1 << 2) | (1 << 8))
+    assert.equal(bs3.elts[1], (1 << (24 - 24)) | (1 << (27 - 24)))
+    assert.equal(bs3.isSet(1), true)
+    assert.equal(bs3.isSet(2), true)
+    assert.equal(bs3.isSet(8), true)
+    assert.equal(bs3.isSet(24), true)
+    assert.equal(bs3.isSet(27), true)
+    assert.equal(bs3.isSet(0), false)
+    assert.equal(bs3.isSet(3), false)
+    assert.equal(bs3.isSet(25), false)
+
+    let bs4 = new Bitset(16)
+    bs4.setBit(1)
+    bs4.setBit(2)
+    let bs5 = bitsetIntersection(bs3, bs4)
+    assert.equal(bs5.length, 33)
+    assert.equal(bs5.elts[0], (1 << 1) | (1 << 2))
+
+    let res: any[] = []
+    bs3.enumerate(function (x) {
+      res.push(x)
+    })
+    assert.equal(res.length, 5)
+    assert.equal(res[0], 1)
+    assert.equal(res[1], 2)
+    assert.equal(res[2], 8)
+    assert.equal(res[3], 24)
+    assert.equal(res[4], 27)
+
+    bs3.clearBit(1)
+    bs3.clearBit(27)
+    assert.equal(bs3.isSet(1), false)
+    assert.equal(bs3.isSet(2), true)
+    assert.equal(bs3.isSet(8), true)
+    assert.equal(bs3.isSet(24), true)
+    assert.equal(bs3.isSet(27), false)
+    assert.equal(bs3.isSet(0), false)
+    assert.equal(bs3.isSet(3), false)
+    assert.equal(bs3.isSet(25), false)
+
+    let bs6 = new Bitset(4, true)
+    assert.isTrue(bs6.isSet(0))
+    assert.isTrue(bs6.isSet(1))
+    assert.isTrue(bs6.isSet(2))
+    assert.isTrue(bs6.isSet(3))
+    assert.deepEqual(bs6.toArray(), [1, 1, 1, 1])
+    assert.equal(bs6.toString(), '0,1,2,3')
+  })
+})

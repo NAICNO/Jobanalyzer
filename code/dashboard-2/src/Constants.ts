@@ -95,6 +95,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     shortTitle: 'CPU',
     helpText: '0=up, 1=down',
     sortable: true,
+    renderFn: GenericCell
   },
   gpu_status: {
     key: 'gpu_status',
@@ -110,6 +111,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     shortTitle: 'Recent',
     helpText: 'Unique users running jobs',
     sortable: true,
+    renderFn: GenericCell
   },
   users_longer: {
     key: 'users_longer',
@@ -117,6 +119,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     shortTitle: 'Longer',
     helpText: 'Unique users running jobs',
     sortable: true,
+    renderFn: GenericCell
   },
   jobs_recent: {
     key: 'jobs_recent',
@@ -124,6 +127,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     shortTitle: 'Recent',
     helpText: 'Jobs big enough to count',
     sortable: true,
+    renderFn: GenericCell
   },
   jobs_longer: {
     key: 'jobs_longer',
@@ -131,6 +135,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     shortTitle: 'Longer',
     helpText: 'Jobs big enough to count',
     sortable: true,
+    renderFn: GenericCell
   },
   cpu_recent: {
     key: 'cpu_recent',
@@ -209,12 +214,14 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
     title: 'Violators (new)',
     shortTitle: 'Viol. (new)',
     helpText: 'New jobs violating policy',
+    renderFn: GenericCell,
   },
   zombies_long: {
     key: 'zombies_long',
     title: 'Zombies (new)',
     shortTitle: 'Zomb. (new)',
     helpText: 'New defunct and zombie jobs',
+    renderFn: GenericCell
   },
   tag: {
     key: 'tag',

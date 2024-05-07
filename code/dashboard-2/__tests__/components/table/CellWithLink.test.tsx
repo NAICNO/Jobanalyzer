@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import { CellWithLink } from '../../../src/components/table/cell'
 import { MemoryRouter } from 'react-router-dom'

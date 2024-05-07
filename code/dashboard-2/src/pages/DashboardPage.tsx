@@ -1,11 +1,12 @@
-import { ReactNode, useMemo, useState } from 'react'
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useParams, Link as ReactRouterLink } from 'react-router-dom'
 import {
   Container,
   Heading,
   VStack,
   Text,
-  Link as ChakraLink
+  Link as ChakraLink,
+  useDisclosure,
 } from '@chakra-ui/react'
 import { ExternalLinkIcon } from '@chakra-ui/icons'
 import {
@@ -20,6 +21,8 @@ import { CLUSTER_INFO, } from '../Constants.ts'
 import { isValidateClusterName } from '../util'
 import { getDashboardTableColumns } from '../util/TableUtils.ts'
 import DashboardTable from '../components/table/DasboardTable.tsx'
+import NodeSelectionHelpDrawer from '../components/NodeSelectionHelpDrawer.tsx'
+import NodeSelectionInput from '../components/NodeSelectionInput.tsx'
 
 const emptyArray: any[] = []
 
@@ -33,11 +36,19 @@ export default function DashboardPage() {
     )
   }
 
-  const {data} = useFetchDashboard(clusterName!)
+  const selectedCluster = CLUSTER_INFO[clusterName!]
+  const defaultQuery = selectedCluster.defaultQuery
+
+  const [query, setQuery] = useState<string>(defaultQuery)
+
+  useEffect(() => {
+    setQuery(defaultQuery)
+  }, [selectedCluster])
+
+  const {data} = useFetchDashboard(clusterName!, query)
 
   const [sorting, setSorting] = useState<SortingState>([])
 
-  const selectedCluster = CLUSTER_INFO[clusterName!]
   const tableColumns = useMemo(() => getDashboardTableColumns(selectedCluster), [clusterName])
 
   const table = useReactTable({
@@ -51,25 +62,37 @@ export default function DashboardPage() {
     }
   })
 
+  const {isOpen: isOpenHelpSidebar, onOpen: onOpenHelpSidebar, onClose} = useDisclosure()
+  const focusRef = useRef<HTMLInputElement | null>(null)
+
   return (
-    <Container maxW="xl" height="100vh" centerContent>
-      <VStack spacing={2} padding="4">
-        <Heading size="lg" mb={4}>{selectedCluster.name}: Jobanalyzer Dashboard</Heading>
-        <Text>Click on hostname for machine details.</Text>
-        <ChakraLink as={ReactRouterLink} to="/jobquery" isExternal>
-          Job query <ExternalLinkIcon mx="2px"/>
-        </ChakraLink>
-        <Text>
-          Aggregates:{' '}
-          <ChakraLink as={ReactRouterLink} color="teal.500" href="#">
-            nvidia
-          </ChakraLink>
-        </Text>
-        <Text>Recent: 30 mins Longer: 12 hrs{' '} </Text>
-        <ViolatorsAndZombiesLinks cluster={selectedCluster}/>
-        <DashboardTable table={table} cluster={selectedCluster}/>
-      </VStack>
-    </Container>
+    <>
+      <Container height="100vh" centerContent>
+        <VStack spacing={1}>
+          <Heading size="lg" mb={4}>{selectedCluster.name}: Jobanalyzer Dashboard</Heading>
+          <Text>Click on hostname for machine details.</Text>
+          <Text>
+            <ChakraLink as={ReactRouterLink} to="/jobquery" isExternal mr="10px">
+              Job query <ExternalLinkIcon mx="2px"/>
+            </ChakraLink>
+            Aggregates:{' '}
+            <ChakraLink as={ReactRouterLink} color="teal.500" href="#">
+              nvidia
+            </ChakraLink>
+          </Text>
+          <Text>Recent: 30 mins Longer: 12 hrs{' '} </Text>
+          <ViolatorsAndZombiesLinks cluster={selectedCluster}/>
+          <NodeSelectionInput
+            defaultQuery={defaultQuery}
+            onClickSubmit={setQuery}
+            onClickHelp={onOpenHelpSidebar}
+            focusRef={focusRef}
+          />
+          <DashboardTable table={table} cluster={selectedCluster}/>
+        </VStack>
+      </Container>
+      <NodeSelectionHelpDrawer isOpen={isOpenHelpSidebar} onClose={onClose} finalFocusRef={focusRef}/>
+    </>
   )
 }
 

@@ -7,7 +7,7 @@ interface GenericCellProps {
 
 const GenericCell = ({value}: GenericCellProps) => {
   return (
-    <CellWrapper  styleProps={{paddingLeft: 4}}>
+    <CellWrapper>
       <Text>{value}</Text>
     </CellWrapper>
   )

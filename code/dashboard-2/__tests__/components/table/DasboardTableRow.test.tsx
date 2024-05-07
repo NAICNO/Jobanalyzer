@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom'
-import { describe, it, expect } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import DashboardTableRow from '../../../src/components/table/DashboardTableRow'
 import { Table, Tbody } from '@chakra-ui/react'
@@ -27,7 +26,7 @@ describe('DashboardTableRow', () => {
       ]
     }
     const cluster = {uptime: true}
-    const {container} = render(
+    render(
       <Table>
         <Tbody>
           <DashboardTableRow row={row} cluster={cluster}/>
