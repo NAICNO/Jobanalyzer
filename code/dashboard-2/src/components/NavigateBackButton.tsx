@@ -1,10 +1,19 @@
 import { ArrowBackIcon } from '@chakra-ui/icons'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { IconButton } from '@chakra-ui/react'
 
 export const NavigateBackButton = () => {
 
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const goBack = () => {
+    if (location.key === 'default') {
+      navigate('/')
+    } else {
+      navigate(-1)
+    }
+  }
 
   return (
     <IconButton
@@ -12,7 +21,7 @@ export const NavigateBackButton = () => {
       icon={<ArrowBackIcon boxSize={{base: 4, md: 6}}/>}
       aria-label="Back"
       as={Link}
-      onClick={() => navigate(-1)}
+      onClick={goBack}
     />
   )
 }
