@@ -152,23 +152,23 @@ fn test_find_logfiles1() {
     // expected files.  This will encounter non-csv files, which should not be listed.
     let hosts = HostGlobber::new(true);
     let xs = find_logfiles(
-        "../tests/sonarlog/whitebox-tree",
+        "../../tests/sonarlog/whitebox-tree",
         &hosts,
         timestamp_from_ymd(2023, 5, 30),
         timestamp_from_ymd(2023, 6, 4),
     )
     .unwrap();
     assert!(xs.eq(&vec![
-        "../tests/sonarlog/whitebox-tree/2023/05/30/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/05/30/b.csv",
-        "../tests/sonarlog/whitebox-tree/2023/05/31/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/05/31/b.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/01/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/01/b.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/02/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/03/b.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/04/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/04/b.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/30/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/30/b.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/31/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/31/b.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/01/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/01/b.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/02/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/03/b.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/04/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/04/b.csv",
     ]));
 }
 
@@ -178,20 +178,20 @@ fn test_find_logfiles2() {
     // into 2023/05/29 which is a file, not a directory.
     let hosts = HostGlobber::new(true);
     let xs = find_logfiles(
-        "../tests/sonarlog/whitebox-tree",
+        "../../tests/sonarlog/whitebox-tree",
         &hosts,
         timestamp_from_ymd(2023, 5, 29),
         timestamp_from_ymd(2023, 6, 2),
     )
     .unwrap();
     assert!(xs.eq(&vec![
-        "../tests/sonarlog/whitebox-tree/2023/05/30/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/05/30/b.csv",
-        "../tests/sonarlog/whitebox-tree/2023/05/31/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/05/31/b.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/01/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/01/b.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/02/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/30/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/30/b.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/31/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/31/b.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/01/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/01/b.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/02/a.csv",
     ]));
 }
 
@@ -201,18 +201,18 @@ fn test_find_logfiles3() {
     let mut hosts = HostGlobber::new(true);
     hosts.insert("a").unwrap();
     let xs = find_logfiles(
-        "../tests/sonarlog/whitebox-tree",
+        "../../tests/sonarlog/whitebox-tree",
         &hosts,
         timestamp_from_ymd(2023, 5, 20),
         timestamp_from_ymd(2023, 6, 2),
     )
     .unwrap();
     assert!(xs.eq(&vec![
-        "../tests/sonarlog/whitebox-tree/2023/05/28/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/05/30/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/05/31/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/01/a.csv",
-        "../tests/sonarlog/whitebox-tree/2023/06/02/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/28/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/30/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/05/31/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/01/a.csv",
+        "../../tests/sonarlog/whitebox-tree/2023/06/02/a.csv",
     ]));
 }
 

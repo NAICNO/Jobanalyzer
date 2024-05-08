@@ -236,7 +236,7 @@ fn grab_bool_opt(fields: &serde_json::Map<String, Value>, name: &str) -> Result<
 
 #[test]
 fn test_config() {
-    let conf = read_cluster_config("../tests/sonarlog/whitebox-config.json").unwrap();
+    let conf = read_cluster_config("../../tests/sonarlog/whitebox-config.json").unwrap();
     let c0 = conf.lookup("ml1.hpc.uio.no").unwrap();
     let c1 = conf.lookup("ml8.hpc.uio.no").unwrap();
     let c2 = conf.lookup("c1-23").unwrap();
@@ -271,7 +271,7 @@ fn test_config() {
 
 #[test]
 fn test_config_v2() {
-    let conf = read_cluster_config("../tests/sonarlog/whitebox-config-v2.json").unwrap();
+    let conf = read_cluster_config("../../tests/sonarlog/whitebox-config-v2.json").unwrap();
     assert!(conf.name == "mlx.hpc.uio.no");
     assert!(conf.description == "UiO machine learning nodes");
     assert!(conf.aliases.len() == 2 && conf.aliases[0] == "ml" && conf.aliases[1] == "mlx");

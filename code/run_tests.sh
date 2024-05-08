@@ -6,28 +6,6 @@
 
 set -o errexit
 
-echo "======================================================================="
-echo " SONARLOG UNIT TEST, DEFAULT FEATURES"
-echo "======================================================================="
-( cd sonarlog ; cargo test )
-
-echo "======================================================================="
-echo " SONARLOG UNIT TEST, FEATURE: UNTAGGED DATA"
-echo "======================================================================="
-( cd sonarlog ; cargo test -F "untagged_sonar_data" )
-
-echo "======================================================================="
-echo " SONALYZE UNIT TEST"
-echo "======================================================================="
-( cd sonalyze ; cargo test )
-
-echo "======================================================================="
-echo " SONALYZE BUILD + SMOKE TEST"
-echo "======================================================================="
-( cd sonalyze ; cargo build )
-( cd sonalyze ; target/debug/sonalyze help > /dev/null )
-( cd sonalyze ; target/debug/sonalyze jobs --fmt=help > /dev/null )
-
 # NAICREPORT TESTS
 ( cd naicreport ; ./run_tests.sh )
 
@@ -90,17 +68,7 @@ echo "======================================================================="
 # GO-UTIL TESTS
 ( cd go-utils ; ./run_tests.sh )
 
-echo "======================================================================="
-echo " RUSTUTILS UNIT TESTS"
-echo "======================================================================="
-# RUSTUTILS TESTS
-( cd rustutils ; cargo test )
-
-echo "======================================================================="
-echo " SONALYZE REGRESSION TEST"
-echo "======================================================================="
-( cd sonalyze ; cargo build )
-( cd tests ; ./run_tests.sh )
+( cd attic ; ./run_tests.sh )
 
 echo "======================================================================="
 echo " DASHBOARD JS LIBRARIES SELFTEST"

@@ -4,16 +4,7 @@
 
 set -o errexit
 
-echo "======================================================================="
-echo " SONALYZE DEBUG+RELEASE BUILD + SMOKE TEST"
-echo "======================================================================="
-( cd sonalyze ; cargo build )
-( cd sonalyze ; target/debug/sonalyze help > /dev/null )
-( cd sonalyze ; target/debug/sonalyze jobs --fmt=help > /dev/null )
-
-( cd sonalyze ; cargo build --release )
-( cd sonalyze ; target/release/sonalyze help > /dev/null )
-( cd sonalyze ; target/release/sonalyze jobs --fmt=help > /dev/null )
+( cd attic ; ./build.sh )
 
 echo "======================================================================="
 echo " NAICREPORT RELEASE BUILD + SMOKE TEST"
