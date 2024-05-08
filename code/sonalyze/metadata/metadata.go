@@ -78,6 +78,18 @@ func (mdc *MetadataCommand) Validate() error {
 	return errors.Join(e1, e2)
 }
 
+func (mdc *MetadataCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	allUsers, skipSystemUsers, determined := mdc.RecordFilterArgs.DefaultUserFilters()
+	if !determined {
+		allUsers, skipSystemUsers = true, false
+	}
+	excludeSystemCommands = false
+	excludeHeartbeat = false
+	return
+}
+
 type metadataItem struct {
 	host             string
 	earliest, latest int64

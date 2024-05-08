@@ -161,3 +161,14 @@ func (lc *LoadCommand) Validate() error {
 
 	return errors.Join(e1, e2, e3, e4, e5, e6)
 }
+
+func (lc *LoadCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	// `load` implies `--user=-` b/c we're interested in system effects.
+	allUsers = true
+	skipSystemUsers = false
+	excludeSystemCommands = true
+	excludeHeartbeat = false
+	return
+}

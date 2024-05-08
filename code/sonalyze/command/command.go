@@ -26,6 +26,9 @@ type Command interface {
 	// Reify all arguments including shared arguments for remote execution, with checking
 	ReifyForRemote(x *Reifier) error
 
+	// Provide appropriate default settings for these flags
+	DefaultRecordFilters() (allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool)
+
 	// Perform the operation, using the filters to select records if appropriate
 	Perform(
 		out io.Writer,

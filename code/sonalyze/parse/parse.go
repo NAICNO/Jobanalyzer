@@ -69,6 +69,17 @@ func (pc *ParseCommand) Validate() error {
 	return errors.Join(e1, e2)
 }
 
+func (pc *ParseCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	// `parse` implies `--user=-` b/c we're interested in raw data.
+	allUsers = true
+	skipSystemUsers = false
+	excludeSystemCommands = false
+	excludeHeartbeat = false
+	return
+}
+
 func (pc *ParseCommand) ConfigFile() string {
 	// `sonalyze parse` accepts no config file
 	return ""

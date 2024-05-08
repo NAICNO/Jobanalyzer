@@ -71,3 +71,15 @@ func (uc *UptimeCommand) Validate() error {
 	uc.printOpts = StandardFormatOptions(others)
 	return errors.Join(e1, e2, e3, e4, e5)
 }
+
+func (uc *UptimeCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	allUsers, skipSystemUsers, determined := uc.RecordFilterArgs.DefaultUserFilters()
+	if !determined {
+		allUsers, skipSystemUsers = false, false
+	}
+	excludeSystemCommands = false
+	excludeHeartbeat = false
+	return
+}

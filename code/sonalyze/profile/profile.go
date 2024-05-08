@@ -101,6 +101,18 @@ func (pc *ProfileCommand) Validate() error {
 	return errors.Join(e1, e2, e3, e4, e5, e6)
 }
 
+func (pc *ProfileCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	allUsers, skipSystemUsers, determined := pc.RecordFilterArgs.DefaultUserFilters()
+	if !determined {
+		allUsers, skipSystemUsers = false, false
+	}
+	excludeSystemCommands = false
+	excludeHeartbeat = true
+	return
+}
+
 func (pc *ProfileCommand) ConfigFile() string {
 	// No config file for profile
 	return ""

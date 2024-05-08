@@ -20,7 +20,6 @@ type uintArg struct {
 	relative    bool   // true if config-relative
 }
 
-
 // This is "so large that even extreme outliers resulting from bugs will not reach this value" and
 // is used as the "initial" value for max attributes.  When the property has this value, no filter
 // will be generated.
@@ -374,4 +373,18 @@ func (jc *JobsCommand) Validate() error {
 	}
 
 	return errors.Join(e1, e2, e3, e4)
+}
+
+func (jc *JobsCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	allUsers, skipSystemUsers, determined := jc.RecordFilterArgs.DefaultUserFilters()
+	if !determined {
+		// `--zombie` implies `--user=-` because the use case for `--zombie` is to hunt
+		// across all users.
+		allUsers, skipSystemUsers = jc.Zombie, false
+	}
+	excludeSystemCommands = true
+	excludeHeartbeat = true
+	return
 }

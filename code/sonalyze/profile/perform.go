@@ -129,7 +129,7 @@ func (pc *ProfileCommand) Perform(
 		rowNames := m.rows()
 		colNames := m.cols()
 		for r := 0; r < len(rowNames); r += b {
-			myrowNames := rowNames[r : MinInt(r+b,len(rowNames))]
+			myrowNames := rowNames[r:MinInt(r+b, len(rowNames))]
 			newTime := myrowNames[len(myrowNames)/2]
 			for _, cn := range colNames {
 				var count int
@@ -201,10 +201,10 @@ func (pc *ProfileCommand) clampFields(r *sonarlog.Sample) *sonarlog.Sample {
 	if pc.Max != 0 {
 		// We print memory in GiB so -max should be expressed in GiB, but we use KiB internally.  Scale here.
 		newr.CpuUtilPct = clampMaxF32(newr.CpuUtilPct, float32(pc.Max))
-		newr.CpuKib = clampMaxU64(newr.CpuKib, uint64(pc.Max * 1024 * 1024))
-		newr.RssAnonKib = clampMaxU64(newr.RssAnonKib, uint64(pc.Max * 1024 * 1024))
+		newr.CpuKib = clampMaxU64(newr.CpuKib, uint64(pc.Max*1024*1024))
+		newr.RssAnonKib = clampMaxU64(newr.RssAnonKib, uint64(pc.Max*1024*1024))
 		newr.GpuPct = clampMaxF32(newr.GpuPct, float32(pc.Max))
-		newr.GpuKib = clampMaxU64(newr.GpuKib, uint64(pc.Max * 1024 * 1024))
+		newr.GpuKib = clampMaxU64(newr.GpuKib, uint64(pc.Max*1024*1024))
 	}
 	return &newr
 }
