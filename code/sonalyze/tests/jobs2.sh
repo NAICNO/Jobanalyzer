@@ -7,8 +7,8 @@
 #  jobs2.sh data-dir from to
 
 GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../../sonalyze/target/release/sonalyze}
-NUMDIFF=${NUMDIFF:-../../../numdiff/numdiff}
+RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
+NUMDIFF=${NUMDIFF:-../../numdiff/numdiff}
 
 declare -A filter
 filter["--min-samples"]=10

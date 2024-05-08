@@ -6,7 +6,7 @@
 #  profile1.sh data-dir from to job
 
 GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../../sonalyze/target/release/sonalyze}
+RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
 
 set -e
 for format in csv html fixed; do

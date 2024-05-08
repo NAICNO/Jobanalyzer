@@ -6,8 +6,8 @@
 #  load1.sh data-dir from to
 
 GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../../sonalyze/target/release/sonalyze}
-NUMDIFF=${NUMDIFF:-../../../numdiff/numdiff}
+RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
+NUMDIFF=${NUMDIFF:-../../numdiff/numdiff}
 
 set -e
 $GO_SONALYZE load -data-dir "$1" -from "$2" -to "$3" > go-output.txt

@@ -6,7 +6,7 @@
 #  uptime3.sh data-dir from to
 
 GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../../sonalyze/target/release/sonalyze}
+RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
 
 set -e
 $GO_SONALYZE uptime -data-dir "$1" -from "$2" -to "$3" -interval 5 -only-down > go-output.txt

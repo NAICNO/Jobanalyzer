@@ -11,7 +11,7 @@ FROMDATE=$2
 TODATE=$3
 TESTDATAFILE=$4
 GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../../sonalyze/target/release/sonalyze}
+RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
 
 # The $TESTDATAFILE must provide a script that initializes the value array appropriate for the test
 # data available.  See parse5-*.sh for an example.
