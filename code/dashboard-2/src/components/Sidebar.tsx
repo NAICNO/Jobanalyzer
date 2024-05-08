@@ -13,7 +13,7 @@ import {
   useBreakpointValue,
   useColorMode, VStack,
 } from '@chakra-ui/react'
-import { NavLink, useMatch } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { GrNodes, GrServers } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
 
@@ -22,16 +22,19 @@ import { LightDarkModeButton } from './LightDarkModeButton.tsx'
 const sidebarItems = [
   {
     path: '/dashboard/ml',
+    matches: '/ml',
     text: 'ML Nodes',
     icon: GrNodes
   },
   {
     path: '/dashboard/fox',
+    matches: '/fox',
     text: 'Fox',
     icon: GiFox
   },
   {
     path: '/dashboard/saga',
+    matches: '/saga',
     text: 'Saga',
     icon: GrServers
   }
@@ -56,6 +59,7 @@ export default function Sidebar({onCloseDrawer, isDrawerOpen}: SidebarProps) {
         <SidebarItem
           key={index}
           path={item.path}
+          matches={item.matches}
           text={item.text}
           icon={item.icon}
           hoverBgColor={hoverBgColor}
@@ -97,8 +101,9 @@ export default function Sidebar({onCloseDrawer, isDrawerOpen}: SidebarProps) {
   )
 }
 
-const SidebarItem = ({path, text, icon, hoverBgColor, activeBgColor, onCloseDrawer}: {
+const SidebarItem = ({path, matches, text, icon, hoverBgColor, activeBgColor, onCloseDrawer}: {
   path: string,
+  matches: string,
   text: string,
   icon: any,
   hoverBgColor: string,
@@ -106,13 +111,19 @@ const SidebarItem = ({path, text, icon, hoverBgColor, activeBgColor, onCloseDraw
   onCloseDrawer: () => void
 }) => {
 
-  const match = useMatch({path: path, end: false})
+  const location = useLocation()
+  const {pathname} = location
+
+  const isActive = (path: string) => {
+    return pathname.includes(path)
+  }
+
   return (
     <Box>
       <NavLink to={path} onClick={onCloseDrawer}>
         <ListItem
           _hover={{bg: hoverBgColor}}
-          bg={match ? activeBgColor : 'transparent'}
+          bg={isActive(matches) ? activeBgColor : 'transparent'}
           px={{base: '12px', md: '16px'}}
           py="8px"
           borderRadius="md"

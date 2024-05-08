@@ -4,19 +4,34 @@ import { AxiosInstance, AxiosResponse } from 'axios'
 import useAxios from './useAxios.ts'
 import { QueryKeys } from '../Constants.ts'
 
+interface Filter {
+  afterDate: Date | null
+  hostname: string | null
+}
+
 const fetchViolations = async (axios: AxiosInstance, clusterName: string) => {
   const endpoint = `/${clusterName}-violator-report.json`
   const response: AxiosResponse<ViolatingJob[]> = await axios.get(endpoint)
   return response.data
 }
 
-export const useFetchViolations = (clusterName: string) => {
+export const useFetchViolations = (clusterName: string, filter: Filter | null = null, enabled: boolean = true) => {
   const axios = useAxios()
   return useQuery(
     {
+      enabled,
       queryKey: [QueryKeys.VIOLATIONS, clusterName],
       queryFn: () => fetchViolations(axios, clusterName),
       select: (data) => {
+
+        if (filter) {
+          if (filter.hostname) {
+            data = data.filter((d) => d.hostname === filter.hostname)
+          }
+          if (filter.afterDate) {
+            data = data.filter((d) => new Date(d['last-seen']) > filter.afterDate!)
+          }
+        }
 
         const users: Record<string, ViolatingUser> = {}
 
