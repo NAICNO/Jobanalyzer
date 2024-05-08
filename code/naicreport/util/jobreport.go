@@ -32,5 +32,5 @@ func (a byJobKey) Less(i, j int) bool {
 // Sort reports by ascending host name first and job ID second (there could be other criteria).
 
 func SortReports(reports []*JobReport) {
-	sort.Sort(byJobKey(reports))
+	sort.Stable(byJobKey(reports))
 }

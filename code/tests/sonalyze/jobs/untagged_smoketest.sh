@@ -1,12 +1,13 @@
-if [[ $($SONALYZE version) =~ untagged_sonar_data ]]; then
-    output=$($SONALYZE jobs -u- --fmt=noheader,host -- untagged_smoketest1.csv untagged_smoketest2.csv | sort | uniq)
+# Only the rust version can parse these data.
+if [[ $($SONALYZE version) =~ untagged_sonar_data && ! ( $($SONALYZE version) =~ short_untagged_sonar_data ) ]]; then
+    output=$($SONALYZE jobs --user - --fmt=noheader,host -- untagged_smoketest1.csv untagged_smoketest2.csv | sort | uniq)
     CHECK jobs_untagged_smoketest_hosts "ml8" "$output"
 
-    output=$($SONALYZE jobs -u- --fmt=csv,job,start,end -- untagged_smoketest1.csv untagged_smoketest2.csv | grep -E '^2447150')
+    output=$($SONALYZE jobs --user - --fmt=csv,job,start,end -- untagged_smoketest1.csv untagged_smoketest2.csv | grep -E '^2447150')
     CHECK jobs_untagged_smoketest_times "2447150,2023-06-23 12:25,2023-06-24 09:00" "$output"
 
     # Translated from a whitebox test, but I'm unsure what this tests, actually...  output, maybe...
-    output=$($SONALYZE jobs -u- \
+    output=$($SONALYZE jobs --user - \
 		       --max-cpu-avg=100000000 --max-cpu-peak=100000000 \
 		       --max-rcpu-avg=100000000 --max-rcpu-peak=100000000 \
 		       --max-gpu-avg=100000000 --max-gpu-peak=100000000 \

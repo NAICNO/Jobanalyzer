@@ -4,16 +4,13 @@
 
 set -o errexit
 
-echo "======================================================================="
-echo " SONALYZE DEBUG+RELEASE BUILD + SMOKE TEST"
-echo "======================================================================="
-( cd sonalyze ; cargo build )
-( cd sonalyze ; target/debug/sonalyze help > /dev/null )
-( cd sonalyze ; target/debug/sonalyze jobs --fmt=help > /dev/null )
+( cd attic ; ./build.sh )
 
-( cd sonalyze ; cargo build --release )
-( cd sonalyze ; target/release/sonalyze help > /dev/null )
-( cd sonalyze ; target/release/sonalyze jobs --fmt=help > /dev/null )
+echo "======================================================================="
+echo " GO SONALYZE RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd sonalyze ; go build )
+( cd sonalyze ; ./sonalyze help 2&> /dev/null )
 
 echo "======================================================================="
 echo " NAICREPORT RELEASE BUILD + SMOKE TEST"
@@ -70,6 +67,12 @@ echo " JSONCHECK RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd jsoncheck ; go build )
 ( cd jsoncheck ; ./jsoncheck ../tests/config/good-config.json )
+
+echo "======================================================================="
+echo " NUMDIFF RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd numdiff ; go build )
+( cd numdiff ; ./numdiff numdiff.go numdiff.go )
 
 echo "======================================================================="
 echo "======================================================================="

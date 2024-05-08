@@ -7,26 +7,10 @@
 set -o errexit
 
 echo "======================================================================="
-echo " SONARLOG UNIT TEST, DEFAULT FEATURES"
+echo " GO SONALYZE RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
-( cd sonarlog ; cargo test )
-
-echo "======================================================================="
-echo " SONARLOG UNIT TEST, FEATURE: UNTAGGED DATA"
-echo "======================================================================="
-( cd sonarlog ; cargo test -F "untagged_sonar_data" )
-
-echo "======================================================================="
-echo " SONALYZE UNIT TEST"
-echo "======================================================================="
-( cd sonalyze ; cargo test )
-
-echo "======================================================================="
-echo " SONALYZE BUILD + SMOKE TEST"
-echo "======================================================================="
-( cd sonalyze ; cargo build )
-( cd sonalyze ; target/debug/sonalyze help > /dev/null )
-( cd sonalyze ; target/debug/sonalyze jobs --fmt=help > /dev/null )
+( cd sonalyze ; go build )
+( cd sonalyze ; ./sonalyze help 2&> /dev/null )
 
 # NAICREPORT TESTS
 ( cd naicreport ; ./run_tests.sh )
@@ -81,20 +65,20 @@ echo "======================================================================="
 ( cd jsoncheck ; go build )
 ( cd jsoncheck ; ./jsoncheck ../tests/config/good-config.json )
 
+echo "======================================================================="
+echo " NUMDIFF RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd numdiff ; go build )
+( cd numdiff ; ./numdiff numdiff.go numdiff.go )
+
 # GO-UTIL TESTS
 ( cd go-utils ; ./run_tests.sh )
 
-echo "======================================================================="
-echo " RUSTUTILS UNIT TESTS"
-echo "======================================================================="
-# RUSTUTILS TESTS
-( cd rustutils ; cargo test )
+# SONALYZE TESTS
+( cd sonalyze ; ./run_tests.sh )
 
-echo "======================================================================="
-echo " SONALYZE REGRESSION TEST"
-echo "======================================================================="
-( cd sonalyze ; cargo build )
-( cd tests ; ./run_tests.sh )
+# OBSOLETE CODE TESTS
+( cd attic ; ./run_tests.sh )
 
 echo "======================================================================="
 echo " DASHBOARD JS LIBRARIES SELFTEST"

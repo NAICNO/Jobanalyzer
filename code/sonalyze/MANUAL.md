@@ -24,10 +24,14 @@ where `operation` is `jobs`, `load`, `uptime`, `profile`, `version`, `parse`, `m
   useful mostly for testing.
 * The `help` operation prints high-level usage information.
 
-Run `sonalyze <operation> help` to get help about options for the specific operation.
+Run `sonalyze <operation> -h` to get help about options for the specific operation.
 
 All the operations take a `--fmt` option to control the output; run with `--fmt=help` to get help on
-formatting options.
+formatting options and the available output fields.
+
+Command line parsing allows for `--option=value`, `--option value`, and also to spell `-option` with
+a single dash in either case.  It is however not possible to run single-letter options together with
+values, in the manner of `-f1w`; it must be `-f 1w`.
 
 ### Overall operation
 
@@ -53,9 +57,9 @@ store on a remote host, see the section "REMOTE ACCESS" further down.
   Root directory for log files, overrides the default.  The default is the `SONAR_ROOT` environment
   variable, or if that is not defined, `$HOME/sonar_logs`.
 
-`-- <filename>`
+`-- <logfile> ...`
 
-  If present, each `filename` is used for input instead of anything reachable from the data path;
+  If present, each `logfile` is used for input instead of anything reachable from the data path;
   the data path is ignored.
 
 ### System configuration options
@@ -71,7 +75,7 @@ store on a remote host, see the section "REMOTE ACCESS" further down.
 All filters are optional.  Records must pass all specified filters.  All commands support the record
 filters.
 
-`-u <username>`, `--user=<username>`
+`-u <username>`, `--user=<username>`, `--user=<username>,<username>,...`
 
   The user name(s), the option can be repeated.  Use `-` to ask for everyone.
 
@@ -81,12 +85,12 @@ filters.
 
   Additionally, when the `--job` record filter is used, then users "root" and "zabbix" are excluded.
 
-`--exclude-user=<username>`
+`--exclude-user=<username>`, `--exclude-user=<username>,<username>,...`
 
   Request that records with these user names are excluded, in addition to normal exclusions.
   The option can be repeated.  See above about defaults.
 
-`--command=<command>`
+`--command=<command>`, `--command=<command>,<command>,...`
 
   Select only records whose command name matches `<command>` exactly.  This option can be repeated.
 
@@ -94,7 +98,7 @@ filters.
   command except some system commands for `jobs` and `load` (currently `bash`, `zsh`, `sshd`,
   `tmux`, and `systemd`; this is pretty ad-hoc).
 
-`--exclude-command=<command>`
+`--exclude-command=<command>`, `--exclude-command=<command>,<command>,...`
 
   Exclude commands matching `<command>` exactly, in addition to default exclusions.  This option can
   be repeated.
@@ -103,7 +107,7 @@ filters.
 
   Exclude jobs with PID < 1000.
 
-`-j <job#>`, `--job=<job#>`
+`-j <job#>`, `--job=<job#>`, `--job=<job#>,<job#>,...`
 
   Select specific records by job number(s).  The option can be repeated.
 
@@ -117,7 +121,7 @@ filters.
   Select only records with this time stamp and earlier, format is either `YYYY-MM-DD`, `Nd` (N days
   ago) or `Nw` (N weeks ago).  The default is `0d`: now.
 
-`--host=<hostname>`
+`--host=<hostname>`, `--host=<hostname>,<hostname>,...`
 
   Select only records from these host names.  The host name filter applies both to file name
   filtering in the data path and to record filtering within all files processed (as all records also
@@ -411,8 +415,8 @@ The description should be useful, because sometimes it's the only datum that's s
 
 The `--fmt` switch controls the format for the command output through a list of field names and
 control keywords.  Each field name adds a column to the output; field names are specific to the
-command.  In addition to the field names there are control keywords that determine the output
-format:
+command and don't always have the same meaning for different commands (sorry).  In addition to the
+field names there are control keywords that determine the output format:
 
 * `fixed` forces human-readable output in fixed-width columns with a header
 * `csv` forces CSV-format output, the default is fixed-column layout
@@ -424,78 +428,12 @@ format:
 * `noheader` forces a header not to be printed, default for `csv`, `csvnamed`, and `json`
 * `nodefaults` applies in some cases with some output forms (notably the `parse` command with
   csv or JSON or awk output) and causes the suppression of fields that have their default values)
-* `tag:something` forces a field `tag` to be printed for each record with the value `something`
+* `tag:something` forces a field `tag` to be added for each record with the value `something`
 
 Run with `--fmt=help` to get help on formatting syntax, field names, aliases, and controls, as
-well as a description of the default fields printed.
+well as a description of the default fields printed, sort order, etc.
 
-### Field names for `jobs`
-
-Output records are sorted in order of increasing start time of the job.
-
-The default format is `fixed`.  The field names for the `jobs` command are at least these:
-
-* `now` is the current time on the format `YYYY-MM-DD HH:MM`
-* `now/sec` is the current time as a unix timestamp
-* `job` is a number
-* `jobm` is a number, possibly suffixed by a mark "!" (job is running at the start and end of the time interval),
-  "<" (job is running at the start of the interval), ">" (job is running at the end of the interval).
-* `user` is the user name
-* `duration` on the format DDdHHhMMm shows the number of days DD, hours HH and minutes MM the job ran for.
-* `duration/sec` is the duration of the job (in real time) in seconds
-* `cputime` on the format DDdHHhMMm shows the number of CPU days DD, hours HH and minutes MM the job
-   ran for, note this is frequently longer than `duration`
-* `cputime/sec` is the total CPU time of the job in seconds, across all cores
-* `gputime` on the format DDdHHhMMm shows the number of GPU days DD, hours HH and minutes MM the job
-   ran for, note this too can be longer than `duration`, if a computation used multiple cards in parallel
-* `gputime/sec` is the total GPU time of the job in seconds, across all cards
-* `start` and `end` on the format `YYYY-MM-DD HH:MM` are the endpoints for the job
-* `start/sec` and `end/sec` are unix timestamps for the endpoints of the job
-* `cpu-avg`, `cpu-peak`, `gpu-avg`, `gpu-peak` show CPU and GPU utilization as
-   percentages, where 100 corresponds to one full core or device, ie on a system with 64 CPUs the
-   CPU utilization can reach 6400 and on a system with 8 accelerators the GPU utilization can reach 800.
-* `mem-avg`, `mem-peak`, `gpumem-avg`, and `gpumem-peak` show main and GPU memory average and peak
-   utilization in GB
-* `rcpu-avg`, ..., `rmem-avg`, ... are available to show relative usage (percentage of full system capacity).
-   These require a config file for the system to be provided with the `--config-file` flag.
-* `gpus` is a comma-separated list of device numbers used by the job
-* `host` is a list of the host name(s) running the job (showing only the first element of the FQDN, and
-  compressed using the same patterns as in HOST NAME PATTERNS above)
-* `cmd` is the command name, as far as is known.  For jobs with multiple processes that have different
-   command names, all command names are printed.
-* `cpu` is an abbreviation for `cpu-avg,cpu-peak`, `mem` an abbreviation for `mem-avg,mem-peak`, and so on,
-  for `gpu`, `gpumem`, `rcpu`, `rmem`, `rgpu`, and `rgpumem`
-* `std` is an abbreviation for the set of default fields
-
-A Unix timestamp is the number of seconds since 197-01-01T00:00:00UTC.
-
-### Field names for `load`
-
-Output records are sorted in TBD order.
-
-The host name is printed on a separate line before the data for each host.
-
-The default format is `fixed`.  The field for the `load` command are as follows:
-
-* `date` (`YYYY-MM-DD`)
-* `time` (`HH:MM`)
-* `cpu` (percentage, 100=1 core)
-* `rcpu` (percentage, 100=all system cores)
-* `mem` (GB)
-* `rmem` (percentage, 100=all system memory)
-* `gpu` (percentage, 100=1 card)
-* `rgpu` (percentage, 100=all cards)
-* `gpumem` (GB)
-* `rgpumem` (percentage, 100=all memory on all cards)
-* `gpus` (list of GPUs)
-* `now` is the current time on the format `YYYY-MM-DD HH:MM`
-
-### Field names for `parse`, `metadata` and `uptime`
-
-Consult the on-line help for details.
-
-Note that `parse` has an alias `roundtrip` that causes it to print the selected records with a
-format that makes them suitable for input to sonalyze.
+A "Unix timestamp" is the number of seconds since 197-01-01T00:00:00UTC.
 
 ## COOKBOOK: CRUDE, HIGH-LEVEL JOB PROFILING
 
@@ -619,7 +557,7 @@ To do so, use the `--remote` argument to provide an http URL for the remote host
 argument to name the cluster for which we want data:
 
 ```
-$ sonalyze jobs --remote http://some.host.no:8087 --cluster ml -f20w -u- --some-gpu --host ml8
+$ sonalyze jobs --remote http://some.host.no:8087 --cluster ml -f 20w -u - --some-gpu --host ml8
 ```
 
 It is additionally possible to use `--auth-file` to specify a file holding the identity information
