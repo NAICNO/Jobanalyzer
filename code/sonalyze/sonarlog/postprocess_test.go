@@ -9,7 +9,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	// This file has field names, cputime_sec, pid, and rolledup.  There are two hosts.  One of the
 	// records is invalid: it's missing the user name.  Another record has a field with an unknown
 	// tag.  Both are counted together as "discarded" which is sort of nuts.
-	f, err := os.Open("../../../tests/sonarlog/whitebox-logclean.csv")
+	f, err := os.Open("../../tests/sonarlog/whitebox-logclean.csv")
 	if err != nil {
 		t.Fatal(err)
 	}

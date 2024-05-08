@@ -7,6 +7,12 @@ set -o errexit
 ( cd attic ; ./build.sh )
 
 echo "======================================================================="
+echo " GO SONALYZE RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd sonalyze ; go build )
+( cd sonalyze ; ./sonalyze help 2&> /dev/null )
+
+echo "======================================================================="
 echo " NAICREPORT RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd naicreport ; go build )

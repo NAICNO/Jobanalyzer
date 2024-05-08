@@ -6,6 +6,12 @@
 
 set -o errexit
 
+echo "======================================================================="
+echo " GO SONALYZE RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd sonalyze ; go build )
+( cd sonalyze ; ./sonalyze help 2&> /dev/null )
+
 # NAICREPORT TESTS
 ( cd naicreport ; ./run_tests.sh )
 
@@ -68,6 +74,10 @@ echo "======================================================================="
 # GO-UTIL TESTS
 ( cd go-utils ; ./run_tests.sh )
 
+# SONALYZE TESTS
+( cd sonalyze ; ./run_tests.sh )
+
+# OBSOLETE CODE TESTS
 ( cd attic ; ./run_tests.sh )
 
 echo "======================================================================="

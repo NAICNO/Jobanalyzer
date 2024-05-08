@@ -60,12 +60,12 @@ all or several of the output formats with all the verbs.
   - [x] test that local runs can be used to access remote functionality, and that all parameters are passed
   - [x] test that sonalyzed can interact with our version properly, in particular, that it does not use any short options
 * transition
-  - [ ] run regression tests against new code again, then freeze
-  - [ ] move code/sonalyze/, code/sonarlog/, code/rustutils into code/attic
-  - [ ] update build.sh to build that code in code/attic (for now)
-  - [ ] update run_tests.sh to not test that code
-  - [ ] move code/sandbox/sonalyze into code
-  - [ ] include it in builds
-  - [ ] include it in regression tests
-  - [ ] update the sonalyze relative tests to work with the code in attic
+  - [x] run regression tests against new code again, then freeze
+  - [x] move code/sonalyze/, code/sonarlog/, code/rustutils into code/attic
+  - [x] update build.sh to build that code in code/attic (for now)
+  - [x] update run_tests.sh to not test that code
+  - [x] move code/sandbox/sonalyze into code
+  - [x] include it in builds
+  - [x] include it in regression tests
+  - [x] update the sonalyze relative tests to work with the code in attic
   - [ ] remove the rest of code/sandbox (maybe branch, remove on current, later we rebase the branch to main?)
