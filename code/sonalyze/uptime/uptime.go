@@ -68,7 +68,7 @@ func (uc *UptimeCommand) Validate() error {
 	if e5 == nil && len(uc.printFields) == 0 {
 		e5 = errors.New("No output fields were selected in format string")
 	}
-	uc.printOpts = StandardFormatOptions(others)
+	uc.printOpts = StandardFormatOptions(others, DefaultFixed)
 	return errors.Join(e1, e2, e3, e4, e5)
 }
 

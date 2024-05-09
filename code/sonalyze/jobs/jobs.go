@@ -364,13 +364,7 @@ func (jc *JobsCommand) Validate() error {
 	if e4 == nil && len(jc.printFields) == 0 {
 		e4 = errors.New("No output fields were selected in format string")
 	}
-	jc.printOpts = StandardFormatOptions(others)
-	// TODO: Defaulting like this is done here and in parse but it's likely that it should be done
-	// elsewhere too.
-	if !jc.printOpts.Fixed && !jc.printOpts.Csv && !jc.printOpts.Json && !jc.printOpts.Awk {
-		jc.printOpts.Fixed = true
-		jc.printOpts.Header = true
-	}
+	jc.printOpts = StandardFormatOptions(others, DefaultFixed)
 
 	return errors.Join(e1, e2, e3, e4)
 }

@@ -25,6 +25,10 @@ type FormatOptions struct {
 	NoDefaults bool   // if true and the string returned is "*skip*" and the mode is csv or json then print nothing
 }
 
+func (fo *FormatOptions) IsDefaultFormat() bool {
+	return !fo.Json && !fo.Csv && !fo.Awk && !fo.Fixed
+}
+
 // Return a list of the known fields in `spec` wrt the `formatters`, and a set of any other strings
 // found in `spec`.  Expand aliases (though not recursively: aliases must map to fundamental names).
 
@@ -53,15 +57,31 @@ func ParseFormatSpec[Data, Ctx any](
 	return fields, others, nil
 }
 
-func StandardFormatOptions(others map[string]bool) *FormatOptions {
+// Parse the non-field-name attributes as a set of formatting options.
+//
+// There are five format options, "fixed", "csv", "json", "awk", and default.  If none of the former
+// four are requested and def is not DefaultNone then one of Fixed, Csv, Json, and Awk will be set
+// according to the value of def, otherwise no flat is set and the default interpretation is up to
+// the formatter (see the parse command for an example of the latter).
+//
+// Header is set if the format (after defaulting) is "fixed" and no "noheader" attribute is present,
+// or if the format is "csv" and there is a "header" attribute.  It will never be set for "json" and
+// "awk".
+
+type DefaultFormat int
+const (
+	DefaultNone DefaultFormat = iota
+	DefaultFixed
+	DefaultCsv
+)
+
+func StandardFormatOptions(others map[string]bool, def DefaultFormat) *FormatOptions {
 	csvnamed := others["csvnamed"]
 	csv := others["csv"] || csvnamed
 	json := others["json"] && !csv
 	awk := others["awk"] && !csv && !json
 	fixed := others["fixed"] && !csv && !json && !awk
 	nodefaults := others["nodefaults"]
-	// json and awk get no header, even if one is requested
-	header := (!csv && !json && !awk && !others["noheader"]) || (csv && others["header"])
 	tag := ""
 	for x := range others {
 		if strings.HasPrefix(x, "tag:") {
@@ -69,6 +89,19 @@ func StandardFormatOptions(others map[string]bool) *FormatOptions {
 			break
 		}
 	}
+	if !csv && !json && !awk && !fixed {
+		switch def {
+		case DefaultFixed:
+			fixed = true
+		case DefaultCsv:
+			csv = true
+		case DefaultNone:
+			break
+		}
+	}
+	// json and awk get no header, even if one is requested
+	header := (fixed && !others["noheader"]) || (csv && others["header"])
+
 	return &FormatOptions{
 		Csv:        csv,
 		Json:       json,
@@ -80,6 +113,8 @@ func StandardFormatOptions(others map[string]bool) *FormatOptions {
 		NoDefaults: nodefaults,
 	}
 }
+
+// FormatData defaults to fixed formatting.
 
 func FormatData[Datum, Ctx any](
 	out io.Writer,

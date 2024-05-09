@@ -53,7 +53,7 @@ func (lc *LoadCommand) printStreams(
 			jsonSep = ","
 		}
 		hostname := (*stream)[0].Host.String()
-		if !lc.printOpts.Csv && !lc.printOpts.Json && !lc.printOpts.Awk && !explicitHost {
+		if lc.printOpts.Fixed && !explicitHost {
 			fmt.Fprintf(out, "HOST: %s\n", hostname)
 		}
 		conf := mergedConf

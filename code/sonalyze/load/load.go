@@ -157,7 +157,7 @@ func (lc *LoadCommand) Validate() error {
 	if e6 == nil && len(lc.printFields) == 0 {
 		e6 = errors.New("No output fields were selected in format string")
 	}
-	lc.printOpts = StandardFormatOptions(others)
+	lc.printOpts = StandardFormatOptions(others, DefaultFixed)
 
 	return errors.Join(e1, e2, e3, e4, e5, e6)
 }

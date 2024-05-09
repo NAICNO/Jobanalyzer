@@ -61,11 +61,8 @@ func (pc *ParseCommand) Validate() error {
 	if e2 == nil && len(pc.printFields) == 0 {
 		e2 = errors.New("No output fields were selected in format string")
 	}
-	pc.printOpts = StandardFormatOptions(others)
-	if !pc.printOpts.Fixed && !pc.printOpts.Csv && !pc.printOpts.Json && !pc.printOpts.Awk {
-		pc.printOpts.Csv = true
-		pc.printOpts.Header = false
-	}
+	pc.printOpts = StandardFormatOptions(others, DefaultCsv)
+
 	return errors.Join(e1, e2)
 }
 
