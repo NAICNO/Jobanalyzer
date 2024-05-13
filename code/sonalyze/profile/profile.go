@@ -7,7 +7,7 @@ import (
 	. "sonalyze/command"
 )
 
-type ProfileCommand struct /* implements Command */ {
+type ProfileCommand struct /* implements AnalysisCommand */ {
 	SharedArgs
 
 	// Filtering and aggregation
@@ -22,6 +22,12 @@ type ProfileCommand struct /* implements Command */ {
 	printOpts    *FormatOptions
 	htmlOutput   bool
 	testNoMemory bool
+}
+
+func (_ *ProfileCommand) Summary() []string {
+	return []string{
+		"Print profile information for one aspect of a particular job.",
+	}
 }
 
 func (pc *ProfileCommand) Add(fs *flag.FlagSet) {

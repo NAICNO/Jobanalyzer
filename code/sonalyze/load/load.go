@@ -24,7 +24,7 @@ const (
 	loadDefaultFields = "date,time,cpu,mem,gpu,gpumem,gpumask"
 )
 
-type LoadCommand struct /* implements Command */ {
+type LoadCommand struct /* implements AnalysisCommand */ {
 	SharedArgs
 	ConfigFileArgs
 
@@ -47,6 +47,13 @@ type LoadCommand struct /* implements Command */ {
 	bucketing   bucketTy
 	printFields []string
 	printOpts   *FormatOptions
+}
+
+func (_ *LoadCommand) Summary() []string {
+	return []string{
+		"Compute aggregate system load across various timeframes based on sample",
+		"data and present the load data in various formats.",
+	}
 }
 
 func (lc *LoadCommand) Add(fs *flag.FlagSet) {

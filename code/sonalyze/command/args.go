@@ -27,6 +27,10 @@ type DevArgs struct {
 
 const devArgs = true
 
+func (d *DevArgs) CpuProfileFile() string {
+	return d.CpuProfile
+}
+
 func (d *DevArgs) Add(fs *flag.FlagSet) {
 	if devArgs {
 		fs.StringVar(&d.CpuProfile, "cpuprofile", "",
@@ -47,29 +51,116 @@ func (d *DevArgs) Validate() error {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
+// You wouldn't think -v would be so complicated.
+
+type VerboseArgs struct {
+	Verbose bool
+}
+
+func (va *VerboseArgs) Add(fs *flag.FlagSet) {
+	fs.BoolVar(&va.Verbose, "v", false, "Print verbose diagnostics to stderr")
+	// The Rust version allows both -v and --verbose
+	fs.BoolVar(&va.Verbose, "verbose", false, "Print verbose diagnostics to stderr")
+}
+
+func (va *VerboseArgs) Validate() error {
+	return nil
+}
+
+func (va *VerboseArgs) VerboseFlag() bool {
+	return va.Verbose
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Handle -data-dir
+
+type DataDirArgs struct {
+	DataDir string
+}
+
+func (dd *DataDirArgs) Add(fs *flag.FlagSet) {
+	fs.StringVar(&dd.DataDir, "data-dir", "",
+		"Select the root `directory` for log files [default: $SONAR_ROOT or $HOME/sonar/data]")
+	fs.StringVar(&dd.DataDir, "data-path", "", "Alias for -data-dir `directory`")
+}
+
+// TODO: $SONAR_ROOT is a completely inappropriate name and $HOME/sonar/data is almost certainly the
+// wrong directory, because what we want is a *cluster* directory under some root directory.  And
+// the cluster name cannot be defaulted.  So this logic should be rethought or (probably) deleted.
+//
+// However, we could require that the directory exist, if the argument is not "", see eg the
+// `infiltrate` source.  This would be a useful service.
+
+func (dd *DataDirArgs) Validate() error {
+	if dd.DataDir != "" {
+		dd.DataDir = path.Clean(dd.DataDir)
+	} else if d := os.Getenv("SONAR_ROOT"); d != "" {
+		dd.DataDir = path.Clean(d)
+	} else if d := os.Getenv("HOME"); d != "" {
+		dd.DataDir = path.Clean(path.Join(d, "/sonar/data"))
+	}
+	return nil
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// RemotingArgs pertain to specifying a remote sonalyze service.  Note that the meaning of the
+// -auth-file depends on the operation: for `add` it would normally be `cluster:cluster-password`
+// pairs, not `user:password`.
+
+type RemotingArgs struct {
+	Remote   string
+	Cluster  string
+	AuthFile string
+
+	Remoting bool
+}
+
+func (ra *RemotingArgs) Add(fs *flag.FlagSet) {
+	fs.StringVar(&ra.Remote, "remote", "",
+		"Select a remote `url` to serve the query [default: none].  Requires -cluster.")
+	fs.StringVar(&ra.Cluster, "cluster", "",
+		"Select the cluster `name` for which we want data [default: none].  For use with -remote.")
+	fs.StringVar(&ra.AuthFile, "auth-file", "",
+		"Provide a `file` with username:password [default: none].  For use with -remote.")
+}
+
+func (ra *RemotingArgs) Validate() error {
+	if ra.Remote != "" || ra.Cluster != "" {
+		if ra.Remote == "" || ra.Cluster == "" {
+			return fmt.Errorf("-remote and -cluster must be used together")
+		}
+		ra.Remoting = true
+	}
+	return nil
+}
+
+func (va *RemotingArgs) RemotingFlags() *RemotingArgs {
+	return va
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // SourceArgs pertain to source file location and initial filtering-by-location, though the
 // -from/-to arguments are also used to filter records.
 
 type SourceArgs struct {
-	DataDir  string
+	DataDirArgs
+	RemotingArgs
 	HaveFrom bool
 	FromDate time.Time
 	HaveTo   bool
 	ToDate   time.Time
-	Remote   string
-	Cluster  string
-	AuthFile string
 	LogFiles []string
 
-	Remoting    bool
 	fromDateStr string
 	toDateStr   string
 }
 
 func (s *SourceArgs) Add(fs *flag.FlagSet) {
-	fs.StringVar(&s.DataDir, "data-dir", "",
-		"Select the root `directory` for log files [default: $SONAR_ROOT or $HOME/sonar/data]")
-	fs.StringVar(&s.DataDir, "data-path", "", "Alias for -data-dir `directory`")
+	s.DataDirArgs.Add(fs)
+	s.RemotingArgs.Add(fs)
 	fs.StringVar(&s.fromDateStr, "from", "",
 		"Select records by this `time` and later.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
 			"signifying N days or weeks ago [default: 1d, ie 1 day ago]")
@@ -78,15 +169,11 @@ func (s *SourceArgs) Add(fs *flag.FlagSet) {
 		"Select records by this `time` and earlier.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
 			"signifying N days or weeks ago [default: now]")
 	fs.StringVar(&s.toDateStr, "t", "", "Short for -to `time`")
-	fs.StringVar(&s.Remote, "remote", "",
-		"Select a remote `url` to serve the query [default: none].  Requires -cluster.")
-	fs.StringVar(&s.Cluster, "cluster", "",
-		"Select the cluster `name` for which we want data [default: none].  For use with -remote.")
-	fs.StringVar(&s.AuthFile, "auth-file", "",
-		"Provide a `file` with username:password [default: none].  For use with -remote.")
 }
 
 func (s *SourceArgs) ReifyForRemote(x *Reifier) error {
+	// RemotingArgs don't have ReifyForRemote
+
 	// Validate() has already checked that DataDir, LogFiles, Remote, Cluster, and AuthFile are
 	// consistent for remote or local execution; none of those except Cluster is forwarded.
 	x.String("cluster", s.Cluster)
@@ -95,39 +182,39 @@ func (s *SourceArgs) ReifyForRemote(x *Reifier) error {
 	return nil
 }
 
+func (s *SourceArgs) SetRestArguments(args []string) {
+	s.LogFiles = args
+}
+
 func (s *SourceArgs) Validate() error {
-	// Compute and clean the dataDir and clean any logfiles.  If we have neither logfiles nor
-	// dataDir then signal an error.
-
-	s.Remoting = s.Remote != "" || s.Cluster != ""
-
-	if !s.Remoting {
-		if s.DataDir != "" {
-			s.DataDir = path.Clean(s.DataDir)
-		} else if d := os.Getenv("SONAR_ROOT"); d != "" {
-			s.DataDir = path.Clean(d)
-		} else if d := os.Getenv("HOME"); d != "" {
-			s.DataDir = path.Clean(path.Join(d, "/sonar/data"))
-		}
-	}
-
-	if len(s.LogFiles) > 0 {
-		for i := 0; i < len(s.LogFiles); i++ {
-			s.LogFiles[i] = path.Clean(s.LogFiles[i])
-		}
-	} else if s.DataDir == "" && !s.Remoting {
-		return fmt.Errorf("Required -data-dir or -- logfile ...")
+	err := s.RemotingArgs.Validate()
+	if err != nil {
+		return err
 	}
 
 	if s.Remoting {
+		// If remoting then no local data sources are allowed, so don't compute default data dirs by
+		// calling Validate(), it would confuse the matter - just disallow explicit values.  (This
+		// is a small abstraction leak.)
 		if s.DataDir != "" {
 			return fmt.Errorf("-data-dir may not be used with -remote or -cluster")
 		}
 		if len(s.LogFiles) > 0 {
 			return fmt.Errorf("-- logfile ... may not be used with -remote or -cluster")
 		}
-		if s.Remote == "" || s.Cluster == "" {
-			return fmt.Errorf("-remote and -cluster must be used together")
+	} else {
+		// Compute and clean the dataDir and clean any logfiles.  If we have neither logfiles nor
+		// dataDir then signal an error.
+		err := s.DataDirArgs.Validate()
+		if err != nil {
+			return err
+		}
+		if len(s.LogFiles) > 0 {
+			for i := 0; i < len(s.LogFiles); i++ {
+				s.LogFiles[i] = path.Clean(s.LogFiles[i])
+			}
+		} else if s.DataDir == "" {
+			return fmt.Errorf("Required -data-dir or -- logfile ...")
 		}
 	}
 
@@ -268,10 +355,10 @@ type SharedArgs struct {
 	DevArgs
 	SourceArgs
 	RecordFilterArgs
-	Verbose bool
+	VerboseArgs
 }
 
-func (sa *SharedArgs) Args() *SharedArgs {
+func (sa *SharedArgs) SharedFlags() *SharedArgs {
 	return sa
 }
 
@@ -300,6 +387,7 @@ func (s *SharedArgs) Validate() error {
 		s.DevArgs.Validate(),
 		s.SourceArgs.Validate(),
 		s.RecordFilterArgs.Validate(),
+		s.VerboseArgs.Validate(),
 	)
 }
 

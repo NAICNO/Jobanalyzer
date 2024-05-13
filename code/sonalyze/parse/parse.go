@@ -16,7 +16,7 @@ import (
 	"sonalyze/sonarlog"
 )
 
-type ParseCommand struct /* implements Command */ {
+type ParseCommand struct /* implements AnalysisCommand */ {
 	SharedArgs
 	MergeByHostAndJob bool
 	MergeByJob        bool
@@ -26,6 +26,12 @@ type ParseCommand struct /* implements Command */ {
 	// Synthesized and other
 	printFields []string
 	printOpts   *FormatOptions
+}
+
+func (_ *ParseCommand) Summary() []string {
+	return []string{
+		"Export sample data in various formats, after optional preprocessing.",
+	}
 }
 
 func (pc *ParseCommand) Add(fs *flag.FlagSet) {

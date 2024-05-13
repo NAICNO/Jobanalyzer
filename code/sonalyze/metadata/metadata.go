@@ -15,7 +15,7 @@ import (
 	"sonalyze/sonarlog"
 )
 
-type MetadataCommand struct /* implements Command */ {
+type MetadataCommand struct /* implements AnalysisCommand */ {
 	SharedArgs
 	MergeByHostAndJob bool // Inert, but compatible
 	MergeByJob        bool
@@ -26,6 +26,12 @@ type MetadataCommand struct /* implements Command */ {
 	// Synthesized and other
 	printFields []string
 	printOpts   *FormatOptions
+}
+
+func (_ *MetadataCommand) Summary() []string {
+	return []string{
+		"Display metadata about the sample streams in the database.",
+	}
 }
 
 func (mdc *MetadataCommand) ConfigFile() string {

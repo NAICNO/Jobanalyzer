@@ -1,0 +1,15 @@
+{
+    "name":"cluster1.naic.com",
+    "aliases":["cluster1"],
+    "description":"UiO 'CLUSTER1' supercomputer",
+    "# batch-system":"slurm",
+    "nodes": [
+        {
+            "hostname": "c[1-5].cluster1.naic.com",
+            "description": "2x64 AMD EPYC 7702 64-Core Processor, 503 GB",
+            "cross_node_jobs":true,
+            "cpu_cores": 128,
+            "mem_gb": 503
+        }
+    ]
+}

@@ -245,21 +245,21 @@ func sonarFreeCsv(query url.Values, payload []byte, clusterName string) (int, st
 		return 400, "Bad parameters", "Bad parameters - missing or repeated 'cluster'"
 	}
 	cluster := vs[0]
-	scanner := bufio.NewScanner(bytes.NewReader(payload))
-	for scanner.Scan() {
-		text := scanner.Text()
-		fields, err := getCsvFields(text)
-		if err != nil {
-			return 400, "Bad content",
-				fmt.Sprintf("Bad content - can't unmarshal Sonar free CSV: %v", err)
-		}
-		host := fields["host"]
-		time := fields["time"]
-		if host == "" || time == "" {
-			return 400, "Bad content",
-				fmt.Sprintf("Bad content - missing fields in Sonar free CSV")
-		}
-		if !matchUserAndCluster || clusterName == "" || cluster == clusterName {
+	if !matchUserAndCluster || clusterName == "" || cluster == clusterName {
+		scanner := bufio.NewScanner(bytes.NewReader(payload))
+		for scanner.Scan() {
+			text := scanner.Text()
+			fields, err := getCsvFields(text)
+			if err != nil {
+				return 400, "Bad content",
+					fmt.Sprintf("Bad content - can't unmarshal Sonar free CSV: %v", err)
+			}
+			host := fields["host"]
+			time := fields["time"]
+			if host == "" || time == "" {
+				return 400, "Bad content",
+					fmt.Sprintf("Bad content - missing fields in Sonar free CSV")
+			}
 			ds.Write(cluster, host, time, "%s.csv", []byte(text))
 		}
 	}
@@ -303,18 +303,18 @@ func sysinfo(query url.Values, payload []byte, clusterName string) (int, string,
 		return 400, "Bad parameters", "Bad parameters - missing or repeated 'cluster'"
 	}
 	cluster := vs[0]
-	var info config.NodeConfigRecord
-	err := json.Unmarshal(payload, &info)
-	if err != nil {
-		return 400, "Bad content",
-			fmt.Sprintf("Bad content - can't unmarshal Sysinfo JSON: %v", err)
-	}
-	if info.Timestamp == "" || info.Hostname == "" {
-		// Older versions of `sysinfo`
-		return 400, "Bad content",
-			fmt.Sprintf("Bad content - no timestamp")
-	}
 	if !matchUserAndCluster || clusterName == "" || cluster == clusterName {
+		var info config.NodeConfigRecord
+		err := json.Unmarshal(payload, &info)
+		if err != nil {
+			return 400, "Bad content",
+				fmt.Sprintf("Bad content - can't unmarshal Sysinfo JSON: %v", err)
+		}
+		if info.Timestamp == "" || info.Hostname == "" {
+			// Older versions of `sysinfo`
+			return 400, "Bad content",
+				fmt.Sprintf("Bad content - no timestamp")
+		}
 		ds.Write(cluster, info.Hostname, info.Timestamp, "sysinfo-%s.json", payload)
 	}
 	return 200, "", ""

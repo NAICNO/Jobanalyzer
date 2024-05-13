@@ -231,7 +231,7 @@ var uintArgs = []uintArg{
 	},
 }
 
-type JobsCommand struct /* implements Command */ {
+type JobsCommand struct /* implements AnalysisCommand */ {
 	SharedArgs
 	ConfigFileArgs
 
@@ -255,6 +255,13 @@ type JobsCommand struct /* implements Command */ {
 
 	// Internal / working storage
 	minRuntimeStr string
+}
+
+func (_ *JobsCommand) Summary() []string {
+	return []string{
+		"Select jobs by various criteria and present aggregate information",
+		"about them.",
+	}
 }
 
 func (jc *JobsCommand) lookupUint(s string) uint {
