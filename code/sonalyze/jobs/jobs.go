@@ -20,7 +20,6 @@ type uintArg struct {
 	relative    bool   // true if config-relative
 }
 
-
 // This is "so large that even extreme outliers resulting from bugs will not reach this value" and
 // is used as the "initial" value for max attributes.  When the property has this value, no filter
 // will be generated.
@@ -365,13 +364,21 @@ func (jc *JobsCommand) Validate() error {
 	if e4 == nil && len(jc.printFields) == 0 {
 		e4 = errors.New("No output fields were selected in format string")
 	}
-	jc.printOpts = StandardFormatOptions(others)
-	// TODO: Defaulting like this is done here and in parse but it's likely that it should be done
-	// elsewhere too.
-	if !jc.printOpts.Fixed && !jc.printOpts.Csv && !jc.printOpts.Json && !jc.printOpts.Awk {
-		jc.printOpts.Fixed = true
-		jc.printOpts.Header = true
-	}
+	jc.printOpts = StandardFormatOptions(others, DefaultFixed)
 
 	return errors.Join(e1, e2, e3, e4)
+}
+
+func (jc *JobsCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	allUsers, skipSystemUsers, determined := jc.RecordFilterArgs.DefaultUserFilters()
+	if !determined {
+		// `--zombie` implies `--user=-` because the use case for `--zombie` is to hunt
+		// across all users.
+		allUsers, skipSystemUsers = jc.Zombie, false
+	}
+	excludeSystemCommands = true
+	excludeHeartbeat = true
+	return
 }

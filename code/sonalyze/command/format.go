@@ -25,6 +25,10 @@ type FormatOptions struct {
 	NoDefaults bool   // if true and the string returned is "*skip*" and the mode is csv or json then print nothing
 }
 
+func (fo *FormatOptions) IsDefaultFormat() bool {
+	return !fo.Json && !fo.Csv && !fo.Awk && !fo.Fixed
+}
+
 // Return a list of the known fields in `spec` wrt the `formatters`, and a set of any other strings
 // found in `spec`.  Expand aliases (though not recursively: aliases must map to fundamental names).
 
@@ -53,15 +57,31 @@ func ParseFormatSpec[Data, Ctx any](
 	return fields, others, nil
 }
 
-func StandardFormatOptions(others map[string]bool) *FormatOptions {
+// Parse the non-field-name attributes as a set of formatting options.
+//
+// There are five format options, "fixed", "csv", "json", "awk", and default.  If none of the former
+// four are requested and def is not DefaultNone then one of Fixed, Csv, Json, and Awk will be set
+// according to the value of def, otherwise no flat is set and the default interpretation is up to
+// the formatter (see the parse command for an example of the latter).
+//
+// Header is set if the format (after defaulting) is "fixed" and no "noheader" attribute is present,
+// or if the format is "csv" and there is a "header" attribute.  It will never be set for "json" and
+// "awk".
+
+type DefaultFormat int
+const (
+	DefaultNone DefaultFormat = iota
+	DefaultFixed
+	DefaultCsv
+)
+
+func StandardFormatOptions(others map[string]bool, def DefaultFormat) *FormatOptions {
 	csvnamed := others["csvnamed"]
 	csv := others["csv"] || csvnamed
 	json := others["json"] && !csv
 	awk := others["awk"] && !csv && !json
 	fixed := others["fixed"] && !csv && !json && !awk
 	nodefaults := others["nodefaults"]
-	// json and awk get no header, even if one is requested
-	header := (!csv && !json && !awk && !others["noheader"]) || (csv && others["header"])
 	tag := ""
 	for x := range others {
 		if strings.HasPrefix(x, "tag:") {
@@ -69,6 +89,19 @@ func StandardFormatOptions(others map[string]bool) *FormatOptions {
 			break
 		}
 	}
+	if !csv && !json && !awk && !fixed {
+		switch def {
+		case DefaultFixed:
+			fixed = true
+		case DefaultCsv:
+			csv = true
+		case DefaultNone:
+			break
+		}
+	}
+	// json and awk get no header, even if one is requested
+	header := (fixed && !others["noheader"]) || (csv && others["header"])
+
 	return &FormatOptions{
 		Csv:        csv,
 		Json:       json,
@@ -81,6 +114,8 @@ func StandardFormatOptions(others map[string]bool) *FormatOptions {
 	}
 }
 
+// FormatData defaults to fixed formatting.
+
 func FormatData[Datum, Ctx any](
 	out io.Writer,
 	fields []string,
@@ -89,24 +124,26 @@ func FormatData[Datum, Ctx any](
 	data []Datum,
 	ctx Ctx,
 ) {
-	cols := make([][]string, len(fields))
+	// TODO: OPTIMIZEME: Instead of creating this huge matrix up-front and serializing field
+	// formatting and output formatting, it might be better to set up some kind of
+	// generator-formatter pipeline.  Allocation volume would be the same but we'd lower peak memory
+	// and would take advantage of multiple cores. (Note writeStringPadded is not thread-safe, so be
+	// careful.)
 
-	// Produce the formatted field values for all fields
-	//
-	// TODO: OPTIMIZEME: For performance this could cache the results of the hash table lookups in a
-	// local array, it's wasteful to perform a lookup for each field for each iteration.
-	for _, x := range data {
-		for i, kwd := range fields {
-			v := formatters[kwd].Fmt(x, ctx)
-			if i == 0 {
-				if prefix, found := formatters["*prefix*"]; found {
-					cols[i] = append(cols[i], prefix.Fmt(x, ctx)+v)
-				} else {
-					cols[i] = append(cols[i], v)
-				}
-			} else {
-				cols[i] = append(cols[i], v)
-			}
+	// cols is a column-major representation of the output matrix, one column per field.
+	cols := make([][]string, len(fields))
+	for i := range fields {
+		cols[i] = make([]string, len(data))
+	}
+
+	// Produce the formatted field values for all fields.
+	fmt := make([]func(Datum, Ctx) string, len(fields))
+	for c, kwd := range fields {
+		fmt[c] = formatters[kwd].Fmt
+	}
+	for r, x := range data {
+		for c := range fields {
+			cols[c][r] = fmt[c](x, ctx)
 		}
 	}
 
@@ -161,10 +198,10 @@ func formatFixed(unbufOut io.Writer, fields []string, opts *FormatOptions, cols 
 	if opts.Header {
 		s.Reset()
 		for col := 0; col < len(fields); col++ {
-			s.WriteString(fmt.Sprintf("%-*s  ", widths[col], fields[col]))
+			writeStringPadded(&s, widths[col], fields[col])
 		}
 		if tagCol >= 0 {
-			s.WriteString(fmt.Sprintf("%-*s  ", widths[tagCol], "tag"))
+			writeStringPadded(&s, widths[tagCol], "tag")
 		}
 		fmt.Fprintln(out, strings.TrimRight(s.String(), " "))
 	}
@@ -173,13 +210,25 @@ func formatFixed(unbufOut io.Writer, fields []string, opts *FormatOptions, cols 
 	for row := 0; row < len(cols[0]); row++ {
 		s.Reset()
 		for col := 0; col < len(fields); col++ {
-			s.WriteString(fmt.Sprintf("%-*s  ", widths[col], cols[col][row]))
+			writeStringPadded(&s, widths[col], cols[col][row])
 		}
 		if tagCol >= 0 {
-			s.WriteString(fmt.Sprintf("%-*s  ", widths[tagCol], opts.Tag))
+			writeStringPadded(&s, widths[tagCol], opts.Tag)
 		}
 		fmt.Fprintln(out, strings.TrimRight(s.String(), " "))
 	}
+}
+
+// This is much faster than the equivalent Sprint(), and allocates almost nothing at all.
+var spaces = "                                        "
+
+func writeStringPadded(s *strings.Builder, width int, str string) {
+	needed := width - utf8.RuneCountInString(str) + 2
+	for len(spaces) < needed {
+		spaces = spaces + spaces
+	}
+	s.WriteString(str)
+	s.WriteString(spaces[:needed])
 }
 
 func formatCsv(out io.Writer, fields []string, opts *FormatOptions, cols [][]string) {

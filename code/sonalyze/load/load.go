@@ -157,7 +157,18 @@ func (lc *LoadCommand) Validate() error {
 	if e6 == nil && len(lc.printFields) == 0 {
 		e6 = errors.New("No output fields were selected in format string")
 	}
-	lc.printOpts = StandardFormatOptions(others)
+	lc.printOpts = StandardFormatOptions(others, DefaultFixed)
 
 	return errors.Join(e1, e2, e3, e4, e5, e6)
+}
+
+func (lc *LoadCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	// `load` implies `--user=-` b/c we're interested in system effects.
+	allUsers = true
+	skipSystemUsers = false
+	excludeSystemCommands = true
+	excludeHeartbeat = false
+	return
 }

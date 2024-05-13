@@ -1,13 +1,7 @@
 #!/bin/bash
 #
-# Test that a plain run of `sonalyze parse` produces bit-identical output vs the Rust version, with different
-# data formats and with "all" fields
-#
-# Usage:
-#  parse6.sh data-dir from to
-
-GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
+# Test that a plain run of `sonalyze parse` produces bit-identical output vs an older version, with
+# different data formats and with "all" fields.  See test-generic.sh for info about env vars.
 
 set -e
 
@@ -24,19 +18,19 @@ set -e
 fields=version,localtime,time,host,cores,user,pid,job,cmd,cpu_pct,gpus,gpu_pct,gpumem_pct,gpu_status,cputime_sec,rolledup
 for format in csv csvnamed awk fixed; do
     echo "  $format"
-    $GO_SONALYZE parse -data-dir "$1" -from "$2" -to "$3" --fmt $format,$fields | sort > go-output.txt
-    $RUST_SONALYZE parse --data-path "$1" --from "$2" --to "$3" --fmt $format,$fields | sort > rust-output.txt
-    cmp go-output.txt rust-output.txt
-    rm -f go-output.txt rust-output.txt
+    $OLD_SONALYZE parse --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --fmt $format,$fields | sort > old-output.txt
+    $NEW_SONALYZE parse --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --fmt $format,$fields | sort > new-output.txt
+    cmp old-output.txt new-output.txt
+    rm -f old-output.txt new-output.txt
 done
 
 echo "  json"
-$GO_SONALYZE parse -data-dir "$1" -from "$2" -to "$3" --fmt json,$fields | \
+$OLD_SONALYZE parse --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --fmt json,$fields | \
     sed 's/},/}\n/g;s/\[//g;s/\]//g' | \
-    sort > go-output.txt
-$RUST_SONALYZE parse --data-path "$1" --from "$2" --to "$3" --fmt json,$fields | \
+    sort > old-output.txt
+$NEW_SONALYZE parse --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --fmt json,$fields | \
     sed 's/},/}\n/g;s/\[//g;s/\]//g' | \
-    sort > rust-output.txt
-cmp go-output.txt rust-output.txt
-rm -f go-output.txt rust-output.txt
+    sort > new-output.txt
+cmp old-output.txt new-output.txt
+rm -f old-output.txt new-output.txt
 

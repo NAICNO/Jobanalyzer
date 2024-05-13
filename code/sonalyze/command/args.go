@@ -245,6 +245,20 @@ func (r *RecordFilterArgs) Validate() error {
 	return nil
 }
 
+func (rfa *RecordFilterArgs) DefaultUserFilters() (allUsers, skipSystemUsers, determined bool) {
+	if len(rfa.Job) > 0 {
+		// `--job=...` implies `--user=-` b/c the job also implies a user.
+		allUsers, skipSystemUsers = true, true
+		determined = true
+	} else if len(rfa.ExcludeUser) > 0 {
+		// `--exclude-user=...` implies `--user=-` b/c the only sane way to include
+		// many users so that some can be excluded is by also specifying `--users=-`.
+		allUsers, skipSystemUsers = true, false
+		determined = true
+	}
+	return
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Shared for everyone

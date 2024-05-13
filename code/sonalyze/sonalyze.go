@@ -199,37 +199,9 @@ func buildFilters(
 		excludeJobs[j] = true
 	}
 
-	// Defaults for included/excluded users.
-	// TODO: IMPROVEME: Can we move these into the commands themselves?
+	// Command-specific defaults for the record filters.
 
-	var allUsers, skipSystemUsers bool
-	if _, ok := cmd.(*load.LoadCommand); ok {
-		// `load` implies `--user=-` b/c we're interested in system effects.
-		allUsers, skipSystemUsers = true, false
-	} else if _, ok := cmd.(*parse.ParseCommand); ok {
-		// `parse` implies `--user=-` b/c we're interested in raw data.
-		allUsers, skipSystemUsers = true, false
-	} else if len(args.RecordFilterArgs.Job) > 0 {
-		// `jobs --job=...` implies `--user=-` b/c the job also implies a user.
-		allUsers, skipSystemUsers = true, true
-	} else if len(args.RecordFilterArgs.ExcludeUser) > 0 {
-		// `jobs --exclude-user=...` implies `--user=-` b/c the only sane way to include
-		// many users so that some can be excluded is by also specifying `--users=-`.
-		allUsers, skipSystemUsers = true, false
-	} else if j, ok := cmd.(*jobs.JobsCommand); ok {
-		// `jobs --zombie` implies `--user=-` because the use case for `--zombie` is to hunt
-		// across all users.
-		allUsers, skipSystemUsers = j.Zombie, false
-	} else if _, ok := cmd.(*profile.ProfileCommand); ok {
-		allUsers, skipSystemUsers = false, false
-	} else if _, ok := cmd.(*uptime.UptimeCommand); ok {
-		allUsers, skipSystemUsers = false, false
-	} else if _, ok := cmd.(*metadata.MetadataCommand); ok {
-		allUsers, skipSystemUsers = true, false
-	} else {
-		// All command types should be handled above, one way or the other.
-		panic("Unexpected case")
-	}
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat := cmd.DefaultRecordFilters()
 
 	// Included users, empty means "all"
 
@@ -268,31 +240,6 @@ func buildFilters(
 		// This list needs to be configurable somehow, but isn't so in the Rust version either.
 		excludeUsers[sonarlog.StringToUstr("root")] = true
 		excludeUsers[sonarlog.StringToUstr("zabbix")] = true
-	}
-
-	// TODO: IMPROVEME: Can we move these into the commands themselves?
-	var excludeSystemCommands, excludeHeartbeat bool
-	switch cmd.(type) {
-	case *jobs.JobsCommand:
-		excludeSystemCommands = true
-		excludeHeartbeat = true
-	case *load.LoadCommand:
-		excludeSystemCommands = true
-		excludeHeartbeat = false
-	case *metadata.MetadataCommand:
-		excludeSystemCommands = false
-		excludeHeartbeat = false
-	case *parse.ParseCommand:
-		excludeSystemCommands = false
-		excludeHeartbeat = false
-	case *profile.ProfileCommand:
-		excludeSystemCommands = false
-		excludeHeartbeat = true
-	case *uptime.UptimeCommand:
-		excludeSystemCommands = false
-		excludeHeartbeat = false
-	default:
-		panic("Unexpected case")
 	}
 
 	// Included commands.
@@ -364,8 +311,6 @@ func commandLine() (Command, string) {
 		os.Exit(2)
 	}
 
-	// TODO: IMPROVEME: Make this a lookup table and make each command supply its own help text for
-	// the below block.
 	var cmd Command
 	var verb = os.Args[1]
 	switch verb {

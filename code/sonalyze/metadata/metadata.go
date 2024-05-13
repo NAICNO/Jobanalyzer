@@ -68,14 +68,21 @@ func (mdc *MetadataCommand) Validate() error {
 	if e2 == nil && len(mdc.printFields) == 0 {
 		e2 = errors.New("No output fields were selected in format string")
 	}
-	mdc.printOpts = StandardFormatOptions(others)
-	// TODO: Defaulting like this is done many places, common?
-	if !mdc.printOpts.Fixed && !mdc.printOpts.Csv && !mdc.printOpts.Json && !mdc.printOpts.Awk {
-		mdc.printOpts.Csv = true
-		mdc.printOpts.Header = false
-	}
+	mdc.printOpts = StandardFormatOptions(others, DefaultCsv)
 
 	return errors.Join(e1, e2)
+}
+
+func (mdc *MetadataCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	allUsers, skipSystemUsers, determined := mdc.RecordFilterArgs.DefaultUserFilters()
+	if !determined {
+		allUsers, skipSystemUsers = true, false
+	}
+	excludeSystemCommands = false
+	excludeHeartbeat = false
+	return
 }
 
 type metadataItem struct {

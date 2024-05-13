@@ -50,55 +50,62 @@ func (pc *ProfileCommand) Validate() error {
 	}
 
 	var e3 error
+	if len(pc.Job) != 1 {
+		e3 = errors.New("Exactly one specific job number is required by `profile`")
+	}
+
 	spec := profileDefaultFields
 	if pc.Fmt != "" {
 		spec = pc.Fmt
 	}
 	var others map[string]bool
-	pc.printFields, others, e3 = ParseFormatSpec(spec, profileFormatters, profileAliases)
-	if e3 == nil && len(pc.printFields) == 0 && !others["json"] {
-		e3 = errors.New("No output fields were selected in format string")
+	var e4 error
+	pc.printFields, others, e4 = ParseFormatSpec(spec, profileFormatters, profileAliases)
+	if e4 == nil && len(pc.printFields) == 0 && !others["json"] {
+		e4 = errors.New("No output fields were selected in format string")
 	}
-	pc.printOpts = StandardFormatOptions(others)
+
+	// Options for profile are restrictive, and a little wonky because html is handled on the side,
+	// but mostly we don't error out for nonsensical settings, we just override or ignore them.
 	pc.htmlOutput = others["html"]
 	pc.testNoMemory = others["nomemory"]
 
-	// Ad-hoc defaulting
+	def := DefaultFixed
+	if pc.htmlOutput {
+		def = DefaultNone
+	}
+	pc.printOpts = StandardFormatOptions(others, def)
+
+	var e5 error
+	if pc.htmlOutput && !pc.printOpts.IsDefaultFormat() {
+		e5 = errors.New("Multiple formats requested")
+	}
+
+	// The printing code uses custom logic for everything but Fixed layout, and the custom logic
+	// does not support named fields or nodefaults.  Indeed the "profile" is always a fixed matrix
+	// of data, so nodefaults is disabled even for Fixed.
+	pc.printOpts.NoDefaults = false
+
+	// The Header setting is grandfathered from the Rust code, but it makes more sense than the
+	// opposite.  The main reason to not perpetuate this hack is that it is different from all the
+	// other commands.
 	if pc.printOpts.Csv && !others["noheader"] {
 		pc.printOpts.Header = true
 	}
-	if pc.htmlOutput && !others["header"] {
-		pc.printOpts.Header = false
-	}
 
-	var e4 error
-	if len(pc.Job) != 1 {
-		e4 = errors.New("Exactly one specific job number is required by `profile`")
-	}
+	return errors.Join(e1, e2, e3, e4, e5)
+}
 
-	// html is not part of the usual set of formats (yet)
-	var e5 error
-	if pc.htmlOutput {
-		if pc.printOpts.Fixed || pc.printOpts.Csv || pc.printOpts.Json && pc.printOpts.Awk {
-			e5 = errors.New("Multiple printing options specified")
-		} else if pc.printOpts.Header {
-			e5 = errors.New("Can't use `header` and `html` together")
-		}
-	} else {
-		// TODO: ABSTRACTME: This is the same defaulting logic as in jobs and parse except it does
-		// not toggle header.
-		if !pc.printOpts.Fixed && !pc.printOpts.Csv && !pc.printOpts.Json && !pc.printOpts.Awk {
-			pc.printOpts.Fixed = true
-		}
+func (pc *ProfileCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	allUsers, skipSystemUsers, determined := pc.RecordFilterArgs.DefaultUserFilters()
+	if !determined {
+		allUsers, skipSystemUsers = false, false
 	}
-
-	var e6 error
-	if pc.printOpts.Named {
-		e6 = errors.New("Named fields are not supported for `profile`")
-	}
-	pc.printOpts.NoDefaults = false
-
-	return errors.Join(e1, e2, e3, e4, e5, e6)
+	excludeSystemCommands = false
+	excludeHeartbeat = true
+	return
 }
 
 func (pc *ProfileCommand) ConfigFile() string {

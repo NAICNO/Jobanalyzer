@@ -1,13 +1,7 @@
 #!/bin/bash
 #
-# Like parse6 but includes some more fields with approximately-equal comparisons
-#
-# Usage:
-#  parse6.sh data-dir from to
-
-GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
-NUMDIFF=${NUMDIFF:-../../../numdiff/numdiff}
+# Like parse6 but includes some more fields with approximately-equal comparisons.  See
+# test-generic.sh for info about env vars.
 
 set -e
 
@@ -23,12 +17,12 @@ set -e
 
 for format in csv csvnamed awk fixed; do
     echo "  $format"
-    $GO_SONALYZE parse -data-dir "$1" -from "$2" -to "$3" --fmt $format,all | \
-        sort > go-output.txt
-    $RUST_SONALYZE parse --data-path "$1" --from "$2" --to "$3" --fmt $format,all | \
-        sort > rust-output.txt
-    if [[ ! $(cmp go-output.txt rust-output.txt) ]]; then
-        $NUMDIFF go-output.txt rust-output.txt
+    $OLD_SONALYZE parse --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --fmt $format,all | \
+        sort > old-output.txt
+    $NEW_SONALYZE parse --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --fmt $format,all | \
+        sort > new-output.txt
+    if [[ ! $(cmp old-output.txt new-output.txt) ]]; then
+        $NUMDIFF old-output.txt new-output.txt
     fi
-    rm -f go-output.txt rust-output.txt
+    rm -f old-output.txt new-output.txt
 done

@@ -61,12 +61,20 @@ func (pc *ParseCommand) Validate() error {
 	if e2 == nil && len(pc.printFields) == 0 {
 		e2 = errors.New("No output fields were selected in format string")
 	}
-	pc.printOpts = StandardFormatOptions(others)
-	if !pc.printOpts.Fixed && !pc.printOpts.Csv && !pc.printOpts.Json && !pc.printOpts.Awk {
-		pc.printOpts.Csv = true
-		pc.printOpts.Header = false
-	}
+	pc.printOpts = StandardFormatOptions(others, DefaultCsv)
+
 	return errors.Join(e1, e2)
+}
+
+func (pc *ParseCommand) DefaultRecordFilters() (
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
+) {
+	// `parse` implies `--user=-` b/c we're interested in raw data.
+	allUsers = true
+	skipSystemUsers = false
+	excludeSystemCommands = false
+	excludeHeartbeat = false
+	return
 }
 
 func (pc *ParseCommand) ConfigFile() string {
