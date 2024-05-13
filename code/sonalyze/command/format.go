@@ -69,6 +69,7 @@ func ParseFormatSpec[Data, Ctx any](
 // "awk".
 
 type DefaultFormat int
+
 const (
 	DefaultNone DefaultFormat = iota
 	DefaultFixed

@@ -350,7 +350,8 @@ LineLoop:
 					if verbose {
 						log.Printf(
 							"Dropping field with unknown name: %s",
-							"(elided)", /*tokenizer.BufSubstringSlow(start, eqloc-1) - see NOTE above */
+							"(elided)", /* tokenizer.BufSubstringSlow(start, eqloc-1) -
+							   see NOTE above */
 						)
 					}
 					if err == nil {
@@ -383,7 +384,10 @@ LineLoop:
 		// Untagged records do not have optional trailing fields.
 		if format == untaggedFormat && untaggedPosition < 8 {
 			if verbose {
-				log.Printf("Dropping untagged record with missing fields, got only %d fields", untaggedPosition)
+				log.Printf(
+					"Dropping untagged record with missing fields, got only %d fields",
+					untaggedPosition,
+				)
 			}
 			discarded++
 			continue LineLoop
