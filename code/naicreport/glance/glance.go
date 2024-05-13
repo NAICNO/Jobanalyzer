@@ -277,7 +277,7 @@ func collectUsersAndJobs(
 	var rawData []*sonalyzeJobsData
 	err := runAndUnmarshal(
 		sonalyzePath,
-		[]string{"jobs", "-u-", "--fmt=json,host,user,classification,end"},
+		[]string{"jobs", "--user", "-", "--fmt=json,host,user,classification,end"},
 		progOpts,
 		&rawData,
 	)
@@ -640,6 +640,9 @@ func runAndUnmarshal(
 ) error {
 	arguments = util.ForwardDateFilterOptions(arguments, progOpts.filterOpts)
 	arguments = util.ForwardDataFilesOptions(arguments, "--data-path", progOpts.filesOpts)
+	if verbose {
+		fmt.Printf("Sonalyze (run) arguments\n%v\n", arguments)
+	}
 	sonalyzeOutput, sonalyzeErrOutput, err := process.RunSubprocess("sonalyze", sonalyzePath, arguments)
 	if err != nil {
 		if sonalyzeErrOutput != "" {

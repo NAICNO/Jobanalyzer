@@ -164,7 +164,7 @@ func Load(progname string, args []string) error {
 	// Obtain all the data
 
 	if verbose {
-		fmt.Printf("Sonalyze load arguments\n%v", loadArguments)
+		fmt.Printf("Sonalyze load arguments\n%v\n", loadArguments)
 	}
 	loadOutput, loadErrOutput, err := process.RunSubprocess("sonalyze", sonalyzePath, loadArguments)
 	if err != nil {
@@ -185,7 +185,7 @@ func Load(progname string, args []string) error {
 	var downtimeData []*downtimeDataByHost
 	if withDowntime > 0 {
 		if verbose {
-			fmt.Printf("Sonalyze downtime arguments\n%v", downtimeArguments)
+			fmt.Printf("Sonalyze downtime arguments\n%v\n", downtimeArguments)
 		}
 		downtimeOutput, downtimeErrOutput, err := process.RunSubprocess("sonalyze", sonalyzePath, downtimeArguments)
 		if err != nil {
