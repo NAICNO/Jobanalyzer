@@ -585,6 +585,8 @@ fn write_html(
         "mem"
     } else if gpumem_field {
         "gpumem"
+    } else if res_field {
+        "res"
     } else {
         panic!("Should not happen")
     };

@@ -1,53 +1,40 @@
 #!/bin/bash
 #
 # Test that a run of `sonalyze parse` with various record filters produces bit-identical output vs
-# the Rust version.
-#
-# Usage:
-#  parse5.sh data-dir from to
+# an old version.  See test-generic.sh for info about env vars.
 
-DATADIR=$1
-FROMDATE=$2
-TODATE=$3
-TESTDATAFILE=$4
-GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
+# PARSE5_FILTER is an associative array mapping option name to option value for various record
+# filters.
 
-# The $TESTDATAFILE must provide a script that initializes the value array appropriate for the test
-# data available.  See parse5-*.sh for an example.
-
-declare -A value
-source $TESTDATAFILE
+set -e
 
 expand_opts () {
     local option=$1
     local s=""
-    for v in ${value[$option]}; do
+    for v in ${PARSE5_FILTER[$option]}; do
         s="$s $option $v"
     done
     echo $s
 }
 
-set -e
-
 # We must sort the data here because they are not sorted internally (without any options) and the Go
-# and Rust storage layer produce the data in different orders due to concurrency effects.
+# and Rust storage layers produce the data in different orders due to concurrency effects.
 
-for i in ${!value[@]}; do
+for i in ${!PARSE5_FILTER[@]}; do
     echo "  $i"
-    $GO_SONALYZE parse -data-dir "$DATADIR" -from "$FROMDATE" -to "$TODATE" $opt $(expand_opts $i) \
-        | sort > go-output.txt
-    $RUST_SONALYZE parse --data-path "$DATADIR" --from "$FROMDATE" --to "$TODATE" $opt $(expand_opts $i) \
-        | sort > rust-output.txt
-    cmp go-output.txt rust-output.txt
-    rm -f go-output.txt rust-output.txt
+    $OLD_SONALYZE parse --data-path "$DATA_PATH" --from "$FROM" --to "$TO" $opt $(expand_opts $i) \
+        | sort > old-output.txt
+    $NEW_SONALYZE parse --data-path "$DATA_PATH" --from "$FROM" --to "$TO" $opt $(expand_opts $i) \
+        | sort > new-output.txt
+    cmp old-output.txt new-output.txt
+    rm -f old-output.txt new-output.txt
 done
 
 # Special case for bool arguments
 
-$GO_SONALYZE parse -data-dir "$DATADIR" -from "$FROMDATE" -to "$TODATE" $opt --exclude-system-jobs \
-    | sort > go-output.txt
-$RUST_SONALYZE parse --data-path "$DATADIR" --from "$FROMDATE" --to "$TODATE" $opt --exclude-system-jobs \
-    | sort > rust-output.txt
-cmp go-output.txt rust-output.txt
-rm -f go-output.txt rust-output.txt
+$OLD_SONALYZE parse --data-path "$DATA_PATH" --from "$FROM" --to "$TO" $opt --exclude-system-jobs \
+    | sort > old-output.txt
+$NEW_SONALYZE parse --data-path "$DATA_PATH" --from "$FROM" --to "$TO" $opt --exclude-system-jobs \
+    | sort > new-output.txt
+cmp old-output.txt new-output.txt
+rm -f old-output.txt new-output.txt

@@ -1,14 +1,9 @@
 #!/bin/bash
 #
-# Test that a run of `sonalyze jobs` with an aggregation filter produces bit-identical output vs the
-# Rust version.  We always supply a config file.
-#
-# Usage:
-#  jobs2.sh data-dir from to
+# Test that a run of `sonalyze jobs` with an aggregation filter produces bit-identical output
+# between versions.  See test-generic.sh for info about env vars.  We always supply a config file.
 
-GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
-NUMDIFF=${NUMDIFF:-../../numdiff/numdiff}
+# TODO: Technically these filters depend on the input data set.
 
 declare -A filter
 filter["--min-samples"]=10
@@ -53,35 +48,35 @@ for num in "" "--numjobs 5"; do
     for f in ${!filter[@]}; do
         v=${filter[$f]}
         echo "  $f = $v"
-        $GO_SONALYZE jobs --data-path "$1" --from "$2" --to "$3" --user - --fmt $fmt $f $v $num > go-output.txt
-        $RUST_SONALYZE jobs --data-path "$1" --from "$2" --to "$3" --user - --fmt $fmt $f $v $num > rust-output.txt
-        #wc -l go-output.txt rust-output.txt
-        if [[ ! $(cmp go-output.txt rust-output.txt) ]]; then
-            $NUMDIFF go-output.txt rust-output.txt
+        $OLD_SONALYZE jobs --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --user - --fmt $fmt $f $v $num > old-output.txt
+        $NEW_SONALYZE jobs --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --user - --fmt $fmt $f $v $num > new-output.txt
+        #wc -l old-output.txt new-output.txt
+        if [[ ! $(cmp old-output.txt new-output.txt) ]]; then
+            $NUMDIFF old-output.txt new-output.txt
         fi
-        rm -f go-output.txt rust-output.txt
+        rm -f old-output.txt new-output.txt
     done
 
     for f in ${!rfilter[@]}; do
         v=${rfilter[$f]}
         echo "  $f = $v"
-        $GO_SONALYZE jobs --data-path "$1" --from "$2" --to "$3" --user - --fmt $fmt --config-file $CONFIG $f $v $num > go-output.txt
-        $RUST_SONALYZE jobs --data-path "$1" --from "$2" --to "$3" --user - --fmt $fmt --config-file $CONFIG $f $v $num > rust-output.txt
-        #wc -l go-output.txt rust-output.txt
-        if [[ ! $(cmp go-output.txt rust-output.txt) ]]; then
-            $NUMDIFF go-output.txt rust-output.txt
+        $OLD_SONALYZE jobs --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --user - --fmt $fmt --config-file $CONFIG $f $v $num > old-output.txt
+        $NEW_SONALYZE jobs --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --user - --fmt $fmt --config-file $CONFIG $f $v $num > new-output.txt
+        #wc -l old-output.txt new-output.txt
+        if [[ ! $(cmp old-output.txt new-output.txt) ]]; then
+            $NUMDIFF old-output.txt new-output.txt
         fi
-        rm -f go-output.txt rust-output.txt
+        rm -f old-output.txt new-output.txt
     done
 
     for b in $bfilters; do
         echo "  $b"
-        $GO_SONALYZE jobs --data-path "$1" --from "$2" --to "$3" --user - --fmt $fmt --config-file $CONFIG $b $num > go-output.txt
-        $RUST_SONALYZE jobs --data-path "$1" --from "$2" --to "$3" --user - --fmt $fmt --config-file $CONFIG $b $num > rust-output.txt
-        #wc -l go-output.txt rust-output.txt
-        if [[ ! $(cmp go-output.txt rust-output.txt) ]]; then
-            $NUMDIFF go-output.txt rust-output.txt
+        $OLD_SONALYZE jobs --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --user - --fmt $fmt --config-file $CONFIG $b $num > old-output.txt
+        $NEW_SONALYZE jobs --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --user - --fmt $fmt --config-file $CONFIG $b $num > new-output.txt
+        #wc -l old-output.txt new-output.txt
+        if [[ ! $(cmp old-output.txt new-output.txt) ]]; then
+            $NUMDIFF old-output.txt new-output.txt
         fi
-        rm -f go-output.txt rust-output.txt
+        rm -f old-output.txt new-output.txt
     done
 done

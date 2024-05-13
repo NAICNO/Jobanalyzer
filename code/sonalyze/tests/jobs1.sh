@@ -1,18 +1,12 @@
 #!/bin/bash
 #
-# Test that a plain run of `sonalyze jobs` produces bit-identical output vs the Rust version.
-#
-# Usage:
-#  jobs1.sh data-dir from to
-
-GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
-NUMDIFF=${NUMDIFF:-../../numdiff/numdiff}
+# Test that a plain run of `sonalyze jobs` produces bit-identical output between versions.  See
+# test-generic.sh for info about env vars.
 
 set -e
-$GO_SONALYZE jobs -data-dir "$1" -from "$2" -to "$3" -user - > go-output.txt
-$RUST_SONALYZE jobs --data-path "$1" --from "$2" --to "$3" --user - > rust-output.txt
-if [[ ! $(cmp go-output.txt rust-output.txt) ]]; then
-    $NUMDIFF go-output.txt rust-output.txt
+$OLD_SONALYZE jobs --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --user - > old-output.txt
+$NEW_SONALYZE jobs --data-path "$DATA_PATH" --from "$FROM" --to "$TO" --user - > new-output.txt
+if [[ ! $(cmp old-output.txt new-output.txt) ]]; then
+    $NUMDIFF old-output.txt new-output.txt
 fi
-rm -f go-output.txt rust-output.txt
+rm -f old-output.txt new-output.txt

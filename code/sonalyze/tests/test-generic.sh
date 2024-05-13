@@ -1,4 +1,15 @@
-# To be included from test-HOSTNAME.sh
+# This file to be included from test-HOSTNAME.sh or other test runner.
+#
+# We need the following to be defined and exported by the script running this one:
+#   OLD_SONALYZE is one binary, intended to be the original
+#   NEW_SONALYZE is the other binary, intended to be the update
+#   NUMDIFF is a program that can do field-wise numeric approximately-equal comparisons
+#   DATA_PATH is the data dir, for --data-path
+#   FROM is the starting date, for --from
+#   TO is the ending date, for --to
+#   JOB is a job number in the data, for --job
+#
+# There are also some per-test variables, see test-deathstar.sh for a canonical-ish definition.
 
 echo "perf1"
 ./perf1.sh $DATA $FROM $TO $JOB
@@ -7,40 +18,28 @@ echo "help"
 ./help.sh
 
 echo "parse1"
-./parse1.sh $DATA $FROM $TO
+./parse1.sh
 
 echo "parse2"
-./parse2.sh $DATA $FROM $TO
-
-echo "parse3"
-./parse3.sh $DATA $FROM $TO
-
-echo "parse4"
-./parse4.sh $DATA $FROM $TO
+./parse2.sh
 
 echo "parse5"
-./parse5.sh $DATA $FROM $TO parse5-$(hostname).sh
+./parse5.sh
 
 echo "parse6"
-./parse6.sh $DATA $FROM $TO
+./parse6.sh
 
 echo "parse7"
-./parse7.sh $DATA $FROM $TO
+./parse7.sh
 
 echo "uptime1"
-./uptime1.sh $DATA $FROM $TO
-
-echo "uptime2"
-./uptime2.sh $DATA $FROM $TO
-
-echo "uptime3"
-./uptime3.sh $DATA $FROM $TO
+./uptime1.sh
 
 echo "uptime4"
-./uptime4.sh $DATA $FROM $TO
+./uptime4.sh
 
 echo "uptime5"
-./uptime5.sh $DATA $FROM $TO
+./uptime5.sh
 
 echo "load1"
 ./load1.sh $DATA $FROM $TO

@@ -1,12 +1,7 @@
 #!/bin/bash
 #
-# Test that a plain run of `sonalyze profile -fmt=csv` produces bit-identical output vs the Rust version.
-#
-# Usage:
-#  profile1.sh data-dir from to job
-
-GO_SONALYZE=${GO_SONALYZE:-../sonalyze}
-RUST_SONALYZE=${RUST_SONALYZE:-../../attic/sonalyze/target/release/sonalyze}
+# Test that a plain run of `sonalyze profile -fmt=<fmt>,<field>` produces bit-identical output between
+# versions.  See test-generic.sh for info about env vars.
 
 set -e
 for format in csv html fixed; do
@@ -21,10 +16,10 @@ for format in csv html fixed; do
             if [[ $max != 0 ]]; then
                 maxarg="--max $max"
             fi
-            $GO_SONALYZE profile -data-dir "$1" -from "$2" -to "$3" -j "$4" $maxarg -fmt csv,$field > go-output.txt
-            $RUST_SONALYZE profile --data-path "$1" --from "$2" --to "$3"  -j "$4" $maxarg --fmt csv,$field > rust-output.txt
-            cmp go-output.txt rust-output.txt
-            rm -f go-output.txt rust-output.txt
+            $OLD_SONALYZE profile --data-path "$DATA_PATH" --from "$FROM" --to "$TO" -j "$JOB" $maxarg --fmt $format,$field > old-output.txt
+            $NEW_SONALYZE profile --data-path "$DATA_PATH" --from "$FROM" --to "$TO" -j "$JOB" $maxarg --fmt $format,$field > new-output.txt
+            cmp old-output.txt new-output.txt
+            rm -f old-output.txt new-output.txt
         done
     done
 done
