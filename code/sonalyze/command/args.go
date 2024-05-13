@@ -210,7 +210,8 @@ type RecordFilterArgs struct {
 }
 
 func (r *RecordFilterArgs) Add(fs *flag.FlagSet) {
-	fs.Var(newRepeatableString(&r.Host), "host", "Select records for this `host` (repeatable) [default: all]")
+	fs.Var(newRepeatableString(&r.Host), "host",
+		"Select records for this `host` (repeatable) [default: all]")
 	fs.Var(newRepeatableString(&r.User), "user",
 		"Select records for this `user`, \"-\" for all (repeatable) [default: command dependent]")
 	fs.Var(newRepeatableString(&r.User), "u", "Short for -user `user`")
@@ -354,16 +355,12 @@ func (rs *repeatableString) String() string {
 }
 
 func (rs *repeatableString) Set(s string) error {
-	ys := strings.Split(s, ",")
-	for _, y := range ys {
-		if y == "" {
-			return errors.New("Empty string")
-		}
-	}
+	// String arguments can't be comma-separated because host patterns such as 'ml[1,2],ml9' would
+	// not really work without heroic effort.
 	if *rs.xs == nil {
-		*rs.xs = ys
+		*rs.xs = []string{s}
 	} else {
-		*rs.xs = append(*rs.xs, ys...)
+		*rs.xs = append(*rs.xs, s)
 	}
 	return nil
 }
@@ -391,6 +388,7 @@ func (rs *repeatableUint32) String() string {
 }
 
 func (rs *repeatableUint32) Set(s string) error {
+	// It's OK to allow comma-separated integer options since there is no parsing ambiguity.
 	ys := strings.Split(s, ",")
 	ws := make([]uint32, 0, len(ys))
 	for _, y := range ys {

@@ -75,7 +75,7 @@ store on a remote host, see the section "REMOTE ACCESS" further down.
 All filters are optional.  Records must pass all specified filters.  All commands support the record
 filters.
 
-`-u <username>`, `--user=<username>`, `--user=<username>,<username>,...`
+`-u <username>`, `--user=<username>`
 
   The user name(s), the option can be repeated.  Use `-` to ask for everyone.
 
@@ -85,12 +85,12 @@ filters.
 
   Additionally, when the `--job` record filter is used, then users "root" and "zabbix" are excluded.
 
-`--exclude-user=<username>`, `--exclude-user=<username>,<username>,...`
+`--exclude-user=<username>`
 
   Request that records with these user names are excluded, in addition to normal exclusions.
   The option can be repeated.  See above about defaults.
 
-`--command=<command>`, `--command=<command>,<command>,...`
+`--command=<command>`
 
   Select only records whose command name matches `<command>` exactly.  This option can be repeated.
 
@@ -98,7 +98,7 @@ filters.
   command except some system commands for `jobs` and `load` (currently `bash`, `zsh`, `sshd`,
   `tmux`, and `systemd`; this is pretty ad-hoc).
 
-`--exclude-command=<command>`, `--exclude-command=<command>,<command>,...`
+`--exclude-command=<command>`
 
   Exclude commands matching `<command>` exactly, in addition to default exclusions.  This option can
   be repeated.
@@ -121,7 +121,7 @@ filters.
   Select only records with this time stamp and earlier, format is either `YYYY-MM-DD`, `Nd` (N days
   ago) or `Nw` (N weeks ago).  The default is `0d`: now.
 
-`--host=<hostname>`, `--host=<hostname>,<hostname>,...`
+`--host=<hostname>`
 
   Select only records from these host names.  The host name filter applies both to file name
   filtering in the data path and to record filtering within all files processed (as all records also
