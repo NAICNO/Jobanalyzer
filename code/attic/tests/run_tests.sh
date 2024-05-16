@@ -17,6 +17,8 @@
 #   TEST_NAME - the file name of the test being run
 #   SONALYZE - the name of the sonalyze executable, typically a debug build
 #   NAICREPORT - the name of the naicreport executable
+#   INFILTRATE - the name of the infiltrate executable
+#   EXFILTRATE - the name of the exfiltrate executable
 #   SLURMINFO - the name of the slurminfo executable
 #   SONALYZED - the name of the sonalyzed executable
 #
@@ -29,16 +31,18 @@
 #
 # The pattern is a regex pattern that must match the name of the test filname.
 
-TEST_DIRECTORIES="config sonarlog sonalyze naicreport slurminfo"
+TEST_DIRECTORIES="../../tests/config ../../tests/sonarlog ../../tests/sonalyze ../../tests/naicreport ../../tests/slurminfo"
 if [[ $(uname) != Darwin ]]; then
-    TEST_DIRECTORIES="$TEST_DIRECTORIES sonard sonalyzed"
+    TEST_DIRECTORIES="$TEST_DIRECTORIES ../../tests/sonard ../../tests/sonalyzed transport"
 fi
 export TEST_ROOT=$(pwd)
-export SONALYZE=${SONALYZE:-$TEST_ROOT/../sonalyze/sonalyze}
-export NAICREPORT=$TEST_ROOT/../naicreport/naicreport
-export SONARD=$TEST_ROOT/../sonard/sonard
-export SLURMINFO=$TEST_ROOT/../slurminfo/slurminfo
-export SONALYZED=$TEST_ROOT/../sonalyzed/sonalyzed
+export SONALYZE=$TEST_ROOT/../sonalyze/target/debug/sonalyze
+export NAICREPORT=$TEST_ROOT/../../naicreport/naicreport
+export SONARD=$TEST_ROOT/../../sonard/sonard
+export INFILTRATE=$TEST_ROOT/../infiltrate/infiltrate
+export EXFILTRATE=$TEST_ROOT/../exfiltrate/exfiltrate
+export SLURMINFO=$TEST_ROOT/../../slurminfo/slurminfo
+export SONALYZED=$TEST_ROOT/../../sonalyzed/sonalyzed
 
 pattern="$1"
 hard_failed=0

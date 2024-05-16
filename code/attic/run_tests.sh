@@ -30,12 +30,31 @@ echo "======================================================================="
 echo " RUST SONALYZE REGRESSION TEST"
 echo "======================================================================="
 ( cd sonalyze ; cargo build )
-export SONALYZE=$(pwd)/sonalyze/target/debug/sonalyze
-( cd ../tests ; ./run_tests.sh )
+( cd tests ; ./run_tests.sh )
 
 echo "======================================================================="
 echo " RUSTUTILS UNIT TESTS"
 echo "======================================================================="
 # RUSTUTILS TESTS
 ( cd rustutils ; cargo test )
+
+echo "======================================================================="
+echo " SYSINFO RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd sysinfo ; go build )
+if [[ $(uname) != Darwin ]]; then
+    ( cd sysinfo ; ./sysinfo -h 2&> /dev/null )
+fi
+
+echo "======================================================================="
+echo " EXFILTRATE RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd exfiltrate ; go build )
+( cd exfiltrate ; ./exfiltrate -h 2&> /dev/null )
+
+echo "======================================================================="
+echo " INFILTRATE RELEASE BUILD + SMOKE TEST"
+echo "======================================================================="
+( cd infiltrate ; go build )
+( cd infiltrate ; ./infiltrate -h 2&> /dev/null )
 
