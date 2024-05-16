@@ -27,12 +27,6 @@ echo "======================================================================="
 ( cd sonalyze ; target/debug/sonalyze jobs --fmt=help > /dev/null )
 
 echo "======================================================================="
-echo " RUST SONALYZE REGRESSION TEST"
-echo "======================================================================="
-( cd sonalyze ; cargo build )
-( cd tests ; ./run_tests.sh )
-
-echo "======================================================================="
 echo " RUSTUTILS UNIT TESTS"
 echo "======================================================================="
 # RUSTUTILS TESTS
@@ -57,4 +51,10 @@ echo " INFILTRATE RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd infiltrate ; go build )
 ( cd infiltrate ; ./infiltrate -h 2&> /dev/null )
+
+echo "======================================================================="
+echo " RUST SONALYZE REGRESSION TEST"
+echo "======================================================================="
+( cd sonalyze ; cargo build )
+( cd tests ; ./run_tests.sh )
 
