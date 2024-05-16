@@ -2,7 +2,9 @@
 
 ## USAGE
 
-Analyze `sonar` log files and print information about jobs or systems.
+`sonalyze` is the database manager and query interface for time series data coming from sonar and
+other monitoring components.  Use it to add data and to query, manipulate, summarize, and export
+data.
 
 ### Summary
 
@@ -10,8 +12,9 @@ Analyze `sonar` log files and print information about jobs or systems.
 sonalyze operation [options] [-- logfile ...]
 ```
 
-where `operation` is `jobs`, `load`, `uptime`, `profile`, `version`, `parse`, `metadata`, or `help`:
+where `operation` is `add`, `jobs`, `load`, `uptime`, `profile`, `version`, `parse`, `metadata`, or `help`:
 
+* The `add` operation appends new records to the database (the database is append-only).
 * The `jobs` operation prints information about jobs, collected from the sonar records.
 * The `load` operation prints information about the load on the systems, collected from the sonar
   records.
@@ -26,14 +29,36 @@ where `operation` is `jobs`, `load`, `uptime`, `profile`, `version`, `parse`, `m
 
 Run `sonalyze <operation> -h` to get help about options for the specific operation.
 
-All the operations take a `--fmt` option to control the output; run with `--fmt=help` to get help on
-formatting options and the available output fields.
+All the operations that produce output take a `--fmt` option to control the output; run with
+`--fmt=help` to get help on formatting options and the available output fields.
 
 Command line parsing allows for `--option=value`, `--option value`, and also to spell `-option` with
 a single dash in either case.  It is however not possible to run single-letter options together with
 values, in the manner of `-f1w`; it must be `-f 1w`.
 
-### Overall operation
+### Data insertion operations
+
+The `add` operation is used to ingest data into the database.  In addition to an option
+`--data-path` that identifies the cluster directory, the main mode identifies the type of data.  The
+data are self-identifying and are always read from stdin.
+
+`--sample`
+
+  The data are "free CSV" data coming from `sonar ps`, representing samples for one or more systems, zero
+  or more records
+
+`--sysinfo`
+
+  The data are JSON data coming from `sonar sysinfo`, identifying one particular system, one record exactly.
+
+`--data-path=<path>`
+
+  Root directory for log files, overrides the default.  The default is the `SONAR_ROOT` environment
+  variable, or if that is not defined, `$HOME/sonar_logs`.
+
+### Analysis and data extraction operations
+
+#### Overall operation
 
 The program operates by phases:
 
@@ -50,7 +75,7 @@ are per-operation, as outlined directly below.
 Sonalyze can also act as a client toward a server that runs sonalyze on its behalf against a data
 store on a remote host, see the section "REMOTE ACCESS" further down.
 
-### Log file computation options
+#### Log file computation options
 
 `--data-path=<path>`
 
@@ -62,7 +87,7 @@ store on a remote host, see the section "REMOTE ACCESS" further down.
   If present, each `logfile` is used for input instead of anything reachable from the data path;
   the data path is ignored.
 
-### System configuration options
+#### System configuration options
 
 `--config-file=<path>`
 
@@ -70,7 +95,7 @@ store on a remote host, see the section "REMOTE ACCESS" further down.
   or print formats that make use of system-relative values (such as `rcpu`).  See the section
   "SYSTEM CONFIGURATION FILES" below.
 
-### Record filter options
+#### Record filter options
 
 All filters are optional.  Records must pass all specified filters.  All commands support the record
 filters.
@@ -129,7 +154,7 @@ filters.
   in some ways; see later section.  The option can be repeated.
 
 
-### Job filtering and aggregation options
+#### Job filtering and aggregation options
 
 These are only available with the `jobs` command.  All filters are optional.  Jobs must pass all
 specified filters.
@@ -232,7 +257,7 @@ specified filters.
   option does not guarantee that a job is observed at different points in time.  Use `--min-runtime`
   if that's what you mean.)
 
-### Load filtering and aggregation options
+#### Load filtering and aggregation options
 
 These are only available with the `load` command.  All filters are optional.  Records must pass all
 specified filters.
@@ -254,7 +279,7 @@ specified filters.
   Sum bucketed/averaged data by time step across all the selected hosts, yielding an aggregate for this
   group/subcluster of hosts.  Requires bucketing other than `--none`.
 
-### Job printing options
+#### Job printing options
 
 `--breakdown=<keywords>`
 
@@ -284,7 +309,7 @@ specified filters.
   see OUTPUT FORMAT below.
 
 
-### Load printing options
+#### Load printing options
 
 The *absolute load* at an instant on a host is the sum of a utilization field across all the
 records for the host at that instant, for the cpu, memory, gpu, and gpu memory utilization.  For
@@ -318,7 +343,7 @@ instant is 5800/19200, ie 30%.
   Do not print any output for empty time slots.  The default is to print a record for every time
   slot in the requested range.
 
-### Uptime printing options
+#### Uptime printing options
 
 `--interval=<interval>`
 
@@ -339,7 +364,7 @@ instant is 5800/19200, ie 30%.
   Format the output for `uptime` according to `format`, which is a comma-separated list of keywords,
   see OUTPUT FORMAT below.
 
-### Profiling printing options
+#### Profiling printing options
 
 `--fmt=<format>`
 
@@ -550,8 +575,9 @@ Bucketing is performed after clamping.
 
 Sometimes the log files are not stored locally but on a remote host to which we cannot log in.  If
 the `sonalyzed` server is running on that host, we can run sonalyze locally and ask it to contact
-that server and run sonalyze against the data stored there.  The server responds to an HTTP `GET`
-request; the local sonalyze constructs and sends that request via curl.
+that server and run sonalyze against the data stored there.  The server responds to HTTP `GET` and
+`POST` requests; the local sonalyze constructs and sends the appropriate request (currently via
+curl).
 
 To do so, use the `--remote` argument to provide an http URL for the remote host and the `--cluster`
 argument to name the cluster for which we want data:
@@ -568,3 +594,6 @@ manual for how to set that up.
 In the case of remote access, the server supplies the `--data-path` and `--config-file` arguments
 based on the `--cluster` argument, so the former must be omitted from the local command invocation.
 Additionally, no trailing file arguments (`-- filename ...`) are allowed in the local invocation.
+
+For the `add` operation, the credential supplied with `--auth-file` will be matched against the
+server's "upload credentials" database.

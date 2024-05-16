@@ -13,7 +13,7 @@ import (
 	. "sonalyze/command"
 )
 
-type UptimeCommand struct /* implements Command */ {
+type UptimeCommand struct /* implements AnalysisCommand */ {
 	SharedArgs
 	ConfigFileArgs
 
@@ -25,6 +25,13 @@ type UptimeCommand struct /* implements Command */ {
 	// Synthesized and other
 	printFields []string
 	printOpts   *FormatOptions
+}
+
+func (_ *UptimeCommand) Summary() []string {
+	return []string{
+		"Compute and print information about uptime and downtime of nodes",
+		"and components.",
+	}
 }
 
 func (uc *UptimeCommand) Add(fs *flag.FlagSet) {

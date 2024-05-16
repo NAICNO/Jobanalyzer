@@ -13,6 +13,7 @@ import (
 )
 
 // This is old code, currently unused but rescued for future use.  It serves a file from a request.
+// Also see cleaner code for this in sonalyzed.
 
 func NewFileHandler(
 	verbose bool,
@@ -25,11 +26,15 @@ func NewFileHandler(
 			status.Infof("%v", r.URL)
 		}
 
-		if !AssertMethod(w, r, "GET") ||
-			!Authenticate(w, r, authenticator, authRealm) {
+		if !AssertMethod(w, r, "GET", verbose) {
 			return
 		}
-		_, havePayload := ReadPayload(w, r)
+
+		authOk, _ := Authenticate(w, r, authenticator, authRealm, verbose)
+		if !authOk {
+			return
+		}
+		_, havePayload := ReadPayload(w, r, verbose)
 		if !havePayload {
 			return
 		}
