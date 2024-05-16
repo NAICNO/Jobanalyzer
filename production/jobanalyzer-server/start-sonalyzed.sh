@@ -11,7 +11,12 @@ mkdir -p $data_dir
 
 pidfile=$sonar_dir/sonalyzed.pid
 rm -f $pidfile
-$sonar_dir/sonalyzed -jobanalyzer-path $sonar_dir -port $sonalyzed_port -password-file $sonalyzed_auth_file &
+$sonar_dir/sonalyzed \
+    -jobanalyzer-dir $sonar_dir \
+    -port $sonalyzed_port \
+    -match-user-and-cluster \
+    -analysis-auth $sonalyzed_analysis_auth_file \
+    -upload-auth $sonalyzed_upload_auth_file &
 sonalyzed_pid=$!
 echo $sonalyzed_pid > $pidfile
 echo "SONALYZED RUNNING, PID=$sonalyzed_pid"

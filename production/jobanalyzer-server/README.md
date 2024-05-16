@@ -38,7 +38,6 @@ been better.  But it's a pain to change everything.)
   mkdir -p ~/sonar/data ~/sonar/reports ~/sonar/secrets
   chmod go-rwx ~/sonar/secrets
 
-  cp code/infiltrate/infiltrate ~/sonar
   cp code/naicreport/naicreport ~/sonar
   cp code/sonalyze/target/release/sonalyze ~/sonar
   cp code/sonalyzed/sonalyzed ~/sonar
@@ -78,21 +77,15 @@ Second, the web server must be configured.  These are my additions to nginx.conf
 `server` (see further down about HTTPS setup and so on):
 
 ```
-        # infiltrate upload points
-        location /sonar-reading {
-                proxy_pass http://localhost:8086;
-        }
-        location /sonar-heartbeat {
-                proxy_pass http://localhost:8086;
-        }
+        # sonalyzed upload commands
         location /sonar-freecsv {
-                proxy_pass http://localhost:8086;
+                proxy_pass http://localhost:1559;
         }
         location /sysinfo {
-                proxy_pass http://localhost:8086;
+                proxy_pass http://localhost:1559;
         }
 
-        # sonalyzed commands
+        # sonalyzed analysis commands
         location /jobs {
                 proxy_pass http://localhost:1559;
         }
@@ -118,24 +111,22 @@ Second, the web server must be configured.  These are my additions to nginx.conf
         }
 ```
 
-The port 1559 is the same used by default for the `sonalyzed` query engine, see next, while 8086
-is the port used by default for the `infiltrate` module.
-
 ### Step 4: Configure data ingestion and remote query
 
 We must create a password file in `~/sonar/secrets/sonalyzed-auth.txt`.  This is a plaintext file on
-`username:password` format, one per line.  It controls access to the query server, `sonalyzed`.
+`username:password` format, one per line.  It controls access to the analysis commands of the query
+server, `sonalyzed`.
 
 We must create a password file in `~/sonar/secrets/exfil-auth.txt`.  This is a plaintext file on
-`username:password` format, one per line.  It controls access to the data infiltration server,
-`infiltrate`.
+`username:password` format, one per line.  It controls access to the data ingestion commands of the
+query server, `sonalyzed`.
 
 Ideally the files in `secrets` are not readable or writable by anyone but the owner, but nobody
 checks this.
 
 We must then edit `~/sonar/server-config` to point to the various authorization files, to define the
 path to `$DASHBOARD/output`, and to define the ports used for various services.  The port for
-`infiltrate` must be open for remote access.
+`sonalyzed` must be open for remote access.
 
 ### Step 5: Activate server
 
@@ -144,18 +135,17 @@ Activate the cron jobs and start the data logger and the query server:
 ```
   cd ~/sonar
   crontab jobanalyzer.cron
-  ./start-infiltrate.sh
   ./start-sonalyzed.sh
 ```
 
 The data logger and query server run on ports defined in the config file, see above.
 
-## Upgrading `infiltrate` and `sonalyzed`
+## Upgrading `sonalyzed`
 
 One does not simply copy new executables into place.
 
-`infiltrate` and `sonalyzed` must be spun down on the analysis host by killing them with TERM, once
-they are down the executables can be replaced and the start scripts can be run to start new servers.
+`sonalyzed` must be spun down on the analysis host by killing it with TERM.  Once it is down the
+executable can be replaced and the start script can be run to start new server.
 
 ## Adding a new cluster
 

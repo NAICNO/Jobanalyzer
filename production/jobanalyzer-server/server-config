@@ -6,9 +6,7 @@
 ####
 # Feature configuration
 
-# `infiltrate` listens for HTTPS traffic.  Comment out or set to 0 to listen for HTTP, but note
-# the port changes.
-infiltrate_https=1
+# (nothing)
 
 ####
 # Paths elsewhere in the file system.
@@ -20,23 +18,18 @@ report_target_path=/data/www/output
 ####
 # Identities and authorization.
 
-# `infiltrate` uses this file to check that data are uploaded by authorized agents only.
-# The file has a number of lines on `username:password` format
-infiltrate_auth_file=$sonar_dir/secrets/exfil-auth.txt
-
-# `sonalyzed` uses this file to check that remote queries are made only by authorized users.
-# The file has any number of lines on `username:password` format
-sonalyzed_auth_file=$sonar_dir/secrets/sonalyzed-auth.txt
+# `sonalyzed` uses these file to check that remote operations are performed only by authorized users.
+# Both files have any number of lines on `username:password` format.  The "upload" file is used for
+# data uploads and the users are cluster names.  The "analysis" file is used for data extraction
+# and the users are actual user names.
+sonalyzed_upload_auth_file=$sonar_dir/secrets/exfil-auth.txt
+sonalyzed_analysis_auth_file=$sonar_dir/secrets/sonalyzed-auth.txt
 
 ####
 # Ports.
 #
 # Central Services has locked down most ports, here is the list of what's open:
 # https://www-int.usit.uio.no/om/organisasjon/iti/nettdrift/dokumentasjon/nett-info/uio-acl/nexus-xx-gw-2616.acl.txt
-
-# `infiltrate` listens on this port for http data uploads from the individual nodes.  This is the
-# default port but better to be explicit.
-infiltrate_http_port=8086
 
 # `sonalyzed` listens on this port for remote sonalyze queries.  This is an open `Oracle` port.
 sonalyzed_port=1559
