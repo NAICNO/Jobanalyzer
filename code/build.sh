@@ -4,8 +4,6 @@
 
 set -o errexit
 
-( cd attic ; ./build.sh )
-
 echo "======================================================================="
 echo " GO SONALYZE RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
@@ -23,26 +21,6 @@ echo " SONARD RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd sonard ; go build )
 ( cd sonard ; ./sonard -h 2&> /dev/null )
-
-echo "======================================================================="
-echo " SYSINFO RELEASE BUILD + SMOKE TEST"
-echo "======================================================================="
-( cd sysinfo ; go build )
-if [[ $(uname) != Darwin ]]; then
-    ( cd sysinfo ; ./sysinfo -h 2&> /dev/null )
-fi
-
-echo "======================================================================="
-echo " EXFILTRATE RELEASE BUILD + SMOKE TEST"
-echo "======================================================================="
-( cd exfiltrate ; go build )
-( cd exfiltrate ; ./exfiltrate -h 2&> /dev/null )
-
-echo "======================================================================="
-echo " INFILTRATE RELEASE BUILD + SMOKE TEST"
-echo "======================================================================="
-( cd infiltrate ; go build )
-( cd infiltrate ; ./infiltrate -h 2&> /dev/null )
 
 echo "======================================================================="
 echo " SONALYZED RELEASE BUILD + SMOKE TEST"
@@ -73,6 +51,12 @@ echo " NUMDIFF RELEASE BUILD + SMOKE TEST"
 echo "======================================================================="
 ( cd numdiff ; go build )
 ( cd numdiff ; ./numdiff numdiff.go numdiff.go )
+
+echo "======================================================================="
+echo " OLD CODE BUILD"
+echo "======================================================================="
+
+( cd attic ; ./build.sh )
 
 echo "======================================================================="
 echo "======================================================================="
