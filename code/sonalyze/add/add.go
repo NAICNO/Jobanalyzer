@@ -1,23 +1,15 @@
 // The "add" command adds information to the database.  It reads its input from a provided stream.
+// This command is remotable.
 //
-// add -sample
-//   Add sonar sample data.  The default format is "free csv", ie csv with name=value field syntax
-//   and no fixed colums.  There are no alternate formats at this time.
+// Major operations:
 //
-// add -sysinfo
-//   Add sonar sysinfo data.  The default format is JSON.  There are no alternate formats at
-//   this time.
+//  add -sample
+//    Add sonar sample data.  The default format is "free csv", ie csv with name=value field syntax
+//    and no fixed colums.  There are no alternate formats at this time.
 //
-// Shared arguments:
-//
-//  -data-dir dirname
-//    Normal semantics: root directory for cluster's data
-//
-//  -cpuprofile filename
-//    If present, turn on profiling and store profile in this directory
-//
-//  -v
-//    Verbose logging
+//  add -sysinfo
+//    Add sonar sysinfo data.  The default format is JSON.  There are no alternate formats at this
+//    time.
 
 package add
 

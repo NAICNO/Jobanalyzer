@@ -17,6 +17,8 @@ import (
 func localAnalysis(cmd AnalysisCommand) error {
 	args := cmd.SharedFlags()
 
+	// TODO: Instead of requiring every cmd to have ConfigFile(), we could introduce a ConfigFileAPI
+	// interface and test if the command responds to that.
 	var cfg *config.ClusterConfig
 	if configName := cmd.ConfigFile(); configName != "" {
 		var err error
