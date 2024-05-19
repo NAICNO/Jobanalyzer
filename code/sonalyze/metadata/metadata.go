@@ -21,6 +21,7 @@ type MetadataCommand struct /* implements AnalysisCommand */ {
 	MergeByJob        bool
 	Times             bool
 	Files             bool
+	Bounds            bool
 	Fmt               string
 
 	// Synthesized and other
@@ -31,6 +32,8 @@ type MetadataCommand struct /* implements AnalysisCommand */ {
 func (_ *MetadataCommand) Summary() []string {
 	return []string{
 		"Display metadata about the sample streams in the database.",
+		"One or more of -files, -times and -bounds must be selected to produce",
+		"output.",
 	}
 }
 
@@ -46,7 +49,8 @@ func (mdc *MetadataCommand) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&mdc.MergeByJob, "merge-by-job", false,
 		"Merge streams that have the same job ID, across hosts")
 	fs.BoolVar(&mdc.Files, "files", false, "List selected files")
-	fs.BoolVar(&mdc.Times, "times", false, "Show from/to timestamps")
+	fs.BoolVar(&mdc.Times, "times", false, "Show parsed from/to timestamps")
+	fs.BoolVar(&mdc.Bounds, "bounds", false, "Show host with earliest/latest timestamp")
 	fs.StringVar(&mdc.Fmt, "fmt", "",
 		"Select `field,...` and format for the output [default: try -fmt=help]")
 }
@@ -57,6 +61,7 @@ func (mdc *MetadataCommand) ReifyForRemote(x *Reifier) error {
 	x.Bool("merge-by-job", mdc.MergeByJob)
 	x.Bool("files", mdc.Files)
 	x.Bool("times", mdc.Times)
+	x.Bool("bounds", mdc.Bounds)
 	x.String("fmt", mdc.Fmt)
 	return e1
 }
@@ -137,23 +142,26 @@ func (mdc *MetadataCommand) Perform(
 		}
 	}
 
-	bounds := sonarlog.ComputeTimeBounds(samples)
-	if mdc.MergeByJob {
-		streams := sonarlog.PostprocessLog(samples, recordFilter, nil)
-		_, bounds = sonarlog.MergeByJob(streams, bounds)
+	if mdc.Bounds {
+		bounds := sonarlog.ComputeTimeBounds(samples)
+		if mdc.MergeByJob {
+			streams := sonarlog.PostprocessLog(samples, recordFilter, nil)
+			_, bounds = sonarlog.MergeByJob(streams, bounds)
+		}
+
+		// Print the bounds
+		items := make([]metadataItem, 0)
+		for k, v := range bounds {
+			items = append(items, metadataItem{
+				host:     k.String(),
+				earliest: v.Earliest,
+				latest:   v.Latest,
+			})
+		}
+		sort.Sort(HostTimeSortableItems(items))
+		FormatData(out, mdc.printFields, metadataFormatters, mdc.printOpts, items, metadataCtx(false))
 	}
 
-	// Print the bounds
-	items := make([]metadataItem, 0)
-	for k, v := range bounds {
-		items = append(items, metadataItem{
-			host:     k.String(),
-			earliest: v.Earliest,
-			latest:   v.Latest,
-		})
-	}
-	sort.Sort(HostTimeSortableItems(items))
-	FormatData(out, mdc.printFields, metadataFormatters, mdc.printOpts, items, metadataCtx(false))
 	return nil
 }
 

@@ -31,6 +31,12 @@ import (
 	"sonalyze/sonarlog"
 )
 
+var addHelp = []string{
+	"Add new data to the database.  Data are read from stdin, the type and",
+	"format are implied by operations -sample or -sysinfo, one of which must",
+	"be specified.",
+}
+
 type AddCommand struct /* implements RemotableCommand */ {
 	DevArgs
 	VerboseArgs
@@ -41,10 +47,7 @@ type AddCommand struct /* implements RemotableCommand */ {
 }
 
 func (ac *AddCommand) Summary() []string {
-	return []string{
-		"Add new data to the database.  Data are read from stdin, the type and",
-		"format being implied by -sample or -sysinfo.",
-	}
+	return addHelp
 }
 
 func (ac *AddCommand) Add(fs *flag.FlagSet) {
