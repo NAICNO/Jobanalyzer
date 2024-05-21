@@ -18,7 +18,7 @@ SORTBY=2      # "1" for CPU time, "2" for GPU time
 HOWMANY=25
 
 # Standard configuration
-SONALYZE=../code/sonalyze/target/release/sonalyze
+SONALYZE=${SONALYZE:-../code/sonalyze/sonalyze}
 REMOTE=https://naic-monitor.uio.no
 
 FIELDS=cputime/sec,gputime/sec,cmd

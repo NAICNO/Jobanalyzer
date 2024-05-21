@@ -4,14 +4,14 @@ CLUSTER=saga
 AUTH=~/.ssh/sonalyzed-auth.txt
 TIMESPAN=1w
 
-SONALYZE=../code/sonalyze/target/release/sonalyze
+SONALYZE=${SONALYZE:-../code/sonalyze/sonalyze}
 REMOTE=https://naic-monitor.uio.no
 
 $SONALYZE jobs \
   --auth-file $AUTH \
   --cluster $CLUSTER \
   --remote $REMOTE \
-  -u- \
+  --user - \
   --fmt=awk,cputime/sec,cmd \
   --from $TIMESPAN | awk '
 {

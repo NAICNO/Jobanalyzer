@@ -14,7 +14,7 @@ AUTH=~/.ssh/sonalyzed-auth.txt
 TIMESPAN=16w
 DISCRIMINANT=--some-gpu
 
-SONALYZE=../code/sonalyze/target/release/sonalyze
+SONALYZE=${SONALYZE:-../code/sonalyze/sonalyze}
 REMOTE=https://naic-monitor.uio.no
 
 # User total load across a time period, in absolute terms and as a percentage of the total.  This
@@ -39,7 +39,7 @@ $SONALYZE jobs \
   --auth-file $AUTH \
   --cluster $CLUSTER \
   --remote $REMOTE \
-  -u- \
+  --user - \
   --fmt=awk,user,$QUANT \
   --from $TIMESPAN \
   --host "$HOST" \

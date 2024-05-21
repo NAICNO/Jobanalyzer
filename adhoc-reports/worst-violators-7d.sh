@@ -14,7 +14,7 @@ TIMESPAN=7d
 HOWMANY=25
 
 # Standard configuration
-SONALYZE=../code/sonalyze/target/release/sonalyze
+SONALYZE=${SONALYZE:-../code/sonalyze/sonalyze}
 REMOTE=https://naic-monitor.uio.no
 
 FIELDS=user,cputime/sec
