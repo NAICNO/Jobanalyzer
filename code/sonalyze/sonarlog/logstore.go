@@ -11,6 +11,7 @@ import (
 
 	"go-utils/filesys"
 	"go-utils/hostglob"
+	utime "go-utils/time"
 )
 
 type LogStore struct {
@@ -64,7 +65,9 @@ func (s *LogStore) Files() ([]string, error) {
 	if len(s.files) > 0 {
 		files = s.files
 	} else {
-		files, err = filesys.EnumerateFiles(s.dataDir, s.fromDate, s.toDate, "*.csv")
+		// EnumerateFiles takes an exclusive upper bound and then chops off fractional days, so
+		// round up to include the files on the `to` date.
+		files, err = filesys.EnumerateFiles(s.dataDir, s.fromDate, utime.RoundupDay(s.toDate), "*.csv")
 		if err != nil {
 			return nil, err
 		}
