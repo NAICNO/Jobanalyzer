@@ -59,6 +59,11 @@ func NextDay(t time.Time) time.Time {
 	return ThisDay(t.AddDate(0, 0, 1))
 }
 
+func RoundupDay(t time.Time) time.Time {
+	// Add less than one full day so as to make RoundupDay idempotent.
+	return ThisDay(t.Add(24*time.Hour - 1*time.Second))
+}
+
 func PreviousDay(t time.Time) time.Time {
 	return ThisDay(t.AddDate(0, 0, -1))
 }
