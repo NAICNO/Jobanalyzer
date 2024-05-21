@@ -128,7 +128,7 @@ func commandLine() (Command, string) {
 		for _, s := range cmd.Summary() {
 			fmt.Fprintln(out, "  ", s)
 		}
-		fmt.Fprintln(out, "\nOptions:\n")
+		fmt.Fprint(out, "\nOptions:\n\n")
 		fs.PrintDefaults()
 		if restargs != "" {
 			fmt.Fprintf(out, "  logfile ...\n    \tInput data files\n")
