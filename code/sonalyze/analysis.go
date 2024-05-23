@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -14,7 +15,7 @@ import (
 	"sonalyze/sonarlog"
 )
 
-func localAnalysis(cmd AnalysisCommand) error {
+func localAnalysis(cmd AnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
 	args := cmd.SharedFlags()
 
 	// TODO: Instead of requiring every cmd to have ConfigFile(), we could introduce a ConfigFileAPI
@@ -48,10 +49,10 @@ func localAnalysis(cmd AnalysisCommand) error {
 	}
 	if args.Verbose {
 		log.Printf("%d records read + %d dropped\n", len(samples), dropped)
-		sonarlog.UstrStats(os.Stderr, false)
+		sonarlog.UstrStats(stderr, false)
 	}
 
-	err = cmd.Perform(os.Stdout, cfg, theLog, samples, hostGlobber, recordFilter)
+	err = cmd.Perform(stdout, cfg, theLog, samples, hostGlobber, recordFilter)
 	if err != nil {
 		return fmt.Errorf("Failed to perform operation\n%w", err)
 	}

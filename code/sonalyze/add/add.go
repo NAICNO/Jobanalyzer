@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"strings"
 
 	"go-utils/config"
@@ -91,13 +90,8 @@ func (ac *AddCommand) ReifyForRemote(x *Reifier) error {
 	return e1
 }
 
-func (ac *AddCommand) DataSource() io.Reader {
-	// We could imagine there being flags for this
-	return os.Stdin
-}
-
-func (ac *AddCommand) AddData() error {
-	data, err := io.ReadAll(ac.DataSource())
+func (ac *AddCommand) AddData(stdin io.Reader, _, _ io.Writer) error {
+	data, err := io.ReadAll(stdin)
 	if err != nil {
 		return err
 	}
