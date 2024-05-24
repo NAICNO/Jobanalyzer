@@ -52,9 +52,12 @@ echo "======================================================================="
 ( cd infiltrate ; go build )
 ( cd infiltrate ; ./infiltrate -h 2&> /dev/null )
 
-echo "======================================================================="
-echo " RUST SONALYZE REGRESSION TEST"
-echo "======================================================================="
-( cd sonalyze ; cargo build )
-( cd tests ; ./run_tests.sh )
+# No longer compatible, as metadata in the Go version now requires a --bounds argument and I've not
+# implemented that in the Rust version.
+#
+# echo "======================================================================="
+# echo " RUST SONALYZE REGRESSION TEST"
+# echo "======================================================================="
+# ( cd sonalyze ; cargo build )
+# ( cd tests ; ./run_tests.sh )
 

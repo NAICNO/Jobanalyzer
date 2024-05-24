@@ -36,7 +36,7 @@ ml8.hpc.uio.no,3784760,2023-09-13 23:50
 ml8.hpc.uio.no,3784760,2023-09-14 01:15' \
       "$output"
 
-output=$($SONALYZE metadata --merge-by-host-and-job -- merge.csv)
+output=$($SONALYZE metadata --merge-by-host-and-job --bounds -- merge.csv)
 CHECK metadata_merge_by_host_and_job \
       "ml1.hpc.uio.no,2023-09-13 22:00,2023-09-14 02:25
 ml8.hpc.uio.no,2023-09-13 20:00,2023-09-14 01:15" \
@@ -54,7 +54,7 @@ ml8.hpc.uio.no,2023-09-13 20:00,2023-09-14 01:15" \
 
 # TODO: clearly the merged host name is far from ideal here, issue #150.
 
-output=$($SONALYZE metadata --merge-by-job -- merge.csv)
+output=$($SONALYZE metadata --merge-by-job --bounds -- merge.csv)
 CHECK metadata_merge_by_job \
       "ml8.hpc.uio.no,2023-09-13 20:00,2023-09-14 01:15
 \"ml[1,8].hpc.uio.no\",2023-09-13 20:00,2023-09-14 02:25" \
