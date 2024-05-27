@@ -121,7 +121,7 @@ func (xs HostTimeSortableItems) Swap(i, j int) {
 func (mdc *MetadataCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	logStore *sonarlog.LogStore,
+	logDir *sonarlog.LogDir,
 	samples sonarlog.SampleStream,
 	hostGlobber *hostglob.HostGlobber,
 	recordFilter func(*sonarlog.Sample) bool,
@@ -133,7 +133,7 @@ func (mdc *MetadataCommand) Perform(
 
 	if mdc.Files {
 		// For -files, print the full paths all the input files as presented to os.Open.
-		files, err := logStore.Files()
+		files, err := logDir.Files(mdc.FromDate, mdc.ToDate, hostGlobber)
 		if err != nil {
 			return err
 		}

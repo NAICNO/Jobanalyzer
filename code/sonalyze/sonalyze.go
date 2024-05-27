@@ -20,6 +20,7 @@ import (
 	"sonalyze/metadata"
 	"sonalyze/parse"
 	"sonalyze/profile"
+	"sonalyze/sonarlog"
 	"sonalyze/uptime"
 )
 
@@ -129,6 +130,13 @@ func sonalyze() error {
 		if cmd := anyCmd.(RemotableCommand); cmd.RemotingFlags().Remoting {
 			return remoteOperation(cmd, verb, os.Stdin, os.Stdout, out)
 		}
+
+		// We are running against a local logstore.
+		//
+		// On exit, close all open directories after flushing any pending output, cancel all pending
+		// input and return errors from blocked reading operations.  We are dependent on nobody
+		// calling Exit() after this point.
+		defer sonarlog.TheStore.Close()
 
 		return stdhandler.HandleCommand(anyCmd, os.Stdin, os.Stdout, out)
 	}

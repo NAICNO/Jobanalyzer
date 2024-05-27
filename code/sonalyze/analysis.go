@@ -34,16 +34,16 @@ func localAnalysis(cmd AnalysisCommand, _ io.Reader, stdout, stderr io.Writer) e
 		return fmt.Errorf("Failed to create record filter\n%w", err)
 	}
 
-	var theLog *sonarlog.LogStore
+	var theLog *sonarlog.LogDir
 	if len(args.LogFiles) > 0 {
 		theLog, err = sonarlog.OpenFiles(args.LogFiles)
 	} else {
-		theLog, err = sonarlog.OpenDir(args.DataDir, args.FromDate, args.ToDate, hostGlobber)
+		theLog, err = sonarlog.OpenDir(args.DataDir)
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to open log store\n%w", err)
 	}
-	samples, dropped, err := theLog.ReadLogEntries(args.Verbose)
+	samples, dropped, err := theLog.ReadLogEntries(args.FromDate, args.ToDate, hostGlobber, args.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records\n%w", err)
 	}

@@ -119,17 +119,17 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 		// TODO: IMPROVEME: Benign if timestamp missing?
 		return errors.New("Missing timestamp or host in Sonar sysinfo data")
 	}
-	ds, err := sonarlog.OpenDirForAppend(ac.DataDir)
+	ds, err := sonarlog.OpenDir(ac.DataDir)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		err := ds.Close()
+		err := ds.Flush()
 		if err != nil {
-			log.Printf("Closing data store failed: %v", err)
+			log.Printf("Flushing data store failed: %v", err)
 		}
 	}()
-	err = ds.Write(info.Hostname, info.Timestamp, "sysinfo-%s.json", payload)
+	err = ds.AppendBytes(info.Hostname, info.Timestamp, "sysinfo-%s.json", payload)
 	if err == sonarlog.BadTimestampErr {
 		return nil
 	}
@@ -140,14 +140,14 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 	if ac.Verbose {
 		log.Printf("Sample records %d bytes", len(payload))
 	}
-	ds, err := sonarlog.OpenDirForAppend(ac.DataDir)
+	ds, err := sonarlog.OpenDir(ac.DataDir)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		err := ds.Close()
+		err := ds.Flush()
 		if err != nil {
-			log.Printf("Closing data store failed: %v", err)
+			log.Printf("Flushing data store failed: %v", err)
 		}
 	}()
 	count := 0
@@ -166,7 +166,7 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 			// TODO: IMPROVEME: Benign if timestamp missing?
 			return errors.New("Missing timestamp or host in Sonar sample data")
 		}
-		err = ds.WriteString(host, time, "%s.csv", text)
+		err = ds.AppendString(host, time, "%s.csv", text)
 		if err != nil && err != sonarlog.BadTimestampErr {
 			result = errors.Join(result, err)
 		}

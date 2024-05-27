@@ -13,7 +13,7 @@ import (
 func (lc *LoadCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	_ *sonarlog.LogStore,
+	_ *sonarlog.LogDir,
 	samples sonarlog.SampleStream,
 	hostGlobber *hostglob.HostGlobber,
 	recordFilter func(*sonarlog.Sample) bool,
