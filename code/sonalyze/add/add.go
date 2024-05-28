@@ -122,7 +122,7 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 	}
 	if info.Timestamp == "" || info.Hostname == "" {
 		// Older versions of `sysinfo`
-		// TODO: Benign if timestamp missing?
+		// TODO: IMPROVEME: Benign if timestamp missing?
 		return errors.New("Missing timestamp or host in Sonar sysinfo data")
 	}
 	ds, err := sonarlog.OpenDirForAppend(ac.DataDir)
@@ -169,7 +169,7 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 		host := fields["host"]
 		time := fields["time"]
 		if host == "" || time == "" {
-			// TODO: Benign if timestamp missing?
+			// TODO: IMPROVEME: Benign if timestamp missing?
 			return errors.New("Missing timestamp or host in Sonar sample data")
 		}
 		err = ds.WriteString(host, time, "%s.csv", text)

@@ -40,7 +40,7 @@ func remoteOperation(rCmd RemotableCommand, verb string) error {
 		"--fail-with-body",
 	}
 
-	// TODO: FIXME: Using -u is broken as the name/passwd will be in clear text on the command line
+	// TODO: IMPROVEME: Using -u is broken as the name/passwd will be in clear text on the command line
 	// and visible by `ps`.  Better might be to use --netrc-file, but then we have to generate this
 	// file carefully for each invocation, also a sensitive issue, and there would have to be a host
 	// name.  (But the underlying problem is that we're using curl and not making the request

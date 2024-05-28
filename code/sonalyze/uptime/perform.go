@@ -83,7 +83,7 @@ type window struct {
 func (uc *UptimeCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	logStore *sonarlog.LogStore,
+	_ *sonarlog.LogStore,
 	samples sonarlog.SampleStream,
 	hostGlobber *hostglob.HostGlobber,
 	_ func(*sonarlog.Sample) bool,

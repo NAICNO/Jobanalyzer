@@ -127,8 +127,8 @@ func (mdc *MetadataCommand) Perform(
 	recordFilter func(*sonarlog.Sample) bool,
 ) error {
 	if mdc.Times {
-		fmt.Printf("From: %s\n", mdc.FromDate.Format(time.RFC3339))
-		fmt.Printf("To:   %s\n", mdc.ToDate.Format(time.RFC3339))
+		fmt.Fprintf(out, "From: %s\n", mdc.FromDate.Format(time.RFC3339))
+		fmt.Fprintf(out, "To:   %s\n", mdc.ToDate.Format(time.RFC3339))
 	}
 
 	if mdc.Files {
@@ -138,7 +138,7 @@ func (mdc *MetadataCommand) Perform(
 			return err
 		}
 		for _, name := range files {
-			fmt.Println(name)
+			fmt.Fprintln(out, name)
 		}
 	}
 
