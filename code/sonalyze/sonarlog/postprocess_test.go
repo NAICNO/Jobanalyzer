@@ -3,6 +3,8 @@ package sonarlog
 import (
 	"os"
 	"testing"
+
+	. "sonalyze/common"
 )
 
 func TestPostprocessLogCpuUtilPct(t *testing.T) {

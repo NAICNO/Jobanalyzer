@@ -70,7 +70,7 @@ type AnalysisCommand interface {
 	Perform(
 		out io.Writer,
 		cfg *config.ClusterConfig,
-		logDir *sonarlog.LogDir,
+		logDir sonarlog.Cluster,
 		samples sonarlog.SampleStream,
 		hostGlobber *hostglob.HostGlobber,
 		recordFilter func(*sonarlog.Sample) bool,

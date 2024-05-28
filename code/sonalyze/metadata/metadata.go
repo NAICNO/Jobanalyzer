@@ -70,12 +70,8 @@ func (mdc *MetadataCommand) Validate() error {
 	e1 := mdc.SharedArgs.Validate()
 
 	var e2 error
-	spec := metadataDefaultFields
-	if mdc.Fmt != "" {
-		spec = mdc.Fmt
-	}
 	var others map[string]bool
-	mdc.printFields, others, e2 = ParseFormatSpec(spec, metadataFormatters, metadataAliases)
+	mdc.printFields, others, e2 = ParseFormatSpec(metadataDefaultFields, mdc.Fmt, metadataFormatters, metadataAliases)
 	if e2 == nil && len(mdc.printFields) == 0 {
 		e2 = errors.New("No output fields were selected in format string")
 	}
@@ -121,7 +117,7 @@ func (xs HostTimeSortableItems) Swap(i, j int) {
 func (mdc *MetadataCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	logDir *sonarlog.LogDir,
+	logDir sonarlog.Cluster,
 	samples sonarlog.SampleStream,
 	hostGlobber *hostglob.HostGlobber,
 	recordFilter func(*sonarlog.Sample) bool,
@@ -132,13 +128,17 @@ func (mdc *MetadataCommand) Perform(
 	}
 
 	if mdc.Files {
-		// For -files, print the full paths all the input files as presented to os.Open.
-		files, err := logDir.Files(mdc.FromDate, mdc.ToDate, hostGlobber)
-		if err != nil {
-			return err
-		}
-		for _, name := range files {
-			fmt.Fprintln(out, name)
+		if sampleDir, ok := logDir.(sonarlog.SampleCluster); ok {
+			// For -files, print the full paths all the input files as presented to os.Open.
+			files, err := sampleDir.SampleFilenames(mdc.FromDate, mdc.ToDate, hostGlobber)
+			if err != nil {
+				return err
+			}
+			for _, name := range files {
+				fmt.Fprintln(out, name)
+			}
+		} else {
+			panic("Bad cluster type")
 		}
 	}
 

@@ -15,8 +15,7 @@ import (
 	"go-utils/sonalyze"
 
 	. "sonalyze/command"
-	"sonalyze/common"
-	"sonalyze/sonarlog"
+	. "sonalyze/common"
 )
 
 func (jc *JobsCommand) printRequiresConfig() bool {
@@ -55,7 +54,7 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 	// in the vector and marking the numJobs first per user.
 	numRemoved := 0
 	if jc.NumJobs > 0 {
-		counts := make(map[sonarlog.Ustr]uint)
+		counts := make(map[Ustr]uint)
 		for i := len(summaries) - 1; i >= 0; i-- {
 			u := summaries[i].job[0].User
 			c := counts[u] + 1
@@ -180,7 +179,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 	},
 	"start": {
 		func(d *jobSummary, _ jobCtx) string {
-			return common.FormatYyyyMmDdHhMmUtc(d.aggregate.first)
+			return FormatYyyyMmDdHhMmUtc(d.aggregate.first)
 		},
 		"Time of first observation (yyyy-dd-mm hh:mm)",
 	},
@@ -192,7 +191,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 	},
 	"end": {
 		func(d *jobSummary, _ jobCtx) string {
-			return common.FormatYyyyMmDdHhMmUtc(d.aggregate.last)
+			return FormatYyyyMmDdHhMmUtc(d.aggregate.last)
 		},
 		"Time of last observation (yyyy-dd-mm hh:mm)",
 	},
@@ -343,7 +342,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 	},
 	"cmd": {
 		func(d *jobSummary, _ jobCtx) string {
-			names := make(map[sonarlog.Ustr]bool)
+			names := make(map[Ustr]bool)
 			name := ""
 			for _, sample := range d.job {
 				if _, found := names[sample.Cmd]; found {
@@ -377,7 +376,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 	},
 	"now": {
 		func(_ *jobSummary, c jobCtx) string {
-			return common.FormatYyyyMmDdHhMmUtc(c.now)
+			return FormatYyyyMmDdHhMmUtc(c.now)
 		},
 		"The current time (yyyy-mm-dd hh:mm)",
 	},

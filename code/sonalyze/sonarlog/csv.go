@@ -1,3 +1,5 @@
+// Fast, non-allocating sonar-log CSV parser.
+
 package sonarlog
 
 import (
@@ -8,6 +10,8 @@ import (
 	"log"
 	"math"
 	"time"
+
+	. "sonalyze/common"
 )
 
 // Read a stream of Sonar data records, parse them and return them in order.  Returns the number of
@@ -200,7 +204,7 @@ LineLoop:
 					if verbose {
 						log.Printf(
 							"Dropping field with bad form: %s",
-							"(elided)", /*tokenizer.BufSubstringSlow(start, lim) - see NOTE above*/
+							"(elided)", /*tokenizer.BufSubstringSlow(start, lim), - see NOTE above*/
 						)
 					}
 					discarded++
@@ -350,7 +354,7 @@ LineLoop:
 					if verbose {
 						log.Printf(
 							"Dropping field with unknown name: %s",
-							"(elided)", /* tokenizer.BufSubstringSlow(start, eqloc-1) -
+							"(elided)", /* tokenizer.BufSubstringSlow(start, eqloc-1), -
 							   see NOTE above */
 						)
 					}
@@ -362,7 +366,7 @@ LineLoop:
 					if verbose {
 						log.Printf(
 							"Dropping record with illegal/unparseable value: %s %v",
-							"(elided)", /*tokenizer.BufSubstringSlow(start, lim) - see NOTE above */
+							"(elided)", /*tokenizer.BufSubstringSlow(start, lim), - see NOTE above */
 							err,
 						)
 					}

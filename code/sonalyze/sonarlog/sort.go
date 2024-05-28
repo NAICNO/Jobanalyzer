@@ -1,4 +1,5 @@
-// Various sorting types for use with the old-timey sort.Sort function.
+// Various sorting types for use with the old-timey sort.Sort function.  Once we move to Go 1.21 we
+// can get rid of all of this.
 
 package sonarlog
 

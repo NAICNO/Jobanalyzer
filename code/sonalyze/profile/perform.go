@@ -17,7 +17,7 @@ import (
 func (pc *ProfileCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	_ *sonarlog.LogDir,
+	_ sonarlog.Cluster,
 	samples sonarlog.SampleStream,
 	_ *hostglob.HostGlobber,
 	recordFilter func(*sonarlog.Sample) bool,

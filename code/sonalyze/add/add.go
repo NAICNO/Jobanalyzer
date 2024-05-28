@@ -119,17 +119,12 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 		// TODO: IMPROVEME: Benign if timestamp missing?
 		return errors.New("Missing timestamp or host in Sonar sysinfo data")
 	}
-	ds, err := sonarlog.OpenDir(ac.DataDir)
+	ds, err := sonarlog.OpenPersistentCluster(ac.DataDir)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err := ds.Flush()
-		if err != nil {
-			log.Printf("Flushing data store failed: %v", err)
-		}
-	}()
-	err = ds.AppendBytes(info.Hostname, info.Timestamp, "sysinfo-%s.json", payload)
+	defer ds.FlushAsync()
+	err = ds.AppendSysinfoAsync(info.Hostname, info.Timestamp, payload)
 	if err == sonarlog.BadTimestampErr {
 		return nil
 	}
@@ -140,16 +135,11 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 	if ac.Verbose {
 		log.Printf("Sample records %d bytes", len(payload))
 	}
-	ds, err := sonarlog.OpenDir(ac.DataDir)
+	ds, err := sonarlog.OpenPersistentCluster(ac.DataDir)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err := ds.Flush()
-		if err != nil {
-			log.Printf("Flushing data store failed: %v", err)
-		}
-	}()
+	defer ds.FlushAsync()
 	count := 0
 	scanner := bufio.NewScanner(bytes.NewReader(payload))
 	var result error
@@ -166,7 +156,7 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 			// TODO: IMPROVEME: Benign if timestamp missing?
 			return errors.New("Missing timestamp or host in Sonar sample data")
 		}
-		err = ds.AppendString(host, time, "%s.csv", text)
+		err = ds.AppendSamplesAsync(host, time, text)
 		if err != nil && err != sonarlog.BadTimestampErr {
 			result = errors.Join(result, err)
 		}

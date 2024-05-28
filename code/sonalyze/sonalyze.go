@@ -131,12 +131,13 @@ func sonalyze() error {
 			return remoteOperation(cmd, verb, os.Stdin, os.Stdout, out)
 		}
 
-		// We are running against a local logstore.
+		// We are running against a local cluster store.
 		//
-		// On exit, close all open directories after flushing any pending output, cancel all pending
-		// input and return errors from blocked reading operations.  We are dependent on nobody
-		// calling Exit() after this point.
-		defer sonarlog.TheStore.Close()
+		// On return, close all open directories after flushing any pending output, cancel all
+		// pending input and return errors from blocked reading operations.
+		//
+		// Note, we are dependent on nobody calling Exit() after this point.
+		defer sonarlog.Close()
 
 		return stdhandler.HandleCommand(anyCmd, os.Stdin, os.Stdout, out)
 	}

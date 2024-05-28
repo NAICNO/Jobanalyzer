@@ -29,16 +29,26 @@ func (fo *FormatOptions) IsDefaultFormat() bool {
 	return !fo.Json && !fo.Csv && !fo.Awk && !fo.Fixed
 }
 
-// Return a list of the known fields in `spec` wrt the `formatters`, and a set of any other strings
-// found in `spec`.  Expand aliases (though not recursively: aliases must map to fundamental names).
+// If fmtOpt is "" or "help" then the spec is the defaults, otherwise the spec is fmtOpt.
+//
+// Return a list of the known fields in the spec wrt the `formatters`, and a set of any other
+// strings found in `spec`, plus also "help" if fmtOpt=="help".  Expand aliases (though not
+// recursively: aliases must map to fundamental names).
 
 func ParseFormatSpec[Data, Ctx any](
-	spec string,
+	defaults, fmtOpt string,
 	formatters map[string]Formatter[Data, Ctx],
 	aliases map[string][]string,
 ) ([]string, map[string]bool, error) {
+	spec := fmtOpt
+	if fmtOpt == "" || fmtOpt == "help" {
+		spec = defaults
+	}
 	others := make(map[string]bool)
 	fields := make([]string, 0)
+	if fmtOpt == "help" {
+		others["help"] = true
+	}
 	for _, kwd := range strings.Split(spec, ",") {
 		if _, found := formatters[kwd]; found {
 			fields = append(fields, kwd)

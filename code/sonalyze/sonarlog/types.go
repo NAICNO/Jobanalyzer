@@ -1,13 +1,20 @@
+// Core types for Sonar `ps` log data.
+
 package sonarlog
 
 import (
 	"go-utils/gpuset"
+	. "sonalyze/common"
 )
 
-// Memory use.
+const (
+	FlagHeartbeat = 1 // Record is a heartbeat record
+)
+
+// The core type is the `Sample`, which represents one log record.
 //
-// A huge number of these (about 10e6 records per month for Saga) may be in memory at the same time
-// when processing logs, so several optimizations have been applied:
+// A huge number of these (about 10e6 records per month for Saga, probably 4x that for Betzy) may be
+// in memory at the same time when processing logs, so several optimizations have been applied:
 //
 //  - all fields are pointer free, so these structures don't need to be traced by the GC
 //  - strings are hash-consed into Ustr, which takes 4 bytes
@@ -23,16 +30,12 @@ import (
 //  - Timestamp can be reduced to uint32
 //  - CpuPct, GpuMemPct, GpuPct can be float16 or 16-bit fixedpoint or simply uint16, the value
 //    scaled by 10 (ie integer per mille - change the field names)
-//  - There are many fields that have unused bits, for example, Ustr is unlikely ever to need
-//    more than 24 bits, most memory sizes need more than 32 bits but not more than 38, Job and
-//    Process IDs are probably 24 bits or so, and Rolledup is unlikely to be more than 16 bits.
-//    GpuFail and Flags are single bits at present.
+//  - There are many fields that have unused bits, for example, Ustr is unlikely ever to need more
+//    than 24 bits, most memory sizes need more than 32 bits (4GB) but maybe not more than 40 (1TB),
+//    Job and Process IDs are probably 24 bits or so, and Rolledup is unlikely to be more than 16
+//    bits.  GpuFail and Flags are single bits at present.
 //
-// It seems likely that if we applied all of these we could save another 30 bytes easily.
-
-const (
-	FlagHeartbeat = 1 // Record is a heartbeat record
-)
+// It seems likely that if we applied all of these we could save another 30 bytes.
 
 type Sample struct {
 	Timestamp   int64

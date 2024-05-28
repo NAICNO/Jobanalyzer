@@ -1,0 +1,9 @@
+{
+  "timestamp": "2023-05-30T00:00:02+02:00",
+  "hostname": "b",
+  "description": "2x14 (hyperthreaded) Intel(R) Xeon(R) Gold 5120 CPU @ 2.20GHz, 125 GiB, 4x NVIDIA GeForce RTX 2080 Ti @ 11GiB",
+  "cpu_cores": 56,
+  "mem_gb": 125,
+  "gpu_cards": 4,
+  "gpumem_gb": 44
+}

@@ -60,13 +60,9 @@ func (pc *ProfileCommand) Validate() error {
 		e3 = errors.New("Exactly one specific job number is required by `profile`")
 	}
 
-	spec := profileDefaultFields
-	if pc.Fmt != "" {
-		spec = pc.Fmt
-	}
 	var others map[string]bool
 	var e4 error
-	pc.printFields, others, e4 = ParseFormatSpec(spec, profileFormatters, profileAliases)
+	pc.printFields, others, e4 = ParseFormatSpec(profileDefaultFields, pc.Fmt, profileFormatters, profileAliases)
 	if e4 == nil && len(pc.printFields) == 0 && !others["json"] {
 		e4 = errors.New("No output fields were selected in format string")
 	}

@@ -1,4 +1,4 @@
-// Helpers for merging sample streams.
+// Logic for merging sample streams.
 
 package sonarlog
 
@@ -11,7 +11,7 @@ import (
 	"go-utils/maps"
 	"go-utils/minmax"
 	"go-utils/slices"
-	"sonalyze/common"
+	. "sonalyze/common"
 )
 
 const (
@@ -636,23 +636,23 @@ func sumRecords(
 }
 
 func FoldSamplesHalfHourly(samples SampleStream) SampleStream {
-	return foldSamples(samples, common.TruncateToHalfHour)
+	return foldSamples(samples, TruncateToHalfHour)
 }
 
 func FoldSamplesHourly(samples SampleStream) SampleStream {
-	return foldSamples(samples, common.TruncateToHour)
+	return foldSamples(samples, TruncateToHour)
 }
 
 func FoldSamplesHalfDaily(samples SampleStream) SampleStream {
-	return foldSamples(samples, common.TruncateToHalfDay)
+	return foldSamples(samples, TruncateToHalfDay)
 }
 
 func FoldSamplesDaily(samples SampleStream) SampleStream {
-	return foldSamples(samples, common.TruncateToDay)
+	return foldSamples(samples, TruncateToDay)
 }
 
 func FoldSamplesWeekly(samples SampleStream) SampleStream {
-	return foldSamples(samples, common.TruncateToWeek)
+	return foldSamples(samples, TruncateToWeek)
 }
 
 func foldSamples(samples SampleStream, truncTime func(int64) int64) SampleStream {

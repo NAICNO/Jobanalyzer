@@ -167,7 +167,7 @@ func (dc *DaemonCommand) Validate() error {
 	// to open it.
 	aliasesFile := path.Join(dc.jobanalyzerDir, clusterAliasesFilename)
 	if info, err := os.Stat(aliasesFile); err == nil {
-		if info.Mode() & fs.ModeType != 0 {
+		if info.Mode()&fs.ModeType != 0 {
 			e6 = errors.New("Cluster alias file is not a regular file")
 		} else {
 			dc.aliasResolver, e6 = alias.ReadAliases(aliasesFile)

@@ -155,12 +155,8 @@ func (lc *LoadCommand) Validate() error {
 	}
 
 	var e6 error
-	spec := loadDefaultFields
-	if lc.Fmt != "" {
-		spec = lc.Fmt
-	}
 	var others map[string]bool
-	lc.printFields, others, e6 = ParseFormatSpec(spec, loadFormatters, loadAliases)
+	lc.printFields, others, e6 = ParseFormatSpec(loadDefaultFields, lc.Fmt, loadFormatters, loadAliases)
 	if e6 == nil && len(lc.printFields) == 0 {
 		e6 = errors.New("No output fields were selected in format string")
 	}

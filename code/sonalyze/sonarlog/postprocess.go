@@ -9,6 +9,7 @@ import (
 
 	"go-utils/config"
 	"go-utils/minmax"
+	. "sonalyze/common"
 )
 
 // The InputStreamKey is (hostname, stream-id, cmd), where the stream-id is defined below; it is
