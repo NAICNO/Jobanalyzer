@@ -10,9 +10,10 @@ interface HostDetailsChartProps {
     width: number | string;
     height: number | string;
   }
+  isShowDataPoints?: boolean;
 }
 
-const HostDetailsChart = ({dataItems, seriesConfigs, containerProps}: HostDetailsChartProps) => {
+const HostDetailsChart = ({dataItems, seriesConfigs, containerProps, isShowDataPoints}: HostDetailsChartProps) => {
 
   const [lineVisibility, setLineVisibility] = useState<boolean[]>(() => seriesConfigs.map(() => true))
 
@@ -47,7 +48,13 @@ const HostDetailsChart = ({dataItems, seriesConfigs, containerProps}: HostDetail
           height={100}
 
         />
-        <YAxis/>
+        <YAxis
+          domain={([dataMin, dataMax]) => {
+            const min = dataMin
+            const max = Math.round(dataMax / 100) * 100
+            return [min, max]
+          }}
+        />
         <Tooltip labelFormatter={dateTimeFormatter}/>
         <Legend
           verticalAlign={'top'}
@@ -60,10 +67,10 @@ const HostDetailsChart = ({dataItems, seriesConfigs, containerProps}: HostDetail
           return (
             <Line
               key={config.dataKey}
-              type="monotone"
+              type="linear"
               dataKey={config.dataKey}
               stroke={config.lineColor}
-              dot={false}
+              dot={isShowDataPoints}
               name={config.label}
               strokeWidth={config.strokeWidth}
               hide={lineVisibility[seriesConfigs.indexOf(config)]}

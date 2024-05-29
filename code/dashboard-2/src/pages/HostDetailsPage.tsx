@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react'
 import {
   Box,
   Checkbox,
+  Divider,
   Heading,
   HStack,
   Select,
   SlideFade,
-  Spacer, Table,
-  TableContainer, Tbody, Td,
-  Text, Tr,
+  Spacer,
+  Text,
   VStack
 } from '@chakra-ui/react'
 import { Navigate, useParams } from 'react-router-dom'
@@ -48,6 +48,7 @@ export default function HostDetailsPage() {
   const [selectedFrequency, setSelectedFrequency] = useState(FETCH_FREQUENCIES[0])
   const [isShowData, setIsShowData] = useState<boolean>(true)
   const [isShowDowntime, setIsShowDowntime] = useState<boolean>(false)
+  const [isShowDataPoints, setIsShowDataPoints] = useState<boolean>(false)
 
   const {data: hostnames} = useFetchHostnames(selectedCluster.cluster)
 
@@ -120,24 +121,16 @@ export default function HostDetailsPage() {
     <VStack spacing={4} alignItems="start">
       <HStack mb="15px">
         <NavigateBackButton/>
-        <Heading as="h2" size="xl">Machine Details</Heading>
+        <Heading as="h3" size="lg">
+          Machine Details: {hostDetails?.system.hostname}
+        </Heading>
       </HStack>
-      <TableContainer>
-        <Table>
-          <Tbody>
-            <Tr>
-              <Td>Cluster</Td>
-              <Td>{hostDetails?.system.hostname}</Td>
-            </Tr>
-            <Tr>
-              <Td>Description</Td>
-              <Td>{hostDetails?.system.description}</Td>
-            </Tr>
-          </Tbody>
-        </Table>
-      </TableContainer>
+      <Text> Description :{'\t'}{hostDetails?.system.description}
+      </Text>
 
-      <Heading as="h3" size="lg" my="20px">Machine Load</Heading>
+      <Divider/>
+
+      <Heading as="h4" size="lg" my="0px">Machine Load</Heading>
 
       <HStack w="100%">
         <Box w="50%">
@@ -164,6 +157,11 @@ export default function HostDetailsPage() {
           onChange={(event) => setIsShowData(event.target.checked)}>
           Show data
         </Checkbox>
+        <Checkbox
+          isChecked={isShowDataPoints}
+          onChange={(event) => setIsShowDataPoints(event.target.checked)}>
+          Show data points
+        </Checkbox>
         {hasDowntime &&
           <Checkbox
             isChecked={isShowDowntime}
@@ -179,6 +177,7 @@ export default function HostDetailsPage() {
           width: '100%',
           height: 600,
         }}
+        isShowDataPoints={isShowDataPoints}
       />
       <Text>Data are relative to all system resources (e.g., 100% CPU
         means all cores are completely busy; 100% GPU means all cards are completely busy).

@@ -68,7 +68,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Container height="100vh" centerContent>
+      <Container centerContent>
         <VStack spacing={1}>
           <Heading size="lg" mb={4}>{selectedCluster.name}: Jobanalyzer Dashboard</Heading>
           <Text>Click on hostname for machine details.</Text>
@@ -90,7 +90,7 @@ export default function DashboardPage() {
             focusRef={focusRef}
           />
           <SlideFade in={isFetched}>
-            < DashboardTable table={table} cluster={selectedCluster}/>
+            <DashboardTable table={table} cluster={selectedCluster}/>
           </SlideFade>
         </VStack>
       </Container>

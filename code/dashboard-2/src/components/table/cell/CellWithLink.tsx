@@ -9,8 +9,8 @@ interface CellWithLinkProps {
 
 const CellWithLink = ({value}: CellWithLinkProps) => {
   return (
-    <CellWrapper styleProps={{paddingLeft: 4}}>
-      <ChakraLink as={ReactRouterLink} to={value.link}>
+    <CellWrapper styleProps={{paddingLeft: 2}}>
+      <ChakraLink as={ReactRouterLink} to={value.link} color={'teal.500'}>
         {value.text}
       </ChakraLink>
     </CellWrapper>

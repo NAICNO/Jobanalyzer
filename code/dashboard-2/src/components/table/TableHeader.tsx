@@ -22,7 +22,10 @@ const TableHeader = ({table}: TableHeaderProps<any>) => {
                 onClick={header.column.getToggleSortingHandler()}
                 isNumeric={meta?.isNumeric}
                 colSpan={header.colSpan}
-                style={{textTransform: 'none'}}
+                style={{
+                  textTransform: 'none',
+                  minWidth: header.column.columnDef.minSize,
+                }}
                 title={meta?.helpText}
               >
                 {

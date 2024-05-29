@@ -6,4 +6,5 @@ interface DeadWeightTableColumnHeader {
   sortable?: boolean;
   description?: string;
   renderFn?: (value: any) => any;
+  minSize?: number;
 }
