@@ -1,0 +1,2 @@
+v=0.7.0,time=2023-06-26T18:00:01+02:00,host=ml4.hpc.uio.no,cores=192,user=zabbix,job=4093,pid=0,cmd=zabbix_agentd,cpu%=4.3,cpukib=2664,cputime_sec=7,rolledup=5
+v=0.7.0,time=2023-06-26T18:05:01+02:00,host=ml4.hpc.uio.no,cores=192,user=root,job=4079,pid=4079,cmd=tuned,cpu%=2.6,cpukib=94704,cputime_sec=0,yabbadabbadoo=37

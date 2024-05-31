@@ -1,11 +1,11 @@
 package filesys
 
 import (
+	"bufio"
 	"fmt"
 	"io/fs"
 	"os"
 	"path"
-	"strings"
 	"time"
 )
 
@@ -66,6 +66,7 @@ func PopulateTestData(tag string, data ...TestFile) (string, error) {
 	return tempdir, nil
 }
 
+// Copy `from` to `to`, creating `to` if necessary with mode 0644.
 func CopyFile(from, to string) error {
 	data, err := os.ReadFile(from)
 	if err != nil {
@@ -74,10 +75,49 @@ func CopyFile(from, to string) error {
 	return os.WriteFile(to, data, 0644)
 }
 
-func FileLines(filename string) ([]string, error) {
-	bytes, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("Could not open %s: %v", filename, err)
+// Copy the files of `fromDir` to `toDir`, recursively, creating `toDir` and any subdirectories (and
+// all files) as necessary.
+
+func CopyDir(srcDir, targetDir string) error {
+	err := os.Mkdir(targetDir, 0755)
+	if err != nil && !os.IsExist(err) {
+		return err
 	}
-	return strings.Split(string(bytes), "\n"), nil
+	srcFS := os.DirFS(srcDir).(fs.StatFS)
+	srcFilesAndDirs, err := fs.Glob(srcFS, "*")
+	if err != nil {
+		return err
+	}
+	for _, srcFileOrDir := range srcFilesAndDirs {
+		info, err := srcFS.Stat(srcFileOrDir)
+		if err != nil {
+			return err
+		}
+		targetFullPath := path.Join(targetDir, srcFileOrDir)
+		srcFullPath := path.Join(srcDir, srcFileOrDir)
+		if info.IsDir() {
+			err = CopyDir(srcFullPath, targetFullPath)
+		} else {
+			err = CopyFile(srcFullPath, targetFullPath)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func FileLines(filename string) (lines []string, err error) {
+	lines = make([]string, 0)
+	f, err := os.Open(filename)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	err = scanner.Err()
+	return
 }

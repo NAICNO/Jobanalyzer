@@ -66,6 +66,9 @@ type InputStreamSet map[InputStreamKey]*SampleStream
 // TODO: INVESTIGATE: JobIdTag is currently 1e8 because Linux pids are smaller than 1e8, so this
 // guarantees that there is not a clash with a pid, but it's possible job IDs can be larger than
 // PIDS.
+//
+// TODO: INVESTIGATE: Admins swear that Slurm Job IDs are never reused (and that chaos ensues when
+// they are) and are currently above 1e6 on some systems.
 
 const JobIdTag = 10000000
 

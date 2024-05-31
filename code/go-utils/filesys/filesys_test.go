@@ -1,8 +1,11 @@
 package filesys
 
 import (
+	"io/fs"
 	"os"
 	"path"
+	"reflect"
+	"sort"
 	"testing"
 	"time"
 )
@@ -21,7 +24,7 @@ func TestEnumerateFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EnumerateFiles returned error %q", err)
 	}
-	if !same(files, []string{
+	if !reflect.DeepEqual(files, []string{
 		"2023/05/30/a0.csv",
 		"2023/05/31/a1.csv",
 		"2023/06/01/a1.csv",
@@ -33,14 +36,50 @@ func TestEnumerateFiles(t *testing.T) {
 	}
 }
 
-func same(a []string, b []string) bool {
-	if len(a) != len(b) {
-		return false
+func checkSameTree(t *testing.T, d1, d2 string) {
+	a := os.DirFS(d1).(fs.StatFS)
+	b := os.DirFS(d2).(fs.StatFS)
+	m1, err := fs.Glob(a, "*")
+	if err != nil {
+		t.Fatal("Glob a", d1)
 	}
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return false
+	m2, err := fs.Glob(b, "*")
+	if err != nil {
+		t.Fatal("Glob b", d2)
+	}
+	sort.Sort(sort.StringSlice(m1))
+	sort.Sort(sort.StringSlice(m2))
+	if !reflect.DeepEqual(m1, m2) {
+		t.Fatal("Not the same names", m1, m2)
+	}
+	for _, m := range m1 {
+		i1, err := a.Stat(m)
+		if err != nil {
+			t.Fatal("Stat", d1)
+		}
+		i2, err := b.Stat(m)
+		if err != nil {
+			t.Fatal("Stat", d2)
+		}
+		if i1.IsDir() != i2.IsDir() {
+			t.Fatal("Not both directories or files")
+		}
+		if i1.IsDir() {
+			checkSameTree(t, path.Join(d1, m), path.Join(d2, m))
+		} else {
+			x, _ := os.ReadFile(path.Join(d1, m))
+			y, _ := os.ReadFile(path.Join(d2, m))
+			if !reflect.DeepEqual(x, y) {
+				t.Fatal("Not same contents", m)
+			}
 		}
 	}
-	return true
+}
+
+func TestCopyDir(t *testing.T) {
+	tmp, _ := os.MkdirTemp("", "filesys")
+	defer os.RemoveAll(tmp)
+	src := "../../tests/sonarlog/whitebox-tree"
+	CopyDir(src, tmp)
+	checkSameTree(t, src, tmp)
 }
