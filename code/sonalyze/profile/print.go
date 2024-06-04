@@ -61,7 +61,7 @@ import (
 
 type profileLine struct {
 	t int64 // timestamp or 0
-	r *sonarlog.Sample
+	r *profDatum
 }
 
 func (pc *ProfileCommand) printProfile(
@@ -121,7 +121,7 @@ func (pc *ProfileCommand) collectHtml(
 	m *profData,
 	processes sonarlog.SampleStreams,
 ) (labels []string, rows []string, err error) {
-	var formatter func(*sonarlog.Sample) string
+	var formatter func(*profDatum) string
 	formatter, err = checkFields(pc.printFields)
 	if err != nil {
 		return
@@ -138,7 +138,7 @@ func (pc *ProfileCommand) collectHtml(
 	rowLabels := make([]string, len(processes))
 	for i, p := range processes {
 		// Here, use the raw pid for compatibility with the Rust code
-		rowLabels[i] = fmt.Sprintf("%s (%d)", (*p)[0].Cmd.String(), (*p)[0].Pid)
+		rowLabels[i] = fmt.Sprintf("%s (%d)", (*p)[0].S.Cmd.String(), (*p)[0].S.Pid)
 	}
 
 	rows = make([]string, len(processes))
@@ -149,8 +149,8 @@ func (pc *ProfileCommand) collectHtml(
 		for _, rn := range rowNames {
 			entry := m.get(rn, cn)
 			s += sep
-			if !entry.isEmpty() {
-				s += formatter(entry.s)
+			if entry != nil {
+				s += formatter(entry)
 			}
 			sep = ","
 		}
@@ -168,7 +168,7 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 	m *profData,
 	processes sonarlog.SampleStreams,
 ) (header []string, matrix [][]string, err error) {
-	var formatter func(*sonarlog.Sample) string
+	var formatter func(*profDatum) string
 	formatter, err = checkFields(pc.printFields)
 	if err != nil {
 		return
@@ -181,7 +181,7 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 			sep = " "
 		}
 		for _, process := range processes {
-			header = append(header, fmt.Sprintf("%s%s(%d)", (*process)[0].Cmd, sep, (*process)[0].Pid))
+			header = append(header, fmt.Sprintf("%s%s(%d)", (*process)[0].S.Cmd, sep, (*process)[0].S.Pid))
 		}
 	}
 
@@ -198,8 +198,8 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 		for x, p := range processes {
 			pid := processId((*p)[0])
 			entry := m.get(rn, pid)
-			if !entry.isEmpty() {
-				matrix[y][x+1] = formatter(entry.s)
+			if entry != nil {
+				matrix[y][x+1] = formatter(entry)
 			}
 		}
 	}
@@ -226,11 +226,11 @@ func (pc *ProfileCommand) collectFixed(
 		for _, p := range processes {
 			cn := processId((*p)[0])
 			entry := m.get(rn, cn)
-			if !entry.isEmpty() {
+			if entry != nil {
 				if first {
-					data = append(data, profileLine{entry.s.Timestamp, entry.s})
+					data = append(data, profileLine{entry.s.Timestamp, entry})
 				} else {
-					data = append(data, profileLine{0, entry.s})
+					data = append(data, profileLine{0, entry})
 				}
 				first = false
 			}
@@ -240,7 +240,7 @@ func (pc *ProfileCommand) collectFixed(
 	return
 }
 
-func checkFields(fields []string) (formatter func(*sonarlog.Sample) string, err error) {
+func checkFields(fields []string) (formatter func(*profDatum) string, err error) {
 	n := 0
 	for _, f := range fields {
 		switch f {
@@ -344,28 +344,28 @@ func formatJson(
 	objects := make([]jsonJob, 0)
 	for _, rn := range m.rows() {
 		points := make([]jsonPoint, 0)
-		var e profDatum
+		var e *profDatum
 		for _, p := range processes {
 			cn := processId((*p)[0])
 			entry := m.get(rn, cn)
-			if entry.isEmpty() {
+			if entry == nil {
 				continue
 			}
-			if e.isEmpty() {
+			if e == nil {
 				e = entry
 			}
 			var cpuGB, gpuGB uint64
 			if !noMemory {
-				cpuGB = entry.s.CpuKib / (1024 * 1024)
-				gpuGB = entry.s.GpuKib / (1024 * 1024)
+				cpuGB = entry.cpuKib / (1024 * 1024)
+				gpuGB = entry.gpuKib / (1024 * 1024)
 			}
 			points = append(points, jsonPoint{
 				Command:    entry.s.Cmd.String(),
 				Pid:        entry.s.Pid, // Hm
-				CpuUtilPct: int(math.Round(float64(entry.s.CpuUtilPct))),
+				CpuUtilPct: int(math.Round(float64(entry.cpuUtilPct))),
 				CpuGB:      cpuGB,
-				RssAnonGB:  entry.s.RssAnonKib / (1024 * 1024),
-				GpuPct:     int(math.Round(float64(entry.s.GpuPct))),
+				RssAnonGB:  entry.rssAnonKib / (1024 * 1024),
+				GpuPct:     int(math.Round(float64(entry.gpuPct))),
 				GpuMemGB:   gpuGB,
 				Nproc:      int(entry.s.Rolledup) + 1,
 			})
@@ -391,21 +391,23 @@ func (pc *ProfileCommand) MaybeFormatHelp() *FormatHelp {
 	return StandardFormatHelp(pc.Fmt, profileHelp, profileFormatters, profileAliases, profileDefaultFields)
 }
 
-var profileHelp = `
+const profileHelp = `
 profile
   Compute aggregate job behavior across processes by time step, for some job
   attributes.  Default output format is 'fixed'.
 `
 
-var profileDefaultFields = "time,cpu,mem,gpu,gpumem,cmd"
-var profileDefaultFieldsWithNproc = "time,cpu,mem,gpu,gpumem,nproc,cmd"
+const profileDefaultFields = "time,cpu,mem,gpu,gpumem,cmd"
+const profileDefaultFieldsWithNproc = "time,cpu,mem,gpu,gpumem,nproc,cmd"
 
+// MT: Constant after initialization; immutable
 var profileAliases = map[string][]string{
 	"rss": []string{"res"},
 }
 
 type profileCtx bool
 
+// MT: Constant after initialization; immutable
 var profileFormatters = map[string]Formatter[profileLine, profileCtx]{
 	"time": {
 		func(d profileLine, _ profileCtx) string {
@@ -448,16 +450,16 @@ var profileFormatters = map[string]Formatter[profileLine, profileCtx]{
 	},
 	"cmd": {
 		func(d profileLine, _ profileCtx) string {
-			return d.r.Cmd.String()
+			return d.r.s.Cmd.String()
 		},
 		"Name of executable starting the process",
 	},
 	"nproc": {
 		func(d profileLine, _ profileCtx) string {
-			if d.r.Rolledup == 0 {
+			if d.r.s.Rolledup == 0 {
 				return ""
 			}
-			return fmt.Sprint(d.r.Rolledup + 1)
+			return fmt.Sprint(d.r.s.Rolledup + 1)
 		},
 		"Number of rolled-up processes, blank for zero",
 	},
@@ -467,22 +469,22 @@ func formatTime(t int64) string {
 	return common.FormatYyyyMmDdHhMmUtc(t)
 }
 
-func formatCpuUtilPct(s *sonarlog.Sample) string {
-	return fmt.Sprint(math.Round(float64(s.CpuUtilPct)))
+func formatCpuUtilPct(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.cpuUtilPct)))
 }
 
-func formatMem(s *sonarlog.Sample) string {
-	return fmt.Sprint(math.Round(float64(s.CpuKib) / (1024 * 1024)))
+func formatMem(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.cpuKib) / (1024 * 1024)))
 }
 
-func formatRes(s *sonarlog.Sample) string {
-	return fmt.Sprint(math.Round(float64(s.RssAnonKib) / (1024 * 1024)))
+func formatRes(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.rssAnonKib) / (1024 * 1024)))
 }
 
-func formatGpuPct(s *sonarlog.Sample) string {
-	return fmt.Sprint(math.Round(float64(s.GpuPct)))
+func formatGpuPct(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.gpuPct)))
 }
 
-func formatGpuMem(s *sonarlog.Sample) string {
-	return fmt.Sprint(math.Round(float64(s.GpuKib) / (1024 * 1024)))
+func formatGpuMem(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.gpuKib) / (1024 * 1024)))
 }

@@ -1,4 +1,4 @@
-package sonarlog
+package db
 
 import (
 	"encoding/json"

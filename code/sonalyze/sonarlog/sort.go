@@ -14,7 +14,7 @@ func (t TimeSortableSampleStream) Swap(i, j int) {
 }
 
 func (t TimeSortableSampleStream) Less(i, j int) bool {
-	return t[i].Timestamp < t[j].Timestamp
+	return t[i].S.Timestamp < t[j].S.Timestamp
 }
 
 // Sort SampleStream by host (primary) and time (secondary)
@@ -30,10 +30,10 @@ func (ss HostTimeSortableSampleStream) Swap(i, j int) {
 }
 
 func (ss HostTimeSortableSampleStream) Less(i, j int) bool {
-	if ss[i].Host != ss[j].Host {
-		return ss[i].Host.String() < ss[j].Host.String()
+	if ss[i].S.Host != ss[j].S.Host {
+		return ss[i].S.Host.String() < ss[j].S.Host.String()
 	}
-	return ss[i].Timestamp < ss[j].Timestamp
+	return ss[i].S.Timestamp < ss[j].S.Timestamp
 }
 
 // Sort SampleStreams by host, time, job, and command (in that order)
@@ -49,17 +49,17 @@ func (sss HostTimeJobCmdSortableSampleStreams) Swap(i, j int) {
 }
 
 func (sss HostTimeJobCmdSortableSampleStreams) Less(i, j int) bool {
-	if (*sss[i])[0].Host == (*sss[j])[0].Host {
-		if (*sss[i])[0].Timestamp == (*sss[j])[0].Timestamp {
-			if (*sss[i])[0].Job == (*sss[j])[0].Job {
-				return (*sss[i])[0].Cmd.String() < (*sss[j])[0].Cmd.String()
+	if (*sss[i])[0].S.Host == (*sss[j])[0].S.Host {
+		if (*sss[i])[0].S.Timestamp == (*sss[j])[0].S.Timestamp {
+			if (*sss[i])[0].S.Job == (*sss[j])[0].S.Job {
+				return (*sss[i])[0].S.Cmd.String() < (*sss[j])[0].S.Cmd.String()
 			}
-			return (*sss[i])[0].Job < (*sss[j])[0].Job
+			return (*sss[i])[0].S.Job < (*sss[j])[0].S.Job
 		} else {
-			return (*sss[i])[0].Timestamp < (*sss[j])[0].Timestamp
+			return (*sss[i])[0].S.Timestamp < (*sss[j])[0].S.Timestamp
 		}
 	} else {
-		return (*sss[i])[0].Host.String() < (*sss[j])[0].Host.String()
+		return (*sss[i])[0].S.Host.String() < (*sss[j])[0].S.Host.String()
 	}
 }
 
@@ -76,7 +76,7 @@ func (sss HostSortableSampleStreams) Swap(i, j int) {
 }
 
 func (sss HostSortableSampleStreams) Less(i, j int) bool {
-	return (*sss[i])[0].Host.String() < (*sss[j])[0].Host.String()
+	return (*sss[i])[0].S.Host.String() < (*sss[j])[0].S.Host.String()
 }
 
 // Sort SampleStreams by time
@@ -92,5 +92,5 @@ func (sss TimeSortableSampleStreams) Swap(i, j int) {
 }
 
 func (sss TimeSortableSampleStreams) Less(i, j int) bool {
-	return (*sss[i])[0].Timestamp < (*sss[j])[0].Timestamp
+	return (*sss[i])[0].S.Timestamp < (*sss[j])[0].S.Timestamp
 }

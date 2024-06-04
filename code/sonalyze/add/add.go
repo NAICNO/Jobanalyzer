@@ -22,14 +22,16 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"go-utils/config"
 	. "sonalyze/command"
+	. "sonalyze/common"
+	"sonalyze/db"
 	"sonalyze/sonarlog"
 )
 
+// MT: Constant after initialization; immutable
 var addHelp = []string{
 	"Add new data to the database.  Data are read from stdin, the type and",
 	"format are implied by operations -sample or -sysinfo, one of which must",
@@ -41,6 +43,7 @@ type AddCommand struct /* implements RemotableCommand */ {
 	VerboseArgs
 	DataDirArgs
 	RemotingArgs
+	ConfigFileArgs
 	Sample  bool
 	Sysinfo bool
 }
@@ -54,15 +57,19 @@ func (ac *AddCommand) Add(fs *flag.FlagSet) {
 	ac.VerboseArgs.Add(fs)
 	ac.DataDirArgs.Add(fs)
 	ac.RemotingArgs.Add(fs)
-	fs.BoolVar(&ac.Sample, "sample", false, "Insert sonar sample data from stdin (zero or more records)")
-	fs.BoolVar(&ac.Sysinfo, "sysinfo", false, "Insert sonar sysinfo data from stdin (exactly one record)")
+	ac.ConfigFileArgs.Add(fs)
+	fs.BoolVar(&ac.Sample, "sample", false,
+		"Insert sonar sample data from stdin (zero or more records)")
+	fs.BoolVar(&ac.Sysinfo, "sysinfo", false,
+		"Insert sonar sysinfo data from stdin (exactly one record)")
 }
 
 func (ac *AddCommand) Validate() error {
-	e1 := ac.DevArgs.Validate()
-	e4 := ac.VerboseArgs.Validate()
-	e2 := ac.RemotingArgs.Validate()
-	var e3 error
+	var e1, e2, e3, e4, e5, e6 error
+	e1 = ac.DevArgs.Validate()
+	e4 = ac.VerboseArgs.Validate()
+	e2 = ac.RemotingArgs.Validate()
+	e6 = ac.ConfigFileArgs.Validate()
 	if ac.Remoting {
 		if ac.DataDir != "" {
 			e3 = errors.New("-data-dir may not be used with -remote or -cluster")
@@ -73,11 +80,10 @@ func (ac *AddCommand) Validate() error {
 			e3 = errors.Join(e3, errors.New("Required -data-dir argument is absent"))
 		}
 	}
-	var e5 error
 	if ac.Sample == ac.Sysinfo {
 		e5 = errors.New("One of -sample or -sysinfo must be requested, and not both")
 	}
-	return errors.Join(e1, e2, e3, e4, e5)
+	return errors.Join(e1, e2, e3, e4, e5, e6)
 }
 
 func (ac *AddCommand) ReifyForRemote(x *Reifier) error {
@@ -107,7 +113,7 @@ func (ac *AddCommand) AddData(stdin io.Reader, _, _ io.Writer) error {
 
 func (ac *AddCommand) addSysinfo(payload []byte) error {
 	if ac.Verbose {
-		log.Printf("Sysinfo record %d bytes", len(payload))
+		Log.Infof("Sysinfo record %d bytes", len(payload))
 	}
 	var info config.NodeConfigRecord
 	err := json.Unmarshal(payload, &info)
@@ -119,7 +125,11 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 		// TODO: IMPROVEME: Benign if timestamp missing?
 		return errors.New("Missing timestamp or host in Sonar sysinfo data")
 	}
-	ds, err := sonarlog.OpenPersistentCluster(ac.DataDir)
+	cfg, err := MaybeGetConfig(ac.ConfigFile())
+	if err != nil {
+		return err
+	}
+	ds, err := db.OpenPersistentCluster(ac.DataDir, cfg)
 	if err != nil {
 		return err
 	}
@@ -133,9 +143,13 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 
 func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 	if ac.Verbose {
-		log.Printf("Sample records %d bytes", len(payload))
+		Log.Infof("Sample records %d bytes", len(payload))
 	}
-	ds, err := sonarlog.OpenPersistentCluster(ac.DataDir)
+	cfg, err := MaybeGetConfig(ac.ConfigFile())
+	if err != nil {
+		return err
+	}
+	ds, err := db.OpenPersistentCluster(ac.DataDir, cfg)
 	if err != nil {
 		return err
 	}
@@ -162,7 +176,7 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 		}
 	}
 	if ac.Verbose {
-		log.Printf("Sample records: %d", count)
+		Log.Infof("Sample records: %d", count)
 	}
 	return result
 }
@@ -195,5 +209,6 @@ func getCsvFields(text string) (map[string]string, error) {
 }
 
 var (
+	// MT: Constant after initialization; immutable
 	errNoName = errors.New("CSV field without a field name")
 )

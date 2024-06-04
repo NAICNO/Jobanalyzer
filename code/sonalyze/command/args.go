@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"go-utils/minmax"
-	"sonalyze/common"
+	. "sonalyze/common"
 	"sonalyze/sonarlog"
 )
 
@@ -221,14 +221,11 @@ func (s *SourceArgs) Validate() error {
 	// The song and dance with `HaveFrom` and `HaveTo` is this: when a list of files is present then
 	// `-from` and `-to` are inferred from the file contents, so long as they are not present on the
 	// command line.
-	//
-	// NOTE this uses our own version of ParseRelativeDateUtc(), not the one in go-utils/time, for
-	// compatibility with the Rust code.
 
 	now := time.Now().UTC()
 	if s.fromDateStr != "" {
 		var err error
-		s.FromDate, err = common.ParseRelativeDateUtc(now, s.fromDateStr, false)
+		s.FromDate, err = ParseRelativeDateUtc(now, s.fromDateStr, false)
 		if err != nil {
 			return fmt.Errorf("Invalid -from argument %s", s.fromDateStr)
 		}
@@ -240,7 +237,7 @@ func (s *SourceArgs) Validate() error {
 
 	if s.toDateStr != "" {
 		var err error
-		s.ToDate, err = common.ParseRelativeDateUtc(now, s.toDateStr, true)
+		s.ToDate, err = ParseRelativeDateUtc(now, s.toDateStr, true)
 		if err != nil {
 			return fmt.Errorf("Invalid -to argument %s", s.toDateStr)
 		}
@@ -349,50 +346,6 @@ func (rfa *RecordFilterArgs) DefaultUserFilters() (allUsers, skipSystemUsers, de
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Shared for everyone
-
-type SharedArgs struct {
-	DevArgs
-	SourceArgs
-	RecordFilterArgs
-	VerboseArgs
-}
-
-func (sa *SharedArgs) SharedFlags() *SharedArgs {
-	return sa
-}
-
-func (s *SharedArgs) Add(fs *flag.FlagSet) {
-	s.DevArgs.Add(fs)
-	s.SourceArgs.Add(fs)
-	s.RecordFilterArgs.Add(fs)
-	fs.BoolVar(&s.Verbose, "v", false, "Print verbose diagnostics to stderr")
-	// The Rust version allows both -v and --verbose
-	fs.BoolVar(&s.Verbose, "verbose", false, "Print verbose diagnostics to stderr")
-}
-
-func (s *SharedArgs) ReifyForRemote(x *Reifier) error {
-	// We don't forward s.Verbose, it's mostly useful locally, and ideally sonalyzed should redact
-	// it on the remote end to avoid revealing internal data (it does not, and indeed would require
-	// the argument to be named "verbose" to work).
-	return errors.Join(
-		s.DevArgs.ReifyForRemote(x),
-		s.SourceArgs.ReifyForRemote(x),
-		s.RecordFilterArgs.ReifyForRemote(x),
-	)
-}
-
-func (s *SharedArgs) Validate() error {
-	return errors.Join(
-		s.DevArgs.Validate(),
-		s.SourceArgs.Validate(),
-		s.RecordFilterArgs.Validate(),
-		s.VerboseArgs.Validate(),
-	)
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
 // Config file
 
 type ConfigFileArgs struct {
@@ -421,6 +374,55 @@ func (cfa *ConfigFileArgs) Validate() error {
 
 func (cfa *ConfigFileArgs) ConfigFile() string {
 	return cfa.ConfigFilename
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Shared for all the analysis commands.  Some commands don't need the config file directly but
+// it is required for caching data.
+
+type SharedArgs struct {
+	DevArgs
+	SourceArgs
+	RecordFilterArgs
+	VerboseArgs
+	ConfigFileArgs
+}
+
+func (sa *SharedArgs) SharedFlags() *SharedArgs {
+	return sa
+}
+
+func (s *SharedArgs) Add(fs *flag.FlagSet) {
+	s.DevArgs.Add(fs)
+	s.SourceArgs.Add(fs)
+	s.RecordFilterArgs.Add(fs)
+	s.ConfigFileArgs.Add(fs)
+	fs.BoolVar(&s.Verbose, "v", false, "Print verbose diagnostics to stderr")
+	// The Rust version allows both -v and --verbose
+	fs.BoolVar(&s.Verbose, "verbose", false, "Print verbose diagnostics to stderr")
+}
+
+func (s *SharedArgs) ReifyForRemote(x *Reifier) error {
+	// We don't forward s.Verbose, it's mostly useful locally, and ideally sonalyzed should redact
+	// it on the remote end to avoid revealing internal data (it does not, and indeed would require
+	// the argument to be named "verbose" to work).
+	return errors.Join(
+		s.DevArgs.ReifyForRemote(x),
+		s.SourceArgs.ReifyForRemote(x),
+		s.RecordFilterArgs.ReifyForRemote(x),
+		s.ConfigFileArgs.ReifyForRemote(x),
+	)
+}
+
+func (s *SharedArgs) Validate() error {
+	return errors.Join(
+		s.DevArgs.Validate(),
+		s.SourceArgs.Validate(),
+		s.RecordFilterArgs.Validate(),
+		s.VerboseArgs.Validate(),
+		s.ConfigFileArgs.Validate(),
+	)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

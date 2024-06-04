@@ -2,9 +2,9 @@ package command
 
 import (
 	"fmt"
-	"log"
 
 	"go-utils/config"
+	. "sonalyze/common"
 	"sonalyze/sonarlog"
 )
 
@@ -26,10 +26,10 @@ func EnsureConfigForInputStreams(
 	// Remove streams for which we have no config data.
 	bad := make(map[sonarlog.InputStreamKey]bool)
 	for key, stream := range streams {
-		hn := (*stream)[0].Host.String()
+		hn := (*stream)[0].S.Host.String()
 		if cfg.LookupHost(hn) == nil {
 			bad[key] = true
-			log.Printf("Warning: Missing host configuration for %s", hn)
+			Log.Infof("Warning: Missing host configuration for %s", hn)
 		}
 	}
 

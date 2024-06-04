@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	. "sonalyze/common"
+	"sonalyze/db"
 )
 
 func TestPostprocessLogCpuUtilPct(t *testing.T) {
@@ -15,7 +16,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries, discarded, err := ParseSonarLog(f, NewUstrFacade(), true)
+	entries, discarded, err := db.ParseSonarLog(f, NewUstrFacade(), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +28,8 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	}
 
 	root := StringToUstr("root")
-	streams := PostprocessLog(entries, func(r *Sample) bool { return r.User != root }, nil)
+	streams, _ := createInputStreams(entries)
+	PostprocessLogPart2(streams, func(r *Sample) bool { return r.S.User != root })
 
 	if len(streams) != 4 {
 		t.Fatalf("Expected 4 streams, got %d", len(streams))
@@ -55,10 +57,10 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	if len(*s2) != 3 {
 		t.Fatalf("Expected three elements in stream s2")
 	}
-	if (*s2)[0].Timestamp >= (*s2)[1].Timestamp {
+	if (*s2)[0].S.Timestamp >= (*s2)[1].S.Timestamp {
 		t.Fatal("Timestamp 0")
 	}
-	if (*s2)[1].Timestamp >= (*s2)[2].Timestamp {
+	if (*s2)[1].S.Timestamp >= (*s2)[2].S.Timestamp {
 		t.Fatal("Timestamp 1")
 	}
 

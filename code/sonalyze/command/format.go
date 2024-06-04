@@ -230,10 +230,14 @@ func formatFixed(unbufOut io.Writer, fields []string, opts *FormatOptions, cols 
 	}
 }
 
-// This is much faster than the equivalent Sprint(), and allocates almost nothing at all.
-var spaces = "                                        "
+// This padder is much faster than the equivalent Sprint(), and allocates almost nothing at all.
+//
+// We will almost never need more spaces than initial_spaces; the padder will create more as
+// necessary but not update the global string b/c that would require a lock.
+const initial_spaces = "                                                                                "
 
 func writeStringPadded(s *strings.Builder, width int, str string) {
+	spaces := initial_spaces
 	needed := width - utf8.RuneCountInString(str) + 2
 	for len(spaces) < needed {
 		spaces = spaces + spaces

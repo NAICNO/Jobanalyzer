@@ -50,14 +50,15 @@ func (uc *UptimeCommand) MaybeFormatHelp() *FormatHelp {
 	return StandardFormatHelp(uc.Fmt, printHelp, uptimeFormatters, uptimeAliases, uptimeDefaultFields)
 }
 
-var printHelp = `
+const printHelp = `
 print
   Compute the status of hosts and GPUs across time.  Default output format
   is 'fixed'.
 `
 
-var uptimeDefaultFields = "device,host,state,start,end"
+const uptimeDefaultFields = "device,host,state,start,end"
 
+// MT: Constant after initialization; immutable
 var uptimeAliases = map[string][]string{
 	"all": []string{
 		"device",
@@ -70,6 +71,7 @@ var uptimeAliases = map[string][]string{
 
 type uptimeCtx bool
 
+// MT: Constant after initialization; immutable
 var uptimeFormatters = map[string]Formatter[report, uptimeCtx]{
 	"device": {
 		func(d report, _ uptimeCtx) string {
