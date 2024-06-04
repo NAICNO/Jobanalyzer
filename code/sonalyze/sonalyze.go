@@ -127,7 +127,7 @@ func sonalyze() error {
 			defer stop()
 		}
 
-		if cmd := anyCmd.(RemotableCommand); cmd.RemotingFlags().Remoting {
+		if cmd, ok := anyCmd.(RemotableCommand); ok && cmd.RemotingFlags().Remoting {
 			return remoteOperation(cmd, verb, os.Stdin, os.Stdout, out)
 		}
 
