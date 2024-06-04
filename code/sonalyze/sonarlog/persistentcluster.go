@@ -273,7 +273,15 @@ func (pc *PersistentCluster) appendDataAsync(timestamp, filename string, payload
 //
 // Adapters to hide file type idiosyncracies
 
-type samplesAdapter struct /* implements filesAdapter */ {
+type filesAdapter interface {
+	glob() string
+	contentAttribute() fileAttr
+	proscribed(fn string) bool
+	getFiles(*persistentDir) map[string]*LogFile
+	setFiles(*persistentDir, map[string]*LogFile)
+}
+
+type samplesAdapter struct {
 }
 
 func (_ samplesAdapter) glob() string {
@@ -300,7 +308,7 @@ func (_ samplesAdapter) proscribed(fn string) bool {
 	return fn == "cpuhog.csv" || fn == "bughunt.csv"
 }
 
-type sysinfoAdapter struct /* implements filesAdapter */ {
+type sysinfoAdapter struct {
 }
 
 func (_ sysinfoAdapter) glob() string {
@@ -326,14 +334,6 @@ func (_ sysinfoAdapter) proscribed(fn string) bool {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Low-level stuff.
-
-type filesAdapter interface {
-	glob() string
-	contentAttribute() fileAttr
-	proscribed(fn string) bool
-	getFiles(*persistentDir) map[string]*LogFile
-	setFiles(*persistentDir, map[string]*LogFile)
-}
 
 func (pc *PersistentCluster) findFilesLocked(
 	fromDate, toDate time.Time,
