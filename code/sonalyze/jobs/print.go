@@ -3,7 +3,6 @@ package jobs
 import (
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"sort"
 	"strings"
@@ -41,7 +40,7 @@ func (ss sortableSummaries) Swap(i, j int) {
 
 func (ss sortableSummaries) Less(i, j int) bool {
 	if ss[i].aggregate.first == ss[j].aggregate.first {
-		return ss[i].job[0].Job < ss[j].job[0].Job
+		return ss[i].job[0].S.Job < ss[j].job[0].S.Job
 	}
 	return ss[i].aggregate.first < ss[j].aggregate.first
 }
@@ -56,7 +55,7 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 	if jc.NumJobs > 0 {
 		counts := make(map[Ustr]uint)
 		for i := len(summaries) - 1; i >= 0; i-- {
-			u := summaries[i].job[0].User
+			u := summaries[i].job[0].S.User
 			c := counts[u] + 1
 			counts[u] = c
 			if c > jc.NumJobs {
@@ -69,7 +68,7 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 	}
 
 	if jc.Verbose {
-		log.Printf("Number of jobs after output filtering: %d", len(summaries)-numRemoved)
+		Log.Infof("Number of jobs after output filtering: %d", len(summaries)-numRemoved)
 	}
 
 	// Pick the summaries that have been selected
@@ -100,7 +99,7 @@ func (jc *JobsCommand) MaybeFormatHelp() *FormatHelp {
 	return StandardFormatHelp(jc.Fmt, jobsHelp, jobsFormatters, jobsAliases, jobsDefaultFields)
 }
 
-var jobsHelp = `
+const jobsHelp = `
 jobs
   Aggregate process data into data about "jobs" and present them.  Output
   records are sorted in order of increasing start time of the job. The default
@@ -112,8 +111,9 @@ type jobCtx struct {
 	fixedFormat bool
 }
 
-var jobsDefaultFields = "std,cpu,mem,gpu,gpumem,cmd"
+const jobsDefaultFields = "std,cpu,mem,gpu,gpumem,cmd"
 
+// MT: Constant after initialization; immutable
 var jobsAliases = map[string][]string{
 	"std":     []string{"jobm", "user", "duration", "host"},
 	"cpu":     []string{"cpu-avg", "cpu-peak"},
@@ -132,6 +132,7 @@ const (
 	KibToGibFactor = 1024 * 1024
 )
 
+// MT: Constant after initialization; immutable
 var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 	"jobm": {
 		func(d *jobSummary, _ jobCtx) string {
@@ -145,19 +146,19 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 			case c&kIsLiveAtEnd != 0:
 				mark = ">"
 			}
-			return fmt.Sprint(d.job[0].Job, mark)
+			return fmt.Sprint(d.job[0].S.Job, mark)
 		},
 		"Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window",
 	},
 	"job": {
 		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(d.job[0].Job)
+			return fmt.Sprint(d.job[0].S.Job)
 		},
 		"Job ID",
 	},
 	"user": {
 		func(d *jobSummary, _ jobCtx) string {
-			return d.job[0].User.String()
+			return d.job[0].S.User.String()
 		},
 		"Name of user running the job",
 	},
@@ -325,7 +326,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 		func(d *jobSummary, _ jobCtx) string {
 			gpus := gpuset.EmptyGpuSet()
 			for _, j := range d.job {
-				gpus = gpuset.UnionGpuSets(gpus, j.Gpus)
+				gpus = gpuset.UnionGpuSets(gpus, j.S.Gpus)
 			}
 			return gpus.String()
 		},
@@ -345,14 +346,14 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 			names := make(map[Ustr]bool)
 			name := ""
 			for _, sample := range d.job {
-				if _, found := names[sample.Cmd]; found {
+				if _, found := names[sample.S.Cmd]; found {
 					continue
 				}
 				if name != "" {
 					name += ", "
 				}
-				name += sample.Cmd.String()
-				names[sample.Cmd] = true
+				name += sample.S.Cmd.String()
+				names[sample.S.Cmd] = true
 			}
 			return name
 		},
@@ -364,9 +365,9 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 			for _, s := range d.job {
 				var name string
 				if c.fixedFormat {
-					name, _, _ = strings.Cut(s.Host.String(), ".")
+					name, _, _ = strings.Cut(s.S.Host.String(), ".")
 				} else {
-					name = s.Host.String()
+					name = s.S.Host.String()
 				}
 				hosts[name] = true
 			}

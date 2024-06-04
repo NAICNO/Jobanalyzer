@@ -25,7 +25,7 @@
 // (which is negative).  The indices are valid until the next call to Get() and can be passed to
 // BufAt(), BufSlice() and BufSubstringSlow() to retrieve contents from the internal buffer.
 
-package sonarlog
+package db
 
 import (
 	"errors"
@@ -60,6 +60,7 @@ type CsvTokenizer struct {
 	buf         [bufferSize]uint8
 }
 
+// MT: Constant after initialization; immutable
 var SyntaxErr = errors.New("CSV syntax error")
 
 func NewTokenizer(reader io.Reader) *CsvTokenizer {

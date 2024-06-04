@@ -11,8 +11,10 @@ import (
 	"go-utils/config"
 	"go-utils/hostglob"
 	"go-utils/maps"
+	"go-utils/slices"
 	. "sonalyze/command"
-	"sonalyze/common"
+	. "sonalyze/common"
+	"sonalyze/db"
 	"sonalyze/sonarlog"
 )
 
@@ -87,28 +89,37 @@ func (pc *ParseCommand) ConfigFile() string {
 func (pc *ParseCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	_ sonarlog.Cluster,
-	samples sonarlog.SampleStream,
-	_ *hostglob.HostGlobber,
-	recordFilter func(*sonarlog.Sample) bool,
+	cluster db.SampleCluster,
+	streams sonarlog.InputStreamSet,
+	bounds sonarlog.Timebounds,
+	hostGlobber *hostglob.HostGlobber,
 ) error {
 	var mergedSamples []*sonarlog.SampleStream
+	var samples sonarlog.SampleStream
 	switch {
+	default:
+		// Reread the data, bypassing all postprocessing, to get the expected raw values.  If it's
+		// expensive then so be it - this is special-case code usually used for limited testing, not
+		// something you'd use for analysis.
+		records, _, err := cluster.ReadSamples(pc.FromDate, pc.ToDate, hostGlobber, pc.Verbose)
+		if err != nil {
+			return err
+		}
+		samples = sonarlog.SampleStream(slices.Map(
+			records,
+			func (r *db.Sample) sonarlog.Sample {
+				return sonarlog.Sample{S: r}
+			},
+		))
+
 	case pc.Clean:
-		streams := sonarlog.PostprocessLog(samples, recordFilter, nil)
 		mergedSamples = maps.Values(streams)
 
 	case pc.MergeByJob:
-		bounds := sonarlog.ComputeTimeBounds(samples)
-		streams := sonarlog.PostprocessLog(samples, recordFilter, nil)
 		mergedSamples, _ = sonarlog.MergeByJob(streams, bounds)
 
 	case pc.MergeByHostAndJob:
-		streams := sonarlog.PostprocessLog(samples, recordFilter, nil)
 		mergedSamples = sonarlog.MergeByHostAndJob(streams)
-
-	default:
-		samples = sonarlog.ApplyFilter(samples, recordFilter)
 	}
 
 	if mergedSamples != nil {
@@ -150,6 +161,7 @@ parse
 
 const parseDefaultFields = "job,user,cmd"
 
+// MT: Constant after initialization; immutable
 var parseAliases = map[string][]string{
 	// TODO: IMPROVEME: Roundtripping is actually version-dependent, but this set of fields is
 	// compatible with the Rust version.
@@ -200,169 +212,170 @@ type parseCtx bool
 
 // TODO: IMPROVEME: The defaulted fields here follow the Rust code.  We'll keep it this way until we
 // switch over.  Then we can maybe default more fields.
-var parseFormatters = map[string]Formatter[*sonarlog.Sample, parseCtx]{
+// MT: Constant after initialization; immutable
+var parseFormatters = map[string]Formatter[sonarlog.Sample, parseCtx]{
 	"version": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return d.Version.String()
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return d.S.Version.String()
 		},
 		"Semver string (MAJOR.MINOR.BUGFIX)",
 	},
 	"localtime": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
+		func(d sonarlog.Sample, _ parseCtx) string {
 			// TODO: IMPROVEME: The use of utc here is a bug that comes from the Rust code.
-			return common.FormatYyyyMmDdHhMmUtc(d.Timestamp)
+			return FormatYyyyMmDdHhMmUtc(d.S.Timestamp)
 		},
 		"Timestamp (yyyy-mm-dd hh:mm)",
 	},
 	"time": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return time.Unix(d.Timestamp, 0).UTC().Format(time.RFC3339)
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return time.Unix(d.S.Timestamp, 0).UTC().Format(time.RFC3339)
 		},
 		"Timestamp (ISO date with seconds)",
 	},
 	"host": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return d.Host.String()
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return d.S.Host.String()
 		},
 		"Host name (FQDN)",
 	},
 	"cores": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.Cores)
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return fmt.Sprint(d.S.Cores)
 		},
 		"Total number of cores (including hyperthreads)",
 	},
 	"memtotal": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.MemtotalKib / (1024 * 1024))
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return fmt.Sprint(d.S.MemtotalKib / (1024 * 1024))
 		},
 		"Installed main memory (GiB)",
 	},
 	"user": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return d.User.String()
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return d.S.User.String()
 		},
 		"Username of process owner",
 	},
 	"pid": {
-		func(d *sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.Pid == 0 {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
+			if bool(nodefaults) && d.S.Pid == 0 {
 				return "*skip*"
 			}
-			return fmt.Sprint(d.Pid)
+			return fmt.Sprint(d.S.Pid)
 		},
 		"Process ID",
 	},
 	"job": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.Job)
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return fmt.Sprint(d.S.Job)
 		},
 		"Job ID",
 	},
 	"cmd": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return d.Cmd.String()
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return d.S.Cmd.String()
 		},
 		"Command name",
 	},
 	"cpu_pct": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.CpuPct)
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return fmt.Sprint(d.S.CpuPct)
 		},
 		"cpu% reading (CONSULT DOCUMENTATION)",
 	},
 	"mem_gb": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.CpuKib / (1024 * 1024))
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return fmt.Sprint(d.S.CpuKib / (1024 * 1024))
 		},
 		"Virtual memory reading (GiB)",
 	},
 	"res_gb": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.RssAnonKib / (1024 * 1024))
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return fmt.Sprint(d.S.RssAnonKib / (1024 * 1024))
 		},
 		"RssAnon reading (GiB)",
 	},
 	"cpukib": {
-		func(d *sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.CpuKib)
+		func(d sonarlog.Sample, _ parseCtx) string {
+			return fmt.Sprint(d.S.CpuKib)
 		},
 		"Virtual memory reading (KiB)",
 	},
 	"gpus": {
-		func(d *sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.Gpus.IsEmpty() {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
+			if bool(nodefaults) && d.S.Gpus.IsEmpty() {
 				return "*skip*"
 			}
-			return d.Gpus.String()
+			return d.S.Gpus.String()
 		},
 		"GPU set (`none`,`unknown`,list)",
 	},
 	"gpu_pct": {
-		func(d *sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.GpuPct == 0 {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
+			if bool(nodefaults) && d.S.GpuPct == 0 {
 				return "*skip*"
 			}
-			return fmt.Sprint(d.GpuPct)
+			return fmt.Sprint(d.S.GpuPct)
 		},
 		"GPU utilization reading",
 	},
 	"gpumem_pct": {
-		func(d *sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.GpuMemPct == 0 {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
+			if bool(nodefaults) && d.S.GpuMemPct == 0 {
 				return "*skip*"
 			}
-			return fmt.Sprint(d.GpuMemPct)
+			return fmt.Sprint(d.S.GpuMemPct)
 		},
 		"GPU memory percentage reading",
 	},
 	"gpumem_gb": {
-		func(d *sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.GpuKib == 0 {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
+			if bool(nodefaults) && d.S.GpuKib == 0 {
 				return "*skip*"
 			}
-			return fmt.Sprint(d.GpuKib / (1024 * 1024))
+			return fmt.Sprint(d.S.GpuKib / (1024 * 1024))
 		},
 		"GPU memory utilization reading (GiB)",
 	},
 	"gpukib": {
-		func(d *sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.GpuKib == 0 {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
+			if bool(nodefaults) && d.S.GpuKib == 0 {
 				return "*skip*"
 			}
-			return fmt.Sprint(d.GpuKib)
+			return fmt.Sprint(d.S.GpuKib)
 		},
 		"GPU memory utilization reading (KiB)",
 	},
 	"gpu_status": {
-		func(d *sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.GpuFail == 0 {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
+			if bool(nodefaults) && d.S.GpuFail == 0 {
 				return "*skip*"
 			}
-			return fmt.Sprint(d.GpuFail)
+			return fmt.Sprint(d.S.GpuFail)
 		},
 		"GPU status flag (0=ok, 1=error state)",
 	},
 	"cputime_sec": {
-		func(d *sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.CpuTimeSec == 0 {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
+			if bool(nodefaults) && d.S.CpuTimeSec == 0 {
 				return "*skip*"
 			}
-			return fmt.Sprint(d.CpuTimeSec)
+			return fmt.Sprint(d.S.CpuTimeSec)
 		},
 		"CPU time since last reading (seconds, CONSULT DOCUMENTATION)",
 	},
 	"rolledup": {
-		func(d *sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.Rolledup == 0 {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
+			if bool(nodefaults) && d.S.Rolledup == 0 {
 				return "*skip*"
 			}
-			return fmt.Sprint(d.Rolledup)
+			return fmt.Sprint(d.S.Rolledup)
 		},
 		"Number of rolled-up processes, minus 1",
 	},
 	"cpu_util_pct": {
-		func(d *sonarlog.Sample, nodefaults parseCtx) string {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
 			if bool(nodefaults) && d.CpuUtilPct == 0 {
 				return "*skip*"
 			}

@@ -26,7 +26,6 @@ const (
 
 type LoadCommand struct /* implements AnalysisCommand */ {
 	SharedArgs
-	ConfigFileArgs
 
 	// Filtering and aggregation args
 	Hourly     bool
@@ -58,7 +57,6 @@ func (_ *LoadCommand) Summary() []string {
 
 func (lc *LoadCommand) Add(fs *flag.FlagSet) {
 	lc.SharedArgs.Add(fs)
-	lc.ConfigFileArgs.Add(fs)
 
 	fs.BoolVar(&lc.Hourly, "hourly", false, "Bucket and average records hourly [default]")
 	fs.BoolVar(&lc.HalfHourly, "half-hourly", false, "Bucket and average records half-hourly")
@@ -79,7 +77,6 @@ func (lc *LoadCommand) Add(fs *flag.FlagSet) {
 
 func (lc *LoadCommand) ReifyForRemote(x *Reifier) error {
 	e1 := lc.SharedArgs.ReifyForRemote(x)
-	e2 := lc.ConfigFileArgs.ReifyForRemote(x)
 
 	x.Bool("hourly", lc.Hourly)
 	x.Bool("half-hourly", lc.HalfHourly)
@@ -94,12 +91,11 @@ func (lc *LoadCommand) ReifyForRemote(x *Reifier) error {
 	x.Bool("compact", lc.Compact)
 	x.String("fmt", lc.Fmt)
 
-	return errors.Join(e1, e2)
+	return e1
 }
 
 func (lc *LoadCommand) Validate() error {
 	e1 := lc.SharedArgs.Validate()
-	e2 := lc.ConfigFileArgs.Validate()
 
 	var e3 error
 	n := 0
@@ -162,7 +158,7 @@ func (lc *LoadCommand) Validate() error {
 	}
 	lc.printOpts = StandardFormatOptions(others, DefaultFixed)
 
-	return errors.Join(e1, e2, e3, e4, e5, e6)
+	return errors.Join(e1, e3, e4, e5, e6)
 }
 
 func (lc *LoadCommand) DefaultRecordFilters() (

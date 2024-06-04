@@ -3,7 +3,6 @@ package profile
 import (
 	"errors"
 	"io"
-	"log"
 	"math"
 	"sort"
 
@@ -11,18 +10,19 @@ import (
 	"go-utils/hostglob"
 	"go-utils/maps"
 	. "go-utils/minmax"
+	. "sonalyze/common"
+	"sonalyze/db"
 	"sonalyze/sonarlog"
 )
 
 func (pc *ProfileCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	_ sonarlog.Cluster,
-	samples sonarlog.SampleStream,
+	_ db.SampleCluster,
+	streams sonarlog.InputStreamSet,
+	_ sonarlog.Timebounds,
 	_ *hostglob.HostGlobber,
-	recordFilter func(*sonarlog.Sample) bool,
 ) error {
-	streams := sonarlog.PostprocessLog(samples, recordFilter, nil)
 	jobId := pc.Job[0]
 
 	if len(streams) == 0 {
@@ -37,7 +37,7 @@ func (pc *ProfileCommand) Perform(
 	var hostName string
 	for k, vs := range streams {
 		for _, v := range *vs {
-			hasRolledup = hasRolledup || v.Rolledup > 0
+			hasRolledup = hasRolledup || v.S.Rolledup > 0
 		}
 		if hostName != "" && k.Host.String() != hostName {
 			return errors.New("`profile` only implemented for single-host jobs")
@@ -64,7 +64,7 @@ func (pc *ProfileCommand) Perform(
 	processes := maps.Values(streams)
 	sort.Stable(sonarlog.TimeSortableSampleStreams(processes))
 
-	userName := (*processes[0])[0].User.String()
+	userName := (*processes[0])[0].S.User.String()
 
 	// Number of nonempty streams remaining, this is the termination condition.
 	nonempty := 0
@@ -93,7 +93,7 @@ func (pc *ProfileCommand) Perform(
 		currentTime := int64(math.MaxInt64)
 		for i, p := range processes {
 			if indices[i] < len(*p) {
-				currentTime = MinInt64(currentTime, (*p)[indices[i]].Timestamp)
+				currentTime = MinInt64(currentTime, (*p)[indices[i]].S.Timestamp)
 			}
 		}
 		if currentTime == math.MaxInt64 {
@@ -106,9 +106,8 @@ func (pc *ProfileCommand) Perform(
 		for i, p := range processes {
 			if indices[i] < len(*p) {
 				r := (*p)[indices[i]]
-				if r.Timestamp == currentTime {
-					newr := pc.clampFields(r)
-					m.set(currentTime, processId(newr), profDatum{currentTime, newr})
+				if r.S.Timestamp == currentTime {
+					m.set(currentTime, processId(r), newProfDatum(r, pc.Max))
 					indices[i]++
 					if indices[i] == len(*p) {
 						nonempty--
@@ -135,30 +134,28 @@ func (pc *ProfileCommand) Perform(
 				var count int
 				var cpuUtilPct, gpuPct float32
 				var cpuKib, gpuKib, rssAnonKib uint64
-				var avg *sonarlog.Sample
+				var base *db.Sample
 				for _, rn := range myrowNames {
-					if probe := m.get(rn, cn); !probe.isEmpty() {
-						proc := probe.s
-						if avg == nil {
-							var s sonarlog.Sample = *proc
-							avg = &s
-						}
+					if probe := m.get(rn, cn); probe != nil {
 						count++
-						cpuUtilPct += proc.CpuUtilPct
-						gpuPct += proc.GpuPct
-						cpuKib += proc.CpuKib
-						gpuKib += proc.GpuKib
-						rssAnonKib += proc.RssAnonKib
+						cpuUtilPct += probe.cpuUtilPct
+						gpuPct += probe.gpuPct
+						cpuKib += probe.cpuKib
+						gpuKib += probe.gpuKib
+						rssAnonKib += probe.rssAnonKib
+						base = probe.s
 					}
 				}
-				if avg != nil {
-					avg.CpuUtilPct = cpuUtilPct / float32(count)
-					avg.GpuPct = gpuPct / float32(count)
-					avg.CpuKib = cpuKib / uint64(count)
-					avg.GpuKib = gpuKib / uint64(count)
-					avg.RssAnonKib = rssAnonKib / uint64(count)
-					avg.Timestamp = newTime
-					m2.set(newTime, cn, profDatum{newTime, avg})
+				if count > 0 {
+					avg := &profDatum{
+						cpuUtilPct: cpuUtilPct / float32(count),
+						gpuPct: gpuPct / float32(count),
+						cpuKib: cpuKib / uint64(count),
+						gpuKib: gpuKib / uint64(count),
+						rssAnonKib: rssAnonKib / uint64(count),
+						s: base,
+					}
+					m2.set(newTime, cn, avg)
 				}
 			}
 		}
@@ -166,9 +163,9 @@ func (pc *ProfileCommand) Perform(
 	}
 
 	if pc.Verbose {
-		log.Printf("Number of processes: %d", initialNonempty)
-		log.Printf("Any rolled-up processes: %v", hasRolledup)
-		log.Printf("Number of time steps: %d", timesteps)
+		Log.Infof("Number of processes: %d", initialNonempty)
+		Log.Infof("Any rolled-up processes: %v", hasRolledup)
+		Log.Infof("Number of time steps: %d", timesteps)
 	}
 
 	pc.printProfile(out, uint32(jobId), hostName, userName, hasRolledup, m, processes)
@@ -185,28 +182,13 @@ func (pc *ProfileCommand) Perform(
 // name, even within the same job - two distinct rolled-up subtrees of processes each with the same
 // command name would be enough.
 
-func processId(s *sonarlog.Sample) uint32 {
+func processId(s sonarlog.Sample) uint32 {
 	// Rolled-up processes have pid=0
-	if s.Pid != 0 {
-		return s.Pid
+	if s.S.Pid != 0 {
+		return s.S.Pid
 	}
 	// But in that case the Ustr value of the command should be unique enough
-	return uint32(s.Cmd)
-}
-
-// Clamping is a hack but it works.
-func (pc *ProfileCommand) clampFields(r *sonarlog.Sample) *sonarlog.Sample {
-	// Always return a copy of the sample, I guess?
-	var newr sonarlog.Sample = *r
-	if pc.Max != 0 {
-		// We print memory in GiB so -max should be expressed in GiB, but we use KiB internally.  Scale here.
-		newr.CpuUtilPct = clampMaxF32(newr.CpuUtilPct, float32(pc.Max))
-		newr.CpuKib = clampMaxU64(newr.CpuKib, uint64(pc.Max*1024*1024))
-		newr.RssAnonKib = clampMaxU64(newr.RssAnonKib, uint64(pc.Max*1024*1024))
-		newr.GpuPct = clampMaxF32(newr.GpuPct, float32(pc.Max))
-		newr.GpuKib = clampMaxU64(newr.GpuKib, uint64(pc.Max*1024*1024))
-	}
-	return &newr
+	return uint32(s.S.Cmd)
 }
 
 // Max clamping: If the value x is greater than the clamp then return the clamp c, except if x is
@@ -242,12 +224,34 @@ type profIndex struct {
 }
 
 type profDatum struct {
-	t int64 // timestamp - this is redundant (it's the row name) but useful?
-	s *sonarlog.Sample
+	cpuUtilPct float32
+	gpuPct float32
+	cpuKib uint64
+	gpuKib uint64
+	rssAnonKib uint64
+	s *db.Sample
 }
 
-func (pd profDatum) isEmpty() bool {
-	return pd.s == nil
+func newProfDatum(r sonarlog.Sample, max float64) *profDatum {
+	var v profDatum
+	v.cpuUtilPct = r.CpuUtilPct
+	v.gpuPct = r.S.GpuPct
+	v.cpuKib = r.S.CpuKib
+	v.gpuKib = r.S.GpuKib
+	v.rssAnonKib = r.S.RssAnonKib
+	v.s = r.S
+
+	if max != 0 {
+		// Clamping is a hack but it works.
+		// We print memory in GiB so -max should be expressed in GiB, but we use KiB internally.  Scale here.
+		v.cpuUtilPct = clampMaxF32(v.cpuUtilPct, float32(max))
+		v.cpuKib = clampMaxU64(v.cpuKib, uint64(max*1024*1024))
+		v.rssAnonKib = clampMaxU64(v.rssAnonKib, uint64(max*1024*1024))
+		v.gpuPct = clampMaxF32(v.gpuPct, float32(max))
+		v.gpuKib = clampMaxU64(v.gpuKib, uint64(max*1024*1024))
+	}
+
+	return &v
 }
 
 type profData struct {
@@ -258,7 +262,7 @@ type profData struct {
 	hasColIndex map[uint32]bool
 	colNames    []uint32
 	colDirty    bool
-	entries     map[profIndex]profDatum
+	entries     map[profIndex]*profDatum
 }
 
 func newProfData() *profData {
@@ -269,15 +273,15 @@ func newProfData() *profData {
 		hasColIndex: make(map[uint32]bool),
 		colNames:    make([]uint32, 0),
 		colDirty:    false,
-		entries:     make(map[profIndex]profDatum),
+		entries:     make(map[profIndex]*profDatum),
 	}
 }
 
-func (pd *profData) get(y int64, x uint32) profDatum {
+func (pd *profData) get(y int64, x uint32) *profDatum {
 	return pd.entries[profIndex{y, x}]
 }
 
-func (pd *profData) set(y int64, x uint32, v profDatum) {
+func (pd *profData) set(y int64, x uint32, v *profDatum) {
 	if !pd.hasRowIndex[y] {
 		pd.rowDirty = true
 		pd.rowNames = append(pd.rowNames, y)

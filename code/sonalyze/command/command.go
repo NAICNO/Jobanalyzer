@@ -6,6 +6,7 @@ import (
 
 	"go-utils/config"
 	"go-utils/hostglob"
+	"sonalyze/db"
 	"sonalyze/sonarlog"
 )
 
@@ -66,14 +67,14 @@ type AnalysisCommand interface {
 	// Provide appropriate default settings for these flags
 	DefaultRecordFilters() (allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool)
 
-	// Perform the operation, using the filters to select records if appropriate
+	// Perform the operation
 	Perform(
 		out io.Writer,
 		cfg *config.ClusterConfig,
-		logDir sonarlog.Cluster,
-		samples sonarlog.SampleStream,
+		cluster db.SampleCluster,
+		streams sonarlog.InputStreamSet,
+		bounds sonarlog.Timebounds,
 		hostGlobber *hostglob.HostGlobber,
-		recordFilter func(*sonarlog.Sample) bool,
 	) error
 
 	// Retrieve configfile for those commands that allow it, otherwise "", or "" for absent

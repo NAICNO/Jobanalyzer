@@ -106,6 +106,8 @@ const (
 	magicBoolean           = "xxxxxtruexxxxx"
 )
 
+// Immutable (no mutator operations) and thread-safe.  It *will* be accessed concurrently b/c every
+// HTTP handler runs as a separate goroutine.
 type DaemonCommand struct {
 	DevArgs
 	VerboseArgs
@@ -114,11 +116,13 @@ type DaemonCommand struct {
 	getAuthFile         string
 	postAuthFile        string
 	matchUserAndCluster bool
+	cache               string
 
 	aliasResolver     *alias.Aliases
 	getAuthenticator  *auth.Authenticator
 	postAuthenticator *auth.Authenticator
 	cmdlineHandler    CommandLineHandler
+	cacheSize         int64
 }
 
 func New(cmdlineHandler CommandLineHandler) *DaemonCommand {
@@ -137,6 +141,7 @@ func (dc *DaemonCommand) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&dc.matchUserAndCluster, "match-user-and-cluster", false, "Require user name to match cluster name")
 	fs.StringVar(&dc.jobanalyzerDir, "jobanalyzer-path", "", "Alias for -jobanalyzer-dir")
 	fs.StringVar(&dc.getAuthFile, "password-file", "", "Alias for -analysis-auth")
+	fs.StringVar(&dc.cache, "cache", "", "Enable data caching with this size (nM for megs, nG for gigs)")
 }
 
 func (dc *DaemonCommand) Summary() []string {
@@ -147,7 +152,7 @@ func (dc *DaemonCommand) Summary() []string {
 }
 
 func (dc *DaemonCommand) Validate() error {
-	var e1, e2, e3, e4, e5, e6 error
+	var e1, e2, e3, e4, e5, e6, e7 error
 	e1 = dc.DevArgs.Validate()
 	e2 = dc.VerboseArgs.Validate()
 	dc.jobanalyzerDir, e3 = options.RequireDirectory(dc.jobanalyzerDir, "-jobanalyzer-path")
@@ -173,5 +178,15 @@ func (dc *DaemonCommand) Validate() error {
 			dc.aliasResolver, e6 = alias.ReadAliases(aliasesFile)
 		}
 	}
-	return errors.Join(e1, e2, e3, e4, e5, e6)
+	if dc.cache != "" {
+		var size int64
+		if n, _ := fmt.Sscanf(dc.cache, "%dM", &size); n == 1 && size > 0 {
+			dc.cacheSize = size * 1024 * 1024
+		} else if n, _ := fmt.Sscanf(dc.cache, "%dG", &size); n == 1 && size > 0 {
+			dc.cacheSize = size * 1024 * 1024 * 1024
+		} else {
+			e7 = errors.New("Bad -cache value")
+		}
+	}
+	return errors.Join(e1, e2, e3, e4, e5, e6, e7)
 }

@@ -109,8 +109,3 @@ func (pc *ProfileCommand) DefaultRecordFilters() (
 	excludeHeartbeat = true
 	return
 }
-
-func (pc *ProfileCommand) ConfigFile() string {
-	// No config file for profile
-	return ""
-}

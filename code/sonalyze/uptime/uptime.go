@@ -15,7 +15,6 @@ import (
 
 type UptimeCommand struct /* implements AnalysisCommand */ {
 	SharedArgs
-	ConfigFileArgs
 
 	Interval uint
 	OnlyUp   bool
@@ -36,7 +35,6 @@ func (_ *UptimeCommand) Summary() []string {
 
 func (uc *UptimeCommand) Add(fs *flag.FlagSet) {
 	uc.SharedArgs.Add(fs)
-	uc.ConfigFileArgs.Add(fs)
 
 	fs.UintVar(&uc.Interval, "interval", 0,
 		"The maximum sampling `interval` in minutes (before any randomization) seen in the data")
@@ -48,18 +46,16 @@ func (uc *UptimeCommand) Add(fs *flag.FlagSet) {
 
 func (uc *UptimeCommand) ReifyForRemote(x *Reifier) error {
 	e1 := uc.SharedArgs.ReifyForRemote(x)
-	e2 := uc.ConfigFileArgs.ReifyForRemote(x)
 	x.Uint("interval", uc.Interval)
 	x.Bool("only-up", uc.OnlyUp)
 	x.Bool("only-down", uc.OnlyDown)
 	x.String("fmt", uc.Fmt)
-	return errors.Join(e1, e2)
+	return e1
 }
 
 func (uc *UptimeCommand) Validate() error {
-	var e1, e2, e3, e4, e5 error
+	var e1, e3, e4, e5 error
 	e1 = uc.SharedArgs.Validate()
-	e2 = uc.ConfigFileArgs.Validate()
 	if uc.Interval == 0 {
 		e3 = errors.New("-interval is required")
 	}
@@ -72,7 +68,7 @@ func (uc *UptimeCommand) Validate() error {
 		e5 = errors.New("No output fields were selected in format string")
 	}
 	uc.printOpts = StandardFormatOptions(others, DefaultFixed)
-	return errors.Join(e1, e2, e3, e4, e5)
+	return errors.Join(e1, e3, e4, e5)
 }
 
 func (uc *UptimeCommand) DefaultRecordFilters() (

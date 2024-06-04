@@ -2,11 +2,10 @@
 //
 // This tests only single-threaded accesses to the store.
 
-package sonarlog
+package db
 
 import (
 	"io/fs"
-	_ "log"
 	"os"
 	"path"
 	"reflect"
@@ -23,6 +22,7 @@ const (
 )
 
 var (
+	// MT: Constant after initialization; immutable
 	theClusterDir = "../../tests/sonarlog/whitebox-tree"
 	theFiles      = []string{
 		"../../tests/sonarlog/parse-data1.csv",
@@ -40,11 +40,11 @@ func tmpCopyTree(srcDir string) string {
 }
 
 func TestOpenClose(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir)
+	pc, err := OpenPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	qc, err := OpenPersistentCluster(theClusterDir)
+	qc, err := OpenPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,18 +54,18 @@ func TestOpenClose(t *testing.T) {
 
 	// Closing should prevent more dirs from being opened
 	Close()
-	_, err = OpenPersistentCluster(theClusterDir)
+	_, err = OpenPersistentCluster(theClusterDir, nil)
 	if err != ClusterClosedErr {
 		t.Fatal("Should be closed")
 	}
 
 	// This should work even after Close() because file clusters are independent of the cluster
 	// store.
-	fs, err := OpenTransientSampleCluster(theFiles)
+	fs, err := OpenTransientSampleCluster(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	gs, err := OpenTransientSampleCluster(theFiles)
+	gs, err := OpenTransientSampleCluster(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestOpenClose(t *testing.T) {
 }
 
 func TestTransientSampleFilenames(t *testing.T) {
-	fs, err := OpenTransientSampleCluster(theFiles)
+	fs, err := OpenTransientSampleCluster(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestTransientSampleFilenames(t *testing.T) {
 }
 
 func TestTransientSampleRead(t *testing.T) {
-	fs, err := OpenTransientSampleCluster(theFiles)
+	fs, err := OpenTransientSampleCluster(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestTransientSampleRead(t *testing.T) {
 }
 
 func TestPersistentSampleFilenames(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir)
+	pc, err := OpenPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestPersistentSampleFilenames(t *testing.T) {
 }
 
 func TestPersistentSampleRead(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir)
+	pc, err := OpenPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +183,7 @@ func TestPersistentSampleRead(t *testing.T) {
 }
 
 func TestPersistentSysinfoRead(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir)
+	pc, err := OpenPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +214,7 @@ func TestPersistentSampleAppend(t *testing.T) {
 	d := tmpCopyTree(theClusterDir)
 	defer os.RemoveAll(d)
 
-	pc, err := OpenPersistentCluster(d)
+	pc, err := OpenPersistentCluster(d, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	d := tmpCopyTree(theClusterDir)
 	defer os.RemoveAll(d)
 
-	pc, err := OpenPersistentCluster(d)
+	pc, err := OpenPersistentCluster(d, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +351,7 @@ func TestPersistentSampleFlush(t *testing.T) {
 	d := tmpCopyTree(theClusterDir)
 	defer os.RemoveAll(d)
 
-	pc, err := OpenPersistentCluster(d)
+	pc, err := OpenPersistentCluster(d, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

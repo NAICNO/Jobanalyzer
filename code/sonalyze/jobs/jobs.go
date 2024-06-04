@@ -25,6 +25,7 @@ type uintArg struct {
 // will be generated.
 const bigValue = 100000000
 
+// MT: Constant after initialization; immutable
 var uintArgs = []uintArg{
 	uintArg{
 		"Select only jobs with at least this many samples [default: 2]",
@@ -233,7 +234,6 @@ var uintArgs = []uintArg{
 
 type JobsCommand struct /* implements AnalysisCommand */ {
 	SharedArgs
-	ConfigFileArgs
 
 	// Filter args
 	Uints         map[string]*uint
@@ -273,7 +273,6 @@ func (jc *JobsCommand) lookupUint(s string) uint {
 
 func (jc *JobsCommand) Add(fs *flag.FlagSet) {
 	jc.SharedArgs.Add(fs)
-	jc.ConfigFileArgs.Add(fs)
 
 	// Filter args
 	jc.Uints = make(map[string]*uint)
@@ -304,7 +303,6 @@ func (jc *JobsCommand) Add(fs *flag.FlagSet) {
 
 func (jc *JobsCommand) ReifyForRemote(x *Reifier) error {
 	e1 := jc.SharedArgs.ReifyForRemote(x)
-	e2 := jc.ConfigFileArgs.ReifyForRemote(x)
 
 	for _, v := range uintArgs {
 		box := jc.Uints[v.name]
@@ -322,12 +320,11 @@ func (jc *JobsCommand) ReifyForRemote(x *Reifier) error {
 	x.Uint("numjobs", jc.NumJobs)
 	x.String("fmt", jc.Fmt)
 
-	return errors.Join(e1, e2)
+	return e1
 }
 
 func (jc *JobsCommand) Validate() error {
 	e1 := jc.SharedArgs.Validate()
-	e2 := jc.ConfigFileArgs.Validate()
 
 	var e3 error
 	if jc.minRuntimeStr != "" {
@@ -369,7 +366,7 @@ func (jc *JobsCommand) Validate() error {
 	}
 	jc.printOpts = StandardFormatOptions(others, DefaultFixed)
 
-	return errors.Join(e1, e2, e3, e4)
+	return errors.Join(e1, e3, e4)
 }
 
 func (jc *JobsCommand) DefaultRecordFilters() (

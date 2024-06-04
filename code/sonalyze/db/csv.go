@@ -1,13 +1,12 @@
 // Fast, non-allocating sonar-log CSV parser.
 
-package sonarlog
+package db
 
 import (
 	"bytes"
 	"errors"
 	"go-utils/gpuset"
 	"io"
-	"log"
 	"math"
 	"time"
 
@@ -202,7 +201,7 @@ LineLoop:
 				if eqloc == CsvEqSentinel {
 					// Invalid field syntax: Drop the field but keep the record
 					if verbose {
-						log.Printf(
+						Log.Infof(
 							"Dropping field with bad form: %s",
 							"(elided)", /*tokenizer.BufSubstringSlow(start, lim), - see NOTE above*/
 						)
@@ -352,7 +351,7 @@ LineLoop:
 				// this is actually the same as just `failed` due to the fourth case.
 				if !matched {
 					if verbose {
-						log.Printf(
+						Log.Warningf(
 							"Dropping field with unknown name: %s",
 							"(elided)", /* tokenizer.BufSubstringSlow(start, eqloc-1), -
 							   see NOTE above */
@@ -364,7 +363,7 @@ LineLoop:
 				}
 				if err != nil {
 					if verbose {
-						log.Printf(
+						Log.Warningf(
 							"Dropping record with illegal/unparseable value: %s %v",
 							"(elided)", /*tokenizer.BufSubstringSlow(start, lim), - see NOTE above */
 							err,
@@ -388,7 +387,7 @@ LineLoop:
 		// Untagged records do not have optional trailing fields.
 		if format == untaggedFormat && untaggedPosition < 8 {
 			if verbose {
-				log.Printf(
+				Log.Infof(
 					"Dropping untagged record with missing fields, got only %d fields",
 					untaggedPosition,
 				)
@@ -419,7 +418,7 @@ LineLoop:
 		}
 		if irritants != "" {
 			if verbose {
-				log.Printf("Dropping record with missing mandatory field(s): %s", irritants)
+				Log.Warningf("Dropping record with missing mandatory field(s): %s", irritants)
 			}
 			discarded++
 			continue LineLoop
