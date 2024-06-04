@@ -1,0 +1,19 @@
+{
+    "name": "naic-monitor.uio.no",
+    "description": "NAIC jobanalyzer server",
+    "aliases": ["naic-monitor"],
+    "nodes": [
+        {
+            "timestamp": "2024-06-04T10:02:22+02:00",
+            "hostname": "naic-monitor.uio.no",
+            "description": "4x1 Intel(R) Xeon(R) Gold 6448Y, 31 GiB",
+            "cpu_cores": 4,
+            "mem_gb": 31,
+            "gpu_cards": 0,
+            "gpumem_gb": 0
+        }
+    ]
+}
+
+
+
