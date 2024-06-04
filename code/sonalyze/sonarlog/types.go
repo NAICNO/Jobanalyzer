@@ -34,8 +34,25 @@ const (
 //    than 24 bits, most memory sizes need more than 32 bits (4GB) but maybe not more than 40 (1TB),
 //    Job and Process IDs are probably 24 bits or so, and Rolledup is unlikely to be more than 16
 //    bits.  GpuFail and Flags are single bits at present.
+//  - Indeed, MemtotalKib and Cores are considered obsolete and could just be removed - will only
+//    affect the output of `parse`.
 //
 // It seems likely that if we applied all of these we could save another 30 bytes.
+//
+// Looking further, once we start caching data we will have more opportunities.  In that case,
+// samples will not be stored individually but as part of a postprocessed stream keyed by Host,
+// StreamId (Pid or JobId), and Cmd.
+//
+//  - Common fields (maybe Host, Job, Pid, User, Cluster, Cmd) can be lifted out of the structure to
+//    a header
+//  - Timestamp can be delta-encoded as u16
+//  - Version can be removed, as all version-dependent corrections will have been applied during
+//    stream postprocessing
+//
+// When caching, it will also be advantageous to store structures in-line in tightly controlled
+// slices rather than as individual heap-allocated structures.
+//
+// Some of these optimizations will complicate the use of the data, obviously.
 
 type Sample struct {
 	Timestamp   int64
