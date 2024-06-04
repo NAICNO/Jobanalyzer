@@ -25,7 +25,6 @@ package common
 
 import (
 	"io"
-	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -34,6 +33,7 @@ import (
 type Ustr uint32
 
 var (
+	// MT: Locked
 	tableLock   sync.RWMutex
 	internTable hashtable
 	revTable    []string
@@ -98,10 +98,10 @@ func UstrStats(out io.Writer, printStrings bool) {
 	tableLock.RLock()
 	defer tableLock.RUnlock()
 
-	log.Printf("Interned strings table size = %d\n", internTable.size)
+	Log.Infof("Interned strings table size = %d\n", internTable.size)
 	if printStrings {
 		for _, v := range revTable {
-			log.Printf("  %s\n", v)
+			Log.Infof("  %s\n", v)
 		}
 	}
 }

@@ -2,20 +2,24 @@
 //
 // This tests only single-threaded accesses to the store.
 
-package sonarlog
+package db
 
 import (
 	"io/fs"
-	_ "log"
 	"os"
 	"path"
 	"reflect"
+	"regexp"
 	"sort"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"go-utils/filesys"
 	"go-utils/hostglob"
+	"go-utils/status"
+	. "sonalyze/common"
 )
 
 const (
@@ -23,6 +27,7 @@ const (
 )
 
 var (
+	// MT: Constant after initialization; immutable
 	theClusterDir = "../../tests/sonarlog/whitebox-tree"
 	theFiles      = []string{
 		"../../tests/sonarlog/parse-data1.csv",
@@ -40,11 +45,11 @@ func tmpCopyTree(srcDir string) string {
 }
 
 func TestOpenClose(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir)
+	pc, err := OpenPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	qc, err := OpenPersistentCluster(theClusterDir)
+	qc, err := OpenPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,18 +59,18 @@ func TestOpenClose(t *testing.T) {
 
 	// Closing should prevent more dirs from being opened
 	Close()
-	_, err = OpenPersistentCluster(theClusterDir)
+	_, err = OpenPersistentCluster(theClusterDir, nil)
 	if err != ClusterClosedErr {
 		t.Fatal("Should be closed")
 	}
 
 	// This should work even after Close() because file clusters are independent of the cluster
 	// store.
-	fs, err := OpenTransientSampleCluster(theFiles)
+	fs, err := OpenTransientSampleCluster(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	gs, err := OpenTransientSampleCluster(theFiles)
+	gs, err := OpenTransientSampleCluster(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +82,7 @@ func TestOpenClose(t *testing.T) {
 }
 
 func TestTransientSampleFilenames(t *testing.T) {
-	fs, err := OpenTransientSampleCluster(theFiles)
+	fs, err := OpenTransientSampleCluster(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +97,7 @@ func TestTransientSampleFilenames(t *testing.T) {
 }
 
 func TestTransientSampleRead(t *testing.T) {
-	fs, err := OpenTransientSampleCluster(theFiles)
+	fs, err := OpenTransientSampleCluster(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +114,7 @@ func TestTransientSampleRead(t *testing.T) {
 }
 
 func TestPersistentSampleFilenames(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir)
+	pc, err := OpenPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +164,7 @@ func TestPersistentSampleFilenames(t *testing.T) {
 }
 
 func TestPersistentSampleRead(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir)
+	pc, err := OpenPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +188,7 @@ func TestPersistentSampleRead(t *testing.T) {
 }
 
 func TestPersistentSysinfoRead(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir)
+	pc, err := OpenPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +219,7 @@ func TestPersistentSampleAppend(t *testing.T) {
 	d := tmpCopyTree(theClusterDir)
 	defer os.RemoveAll(d)
 
-	pc, err := OpenPersistentCluster(d)
+	pc, err := OpenPersistentCluster(d, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +256,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	d := tmpCopyTree(theClusterDir)
 	defer os.RemoveAll(d)
 
-	pc, err := OpenPersistentCluster(d)
+	pc, err := OpenPersistentCluster(d, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +356,7 @@ func TestPersistentSampleFlush(t *testing.T) {
 	d := tmpCopyTree(theClusterDir)
 	defer os.RemoveAll(d)
 
-	pc, err := OpenPersistentCluster(d)
+	pc, err := OpenPersistentCluster(d, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -377,5 +382,286 @@ func TestPersistentSampleFlush(t *testing.T) {
 	}
 	if lines[len(lines)-1] != l1 {
 		t.Fatalf("Lines don't match\n<%s>", lines[len(lines)-1])
+	}
+}
+
+// Caching tests
+//
+// We can listen for Info messages about cache behavior:
+//
+//   "Caching <filename> size <x>"
+//   "Purging <filename> b/c <reason>
+//   "Budget <current-budget>"
+//   "Cache hit <filename>"
+
+type CacheListener struct /* implements status.UnderlyingLogger */ {
+	sync.Mutex
+	msgs []string
+}
+
+func (cl *CacheListener) Info(m string) error {
+	cl.Lock()
+	defer cl.Unlock()
+	cl.msgs = append(cl.msgs, m)
+	return nil
+}
+
+func (cl *CacheListener) Debug(m string) error {
+	return nil
+}
+
+func (cl *CacheListener) Warning(m string) error {
+	return nil
+}
+
+func (cl *CacheListener) Err(m string) error {
+	return nil
+}
+
+func (cl *CacheListener) Crit(m string) error {
+	return nil
+}
+
+func (cl *CacheListener) GetMsgs() []string {
+	cl.Lock()
+	defer cl.Unlock()
+	ms := cl.msgs
+	cl.msgs = nil
+	return ms
+}
+
+// Cache tests have to be run in sequence, and should all call CacheInit() followed by
+// cachePurgeAllSync() to clean the cache of any prior data.
+
+// to-do here
+//
+// - Really if there's a Budget -nn message there should be at least one subsequent Purging message,
+//   and if there's a Budget nn message there should be no subsequent Purging (probably).
+// - Probably these Infof messages should be under DEBUG and DEBUG should be auto-enabled when
+//   running tests (how?)
+
+func TestCaching(t *testing.T) {
+	if DEBUG {
+		t.Fatal("Hi there")
+	}
+	d := tmpCopyTree(theClusterDir)
+	defer os.RemoveAll(d)
+
+	// 200 is small enough that we should see some purging.
+	CacheInit(300)
+	cachePurgeAllSync()
+
+	var ul CacheListener
+	Log.SetUnderlying(&ul)
+	Log.LowerLevelTo(status.LogLevelInfo)
+
+	pc, err := OpenPersistentCluster(d, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Caching and purging test
+
+	// Read five times to stress the cache a bit
+	numReads := 5
+	for i := 0 ; i < numReads ; i++ {
+		_, _, err = pc.ReadSamples(
+			time.Date(2023, 05, 01, 0, 0, 0, 0, time.UTC),
+			time.Date(2023, 06, 30, 0, 0, 0, 0, time.UTC),
+			nil,
+			false,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	msgs := ul.GetMsgs()
+
+	filesToCache := []string{
+		"/2023/06/05/b.csv",
+		"/2023/06/01/a.csv",
+		"/2023/06/01/b.csv",
+		"/2023/05/28/a.csv",
+		"/2023/06/05/a.csv",
+		"/2023/06/02/a.csv",
+		"/2023/06/04/b.csv",
+		"/2023/05/31/b.csv",
+		"/2023/06/04/a.csv",
+		"/2023/05/31/a.csv",
+		"/2023/05/30/b.csv",
+		"/2023/06/03/b.csv",
+		"/2023/05/30/a.csv",
+		"/2023/05/28/b.csv",
+	}
+	files := strings.Join(filesToCache, "|")
+	shouldSee := regexp.MustCompile(
+		"^Caching.*(" + files + ")|^Purging .*(" + files + ") .*internal:capacity|^Budget|^Cache hit .*(" + files + ")",
+	)
+
+	// Every file in the list above must become cached at one point or another
+	//
+	// Every file cached must not already be in the cache.
+	//
+	// Every file purged must be in the cache.
+	//
+	// Every file hit must be in the cache.
+	//
+	// There should be numReads hits+reads for every file.
+	found := make(map[string]int)
+	inCache := make(map[string]bool)
+	for _, m := range msgs {
+		ms := shouldSee.FindStringSubmatch(m)
+		if ms == nil {
+			t.Fatal(m)
+		}
+		if ms[1] != "" {
+			found[ms[1]]++
+			if inCache[ms[1]] {
+				t.Fatalf("Already in cache %s", ms[1])
+			}
+			inCache[ms[1]] = true
+		}
+		if ms[2] != "" {
+			if !inCache[ms[2]] {
+				t.Fatalf("Purge not in cache %s", ms[2])
+			}
+			delete( inCache, ms[2])
+		}
+		if ms[3] != "" {
+			found[ms[3]]++
+			if !inCache[ms[3]] {
+				t.Fatalf("Hit not in cache %s", ms[3])
+			}
+		}
+	}
+	for _, f := range filesToCache {
+		if found[f] != numReads {
+			t.Fatal(f)
+		}
+	}
+
+	// Write causes flush of clean cached data
+	//
+	//  - clear cache
+	//  - read a file that will fit in the cache
+	//  - observe Caching msg
+	//  - append to it w/o other traffic, see nothing
+	//  - read it
+	//  - observe Purging b/c internal:dirty
+	//  - observe Caching msg
+	//  - observe that the contents include the appended data
+
+	cachePurgeAllSync()
+	_ = ul.GetMsgs()
+
+	// This should read 2023/05/31/a.csv
+	glob, _ := hostglob.NewGlobber(false, []string{"a"})
+	_, _, err = pc.ReadSamples(
+		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
+		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
+		glob,
+		false,
+	)
+
+	msgs = ul.GetMsgs()
+	if len(msgs) != 1 {
+		t.Fatal("Too much action", msgs)
+	}
+	m, _ := regexp.MatchString("Caching.*a\\.csv", msgs[0])
+	if !m {
+		t.Fatal("Too much action", msgs)
+	}
+
+	err = pc.AppendSamplesAsync("a", "2023-05-31T14:30:38+02:00", "v=0.11.1,time=2023-05-31T14:30:38+02:00,host=a,user=larstha,cmd=awk")
+	if err != nil {
+		t.Fatal(err)
+	}
+	samples, _, err := pc.ReadSamples(
+		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
+		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
+		glob,
+		false,
+	)
+	msgs = ul.GetMsgs()
+	if len(msgs) != 2 {
+		t.Fatal("Too much action", msgs)
+	}
+	m, _ = regexp.MatchString("Purging.*a\\.csv.*internal:dirty", msgs[0])
+	if !m {
+		t.Fatal("Missing purging msg", msgs)
+	}
+	m, _ = regexp.MatchString("Caching.*a\\.csv", msgs[1])
+	if !m {
+		t.Fatal("Missing caching msg", msgs)
+	}
+	cmd := samples[len(samples)-1].Cmd
+	if cmd.String() != "awk" {
+		t.Fatal(cmd)
+	}
+
+	// Purging of dirty data causes writeback
+	//
+	//  - clear cache
+	//  - read a file that will fit in the cache
+	//  - observe Caching msg
+	//  - append to it w/o other traffic, see nothing
+	//  - read another file that will cause the cache to overflow
+	//  - observe Purging b/c internal:dirty
+	//  - observe Caching msg of the new file
+	//  - Read the old file again
+	//  - observe that the contents include the appended data
+
+	cachePurgeAllSync()
+	_ = ul.GetMsgs()
+
+	_, _, err = pc.ReadSamples(
+		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
+		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
+		glob,
+		false,
+	)
+
+	msgs = ul.GetMsgs()
+	if len(msgs) != 1 {
+		t.Fatal("Too much action", msgs)
+	}
+	m, _ = regexp.MatchString("Caching.*a\\.csv", msgs[0])
+	if !m {
+		t.Fatal("Too much action", msgs)
+	}
+
+	err = pc.AppendSamplesAsync("a", "2023-05-31T14:30:38+02:00", "v=0.11.1,time=2023-05-31T14:30:38+02:00,host=a,user=larstha,cmd=zappa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = pc.ReadSamples(
+		time.Date(2023, 05, 28, 0, 0, 0, 0, time.UTC),
+		time.Date(2023, 05, 29, 0, 0, 0, 0, time.UTC),
+		glob,
+		false,
+	)
+
+	msgs = ul.GetMsgs()
+	if len(msgs) != 2 {
+		t.Fatal("Too much action", msgs)
+	}
+	m, _ = regexp.MatchString("Purging.*05/31/a\\.csv.*internal:dirty", msgs[0])
+	if !m {
+		t.Fatal("Missing purging msg", msgs)
+	}
+	m, _ = regexp.MatchString("Caching.*05/28/.*\\.csv", msgs[1])
+	if !m {
+		t.Fatal("Missing caching msg", msgs)
+	}
+	samples, _, err = pc.ReadSamples(
+		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
+		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
+		glob,
+		false,
+	)
+	cmd = samples[len(samples)-1].Cmd
+	if cmd.String() != "zappa" {
+		t.Fatal(cmd)
 	}
 }

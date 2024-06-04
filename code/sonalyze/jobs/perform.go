@@ -2,13 +2,14 @@ package jobs
 
 import (
 	"io"
-	"log"
 	"math"
 	"strings"
 
 	"go-utils/config"
 	"go-utils/hostglob"
 	. "sonalyze/command"
+	. "sonalyze/common"
+	"sonalyze/db"
 	"sonalyze/sonarlog"
 )
 
@@ -76,27 +77,18 @@ type jobAggregate struct {
 func (jc *JobsCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	_ sonarlog.Cluster,
-	samples sonarlog.SampleStream,
+	_ db.SampleCluster,
+	streams sonarlog.InputStreamSet,
+	bounds sonarlog.Timebounds,
 	hostGlobber *hostglob.HostGlobber,
-	recordFilter func(*sonarlog.Sample) bool,
 ) error {
-	// Time bounds are computed from the full set of samples before filtering.
-	bounds := sonarlog.ComputeTimeBounds(samples)
-
-	streams := sonarlog.PostprocessLog(
-		samples,
-		recordFilter,
-		nil,
-	)
-
 	if jc.Verbose {
-		log.Printf("Streams constructed by postprocessing: %d", len(streams))
+		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
 		numSamples := 0
 		for _, stream := range streams {
 			numSamples += len(*stream)
 		}
-		log.Printf("Samples retained after filtering: %d", numSamples)
+		Log.Infof("Samples retained after filtering: %d", numSamples)
 	}
 
 	if jc.printRequiresConfig() {
@@ -109,7 +101,7 @@ func (jc *JobsCommand) Perform(
 
 	summaries := jc.aggregateAndFilterJobs(cfg, streams, bounds)
 	if jc.Verbose {
-		log.Printf("Jobs after aggregation filtering: %d", len(summaries))
+		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
 
 	return jc.printJobSummaries(out, summaries)
@@ -144,7 +136,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		jobs = sonarlog.MergeByHostAndJob(streams)
 	}
 	if jc.Verbose {
-		log.Printf("Jobs constructed by merging: %d", len(jobs))
+		Log.Infof("Jobs constructed by merging: %d", len(jobs))
 	}
 
 	filter := jc.buildAggregationFilter(cfg)
@@ -166,7 +158,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		}
 	}
 	if jc.Verbose {
-		log.Printf("Jobs discarded by aggregation filtering: %d", discarded)
+		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
 	}
 
 	return summaries
@@ -213,9 +205,9 @@ func (jc *JobsCommand) aggregateJob(
 	job sonarlog.SampleStream,
 	bounds sonarlog.Timebounds,
 ) jobAggregate {
-	first := job[0].Timestamp
-	last := job[len(job)-1].Timestamp
-	host := job[0].Host
+	first := job[0].S.Timestamp
+	last := job[len(job)-1].S.Timestamp
+	host := job[0].S.Host
 	duration := last - first
 	needZombie := jc.Zombie
 	var (
@@ -237,21 +229,21 @@ func (jc *JobsCommand) aggregateJob(
 	const kib2gib = 1.0 / (1024 * 1024)
 
 	for _, s := range job {
-		usesGpu = usesGpu || !s.Gpus.IsEmpty()
-		gpuFail = sonarlog.MergeGpuFail(gpuFail, s.GpuFail)
+		usesGpu = usesGpu || !s.S.Gpus.IsEmpty()
+		gpuFail = sonarlog.MergeGpuFail(gpuFail, s.S.GpuFail)
 		cpuPctAvg += float64(s.CpuUtilPct)
 		cpuPctPeak = math.Max(cpuPctPeak, float64(s.CpuUtilPct))
-		gpuPctAvg += float64(s.GpuPct)
-		gpuPctPeak = math.Max(gpuPctPeak, float64(s.GpuPct))
-		cpuGibAvg += float64(s.CpuKib) * kib2gib
-		cpuGibPeak = math.Max(cpuGibPeak, float64(s.CpuKib)*kib2gib)
-		rssAnonGibAvg += float64(s.RssAnonKib) * kib2gib
-		rssAnonGibPeak = math.Max(rssAnonGibPeak, float64(s.RssAnonKib)*kib2gib)
-		gpuGibAvg += float64(s.GpuKib) * kib2gib
-		gpuGibPeak = math.Max(gpuGibPeak, float64(s.GpuKib)*kib2gib)
+		gpuPctAvg += float64(s.S.GpuPct)
+		gpuPctPeak = math.Max(gpuPctPeak, float64(s.S.GpuPct))
+		cpuGibAvg += float64(s.S.CpuKib) * kib2gib
+		cpuGibPeak = math.Max(cpuGibPeak, float64(s.S.CpuKib)*kib2gib)
+		rssAnonGibAvg += float64(s.S.RssAnonKib) * kib2gib
+		rssAnonGibPeak = math.Max(rssAnonGibPeak, float64(s.S.RssAnonKib)*kib2gib)
+		gpuGibAvg += float64(s.S.GpuKib) * kib2gib
+		gpuGibPeak = math.Max(gpuGibPeak, float64(s.S.GpuKib)*kib2gib)
 
 		if needZombie && !isZombie {
-			cmd := s.Cmd.String()
+			cmd := s.S.Cmd.String()
 			isZombie = strings.Contains(cmd, "<defunct>") || strings.HasPrefix(cmd, "_zombie_")
 		}
 	}

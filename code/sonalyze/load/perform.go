@@ -6,27 +6,20 @@ import (
 	"go-utils/config"
 	"go-utils/hostglob"
 	. "sonalyze/command"
-	"sonalyze/common"
+	. "sonalyze/common"
+	"sonalyze/db"
 	"sonalyze/sonarlog"
 )
 
 func (lc *LoadCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	_ sonarlog.Cluster,
-	samples sonarlog.SampleStream,
+	_ db.SampleCluster,
+	streams sonarlog.InputStreamSet,
+	bounds sonarlog.Timebounds,
 	hostGlobber *hostglob.HostGlobber,
-	recordFilter func(*sonarlog.Sample) bool,
 ) error {
-	// Time bounds are computed from the full set of samples before filtering.
-	bounds := sonarlog.ComputeTimeBounds(samples)
 	fromIncl, toIncl := lc.InterpretFromToWithBounds(bounds)
-
-	streams := sonarlog.PostprocessLog(
-		samples,
-		recordFilter,
-		cfg,
-	)
 
 	if lc.printRequiresConfig() {
 		var err error
@@ -72,7 +65,7 @@ func (lc *LoadCommand) Perform(
 		if cfg != nil {
 			for _, stream := range mergedStreams {
 				// probe is non-nil by previous construction
-				probe := cfg.LookupHost((*stream)[0].Host.String())
+				probe := cfg.LookupHost((*stream)[0].S.Host.String())
 				if theConf.Description != "" {
 					theConf.Description += "|||" // JSON-compatible separator
 				}
@@ -108,33 +101,31 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 	var step func(int64) int64
 	switch lc.bucketing {
 	case bHalfHourly:
-		trunc = common.TruncateToHalfHour
-		step = common.AddHalfHour
+		trunc = TruncateToHalfHour
+		step = AddHalfHour
 	case bHourly:
-		trunc = common.TruncateToHour
-		step = common.AddHour
+		trunc = TruncateToHour
+		step = AddHour
 	case bHalfDaily, bNone:
-		trunc = common.TruncateToHalfDay
-		step = common.AddHalfDay
+		trunc = TruncateToHalfDay
+		step = AddHalfDay
 	case bDaily:
-		trunc = common.TruncateToDay
-		step = common.AddDay
+		trunc = TruncateToDay
+		step = AddDay
 	case bWeekly:
-		trunc = common.TruncateToWeek
-		step = common.AddWeek
+		trunc = TruncateToWeek
+		step = AddWeek
 	default:
 		panic("Unexpected case")
 	}
-	host := (*ss)[0].Host
+	host := (*ss)[0].S.Host
 	t := trunc(fromIncl)
 	result := make(sonarlog.SampleStream, 0)
 
 	for _, s := range *ss {
-		for t < s.Timestamp {
-			var newS sonarlog.Sample
-			newS.Timestamp = t
-			newS.Host = host
-			result = append(result, &newS)
+		for t < s.S.Timestamp {
+			newS := sonarlog.Sample{S: &db.Sample{Timestamp: t, Host: host}}
+			result = append(result, newS)
 			t = step(t)
 		}
 		result = append(result, s)
@@ -142,10 +133,8 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 	}
 	ending := trunc(toIncl)
 	for t <= ending {
-		var newS sonarlog.Sample
-		newS.Timestamp = t
-		newS.Host = host
-		result = append(result, &newS)
+		newS := sonarlog.Sample{S: &db.Sample{Timestamp: t, Host: host}}
+		result = append(result, newS)
 		t = step(t)
 	}
 	*ss = result

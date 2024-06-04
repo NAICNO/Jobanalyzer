@@ -13,6 +13,7 @@ mkdir -p $data_dir
 pidfile=$sonar_dir/sonalyzed.pid
 rm -f $pidfile
 $sonar_dir/sonalyze daemon \
+    -cache 12G \
     -jobanalyzer-dir $sonar_dir \
     -port $sonalyzed_port \
     -match-user-and-cluster \

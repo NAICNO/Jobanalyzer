@@ -1,6 +1,15 @@
 // `sonalyze` -- Analyze `sonar` log files
 //
 // See MANUAL.md for a manual, or run `sonalyze help` for brief help.
+//
+// This code is moderately multi-threaded: There are multiple goroutines in the I/O subsystem, and
+// every HTTP handler runs on a separate goroutine as well.  Most components and libraries therefore
+// need to be thread-safe (by using locks or being immutable).  The exception to that requirement is
+// the individual analysis commands (`jobs`, etc) and the `add` command, which are created in
+// response to a request and are themselves only used on a single thread.
+//
+// Data are cached by the I/O subsystem.  Cached data are shared (to hold memory usage down) but
+// must be regarded as completely immutable, including the slices that point to those data.
 
 package main
 
@@ -12,25 +21,28 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"go-utils/status"
 	"sonalyze/add"
 	. "sonalyze/command"
+	. "sonalyze/common"
 	"sonalyze/daemon"
+	"sonalyze/db"
 	"sonalyze/jobs"
 	"sonalyze/load"
 	"sonalyze/metadata"
 	"sonalyze/parse"
 	"sonalyze/profile"
-	"sonalyze/sonarlog"
 	"sonalyze/uptime"
 )
 
 // v0.1.0 - translation from Rust
 // v0.2.0 - added 'add' verb
-// v0.3.0 - added 'daemon' verb
+// v0.3.0 - added 'daemon' verb (integrating sonalyzed into sonalyze), added caching
 
 const SonalyzeVersion = "0.3.0"
 
 // See end of file for documentation.
+// MT: Constant after initialization; immutable (no fields)
 var stdhandler = standardCommandLineHandler{}
 
 func main() {
@@ -112,6 +124,12 @@ func sonalyze() error {
 			os.Exit(2)
 		}
 
+		// All verbose messages are printed with Log.Info so for -v the level has to be at least
+		// that low.
+		if anyCmd.VerboseFlag() {
+			Log.LowerLevelTo(status.LogLevelInfo)
+		}
+
 		if fhCmd, ok := anyCmd.(FormatHelpAPI); ok {
 			if h := fhCmd.MaybeFormatHelp(); h != nil {
 				PrintFormatHelp(out, h)
@@ -137,7 +155,7 @@ func sonalyze() error {
 		// pending input and return errors from blocked reading operations.
 		//
 		// Note, we are dependent on nobody calling Exit() after this point.
-		defer sonarlog.Close()
+		defer db.Close()
 
 		return stdhandler.HandleCommand(anyCmd, os.Stdin, os.Stdout, out)
 	}

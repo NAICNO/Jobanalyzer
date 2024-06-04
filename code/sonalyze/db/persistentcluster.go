@@ -49,12 +49,11 @@
 // A halfway solution, should non-purging turn out to be a problem, is to purge *everything* every
 // so often, effectively restarting the daemon.
 
-package sonarlog
+package db
 
 import (
 	"fmt"
 	"io/fs"
-	_ "log"
 	"os"
 	"path"
 	"strings"
@@ -83,6 +82,9 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	// The dataDir must have been path.Clean'd, it is the root directory for the cluster.
 	dataDir string
 
+	// This is set when the PersistentCluster is created
+	cfg *config.ClusterConfig
+
 	// The shadow directory tree underneath dataDir.  The timestamps are 00:00:00 UTC the earliest
 	// day for which we have created directories and the start of the day after the latest day,
 	// respectively.  There may be directories outside this range.  For each directory, its file
@@ -110,18 +112,29 @@ type persistentDir struct {
 	sysinfoFiles map[string]*LogFile
 }
 
-func newPersistentCluster(dataDir string) *PersistentCluster {
+func newPersistentCluster(dataDir string, cfg *config.ClusterConfig) *PersistentCluster {
 	// Initially, populate for today's date.
 	fromDate := ThisDay(time.Now().UTC())
 	toDate := fromDate.AddDate(0, 0, 1)
 	dirs := findSortedDateIndexedDirectories(dataDir, fromDate, toDate)
 	return &PersistentCluster{
 		dataDir:  dataDir,
+		cfg:      cfg,
 		dirs:     dirs,
 		fromDate: fromDate,
 		toDate:   toDate,
 		dirty:    make(map[*LogFile]bool),
 	}
+}
+
+func (pc *PersistentCluster) Config() *config.ClusterConfig {
+	pc.Lock()
+	defer pc.Unlock()
+	if pc.closed {
+		return nil
+	}
+
+	return pc.cfg
 }
 
 func (pc *PersistentCluster) Close() error {
@@ -132,7 +145,22 @@ func (pc *PersistentCluster) Close() error {
 	}
 
 	pc.closed = true
+
 	pc.flushSyncLocked()
+
+	// It's not technically necessary to purge the cache since these files, belonging to a cluster
+	// no longer in memory, will be purged eventually anyway, but it does free up memory more
+	// quickly and will improve the hit rate for other clusters - assuming clusters are closed
+	// individually during the run and not just at the end of the run.
+	for _, d := range pc.dirs {
+		for _, f := range d.sampleFiles {
+			f.PurgeCache("closing cluster")
+		}
+		for _, f := range d.sysinfoFiles {
+			f.PurgeCache("closing cluster")
+		}
+	}
+
 	return nil
 }
 
@@ -207,12 +235,13 @@ func (pc *PersistentCluster) ReadSamples(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
 	verbose bool,
-) (samples SampleStream, dropped int, err error) {
+) (samples []*Sample, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
 	}
-	return readPersistentClusterRecords(pc, fromDate, toDate, hosts, verbose, &samplesAdapter{}, readSamples)
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, hosts, verbose, &samplesAdapter{}, readSamples)
 }
 
 func (pc *PersistentCluster) ReadSysinfo(
@@ -224,7 +253,8 @@ func (pc *PersistentCluster) ReadSysinfo(
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
 	}
-	return readPersistentClusterRecords(pc, fromDate, toDate, hosts, verbose, &sysinfoAdapter{}, readSysinfo)
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, hosts, verbose, &sysinfoAdapter{}, readSysinfo)
 }
 
 func readPersistentClusterRecords[V any, U ~[]*V](
@@ -233,9 +263,10 @@ func readPersistentClusterRecords[V any, U ~[]*V](
 	hosts *hostglob.HostGlobber,
 	verbose bool,
 	fa filesAdapter,
-	reader func(files []*LogFile, verbose bool) (U, int, error),
+	reader func(files []*LogFile, verbose bool, cfg *config.ClusterConfig) (U, int, error),
 ) (records U, dropped int, err error) {
-	// Hold the lock while reading: this will be required once we cache data anyway.
+	// TODO: IMPROVEME: Don't hold the lock while reading, it's not necessary, caching is per-file
+	// and does not interact with the cluster.  But be sure to get pc.cfg while holding the lock.
 	pc.Lock()
 	defer pc.Unlock()
 	if pc.closed {
@@ -246,7 +277,7 @@ func readPersistentClusterRecords[V any, U ~[]*V](
 	if err != nil {
 		return nil, 0, err
 	}
-	return reader(files, verbose)
+	return reader(files, verbose, pc.cfg)
 }
 
 func (pc *PersistentCluster) AppendSamplesAsync(host, timestamp string, payload any) error {
@@ -254,10 +285,16 @@ func (pc *PersistentCluster) AppendSamplesAsync(host, timestamp string, payload 
 }
 
 func (pc *PersistentCluster) AppendSysinfoAsync(host, timestamp string, payload any) error {
-	return pc.appendDataAsync(timestamp, fmt.Sprintf("sysinfo-%s.json", host), payload, &sysinfoAdapter{})
+	return pc.appendDataAsync(
+		timestamp, fmt.Sprintf("sysinfo-%s.json", host), payload, &sysinfoAdapter{})
 }
 
-func (pc *PersistentCluster) appendDataAsync(timestamp, filename string, payload any, fa filesAdapter) error {
+func (pc *PersistentCluster) appendDataAsync(
+	timestamp,
+	filename string,
+	payload any,
+	fa filesAdapter,
+) error {
 	// A little hair so as not to hold the cluster lock while appending to the file.  The pattern
 	// can be abstracted if we end up using it elsewhere.
 	pc.Lock()
@@ -417,7 +454,10 @@ func (pc *PersistentCluster) findFilesLocked(
 // Pre: !ld.closed
 // Post if !error: directory exits on disk
 // Post if !error: directory exists in cluster's tree
-func (pc *PersistentCluster) findFileByTimeLocked(timestamp, filename string, fa filesAdapter) (*LogFile, error) {
+func (pc *PersistentCluster) findFileByTimeLocked(
+	timestamp, filename string,
+	fa filesAdapter,
+) (*LogFile, error) {
 	tval, err := time.Parse(time.RFC3339, timestamp)
 	if err != nil {
 		return nil, BadTimestampErr

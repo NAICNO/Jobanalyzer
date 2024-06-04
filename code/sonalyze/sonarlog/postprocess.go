@@ -10,47 +10,15 @@ import (
 	"go-utils/config"
 	"go-utils/minmax"
 	. "sonalyze/common"
+	"sonalyze/db"
 )
 
-// The InputStreamKey is (hostname, stream-id, cmd), where the stream-id is defined below; it is
-// meaningful only for non-merged streams.
+// About stream IDs
 //
-// An InputStreamSet maps a InputStreamKey to a SampleStream pertinent to that key.  It is named as
-// it is because the InputStreamKey is meaningful only for non-merged streams.
-
-type InputStreamKey struct {
-	Host     Ustr
-	StreamId uint32
-	Cmd      Ustr
-}
-
-// The streams are heap-allocated so that we can update them without also updating the map.
-//
-// After postprocessing, there are some important invariants on the records that make up an input
-// stream in addition to them having the same key:
-//
-// - the vector is sorted ascending by timestamp
-// - no two adjacent timestamps are the same
-
-type InputStreamSet map[InputStreamKey]*SampleStream
-
-// Apply postprocessing to the records in the array:
-//
-// - reconstruct individual sample streams
-// - compute the cpu_util_pct field from cputime_sec and timestamp for consecutive records in
-//   streams
-// - if `configs` is not None and there is the necessary information for a given host, clean up the
-//   gpumem_pct and gpumem_gb fields so that they are internally consistent
-// - after all that, remove records for which the filter function returns false
-//
-// Returns the individual streams as a map from (hostname, id, cmd) to a vector of Samples, where
-// each vector is sorted in ascending order of time.  In each vector, there may be no adjacent
-// records with the same timestamp.
-//
-// The id is necessary to distinguish the different event streams for a single job.  Consider a run
-// of records from the same host.  There may be multiple records per job in that run, and they may
-// or may not also have the same cmd, and they may or may not have been rolled up.  There are two
-// cases:
+// The stream id is necessary to distinguish the different event streams within a single job.
+// Consider a run of records from the same host.  There may be multiple records per job in that run,
+// and they may or may not also have the same cmd, and they may or may not have been rolled up.
+// There are two cases:
 //
 // - If the job is not rolled-up then we know that for a given pid there is only ever one record at
 //   a given time.
@@ -73,26 +41,82 @@ type InputStreamSet map[InputStreamKey]*SampleStream
 
 const JobIdTag = 10000000
 
-func PostprocessLog(
-	entries SampleStream,
-	filter func(*Sample) bool,
-	configs *config.ClusterConfig,
-) InputStreamSet {
-	streams := make(InputStreamSet)
+// Records for job id 0 are always not rolled up and we'll use the pid for those, which is unique.
+func streamId(e *db.Sample) uint32 {
+	syntheticPid := e.Pid
+	if e.Rolledup > 0 {
+		syntheticPid = JobIdTag + e.Job
+	}
+	return syntheticPid
+}
 
-	// Reconstruct the individual sample streams.  Records for job id 0 are always not rolled up and
-	// we'll use the pid, which is unique.  But consumers of the data must be sure to treat job id 0
-	// specially.
-	for _, e := range entries {
-		syntheticPid := e.Pid
-		if e.Rolledup > 0 {
-			syntheticPid = JobIdTag + e.Job
-		}
-		key := InputStreamKey{e.Host, syntheticPid, e.Cmd}
-		if stream, found := streams[key]; found {
-			*stream = append(*stream, e)
+// The SampleRectifier is applied to samples when they are read from a file, before caching, and can
+// also (eventually) be applied to samples that are read from in-memory records to be appended to a
+// file.  All samples are from the same host and the same date (UTC), but otherwise there are few
+// guarantees.
+//
+// For now, clean up the gpumem_pct and gpumem_gb fields based on system information.
+func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.Sample {
+	if cfg == nil || len(xs) == 0 {
+		return xs
+	}
+
+	conf := cfg.LookupHost(xs[0].Host.String())
+	if conf == nil {
+		return xs
+	}
+
+	cardsizeKib := float64(conf.GpuMemGB) * 1024 * 1024 / float64(conf.GpuCards)
+	for _, x := range xs {
+		if conf.GpuMemPct {
+			x.GpuKib = uint64(float64(x.GpuMemPct) / 100 * cardsizeKib)
 		} else {
-			streams[key] = &SampleStream{e}
+			x.GpuMemPct = float32(float64(x.GpuKib) / cardsizeKib * 100)
+		}
+	}
+
+	return xs
+}
+
+// Given a set of records, reconstruct individual sample streams, sort them, drop duplicates, and
+// perform intra-record fixups based on config or other data.
+//
+// Returns the individual non-empty streams as a map from (hostname, id, cmd) to a vector of
+// Samples, where each vector is sorted in ascending order of time.  In each vector, there may be no
+// adjacent records with the same timestamp.
+
+func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
+	streams := make(InputStreamSet)
+	bounds := make(Timebounds)
+
+	// Reconstruct the individual sample streams.  Each job with job id 0 gets its own stream, these
+	// must not be merged downstream (they get different stream IDs but the job IDs remain 0).
+	//
+	// Also compute time bounds.  Bounds are computed from a sample stream, because we compute
+	// bounds on the entire input set before filtering or other postprocessing.  This is closest to
+	// what's expected.
+	//
+	// TODO: OPTIMIZEME: Bounds computation could be performed more efficiently (fewer lookups)
+	// on the sorted streams, probably.
+
+	for _, e := range entries {
+		key := InputStreamKey{e.Host, streamId(e), e.Cmd}
+		if stream, found := streams[key]; found {
+			*stream = append(*stream, Sample{S: e})
+		} else {
+			streams[key] = &SampleStream{Sample{S: e}}
+		}
+
+		if bound, found := bounds[e.Host]; found {
+			bounds[e.Host] = Timebound{
+				Earliest: minmax.MinInt64(bound.Earliest, e.Timestamp),
+				Latest:   minmax.MaxInt64(bound.Latest, e.Timestamp),
+			}
+		} else {
+			bounds[e.Host] = Timebound{
+				Earliest: e.Timestamp,
+				Latest:   e.Timestamp,
+			}
 		}
 	}
 
@@ -114,7 +138,7 @@ func PostprocessLog(
 		// Invariant: candidate > good points to unexamined record or past end
 		for candidate < len(es) {
 			// Skip until end or we find a record that has different time
-			for candidate < len(es) && es[good].Timestamp == es[candidate].Timestamp {
+			for candidate < len(es) && es[good].S.Timestamp == es[candidate].S.Timestamp {
 				candidate++
 			}
 			// Keep the new candidate, if there is one
@@ -127,6 +151,22 @@ func PostprocessLog(
 		*stream = es[:good+1]
 	}
 
+	// Some streams may now be empty; remove them.
+	removeEmptyStreams(streams)
+
+	return streams, bounds
+}
+
+// Apply postprocessing to the records in the array:
+//
+// - compute the cpu_util_pct field from cputime_sec and timestamp for consecutive records in
+//   streams
+// - subsequently, remove records for which the filter function returns false or which
+//   meet fixed filtering crieria.
+//
+// This updates the individual streams and will also remove empty streams from the set.
+
+func ComputeAndFilter(streams InputStreamSet, filter func(*Sample) bool) {
 	// For each stream, compute the cpu_util_pct field of each record.
 	//
 	// For v0.7.0 and later, compute this as the difference in cputime_sec between adjacent records
@@ -138,36 +178,19 @@ func PostprocessLog(
 	for _, stream := range streams {
 		// By construction, every stream is non-empty.
 		es := *stream
-		es[0].CpuUtilPct = es[0].CpuPct
-		major, minor, _ := parseVersion(es[0].Version)
+		es[0].CpuUtilPct = es[0].S.CpuPct
+		major, minor, _ := parseVersion(es[0].S.Version)
 		if major == 0 && minor <= 6 {
 			for i := 1; i < len(es); i++ {
-				es[i].CpuUtilPct = es[i].CpuPct
+				es[i].CpuUtilPct = es[i].S.CpuPct
 			}
 		} else {
 			for i := 1; i < len(es); i++ {
-				dt := float64(es[i].Timestamp - es[i-1].Timestamp)
-				dc := float64(int64(es[i].CpuTimeSec) - int64(es[i-1].CpuTimeSec))
+				dt := float64(es[i].S.Timestamp - es[i-1].S.Timestamp)
+				dc := float64(int64(es[i].S.CpuTimeSec) - int64(es[i-1].S.CpuTimeSec))
 				// It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
-				// We filter these below.
+				// We filter these in the next step.
 				es[i].CpuUtilPct = float32((dc / dt) * 100)
-			}
-		}
-	}
-
-	// For each stream, clean up the gpumem_pct and gpumem_gb fields based on system information, if
-	// available.
-	if configs != nil {
-		for _, stream := range streams {
-			if conf := configs.LookupHost((*stream)[0].Host.String()); conf != nil {
-				cardsizeKib := float64(conf.GpuMemGB) * 1024 * 1024 / float64(conf.GpuCards)
-				for _, entry := range *stream {
-					if conf.GpuMemPct {
-						entry.GpuKib = uint64(float64(entry.GpuMemPct) * cardsizeKib)
-					} else {
-						entry.GpuMemPct = float32(float64(entry.GpuKib) / cardsizeKib)
-					}
-				}
 			}
 		}
 	}
@@ -178,7 +201,7 @@ func PostprocessLog(
 		es := *stream
 		for src := range es {
 			// See comments above re the test for cpu_util_pct
-			if (filter == nil || filter(es[src])) && es[src].CpuUtilPct >= 0 {
+			if (filter == nil || filter(&es[src])) && es[src].CpuUtilPct >= 0 {
 				es[dst] = es[src]
 				dst++
 			}
@@ -187,17 +210,7 @@ func PostprocessLog(
 	}
 
 	// Some streams may now be empty; remove them.
-	dead := make([]InputStreamKey, 0)
-	for key, stream := range streams {
-		if len(*stream) == 0 {
-			dead = append(dead, key)
-		}
-	}
-	for _, key := range dead {
-		delete(streams, key)
-	}
-
-	return streams
+	removeEmptyStreams(streams)
 }
 
 func parseVersion(v Ustr) (major, minor, bugfix int) {
@@ -227,41 +240,14 @@ func parseVersion(v Ustr) (major, minor, bugfix int) {
 	return
 }
 
-// Bounds are computed from a (normally unsorted) sample stream, because we compute bounds on the
-// entire input set before filtering or other postprocessing.  This is closest to what's expected.
-func ComputeTimeBounds(samples SampleStream) Timebounds {
-	bounds := make(Timebounds)
-	for _, s := range samples {
-		host := s.Host
-		if bound, found := bounds[host]; found {
-			bounds[host] = Timebound{
-				Earliest: minmax.MinInt64(bound.Earliest, s.Timestamp),
-				Latest:   minmax.MaxInt64(bound.Latest, s.Timestamp),
-			}
-		} else {
-			bounds[host] = Timebound{
-				Earliest: s.Timestamp,
-				Latest:   s.Timestamp,
-			}
+func removeEmptyStreams(streams InputStreamSet) {
+	dead := make([]InputStreamKey, 0)
+	for key, stream := range streams {
+		if len(*stream) == 0 {
+			dead = append(dead, key)
 		}
 	}
-	return bounds
-}
-
-// Utility for applying the filter if we're not using PostprocessLog.
-func ApplyFilter(
-	readings SampleStream,
-	recordFilter func(*Sample) bool,
-) SampleStream {
-	if recordFilter != nil {
-		dest := 0
-		for src := 0; src < len(readings); src++ {
-			if recordFilter(readings[src]) {
-				readings[dest] = readings[src]
-				dest++
-			}
-		}
-		readings = readings[:dest]
+	for _, key := range dead {
+		delete(streams, key)
 	}
-	return readings
 }

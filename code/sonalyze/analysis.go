@@ -5,13 +5,13 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	"go-utils/config"
 	"go-utils/hostglob"
 	. "sonalyze/command"
 	. "sonalyze/common"
+	"sonalyze/db"
 	"sonalyze/profile"
 	"sonalyze/sonarlog"
 )
@@ -19,15 +19,9 @@ import (
 func localAnalysis(cmd AnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
 	args := cmd.SharedFlags()
 
-	// TODO: Instead of requiring every cmd to have ConfigFile(), we could introduce a ConfigFileAPI
-	// interface and test if the command responds to that.
-	var cfg *config.ClusterConfig
-	if configName := cmd.ConfigFile(); configName != "" {
-		var err error
-		cfg, err = config.ReadConfig(configName)
-		if err != nil {
-			return err
-		}
+	cfg, err := MaybeGetConfig(cmd.ConfigFile())
+	if err != nil {
+		return err
 	}
 
 	hostGlobber, recordFilter, err := buildFilters(cmd, cfg)
@@ -35,25 +29,35 @@ func localAnalysis(cmd AnalysisCommand, _ io.Reader, stdout, stderr io.Writer) e
 		return fmt.Errorf("Failed to create record filter\n%w", err)
 	}
 
-	var theLog sonarlog.SampleCluster
+	var theLog db.SampleCluster
 	if len(args.LogFiles) > 0 {
-		theLog, err = sonarlog.OpenTransientSampleCluster(args.LogFiles)
+		theLog, err = db.OpenTransientSampleCluster(args.LogFiles, cfg)
 	} else {
-		theLog, err = sonarlog.OpenPersistentCluster(args.DataDir)
+		theLog, err = db.OpenPersistentCluster(args.DataDir, cfg)
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to open log store\n%w", err)
 	}
-	samples, dropped, err := theLog.ReadSamples(args.FromDate, args.ToDate, hostGlobber, args.Verbose)
+
+	streams, bounds, read, dropped, err :=
+		sonarlog.ReadSampleStreams(
+			theLog,
+			args.FromDate,
+			args.ToDate,
+			hostGlobber,
+			args.Verbose,
+		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records\n%w", err)
 	}
 	if args.Verbose {
-		log.Printf("%d records read + %d dropped\n", len(samples), dropped)
+		Log.Infof("%d records read + %d dropped\n", read, dropped)
 		UstrStats(stderr, false)
 	}
 
-	err = cmd.Perform(stdout, cfg, theLog, samples, hostGlobber, recordFilter)
+	sonarlog.ComputeAndFilter(streams, recordFilter)
+	err = cmd.Perform(stdout, cfg, theLog, streams, bounds, hostGlobber)
+
 	if err != nil {
 		return fmt.Errorf("Failed to perform operation\n%w", err)
 	}
@@ -185,16 +189,16 @@ func buildFilters(
 	from := args.SourceArgs.FromDate.Unix()
 	to := args.SourceArgs.ToDate.Unix()
 	recordFilter := func(e *sonarlog.Sample) bool {
-		return (len(includeUsers) == 0 || includeUsers[e.User]) &&
-			(includeHosts.IsEmpty() || includeHosts.Match(e.Host.String())) &&
-			(len(includeJobs) == 0 || includeJobs[e.Job]) &&
-			(len(includeCommands) == 0 || includeCommands[e.Cmd]) &&
-			!excludeUsers[e.User] &&
-			!excludeJobs[e.Job] &&
-			!excludeCommands[e.Cmd] &&
-			(!excludeSystemJobs || e.Pid >= 1000) &&
-			(!haveFrom || from <= e.Timestamp) &&
-			(!haveTo || e.Timestamp <= to)
+		return (len(includeUsers) == 0 || includeUsers[e.S.User]) &&
+			(includeHosts.IsEmpty() || includeHosts.Match(e.S.Host.String())) &&
+			(len(includeJobs) == 0 || includeJobs[e.S.Job]) &&
+			(len(includeCommands) == 0 || includeCommands[e.S.Cmd]) &&
+			!excludeUsers[e.S.User] &&
+			!excludeJobs[e.S.Job] &&
+			!excludeCommands[e.S.Cmd] &&
+			(!excludeSystemJobs || e.S.Pid >= 1000) &&
+			(!haveFrom || from <= e.S.Timestamp) &&
+			(!haveTo || e.S.Timestamp <= to)
 	}
 
 	return includeHosts, recordFilter, nil

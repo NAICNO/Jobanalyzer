@@ -68,6 +68,7 @@ func RoundupDay(t time.Time) time.Time {
 	return ThisDay(t.Add(24*time.Hour - 1*time.Second))
 }
 
+// MT: Constant after initialization; immutable (except for configuration methods).
 var dateRe = regexp.MustCompile(`^(\d\d\d\d)-(\d\d)-(\d\d)$`)
 var daysRe = regexp.MustCompile(`^(\d+)d$`)
 var weeksRe = regexp.MustCompile(`^(\d+)w$`)

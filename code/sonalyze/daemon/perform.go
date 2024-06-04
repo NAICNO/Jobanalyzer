@@ -15,11 +15,19 @@ import (
 	"go-utils/auth"
 	"go-utils/httpsrv"
 	"go-utils/process"
+	. "sonalyze/common"
+	"sonalyze/db"
 )
 
 func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
-	if err := statusStart(logTag, stderr); err != nil {
+	logger, err := syslog.Dial("", "", syslog.LOG_INFO|syslog.LOG_USER, logTag)
+	if err != nil {
 		return fmt.Errorf("FATAL ERROR: Failing to open logger: %w", err)
+	}
+	Log.SetUnderlying(logger)
+
+	if dc.cacheSize > 0 {
+		db.CacheInit(dc.cacheSize)
 	}
 
 	// Note "daemon" is not a command here
@@ -43,8 +51,9 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 
 	// Wait here until we're stopped by SIGHUP (manual) or SIGTERM (from OS during shutdown).
 	//
-	// TODO: IMPROVEME: For SIGHUP, we should not exit but should instead reread the password file
-	// and the cluster aliases file.
+	// TODO: IMPROVEME: For SIGHUP, we should not exit but should instead reread the password file,
+	// the cluster aliases file, and the configuration files (we could purge the config object
+	// cache).  Really we must be purging the entire LogFile cache in this case too.
 	process.WaitForSignal(syscall.SIGHUP, syscall.SIGTERM)
 	s.Stop()
 
@@ -86,7 +95,7 @@ func httpGetHandler(
 				w.WriteHeader(400)
 				fmt.Fprintf(w, "Bad parameter %s", name)
 				if dc.Verbose {
-					statusWarningf("Bad parameter %s", name)
+					Log.Warningf("Bad parameter %s", name)
 				}
 				return
 			}
@@ -111,14 +120,12 @@ func httpGetHandler(
 			}
 		}
 
-		switch command {
-		case "jobs", "load", "uptime":
-			arguments = append(
-				arguments,
-				"--config-file",
-				path.Join(dc.jobanalyzerDir, "scripts", clusterName, clusterName+"-config.json"),
-			)
-		}
+		// Everyone gets a config, which they will need for caching things properly.
+		arguments = append(
+			arguments,
+			"--config-file",
+			path.Join(dc.jobanalyzerDir, "scripts", clusterName, clusterName+"-config.json"),
+		)
 
 		stdout, ok := runSonalyze(dc, w, verb, arguments, []byte{})
 		if !ok {
@@ -151,7 +158,7 @@ func httpAddHandler(dc *DaemonCommand) func(http.ResponseWriter, *http.Request) 
 			w.WriteHeader(400)
 			fmt.Fprintf(w, "Bad operation: %s", err.Error())
 			if dc.Verbose {
-				statusWarningf("Bad operation: %s", err.Error())
+				Log.Warningf("Bad operation: %s", err.Error())
 			}
 			return
 		}
@@ -181,7 +188,7 @@ func httpPostHandler(
 			w.WriteHeader(400)
 			fmt.Fprintf(w, "Upload not authorized")
 			if dc.Verbose {
-				statusWarningf("Upload not authorized")
+				Log.Warningf("Upload not authorized")
 			}
 			return
 		}
@@ -214,7 +221,7 @@ func requestPreamble(
 ) (payload []byte, userName, clusterName string, ok bool) {
 	if dc.Verbose {
 		// Header reveals auth info, don't put it into logs
-		statusInfof("Request from %s: %v", r.RemoteAddr, r.URL.String())
+		Log.Infof("Request from %s: %v", r.RemoteAddr, r.URL.String())
 	}
 
 	if !httpsrv.AssertMethod(w, r, method, dc.Verbose) {
@@ -242,7 +249,7 @@ func requestPreamble(
 		w.WriteHeader(400)
 		fmt.Fprintf(w, "Bad parameters - missing or empty or repeated 'cluster'")
 		if dc.Verbose {
-			statusWarningf("Bad parameters - missing or empty or repeated 'cluster'")
+			Log.Warningf("Bad parameters - missing or empty or repeated 'cluster'")
 		}
 		return
 	}
@@ -268,7 +275,7 @@ func runSonalyze(
 	// Run the command and report the result
 
 	if dc.Verbose {
-		statusInfof(
+		Log.Infof(
 			"Command: %s %s",
 			path.Join(dc.jobanalyzerDir, cmdName),
 			verb+" "+strings.Join(arguments, " "),
@@ -298,7 +305,7 @@ func runSonalyze(
 		return
 	}
 	if stderr != "" {
-		statusWarningf(stderr, "")
+		Log.Warningf(stderr, "")
 	}
 
 	ok = true
@@ -312,7 +319,7 @@ func errResponse(w http.ResponseWriter, code int, err error, stderr string, verb
 		fmt.Fprint(w, "\n", stderr)
 	}
 	if verbose {
-		statusWarningf("ERROR: %v", err)
+		Log.Warningf("ERROR: %v", err)
 	}
 }
 
@@ -360,31 +367,5 @@ func argOk(command, arg string) bool {
 		return false
 	default:
 		return true
-	}
-}
-
-var logger *syslog.Writer
-var logStderr io.Writer
-
-func statusStart(logTag string, stderr io.Writer) error {
-	// Currently logStderr is unused but the vision is that it can be used for some debugging logging
-	logStderr = stderr
-
-	// The "","" address connects us to the Unix syslog daemon.  The priority (INFO) is a
-	// placeholder, it will be overridden by all the logger functions below.
-	var err error
-	logger, err = syslog.Dial("", "", syslog.LOG_INFO|syslog.LOG_USER, logTag)
-	return err
-}
-
-func statusWarningf(format string, args ...any) {
-	if logger != nil {
-		logger.Warning(fmt.Sprintf(format, args...))
-	}
-}
-
-func statusInfof(format string, args ...any) {
-	if logger != nil {
-		logger.Info(fmt.Sprintf(format, args...))
 	}
 }

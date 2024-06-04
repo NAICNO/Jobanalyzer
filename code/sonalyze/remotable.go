@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,6 +14,7 @@ import (
 
 	"sonalyze/add"
 	. "sonalyze/command"
+	. "sonalyze/common"
 )
 
 func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout, stderr io.Writer) error {
@@ -85,7 +85,7 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	command.Stderr = &newStderr
 
 	if rCmd.VerboseFlag() {
-		log.Printf("Executing <%s>", command.String())
+		Log.Infof("Executing <%s>", command.String())
 	}
 
 	err = command.Run()
