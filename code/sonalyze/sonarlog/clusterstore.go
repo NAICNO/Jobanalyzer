@@ -26,10 +26,6 @@ import (
 )
 
 const (
-	DEBUG = true
-)
-
-const (
 	dirPermissions  = 0755
 	filePermissions = 0644
 )
