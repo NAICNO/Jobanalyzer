@@ -196,5 +196,6 @@ function createDeadWeightTableColumn<K extends keyof DeadWeightTableItem>(key: K
     },
     header: columnDef.title,
     meta: columnDef,
+    minSize: columnDef.minSize,
   })
 }

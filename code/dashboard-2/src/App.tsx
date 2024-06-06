@@ -25,6 +25,7 @@ const router = createBrowserRouter(
       <Route path=":clusterName/violators/:violator" element={<ViolatorPage/>}/>
       <Route path=":clusterName/deadweight" element={<DeadWeightPage/>}/>
       <Route path=":clusterName/:hostname" element={<HostDetailsPage/>}/>
+      <Route path=":clusterName/:hostname/:violator" element={<ViolatorPage/>}/>
     </Route>
   )
 )

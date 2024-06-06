@@ -8,7 +8,7 @@ interface NodeSelectionInputProps {
   focusRef: React.RefObject<HTMLInputElement>
 }
 
-const NodeSelectionInput = ({defaultQuery, onClickSubmit, onClickHelp, focusRef} : NodeSelectionInputProps) => {
+const NodeSelectionInput = ({defaultQuery, onClickSubmit, onClickHelp, focusRef}: NodeSelectionInputProps) => {
 
   const [query, setQuery] = useState<string>(defaultQuery)
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)
@@ -16,6 +16,16 @@ const NodeSelectionInput = ({defaultQuery, onClickSubmit, onClickHelp, focusRef}
   useEffect(() => {
     setQuery(defaultQuery)
   }, [defaultQuery])
+
+  const submitQuery = () => {
+    onClickSubmit(query)
+  }
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      submitQuery()
+    }
+  }
 
   return (
     <HStack spacing={2} my="20px">
@@ -26,8 +36,9 @@ const NodeSelectionInput = ({defaultQuery, onClickSubmit, onClickHelp, focusRef}
         ref={focusRef}
         value={query}
         onChange={handleChange}
+        onKeyDown={handleKeyDown}
       />
-      <Button colorScheme="blue" px="30px" onClick={() => onClickSubmit(query)}>Submit</Button>
+      <Button colorScheme="blue" px="30px" onClick={submitQuery}>Submit</Button>
       <Button variant="outline" onClick={onClickHelp}>Help</Button>
     </HStack>
   )

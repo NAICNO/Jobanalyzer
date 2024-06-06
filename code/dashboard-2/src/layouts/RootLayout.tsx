@@ -21,11 +21,11 @@ export default function RootLayout() {
       }}
       gridTemplateRows={{
         base: '60px 1fr',
-        md: '100px 1fr',
+        md: '80px 1fr',
       }}
       gridTemplateColumns={{
         base: '1fr',
-        md: '250px 1fr',
+        md: '180px 1fr',
       }}
       gap="1"
       h="100vh"

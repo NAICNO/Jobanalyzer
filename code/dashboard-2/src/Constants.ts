@@ -1,5 +1,9 @@
-import { GenericCell, GpuFieldCell, HostNameFieldCell, WorkingFieldCell } from './components/table/cell'
+import { GenericCell, GpuFieldCell, WorkingFieldCell } from './components/table/cell'
 import CellWithLink from './components/table/cell/CellWithLink.tsx'
+import { GrNodes, GrServers } from 'react-icons/gr'
+import { GiFox } from 'react-icons/gi'
+import { MdOutlineQueryStats } from 'react-icons/md'
+import CommandListCell from './components/table/cell/CommandListCell.tsx'
 
 export const APP_NAME = 'NAIC Jobanalyzer'
 export const API_ENDPOINT = 'http://localhost:5173/api'
@@ -12,6 +16,40 @@ export const QueryKeys = {
   HOSTNAME_LIST: 'HOSTNAME_LIST',
   HOSTNAME: 'HOSTNAME',
 }
+
+export const SIDEBAR_ITEMS: SidebarItem[] = [
+  {
+    type: 'link',
+    path: '/dashboard/ml',
+    matches: '/ml',
+    text: 'ML Nodes',
+    icon: GrNodes,
+  },
+  {
+    type: 'link',
+    path: '/dashboard/fox',
+    matches: '/fox',
+    text: 'Fox',
+    icon: GiFox
+  },
+  {
+    type: 'link',
+    path: '/dashboard/saga',
+    matches: '/saga',
+    text: 'Saga',
+    icon: GrServers
+  },
+  {
+    type: 'separator'
+  },
+  {
+    type: 'link',
+    path: '/jobQuery',
+    matches: '/jobQuery',
+    text: 'Job Query',
+    icon: MdOutlineQueryStats
+  }
+]
 
 export const FETCH_FREQUENCIES = [
   {text: 'Moment-to-moment (last 24h)', value: 'minutely'},
@@ -75,22 +113,6 @@ export const CLUSTER_INFO: Record<string, Cluster> = {
     policy: '(To be determined)',
   }
 }
-
-
-export const HOSTNAMES_ALIAS = {
-  'ml1.hpc.uio.no': 'ML1',
-  'ml2.hpc.uio.no': 'ML2',
-  'ml3.hpc.uio.no': 'ML3',
-  'ml4.hpc.uio.no': 'ML4',
-  'ml5.hpc.uio.no': 'ML5',
-  'ml6.hpc.uio.no': 'ML6',
-  'ml7.hpc.uio.no': 'ML7',
-  'ml8.hpc.uio.no': 'ML8',
-  'ml9.hpc.uio.no': 'ML9',
-} as HostnameAlias
-
-
-//Refer from code/dashboard/dashboard.js
 
 export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTableColumnHeader } = {
   hostname: {
@@ -291,7 +313,7 @@ export const VIOLATING_JOB_SUMMARY_COLUMN: { [K in keyof ViolatingJob]: Violatin
     key: 'hostname',
     title: 'Hostname',
     sortable: true,
-    renderFn: HostNameFieldCell
+    renderFn: GenericCell
   },
   user: {
     key: 'user',
@@ -309,7 +331,7 @@ export const VIOLATING_JOB_SUMMARY_COLUMN: { [K in keyof ViolatingJob]: Violatin
     key: 'cmd',
     title: 'Command',
     sortable: true,
-    renderFn: GenericCell
+    renderFn: CommandListCell
   },
   'started-on-or-before': {
     key: 'started-on-or-before',
@@ -383,43 +405,50 @@ export const DEAD_WEIGHT_COLUMN: { [K in keyof DeadWeightTableItem]: DeadWeightT
     key: 'hostname',
     title: 'Hostname',
     sortable: true,
-    renderFn: GenericCell
+    renderFn: GenericCell,
+    minSize: 200,
   },
   user: {
     key: 'user',
     title: 'User',
     sortable: true,
-    renderFn: GenericCell
+    renderFn: GenericCell,
+    minSize: 120,
   },
   id: {
     key: 'id',
     title: 'Job',
     sortable: true,
-    renderFn: GenericCell
+    renderFn: GenericCell,
+    minSize: 100,
   },
   cmd: {
     key: 'cmd',
     title: 'Command',
     sortable: true,
-    renderFn: GenericCell
+    renderFn: CommandListCell,
+    minSize: 600,
   },
   'started-on-or-before': {
     key: 'started-on-or-before',
     title: 'First seen',
     sortable: true,
-    renderFn: GenericCell
+    renderFn: GenericCell,
+    minSize: 150,
   },
   'first-violation': {
     key: 'first-violation',
     title: 'First violation',
     sortable: true,
-    renderFn: GenericCell
+    renderFn: GenericCell,
+    minSize: 150,
   },
   'last-seen': {
     key: 'last-seen',
     title: 'Last seen',
     sortable: true,
-    renderFn: GenericCell
+    renderFn: GenericCell,
+    minSize: 150,
   },
 }
 

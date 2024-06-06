@@ -24,8 +24,6 @@ export default function AppHeader({opOpenSidebarDrawer}: AppHeaderProps) {
   return (
     <Flex
       as="header"
-      py={{base: '0px', md: '10px'}}
-      mb={{base: '0px', md: '60px'}}
       align="center"
       wrap="wrap"
     >
