@@ -171,7 +171,6 @@ func (pc *PersistentCluster) SampleFilenames(
 	return pc.findFilenames(fromDate, toDate, hosts, &samplesAdapter{})
 }
 
-
 func (pc *PersistentCluster) SysinfoFilenames(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
@@ -219,7 +218,7 @@ func readPersistentClusterRecords[V any, U ~[]*V](
 	hosts *hostglob.HostGlobber,
 	verbose bool,
 	fa filesAdapter,
-	reader func(files []*LogFile, verbose bool)(U, int, error),
+	reader func(files []*LogFile, verbose bool) (U, int, error),
 ) (records U, dropped int, err error) {
 	// Hold the lock while reading: this will be required once we cache data anyway.
 	pc.Lock()

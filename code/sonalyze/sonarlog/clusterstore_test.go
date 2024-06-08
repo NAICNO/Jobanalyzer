@@ -371,7 +371,7 @@ func TestPersistentSampleFlush(t *testing.T) {
 	// At the moment an async flush is sync, so we should see the effect immediately.  But sleep 1s
 	// just to make it interesting.
 	pc.FlushAsync()
-	time.Sleep(1*time.Second)
+	time.Sleep(1 * time.Second)
 
 	lines, err := filesys.FileLines(path.Join(d, "2024/02/13/c.csv"))
 	if err != nil {
@@ -381,4 +381,3 @@ func TestPersistentSampleFlush(t *testing.T) {
 		t.Fatalf("Lines don't match\n<%s>", lines[len(lines)-1])
 	}
 }
-
