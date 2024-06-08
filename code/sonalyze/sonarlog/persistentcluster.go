@@ -532,7 +532,7 @@ func findSortedDateIndexedDirectories(dataDir string, from, to time.Time) []*per
 // Return the index of the directory with name d, or the index of the record s.t. d would come
 // before that record.
 //
-// Note, this depends on dir.name not changing, or we'll have a race.  Normally this is called with
+// Note, this depends on d.name not changing, or we'll have a race.  Normally this is called with
 // the lock held and it's not a problem anyway.
 
 func binarySearchDirs(dirs []*persistentDir, d time.Time) (int, bool) {

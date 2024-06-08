@@ -19,7 +19,7 @@ import (
 )
 
 func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) /* never returns */ {
-	if err := statusStart("jobanalyzer/sonalyzed", stderr); err != nil {
+	if err := statusStart(logTag, stderr); err != nil {
 		fmt.Fprintf(stderr, "FATAL ERROR: Failing to open logger: %s", err.Error())
 		os.Exit(1)
 	}
@@ -32,8 +32,8 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) /* never re
 	http.HandleFunc("/profile", httpGetHandler(dc, "profile"))
 	http.HandleFunc("/parse", httpGetHandler(dc, "parse"))
 	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata"))
-	// These request names are compatible with the older `infiltrate` and with the upload infra
-	// already running on the clusters.
+	// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
+	// upload infra already running on the clusters.
 	http.HandleFunc("/sonar-freecsv", httpPostHandler(dc, "sample", "text/csv"))
 	http.HandleFunc("/sysinfo", httpPostHandler(dc, "sysinfo", "application/json"))
 
@@ -93,13 +93,17 @@ func httpGetHandler(
 				return
 			}
 
-			// Repeats are OK, sonalyze allows them in a number of cases.  Booleans carry the magic
-			// boolean value, allowing us to construct a boolean option without a value without
-			// tracking name->type mappings.  This is a hack, but it works.  The reason we have to
-			// exclude the value for boolean options (`--some-gpu` instead of `--some-gpu=true`) is
-			// a limitation of Rust's `clap` library.  The reason the value carried is not simply
-			// "true" is that that is a more likely value for some other parameters (host names?)
-			// and we can't exclude it here without risk.
+			// Repeats are OK, the commands allow them in a number of cases.
+			//
+			// Booleans carry the magic boolean value, allowing us to construct a boolean option
+			// without a value without tracking name->type mappings.  This is a hack, but it works.
+			// The reason we have to exclude the value for boolean options (`--some-gpu` instead of
+			// `--some-gpu=true`) is a limitation of Rust's `clap` library.  The reason the value
+			// carried is not simply "true" is that that is a more likely value for some other
+			// parameters (host names?)  and we can't exclude it here without risk.
+			//
+			// TODO: IMPROVEME: Now that we're no longer running the Rust `sonalyze`, the magic
+			// boolean hack can be removed.
 
 			for _, v := range vs {
 				arguments = append(arguments, "--"+name)

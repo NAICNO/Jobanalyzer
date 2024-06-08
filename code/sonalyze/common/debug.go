@@ -1,3 +1,3 @@
 package common
 
-const DEBUG = true
+const DEBUG = false

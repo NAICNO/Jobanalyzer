@@ -12,7 +12,7 @@
 // Other parameter names are always the long parameter names for sonalyze and the parameter values
 // are always urlencoded as necessary; boolean values must be the value defined as `magicBoolean`
 // below.  Most parameters and names are forwarded to sonalyze, with eg --data-path and
-// --config-file supplied by sonalyzed.  The returned output is the raw output from sonalyze,
+// --config-file supplied by this code.  The returned output is the raw output from sonalyze,
 // whether for success or error.  A successful runs yields 2xx and an error yields 4xx or 5xx.
 //
 // Arguments:
@@ -55,10 +55,10 @@
 //
 // Termination:
 //
-//  Sending SIGHUP or SIGTERM to sonalyzed will shut it down in an orderly manner.
+//  Sending SIGHUP or SIGTERM to `sonalyze daemon` will shut it down in an orderly manner.
 //
-//  sonalyzed is usually run in the background and exit codes are not easily examined, but when
-//  sonalyzed exits it will deliver a non-zero exit code if an error was discovered during startup
+//  The daemon is usually run in the background and exit codes are not easily examined, but when
+//  the daemon exits it will deliver a non-zero exit code if an error was discovered during startup
 //  or shutdown.
 //
 //  This server needs to stay up because it's the only contact point for all Sonalyze queries, and
@@ -67,7 +67,7 @@
 //
 // Logging:
 //
-//  sonalyzed logs everything to the syslog with the tag defined below ("logTag").  Errors
+//  The daemon logs everything to the syslog with the tag defined below ("logTag").  Errors
 //  encountered during startup are also logged to stderr.
 //
 // Cluster names and aliases:
@@ -101,7 +101,7 @@ import (
 const (
 	defaultListenPort      = 8087
 	clusterAliasesFilename = "cluster-aliases.json"
-	logTag                 = "jobanalyzer/sonalyzed"
+	logTag                 = "jobanalyzer/sonalyze"
 	authRealm              = "Jobanalyzer remote access"
 	magicBoolean           = "xxxxxtruexxxxx"
 )
