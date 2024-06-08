@@ -223,7 +223,7 @@ func (_ *StandardCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Read
 	case *add.AddCommand:
 		return cmd.AddData(stdin, stdout, stderr)
 	case *daemon.DaemonCommand:
-		cmd.RunDaemon(stdin, stdout, stderr)
+		return cmd.RunDaemon(stdin, stdout, stderr)
 	default:
 		return errors.New("NYI command")
 	}

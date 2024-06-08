@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/syslog"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 	"syscall"
@@ -18,10 +17,9 @@ import (
 	"go-utils/process"
 )
 
-func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) /* never returns */ {
+func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	if err := statusStart(logTag, stderr); err != nil {
-		fmt.Fprintf(stderr, "FATAL ERROR: Failing to open logger: %s", err.Error())
-		os.Exit(1)
+		return fmt.Errorf("FATAL ERROR: Failing to open logger: %w", err)
 	}
 
 	// Note "daemon" is not a command here
@@ -51,9 +49,9 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) /* never re
 	s.Stop()
 
 	if programFailed {
-		os.Exit(1)
+		return errors.New("HTTP server failed to start, or errored out")
 	}
-	os.Exit(0)
+	return nil
 }
 
 // HTTP handlers
