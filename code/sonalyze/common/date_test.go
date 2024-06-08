@@ -8,7 +8,7 @@ import (
 func TestParse(t *testing.T) {
 	// Relative dates and weeks do not clear out hour/minute/second
 	now := time.Now()
-	x, err := ParseRelativeDate(now, "3d", false)
+	x, err := ParseRelativeDateUtc(now, "3d", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,7 +19,7 @@ func TestParse(t *testing.T) {
 		t.Fatal("parse")
 	}
 
-	x, err = ParseRelativeDate(now, "2w", false)
+	x, err = ParseRelativeDateUtc(now, "2w", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestParse(t *testing.T) {
 	}
 
 	var q time.Time
-	x, err = ParseRelativeDate(q, "2023-10-12", false)
+	x, err = ParseRelativeDateUtc(q, "2023-10-12", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestParse(t *testing.T) {
 		t.Fatal("year/month/day")
 	}
 
-	x, err = ParseRelativeDate(q, "2023-10-12", true)
+	x, err = ParseRelativeDateUtc(q, "2023-10-12", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestParse(t *testing.T) {
 // These are feeble but at least test that something works
 func TestAdd(t *testing.T) {
 	var q time.Time
-	x, _ := ParseRelativeDate(q, "2023-10-12", false)
+	x, _ := ParseRelativeDateUtc(q, "2023-10-12", false)
 	z := time.Unix(AddHalfHour(x.Unix()), 0).UTC()
 	if z.Hour() != 0 || z.Minute() != 30 {
 		t.Fatal("Half-hour")

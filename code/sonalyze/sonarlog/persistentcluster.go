@@ -64,7 +64,6 @@ import (
 	"go-utils/config"
 	"go-utils/hostglob"
 	"go-utils/slices"
-	utime "go-utils/time"
 	. "sonalyze/common"
 )
 
@@ -113,7 +112,7 @@ type persistentDir struct {
 
 func newPersistentCluster(dataDir string) *PersistentCluster {
 	// Initially, populate for today's date.
-	fromDate := utime.ThisDay(time.Now().UTC())
+	fromDate := ThisDay(time.Now().UTC())
 	toDate := fromDate.AddDate(0, 0, 1)
 	dirs := findSortedDateIndexedDirectories(dataDir, fromDate, toDate)
 	return &PersistentCluster{
@@ -168,6 +167,10 @@ func (pc *PersistentCluster) SampleFilenames(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
 ) ([]string, error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
 	return pc.findFilenames(fromDate, toDate, hosts, &samplesAdapter{})
 }
 
@@ -175,6 +178,10 @@ func (pc *PersistentCluster) SysinfoFilenames(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
 ) ([]string, error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
 	return pc.findFilenames(fromDate, toDate, hosts, &sysinfoAdapter{})
 }
 
@@ -201,6 +208,10 @@ func (pc *PersistentCluster) ReadSamples(
 	hosts *hostglob.HostGlobber,
 	verbose bool,
 ) (samples SampleStream, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
 	return readPersistentClusterRecords(pc, fromDate, toDate, hosts, verbose, &samplesAdapter{}, readSamples)
 }
 
@@ -209,6 +220,10 @@ func (pc *PersistentCluster) ReadSysinfo(
 	hosts *hostglob.HostGlobber,
 	verbose bool,
 ) (samples []*config.NodeConfigRecord, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
 	return readPersistentClusterRecords(pc, fromDate, toDate, hosts, verbose, &sysinfoAdapter{}, readSysinfo)
 }
 
@@ -343,8 +358,8 @@ func (pc *PersistentCluster) findFilesLocked(
 	extensionLen := len(glob) - strings.LastIndexByte(glob, '.')
 
 	// Find all matching files in the date range.
-	fromDate = utime.ThisDay(fromDate)
-	toDate = utime.RoundupDay(toDate)
+	fromDate = ThisDay(fromDate)
+	toDate = RoundupDay(toDate)
 
 	files := make([]*LogFile, 0)
 	for _, d := range pc.selectDirsLocked(fromDate, toDate) {
@@ -377,7 +392,6 @@ func (pc *PersistentCluster) findFilesLocked(
 				)
 				newFiles[name] = f
 			}
-			// This is wrong, it must be filtered *after*
 			fa.setFiles(d, newFiles)
 		}
 
@@ -408,6 +422,7 @@ func (pc *PersistentCluster) findFileByTimeLocked(timestamp, filename string, fa
 	if err != nil {
 		return nil, BadTimestampErr
 	}
+	tval = tval.UTC()
 	d, err := pc.ensureScannedDirectoryLocked(tval)
 	if err != nil {
 		return nil, err
@@ -433,7 +448,7 @@ func (pc *PersistentCluster) findFileByTimeLocked(timestamp, filename string, fa
 }
 
 // Return the subslice of the shadown directory slice corresponding to the date range.  For correct
-// results, `fromDate` and `toDate` must be rounded to midnight.
+// results, `fromDate` and `toDate` must be rounded to midnight and should be UTC.
 
 func (pc *PersistentCluster) selectDirsLocked(fromDate, toDate time.Time) []*persistentDir {
 	pc.ensureScannedDirectoriesLocked(fromDate, toDate)
@@ -442,10 +457,10 @@ func (pc *PersistentCluster) selectDirsLocked(fromDate, toDate time.Time) []*per
 	return pc.dirs[fromLoc:toLoc]
 }
 
-// Make sure a directory exists for the given time, and return it.
+// Make sure a directory exists for the given time, and return it.  The time should be UTC.
 
 func (pc *PersistentCluster) ensureScannedDirectoryLocked(t time.Time) (*persistentDir, error) {
-	fromDate := utime.ThisDay(t)
+	fromDate := ThisDay(t)
 	toDate := fromDate.AddDate(0, 0, 1)
 	pc.ensureScannedDirectoriesLocked(fromDate, toDate)
 
@@ -469,7 +484,7 @@ func (pc *PersistentCluster) ensureScannedDirectoryLocked(t time.Time) (*persist
 
 // Make sure the shadow directory tree includes all matching subdirectories from `fromDate`
 // (inclusive) to `toDate` (exclusive).  For correct results, `fromDate` and `toDate` must be
-// rounded to midnight.
+// rounded to midnight, and should be UTC.
 
 func (pc *PersistentCluster) ensureScannedDirectoriesLocked(fromDate, toDate time.Time) {
 	var prefix, suffix []*persistentDir
@@ -514,6 +529,8 @@ func findFiles(dataDir, dirname, pattern string) []string {
 // `from` (inclusive) to `to` (exclusive) and return a list of new persistentDir sorted ascending by
 // directory name.  For correct results, `from` and `to` must be rounded to midnight.  Errors are
 // ignored, as are non-directories with names that match the pattern.
+//
+// For best results, from and to should be UTC.
 
 func findSortedDateIndexedDirectories(dataDir string, from, to time.Time) []*persistentDir {
 	filesys := os.DirFS(dataDir).(fs.StatFS)
@@ -534,6 +551,8 @@ func findSortedDateIndexedDirectories(dataDir string, from, to time.Time) []*per
 //
 // Note, this depends on d.name not changing, or we'll have a race.  Normally this is called with
 // the lock held and it's not a problem anyway.
+//
+// For best results, d should be UTC.
 
 func binarySearchDirs(dirs []*persistentDir, d time.Time) (int, bool) {
 	return slices.BinarySearchFunc(dirs, dirnameFromTime(d), func(d *persistentDir, s string) int {

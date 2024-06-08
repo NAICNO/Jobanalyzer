@@ -61,13 +61,13 @@ type SampleCluster interface {
 
 	// Find all filenames for Sonar `ps` samples in the cluster selected by the date range and the
 	// host matcher, if any.  In clusters backed by a set of read-only files, all names will be
-	// returned.
+	// returned.  Times must be UTC.
 	SampleFilenames(
 		fromDate, toDate time.Time,
 		hosts *hostglob.HostGlobber,
 	) ([]string, error)
 
-	// Read `ps` samples from all the files selected by SampleFilenames().
+	// Read `ps` samples from all the files selected by SampleFilenames().  Times must be UTC.
 	ReadSamples(
 		fromDate, toDate time.Time,
 		hosts *hostglob.HostGlobber,
@@ -80,13 +80,13 @@ type SysinfoCluster interface {
 	Cluster
 
 	// Find all filenames for Sonar `sysinfo` data in the cluster selected by the date range and the
-	// host matcher, if any.
+	// host matcher, if any.  Times must be UTC.
 	SysinfoFilenames(
 		fromDate, toDate time.Time,
 		hosts *hostglob.HostGlobber,
 	) ([]string, error)
 
-	// Read `sysinfo` records from all the files selected by SysinfoFilenames().
+	// Read `sysinfo` records from all the files selected by SysinfoFilenames().  Times must be UTC.
 	ReadSysinfo(
 		fromDate, toDate time.Time,
 		hosts *hostglob.HostGlobber,
