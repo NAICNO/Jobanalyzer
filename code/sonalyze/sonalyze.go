@@ -31,7 +31,7 @@ import (
 const SonalyzeVersion = "0.3.0"
 
 // See end of file for documentation.
-var stdhandler = StandardCommandLineHandler{}
+var stdhandler = standardCommandLineHandler{}
 
 func main() {
 	err := sonalyze()
@@ -146,18 +146,17 @@ func sonalyze() error {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Command line parsing and execution helpers that need to work both for interactive ("actual
-// command line") and non-interactive ("daemon") uses.
+// Command line parsing and execution helpers.
 
-type StandardCommandLineHandler struct {
+type standardCommandLineHandler struct {
 }
 
-func (h *StandardCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd Command, verb string) {
+func (_ *standardCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd Command, verb string) {
 	switch maybeVerb {
 	case "add":
 		cmd = new(add.AddCommand)
 	case "daemon":
-		cmd = daemon.New(h)
+		cmd = daemon.New(&daemonCommandLineHandler{})
 	case "jobs":
 		cmd = new(jobs.JobsCommand)
 	case "load":
@@ -178,7 +177,7 @@ func (h *StandardCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd C
 	return
 }
 
-func (_ *StandardCommandLineHandler) ParseArgs(verb string, args []string, cmd Command, fs *flag.FlagSet) error {
+func (_ *standardCommandLineHandler) ParseArgs(verb string, args []string, cmd Command, fs *flag.FlagSet) error {
 	cmd.Add(fs)
 	err := fs.Parse(args)
 	if err != nil {
@@ -202,7 +201,7 @@ func (_ *StandardCommandLineHandler) ParseArgs(verb string, args []string, cmd C
 	return nil
 }
 
-func (_ *StandardCommandLineHandler) StartCPUProfile(profileFile string) (func(), error) {
+func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func(), error) {
 	if profileFile == "" {
 		return nil, nil
 	}
@@ -216,7 +215,7 @@ func (_ *StandardCommandLineHandler) StartCPUProfile(profileFile string) (func()
 	return func() { pprof.StopCPUProfile() }, nil
 }
 
-func (_ *StandardCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Reader, stdout, stderr io.Writer) error {
+func (_ *standardCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Reader, stdout, stderr io.Writer) error {
 	switch cmd := anyCmd.(type) {
 	case AnalysisCommand:
 		return localAnalysis(cmd, stdin, stdout, stderr)
@@ -228,4 +227,38 @@ func (_ *StandardCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Read
 		return errors.New("NYI command")
 	}
 	panic("Unreachable")
+}
+
+// No profiling, no recursive running of daemon when running commands remotely with `sonalyze daemon`.
+
+type daemonCommandLineHandler struct {
+}
+
+func (_ *daemonCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd Command, verb string) {
+	if maybeVerb == "daemon" {
+		return
+	}
+	return stdhandler.ParseVerb(cmdName, maybeVerb)
+}
+
+func (_ *daemonCommandLineHandler) ParseArgs(verb string, args []string, cmd Command, fs *flag.FlagSet) error {
+	err := stdhandler.ParseArgs(verb, args, cmd, fs)
+	if err != nil {
+		return err
+	}
+	if cmd.CpuProfileFile() != "" {
+		return fmt.Errorf("The -cpuprofile cannot be run remotely")
+	}
+	return nil
+}
+
+func (_ *daemonCommandLineHandler) StartCPUProfile(string) (func(), error) {
+	panic("Should not happen")
+}
+
+func (_ *daemonCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Reader, stdout, stderr io.Writer) error {
+	if _, ok := anyCmd.(*daemon.DaemonCommand); ok {
+		panic("Should not happen")
+	}
+	return stdhandler.HandleCommand(anyCmd, stdin, stdout, stderr)
 }

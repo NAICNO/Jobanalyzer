@@ -256,7 +256,13 @@ func requestPreamble(
 	return
 }
 
-func runSonalyze(dc *DaemonCommand, w http.ResponseWriter, verb string, arguments []string, input []byte) (stdout string, ok bool) {
+func runSonalyze(
+	dc *DaemonCommand,
+	w http.ResponseWriter,
+	verb string,
+	arguments []string,
+	input []byte,
+) (stdout string, ok bool) {
 	cmdName := "<sonalyze>"
 
 	// Run the command and report the result
@@ -271,7 +277,7 @@ func runSonalyze(dc *DaemonCommand, w http.ResponseWriter, verb string, argument
 
 	anyCmd, _ := dc.cmdlineHandler.ParseVerb(cmdName, verb)
 	if anyCmd == nil {
-		errResponse(w, 400, fmt.Errorf("Bad verb in remote command: %s", verb), "", dc.Verbose)
+		errResponse(w, 400, fmt.Errorf("Bad verb in daemon-dispatched command: %s", verb), "", dc.Verbose)
 		return
 	}
 	fs := flag.NewFlagSet(cmdName, flag.ContinueOnError)
@@ -280,13 +286,8 @@ func runSonalyze(dc *DaemonCommand, w http.ResponseWriter, verb string, argument
 		errResponse(w, 400, err, "", dc.Verbose)
 		return
 	}
-	stop, err := dc.cmdlineHandler.StartCPUProfile(anyCmd.CpuProfileFile())
-	if err != nil {
-		statusWarningf("Failed to start CPU profile")
-	}
-	if stop != nil {
-		defer stop()
-	}
+
+	// The -cpuprofile option is ignored here, it should have forced ParseArgs to error out.
 
 	var stdoutBuf, stderrBuf strings.Builder
 	err = dc.cmdlineHandler.HandleCommand(anyCmd, bytes.NewReader(input), &stdoutBuf, &stderrBuf)
