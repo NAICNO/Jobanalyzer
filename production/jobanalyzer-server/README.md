@@ -15,7 +15,8 @@ Let `$JOBANALYZER` be the Jobanalyzer source code root directory.
 ### Step 1: Build
 
 First build and test the executables, as follows.  Remember, you may first need to `module load` Go
-1.20 or later and Rust 1.65 or later, or otherwise obtain those tools.
+1.20 or later (and for some older code in attic/, Rust 1.65 or later, but it's OK to not build these
+old programs), or otherwise obtain those tools.
 
 ```
   cd $JOBANALYZER/code
@@ -39,8 +40,7 @@ been better.  But it's a pain to change everything.)
   chmod go-rwx ~/sonar/secrets
 
   cp code/naicreport/naicreport ~/sonar
-  cp code/sonalyze/target/release/sonalyze ~/sonar
-  cp code/sonalyzed/sonalyzed ~/sonar
+  cp code/sonalyze/sonalyze ~/sonar
 
   cp production/jobanalyzer-server/cluster-aliases.json ~/sonar
   cp production/jobanalyzer-server/POINTER.md ~/sonar
@@ -140,19 +140,22 @@ Activate the cron jobs and start the data logger and the query server:
 
 The data logger and query server run on ports defined in the config file, see above.
 
-## Upgrading `sonalyzed`
+## Upgrading `sonalyze`
 
 One does not simply copy new executables into place.
 
-`sonalyzed` must be spun down on the analysis host by killing it with TERM.  Once it is down the
-executable can be replaced and the start script can be run to start new server.
+`sonalyze daemon` (aka `sonalyzed`), whose pid was recorded on startup in `sonalyzed.pid`, must be
+spun down on the analysis host by killing it with TERM.  Once it is down the executable can be
+replaced and the start script `start-sonalyzed.sh` can be run to start new server.
 
 ## Adding a new cluster
 
-Information about how to set up sonar on the the compute nodes is in [../sonar-nodes/README.md](../sonar-nodes/README.md).
+Information about how to set up sonar on the the compute nodes is in
+[../sonar-nodes/README.md](../sonar-nodes/README.md).
 
-The analysis scripts to run on the Jobanalyzer server are in the subdirectory named for the cluster, eg,
-`scripts/mlx.hpc.uio.no`.  These scripts are in turn run by the cron script, [`jobanalyzer.cron`](jobanalyzer.cron).
+The analysis scripts to run on the Jobanalyzer server are in the subdirectory named for the cluster,
+eg, `scripts/mlx.hpc.uio.no`.  These scripts are in turn run by the cron script,
+[`jobanalyzer.cron`](jobanalyzer.cron).
 
 To add a new cluster, add a new subdirectory in `scripts/` and populate it with appropriate scripts,
 probably modifying those from a similar cluster.  Normally you'll want at least scripts to compute

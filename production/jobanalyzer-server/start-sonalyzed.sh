@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # This script is currently run by cron at boot time (see jobanalyzer.cron) to start Jobanalyzer's
-# `sonalyzed` server, which runs sonalyze locally on behalf of a remote client in response to a GET.
+# `sonalyze daemon` (previously known as `sonalyzed`) server, which runs sonalyze locally on behalf
+# of a remote client in response to a GET or POST.
 
 sonar_dir=${sonar_dir:-$HOME/sonar}
 source $sonar_dir/server-config
@@ -11,7 +12,7 @@ mkdir -p $data_dir
 
 pidfile=$sonar_dir/sonalyzed.pid
 rm -f $pidfile
-$sonar_dir/sonalyzed \
+$sonar_dir/sonalyze daemon \
     -jobanalyzer-dir $sonar_dir \
     -port $sonalyzed_port \
     -match-user-and-cluster \
