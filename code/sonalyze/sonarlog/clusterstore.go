@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"path"
 	"runtime"
 	"sync"
@@ -268,20 +269,25 @@ type parseResult struct {
 // expected case, if caching works well, so worth exploring maybe.
 
 func init() {
-	for i := 0; i < runtime.NumCPU(); i++ {
-		go (func() {
-			uf := NewUstrCache()
-			for {
-				request := <-parseRequests
-				if request.file == nil {
-					return
+	workers := runtime.NumCPU()
+	//workers = 1
+	for i := 0; i < workers; i++ {
+		uf := NewUstrCache()
+		go Forever(
+			func() {
+				for {
+					request := <-parseRequests
+					if request.file == nil {
+						return
+					}
+					var result parseResult
+					result.id = request.id
+					result.data, result.dropped, result.err = request.file.ReadSync(uf, request.verbose)
+					request.results <- result
 				}
-				var result parseResult
-				result.id = request.id
-				result.data, result.dropped, result.err = request.file.ReadSync(uf, request.verbose)
-				request.results <- result
-			}
-		})()
+			},
+			os.Stderr,
+		)
 	}
 }
 

@@ -78,10 +78,8 @@ func (uc *UptimeCommand) Validate() error {
 func (uc *UptimeCommand) DefaultRecordFilters() (
 	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool,
 ) {
-	allUsers, skipSystemUsers, determined := uc.RecordFilterArgs.DefaultUserFilters()
-	if !determined {
-		allUsers, skipSystemUsers = false, false
-	}
+	allUsers = true
+	skipSystemUsers = false
 	excludeSystemCommands = false
 	excludeHeartbeat = false
 	return
