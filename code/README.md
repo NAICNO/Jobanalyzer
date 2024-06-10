@@ -12,8 +12,7 @@
 * `dashboard/` - HTML+CSS+JS source code for the web front-end
 * `go-utils/` - Go source code for utility functions used by all the Go programs in this repo
 * `naicreport/` - Go source code for a program that runs sonalyze and generates reports
-* `sonalyze/` - Go source code for a program that queries the Sonar data
-* `sonalyzed/` - Go source code for an HTTP server that runs Sonalyze on behalf of a remote client
+* `sonalyze/` - Go source code for a program that ingests and queries the Sonar data
 
 #### Utility programs, tests, and other
 
@@ -36,5 +35,6 @@
 * `attic/infiltrate/` - Go source code for a program that receives Sonar data on a server
 * `attic/rustutils/` - Rust source code for utility functions used by all the Rust programs in this repo
 * `attic/sonalyze/` - Rust source code for a program that queries the Sonar data
+* `attic/sonalyzed/` - Go source code for an HTTP server that runs Sonalyze on behalf of a remote client
 * `attic/sonarlog/` - Rust source code for a library that reads and cleans up Sonar data, used by `sonalyze/`
 * `attic/sysinfo/` - Go source code for a utility that extracts the system configuration of the host

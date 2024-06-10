@@ -23,12 +23,6 @@ echo
 ( cd sonard ; ./sonard -h 2&> /dev/null )
 
 echo "======================================================================="
-echo " SONALYZED RELEASE BUILD + SMOKE TEST"
-echo
-( cd sonalyzed ; go build )
-( cd sonalyzed ; ./sonalyzed -h 2&> /dev/null )
-
-echo "======================================================================="
 echo " SLURMINFO RELEASE BUILD + SMOKE TEST"
 echo
 ( cd slurminfo ; go build )

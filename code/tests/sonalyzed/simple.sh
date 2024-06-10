@@ -8,8 +8,8 @@ if [[ $($SONALYZE version) =~ sonalyze-rs ]]; then
     exit 0
 fi
 
-# Note if sonalyzed fails on startup the `set -e` will not catch it because the server is run in the
-# background.  In this case, $sonalyzed_pid will reference a process that is not there.
+# Note if `sonalyze daemon` fails on startup the `set -e` will not catch it because the server is
+# run in the background.  In this case, $sonalyzed_pid will reference a process that is not there.
 
 rootdir=test-root
 testport=24680
@@ -26,7 +26,7 @@ cp cluster2.naic.com-config.json $rootdir/scripts/cluster2.naic.com
 
 # Run the server in the background against that directory
 
-$SONALYZED -v \
+$SONALYZE daemon -v \
            -jobanalyzer-dir $rootdir \
            -port $testport \
            -upload-auth upload-auth.txt \
