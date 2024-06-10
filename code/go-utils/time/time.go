@@ -51,6 +51,7 @@ func ParseRelativeDate(s string) (time.Time, error) {
 	return time.Now(), errors.New("Bad time specification")
 }
 
+// The time returned is UTC; the input ought to be UTC as well.
 func ThisDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }

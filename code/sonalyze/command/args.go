@@ -222,31 +222,31 @@ func (s *SourceArgs) Validate() error {
 	// `-from` and `-to` are inferred from the file contents, so long as they are not present on the
 	// command line.
 	//
-	// NOTE this uses our own version of ParseRelativeDate(), not the one in go-utils/time, for
+	// NOTE this uses our own version of ParseRelativeDateUtc(), not the one in go-utils/time, for
 	// compatibility with the Rust code.
 
-	now := time.Now()
+	now := time.Now().UTC()
 	if s.fromDateStr != "" {
 		var err error
-		s.FromDate, err = common.ParseRelativeDate(now, s.fromDateStr, false)
+		s.FromDate, err = common.ParseRelativeDateUtc(now, s.fromDateStr, false)
 		if err != nil {
 			return fmt.Errorf("Invalid -from argument %s", s.fromDateStr)
 		}
 		s.HaveFrom = true
 	} else {
-		s.FromDate = now.UTC().AddDate(0, 0, -1)
+		s.FromDate = now.AddDate(0, 0, -1)
 		s.HaveFrom = len(s.LogFiles) == 0
 	}
 
 	if s.toDateStr != "" {
 		var err error
-		s.ToDate, err = common.ParseRelativeDate(now, s.toDateStr, true)
+		s.ToDate, err = common.ParseRelativeDateUtc(now, s.toDateStr, true)
 		if err != nil {
 			return fmt.Errorf("Invalid -to argument %s", s.toDateStr)
 		}
 		s.HaveTo = true
 	} else {
-		s.ToDate = now.UTC()
+		s.ToDate = now
 		s.HaveFrom = len(s.LogFiles) == 0
 	}
 

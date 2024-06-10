@@ -5,6 +5,8 @@ import (
 	"math"
 	"os"
 	"testing"
+
+	. "sonalyze/common"
 )
 
 func TestParseUint(t *testing.T) {

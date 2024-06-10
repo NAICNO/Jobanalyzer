@@ -1,4 +1,4 @@
-package sonarlog
+package common
 
 import (
 	"fmt"

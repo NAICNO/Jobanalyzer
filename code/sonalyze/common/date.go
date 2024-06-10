@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// Parse a relative date string and return the time in the UTC time zone.  The base time is folded
+// to UTC if it is not already utc.
+//
 // The following date parser is explicitly compatible with the Rust version.  Specifically,
 //
 //  - relative time of the form Nd or Nw ignore the endOfDay flag, see below
@@ -28,15 +31,16 @@ import (
 // records with a timestamp later than "now"; this structure comes from the Rust code.  I'm not sure
 // that it wouldn't be better to be uniform.
 
-func ParseRelativeDate(now time.Time, s string, endOfDay bool) (time.Time, error) {
+func ParseRelativeDateUtc(now time.Time, s string, endOfDay bool) (time.Time, error) {
+	now = now.UTC()
 	if probe := daysRe.FindSubmatch([]byte(s)); probe != nil {
 		days, _ := strconv.ParseUint(string(probe[1]), 10, 32)
-		return now.UTC().AddDate(0, 0, -int(days)), nil
+		return now.AddDate(0, 0, -int(days)), nil
 	}
 
 	if probe := weeksRe.FindSubmatch([]byte(s)); probe != nil {
 		weeks, _ := strconv.ParseUint(string(probe[1]), 10, 32)
-		return now.UTC().AddDate(0, 0, -int(weeks)*7), nil
+		return now.AddDate(0, 0, -int(weeks)*7), nil
 	}
 
 	if probe := dateRe.FindSubmatch([]byte(s)); probe != nil {
@@ -51,6 +55,17 @@ func ParseRelativeDate(now time.Time, s string, endOfDay bool) (time.Time, error
 	}
 
 	return now, errors.New("Bad time specification")
+}
+
+// t should be UTC, the result is always UTC
+func ThisDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+// t should be UTC, the result is always UTC
+func RoundupDay(t time.Time) time.Time {
+	// Add less than one full day so as to make RoundupDay idempotent.
+	return ThisDay(t.Add(24*time.Hour - 1*time.Second))
 }
 
 var dateRe = regexp.MustCompile(`^(\d\d\d\d)-(\d\d)-(\d\d)$`)

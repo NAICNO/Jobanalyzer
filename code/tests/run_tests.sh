@@ -18,7 +18,6 @@
 #   SONALYZE - the name of the sonalyze executable, typically a debug build
 #   NAICREPORT - the name of the naicreport executable
 #   SLURMINFO - the name of the slurminfo executable
-#   SONALYZED - the name of the sonalyzed executable
 #
 # Each script will do whatever and then pass the name of the test (interpreted in the context of
 # TEST_NAME), the expected output, and the actual output to the CHECK function.  The latter is
@@ -38,7 +37,6 @@ export SONALYZE=${SONALYZE:-$TEST_ROOT/../sonalyze/sonalyze}
 export NAICREPORT=$TEST_ROOT/../naicreport/naicreport
 export SONARD=$TEST_ROOT/../sonard/sonard
 export SLURMINFO=$TEST_ROOT/../slurminfo/slurminfo
-export SONALYZED=$TEST_ROOT/../sonalyzed/sonalyzed
 
 pattern="$1"
 hard_failed=0

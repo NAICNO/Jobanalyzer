@@ -61,9 +61,10 @@ things.
 Then there are scripts built on top of Naicreport that run it periodically and upload its reports
 (all JSON) to a web server.
 
-On the infrastructure side, the `exfiltrate` tool sends Sonar data across the network to a server
-and the `infiltrate` tool receives it and integrates the data into the database.  The `sonalyzed`
-server is a remote command server for `sonalyze`.
+On the infrastructure side, the nodes use `curl` to send send Sonar data across the network to a
+server, where a process running as `sonalyze daemon` receives it and integrates the data into the
+database.  The daemon also responds to REST queries (from `sonalyze` running on remote hosts, or
+from other agents).
 
 The web server has simple presentation logic for the JSON data, and always works on whatever data
 have been uploaded - it has no other state, and makes no queries to any other back-end to inspect

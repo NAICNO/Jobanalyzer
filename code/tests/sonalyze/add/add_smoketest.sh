@@ -24,7 +24,9 @@ tail -n $((k2-k2/2)) smoketest-sample-data2.csv | $SONALYZE add -v -sample -data
 $SONALYZE add -v -sysinfo -data-dir ./data-dir < smoketest-sysinfo-data1.json
 $SONALYZE add -v -sysinfo -data-dir ./data-dir < smoketest-sysinfo-data2.json
 
-for d in data-dir/2023/09/{13,15} data-dir/2024/03/12 data-dir/2024/04/01; do
+# Note dates in input data are normalized to UTC, so the UTC+02:00 times in these data sets end up
+# in date bins for the prior day.
+for d in data-dir/2023/09/{13,14} data-dir/2024/03/11 data-dir/2024/03/31; do
     if [[ ! -d $d ]]; then
         echo "Failed to find directory $d"
         exit 1
@@ -32,8 +34,8 @@ for d in data-dir/2023/09/{13,15} data-dir/2024/03/12 data-dir/2024/04/01; do
 done
 
 cmp data-dir/2023/09/13/ml3.hpc.uio.no.csv smoketest-sample-data2.csv
-cmp data-dir/2023/09/15/ml6.hpc.uio.no.csv smoketest-sample-data1.csv
-cmp data-dir/2024/03/12/sysinfo-ml1.hpc.uio.no.json smoketest-sysinfo-data1.json
-cmp data-dir/2024/04/01/sysinfo-ml9.hpc.uio.no.json smoketest-sysinfo-data2.json
+cmp data-dir/2023/09/14/ml6.hpc.uio.no.csv smoketest-sample-data1.csv
+cmp data-dir/2024/03/11/sysinfo-ml1.hpc.uio.no.json smoketest-sysinfo-data1.json
+cmp data-dir/2024/03/31/sysinfo-ml9.hpc.uio.no.json smoketest-sysinfo-data2.json
 
 rm -rf data-dir

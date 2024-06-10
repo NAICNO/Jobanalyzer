@@ -18,10 +18,10 @@ report_target_path=/data/www/output
 ####
 # Identities and authorization.
 
-# `sonalyzed` uses these file to check that remote operations are performed only by authorized users.
-# Both files have any number of lines on `username:password` format.  The "upload" file is used for
-# data uploads and the users are cluster names.  The "analysis" file is used for data extraction
-# and the users are actual user names.
+# `sonalyze daemon` (previously `sonalyzed`) uses these files to check that remote operations are
+# performed only by authorized users.  Both files have any number of lines on `username:password`
+# format.  The "upload" file is used for data uploads and the users are cluster names.  The
+# "analysis" file is used for data extraction and the users are actual user names.
 sonalyzed_upload_auth_file=$sonar_dir/secrets/exfil-auth.txt
 sonalyzed_analysis_auth_file=$sonar_dir/secrets/sonalyzed-auth.txt
 

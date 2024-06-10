@@ -58,12 +58,8 @@ func (pc *ParseCommand) ReifyForRemote(x *Reifier) error {
 func (pc *ParseCommand) Validate() error {
 	var e1, e2 error
 	e1 = pc.SharedArgs.Validate()
-	spec := parseDefaultFields
-	if pc.Fmt != "" {
-		spec = pc.Fmt
-	}
 	var others map[string]bool
-	pc.printFields, others, e2 = ParseFormatSpec(spec, parseFormatters, parseAliases)
+	pc.printFields, others, e2 = ParseFormatSpec(parseDefaultFields, pc.Fmt, parseFormatters, parseAliases)
 	if e2 == nil && len(pc.printFields) == 0 {
 		e2 = errors.New("No output fields were selected in format string")
 	}
@@ -91,7 +87,7 @@ func (pc *ParseCommand) ConfigFile() string {
 func (pc *ParseCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	_ *sonarlog.LogStore,
+	_ sonarlog.Cluster,
 	samples sonarlog.SampleStream,
 	_ *hostglob.HostGlobber,
 	recordFilter func(*sonarlog.Sample) bool,

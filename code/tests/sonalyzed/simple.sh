@@ -8,8 +8,8 @@ if [[ $($SONALYZE version) =~ sonalyze-rs ]]; then
     exit 0
 fi
 
-# Note if sonalyzed fails on startup the `set -e` will not catch it because the server is run in the
-# background.  In this case, $sonalyzed_pid will reference a process that is not there.
+# Note if `sonalyze daemon` fails on startup the `set -e` will not catch it because the server is
+# run in the background.  In this case, $sonalyzed_pid will reference a process that is not there.
 
 rootdir=test-root
 testport=24680
@@ -26,7 +26,7 @@ cp cluster2.naic.com-config.json $rootdir/scripts/cluster2.naic.com
 
 # Run the server in the background against that directory
 
-$SONALYZED -v \
+$SONALYZE daemon -v \
            -jobanalyzer-dir $rootdir \
            -port $testport \
            -upload-auth upload-auth.txt \
@@ -56,10 +56,11 @@ curl --fail-with-body --data-binary @cluster2-sysinfo.json -H 'Content-Type: app
      http://localhost:$testport/sysinfo?cluster=cluster2.naic.com
 
 sleep 1
-cmp cluster1-samples.csv $rootdir/data/cluster1.naic.com/2023/09/15/c1.cluster1.naic.com.csv
-cmp cluster1-sysinfo.json $rootdir/data/cluster1.naic.com/2024/03/12/sysinfo-c1.cluster1.naic.com.json
+# Note input data tagged say 2023-09-15T00:00:nn+02:00 are normalized to 2023-09-14.  Etc.
+cmp cluster1-samples.csv $rootdir/data/cluster1.naic.com/2023/09/14/c1.cluster1.naic.com.csv
+cmp cluster1-sysinfo.json $rootdir/data/cluster1.naic.com/2024/03/11/sysinfo-c1.cluster1.naic.com.json
 cmp cluster2-samples.csv $rootdir/data/cluster2.naic.com/2023/09/13/c2.cluster2.naic.com.csv
-cmp cluster2-sysinfo.json $rootdir/data/cluster2.naic.com/2024/04/01/sysinfo-c2.cluster2.naic.com.json
+cmp cluster2-sysinfo.json $rootdir/data/cluster2.naic.com/2024/03/31/sysinfo-c2.cluster2.naic.com.json
 
 # Then, try to run a jobs command and verify that the result is what we expect
 

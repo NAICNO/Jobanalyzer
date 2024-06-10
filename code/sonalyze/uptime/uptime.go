@@ -66,12 +66,8 @@ func (uc *UptimeCommand) Validate() error {
 	if uc.OnlyUp && uc.OnlyDown {
 		e4 = errors.New("Nonsensical -only-up AND -only-down")
 	}
-	spec := uptimeDefaultFields
-	if uc.Fmt != "" {
-		spec = uc.Fmt
-	}
 	var others map[string]bool
-	uc.printFields, others, e5 = ParseFormatSpec(spec, uptimeFormatters, uptimeAliases)
+	uc.printFields, others, e5 = ParseFormatSpec(uptimeDefaultFields, uc.Fmt, uptimeFormatters, uptimeAliases)
 	if e5 == nil && len(uc.printFields) == 0 {
 		e5 = errors.New("No output fields were selected in format string")
 	}

@@ -1,0 +1,18 @@
+{
+  "timestamp": "2023-05-31T00:00:01+02:00",
+  "hostname": "b",
+  "description": "2x16 (hyperthreaded) AMD EPYC 7301 16-Core Processor, 125 GiB, 2x Vega 10 XL/XT [Radeon RX Vega 56/64] @ unknown GiB",
+  "cpu_cores": 64,
+  "mem_gb": 125,
+  "gpu_cards": 2,
+  "gpumem_gb": 0
+}
+{
+  "timestamp": "2025-05-31T12:00:01+02:00",
+  "hostname": "b",
+  "description": "2x16 (hyperthreaded) AMD EPYC 7301 16-Core Processor, 125 GiB, 2x Vega 10 XL/XT [Radeon RX Vega 56/64] @ unknown GiB",
+  "cpu_cores": 64,
+  "mem_gb": 125,
+  "gpu_cards": 2,
+  "gpumem_gb": 0
+}

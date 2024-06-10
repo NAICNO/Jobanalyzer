@@ -21,7 +21,7 @@
 // - StringToUstr(s).String() is not the same object as s (s is not retained)
 // - If u=StringToUstr(s) then u.String() === u.String() (same object)
 
-package sonarlog
+package common
 
 import (
 	"io"

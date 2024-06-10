@@ -17,7 +17,7 @@ import (
 	. "sonalyze/command"
 )
 
-func remoteOperation(rCmd RemotableCommand, verb string) error {
+func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout, stderr io.Writer) error {
 	r := NewReifier()
 	err := rCmd.ReifyForRemote(&r)
 	if err != nil {
@@ -50,7 +50,6 @@ func remoteOperation(rCmd RemotableCommand, verb string) error {
 		curlArgs = append(curlArgs, "-u", fmt.Sprintf("%s:%s", username, password))
 	}
 
-	var stdin io.Reader
 	switch cmd := rCmd.(type) {
 	case AnalysisCommand:
 		curlArgs = append(curlArgs, "--get")
@@ -70,7 +69,6 @@ func remoteOperation(rCmd RemotableCommand, verb string) error {
 			"--data-binary", "@-",
 			"-H", "Content-Type: "+contentType,
 		)
-		stdin = cmd.DataSource()
 	default:
 		panic("Unimplemented")
 	}
@@ -82,9 +80,9 @@ func remoteOperation(rCmd RemotableCommand, verb string) error {
 	command := exec.CommandContext(ctx, "curl", curlArgs...)
 	command.Stdin = stdin
 
-	var stdout, stderr strings.Builder
-	command.Stdout = &stdout
-	command.Stderr = &stderr
+	var newStdout, newStderr strings.Builder
+	command.Stdout = &newStdout
+	command.Stderr = &newStderr
 
 	if rCmd.VerboseFlag() {
 		log.Printf("Executing <%s>", command.String())
@@ -93,24 +91,24 @@ func remoteOperation(rCmd RemotableCommand, verb string) error {
 	err = command.Run()
 	if err != nil {
 		if rCmd.VerboseFlag() {
-			outs := stdout.String()
+			outs := newStdout.String()
 			if outs != "" {
-				fmt.Print(outs)
+				fmt.Fprint(stdout, outs)
 			}
-			errs := stderr.String()
+			errs := newStderr.String()
 			if errs != "" {
-				fmt.Print(errs)
+				fmt.Fprint(stdout, errs)
 			}
 		}
 		// Print this unredacted on the assumption that the remote sonalyzed/sonalyze don't
 		// reveal anything they shouldn't.
 		return err
 	}
-	errs := stderr.String()
+	errs := newStderr.String()
 	if errs != "" {
 		return errors.New(errs)
 	}
 	// print, not println, or we end up adding a blank line that confuses consumers
-	fmt.Print(stdout.String())
+	fmt.Fprint(stdout, newStdout.String())
 	return nil
 }

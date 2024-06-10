@@ -48,7 +48,7 @@ import (
 	"go-utils/config"
 	"go-utils/hostglob"
 	"go-utils/minmax"
-	"sonalyze/common"
+	. "sonalyze/common"
 	"sonalyze/sonarlog"
 )
 
@@ -83,7 +83,7 @@ type window struct {
 func (uc *UptimeCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	_ *sonarlog.LogStore,
+	_ sonarlog.Cluster,
 	samples sonarlog.SampleStream,
 	hostGlobber *hostglob.HostGlobber,
 	_ func(*sonarlog.Sample) bool,
@@ -296,9 +296,9 @@ func (uc *UptimeCommand) computeAlwaysDown(
 	fromIncl, toIncl int64,
 ) {
 	if !uc.OnlyUp && cfg != nil {
-		hs := make(map[sonarlog.Ustr]bool)
+		hs := make(map[Ustr]bool)
 		for _, h := range cfg.HostsDefinedInTimeWindow(fromIncl, toIncl) {
-			hs[sonarlog.StringToUstr(h)] = true
+			hs[StringToUstr(h)] = true
 		}
 		for _, sample := range samples {
 			delete(hs, sample.Host)
@@ -320,5 +320,5 @@ func (uc *UptimeCommand) computeAlwaysDown(
 }
 
 func formatTime(t int64) string {
-	return common.FormatYyyyMmDdHhMmUtc(t)
+	return FormatYyyyMmDdHhMmUtc(t)
 }

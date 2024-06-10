@@ -4,17 +4,19 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 
 	"go-utils/config"
 	"go-utils/hostglob"
 	. "sonalyze/command"
+	. "sonalyze/common"
 	"sonalyze/profile"
 	"sonalyze/sonarlog"
 )
 
-func localAnalysis(cmd AnalysisCommand) error {
+func localAnalysis(cmd AnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
 	args := cmd.SharedFlags()
 
 	// TODO: Instead of requiring every cmd to have ConfigFile(), we could introduce a ConfigFileAPI
@@ -33,25 +35,25 @@ func localAnalysis(cmd AnalysisCommand) error {
 		return fmt.Errorf("Failed to create record filter\n%w", err)
 	}
 
-	var theLog *sonarlog.LogStore
+	var theLog sonarlog.SampleCluster
 	if len(args.LogFiles) > 0 {
-		theLog, err = sonarlog.OpenFiles(args.LogFiles)
+		theLog, err = sonarlog.OpenTransientSampleCluster(args.LogFiles)
 	} else {
-		theLog, err = sonarlog.OpenDir(args.DataDir, args.FromDate, args.ToDate, hostGlobber)
+		theLog, err = sonarlog.OpenPersistentCluster(args.DataDir)
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to open log store\n%w", err)
 	}
-	samples, dropped, err := theLog.ReadLogEntries(args.Verbose)
+	samples, dropped, err := theLog.ReadSamples(args.FromDate, args.ToDate, hostGlobber, args.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records\n%w", err)
 	}
 	if args.Verbose {
 		log.Printf("%d records read + %d dropped\n", len(samples), dropped)
-		sonarlog.UstrStats(os.Stderr, false)
+		UstrStats(stderr, false)
 	}
 
-	err = cmd.Perform(os.Stdout, cfg, theLog, samples, hostGlobber, recordFilter)
+	err = cmd.Perform(stdout, cfg, theLog, samples, hostGlobber, recordFilter)
 	if err != nil {
 		return fmt.Errorf("Failed to perform operation\n%w", err)
 	}
@@ -103,7 +105,7 @@ func buildFilters(
 
 	// Included users, empty means "all"
 
-	includeUsers := make(map[sonarlog.Ustr]bool)
+	includeUsers := make(map[Ustr]bool)
 	if len(args.RecordFilterArgs.User) > 0 {
 		allUsers = false
 		for _, u := range args.RecordFilterArgs.User {
@@ -114,14 +116,14 @@ func buildFilters(
 		}
 		if !allUsers {
 			for _, u := range args.RecordFilterArgs.User {
-				includeUsers[sonarlog.StringToUstr(u)] = true
+				includeUsers[StringToUstr(u)] = true
 			}
 		}
 	} else if allUsers {
 		// Everyone, so do nothing
 	} else {
 		if name := os.Getenv("LOGNAME"); name != "" {
-			includeUsers[sonarlog.StringToUstr(name)] = true
+			includeUsers[StringToUstr(name)] = true
 		} else {
 			return nil, nil, fmt.Errorf("Not able to determine user, none given and $LOGNAME is empty")
 		}
@@ -129,52 +131,52 @@ func buildFilters(
 
 	// Excluded users.
 
-	excludeUsers := make(map[sonarlog.Ustr]bool)
+	excludeUsers := make(map[Ustr]bool)
 	for _, u := range args.RecordFilterArgs.ExcludeUser {
-		excludeUsers[sonarlog.StringToUstr(u)] = true
+		excludeUsers[StringToUstr(u)] = true
 	}
 
 	if skipSystemUsers {
 		// This list needs to be configurable somehow, but isn't so in the Rust version either.
-		excludeUsers[sonarlog.StringToUstr("root")] = true
-		excludeUsers[sonarlog.StringToUstr("zabbix")] = true
+		excludeUsers[StringToUstr("root")] = true
+		excludeUsers[StringToUstr("zabbix")] = true
 	}
 
 	// Included commands.
 
-	includeCommands := make(map[sonarlog.Ustr]bool)
+	includeCommands := make(map[Ustr]bool)
 	for _, command := range args.RecordFilterArgs.Command {
-		includeCommands[sonarlog.StringToUstr(command)] = true
+		includeCommands[StringToUstr(command)] = true
 	}
 
 	// Excluded commands.
 
-	excludeCommands := make(map[sonarlog.Ustr]bool)
+	excludeCommands := make(map[Ustr]bool)
 	for _, command := range args.RecordFilterArgs.ExcludeCommand {
-		excludeCommands[sonarlog.StringToUstr(command)] = true
+		excludeCommands[StringToUstr(command)] = true
 	}
 
 	if excludeSystemCommands {
 		// This list needs to be configurable somehow, but isn't so in the Rust version either.
-		excludeCommands[sonarlog.StringToUstr("bash")] = true
-		excludeCommands[sonarlog.StringToUstr("zsh")] = true
-		excludeCommands[sonarlog.StringToUstr("sshd")] = true
-		excludeCommands[sonarlog.StringToUstr("tmux")] = true
-		excludeCommands[sonarlog.StringToUstr("systemd")] = true
+		excludeCommands[StringToUstr("bash")] = true
+		excludeCommands[StringToUstr("zsh")] = true
+		excludeCommands[StringToUstr("sshd")] = true
+		excludeCommands[StringToUstr("tmux")] = true
+		excludeCommands[StringToUstr("systemd")] = true
 	}
 
 	// Skip heartbeat records?  It's probably OK to filter only by command name, since we're
 	// currently doing full-command-name matching.
 
 	if excludeHeartbeat {
-		excludeCommands[sonarlog.StringToUstr("_heartbeat_")] = true
+		excludeCommands[StringToUstr("_heartbeat_")] = true
 	}
 
 	// System configuration additions, if available
 
 	if cfg != nil {
 		for _, user := range cfg.ExcludeUser {
-			excludeUsers[sonarlog.StringToUstr(user)] = true
+			excludeUsers[StringToUstr(user)] = true
 		}
 	}
 

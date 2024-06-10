@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"strings"
 
 	"go-utils/config"
@@ -91,13 +90,8 @@ func (ac *AddCommand) ReifyForRemote(x *Reifier) error {
 	return e1
 }
 
-func (ac *AddCommand) DataSource() io.Reader {
-	// We could imagine there being flags for this
-	return os.Stdin
-}
-
-func (ac *AddCommand) AddData() error {
-	data, err := io.ReadAll(ac.DataSource())
+func (ac *AddCommand) AddData(stdin io.Reader, _, _ io.Writer) error {
+	data, err := io.ReadAll(stdin)
 	if err != nil {
 		return err
 	}
@@ -125,17 +119,12 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 		// TODO: IMPROVEME: Benign if timestamp missing?
 		return errors.New("Missing timestamp or host in Sonar sysinfo data")
 	}
-	ds, err := sonarlog.OpenDirForAppend(ac.DataDir)
+	ds, err := sonarlog.OpenPersistentCluster(ac.DataDir)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err := ds.Close()
-		if err != nil {
-			log.Printf("Closing data store failed: %v", err)
-		}
-	}()
-	err = ds.Write(info.Hostname, info.Timestamp, "sysinfo-%s.json", payload)
+	defer ds.FlushAsync()
+	err = ds.AppendSysinfoAsync(info.Hostname, info.Timestamp, payload)
 	if err == sonarlog.BadTimestampErr {
 		return nil
 	}
@@ -146,16 +135,11 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 	if ac.Verbose {
 		log.Printf("Sample records %d bytes", len(payload))
 	}
-	ds, err := sonarlog.OpenDirForAppend(ac.DataDir)
+	ds, err := sonarlog.OpenPersistentCluster(ac.DataDir)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err := ds.Close()
-		if err != nil {
-			log.Printf("Closing data store failed: %v", err)
-		}
-	}()
+	defer ds.FlushAsync()
 	count := 0
 	scanner := bufio.NewScanner(bytes.NewReader(payload))
 	var result error
@@ -172,7 +156,7 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 			// TODO: IMPROVEME: Benign if timestamp missing?
 			return errors.New("Missing timestamp or host in Sonar sample data")
 		}
-		err = ds.WriteString(host, time, "%s.csv", text)
+		err = ds.AppendSamplesAsync(host, time, text)
 		if err != nil && err != sonarlog.BadTimestampErr {
 			result = errors.Join(result, err)
 		}

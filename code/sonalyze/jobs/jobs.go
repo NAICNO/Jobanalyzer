@@ -362,12 +362,8 @@ func (jc *JobsCommand) Validate() error {
 	}
 
 	var e4 error
-	spec := jobsDefaultFields
-	if jc.Fmt != "" {
-		spec = jc.Fmt
-	}
 	var others map[string]bool
-	jc.printFields, others, e4 = ParseFormatSpec(spec, jobsFormatters, jobsAliases)
+	jc.printFields, others, e4 = ParseFormatSpec(jobsDefaultFields, jc.Fmt, jobsFormatters, jobsAliases)
 	if e4 == nil && len(jc.printFields) == 0 {
 		e4 = errors.New("No output fields were selected in format string")
 	}
