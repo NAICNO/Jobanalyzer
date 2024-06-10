@@ -574,10 +574,10 @@ Bucketing is performed after clamping.
 ## REMOTE ACCESS
 
 Sometimes the log files are not stored locally but on a remote host to which we cannot log in.  If
-the `sonalyzed` server is running on that host, we can run sonalyze locally and ask it to contact
-that server and run sonalyze against the data stored there.  The server responds to HTTP `GET` and
-`POST` requests; the local sonalyze constructs and sends the appropriate request (currently via
-curl).
+the `sonalyze daemon` (aka `sonalyzed`) server is running on that host, we can run sonalyze locally
+and ask it to contact that server and run sonalyze against the data stored there.  The server
+responds to HTTP `GET` and `POST` requests; the local sonalyze constructs and sends the appropriate
+request (currently via curl).
 
 To do so, use the `--remote` argument to provide an http URL for the remote host and the `--cluster`
 argument to name the cluster for which we want data:
@@ -586,10 +586,10 @@ argument to name the cluster for which we want data:
 $ sonalyze jobs --remote http://some.host.no:8087 --cluster ml -f 20w -u - --some-gpu --host ml8
 ```
 
-It is additionally possible to use `--auth-file` to specify a file holding the identity information
-of yourself as a `username:password` pair (this is crude but implements HTTP "basic"
-authentication).  In this case, the server must have been told about this identity.  See the server
-manual for how to set that up.
+It is additionally possible (sometimes necessary) to use `--auth-file` to specify a file holding the
+identity information of yourself as a `username:password` pair (this is crude but implements HTTP
+"basic" authentication).  In this case, the server must have been told about this identity.  See the
+server manual for how to set that up.
 
 In the case of remote access, the server supplies the `--data-path` and `--config-file` arguments
 based on the `--cluster` argument, so the former must be omitted from the local command invocation.
