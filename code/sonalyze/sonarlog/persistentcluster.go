@@ -422,6 +422,11 @@ func (pc *PersistentCluster) findFileByTimeLocked(timestamp, filename string, fa
 	if err != nil {
 		return nil, BadTimestampErr
 	}
+	// This conversion to UTC creates a detectable semantic change from the Rust code and earlier Go
+	// code.  It means that a record for eg 2024-06-03T00:00:01+02:00 will end up in the 2024/06/02
+	// bin as the date is normalized to 2024-06-02T22:00:01Z.  This is arguably the right thing, as
+	// making every date UTC following ingest will keep things relatively sane.  But it means that
+	// it will no longer be easy to compare log files across this change.
 	tval = tval.UTC()
 	d, err := pc.ensureScannedDirectoryLocked(tval)
 	if err != nil {
