@@ -84,3 +84,23 @@ func TestBinarySearchFunc(t *testing.T) {
 		}
 	}
 }
+
+func TestCatenate(t *testing.T) {
+	r := Catenate([][]int{[]int{1,2,3},[]int{4,5,6},[]int{7,8,9}})
+	if !reflect.DeepEqual(r, []int{1,2,3,4,5,6,7,8,9}) {
+		t.Fatal("Bad")
+	}
+	if cap(r) != 9 {
+		t.Fatal("Too much cap")
+	}
+}
+
+func TestCatenateP(t *testing.T) {
+	r := CatenateP([]*[]int{&[]int{1,2,3},&[]int{4,5,6},&[]int{7,8,9}})
+	if !reflect.DeepEqual(r, []int{1,2,3,4,5,6,7,8,9}) {
+		t.Fatal("Bad")
+	}
+	if cap(r) != 9 {
+		t.Fatal("Too much cap")
+	}
+}

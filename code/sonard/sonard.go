@@ -17,21 +17,25 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 	"time"
+
+	"go-utils/status"
 )
 
 func main() {
 	interval, minCpu, sonarName, logfileName, verbose := commandLine()
+	if verbose {
+		status.Default().LowerLevelTo(status.LogLevelInfo)
+	}
 
 	if minCpu >= interval {
 		minCpu = interval / 2
 		if verbose {
-			log.Printf("Adjusting -m value to %d to fit value of -i (which is %d)", minCpu, interval)
+			status.Infof("Adjusting -m value to %d to fit value of -i (which is %d)", minCpu, interval)
 		}
 	}
 
@@ -41,7 +45,7 @@ func main() {
 
 	logfile, err := os.OpenFile(logfileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatalf("Could not open log file %s for appending", logfileName)
+		status.Fatalf("Could not open log file %s for appending", logfileName)
 	}
 	arguments := []string{
 		"ps",
@@ -56,12 +60,12 @@ func main() {
 		cmd.Stdout = logfile
 		cmd.Stderr = &stderr
 		if verbose {
-			log.Printf("Running %s %v", sonarName, arguments)
+			status.Infof("Running %s %v", sonarName, arguments)
 		}
 		err := cmd.Run()
 		errout := stderr.String()
 		if err != nil || len(errout) != 0 {
-			log.Fatalf("Sonar exited with an error\n%v", errors.Join(err, errors.New(errout)))
+			status.Fatalf("Sonar exited with an error\n%v", errors.Join(err, errors.New(errout)))
 		}
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
@@ -86,14 +90,14 @@ func commandLine() (
 	flag.Parse()
 
 	if interval < 5 {
-		log.Fatalf("Minimum -i value is 5 seconds, have %d", interval)
+		status.Fatalf("Minimum -i value is 5 seconds, have %d", interval)
 	}
 	if minCpu < 1 {
-		log.Fatalf("Minimum -m value is 1 second, have %d", minCpu)
+		status.Fatalf("Minimum -m value is 1 second, have %d", minCpu)
 	}
 	rest := flag.Args()
 	if len(rest) != 1 {
-		log.Fatalf("There must be exactly one logfile argument at the end, I see %v", rest)
+		status.Fatalf("There must be exactly one logfile argument at the end, I see %v", rest)
 	}
 	logfileName = path.Clean(rest[0])
 	return

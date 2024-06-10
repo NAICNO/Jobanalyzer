@@ -53,3 +53,28 @@ func BinarySearchFunc[S ~[]E, E, T any](xs S, target T, cmp func(E, T) int) (int
 	}
 	return lo, false
 }
+
+func Catenate[S ~[]E, E any](xss []S) []E {
+	n := 0
+	for _, xs := range xss {
+		n += len(xs)
+	}
+	result := make([]E, 0, n)
+	for _, xs := range xss {
+		result = append(result, xs...)
+	}
+	return result
+}
+
+// This is gross but convenient since maps.Values(InputStreamSet) is []*SampleStream
+func CatenateP[S ~[]E, E any](xss []*S) []E {
+	n := 0
+	for _, xs := range xss {
+		n += len(*xs)
+	}
+	result := make([]E, 0, n)
+	for _, xs := range xss {
+		result = append(result, *xs...)
+	}
+	return result
+}
