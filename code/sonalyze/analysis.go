@@ -17,7 +17,6 @@ import (
 )
 
 func localAnalysis(cmd AnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
-	var err error
 	args := cmd.SharedFlags()
 
 	cfg, err := MaybeGetConfig(cmd.ConfigFile())
