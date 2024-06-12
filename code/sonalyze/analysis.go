@@ -77,12 +77,9 @@ func buildFilters(
 
 	// Included host set, empty means "all"
 
-	includeHosts := hostglob.NewGlobber(true)
-	for _, h := range args.RecordFilterArgs.Host {
-		err := includeHosts.Insert(h)
-		if err != nil {
-			return nil, nil, err
-		}
+	includeHosts, err := hostglob.NewGlobber(true, args.RecordFilterArgs.Host)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// Included job numbers, empty means "all"

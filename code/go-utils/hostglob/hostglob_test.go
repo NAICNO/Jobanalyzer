@@ -143,12 +143,9 @@ func testCompress(t *testing.T, hosts []string, expect map[string]bool) {
 }
 
 func TestGlobber1(t *testing.T) {
-    hf := NewGlobber(true)
-    if hf.Insert("ml8") != nil {
-		t.Fatal("Insert 1")
-	}
-    if hf.Insert("ml3.hpc") != nil {
-		t.Fatal("Insert 2")
+    hf, err := NewGlobber(true, []string{"ml8", "ml3.hpc"})
+    if err != nil {
+		t.Fatal("Insert 1+2")
 	}
 
     // Single-element prefix match against this
@@ -161,8 +158,8 @@ func TestGlobber1(t *testing.T) {
 		t.Fatal("Match 2")
 	}
 
-    hf = NewGlobber(false)
-    if hf.Insert("ml4.hpc.uio.no") != nil {
+    hf, err = NewGlobber(false, []string{"ml4.hpc.uio.no"})
+	if err != nil {
 		t.Fatal("Insert 3")
 	}
 
@@ -176,8 +173,7 @@ func TestGlobber1(t *testing.T) {
 }
 
 func TestGlobber2(t *testing.T) {
-    hf := NewGlobber(true)
-	err := hf.Insert("ml[1-3]*")
+    hf, err := NewGlobber(true, []string{"ml[1-3]*"})
     if err != nil {
 		t.Fatal(err)
 	}
@@ -193,8 +189,7 @@ func TestGlobber2(t *testing.T) {
 }
 
 func TestGlobber3(t *testing.T) {
-    hf := NewGlobber(false)
-	err := hf.Insert("c[1-3]-[2,4]")
+    hf, err := NewGlobber(false, []string{"c[1-3]-[2,4]"})
     if err != nil {
 		t.Fatal(err)
 	}

@@ -23,10 +23,11 @@ import (
 	"sync"
 )
 
+// MT: Locked
 type Aliases struct {
+	lock     sync.RWMutex
 	filepath string
 	mapping  map[string]string
-	lock     sync.RWMutex
 }
 
 func ReadAliases(filepath string) (*Aliases, error) {

@@ -158,7 +158,7 @@ func main() {
 
 	// Construct the output from the system attribute map.
 
-	results := config.NewClusterConfig()
+	nodes := make([]*config.NodeConfigRecord, 0)
 	for desc, hosts := range systems {
 		names := hostglob.CompressHostnames(hosts)
 		for _, h := range names {
@@ -180,7 +180,7 @@ func main() {
 				memgb,
 				gpu,
 			)
-			results.Insert(&config.NodeConfigRecord{
+			nodes = append(nodes, &config.NodeConfigRecord{
 				Hostname:      h + desc.suffix,
 				Description:   description,
 				CrossNodeJobs: desc.crossNode,
@@ -210,9 +210,18 @@ func main() {
 				}
 			}
 			background.Metadata = nil
-			results.Insert(background)
+			nodes = append(nodes, background)
 		}
 	}
+
+	results := config.NewClusterConfig(
+		0,
+		"",
+		"",
+		[]string{},
+		[]string{},
+		nodes,
+	)
 
 	// Save the config.  It is JSON text and is just dumped on stdout.
 

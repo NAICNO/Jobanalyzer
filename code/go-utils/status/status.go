@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/syslog"
 	"os"
+	"sync"
 )
 
 // LogLevel indicates the level of logging that should be done.
@@ -20,6 +21,7 @@ const (
 	LogLevelCritical
 )
 
+// Implementations of this must be thread-safe.
 type Logger interface {
 	// Print only messages at level l or above
 	SetLevel(l LogLevel)
@@ -52,7 +54,7 @@ type Logger interface {
 }
 
 // Typically the underlying logger would be a syslog thing, and it has a simpler interface.  In
-// particular, log/syslog implements UnderlyingLogger.
+// particular, log/syslog implements UnderlyingLogger.  An underlying logger must be thread-safe.
 type UnderlyingLogger interface {
 	Debug(m string) error
 	Info(m string) error
@@ -62,11 +64,13 @@ type UnderlyingLogger interface {
 }
 
 type StandardLogger struct {
+	sync.Mutex
 	level LogLevel
 	stderr io.Writer
 	underlying UnderlyingLogger
 }
 
+// MT: Constant after initialization, thread-safe.
 var defaultLogger Logger = &StandardLogger{
 	level: LogLevelError,
 	stderr: os.Stderr,
@@ -78,24 +82,39 @@ func Default() Logger {
 }
 
 func (sl *StandardLogger) SetLevel(l LogLevel) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	sl.level = l
 }
 
 func (sl *StandardLogger) LowerLevelTo(l LogLevel) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level > l {
 		sl.level = l
 	}
 }
 
 func (sl *StandardLogger) SetStderr(stderr io.Writer) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	sl.stderr = stderr
 }
 
 func (sl *StandardLogger) SetUnderlying(underlying UnderlyingLogger) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	sl.underlying = underlying
 }
 
 func (sl *StandardLogger) Critical(xs ...any) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level >= LogLevelCritical {
 		s := fmt.Sprint(xs...)
 		if sl.stderr != nil {
@@ -108,6 +127,9 @@ func (sl *StandardLogger) Critical(xs ...any) {
 }
 
 func (sl *StandardLogger) Criticalf(format string, args ...any) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level >= LogLevelCritical {
 		s := fmt.Sprintf(format, args...)
 		if sl.stderr != nil {
@@ -120,6 +142,9 @@ func (sl *StandardLogger) Criticalf(format string, args ...any) {
 }
 
 func (sl *StandardLogger) Error(xs ...any) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level >= LogLevelError {
 		s := fmt.Sprint(xs...)
 		if sl.stderr != nil {
@@ -132,6 +157,9 @@ func (sl *StandardLogger) Error(xs ...any) {
 }
 
 func (sl *StandardLogger) Errorf(format string, args ...any) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level >= LogLevelError {
 		s := fmt.Sprintf(format, args...)
 		if sl.stderr != nil {
@@ -144,6 +172,9 @@ func (sl *StandardLogger) Errorf(format string, args ...any) {
 }
 
 func (sl *StandardLogger) Warning(xs ...any) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level >= LogLevelWarning {
 		s := fmt.Sprint(xs...)
 		if sl.stderr != nil {
@@ -156,6 +187,9 @@ func (sl *StandardLogger) Warning(xs ...any) {
 }
 
 func (sl *StandardLogger) Warningf(format string, args ...any) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level >= LogLevelWarning {
 		s := fmt.Sprintf(format, args...)
 		if sl.stderr != nil {
@@ -168,6 +202,9 @@ func (sl *StandardLogger) Warningf(format string, args ...any) {
 }
 
 func (sl *StandardLogger) Info(xs ...any) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level >= LogLevelInfo {
 		s := fmt.Sprint(xs...)
 		if sl.stderr != nil {
@@ -180,6 +217,9 @@ func (sl *StandardLogger) Info(xs ...any) {
 }
 
 func (sl *StandardLogger) Infof(format string, args ...any) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level >= LogLevelInfo {
 		s := fmt.Sprintf(format, args...)
 		if sl.stderr != nil {
@@ -192,6 +232,9 @@ func (sl *StandardLogger) Infof(format string, args ...any) {
 }
 
 func (sl *StandardLogger) Debug(xs ...any) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level >= LogLevelDebug {
 		s := fmt.Sprint(xs...)
 		if sl.stderr != nil {
@@ -204,6 +247,9 @@ func (sl *StandardLogger) Debug(xs ...any) {
 }
 
 func (sl *StandardLogger) Debugf(format string, args ...any) {
+	sl.Lock()
+	defer sl.Unlock()
+
 	if sl.level >= LogLevelDebug {
 		s := fmt.Sprintf(format, args...)
 		if sl.stderr != nil {

@@ -82,8 +82,7 @@ func TestTransientSampleFilenames(t *testing.T) {
 		t.Fatal(err)
 	}
 	var d time.Time
-	h := hostglob.NewGlobber(false)
-	h.Insert("a")
+	h, _ := hostglob.NewGlobber(false, []string{"a"})
 	// The parameters should be ignored here and the names returned should
 	// be exactly the input names.
 	names, _ := fs.SampleFilenames(d, d, h)
@@ -139,8 +138,7 @@ func TestPersistentSampleFilenames(t *testing.T) {
 		t.Fatal(names, expect)
 	}
 
-	h := hostglob.NewGlobber(true)
-	h.Insert("a")
+	h, _ := hostglob.NewGlobber(true, []string{"a"})
 	names, err = pc.SampleFilenames(
 		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),

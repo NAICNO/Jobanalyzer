@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"go-utils/status"
@@ -19,12 +20,15 @@ const (
 	serverShutdownTimeoutSec = 10
 )
 
+// This is not thread-safe.  The server will panic if started more than once, and Start and Stop
+// should be called from the same goroutine.
+
 type Server struct {
 	verbose bool
 	port    int
 	failed  func(error)
 	stop    chan bool
-	server  *http.Server
+	server  atomic.Pointer[http.Server]
 	tlsKey string
 	tlsCert string
 }
@@ -67,12 +71,16 @@ func (s *Server) Start() {
 		var hn string
 		hn, err = os.Hostname()
 		if err == nil {
-			s.server = &http.Server{Addr: fmt.Sprintf("%s:%d", hn, s.port)}
-			err = s.server.ListenAndServeTLS(s.tlsCert, s.tlsKey)
+			if !s.server.CompareAndSwap(nil, &http.Server{Addr: fmt.Sprintf("%s:%d", hn, s.port)}) {
+				panic("Start server only once")
+			}
+			err = s.server.Load().ListenAndServeTLS(s.tlsCert, s.tlsKey)
 		}
 	} else {
-		s.server = &http.Server{Addr: fmt.Sprintf(":%d", s.port)}
-		err = s.server.ListenAndServe()
+		if !s.server.CompareAndSwap(nil, &http.Server{Addr: fmt.Sprintf(":%d", s.port)}) {
+			panic("Start server only once")
+		}
+		err = s.server.Load().ListenAndServe()
 	}
 	if err != nil {
 		if err != http.ErrServerClosed {
@@ -93,7 +101,7 @@ func (s *Server) Start() {
 func (s *Server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), serverShutdownTimeoutSec*time.Second)
 	defer cancel()
-	if err := s.server.Shutdown(ctx); err != nil {
+	if err := s.server.Load().Shutdown(ctx); err != nil {
 		status.Warning(err.Error())
 	}
 	<-s.stop

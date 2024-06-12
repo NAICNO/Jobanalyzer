@@ -111,6 +111,7 @@ type ClusterConfigV2Repr struct {
 	Nodes       []*NodeConfigRecord `json:"nodes"`
 }
 
+// Immutable
 type ClusterConfig struct {
 	Version     int
 	Name        string
@@ -121,12 +122,24 @@ type ClusterConfig struct {
 	nodes map[string]*NodeConfigRecord
 }
 
-func NewClusterConfig() *ClusterConfig {
-	return &ClusterConfig{nodes: make(map[string]*NodeConfigRecord)}
-}
-
-func (cc *ClusterConfig) Insert(r *NodeConfigRecord) {
-	cc.nodes[r.Hostname] = r
+func NewClusterConfig(
+	version int,
+	name, desc string,
+	aliases, excludeUsers []string,
+	nodes []*NodeConfigRecord,
+) *ClusterConfig {
+	nodemap := make(map[string]*NodeConfigRecord, len(nodes))
+	for _, v := range nodes {
+		nodemap[v.Hostname] = v
+	}
+	return &ClusterConfig{
+		Version: version,
+		Name: name,
+		Description: desc,
+		Aliases: append([]string{}, aliases...),
+		ExcludeUser: append([]string{}, excludeUsers...),
+		nodes: nodemap,
+	}
 }
 
 // Finds the node configuration closest in time to the time stamp.  Returns nil if not found.
