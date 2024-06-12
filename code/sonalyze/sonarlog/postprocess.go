@@ -163,14 +163,12 @@ func createInputStreams(
 //
 // - compute the cpu_util_pct field from cputime_sec and timestamp for consecutive records in
 //   streams
-// - subsequently, remove records for which the filter function returns false
+// - subsequently, remove records for which the filter function returns false or which
+//   meet fixed filtering crieria.
 //
 // This updates the individual streams and will also remove empty streams from the set.
 
-func PostprocessLogPart2(
-	streams InputStreamSet,
-	filter func(*Sample) bool,
-) {
+func ComputeAndFilter(streams InputStreamSet, filter func(*Sample) bool) {
 	// For each stream, compute the cpu_util_pct field of each record.
 	//
 	// For v0.7.0 and later, compute this as the difference in cputime_sec between adjacent records

@@ -55,10 +55,7 @@ func localAnalysis(cmd AnalysisCommand, _ io.Reader, stdout, stderr io.Writer) e
 		UstrStats(stderr, false)
 	}
 
-	sonarlog.PostprocessLogPart2(
-		streams,
-		recordFilter,
-	)
+	sonarlog.ComputeAndFilter(streams, recordFilter)
 	err = cmd.Perform(stdout, cfg, theLog, streams, bounds, hostGlobber)
 
 	if err != nil {
