@@ -130,6 +130,7 @@ func ExpandPattern(s string) ([]string, error) {
 	return expansions, nil
 }
 
+// MT: Constant after initialization; immutable
 var noMoreFragments = errors.New("No more fragments")
 
 type wildcard struct{}
@@ -263,6 +264,7 @@ func parseFragment(r *strings.Reader) (any, error) {
 // `b.c...` portion, and within the `a` portions we will try to compress only the rightmost digit
 // strings.  This will yield good results in general.
 
+// MT: Constant after initialization; immutable (except for configuration methods).
 var withDigitsRe = regexp.MustCompile(`^(.*?)(\d+)(\D*)$`)
 
 func CompressHostnames(hosts []string) []string {
@@ -356,6 +358,8 @@ type hostGlob struct {
 //
 // The `match_hostname` method attempts to match its argument against the patterns in the matcher,
 // returning true if any of them match.
+//
+// The hostGlobber is immutable.
 
 type HostGlobber struct {
 	isPrefixMatcher bool
@@ -365,22 +369,19 @@ type HostGlobber struct {
 // Create a new, empty filter.  The flag indicates whether the globbers in the filter could match
 // only a prefix of the hostname elements or must match all of them.
 
-func NewGlobber(isPrefixMatcher bool) *HostGlobber {
+func NewGlobber(isPrefixMatcher bool, patterns []string) (*HostGlobber, error) {
+	matchers := make([]hostGlob, 0, len(patterns))
+	for _, p := range patterns {
+		re, pattern, err := compileGlobber(p, isPrefixMatcher)
+		if err != nil {
+			return nil, err
+		}
+		matchers = append(matchers, hostGlob{ re, pattern })
+	}
 	return &HostGlobber{
 		isPrefixMatcher: isPrefixMatcher,
-		matchers: make([]hostGlob, 0),
-	}
-}
-
-// Add the pattern to the set of patterns in the matcher.
-
-func (hg *HostGlobber) Insert(pattern string) error {
-	re, pattern, err := compileGlobber(pattern, hg.isPrefixMatcher)
-	if err != nil {
-		return err
-	}
-	hg.matchers = append(hg.matchers, hostGlob{ re, pattern })
-	return nil
+		matchers: matchers,
+	}, nil
 }
 
 // Return true iff the filter has no patterns.

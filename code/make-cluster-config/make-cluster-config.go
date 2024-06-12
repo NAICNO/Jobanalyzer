@@ -56,16 +56,11 @@ var (
 func main() {
 	parseFlags()
 
-	cc := config.NewClusterConfig()
-	cc.Version = 2
-	cc.Name = clusterName
-	cc.Description = clusterDesc
-	cc.Aliases = aliases
-	cc.ExcludeUser = excludeUsers
-
 	bg := readBackground()
 	info := readSysinfo()
 
+	nodes := make([]*config.NodeConfigRecord, 0)
+	known := make(map[string]bool)
 	for _, infos := range info {
 		// For the v2 format we can only have one timestamp, so take the latest always.
 		var latest *config.NodeConfigRecord
@@ -105,12 +100,13 @@ func main() {
 			}
 		}
 
-		cc.Insert(latest)
+		nodes = append(nodes, latest)
+		known[latest.Hostname] = true
 	}
 
 	// Add missing hosts
 	for host, bginfo := range bg {
-		if cc.LookupHost(host) == nil {
+		if !known[host] {
 			if bginfo.CpuCores == 0 || bginfo.MemGB == 0 {
 				continue
 			}
@@ -121,9 +117,19 @@ func main() {
 				}
 			}
 			bginfo.Metadata = nil
-			cc.Insert(bginfo)
+			nodes = append(nodes, bginfo)
+			known[host] = true
 		}
 	}
+
+	cc := config.NewClusterConfig(
+		2,
+		clusterName,
+		clusterDesc,
+		aliases,
+		excludeUsers,
+		nodes,
+	)
 
 	err := config.WriteConfigTo(os.Stdout, cc)
 	if err != nil {

@@ -40,10 +40,11 @@ func ParseAuth(filename string) (string, string, error) {
 	return xs[0], xs[1], nil
 }
 
+// MT: Locked
 type Authenticator struct {
+	lock       sync.RWMutex
 	filepath   string
 	identities map[string]string
-	lock       sync.RWMutex
 }
 
 func ReadPasswords(filename string) (*Authenticator, error) {

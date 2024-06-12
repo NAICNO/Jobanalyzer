@@ -26,6 +26,7 @@ func MaxTime(a, b time.Time) time.Time {
 //  Nd (days ago)
 //  Nw (weeks ago)
 
+// MT: Constant after initialization; immutable (except for configuration methods).
 var dateRe = regexp.MustCompile(`^(\d\d\d\d)-(\d\d)-(\d\d)$`)
 var daysRe = regexp.MustCompile(`^(\d+)d$`)
 var weeksRe = regexp.MustCompile(`^(\d+)w$`)
