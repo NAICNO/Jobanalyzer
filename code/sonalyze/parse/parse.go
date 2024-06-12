@@ -107,7 +107,7 @@ func (pc *ParseCommand) Perform(
 		}
 		samples = sonarlog.SampleStream(slices.Map(
 			records,
-			func (r *db.Sample) sonarlog.Sample {
+			func(r *db.Sample) sonarlog.Sample {
 				return sonarlog.Sample{S: r}
 			},
 		))

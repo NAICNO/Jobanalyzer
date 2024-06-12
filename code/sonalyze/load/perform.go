@@ -124,7 +124,7 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 
 	for _, s := range *ss {
 		for t < s.S.Timestamp {
-			newS := sonarlog.Sample{S: &db.Sample{ Timestamp: t, Host: host }}
+			newS := sonarlog.Sample{S: &db.Sample{Timestamp: t, Host: host}}
 			result = append(result, newS)
 			t = step(t)
 		}
@@ -133,7 +133,7 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 	}
 	ending := trunc(toIncl)
 	for t <= ending {
-		newS := sonarlog.Sample{S: &db.Sample{ Timestamp: t, Host: host }}
+		newS := sonarlog.Sample{S: &db.Sample{Timestamp: t, Host: host}}
 		result = append(result, newS)
 		t = step(t)
 	}
