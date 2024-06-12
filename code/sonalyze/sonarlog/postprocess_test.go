@@ -3,10 +3,63 @@ package sonarlog
 import (
 	"os"
 	"testing"
+	"time"
 
+	"go-utils/config"
 	. "sonalyze/common"
 	"sonalyze/db"
 )
+
+func TestRectifyGpuMem(t *testing.T) {
+	// The input file has gpukib fields, but by using a config that says to use gpumem% instead we
+	// should force the values in the record to something else.
+	memsize := 400
+	numcards := 1
+	cfg := config.NewClusterConfig(
+		2,
+		"Test",
+		"Test",
+		[]string{},
+		[]string{},
+		[]*config.NodeConfigRecord{
+			&config.NodeConfigRecord{
+				Timestamp: "2024-06-12T11:20:00+02.00",
+				Hostname: "ml4.hpc.uio.no",
+				GpuMemPct: true,
+				GpuCards: numcards,
+				GpuMemGB: memsize,
+			},
+		},
+	)
+	c, err := db.OpenTransientSampleCluster(
+		[]string{"../../tests/sonarlog/whitebox-logclean.csv"},
+		cfg,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Reading the file applies the gpu memory rectification.  The records for job 1249151 all say
+	// gpumem%=12 so we should see a computed value for gpukib which is different from the gpukib
+	// figure in the data.
+	var notime time.Time
+	samples, _, err := c.ReadSamples(notime, notime, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := 0
+	expect := uint64((memsize*12)/100*1024*1024)
+	for _, s := range samples {
+		if s.Job == 1249151 {
+			found++
+			if s.GpuKib != expect {
+				t.Errorf("GpuKib %v expected %v (%v %v)", s.GpuKib, expect, s.GpuPct, s.GpuMemPct)
+			}
+		}
+	}
+	if found == 0 {
+		t.Fatalf("No records")
+	}
+}
 
 func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	// This file has field names, cputime_sec, pid, and rolledup.  There are two hosts.  One of the
