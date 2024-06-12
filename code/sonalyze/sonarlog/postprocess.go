@@ -85,9 +85,7 @@ func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.S
 // Samples, where each vector is sorted in ascending order of time.  In each vector, there may be no
 // adjacent records with the same timestamp.
 
-func createInputStreams(
-	entries []*db.Sample,
-) (InputStreamSet, Timebounds) {
+func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
 	streams := make(InputStreamSet)
 	bounds := make(Timebounds)
 

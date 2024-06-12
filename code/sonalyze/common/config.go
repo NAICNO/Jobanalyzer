@@ -13,7 +13,7 @@ import (
 var (
 	// MT: Locked
 	configCacheLock sync.Mutex
-	configCache = make(map[string]*config.ClusterConfig)
+	configCache     = make(map[string]*config.ClusterConfig)
 )
 
 func GetConfig(configName string) (*config.ClusterConfig, error) {

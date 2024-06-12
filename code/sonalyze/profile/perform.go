@@ -149,11 +149,11 @@ func (pc *ProfileCommand) Perform(
 				if count > 0 {
 					avg := &profDatum{
 						cpuUtilPct: cpuUtilPct / float32(count),
-						gpuPct: gpuPct / float32(count),
-						cpuKib: cpuKib / uint64(count),
-						gpuKib: gpuKib / uint64(count),
+						gpuPct:     gpuPct / float32(count),
+						cpuKib:     cpuKib / uint64(count),
+						gpuKib:     gpuKib / uint64(count),
 						rssAnonKib: rssAnonKib / uint64(count),
-						s: base,
+						s:          base,
 					}
 					m2.set(newTime, cn, avg)
 				}
@@ -225,11 +225,11 @@ type profIndex struct {
 
 type profDatum struct {
 	cpuUtilPct float32
-	gpuPct float32
-	cpuKib uint64
-	gpuKib uint64
+	gpuPct     float32
+	cpuKib     uint64
+	gpuKib     uint64
 	rssAnonKib uint64
-	s *db.Sample
+	s          *db.Sample
 }
 
 func newProfDatum(r sonarlog.Sample, max float64) *profDatum {
