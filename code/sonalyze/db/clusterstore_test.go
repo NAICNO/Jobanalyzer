@@ -10,11 +10,14 @@ import (
 	"path"
 	"reflect"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
 	"go-utils/filesys"
 	"go-utils/hostglob"
+	"go-utils/status"
+	. "sonalyze/common"
 )
 
 const (
@@ -378,4 +381,93 @@ func TestPersistentSampleFlush(t *testing.T) {
 	if lines[len(lines)-1] != l1 {
 		t.Fatalf("Lines don't match\n<%s>", lines[len(lines)-1])
 	}
+}
+
+// Caching tests
+//
+// We can listen for Info messages about cache behavior.
+//
+//   "Caching <filename> size <x>"
+//   "Purging <filename> b/c <reason>
+//   "Budget <current-budget>"
+//
+// Write flushes test
+//
+//  - read something
+//  - observe Caching msg
+//  - append to it w/o traffic, see nothing
+//  - read it
+//  - observe Purging b/c internal:dirty
+//  - observe Caching
+//
+// Cache capacity test
+//
+//  - set cache to something small
+//  - load enough data
+//  - observe Purging b/c capactity messages
+//  - observe Budget messages getting us below our budget
+
+type CacheListener struct /* implements status.UnderlyingLogger */ {
+	sync.Mutex
+	msgs []string
+}
+
+func (cl *CacheListener) Info(m string) error {
+	cl.Lock()
+	defer cl.Unlock()
+	cl.msgs = append(cl.msgs, m)
+	return nil
+}
+
+func (cl *CacheListener) Debug(m string) error {
+	return nil
+}
+
+func (cl *CacheListener) Warning(m string) error {
+	return nil
+}
+
+func (cl *CacheListener) Err(m string) error {
+	return nil
+}
+
+func (cl *CacheListener) Crit(m string) error {
+	return nil
+}
+
+// May need to run each cache test in a separate process since the cache is a shared global resouce
+// that can't be reinitialized.
+
+func TestCaching(t *testing.T) {
+	/*
+	d := tmpCopyTree(theClusterDir)
+	defer os.RemoveAll(d)
+
+	   // This is small enough that we should see some purging too.
+	CacheInit(200)
+
+	var ul CacheListener
+	Log.SetUnderlying(&ul)
+	Log.LowerLevelTo(status.LogLevelInfo)
+
+	pc, err := OpenPersistentCluster(d, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, err = pc.ReadSamples(
+		time.Date(2023, 05, 01, 0, 0, 0, 0, time.UTC),
+		time.Date(2023, 06, 30, 0, 0, 0, 0, time.UTC),
+		nil,
+		false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	Log.SetUnderlying(nil)
+
+	   // Just print, but 
+	t.Error(ul.msgs)
+	*/
 }
