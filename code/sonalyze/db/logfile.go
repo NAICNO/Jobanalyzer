@@ -211,7 +211,7 @@ func (lf *LogFile) ReadSync(
 					// input data based on system info.  If there is no config for the cluster or
 					// the code then these data may remain wonky.
 					//
-					// The reason we don't check the invariant is that there effects of not having a
+					// The reason we don't check the invariant is that the effects of not having a
 					// config are fairly benign, and also that so much else depends on having a
 					// config that we'll get a more thorough check in other ways.
 					samples = SampleRectifier(samples, cfg)

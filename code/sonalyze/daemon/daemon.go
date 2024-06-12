@@ -106,8 +106,10 @@ const (
 	magicBoolean           = "xxxxxtruexxxxx"
 )
 
-// Immutable (no mutator operations) and thread-safe.  It *will* be accessed concurrently b/c every
-// HTTP handler runs as a separate goroutine.
+// MT: Immutable (no mutator operations) and thread-safe.
+//
+// This *will* be accessed concurrently b/c every HTTP handler runs as a separate goroutine and the
+// handler invocations all share this.
 type DaemonCommand struct {
 	DevArgs
 	VerboseArgs
