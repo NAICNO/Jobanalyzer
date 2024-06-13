@@ -14,14 +14,12 @@ import {
   useReactTable
 } from '@tanstack/react-table'
 
-import { CLUSTER_INFO } from '../Constants.ts'
+import { CLUSTER_INFO, EMPTY_ARRAY } from '../Constants.ts'
 import { isValidateClusterName } from '../util'
 import { getDeadWeightTableColumns } from '../util/TableUtils.ts'
 import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
 import DeadWeightTable from '../components/table/DeadWeightTable.tsx'
 import { useFetchDeadWeight } from '../hooks/useFetchDeadWeight.ts'
-
-const emptyArray: any[] = []
 
 export default function DeadWeightPage() {
   const {clusterName} = useParams<string>()
@@ -41,7 +39,7 @@ export default function DeadWeightPage() {
 
   const deadWeightTable = useReactTable({
     columns: deadWeightJobTableColumns,
-    data: data || emptyArray,
+    data: data || EMPTY_ARRAY,
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),

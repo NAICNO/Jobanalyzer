@@ -1,12 +1,47 @@
-import { GenericCell, GpuFieldCell, WorkingFieldCell } from './components/table/cell'
-import CellWithLink from './components/table/cell/CellWithLink.tsx'
 import { GrNodes, GrServers } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
 import { MdOutlineQueryStats } from 'react-icons/md'
+import * as yup from 'yup'
+
+import {
+  GenericCell,
+  GpuFieldCell,
+  JobQueryJobIdCell,
+  WorkingFieldCell
+} from './components/table/cell'
+import CellWithLink from './components/table/cell/CellWithLink.tsx'
+import { splitMultiPattern } from './util/query/HostGlobber.ts'
 import CommandListCell from './components/table/cell/CommandListCell.tsx'
+import {
+  breakText,
+  formatToUtcDateTimeString,
+  parseRelativeDate,
+  toPercentage,
+  validateDateFormat
+} from './util'
+import { sortByDuration } from './util/TableUtils.ts'
+import JobQueryValues from './types/JobQueryValues.ts'
 
 export const APP_NAME = 'NAIC Jobanalyzer'
+
+// URLs and API Endpoints to be moved to .env files once dev and prod environments are set up
+export const APP_URL = 'https://naic-monitor.uio.no'
 export const API_ENDPOINT = 'http://localhost:5173/api'
+export const JOB_QUERY_API_ENDPOINT = 'http://localhost:5173/rest'
+
+// The representation of "true" is a hack, but it's determined by the server, so live with it.
+export const TRUE_VAL = 'xxxxxtruexxxxx'
+
+export const EMPTY_ARRAY: any[] = []
+
+export const DURATION_REGEX = /^(.*)d(.*)h(.*)m$/
+
+export const PROFILE_NAMES = [
+  {key: 'cpu', text: 'CPU'},
+  {key: 'mem', text: 'RAM'},
+  {key: 'gpu', text: 'GPU'},
+  {key: 'gpumem', text: 'GPU RAM'}
+]
 
 export const QueryKeys = {
   DASHBOARD_TABLE: 'DASHBOARD_TABLE',
@@ -15,6 +50,7 @@ export const QueryKeys = {
   DEAD_WEIGHT: 'DEAD_WEIGHT',
   HOSTNAME_LIST: 'HOSTNAME_LIST',
   HOSTNAME: 'HOSTNAME',
+  JOB_QUERY: 'JOB_QUERY',
 }
 
 export const SIDEBAR_ITEMS: SidebarItem[] = [
@@ -496,4 +532,200 @@ export const CHART_SERIES_CONFIGS: Record<string, ChartSeriesConfig> = {
     strokeWidth: 2
   }
 }
+
+export const JOB_QUERY_RESULTS_COLUMN: { [K in keyof JobQueryResultsTableItem]: JobQueryResultsTableColumnHeader } = {
+  job: {
+    key: 'job',
+    title: 'Job#',
+    sortable: true,
+    renderFn: JobQueryJobIdCell,
+  },
+  user: {
+    key: 'user',
+    title: 'User',
+    sortable: true,
+    renderFn: GenericCell,
+  },
+  host: {
+    key: 'host',
+    title: 'Node',
+    sortable: true,
+    renderFn: GenericCell,
+  },
+  duration: {
+    key: 'duration',
+    title: 'Duration',
+    sortable: true,
+    renderFn: GenericCell,
+    sortingFn: sortByDuration,
+  },
+  start: {
+    key: 'start',
+    title: 'Start',
+    sortable: true,
+    formatterFns: [formatToUtcDateTimeString],
+    renderFn: GenericCell,
+    minSize: 150,
+  },
+  end: {
+    key: 'end',
+    title: 'End',
+    sortable: true,
+    formatterFns: [formatToUtcDateTimeString],
+    renderFn: GenericCell,
+    minSize: 150,
+  },
+  cpuPeak: {
+    key: 'cpuPeak',
+    title: 'Peak #cores',
+    sortable: true,
+    formatterFns: [toPercentage],
+    renderFn: GenericCell,
+  },
+  resPeak: {
+    key: 'resPeak',
+    title: 'Peak resident GB',
+    sortable: true,
+    renderFn: GenericCell,
+  },
+  memPeak: {
+    key: 'memPeak',
+    title: 'Peak virtual GB',
+    sortable: true,
+    renderFn: GenericCell,
+  },
+  gpuPeak: {
+    key: 'gpuPeak',
+    title: 'Peak GPU cards',
+    sortable: true,
+    formatterFns: [toPercentage],
+    renderFn: GenericCell,
+  },
+  gpumemPeak: {
+    key: 'gpumemPeak',
+    title: 'Peak GPU RAM GB',
+    sortable: true,
+    renderFn: GenericCell,
+  },
+  cmd: {
+    key: 'cmd',
+    title: 'Command',
+    sortable: true,
+    formatterFns: [breakText],
+    renderFn: GenericCell,
+  },
+}
+
+export const initialFormValues: JobQueryValues = {
+  clusterName: '',
+  usernames: '',
+  nodeNames: '',
+  jobIds: '',
+  fromDate: '',
+  toDate: '',
+  minRuntime: '',
+  minPeakCpuCores: '',
+  minPeakResidentGb: '',
+  gpuUsage: 'either',
+}
+
+export const JOB_QUERY_GPU_OPTIONS: SimpleRadioInputOption[] = [
+  {value: 'either', text: 'Either'},
+  {value: 'some-gpu', text: 'Some'},
+  {value: 'no-gpu', text: 'None'},
+]
+
+export const JOB_QUERY_VALIDATION_SCHEMA = yup.object({
+  clusterName: yup.string()
+    .required('Cluster name is required'),
+  usernames: yup.string()
+    .notRequired()
+    .test('is-valid-username',
+      'Usernames must be comma separated and cannot contain spaces.', (value) => {
+        // Allow empty input
+        if (!value) return true
+
+        // Split by comma to allow multiple usernames
+        const usernames = value.split(',')
+
+        // Validate each username
+        return usernames.every(username => {
+          // Check if username has no spaces and is not an empty string after trim
+          return /^\S+$/.test(username.trim()) && username.trim().length > 0
+        })
+      }),
+  nodeNames: yup.string()
+    .notRequired()
+    .default('')
+    .test(
+      'node-names-validation',
+      'Invalid node name pattern',
+      value => {
+        try {
+          splitMultiPattern(value || '')
+          return true
+        } catch (error) {
+          const errorMessage = (error as Error)?.message || 'Invalid node name pattern'
+          return new yup.ValidationError(errorMessage, null, 'nodeNames')
+        }
+      }
+    ),
+  jobIds: yup.string()
+    .notRequired()
+    .default('')
+    .test(
+      'job-ids-validation',
+      'All job ids must be finite and positive integers',
+      value => {
+        // Allow empty field to be considered valid
+        if (!value) return true
+
+        // Split the string by commas and validate each ID
+        const ids = value.split(',')
+        return ids.every(id => {
+          const num = parseFloat(id)
+          return Number.isFinite(num) && num > 0 && Math.floor(num) === num
+        })
+      }
+    ),
+  fromDate: yup.string()
+    .test('is-valid-date', 'Invalid `from` time, format is YYYY-MM-DD or Nw or Nd', value => validateDateFormat(value)),
+  toDate: yup.string()
+    .test('is-valid-date', 'Invalid `to` time, format is YYYY-MM-DD or Nw or Nd', value => validateDateFormat(value))
+    .test('is-same-or-after-from-date', 'To date must be the same or later than from date', function (value) {
+      const {fromDate} = this.parent
+      if (!value || !fromDate) return true // If either date is not set, skip this test
+
+      const fromDateMoment = parseRelativeDate(fromDate)
+      const toDateMoment = parseRelativeDate(value)
+
+      if (fromDateMoment.isValid() && toDateMoment.isValid()) {
+        return toDateMoment.isSameOrAfter(fromDateMoment)
+      }
+
+      return true // Skip this test if either date is not valid
+    }),
+  minRuntime: yup.string()
+    .notRequired()
+    .default('')
+    .matches(
+      /^(\d+w)?(\d+d)?(\d+h)?(\d+m)?$/,
+      'Invalid min-runtime format. Enter the minimum runtime as a combination of weeks (w), days (d), hours (h), and minutes (m), like \'2w3d\', \'4h\', or \'5m\'. At least one unit must be provided.'
+    ),
+  minPeakCpuCores: yup.number()
+    .notRequired()
+    .default(null)
+    .integer()
+    .moreThan(-1, 'CPU cores cannot be negative')
+    .typeError('Enter a number for CPU cores'),
+  minPeakResidentGb: yup.number()
+    .notRequired()
+    .default(null)
+    .integer()
+    .moreThan(-1, 'Resident GB cannot be negative')
+    .typeError('Enter a number for Resident GB'),
+  gpuUsage: yup.string()
+    .oneOf(JOB_QUERY_GPU_OPTIONS.map(option => option.value), 'Invalid GPU option')
+    .required('GPU usage is required')
+})
 

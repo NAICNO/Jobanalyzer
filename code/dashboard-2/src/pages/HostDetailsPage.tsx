@@ -14,7 +14,7 @@ import {
 import { Navigate, useParams } from 'react-router-dom'
 import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from '@tanstack/react-table'
 
-import { CLUSTER_INFO, FETCH_FREQUENCIES } from '../Constants.ts'
+import { CLUSTER_INFO, EMPTY_ARRAY, FETCH_FREQUENCIES } from '../Constants.ts'
 import { useFetchHostnames } from '../hooks/useFetchHosts.ts'
 import { useFetchHostDetails } from '../hooks/useFetchHostDetails.ts'
 import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
@@ -30,8 +30,6 @@ import ViolatingJobTable from '../components/table/ViolatingJobTable.tsx'
 import DeadWeightTable from '../components/table/DeadWeightTable.tsx'
 import { useFetchDeadWeight } from '../hooks/useFetchDeadWeight.ts'
 import MachineDetailsChart from '../components/chart/MachineDetailsChart.tsx'
-
-const emptyArray: any[] = []
 
 export default function HostDetailsPage() {
 
@@ -78,7 +76,7 @@ export default function HostDetailsPage() {
 
   const violatingUserTable = useReactTable({
     columns: violatingUserTableColumns,
-    data: violations?.byUser || emptyArray,
+    data: violations?.byUser || EMPTY_ARRAY,
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setViolatingUserTableSorting,
     getSortedRowModel: getSortedRowModel(),
@@ -92,7 +90,7 @@ export default function HostDetailsPage() {
 
   const violatingJobTable = useReactTable({
     columns: violatingJobTableColumns,
-    data: violations?.byJob || emptyArray,
+    data: violations?.byJob || EMPTY_ARRAY,
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setViolatingJobTableSorting,
     getSortedRowModel: getSortedRowModel(),
@@ -108,7 +106,7 @@ export default function HostDetailsPage() {
 
   const deadWeightTable = useReactTable({
     columns: deadWeightJobTableColumns,
-    data: deadweights || emptyArray,
+    data: deadweights || EMPTY_ARRAY,
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),

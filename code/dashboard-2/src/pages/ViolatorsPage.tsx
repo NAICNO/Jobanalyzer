@@ -8,15 +8,13 @@ import {
   useReactTable
 } from '@tanstack/react-table'
 
-import { CLUSTER_INFO } from '../Constants.ts'
+import { CLUSTER_INFO, EMPTY_ARRAY } from '../Constants.ts'
 import { isValidateClusterName } from '../util'
 import { useFetchViolations } from '../hooks/useFetchViolations.ts'
 import { getViolatingJobTableColumns, getViolatingUserTableColumns } from '../util/TableUtils.ts'
 import ViolatingUserTable from '../components/table/ViolatingUserTable.tsx'
 import ViolatingJobTable from '../components/table/ViolatingJobTable.tsx'
 import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
-
-const emptyArray: any[] = []
 
 export default function ViolatorsPage() {
   const {clusterName} = useParams<string>()
@@ -36,7 +34,7 @@ export default function ViolatorsPage() {
 
   const violatingUserTable = useReactTable({
     columns: violatingUserTableColumns,
-    data: data?.byUser || emptyArray,
+    data: data?.byUser || EMPTY_ARRAY,
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setViolatingUserTableSorting,
     getSortedRowModel: getSortedRowModel(),
@@ -50,7 +48,7 @@ export default function ViolatorsPage() {
 
   const violatingJobTable = useReactTable({
     columns: violatingJobTableColumns,
-    data: data?.byJob || emptyArray,
+    data: data?.byJob || EMPTY_ARRAY,
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setViolatingJobTableSorting,
     getSortedRowModel: getSortedRowModel(),

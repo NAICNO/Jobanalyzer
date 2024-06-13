@@ -3,10 +3,10 @@
 exports[`CellWithLink > renders correctly 1`] = `
 <DocumentFragment>
   <div
-    class="css-1phsvop"
+    class="css-fclqwi"
   >
     <a
-      class="chakra-link css-0"
+      class="chakra-link css-1856l8r"
       href="/test-link"
     >
       Test Link

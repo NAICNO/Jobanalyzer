@@ -18,14 +18,12 @@ import {
 } from '@tanstack/react-table'
 
 import { useFetchDashboard } from '../hooks/useFetchDashboard.ts'
-import { CLUSTER_INFO, } from '../Constants.ts'
+import { CLUSTER_INFO, EMPTY_ARRAY, } from '../Constants.ts'
 import { isValidateClusterName } from '../util'
 import { getDashboardTableColumns } from '../util/TableUtils.ts'
 import DashboardTable from '../components/table/DasboardTable.tsx'
 import NodeSelectionHelpDrawer from '../components/NodeSelectionHelpDrawer.tsx'
 import NodeSelectionInput from '../components/NodeSelectionInput.tsx'
-
-const emptyArray: any[] = []
 
 export default function DashboardPage() {
 
@@ -54,7 +52,7 @@ export default function DashboardPage() {
 
   const table = useReactTable({
     columns: tableColumns,
-    data: data || emptyArray,
+    data: data || EMPTY_ARRAY,
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),

@@ -12,6 +12,12 @@ export default defineConfig({
         secure: false, // if you are accessing a https endpoint, this may be necessary
         rewrite: (path) => path.replace(/^\/api/, ''), // Remove "/api" from the path
       },
+      '/rest': {
+        target: 'https://naic-monitor.uio.no', // Target API
+        changeOrigin: true, // this is necessary to avoid CORS issues
+        secure: false, // if you are accessing a https endpoint, this may be necessary
+        rewrite: (path) => path.replace(/^\/rest/, ''), // Remove "/rest" from the path
+      }
     }
   }
 })
