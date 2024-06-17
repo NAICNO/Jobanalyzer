@@ -19,7 +19,7 @@ import { useFetchHostnames } from '../hooks/useFetchHosts.ts'
 import { useFetchHostDetails } from '../hooks/useFetchHostDetails.ts'
 import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
 import { useFetchViolations } from '../hooks/useFetchViolations.ts'
-import { isValidateClusterName } from '../util'
+import { isValidClusterName } from '../util'
 import {
   getDeadWeightTableColumns,
   getViolatingJobTableColumns,
@@ -35,7 +35,7 @@ export default function HostDetailsPage() {
 
   const {clusterName, hostname} = useParams<string>()
 
-  if (!isValidateClusterName(clusterName) || !hostname) {
+  if (!isValidClusterName(clusterName) || !hostname) {
     return (
       <Navigate to="/"/>
     )

@@ -24,7 +24,7 @@ import { WarningTwoIcon } from '@chakra-ui/icons'
 import moment from 'moment-timezone'
 
 import { CLUSTER_INFO, EMPTY_ARRAY, POLICIES } from '../Constants.ts'
-import { isValidateClusterName } from '../util'
+import { isValidClusterName } from '../util'
 import { getUserViolatingJobTableColumns } from '../util/TableUtils.ts'
 import ViolatingJobTable from '../components/table/ViolatingJobTable.tsx'
 import { useFetchViolator } from '../hooks/useFetchViolator.ts'
@@ -33,7 +33,7 @@ import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
 export default function ViolatorPage() {
   const {clusterName, violator} = useParams<string>()
 
-  if (!isValidateClusterName(clusterName) || !violator) {
+  if (!isValidClusterName(clusterName) || !violator) {
     return (
       <Navigate to="/"/>
     )

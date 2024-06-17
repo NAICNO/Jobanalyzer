@@ -19,7 +19,7 @@ import {
 
 import { useFetchDashboard } from '../hooks/useFetchDashboard.ts'
 import { CLUSTER_INFO, EMPTY_ARRAY, } from '../Constants.ts'
-import { isValidateClusterName } from '../util'
+import { isValidClusterName } from '../util'
 import { getDashboardTableColumns } from '../util/TableUtils.ts'
 import DashboardTable from '../components/table/DasboardTable.tsx'
 import NodeSelectionHelpDrawer from '../components/NodeSelectionHelpDrawer.tsx'
@@ -29,7 +29,7 @@ export default function DashboardPage() {
 
   const {clusterName} = useParams<string>()
 
-  if (!isValidateClusterName(clusterName)) {
+  if (!isValidClusterName(clusterName)) {
     return (
       <Navigate to="/"/>
     )

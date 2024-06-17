@@ -1,7 +1,7 @@
 import { CLUSTER_INFO } from '../Constants.ts'
 import moment from 'moment'
 
-export const isValidateClusterName = (clusterName?: string | null): boolean => {
+export const isValidClusterName = (clusterName?: string | null): boolean => {
   return clusterName ? !!CLUSTER_INFO[clusterName] : false
 }
 
