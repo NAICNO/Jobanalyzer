@@ -185,6 +185,11 @@ When complete, the setup will be as for Fox (see above) except the work director
 use a lock file.
 
 
+## Betzy (cluster name: betzy.sigma2.no)
+
+TBD, but likely as for Saga.
+
+
 ## Test cluster (cluster name: naic-monitor.uio.no)
 
 For testing, the production server will receive Sonar and Sysinfo data for the cluster
