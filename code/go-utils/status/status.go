@@ -115,7 +115,7 @@ func (sl *StandardLogger) Critical(xs ...any) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	if sl.level >= LogLevelCritical {
+	if sl.level <= LogLevelCritical {
 		s := fmt.Sprint(xs...)
 		if sl.stderr != nil {
 			fmt.Fprintln(sl.stderr, s)
@@ -130,7 +130,7 @@ func (sl *StandardLogger) Criticalf(format string, args ...any) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	if sl.level >= LogLevelCritical {
+	if sl.level <= LogLevelCritical {
 		s := fmt.Sprintf(format, args...)
 		if sl.stderr != nil {
 			fmt.Fprintln(sl.stderr, s)
@@ -145,7 +145,7 @@ func (sl *StandardLogger) Error(xs ...any) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	if sl.level >= LogLevelError {
+	if sl.level <= LogLevelError {
 		s := fmt.Sprint(xs...)
 		if sl.stderr != nil {
 			fmt.Fprintln(sl.stderr, s)
@@ -160,7 +160,7 @@ func (sl *StandardLogger) Errorf(format string, args ...any) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	if sl.level >= LogLevelError {
+	if sl.level <= LogLevelError {
 		s := fmt.Sprintf(format, args...)
 		if sl.stderr != nil {
 			fmt.Fprintln(sl.stderr, s)
@@ -175,7 +175,7 @@ func (sl *StandardLogger) Warning(xs ...any) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	if sl.level >= LogLevelWarning {
+	if sl.level <= LogLevelWarning {
 		s := fmt.Sprint(xs...)
 		if sl.stderr != nil {
 			fmt.Fprintln(sl.stderr, s)
@@ -190,7 +190,7 @@ func (sl *StandardLogger) Warningf(format string, args ...any) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	if sl.level >= LogLevelWarning {
+	if sl.level <= LogLevelWarning {
 		s := fmt.Sprintf(format, args...)
 		if sl.stderr != nil {
 			fmt.Fprintln(sl.stderr, s)
@@ -205,7 +205,7 @@ func (sl *StandardLogger) Info(xs ...any) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	if sl.level >= LogLevelInfo {
+	if sl.level <= LogLevelInfo {
 		s := fmt.Sprint(xs...)
 		if sl.stderr != nil {
 			fmt.Fprintln(sl.stderr, s)
@@ -220,7 +220,7 @@ func (sl *StandardLogger) Infof(format string, args ...any) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	if sl.level >= LogLevelInfo {
+	if sl.level <= LogLevelInfo {
 		s := fmt.Sprintf(format, args...)
 		if sl.stderr != nil {
 			fmt.Fprintln(sl.stderr, s)
@@ -235,7 +235,7 @@ func (sl *StandardLogger) Debug(xs ...any) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	if sl.level >= LogLevelDebug {
+	if sl.level <= LogLevelDebug {
 		s := fmt.Sprint(xs...)
 		if sl.stderr != nil {
 			fmt.Fprintln(sl.stderr, s)
@@ -250,7 +250,7 @@ func (sl *StandardLogger) Debugf(format string, args ...any) {
 	sl.Lock()
 	defer sl.Unlock()
 
-	if sl.level >= LogLevelDebug {
+	if sl.level <= LogLevelDebug {
 		s := fmt.Sprintf(format, args...)
 		if sl.stderr != nil {
 			fmt.Fprintln(sl.stderr, s)
