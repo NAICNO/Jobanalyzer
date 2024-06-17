@@ -13,6 +13,7 @@ import ViolatorPage from './pages/ViolatorPage.tsx'
 import DeadWeightPage from './pages/DeadWeightPage.tsx'
 import NodeSelectionHelpPage from './pages/NodeSelectionHelpPage.tsx'
 import HostDetailsPage from './pages/HostDetailsPage.tsx'
+import JobQueryPage from './pages/JobQueryPage.tsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -26,6 +27,7 @@ const router = createBrowserRouter(
       <Route path=":clusterName/deadweight" element={<DeadWeightPage/>}/>
       <Route path=":clusterName/:hostname" element={<HostDetailsPage/>}/>
       <Route path=":clusterName/:hostname/:violator" element={<ViolatorPage/>}/>
+      <Route path="jobQuery" element={<JobQueryPage/>}/>
     </Route>
   )
 )

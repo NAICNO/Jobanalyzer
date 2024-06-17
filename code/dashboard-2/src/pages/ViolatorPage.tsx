@@ -23,19 +23,17 @@ import {
 import { WarningTwoIcon } from '@chakra-ui/icons'
 import moment from 'moment-timezone'
 
-import { CLUSTER_INFO, POLICIES } from '../Constants.ts'
-import { isValidateClusterName } from '../util'
+import { CLUSTER_INFO, EMPTY_ARRAY, POLICIES } from '../Constants.ts'
+import { isValidClusterName } from '../util'
 import { getUserViolatingJobTableColumns } from '../util/TableUtils.ts'
 import ViolatingJobTable from '../components/table/ViolatingJobTable.tsx'
 import { useFetchViolator } from '../hooks/useFetchViolator.ts'
 import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
 
-const emptyArray: any[] = []
-
 export default function ViolatorPage() {
   const {clusterName, violator} = useParams<string>()
 
-  if (!isValidateClusterName(clusterName) || !violator) {
+  if (!isValidClusterName(clusterName) || !violator) {
     return (
       <Navigate to="/"/>
     )
@@ -50,7 +48,7 @@ export default function ViolatorPage() {
 
   const violatingJobTable = useReactTable({
     columns: violatingJobTableColumns,
-    data: allJobsOfUser || emptyArray,
+    data: allJobsOfUser || EMPTY_ARRAY,
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setViolatingJobTableSorting,
     getSortedRowModel: getSortedRowModel(),
@@ -59,7 +57,7 @@ export default function ViolatorPage() {
     }
   })
 
-  const allPolicyNamesOfAllJobs = allJobsOfUser?.map(job => job.policyName) || emptyArray
+  const allPolicyNamesOfAllJobs = allJobsOfUser?.map(job => job.policyName) || EMPTY_ARRAY
 
   const violatedPolicyNames = Array.from(new Set<string>(allPolicyNamesOfAllJobs))
 
