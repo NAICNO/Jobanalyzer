@@ -14,6 +14,7 @@ import DeadWeightPage from './pages/DeadWeightPage.tsx'
 import NodeSelectionHelpPage from './pages/NodeSelectionHelpPage.tsx'
 import HostDetailsPage from './pages/HostDetailsPage.tsx'
 import JobQueryPage from './pages/JobQueryPage.tsx'
+import SubclusterPage from './pages/SubclusterPage.tsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -22,6 +23,7 @@ const router = createBrowserRouter(
       <Route path="dashboard" element={<DashboardPage/>}/>
       <Route path="dashboard/:clusterName" element={<DashboardPage/>}/>
       <Route path="dashboard/help/node-selection" element={<NodeSelectionHelpPage/>}/>
+      <Route path=":clusterName/subcluster/:subclusterName" element={<SubclusterPage/>}/>
       <Route path=":clusterName/violators" element={<ViolatorsPage/>}/>
       <Route path=":clusterName/violators/:violator" element={<ViolatorPage/>}/>
       <Route path=":clusterName/deadweight" element={<DeadWeightPage/>}/>

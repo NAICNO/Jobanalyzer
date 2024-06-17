@@ -14,8 +14,8 @@ import {
   useReactTable
 } from '@tanstack/react-table'
 
-import { CLUSTER_INFO, EMPTY_ARRAY } from '../Constants.ts'
-import { isValidClusterName } from '../util'
+import { EMPTY_ARRAY } from '../Constants.ts'
+import { findCluster } from '../util'
 import { getDeadWeightTableColumns } from '../util/TableUtils.ts'
 import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
 import DeadWeightTable from '../components/table/DeadWeightTable.tsx'
@@ -24,13 +24,13 @@ import { useFetchDeadWeight } from '../hooks/useFetchDeadWeight.ts'
 export default function DeadWeightPage() {
   const {clusterName} = useParams<string>()
 
-  if (!isValidClusterName(clusterName)) {
+  const cluster = findCluster(clusterName)
+
+  if(!cluster) {
     return (
       <Navigate to="/"/>
     )
   }
-
-  const cluster = CLUSTER_INFO[clusterName!]
 
   const {data, isFetched} = useFetchDeadWeight(clusterName!)
 
