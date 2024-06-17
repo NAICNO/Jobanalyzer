@@ -28,9 +28,16 @@ import (
 	"go-utils/status"
 )
 
+const (
+	defMinCpu = 30
+	minMinCpu = 1
+	defInterval = 60
+	minInterval = 1
+)
+
 var (
-	interval = flag.Int("i", 60, "Interval in `seconds` at which to run sonar")
-	minCpu = flag.Int("m", 30, "Minimum CPU time consumption in `seconds` for a job before sonar records it")
+	interval = flag.Int("i", defInterval, "Interval in `seconds` at which to run sonar")
+	minCpu = flag.Int("m", defMinCpu, "Minimum CPU time consumption in `seconds` for a job before sonar records it")
 	sonarName = flag.String("s", "", "Sonar executable `filename`")
 	verbose = flag.Bool("v", false, "Print informational messages")
 )
@@ -48,24 +55,17 @@ func main() {
 	if *sonarName == "" {
 		status.Fatalf("-s is required")
 	}
-	if *interval < 5 {
-		status.Fatalf("Minimum -i value is 5 seconds, have %d", *interval)
+	if *interval < minInterval {
+		status.Fatalf("Minimum -i value is %d seconds, have %d", minInterval, *interval)
 	}
-	if *minCpu < 1 {
-		status.Fatalf("Minimum -m value is 1 second, have %d", *minCpu)
+	if *minCpu < minMinCpu {
+		status.Fatalf("Minimum -m value is %d second, have %d", minMinCpu, *minCpu)
 	}
 	rest := flag.Args()
 	if len(rest) != 1 {
 		status.Fatalf("There must be exactly one logfile argument at the end, I see %v", rest)
 	}
 	logfileName := path.Clean(rest[0])
-
-	if *minCpu >= *interval {
-		*minCpu = *interval / 2
-		if *verbose {
-			status.Infof("Adjusting -m value to %d to fit value of -i (which is %d)", minCpu, interval)
-		}
-	}
 
 	logfile, err := os.OpenFile(logfileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
