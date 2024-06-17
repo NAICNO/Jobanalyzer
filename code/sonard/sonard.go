@@ -30,14 +30,13 @@ import (
 
 const (
 	defMinCpu = 30
-	minMinCpu = 1
 	defInterval = 60
 	minInterval = 1
 )
 
 var (
-	interval = flag.Int("i", defInterval, "Interval in `seconds` at which to run sonar")
-	minCpu = flag.Int("m", defMinCpu, "Minimum CPU time consumption in `seconds` for a job before sonar records it")
+	interval = flag.Uint("i", defInterval, "Interval in `seconds` at which to run sonar")
+	minCpu = flag.Uint("m", defMinCpu, "Minimum CPU time consumption in `seconds` for a job before sonar records it")
 	sonarName = flag.String("s", "", "Sonar executable `filename`")
 	verbose = flag.Bool("v", false, "Print informational messages")
 )
@@ -58,9 +57,6 @@ func main() {
 	if *interval < minInterval {
 		status.Fatalf("Minimum -i value is %d seconds, have %d", minInterval, *interval)
 	}
-	if *minCpu < minMinCpu {
-		status.Fatalf("Minimum -m value is %d second, have %d", minMinCpu, *minCpu)
-	}
 	rest := flag.Args()
 	if len(rest) != 1 {
 		status.Fatalf("There must be exactly one logfile argument at the end, I see %v", rest)
@@ -72,13 +68,17 @@ func main() {
 		status.Fatalf("Could not open log file %s for appending", logfileName)
 	}
 	defer logfile.Close()
+
 	arguments := []string{
 		"ps",
 		"--exclude-system-jobs",
 		"--exclude-commands=bash,ssh,zsh,tmux,systemd",
-		"--min-cpu-time", fmt.Sprint(*minCpu),
 		"--batchless",
 	}
+	if *minCpu > 0 {
+		arguments = append(arguments, "--min-cpu-time", fmt.Sprint(*minCpu))
+	}
+
 	go func() {
 		for {
 			cmd := exec.Command(*sonarName, arguments...)
