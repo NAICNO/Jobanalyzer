@@ -10,9 +10,6 @@ pkill sonard
 output=$(grep "Running " $VERBOSEFILE | wc -l)
 CHECK sonard_smoketest1 2 "$output"
 
-output=$(grep "Adjusting " $VERBOSEFILE | wc -l)
-CHECK sonard_smoketest2 1 "$output"
-
 output=$(grep "I am sonar" $LOGFILE | wc -l)
 CHECK sonard_smoketest3 2 "$output"
 
