@@ -8,13 +8,20 @@ set -euf -o pipefail
 sonar_dir=/cluster/shared/sonar
 source $sonar_dir/sonar-config.sh
 
-output=$($sonar_dir/sonar sysinfo)
-if [[ "$output" == "" ]]; then
+outputfile=$(mktemp --tmpdir sonarXXXXXX)
+trap "rm -f $outputfile" EXIT
+trap "rm -f $outputfile; exit" ERR HUP TERM INT
+
+$sonar_dir/sonar sysinfo > $outputfile
+
+if [[ $(wc -l < $outputfile) == 0 ]]; then
     exit
 fi
 
-exec curl --data-binary @- \
+# This should have been an exec but then the trap won't work and the temp file will be left
+# sitting around.
+$curl_binary --data-binary @- \
 	   -H 'Content-Type: application/json' \
-	   --netrc-file $curl_auth_file \
-	   --retry 11 --retry-connrefused \
-           $upload_address/sysinfo?cluster=$cluster <<< $output
+           --netrc-file $curl_auth_file \
+           --retry 11 --retry-connrefused \
+           $upload_address/sysinfo?cluster=$cluster < $outputfile

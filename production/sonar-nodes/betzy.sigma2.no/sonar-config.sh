@@ -22,3 +22,7 @@ curl_auth_file=$sonar_dir/secrets/upload-auth.netrc
 # depend on that - data can arrive at the server in any order, so long as they are tagged with the
 # correct timestamp - but it's nice to not have more processes running concurrently than necessary.
 upload_window=${upload_window:-280}
+
+# On most systems this is just "curl" but sometimes there needs to be a custom build.  The version
+# must be new enough to handle modern web protocols (TLS v1.3 probably) and --retry-connrefused.
+curl_binary=/cluster/shared/sonar/bin/curl
