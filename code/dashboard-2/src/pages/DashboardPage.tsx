@@ -18,8 +18,8 @@ import {
 } from '@tanstack/react-table'
 
 import { useFetchDashboard } from '../hooks/useFetchDashboard.ts'
-import { CLUSTER_INFO, EMPTY_ARRAY, } from '../Constants.ts'
-import { isValidClusterName } from '../util'
+import { EMPTY_ARRAY, } from '../Constants.ts'
+import { findCluster } from '../util'
 import { getDashboardTableColumns } from '../util/TableUtils.ts'
 import DashboardTable from '../components/table/DasboardTable.tsx'
 import NodeSelectionHelpDrawer from '../components/NodeSelectionHelpDrawer.tsx'
@@ -29,13 +29,13 @@ export default function DashboardPage() {
 
   const {clusterName} = useParams<string>()
 
-  if (!isValidClusterName(clusterName)) {
+  const selectedCluster = findCluster(clusterName!)
+
+  if (!selectedCluster) {
     return (
       <Navigate to="/"/>
     )
   }
-
-  const selectedCluster = CLUSTER_INFO[clusterName!]
   const defaultQuery = selectedCluster.defaultQuery
 
   const [query, setQuery] = useState<string>(defaultQuery)
@@ -64,6 +64,22 @@ export default function DashboardPage() {
   const {isOpen: isOpenHelpSidebar, onOpen: onOpenHelpSidebar, onClose} = useDisclosure()
   const focusRef = useRef<HTMLInputElement | null>(null)
 
+  const jobQueryLink = `/jobquery?cluster=${clusterName}`
+
+  const subclusterLinks = selectedCluster.subclusters.map((subcluster) => (
+    <>
+      <ChakraLink
+        key={subcluster.name}
+        as={ReactRouterLink}
+        color="teal.500"
+        to={`/${clusterName}/subcluster/${subcluster.name}`}
+      >
+        {subcluster.name}
+      </ChakraLink>
+      {' '}
+    </>
+  ))
+
   return (
     <>
       <Container centerContent>
@@ -71,13 +87,11 @@ export default function DashboardPage() {
           <Heading size="lg" mb={4}>{selectedCluster.name}: Jobanalyzer Dashboard</Heading>
           <Text>Click on hostname for machine details.</Text>
           <Text>
-            <ChakraLink as={ReactRouterLink} to="/jobquery" isExternal mr="10px">
+            <ChakraLink as={ReactRouterLink} to={jobQueryLink} isExternal mr="10px">
               Job query <ExternalLinkIcon mx="2px"/>
             </ChakraLink>
             Aggregates:{' '}
-            <ChakraLink as={ReactRouterLink} color="teal.500" href="#">
-              nvidia
-            </ChakraLink>
+            {subclusterLinks}
           </Text>
           <Text>Recent: 30 mins Longer: 12 hrs{' '} </Text>
           <ViolatorsAndZombiesLinks cluster={selectedCluster}/>

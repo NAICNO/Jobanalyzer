@@ -1,38 +1,105 @@
 import {
   breakText,
-  isValidClusterName,
+  findCluster,
+  findSubcluster,
   parseDateString,
   parseRelativeDate,
+  reformatHostDescriptions,
   toPercentage,
   validateDateFormat
 } from '../../src/util'
 import moment from 'moment'
+import { describe } from 'vitest'
 
-
-describe('isValidClusterName', () => {
-  it('should return true for a valid cluster name', () => {
-    expect(isValidClusterName('ml')).toBe(true)
+describe('findCluster', () => {
+  it('should return a cluster object for a valid cluster name', () => {
+    const clusterName = 'ML nodes'
+    const cluster = findCluster('ml')
+    expect(cluster).toBeDefined()
+    expect(cluster!.name).toBe(clusterName)
   })
 
-  it('should return false for an invalid cluster name', () => {
-    expect(isValidClusterName('invalidCluster')).toBe(false)
+  it('should return null for an invalid cluster name', () => {
+    const clusterName = 'invalidCluster'
+    const cluster = findCluster(clusterName)
+    expect(cluster).toBeNull()
   })
 
-  it('should return false for an undefined cluster name', () => {
-    expect(isValidClusterName(undefined)).toBe(false)
+  it('should return null for an undefined cluster name', () => {
+    const cluster = findCluster(undefined)
+    expect(cluster).toBeNull()
   })
 
-  it('should return false for null cluster name', () => {
-    expect(isValidClusterName(null)).toBe(false)
+  it('should return null for null cluster name', () => {
+    const cluster = findCluster(null)
+    expect(cluster).toBeNull()
   })
 
-  it('should return false for an empty cluster name', () => {
-    expect(isValidClusterName('')).toBe(false)
+  it('should return null for an empty cluster name', () => {
+    const cluster = findCluster('')
+    expect(cluster).toBeNull()
   })
 
-  it('should return false for an empty cluster name', () => {
-    expect(isValidClusterName()).toBe(false)
+  it('should return null for an empty cluster name', () => {
+    const cluster = findCluster()
+    expect(cluster).toBeNull()
   })
+
+})
+
+describe('findSubcluster', () => {
+  it('should return a cluster and subcluster object for a valid cluster and subcluster name', () => {
+    const clusterName = 'ML nodes'
+    const subclusterName = 'nvidia'
+    const result = findSubcluster('ml', 'nvidia')
+    const {cluster, subcluster} = result!
+    expect(cluster).toBeDefined()
+    expect(cluster!.name).toBe(clusterName)
+    expect(subcluster).toBeDefined()
+    expect(subcluster!.name).toBe(subclusterName)
+  })
+
+  it('should return null for an invalid cluster name', () => {
+    const clusterName = 'invalidCluster'
+    const subclusterName = 'invalidSubcluster'
+    const result = findSubcluster(clusterName, subclusterName)
+    expect(result).toBeNull()
+  })
+
+  it('should return null for an valid cluster name and invalid subcluster name', () => {
+    const clusterName = 'ml'
+    const subclusterName = 'invalidSubcluster'
+    const result = findSubcluster(clusterName, subclusterName)
+    expect(result).toBeNull()
+  })
+
+  it('should return null for an invalid cluster name and valid subcluster name', () => {
+    const clusterName = 'invalidCluster'
+    const subclusterName = 'nvidia'
+    const result = findSubcluster(clusterName, subclusterName)
+    expect(result).toBeNull()
+  })
+
+  it('should return null for an undefined cluster name', () => {
+    const result = findSubcluster(undefined, undefined)
+    expect(result).toBeNull()
+  })
+
+  it('should return null for null cluster name', () => {
+    const result = findSubcluster(null, null)
+    expect(result).toBeNull()
+  })
+
+  it('should return null for an empty cluster name', () => {
+    const result = findSubcluster('', '')
+    expect(result).toBeNull()
+  })
+
+  it('should return null for an empty cluster name', () => {
+    const result = findSubcluster()
+    expect(result).toBeNull()
+  })
+
 })
 
 describe('breakText', () => {
@@ -212,3 +279,48 @@ describe('parseRelativeDate', () => {
     expect(parseRelativeDate('10x').isValid()).toBe(false)
   })
 })
+
+describe('reformatHostDescriptions', () => {
+  test('should handle a single description', () => {
+    const description = 'apple'
+    const result = reformatHostDescriptions(description)
+    expect(result).toBe('1x apple')
+  })
+
+  test('should handle multiple descriptions with different counts', () => {
+    const description = 'apple|||banana|||apple|||apple|||banana'
+    const result = reformatHostDescriptions(description)
+    expect(result).toBe('3x apple\n2x banana')
+  })
+
+  test('should handle descriptions with the same counts sorted alphabetically', () => {
+    const description = 'banana|||apple'
+    const result = reformatHostDescriptions(description)
+    expect(result).toBe('1x apple\n1x banana')
+  })
+
+  test('should handle an empty string', () => {
+    const description = ''
+    const result = reformatHostDescriptions(description)
+    expect(result).toBe('')
+  })
+
+  test('should handle descriptions with special characters', () => {
+    const description = 'apple|||b@n@n@|||apple|||b@n@n@'
+    const result = reformatHostDescriptions(description)
+    expect(result).toBe('2x apple\n2x b@n@n@')
+  })
+
+  test('should handle descriptions with spaces', () => {
+    const description = 'apple|||banana split|||apple|||banana split|||apple'
+    const result = reformatHostDescriptions(description)
+    expect(result).toBe('3x apple\n2x banana split')
+  })
+
+  test('should handle descriptions with varying counts and order', () => {
+    const description = 'cat|||dog|||cat|||bird|||dog|||dog|||cat|||bird|||cat'
+    const result = reformatHostDescriptions(description)
+    expect(result).toBe('4x cat\n3x dog\n2x bird')
+  })
+})
+

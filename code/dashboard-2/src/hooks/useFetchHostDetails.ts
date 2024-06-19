@@ -4,7 +4,7 @@ import moment from 'moment'
 
 import useAxios from './useAxios.ts'
 import { CHART_SERIES_CONFIGS, QueryKeys } from '../Constants.ts'
-
+import { reformatHostDescriptions } from '../util'
 
 const fetchHostDetails = async (axios: AxiosInstance, hostname: string, frequency: string) => {
   const endpoint = `/${hostname}-${frequency}.json`
@@ -118,7 +118,10 @@ export const useFetchHostDetails = (
 
 
         return {
-          system: hostFetchedData.system,
+          system: {
+            hostname: hostFetchedData.system.hostname,
+            description: reformatHostDescriptions(hostFetchedData.system.description),
+          },
           chart: {
             dataItems: chartData,
             seriesConfigs: seriesConfigs,

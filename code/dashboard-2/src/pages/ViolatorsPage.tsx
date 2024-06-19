@@ -8,8 +8,8 @@ import {
   useReactTable
 } from '@tanstack/react-table'
 
-import { CLUSTER_INFO, EMPTY_ARRAY } from '../Constants.ts'
-import { isValidClusterName } from '../util'
+import { EMPTY_ARRAY } from '../Constants.ts'
+import { findCluster } from '../util'
 import { useFetchViolations } from '../hooks/useFetchViolations.ts'
 import { getViolatingJobTableColumns, getViolatingUserTableColumns } from '../util/TableUtils.ts'
 import ViolatingUserTable from '../components/table/ViolatingUserTable.tsx'
@@ -19,13 +19,13 @@ import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
 export default function ViolatorsPage() {
   const {clusterName} = useParams<string>()
 
-  if (!isValidClusterName(clusterName)) {
+  const cluster = findCluster(clusterName)
+
+  if (!cluster) {
     return (
       <Navigate to="/"/>
     )
   }
-
-  const cluster = CLUSTER_INFO[clusterName!]
 
   const {data, isFetched} = useFetchViolations(clusterName!)
 

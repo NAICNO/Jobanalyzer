@@ -1,7 +1,7 @@
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import moment from 'moment'
 import { useState } from 'react'
-import { DataKey } from 'recharts/types/util/types'
+import { AxisDomain, DataKey } from 'recharts/types/util/types'
 
 interface HostDetailsChartProps {
   dataItems: ChartDataItem[];
@@ -10,10 +10,19 @@ interface HostDetailsChartProps {
     width: number | string;
     height: number | string;
   }
+  yAxisDomain?: AxisDomain;
+  xAxisDomain?: AxisDomain;
   isShowDataPoints?: boolean;
 }
 
-const HostDetailsChart = ({dataItems, seriesConfigs, containerProps, isShowDataPoints}: HostDetailsChartProps) => {
+const HostDetailsChart = ({
+  dataItems,
+  seriesConfigs,
+  containerProps,
+  xAxisDomain,
+  yAxisDomain,
+  isShowDataPoints
+}: HostDetailsChartProps) => {
 
   const [lineVisibility, setLineVisibility] = useState<boolean[]>(() => seriesConfigs.map(() => true))
 
@@ -40,7 +49,7 @@ const HostDetailsChart = ({dataItems, seriesConfigs, containerProps, isShowDataP
           dataKey="timestamp"
           type={'number'}
           scale={'time'}
-          domain={['auto', 'auto']}
+          domain={xAxisDomain || ['auto', 'auto']}
           tickFormatter={dateTimeFormatter}
           angle={-45}
           interval={'equidistantPreserveStart'}
@@ -49,11 +58,7 @@ const HostDetailsChart = ({dataItems, seriesConfigs, containerProps, isShowDataP
 
         />
         <YAxis
-          domain={([dataMin, dataMax]) => {
-            const min = dataMin
-            const max = Math.round(dataMax / 100) * 100
-            return [min, max]
-          }}
+          domain={ yAxisDomain || ['auto', 'auto']}
         />
         <Tooltip labelFormatter={dateTimeFormatter}/>
         <Legend

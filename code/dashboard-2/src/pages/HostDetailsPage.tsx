@@ -14,12 +14,12 @@ import {
 import { Navigate, useParams } from 'react-router-dom'
 import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from '@tanstack/react-table'
 
-import { CLUSTER_INFO, EMPTY_ARRAY, FETCH_FREQUENCIES } from '../Constants.ts'
+import { EMPTY_ARRAY, FETCH_FREQUENCIES } from '../Constants.ts'
 import { useFetchHostnames } from '../hooks/useFetchHosts.ts'
 import { useFetchHostDetails } from '../hooks/useFetchHostDetails.ts'
 import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
 import { useFetchViolations } from '../hooks/useFetchViolations.ts'
-import { isValidClusterName } from '../util'
+import { findCluster } from '../util'
 import {
   getDeadWeightTableColumns,
   getViolatingJobTableColumns,
@@ -35,13 +35,12 @@ export default function HostDetailsPage() {
 
   const {clusterName, hostname} = useParams<string>()
 
-  if (!isValidClusterName(clusterName) || !hostname) {
+  const selectedCluster = findCluster(clusterName)
+  if (!selectedCluster || !hostname) {
     return (
       <Navigate to="/"/>
     )
   }
-
-  const selectedCluster = CLUSTER_INFO[clusterName!]
 
   const [selectedFrequency, setSelectedFrequency] = useState(FETCH_FREQUENCIES[0])
   const [isShowData, setIsShowData] = useState<boolean>(true)
@@ -174,6 +173,11 @@ export default function HostDetailsPage() {
         containerProps={{
           width: '100%',
           height: 600,
+        }}
+        yAxisDomain={([dataMin, dataMax]) => {
+          const min = dataMin
+          const max = Math.round(dataMax / 100) * 100
+          return [min, max]
         }}
         isShowDataPoints={isShowDataPoints}
       />
