@@ -86,6 +86,10 @@ def heavy_gpu_users(cluster, hostglob, from_date, to_date):
     for job_line in job_proc.stdout.splitlines():
         job_fields=job_line.split(" ")
 
+        # Skip jobs without ID, not completely clear why these happen.
+        if int(job_fields[job_ix]) == 0:
+            continue
+
         # Skip anything that ran for less than the period.
         if int(job_fields[duration_ix]) < cutoff:
             continue
@@ -112,7 +116,7 @@ def heavy_gpu_users(cluster, hostglob, from_date, to_date):
 
         prof_proc = subprocess.run(prof_cmd, capture_output=True, text=True, cwd=os.getcwd())
         if prof_proc.returncode != 0:
-            raise RuntimeError("Sonalyze profile failed: " + prof_proc.stderr)
+            raise RuntimeError("Sonalyze profile failed: " + job_line + "\n" + prof_proc.stderr)
 
         # For the process, generate a timeline of GPU usage.
         timeline=[]
