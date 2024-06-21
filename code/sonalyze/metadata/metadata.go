@@ -11,7 +11,8 @@ import (
 	"go-utils/config"
 	"go-utils/hostglob"
 	. "sonalyze/command"
-	"sonalyze/common"
+	. "sonalyze/common"
+	"sonalyze/db"
 	"sonalyze/sonarlog"
 )
 
@@ -35,10 +36,6 @@ func (_ *MetadataCommand) Summary() []string {
 		"One or more of -files, -times and -bounds must be selected to produce",
 		"output.",
 	}
-}
-
-func (mdc *MetadataCommand) ConfigFile() string {
-	return ""
 }
 
 func (mdc *MetadataCommand) Add(fs *flag.FlagSet) {
@@ -117,10 +114,10 @@ func (xs HostTimeSortableItems) Swap(i, j int) {
 func (mdc *MetadataCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	logDir sonarlog.Cluster,
-	samples sonarlog.SampleStream,
+	cluster db.SampleCluster,
+	streams sonarlog.InputStreamSet,
+	bounds sonarlog.Timebounds,
 	hostGlobber *hostglob.HostGlobber,
-	recordFilter func(*sonarlog.Sample) bool,
 ) error {
 	if mdc.Times {
 		fmt.Fprintf(out, "From: %s\n", mdc.FromDate.Format(time.RFC3339))
@@ -128,7 +125,7 @@ func (mdc *MetadataCommand) Perform(
 	}
 
 	if mdc.Files {
-		if sampleDir, ok := logDir.(sonarlog.SampleCluster); ok {
+		if sampleDir, ok := cluster.(db.SampleCluster); ok {
 			// For -files, print the full paths all the input files as presented to os.Open.
 			files, err := sampleDir.SampleFilenames(mdc.FromDate, mdc.ToDate, hostGlobber)
 			if err != nil {
@@ -143,9 +140,7 @@ func (mdc *MetadataCommand) Perform(
 	}
 
 	if mdc.Bounds {
-		bounds := sonarlog.ComputeTimeBounds(samples)
 		if mdc.MergeByJob {
-			streams := sonarlog.PostprocessLog(samples, recordFilter, nil)
 			_, bounds = sonarlog.MergeByJob(streams, bounds)
 		}
 
@@ -176,12 +171,14 @@ metadata
 
 const metadataDefaultFields = "all"
 
+// MT: Constant after initialization; immutable
 var metadataAliases = map[string][]string{
 	"all": []string{"host", "earliest", "latest"},
 }
 
 type metadataCtx bool
 
+// MT: Constant after initialization; immutable
 var metadataFormatters = map[string]Formatter[metadataItem, metadataCtx]{
 	"host": {
 		func(d metadataItem, _ metadataCtx) string {
@@ -191,13 +188,13 @@ var metadataFormatters = map[string]Formatter[metadataItem, metadataCtx]{
 	},
 	"earliest": {
 		func(d metadataItem, _ metadataCtx) string {
-			return common.FormatYyyyMmDdHhMmUtc(d.earliest)
+			return FormatYyyyMmDdHhMmUtc(d.earliest)
 		},
 		"The earliest time in a sample stream (yyyy-mm-dd hh:mm)",
 	},
 	"latest": {
 		func(d metadataItem, _ metadataCtx) string {
-			return common.FormatYyyyMmDdHhMmUtc(d.latest)
+			return FormatYyyyMmDdHhMmUtc(d.latest)
 		},
 		"The latest time in a sample stream (yyyy-mm-dd hh:mm)",
 	},

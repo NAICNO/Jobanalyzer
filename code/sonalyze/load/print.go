@@ -52,7 +52,7 @@ func (lc *LoadCommand) printStreams(
 			fmt.Fprint(out, jsonSep)
 			jsonSep = ","
 		}
-		hostname := (*stream)[0].Host.String()
+		hostname := (*stream)[0].S.Host.String()
 		if lc.printOpts.Fixed && !explicitHost {
 			fmt.Fprintf(out, "HOST: %s\n", hostname)
 		}
@@ -108,12 +108,13 @@ func (lc *LoadCommand) MaybeFormatHelp() *FormatHelp {
 	return StandardFormatHelp(lc.Fmt, loadHelp, loadFormatters, loadAliases, loadDefaultFields)
 }
 
-var loadHelp = `
+const loadHelp = `
 load
   Aggregate process data across users and commands on a host and bucket into
   time slots, producing a view of system load.  Default output format is 'fixed'.
 `
 
+// MT: Constant after initialization; immutable
 var loadAliases = map[string][]string{ /* No aliases */ }
 
 type loadCtx struct {
@@ -121,39 +122,40 @@ type loadCtx struct {
 	now int64
 }
 
-var loadFormatters = map[string]Formatter[*sonarlog.Sample, loadCtx]{
+// MT: Constant after initialization; immutable
+var loadFormatters = map[string]Formatter[sonarlog.Sample, loadCtx]{
 	"now": {
-		func(_ *sonarlog.Sample, ctx loadCtx) string {
+		func(_ sonarlog.Sample, ctx loadCtx) string {
 			return common.FormatYyyyMmDdHhMmUtc(ctx.now)
 		},
 		"The current time (yyyy-mm-dd hh:mm)",
 	},
 	"datetime": {
-		func(d *sonarlog.Sample, _ loadCtx) string {
-			return common.FormatYyyyMmDdHhMmUtc(d.Timestamp)
+		func(d sonarlog.Sample, _ loadCtx) string {
+			return common.FormatYyyyMmDdHhMmUtc(d.S.Timestamp)
 		},
 		"The starting time of the aggregation window (yyyy-mm-dd hh:mm)",
 	},
 	"date": {
-		func(d *sonarlog.Sample, _ loadCtx) string {
-			return time.Unix(d.Timestamp, 0).UTC().Format("2006-01-02")
+		func(d sonarlog.Sample, _ loadCtx) string {
+			return time.Unix(d.S.Timestamp, 0).UTC().Format("2006-01-02")
 		},
 		"The starting time of the aggregation window (yyyy-mm-dd)",
 	},
 	"time": {
-		func(d *sonarlog.Sample, _ loadCtx) string {
-			return time.Unix(d.Timestamp, 0).UTC().Format("15:04")
+		func(d sonarlog.Sample, _ loadCtx) string {
+			return time.Unix(d.S.Timestamp, 0).UTC().Format("15:04")
 		},
 		"The starting time of the aggregation window (hh:mm)",
 	},
 	"cpu": {
-		func(d *sonarlog.Sample, _ loadCtx) string {
+		func(d sonarlog.Sample, _ loadCtx) string {
 			return fmt.Sprint(int(d.CpuUtilPct))
 		},
 		"Average CPU utilization in percent in the aggregation window (100% = 1 core)",
 	},
 	"rcpu": {
-		func(d *sonarlog.Sample, ctx loadCtx) string {
+		func(d sonarlog.Sample, ctx loadCtx) string {
 			if ctx.sys.CpuCores == 0 {
 				return "0"
 			}
@@ -162,74 +164,74 @@ var loadFormatters = map[string]Formatter[*sonarlog.Sample, loadCtx]{
 		"Average relative CPU utilization in percent in the aggregation window (100% = all cores)",
 	},
 	"mem": {
-		func(d *sonarlog.Sample, _ loadCtx) string {
-			return fmt.Sprint(d.CpuKib / (1024 * 1024))
+		func(d sonarlog.Sample, _ loadCtx) string {
+			return fmt.Sprint(d.S.CpuKib / (1024 * 1024))
 		},
 		"Average virtual memory utilization in GiB in the aggregation window",
 	},
 	"rmem": {
-		func(d *sonarlog.Sample, ctx loadCtx) string {
+		func(d sonarlog.Sample, ctx loadCtx) string {
 			if ctx.sys.MemGB == 0 {
 				return "0"
 			}
-			return fmt.Sprint(math.Round(float64(d.CpuKib) / (1024 * 1024) / float64(ctx.sys.MemGB) * 100.0))
+			return fmt.Sprint(math.Round(float64(d.S.CpuKib) / (1024 * 1024) / float64(ctx.sys.MemGB) * 100.0))
 		},
 		"Relative virtual memory utilization in GiB in the aggregation window (100% = system RAM)",
 	},
 	"res": {
-		func(d *sonarlog.Sample, _ loadCtx) string {
-			return fmt.Sprint(d.RssAnonKib / (1024 * 1024))
+		func(d sonarlog.Sample, _ loadCtx) string {
+			return fmt.Sprint(d.S.RssAnonKib / (1024 * 1024))
 		},
 		"Average resident memory utilization in GiB in the aggregation window",
 	},
 	"rres": {
-		func(d *sonarlog.Sample, ctx loadCtx) string {
+		func(d sonarlog.Sample, ctx loadCtx) string {
 			if ctx.sys.MemGB == 0 {
 				return "0"
 			}
-			return fmt.Sprint(math.Round(float64(d.RssAnonKib) / (1024 * 1024) / float64(ctx.sys.MemGB) * 100.0))
+			return fmt.Sprint(math.Round(float64(d.S.RssAnonKib) / (1024 * 1024) / float64(ctx.sys.MemGB) * 100.0))
 		},
 		"Relative resident memory utilization in GiB in the aggregation window (100% = system RAM)",
 	},
 	"gpu": {
-		func(d *sonarlog.Sample, _ loadCtx) string {
-			return fmt.Sprint(int(d.GpuPct))
+		func(d sonarlog.Sample, _ loadCtx) string {
+			return fmt.Sprint(int(d.S.GpuPct))
 		},
 		"Average GPU utilization in percent in the aggregation window (100% = 1 card)",
 	},
 	"rgpu": {
-		func(d *sonarlog.Sample, ctx loadCtx) string {
+		func(d sonarlog.Sample, ctx loadCtx) string {
 			if ctx.sys.GpuCards == 0 {
 				return "0"
 			}
-			return fmt.Sprint(math.Round(float64(d.GpuPct) / float64(ctx.sys.GpuCards) * 100))
+			return fmt.Sprint(math.Round(float64(d.S.GpuPct) / float64(ctx.sys.GpuCards) * 100))
 		},
 		"Average relative GPU utilization in percent in the aggregation window (100% = all cards)",
 	},
 	"gpumem": {
-		func(d *sonarlog.Sample, _ loadCtx) string {
-			return fmt.Sprint(int(d.GpuKib / (1024 * 1024)))
+		func(d sonarlog.Sample, _ loadCtx) string {
+			return fmt.Sprint(int(d.S.GpuKib / (1024 * 1024)))
 		},
 		"Average gpu memory utilization in GiB in the aggregation window",
 	},
 	"rgpumem": {
-		func(d *sonarlog.Sample, ctx loadCtx) string {
+		func(d sonarlog.Sample, ctx loadCtx) string {
 			if ctx.sys.GpuMemGB == 0 {
 				return "0"
 			}
-			return fmt.Sprint(math.Round(float64(d.GpuKib) / (1024 * 1024) / float64(ctx.sys.GpuMemGB) * 100))
+			return fmt.Sprint(math.Round(float64(d.S.GpuKib) / (1024 * 1024) / float64(ctx.sys.GpuMemGB) * 100))
 		},
 		"Average relative gpu memory utilization in GiB in the aggregation window (100% = all GPU RAM)",
 	},
 	"gpus": {
-		func(d *sonarlog.Sample, _ loadCtx) string {
-			return d.Gpus.String()
+		func(d sonarlog.Sample, _ loadCtx) string {
+			return d.S.Gpus.String()
 		},
 		"GPU device numbers used by the job, 'none' if none or 'unknown' in error states",
 	},
 	"host": {
-		func(d *sonarlog.Sample, _ loadCtx) string {
-			return d.Host.String()
+		func(d sonarlog.Sample, _ loadCtx) string {
+			return d.S.Host.String()
 		},
 		"Combined host names of jobs active in the aggregation window",
 	},

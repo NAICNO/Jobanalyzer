@@ -1,20 +1,51 @@
 // ClusterStore - API to the underlying data logs
 //
-// The cluster store is a global singleton that manages reading, appending, and (eventually)
-// transparent caching.  Clients open individual data (cluster) directories by calling
-// OpenPersistentCluster() or sets of read-only sonar log input files by calling
-// OpenTransientSampleCluster().  The returned Cluster structure will then manage file I/O within
-// that space.
+// The cluster store is a global singleton that manages reading, appending, and transparent caching.
+// Clients open individual data (cluster) directories by calling OpenPersistentCluster() or sets of
+// read-only sonar log input files by calling OpenTransientSampleCluster().  The returned Cluster
+// structure will then manage file I/O within that space.
 //
 // The main thread would normally `defer sonarlog.Close()` to make sure that all pending writes are
 // done when the program shuts down.
+//
+// Locking.
+//
+// We have these major pieces:
+//
+//  - ClusterStore, a global singleton
+//  - PersistentCluster, a per-cluster unique object for directory-backed cluster data
+//  - TransientSampleCluster, a per-file-set object non-unique object for a set of read-only files
+//  - LogFile, a per-file (read-write or read-only) object, unique within directory-backed data
+//  - Purgable data, a global singleton for the cache
+//
+// There are multiple goroutines that handle file I/O, and hence there is concurrent access to all
+// the pieces.  To handle this we mostly use traditional locks (mutexes).
+//
+// Locks are in a strict hierarchy (a DAG) as follows.
+//
+// - ClusterStore has a lock that covers its internal data.  This lock may be held while methods are
+//   being called on individual cluster objects.
+//
+// - Each PersistentCluster and TransientCluster has a lock that covers its internal data.  These
+//   locks may be held while methods are being called on individual files.
+//
+// - Each LogFile has a lock.  The main lock covers the file's main mutable data structures.  This
+//   lock may be held when the file code calls into the cache code, and usually it must be, so that
+//   the cache code can know the state of the file.
+//
+// - The cache code has a lock on a global singleton data structure, the purgeable set.  This lock
+//   also covers the part of the purgeable set data structure that lives in each LogFile.
+//
+// The cache code can call back up to the LogFile code (notably to purge a file).  In this case it
+// must hold *no* nocks at all, as the LogFile code may call down into the cache code again.  Thus
+// the cache code can't know for a fact that the file's state hasn't changed between the time it
+// selects it for purging and the time it purges it.  It must be resilient to that.
 
-package sonarlog
+package db
 
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"runtime"
@@ -32,6 +63,7 @@ const (
 )
 
 var (
+	// MT: Constant after initialization; immutable
 	BadTimestampErr  = errors.New("Bad timestamp")
 	ClusterClosedErr = errors.New("ClusterStore is closed")
 	ReadOnlyDirErr   = errors.New("Cluster is read-only list of files")
@@ -47,6 +79,9 @@ var (
 // intra-cluster (in-memory) indices to speed record selection.
 
 type Cluster interface {
+	// Return the config info for the cluster, if any is attached.
+	Config() *config.ClusterConfig
+
 	// Close the cluster: flush all files and mark them as closed, and mark the cluster as closed.
 	// Returns when all files have been flushed.  All subsequent operations on the cluster will
 	// return ClusterClosedErr.
@@ -73,7 +108,7 @@ type SampleCluster interface {
 		fromDate, toDate time.Time,
 		hosts *hostglob.HostGlobber,
 		verbose bool,
-	) (samples SampleStream, dropped int, err error)
+	) (samples []*Sample, dropped int, err error)
 }
 
 // A SysinfoCluster can provide `sonar sysinfo` data.
@@ -133,18 +168,21 @@ type AppendableCluster interface {
 //  - in older directories there may also be files `bughunt.csv` and `cpuhog.csv` that are state
 //    files used by some reports, these should be considered off-limits
 
-func OpenPersistentCluster(dir string) (*PersistentCluster, error) {
-	return gClusterStore.openPersistentCluster(dir)
+func OpenPersistentCluster(dir string, cfg *config.ClusterConfig) (*PersistentCluster, error) {
+	return gClusterStore.openPersistentCluster(dir, cfg)
 }
 
 // Open a set of read-only files, that are not attached to the global logstore.  `files` is a
 // nonempty list of files containing Sonar `ps` log data.  We make a private copy of the list.
 
-func OpenTransientSampleCluster(files []string) (*TransientSampleCluster, error) {
+func OpenTransientSampleCluster(
+	files []string,
+	cfg *config.ClusterConfig,
+) (*TransientSampleCluster, error) {
 	if len(files) == 0 {
 		return nil, errors.New("Empty list of files")
 	}
-	return newTransientSampleCluster(files), nil
+	return newTransientSampleCluster(files, cfg), nil
 }
 
 // Drain all pending writes in the global logstore, close all the attached Cluster nodes, and return
@@ -168,6 +206,7 @@ type clusterStore struct {
 	clusters map[string]*PersistentCluster
 }
 
+// MT: Constant after initialization; thread-safe
 var gClusterStore clusterStore
 
 func unsafeResetClusterStore() {
@@ -182,7 +221,10 @@ func init() {
 	unsafeResetClusterStore()
 }
 
-func (ls *clusterStore) openPersistentCluster(clusterDir string) (*PersistentCluster, error) {
+func (ls *clusterStore) openPersistentCluster(
+	clusterDir string,
+	cfg *config.ClusterConfig,
+) (*PersistentCluster, error) {
 	ls.Lock()
 	defer ls.Unlock()
 	if ls.closed {
@@ -195,7 +237,7 @@ func (ls *clusterStore) openPersistentCluster(clusterDir string) (*PersistentClu
 		return d, nil
 	}
 
-	d := newPersistentCluster(clusterDir)
+	d := newPersistentCluster(clusterDir, cfg)
 	ls.clusters[clusterDir] = d
 	return d, nil
 }
@@ -234,11 +276,13 @@ func (ls *clusterStore) close() {
 type parseRequest struct {
 	file    *LogFile
 	id      any
+	cfg     *config.ClusterConfig
 	results chan parseResult
 	verbose bool
 }
 
 var (
+	// MT: Constant after initialization; thread-safe
 	parseRequests = make(chan parseRequest, 100)
 )
 
@@ -282,7 +326,8 @@ func init() {
 					}
 					var result parseResult
 					result.id = request.id
-					result.data, result.dropped, result.err = request.file.ReadSync(uf, request.verbose)
+					result.data, result.dropped, result.err =
+						request.file.ReadSync(uf, request.verbose, request.cfg)
 					request.results <- result
 				}
 			},
@@ -303,14 +348,14 @@ func init() {
 func filenames(files []*LogFile) []string {
 	names := make([]string, len(files))
 	for i, fn := range files {
-		names[i] = fn.fullName()
+		names[i] = fn.Fullname.String()
 	}
 	return names
 }
 
 // Read a set of records from a set of files and return the resulting list, which may be in any
-// order (b/c concurrency).  We do this by passing read request to the pool of readers and
-// collecting the results.
+// order (b/c concurrency) but will always be freshly allocated (pointing to shared, immutable data
+// objects).  We do this by passing read request to the pool of readers and collecting the results.
 //
 // On return, `dropped` is an indication of the number of benign errors, but it conflates dropped
 // records and dropped fields.  err is non-nil only for non-benign records, in which case it
@@ -322,9 +367,10 @@ func filenames(files []*LogFile) []string {
 func readRecordsFromFiles[T any](
 	files []*LogFile,
 	verbose bool,
+	cfg *config.ClusterConfig,
 ) (records []*T, dropped int, err error) {
 	if verbose {
-		log.Printf("%d files", len(files))
+		Log.Infof("%d files", len(files))
 	}
 
 	// TODO: OPTIMIZEME: Probably we would want to be smarter about accumulating in a big array that
@@ -337,12 +383,15 @@ func readRecordsFromFiles[T any](
 	toReceive := len(files)
 	toSend := 0
 	bad := ""
+	// Note that the appends here ensure that we never mutate the spines of the cached data arrays,
+	// but always return a fresh list of records.
 	for toSend < len(files) && toReceive > 0 {
 		select {
 		case parseRequests <- parseRequest{
 			file:    files[toSend],
 			results: results,
 			verbose: verbose,
+			cfg:     cfg,
 		}:
 			toSend++
 		case res := <-results:
@@ -375,15 +424,15 @@ func readRecordsFromFiles[T any](
 	return
 }
 
-// Read sonar `ps` samples.
+// Read sonar `ps` samples with a config to be passed to a rectifier function that will be applied
+// to freshly read data only (before caching).
 
 func readSamples(
 	files []*LogFile,
 	verbose bool,
-) (samples SampleStream, dropped int, err error) {
-	records, dropped, err := readRecordsFromFiles[Sample](files, verbose)
-	samples = SampleStream(records)
-	return
+	cfg *config.ClusterConfig,
+) (samples []*Sample, dropped int, err error) {
+	return readRecordsFromFiles[Sample](files, verbose, cfg)
 }
 
 // Read sonar `sysinfo` records.
@@ -391,7 +440,7 @@ func readSamples(
 func readSysinfo(
 	files []*LogFile,
 	verbose bool,
-) (records []*config.NodeConfigRecord, dropped int, err error) {
-	records, dropped, err = readRecordsFromFiles[config.NodeConfigRecord](files, verbose)
-	return
+	cfg *config.ClusterConfig,
+) ([]*config.NodeConfigRecord, int, error) {
+	return readRecordsFromFiles[config.NodeConfigRecord](files, verbose, cfg)
 }
