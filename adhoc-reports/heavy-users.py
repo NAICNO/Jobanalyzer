@@ -1,7 +1,13 @@
 #!/usr/bin/python3
 #
-# Look for heavy users of GPU resources.
+# Look for heavy users of GPU resources.  At the moment, a heavy user is:
 #
+# - user with jobs occupying a full GPU at full capacity for more than 24hours
+# - user with jobs occupying at least 24hours worth of GPU across the lifetime of the job
+#
+# (there are additional criteria to be implemented.)  In the listing produced, the former case is
+# annotated with a "*" in the first column.
+
 # Usage:
 #
 #  heavy-users.py cluster-name [from-date [to-date]]
