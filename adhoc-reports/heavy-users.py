@@ -5,6 +5,8 @@
 import subprocess
 
 # TODO: These are parameters
+# TODO: For some clusters we also want a host filter (b/c not all nodes have GPUs),
+# not sure how to encode this yet.  Currently hardcoded in initial query.
 cluster = "fox"
 timespan = "1w"
 
@@ -71,6 +73,7 @@ def heavy_users():
 
         # With a bucket of 6, 24 hours should be 48 items.  Iterate across the array looking
         # for a run of that length.
+        # TODO: Should definitely go by time here, not number of items.
         i=0
         mark = False
         while not mark and i < len(timeline):
