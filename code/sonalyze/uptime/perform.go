@@ -47,7 +47,6 @@ import (
 	"go-utils/config"
 	"go-utils/hostglob"
 	"go-utils/maps"
-	"go-utils/minmax"
 	"go-utils/slices"
 	. "sonalyze/common"
 	"sonalyze/db"
@@ -230,7 +229,7 @@ func (uc *UptimeCommand) computeReports(
 					host:   samples[w.start].S.Host.String(),
 					state:  updown,
 					start:  formatTime(samples[start].S.Timestamp),
-					end:    formatTime(samples[minmax.MinInt(w.end, i)].S.Timestamp),
+					end:    formatTime(samples[min(w.end, i)].S.Timestamp),
 				})
 			}
 		}

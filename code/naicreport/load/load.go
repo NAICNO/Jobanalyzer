@@ -83,7 +83,6 @@ import (
 
 	"go-utils/gpuset"
 	"go-utils/hostglob"
-	"go-utils/minmax"
 	"go-utils/options"
 	"go-utils/process"
 	"go-utils/sonalyze"
@@ -360,7 +359,7 @@ func generateDowntimeData(ld *loadDataBySystem, dd []*downtimeDataByHost, hasGpu
 			return loadData[i].datetime.After(ddval.start)
 		})
 		isDevice := ddval.device == "host"
-		for ix := minmax.MaxInt(loc-1, 0); ix < len(loadData) && loadData[ix].datetime.Before(ddval.end); ix++ {
+		for ix := max(loc-1, 0); ix < len(loadData) && loadData[ix].datetime.Before(ddval.end); ix++ {
 			if isDevice {
 				downHost[ix] = 1
 			} else if hasGpu {

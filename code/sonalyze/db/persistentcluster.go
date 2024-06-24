@@ -56,13 +56,14 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"go-utils/config"
 	"go-utils/hostglob"
-	"go-utils/slices"
+	uslices "go-utils/slices"
 	. "sonalyze/common"
 )
 
@@ -180,8 +181,7 @@ func (pc *PersistentCluster) flushSyncLocked() {
 	for file := range pc.dirty {
 		file.FlushSync()
 	}
-	// TODO: With Go 1.21, use clear()
-	pc.dirty = make(map[*LogFile]bool)
+	clear(pc.dirty)
 }
 
 // Return cleaned file names that will be passed to os.Open().  The slice should be considered
@@ -567,7 +567,7 @@ func (pc *PersistentCluster) ensureScannedDirectoriesLocked(fromDate, toDate tim
 
 func findFiles(dataDir, dirname, pattern string) []string {
 	matches, _ := fs.Glob(os.DirFS(dataDir), path.Join(dirname, pattern))
-	return slices.Map(matches, func(s string) string { return path.Base(s) })
+	return uslices.Map(matches, func(s string) string { return path.Base(s) })
 }
 
 // Scan the tree underneath `dataDir` for subdirectories named yyyy/mm/dd for the date range from

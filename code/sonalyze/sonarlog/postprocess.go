@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"go-utils/config"
-	"go-utils/minmax"
 	. "sonalyze/common"
 	"sonalyze/db"
 )
@@ -109,8 +108,8 @@ func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
 
 		if bound, found := bounds[e.Host]; found {
 			bounds[e.Host] = Timebound{
-				Earliest: minmax.MinInt64(bound.Earliest, e.Timestamp),
-				Latest:   minmax.MaxInt64(bound.Latest, e.Timestamp),
+				Earliest: min(bound.Earliest, e.Timestamp),
+				Latest:   max(bound.Latest, e.Timestamp),
 			}
 		} else {
 			bounds[e.Host] = Timebound{

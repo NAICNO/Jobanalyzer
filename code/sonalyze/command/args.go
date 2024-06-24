@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"go-utils/minmax"
 	. "sonalyze/common"
 	"sonalyze/sonarlog"
 )
@@ -264,14 +263,14 @@ func (args *SourceArgs) InterpretFromToWithBounds(bounds sonarlog.Timebounds) (i
 	} else {
 		from = math.MaxInt64
 		for _, v := range bounds {
-			from = minmax.MinInt64(from, v.Earliest)
+			from = min(from, v.Earliest)
 		}
 	}
 	if args.HaveTo || len(bounds) == 0 {
 		to = args.ToDate.Unix()
 	} else {
 		for _, v := range bounds {
-			to = minmax.MaxInt64(to, v.Latest)
+			to = max(to, v.Latest)
 		}
 	}
 	return from, to

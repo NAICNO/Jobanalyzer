@@ -5,13 +5,12 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 	"unicode/utf8"
 
 	"go-utils/maps"
-	"go-utils/minmax"
-	"go-utils/slices"
 )
 
 type FormatOptions struct {
@@ -187,19 +186,19 @@ func formatFixed(unbufOut io.Writer, fields []string, opts *FormatOptions, cols 
 
 	if opts.Header {
 		for col := 0; col < len(fields); col++ {
-			widths[col] = minmax.MaxInt(widths[col], utf8.RuneCountInString(fields[col]))
+			widths[col] = max(widths[col], utf8.RuneCountInString(fields[col]))
 		}
 		if tagCol >= 0 {
-			widths[tagCol] = minmax.MaxInt(widths[tagCol], len("tag"))
+			widths[tagCol] = max(widths[tagCol], len("tag"))
 		}
 	}
 
 	for row := 0; row < len(cols[0]); row++ {
 		for col := 0; col < len(fields); col++ {
-			widths[col] = minmax.MaxInt(widths[col], utf8.RuneCountInString(cols[col][row]))
+			widths[col] = max(widths[col], utf8.RuneCountInString(cols[col][row]))
 		}
 		if tagCol >= 0 {
-			widths[tagCol] = minmax.MaxInt(widths[tagCol], utf8.RuneCountInString(opts.Tag))
+			widths[tagCol] = max(widths[tagCol], utf8.RuneCountInString(opts.Tag))
 		}
 	}
 
@@ -478,7 +477,7 @@ func PrintFormatHelp(out io.Writer, h *FormatHelp) {
 		fmt.Fprintln(out, h.Text)
 		fmt.Fprintln(out, "Syntax:\n  -fmt=(field|alias|control),...")
 		fmt.Fprintln(out, "\nFields:")
-		fields := slices.Copy(h.Fields)
+		fields := slices.Clone(h.Fields)
 		sort.Sort(sort.StringSlice(fields))
 		for _, f := range fields {
 			fmt.Fprintf(out, "  %s - %s\n", f, h.Helps[f])
