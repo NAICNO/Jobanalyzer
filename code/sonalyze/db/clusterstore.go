@@ -140,6 +140,24 @@ type SysinfoCluster interface {
 	) (records []*config.NodeConfigRecord, dropped int, err error)
 }
 
+// There is no HostGlobber here, as the sacct data are not mostly node-oriented.  Any analysis
+// needing to filter by host should apply the host filter after reading.
+type SacctCluster interface {
+	Cluster
+
+	// Find all filenames for Slurm `sacct` data in the cluster selected by the date range and the
+	// host matcher, if any.  Times must be UTC.
+	SacctFilenames(
+		fromDate, toDate time.Time,
+	) ([]string, error)
+
+	// Read `sacct` records from all the files selected by SacctFilenames().  Times must be UTC.
+	ReadSacctData(
+		fromDate, toDate time.Time,
+		verbose bool,
+	) (records []*SacctInfo, dropped int, err error)
+}
+
 // An AppendableCluster (not yet well developed, this could be split into appending different types
 // of data) allows data to be appended to the cluster store.
 //
@@ -148,6 +166,7 @@ type SysinfoCluster interface {
 type AppendableCluster interface {
 	SampleCluster
 	SysinfoCluster
+	SacctCluster
 
 	// Trigger flushing of all pending data.  In principle the flushing is asynchronous, but
 	// synchronously flushing the data is also allowed.
@@ -161,6 +180,7 @@ type AppendableCluster interface {
 	// that (JSON does, CSV does not).
 	AppendSamplesAsync(host, timestamp string, payload any) error
 	AppendSysinfoAsync(host, timestamp string, payload any) error
+	AppendSlurmSacctAsync(timestamp string, payload any) error
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -206,6 +226,16 @@ func OpenTransientSampleCluster(
 		return nil, errors.New("Empty list of files")
 	}
 	return newTransientSampleCluster(files, cfg), nil
+}
+
+func OpenTransientSacctCluster(
+	files []string,
+	cfg *config.ClusterConfig,
+) (*TransientSacctCluster, error) {
+	if len(files) == 0 {
+		return nil, errors.New("Empty list of files")
+	}
+	return newTransientSacctCluster(files, cfg), nil
 }
 
 // Drain all pending writes in the global logstore, close all the attached Cluster nodes, and return

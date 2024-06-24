@@ -15,6 +15,7 @@ import (
 	"sonalyze/add"
 	. "sonalyze/command"
 	. "sonalyze/common"
+	"sonalyze/sacct"
 )
 
 func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout, stderr io.Writer) error {
@@ -53,11 +54,13 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	switch cmd := rCmd.(type) {
 	case SampleAnalysisCommand:
 		curlArgs = append(curlArgs, "--get")
+	case *sacct.SacctCommand:
+		curlArgs = append(curlArgs, "--get")
 	case *add.AddCommand:
 		// This turns into a POST with data coming from the standard DataSource
 		var contentType string
 		switch {
-		case cmd.Sample:
+		case cmd.Sample, cmd.SlurmSacct:
 			contentType = "text/csv"
 		case cmd.Sysinfo:
 			contentType = "application/json"

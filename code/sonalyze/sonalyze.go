@@ -32,6 +32,7 @@ import (
 	"sonalyze/metadata"
 	"sonalyze/parse"
 	"sonalyze/profile"
+	"sonalyze/sacct"
 	"sonalyze/top"
 	"sonalyze/uptime"
 )
@@ -78,6 +79,7 @@ func sonalyze() error {
 		fmt.Fprintf(out, "  metadata - parse data, print stats and metadata\n")
 		fmt.Fprintf(out, "  parse    - parse, select and reformat input data\n")
 		fmt.Fprintf(out, "  profile  - print the profile of a particular job\n")
+		fmt.Fprintf(out, "  sacct    - print information extracted from SLURM sacct data\n")
 		fmt.Fprintf(out, "  top      - print per-cpu load information across time\n")
 		fmt.Fprintf(out, "  uptime   - print aggregated information about system uptime\n")
 		fmt.Fprintf(out, "  version  - print information about the program\n")
@@ -189,6 +191,8 @@ func (_ *standardCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd C
 		cmd = new(parse.ParseCommand)
 	case "profile":
 		cmd = new(profile.ProfileCommand)
+	case "sacct":
+		cmd = new(sacct.SacctCommand)
 	case "top":
 		cmd = new(top.TopCommand)
 	case "uptime":
@@ -238,6 +242,8 @@ func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func()
 	return func() { pprof.StopCPUProfile() }, nil
 }
 
+// TODO: Possibly top and sacct can be handled together, they are instances of AnalysisCommand
+
 func (_ *standardCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Reader, stdout, stderr io.Writer) error {
 	switch cmd := anyCmd.(type) {
 	case SampleAnalysisCommand:
@@ -246,6 +252,8 @@ func (_ *standardCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Read
 		return cmd.AddData(stdin, stdout, stderr)
 	case *top.TopCommand:
 		return cmd.Top(stdin, stdout, stderr)
+	case *sacct.SacctCommand:
+		return cmd.Sacct(stdin, stdout, stderr)
 	case *daemon.DaemonCommand:
 		return cmd.RunDaemon(stdin, stdout, stderr)
 	default:

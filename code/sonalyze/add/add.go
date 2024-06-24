@@ -10,6 +10,10 @@
 //  add -sysinfo
 //    Add sonar sysinfo data.  The default format is JSON.  There are no alternate formats at this
 //    time.
+//
+//  add -slurm-sacct
+//    Add sacct data.  The default formt is "free csv", ie csv with name=value field syntax
+//    and no fixed colums.  There are no alternate formats at this time.
 
 package add
 
@@ -34,8 +38,8 @@ import (
 // MT: Constant after initialization; immutable
 var addHelp = []string{
 	"Add new data to the database.  Data are read from stdin, the type and",
-	"format are implied by operations -sample or -sysinfo, one of which must",
-	"be specified.",
+	"format are implied by operations -sample, -sysinfo, or -slurm-sacct, one",
+	"of which must be specified.",
 }
 
 type AddCommand struct /* implements RemotableCommand */ {
@@ -44,8 +48,9 @@ type AddCommand struct /* implements RemotableCommand */ {
 	DataDirArgs
 	RemotingArgs
 	ConfigFileArgs
-	Sample  bool
-	Sysinfo bool
+	Sample     bool
+	Sysinfo    bool
+	SlurmSacct bool
 }
 
 func (ac *AddCommand) Summary() []string {
@@ -62,6 +67,8 @@ func (ac *AddCommand) Add(fs *flag.FlagSet) {
 		"Insert sonar sample data from stdin (zero or more records)")
 	fs.BoolVar(&ac.Sysinfo, "sysinfo", false,
 		"Insert sonar sysinfo data from stdin (exactly one record)")
+	fs.BoolVar(&ac.SlurmSacct, "slurm-sacct", false,
+		"Insert sacct data from stdin (zero or more records)")
 }
 
 func (ac *AddCommand) Validate() error {
@@ -80,8 +87,18 @@ func (ac *AddCommand) Validate() error {
 			e3 = errors.Join(e3, errors.New("Required -data-dir argument is absent"))
 		}
 	}
-	if ac.Sample == ac.Sysinfo {
-		e5 = errors.New("One of -sample or -sysinfo must be requested, and not both")
+	opts := 0
+	if ac.Sample {
+		opts++
+	}
+	if ac.Sysinfo {
+		opts++
+	}
+	if ac.SlurmSacct {
+		opts++
+	}
+	if opts != 1 {
+		e5 = errors.New("Exactly one of -sample, -sysinfo, -slurm-sacct must be requested")
 	}
 	return errors.Join(e1, e2, e3, e4, e5, e6)
 }
@@ -93,6 +110,7 @@ func (ac *AddCommand) ReifyForRemote(x *Reifier) error {
 	x.String("cluster", ac.Cluster)
 	x.Bool("sample", ac.Sample)
 	x.Bool("sysinfo", ac.Sysinfo)
+	x.Bool("slurm-sacct", ac.SlurmSacct)
 	return e1
 }
 
@@ -106,6 +124,8 @@ func (ac *AddCommand) AddData(stdin io.Reader, _, _ io.Writer) error {
 		return ac.addSonarFreeCsv(data)
 	case ac.Sysinfo:
 		return ac.addSysinfo(data)
+	case ac.SlurmSacct:
+		return ac.addSlurmSacctFreeCsv(data)
 	default:
 		panic("Unexpected")
 	}
@@ -167,7 +187,7 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 		host := fields["host"]
 		time := fields["time"]
 		if host == "" || time == "" {
-			// TODO: IMPROVEME: Benign if timestamp missing?
+			// TODO: IMPROVEME: Benign if timestamp missing (would have to drop data)?
 			return errors.New("Missing timestamp or host in Sonar sample data")
 		}
 		err = ds.AppendSamplesAsync(host, time, text)
@@ -177,6 +197,47 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 	}
 	if ac.Verbose {
 		Log.Infof("Sample records: %d", count)
+	}
+	return result
+}
+
+func (ac *AddCommand) addSlurmSacctFreeCsv(payload []byte) error {
+	if ac.Verbose {
+		Log.Infof("Sacct records %d bytes", len(payload))
+	}
+	cfg, err := MaybeGetConfig(ac.ConfigFile())
+	if err != nil {
+		return err
+	}
+	ds, err := db.OpenPersistentCluster(ac.DataDir, cfg)
+	if err != nil {
+		return err
+	}
+	defer ds.FlushAsync()
+	count := 0
+	scanner := bufio.NewScanner(bytes.NewReader(payload))
+	var result error
+	for scanner.Scan() {
+		count++
+		text := scanner.Text()
+		fields, err := getCsvFields(text)
+		if err != nil {
+			return fmt.Errorf("Can't unmarshal sacct free CSV: %v", err)
+		}
+		// Data are stored in the time-based database according to the End time, which we expect
+		// always to have because we only look at completed jobs.
+		time := fields["End"]
+		if time == "" {
+			// TODO: IMPROVEME: Benign if timestamp missing (would have to drop data)?
+			return errors.New("Missing timestamp in sacct data")
+		}
+		err = ds.AppendSlurmSacctAsync(time, text)
+		if err != nil && err != sonarlog.BadTimestampErr {
+			result = errors.Join(result, err)
+		}
+	}
+	if ac.Verbose {
+		Log.Infof("Sacct records: %d", count)
 	}
 	return result
 }

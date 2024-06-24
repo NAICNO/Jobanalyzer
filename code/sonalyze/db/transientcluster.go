@@ -1,6 +1,8 @@
 // A TransientSampleCluster maintains a static list of file names from which Sonar `ps` sample
 // records are read.  The files are read-only and not cacheable.  Mostly this functionality is used
 // for testing.
+//
+// A TransientSacctCluster does the same, but for Slurm `sacct` data.
 
 package db
 
@@ -13,11 +15,9 @@ import (
 	"go-utils/hostglob"
 )
 
-type TransientSampleCluster struct /* implements SampleCluster */ {
-	// MT: Immutable after initialization
-	samplesMethods  ReadSyncMethods
-	loadDataMethods ReadSyncMethods
+// This is a transient cluster mixin that has only one type of files.
 
+type TransientCluster struct {
 	// MT: Immutable after initialization
 	cfg   *config.ClusterConfig
 	files []*LogFile
@@ -26,10 +26,7 @@ type TransientSampleCluster struct /* implements SampleCluster */ {
 	closed bool
 }
 
-func newTransientSampleCluster(
-	fileNames []string,
-	cfg *config.ClusterConfig,
-) *TransientSampleCluster {
+func processTransientFiles(fileNames []string) []*LogFile {
 	if len(fileNames) == 0 {
 		panic("Empty list of files")
 	}
@@ -46,72 +43,130 @@ func newTransientSampleCluster(
 			),
 		)
 	}
-	return &TransientSampleCluster{
-		samplesMethods:  newSampleFileMethods(cfg, sampleFileKindSample),
-		loadDataMethods: newSampleFileMethods(cfg, sampleFileKindLoadDatum),
-		cfg:             cfg,
-		files:           files,
-	}
+	return files
 }
 
-func (fc *TransientSampleCluster) Config() *config.ClusterConfig {
-	fc.Lock()
-	defer fc.Unlock()
-	if fc.closed {
+func (tc *TransientCluster) Config() *config.ClusterConfig {
+	tc.Lock()
+	defer tc.Unlock()
+	if tc.closed {
 		return nil
 	}
 
-	return fc.cfg
+	return tc.cfg
 }
 
-func (fc *TransientSampleCluster) Close() error {
-	fc.Lock()
-	defer fc.Unlock()
-	if fc.closed {
+func (tc *TransientCluster) Close() error {
+	tc.Lock()
+	defer tc.Unlock()
+	if tc.closed {
 		return ClusterClosedErr
 	}
 
-	fc.closed = true
+	tc.closed = true
 	return nil
 }
 
-func (fc *TransientSampleCluster) SampleFilenames(
-	_, _ time.Time,
-	_ *hostglob.HostGlobber,
-) ([]string, error) {
-	fc.Lock()
-	defer fc.Unlock()
-	if fc.closed {
+func (tc *TransientCluster) Filenames() ([]string, error) {
+	tc.Lock()
+	defer tc.Unlock()
+	if tc.closed {
 		return nil, ClusterClosedErr
 	}
 
-	return filenames(fc.files), nil
+	return filenames(tc.files), nil
 }
 
-func (fc *TransientSampleCluster) ReadSamples(
+type TransientSampleCluster struct /* implements SampleCluster */ {
+	// MT: Immutable after initialization
+	samplesMethods  ReadSyncMethods
+	loadDataMethods ReadSyncMethods
+
+	TransientCluster
+}
+
+func newTransientSampleCluster(
+	fileNames []string,
+	cfg *config.ClusterConfig,
+) *TransientSampleCluster {
+	return &TransientSampleCluster{
+		samplesMethods:  newSampleFileMethods(cfg, sampleFileKindSample),
+		loadDataMethods: newSampleFileMethods(cfg, sampleFileKindLoadDatum),
+		TransientCluster: TransientCluster{
+			cfg:   cfg,
+			files: processTransientFiles(fileNames),
+		},
+	}
+}
+
+func (tsc *TransientSampleCluster) SampleFilenames(
+	_, _ time.Time,
+	_ *hostglob.HostGlobber,
+) ([]string, error) {
+	return tsc.Filenames()
+}
+
+func (tsc *TransientSampleCluster) ReadSamples(
 	_, _ time.Time,
 	_ *hostglob.HostGlobber,
 	verbose bool,
 ) (samples []*Sample, dropped int, err error) {
-	fc.Lock()
-	defer fc.Unlock()
-	if fc.closed {
+	tsc.Lock()
+	defer tsc.Unlock()
+	if tsc.closed {
 		return nil, 0, ClusterClosedErr
 	}
 
-	return readSampleSlice(fc.files, verbose, fc.samplesMethods)
+	return readSampleSlice(tsc.files, verbose, tsc.samplesMethods)
 }
 
-func (fc *TransientSampleCluster) ReadLoadData(
+func (tsc *TransientSampleCluster) ReadLoadData(
 	_, _ time.Time,
 	_ *hostglob.HostGlobber,
 	verbose bool,
 ) (data []*LoadDatum, dropped int, err error) {
-	fc.Lock()
-	defer fc.Unlock()
-	if fc.closed {
+	tsc.Lock()
+	defer tsc.Unlock()
+	if tsc.closed {
 		return nil, 0, ClusterClosedErr
 	}
 
-	return readLoadDatumSlice(fc.files, verbose, fc.loadDataMethods)
+	return readLoadDatumSlice(tsc.files, verbose, tsc.loadDataMethods)
+}
+
+type TransientSacctCluster struct /* implements SacctCluster */ {
+	// MT: Immutable after initialization
+	methods ReadSyncMethods
+
+	TransientCluster
+}
+
+func newTransientSacctCluster(
+	fileNames []string,
+	cfg *config.ClusterConfig,
+) *TransientSacctCluster {
+	return &TransientSacctCluster{
+		methods: newSacctFileMethods(cfg),
+		TransientCluster: TransientCluster{
+			cfg:   cfg,
+			files: processTransientFiles(fileNames),
+		},
+	}
+}
+
+func (tsc *TransientSacctCluster) SacctFilenames(_, _ time.Time) ([]string, error) {
+	return tsc.Filenames()
+}
+
+func (tsc *TransientSacctCluster) ReadSacctData(
+	fromDate, toDate time.Time,
+	verbose bool,
+) (records []*SacctInfo, dropped int, err error) {
+	tsc.Lock()
+	defer tsc.Unlock()
+	if tsc.closed {
+		return nil, 0, ClusterClosedErr
+	}
+
+	return readSacctSlice(tsc.files, verbose, tsc.methods)
 }
