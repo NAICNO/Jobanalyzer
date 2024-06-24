@@ -2,9 +2,9 @@
 //
 // This server responds to GET and POST requests carrying parameters that specify how to run
 // sonalyze against a local data store.  The path for analysis commands is the sonalyze command
-// name, eg, `GET /jobs?...` will run `sonalyze jobs`.  The path for add commands is a keyword
-// describing the data (this is compatible with existing infra), eg `POST /sonar-freecsv?...` will
-// run `sonalyze add -sample`.
+// name, eg, `GET /jobs?...` will run `sonalyze jobs`.  The path for add commands is either `POST
+// /add?...` with the appropriate arguments, or for backward compatibility with existing infra, a
+// keyword describing the data, eg `POST /sonar-freecsv?...` will run `sonalyze add -sample`.
 //
 // A query parameter `cluster=clusterName` is required for all requests, it names the cluster we're
 // operating within and determines a bunch of file paths.

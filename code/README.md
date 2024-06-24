@@ -28,6 +28,7 @@
 #### Work in progress
 
 * `dashboard-2/` - New front-end, WIP
+* `sacctd/` - Go source code for a core program that runs Slurm's `sacct` on a cluster and massages the output for exfiltration
 
 #### Attic - obsolete but not deleted
 

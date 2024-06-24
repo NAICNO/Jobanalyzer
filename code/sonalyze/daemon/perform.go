@@ -38,6 +38,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	http.HandleFunc("/profile", httpGetHandler(dc, "profile"))
 	http.HandleFunc("/parse", httpGetHandler(dc, "parse"))
 	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata"))
+	http.HandleFunc("/sacct", httpGetHandler(dc, "sacct"))
 	// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
 	// upload infra already running on the clusters.
 	http.HandleFunc("/sonar-freecsv", httpPostHandler(dc, "sample", "text/csv"))
@@ -139,11 +140,13 @@ func httpGetHandler(
 
 func httpAddHandler(dc *DaemonCommand) func(http.ResponseWriter, *http.Request) {
 	forSample := httpPostHandler(dc, "sample", "text/csv")
+	forSlurmSacct := httpPostHandler(dc, "slurm-sacct", "text/csv")
 	forSysinfo := httpPostHandler(dc, "sysinfo", "application/json")
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
+
+		var e1, e2, e3, e4 error
 		vs, isSample := query["sample"]
-		var e1, e2, e3 error
 		if isSample && (len(vs) != 1 || vs[0] != magicBoolean) {
 			e1 = errors.New("Bad `sample` parameter")
 		}
@@ -151,10 +154,24 @@ func httpAddHandler(dc *DaemonCommand) func(http.ResponseWriter, *http.Request) 
 		if isSysinfo && (len(ws) != 1 || ws[0] != magicBoolean) {
 			e2 = errors.New("Bad `sysinfo` parameter")
 		}
-		if isSample == isSysinfo {
-			e3 = errors.New("Need `-sample` or `-sysinfo` but not both")
+		xs, isSlurmSacct := query["slurm-sacct"]
+		if isSlurmSacct && (len(xs) != 1 || xs[0] != magicBoolean) {
+			e3 = errors.New("Bad `slurm-sacct` parameter")
 		}
-		if err := errors.Join(e1, e2, e3); err != nil {
+		n := 0
+		if isSample {
+			n++
+		}
+		if isSysinfo {
+			n++
+		}
+		if isSlurmSacct {
+			n++
+		}
+		if n != 1 {
+			e4 = errors.New("Need exactly one of `-sample`, `-sysinfo`, or `-slurm-sacct`")
+		}
+		if err := errors.Join(e1, e2, e3, e4); err != nil {
 			w.WriteHeader(400)
 			fmt.Fprintf(w, "Bad operation: %s", err.Error())
 			if dc.Verbose {
@@ -167,6 +184,8 @@ func httpAddHandler(dc *DaemonCommand) func(http.ResponseWriter, *http.Request) 
 			forSample(w, r)
 		case isSysinfo:
 			forSysinfo(w, r)
+		case isSlurmSacct:
+			forSlurmSacct(w, r)
 		default:
 			panic("Unexpected")
 		}

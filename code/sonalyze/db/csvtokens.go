@@ -193,6 +193,10 @@ func (t *CsvTokenizer) ScanEol() {
 	for t.buf[t.ix] != '\n' {
 		t.ix++
 	}
+	if t.ix != t.lim {
+		t.ix++
+	}
+	t.startOfLine = true
 }
 
 // Given `start` and non-sentinel `eqloc` values returned with a token and a string `tag`, check if

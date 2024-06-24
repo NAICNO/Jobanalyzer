@@ -1,0 +1,159 @@
+Older notes, ignore these
+
+/*
+   It looks like if we use -s to select by state we have to use a start/end time window and we will
+   only see jobs that entered that state in that time window.  For example with -s COMPLETED
+   we'll see jobs that completed in the time window given.
+
+bash-5.1$ sacct -aP -s CD -S now-2hours -E now -o Account,State,User,Start,End,JobName
+Account|State|User|Start|End|JobName
+ec232|COMPLETED|ec-pubuduss|2024-08-01T02:18:39|2024-08-01T08:26:58|nf-germline_cpu_gatk_bqsr_(1)
+ec232|COMPLETED||2024-08-01T02:18:39|2024-08-01T08:26:58|batch
+ec232|COMPLETED||2024-08-01T02:18:39|2024-08-01T08:26:58|extern
+
+   Expanding that to now-24hours would greatly expand the list.
+
+   So if we run sacctd every hour with a a two hour window ("now-2hours" .. "now"), we should see
+   jobs that entered that state in that two-hour window, and normally there would be overlap between
+   runs, but the records should be identical and easily filtered (for some states).
+
+   The states we most care about are "CANCELLED", "COMPLETED", "DEADLINE", "FAILED",
+   "OUT_OF_MEMORY", and "TIMEOUT", because these pertain to how the job behaved.
+
+   We probably should not do RUNNING unless we have good reason to.
+
+   We can filter against the JobName: exclude "interactive" for sure, and maybe "batch" and "extern"
+   (less sure about those, working on it).  I note for example a job where the JobName="batch" step
+   signalled OUT_OF_MEMORY and the main step then signalled CANCELLED.  Presumably this is not
+   uninteresting.
+
+   We could filter tiny jobs (by reservation size), or not.  Might be easier to filter at the sink.
+
+   Not obvious that this isn't just a shell script and that all the parsing should be done at the
+   sink - depends on whether we do further filtering here.  Note for example that if we want to
+   filter out interactive multi-step jobs we must first discover which jobs are interactive, then
+   cull all other lines with the major job ID of the first line.  This requires enough parsing and
+   accumulation that we might do a proper program.
+
+   There's also an advantage to using CSV or JSON - it makes ingest easier on the JobAnalyzer side.
+
+   Data volume is unclear and may depend greatly on whether we filter small jobs, or filter by eg
+   account name (excluding sysadmin accounts for example).  The data compress exceedingly well
+   however.
+
+   $ sacct -aP -s CANCELLED,COMPLETED,DEADLINE,FAILED,OUT_OF_MEMORY,TIMEOUT -S now-2hours -E now -o JobId,JobName,User,Account,State,Start,End,ReqCPUS,ReqMem,CPUTimeRaw
+
+
+   But what are the *questions* we are asking?
+
+   - relationship between used memory and requested memory, maybe this is MaxRSS or AveRSS
+   - relationship between used cores and requested cores, this is related to AveCPU
+   - but we are also asking about *balance* and maybe that's where sonar data come in
+
+   sacct will tell us what was requested - though not nearly as much as we want to know.  It doesn't
+   have the script.  It doesn't know the modules.
+
+   we get *slightly* more accurate usage info than we get from sonar, depending on the running time of
+   the steps.
+
+   we get some request information - requested cpus, requested memory.  this is the main win.
+
+   we get the reason a job ended.
+
+   we get account information, which may be useful for reporting to mgmt.
+
+   we probably don't care about acct info while the job is running, so reporting only terminated
+   jobs is fine.
+
+   sonar data will tell us how the job ran - about the balance of computation on all the cores it's
+   running.
+
+
+   squeue also can provide a lot of data about pending jobs: queue length, time a job has been
+   pending.  it can display a lot of information about resource requests, it seems even more than
+   sacct.  but it can't say anything about completed jobs, and so we can't really guarantee
+   that we see everything.  it becomes more of a sampler.
+
+   the question is how to handle these data.  should they be produced by different components
+   running independently and reporting independently, probably to different ingest points?  or
+   should they run with more coordination and report data jointly?
+
+   i tend to think the former: sacctd can run any time and produce a lot of data, so maybe once an
+   hour.  squeued might run every five minutes.
+
+ */
+
+
+// WIP: Run sacct to extract job information; massage it; produce useful summary on stdout in free
+// CSV format for subsequent exfiltration.  See `sonalyze add -sacct-info` for the ingestion code.
+
+// This program should runs hourly or so (via cron or a systemd timer) on a single reliable node on
+// a cluster, maybe on the cluster master node.  Certainly this wants to have a larger reporting window
+// for the query (see -window) than the running interval.
+//
+// The consumer of the data will have to handle overlapping and redundant data for several reasons:
+//
+// - The overlapping reporting window will result in overlapping data
+//
+// - For redundancy - if the "reliable" node is not fully reliable - it may be desirable to run
+//   sacctd on two different nodes, resulting in duplicated data.
+//
+// As there is no local state, the overlap can't be resolved on the producing side.
+
+// TODO: Main issue is, what do we transmit?  Consider this triplet which is typical for Fox:
+//
+// v=0.1.0,time=2024-07-29T15:11:52+02:00,JobIDRaw=748046,User=ec313-autotekst,JobName=vms-transcription-job,State=COMPLETED,CPUTime=00:15:36,Elapsed=00:01:57,ExitCode=0:0,ReqCPUS=8,ReqMem=64G,ReqNodes=1,AllocNodes=1,AllocCPUS=8,Start=2024-07-29T14:45:23,End=2024-07-29T14:47:20
+// v=0.1.0,time=2024-07-29T15:11:52+02:00,JobIDRaw=748046.batch,JobName=batch,State=COMPLETED,CPUTime=00:15:36,Elapsed=00:01:57,ExitCode=0:0,ReqCPUS=8,ReqNodes=1,AllocNodes=1,AllocCPUS=8,Start=2024-07-29T14:45:23,End=2024-07-29T14:47:20
+// v=0.1.0,time=2024-07-29T15:11:52+02:00,JobIDRaw=748046.extern,JobName=extern,State=COMPLETED,CPUTime=00:15:36,Elapsed=00:01:57,ExitCode=0:0,ReqCPUS=8,ReqNodes=1,AllocNodes=1,AllocCPUS=8,Start=2024-07-29T14:45:23,End=2024-07-29T14:47:20
+//
+// This represents one job, with steps `.batch` and `.extern`, and additionally there can be array
+// steps, and "normal" steps, and interactive steps (some of those may overlap, the terminology is
+// a little fluid).
+//
+// Most fields in the three records appear to be the same but one would imagine for other types of
+// steps this would not be the case.  Observe the user name and memory allocation are absent from
+// the step records above.  Observe also that for other types of steps, some steps could be
+// completed while the main job is not.
+//
+// Question: What does slurm report if there is a '|' in the command name (job name)?  Can there be?
+// We could fix any issue by always having the job name last in the list, it's a special case but
+// would work.
+//
+// A more interesting one: The former is the 60-minute view from sacctd.  The latter is the listing
+// from sacct -j, giving us all the steps.
+//
+/*
+v=0.1.0,time=2024-07-30T09:19:24+02:00,JobIDRaw=748319.14,JobName=python,State=COMPLETED,CPUTime=16:45:13,Elapsed=16:45:13,ExitCode=0:0,ReqCPUS=1,ReqNodes=1,AllocNodes=1,AllocCPUS=1,Start=2024-07-29T16:01:26,End=2024-07-30T08:46:39
+v=0.1.0,time=2024-07-30T09:19:24+02:00,JobIDRaw=748319.15,JobName=python,State=COMPLETED,CPUTime=00:00:01,Elapsed=00:00:01,ExitCode=0:0,ReqCPUS=1,ReqNodes=1,AllocNodes=1,AllocCPUS=1,Start=2024-07-30T08:46:39,End=2024-07-30T08:46:40
+v=0.1.0,time=2024-07-30T09:19:24+02:00,JobIDRaw=748319.16,JobName=python,State=COMPLETED,CPUTime=00:00:00,Elapsed=00:00:00,ExitCode=0:0,ReqCPUS=1,ReqNodes=1,AllocNodes=1,AllocCPUS=1,Start=2024-07-30T08:46:40,End=2024-07-30T08:46:40
+v=0.1.0,time=2024-07-30T09:19:24+02:00,JobIDRaw=748319.17,JobName=python,State=COMPLETED,CPUTime=00:00:00,Elapsed=00:00:00,ExitCode=0:0,ReqCPUS=1,ReqNodes=1,AllocNodes=1,AllocCPUS=1,Start=2024-07-30T08:46:40,End=2024-07-30T08:46:40
+v=0.1.0,time=2024-07-30T09:19:24+02:00,JobIDRaw=748319.18,JobName=python,State=COMPLETED,CPUTime=00:00:01,Elapsed=00:00:01,ExitCode=0:0,ReqCPUS=1,ReqNodes=1,AllocNodes=1,AllocCPUS=1,Start=2024-07-30T08:46:40,End=2024-07-30T08:46:41
+v=0.1.0,time=2024-07-30T09:19:24+02:00,JobIDRaw=748319.19,JobName=python,State=COMPLETED,CPUTime=00:00:00,Elapsed=00:00:00,ExitCode=0:0,ReqCPUS=1,ReqNodes=1,AllocNodes=1,AllocCPUS=1,Start=2024-07-30T08:46:41,End=2024-07-30T08:46:41
+v=0.1.0,time=2024-07-30T09:19:24+02:00,JobIDRaw=748319.20,JobName=python,State=RUNNING,CPUTime=00:32:43,Elapsed=00:32:43,ExitCode=0:0,ReqCPUS=1,ReqNodes=1,AllocNodes=1,AllocCPUS=1,Start=2024-07-30T08:46:41
+
+JobIDRaw|User|JobName|State|CPUTime|Elapsed|ExitCode|ReqCPUS|ReqMem|ReqNodes|AllocNodes|AllocCPUS|Start|End
+748319|ec-puneetr|foldx|RUNNING|17:23:50|17:23:50|0:0|1|1G|1|1|1|2024-07-29T16:01:04|Unknown
+748319.batch||batch|RUNNING|17:23:50|17:23:50|0:0|1||1|1|1|2024-07-29T16:01:04|Unknown
+748319.extern||extern|RUNNING|17:23:50|17:23:50|0:0|1||1|1|1|2024-07-29T16:01:04|Unknown
+748319.0||python|COMPLETED|00:00:02|00:00:02|0:0|1||1|1|1|2024-07-29T16:01:05|2024-07-29T16:01:07
+748319.1||python|COMPLETED|00:00:01|00:00:01|0:0|1||1|1|1|2024-07-29T16:01:07|2024-07-29T16:01:08
+748319.2||python|COMPLETED|00:00:02|00:00:02|0:0|1||1|1|1|2024-07-29T16:01:08|2024-07-29T16:01:10
+748319.3||python|COMPLETED|00:00:01|00:00:01|0:0|1||1|1|1|2024-07-29T16:01:10|2024-07-29T16:01:11
+748319.4||python|COMPLETED|00:00:02|00:00:02|0:0|1||1|1|1|2024-07-29T16:01:11|2024-07-29T16:01:13
+748319.5||python|COMPLETED|00:00:01|00:00:01|0:0|1||1|1|1|2024-07-29T16:01:13|2024-07-29T16:01:14
+748319.6||python|COMPLETED|00:00:02|00:00:02|0:0|1||1|1|1|2024-07-29T16:01:14|2024-07-29T16:01:16
+748319.7||python|COMPLETED|00:00:01|00:00:01|0:0|1||1|1|1|2024-07-29T16:01:16|2024-07-29T16:01:17
+748319.8||python|COMPLETED|00:00:01|00:00:01|0:0|1||1|1|1|2024-07-29T16:01:17|2024-07-29T16:01:18
+748319.9||python|COMPLETED|00:00:02|00:00:02|0:0|1||1|1|1|2024-07-29T16:01:18|2024-07-29T16:01:20
+748319.10||python|COMPLETED|00:00:01|00:00:01|0:0|1||1|1|1|2024-07-29T16:01:20|2024-07-29T16:01:21
+748319.11||python|COMPLETED|00:00:02|00:00:02|0:0|1||1|1|1|2024-07-29T16:01:21|2024-07-29T16:01:23
+748319.12||python|COMPLETED|00:00:02|00:00:02|0:0|1||1|1|1|2024-07-29T16:01:23|2024-07-29T16:01:25
+748319.13||python|COMPLETED|00:00:01|00:00:01|0:0|1||1|1|1|2024-07-29T16:01:25|2024-07-29T16:01:26
+748319.14||python|COMPLETED|16:45:13|16:45:13|0:0|1||1|1|1|2024-07-29T16:01:26|2024-07-30T08:46:39
+748319.15||python|COMPLETED|00:00:01|00:00:01|0:0|1||1|1|1|2024-07-30T08:46:39|2024-07-30T08:46:40
+748319.16||python|COMPLETED|00:00:00|00:00:00|0:0|1||1|1|1|2024-07-30T08:46:40|2024-07-30T08:46:40
+748319.17||python|COMPLETED|00:00:00|00:00:00|0:0|1||1|1|1|2024-07-30T08:46:40|2024-07-30T08:46:40
+748319.18||python|COMPLETED|00:00:01|00:00:01|0:0|1||1|1|1|2024-07-30T08:46:40|2024-07-30T08:46:41
+748319.19||python|COMPLETED|00:00:00|00:00:00|0:0|1||1|1|1|2024-07-30T08:46:41|2024-07-30T08:46:41
+748319.20||python|RUNNING|00:38:13|00:38:13|0:0|1||1|1|1|2024-07-30T08:46:41|Unknown
+*/
