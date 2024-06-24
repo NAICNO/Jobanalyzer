@@ -1,5 +1,3 @@
-// This may go away (in some part) when we move to Go 1.21 or 1.22
-
 package maps
 
 func Keys[K comparable, V any](xs map[K]V) []K {

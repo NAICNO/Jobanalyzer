@@ -81,10 +81,9 @@ func WriteFreeCSV(filename string, fields []string, data []map[string]string) er
 	}
 	// NOTE, if there are error exits before the rename then they must remove the temp file.
 	wr := csv.NewWriter(output_file)
+	r := make([]string, 0, len(fields))
 	for _, row := range data {
-		// TODO: With go 1.21, we can hoist this and clear() it after the write, instead of
-		// reallocating each time through the loop.
-		r := []string{}
+		r = r[0:0]
 		for _, field_name := range fields {
 			if field_value, present := row[field_name]; present {
 				r = append(r, field_name+"="+field_value)

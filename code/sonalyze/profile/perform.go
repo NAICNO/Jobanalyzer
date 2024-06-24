@@ -9,7 +9,6 @@ import (
 	"go-utils/config"
 	"go-utils/hostglob"
 	"go-utils/maps"
-	. "go-utils/minmax"
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
@@ -93,7 +92,7 @@ func (pc *ProfileCommand) Perform(
 		currentTime := int64(math.MaxInt64)
 		for i, p := range processes {
 			if indices[i] < len(*p) {
-				currentTime = MinInt64(currentTime, (*p)[indices[i]].S.Timestamp)
+				currentTime = min(currentTime, (*p)[indices[i]].S.Timestamp)
 			}
 		}
 		if currentTime == math.MaxInt64 {
@@ -128,7 +127,7 @@ func (pc *ProfileCommand) Perform(
 		rowNames := m.rows()
 		colNames := m.cols()
 		for r := 0; r < len(rowNames); r += b {
-			myrowNames := rowNames[r:MinInt(r+b, len(rowNames))]
+			myrowNames := rowNames[r:min(r+b, len(rowNames))]
 			newTime := myrowNames[len(myrowNames)/2]
 			for _, cn := range colNames {
 				var count int

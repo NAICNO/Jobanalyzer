@@ -9,7 +9,6 @@ import (
 	"go-utils/gpuset"
 	"go-utils/hostglob"
 	"go-utils/maps"
-	"go-utils/minmax"
 	"go-utils/slices"
 	. "sonalyze/common"
 	"sonalyze/db"
@@ -179,8 +178,8 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 			latest := int64(0)
 			for host := range jobData.hosts {
 				probe := bounds[host]
-				earliest = minmax.MinInt64(earliest, probe.Earliest)
-				latest = minmax.MaxInt64(latest, probe.Latest)
+				earliest = min(earliest, probe.Earliest)
+				latest = max(latest, probe.Latest)
 			}
 			newBounds[hostname] = Timebound{earliest, latest}
 		}
