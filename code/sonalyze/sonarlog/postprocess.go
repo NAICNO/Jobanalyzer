@@ -3,6 +3,9 @@
 package sonarlog
 
 import (
+	"errors"
+	"maps"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -128,6 +131,7 @@ func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
 	// generation may be delayed due to disk waits, which may be long because network disks may
 	// go away.  It should not matter which of the duplicate records we remove here, they should
 	// be identical.
+	// TODO: Go 1.21: Use slices.CompactFunc instead?
 	for _, stream := range streams {
 		es := *stream
 		good := 0
@@ -195,6 +199,7 @@ func ComputeAndFilter(streams InputStreamSet, filter func(*Sample) bool) {
 	}
 
 	// Remove elements that don't pass the filter and pack the array.  This preserves ordering.
+	// TODO: OPTIMIZEME: Clear the elements beyond dst?
 	for _, stream := range streams {
 		dst := 0
 		es := *stream
@@ -240,13 +245,119 @@ func parseVersion(v Ustr) (major, minor, bugfix int) {
 }
 
 func removeEmptyStreams(streams InputStreamSet) {
-	dead := make([]InputStreamKey, 0)
-	for key, stream := range streams {
-		if len(*stream) == 0 {
-			dead = append(dead, key)
+	maps.DeleteFunc(streams, func(key InputStreamKey, stream *SampleStream) bool {
+		return len(*stream) == 0
+	})
+}
+
+func rectifyLoadData(data []*db.LoadDatum) (streams LoadDataSet, bounds Timebounds, errors int) {
+	// Divide data among the hosts and decode each array
+	streams = make(LoadDataSet)
+	for _, d := range data {
+		decoded, err := decodeLoadData(d.Encoded)
+		if err != nil {
+			errors++
+			continue
+		}
+		datum := LoadDatum{
+			Time:    d.Timestamp,
+			Decoded: decoded,
+		}
+		if stream, found := streams[d.Host]; found {
+			stream.Data = append(stream.Data, datum)
+		} else {
+			stream := LoadData{
+				Host: d.Host,
+				Data: []LoadDatum{datum},
+			}
+			streams[d.Host] = &stream
 		}
 	}
-	for _, key := range dead {
-		delete(streams, key)
+
+	// Sort each per-host list by ascending time
+	for _, v := range streams {
+		slices.SortFunc(v.Data, LoadDatumLessByTime)
 	}
+
+	// Compute bounds
+	bounds = make(Timebounds)
+	for k, v := range streams {
+		// By construction, v.Data is never empty here
+		bounds[k] = Timebound{v.Data[0].Time, v.Data[len(v.Data)-1].Time}
+	}
+
+	// Remove duplicates in each per-host list
+	for _, v := range streams {
+		v.Data = slices.CompactFunc(v.Data, func(a, b LoadDatum) bool {
+			return a.Time == b.Time
+		})
+	}
+
+	// Remove completely empty streams
+	maps.DeleteFunc(streams, func(k Ustr, v *LoadData) bool {
+		return len(v.Data) == 0
+	})
+
+	return
+}
+
+// Decode base-45 delta-encoded data, see Sonar documentation.
+
+const (
+	base       = 45
+	none       = uint8(255)
+	initial    = "(){}[]<>+-abcdefghijklmnopqrstuvwxyz!@#$%^&*_"
+	subsequent = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ~|';:.?/`"
+)
+
+var (
+	initialVal    = make([]byte, 256)
+	subsequentVal = make([]byte, 256)
+	decodeError   = errors.New("Could not decode load datum")
+	noDataError   = errors.New("Empty data array")
+)
+
+func init() {
+	for i := 0; i < 255; i++ {
+		initialVal[i] = none
+		subsequentVal[i] = none
+	}
+	for i := byte(0); i < base; i++ {
+		initialVal[initial[i]] = i
+		subsequentVal[subsequent[i]] = i
+	}
+}
+
+func decodeLoadData(data []byte) ([]uint64, error) {
+	var (
+		// shift==0 means no value
+		val, shift uint64
+		vals       = make([]uint64, 0, len(data)*3)
+	)
+	for _, c := range data {
+		if initialVal[c] != none {
+			if shift != 0 {
+				vals = append(vals, val)
+			}
+			val = uint64(initialVal[c])
+			shift = base
+			continue
+		}
+		if subsequentVal[c] == none {
+			return nil, decodeError
+		}
+		val += uint64(subsequentVal[c]) * shift
+		shift *= base
+	}
+	if shift != 0 {
+		vals = append(vals, val)
+	}
+	if len(vals) == 0 {
+		return nil, noDataError
+	}
+	minVal := vals[0]
+	for i := 1; i < len(vals); i++ {
+		vals[i] += minVal
+	}
+	return vals[1:], nil
 }

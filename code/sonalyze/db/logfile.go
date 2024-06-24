@@ -49,12 +49,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"sync"
-	"unsafe"
 
-	"go-utils/config"
 	. "sonalyze/common"
 )
 
@@ -62,22 +61,38 @@ const (
 	newline = 10
 )
 
+// ReadSyncMethods allows ReadSync to handle a diversity of file types and their caching
+// generically.  See eg samplefile.go, sysinfofile.go.
+
+type ReadSyncMethods interface {
+	// Return true iff the files handled by this ReadSyncMethods can be stored in the cache.
+	IsCacheable() bool
+
+	// The `payload` is the result of reading from file or cache.  It can contain multiple data
+	// streams (for example, sonar sample files contain both sonar sample data and the per-cpu load
+	// data, which piggyback on some of the samples).  This method selects the data stream handled
+	// by this adapter.
+	SelectDataFromPayload(payload any) (data any)
+
+	// Actually read the file and returns a container for all the data streams in it, along with a
+	// count of soft errors and any hard errors.  All returned records of all streams have been
+	// rectified as necessary - the rectified records will be stored in cache, if applicabl.
+	ReadDataLockedAndRectify(
+		input io.Reader,
+		uf *UstrCache,
+		verbose bool,
+	) (payload any, softErrors int, err error)
+
+	// Given rectified data just read from the file, compute their nominal cache occupancy.  It is
+	// unspecified for now whether this is the "ideal" occupancy (using len(), say) or the "actual"
+	// occupancy (using cap(), say).
+	CachedSizeOfPayload(payload any) int64
+}
+
 type fileAttr int
 
 const (
-	fileCacheable fileAttr = 1 << iota
-	fileAppendable
-	fileSonarSamples // `sonar ps` data
-	fileSonarSysinfo // `sonar sysinfo` data
-)
-const (
-	fileContentMask = fileSonarSamples | fileSonarSysinfo
-)
-
-var (
-	// This is applied to a set of samples newly read from a file, before caching.
-	// MT: Constant after initialization; immutable
-	SampleRectifier func([]*Sample, *config.ClusterConfig) []*Sample
+	fileAppendable fileAttr = 1 << iota
 )
 
 // The components of the Fullname are broken out so as to allow strings to be shared as much as
@@ -97,9 +112,9 @@ func (fn Fullname) String() string {
 	return path.Join(fn.cluster, fn.dirname, fn.basename)
 }
 
-type sampleCachePayload struct {
-	samples []*Sample
-	dropped int
+type cachePayload struct {
+	payload    any // specific to the file type
+	softErrors int // number of soft errors encountered during read/rectifiy
 }
 
 type LogFile struct {
@@ -118,9 +133,6 @@ type LogFile struct {
 }
 
 func newLogFile(fn Fullname, attrs fileAttr) *LogFile {
-	if (attrs & fileContentMask) == 0 {
-		panic("Content type must be set")
-	}
 	return &LogFile{
 		Fullname: fn,
 		attrs:    attrs,
@@ -160,24 +172,14 @@ func (lf *LogFile) AppendAsync(payload any) error {
 	return nil
 }
 
-var (
-	// MT: Constant after initialization; immutable
-	perSampleSize int64
-)
-
-func init() {
-	var s Sample
-	perSampleSize = int64(unsafe.Sizeof(s) + unsafe.Sizeof(&s))
-}
-
 // The `data` is concretely a []T, specifically not a type with ~[]T.  Generic reader code depends
 // on this to collect read results.
 
 func (lf *LogFile) ReadSync(
 	uf *UstrCache,
 	verbose bool,
-	cfg *config.ClusterConfig,
-) (data any, badRecords int, err error) {
+	reader ReadSyncMethods,
+) (data any, softErrors int, err error) {
 	lf.Lock()
 	defer lf.Unlock()
 
@@ -191,50 +193,35 @@ func (lf *LogFile) ReadSync(
 		return
 	}
 
-	switch {
-	case (lf.attrs & fileSonarSamples) != 0:
+	var payload any
+
+	gotCachedData := false
+	if reader.IsCacheable() && CacheEnabled() {
 		if isCached, cachedData := lf.cacheReadLocked(); isCached {
-			c := cachedData.(*sampleCachePayload)
-			data, badRecords = c.samples, c.dropped
-		} else {
-			var inputFile *os.File
-			inputFile, err = os.Open(lf.Fullname.String())
-			if err == nil {
-				defer inputFile.Close()
-				var samples []*Sample
-				samples, badRecords, err = ParseSonarLog(inputFile, uf, verbose)
-				if SampleRectifier != nil {
-					// There is a tricky invariant here that we're not going to check: If data are
-					// cached, then we require not just that there is a ClusterConfig for the
-					// cluster, but config info for each node. This is so that we can rectify the
-					// input data based on system info.  If there is no config for the cluster or
-					// the code then these data may remain wonky.
-					//
-					// The reason we don't check the invariant is that the effects of not having a
-					// config are fairly benign, and also that so much else depends on having a
-					// config that we'll get a more thorough check in other ways.
-					samples = SampleRectifier(samples, cfg)
-				}
-				data = samples
-				if err == nil && CacheEnabled() {
-					lf.cacheWriteLocked(
-						&sampleCachePayload{samples, badRecords},
-						perSampleSize*int64(len(samples)),
-					)
-				}
-			}
+			payload = cachedData.(*cachePayload).payload
+			softErrors = cachedData.(*cachePayload).softErrors
+			gotCachedData = true
 		}
-	case (lf.attrs & fileSonarSysinfo) != 0:
-		var inputFile *os.File
-		inputFile, err = os.Open(lf.Fullname.String())
-		if err == nil {
-			defer inputFile.Close()
-			data, err = ParseSysinfoLog(inputFile, verbose)
-		}
-	default:
-		panic("Unknown content type")
 	}
 
+	if !gotCachedData {
+		var inputFile *os.File
+		inputFile, err = os.Open(lf.Fullname.String())
+		if err != nil {
+			return
+		}
+		defer inputFile.Close()
+		payload, softErrors, err = reader.ReadDataLockedAndRectify(inputFile, uf, verbose)
+		if err != nil {
+			return
+		}
+		if reader.IsCacheable() && CacheEnabled() {
+			size := reader.CachedSizeOfPayload(payload)
+			lf.cacheWriteLocked(&cachePayload{payload, softErrors}, size)
+		}
+	}
+
+	data = reader.SelectDataFromPayload(payload)
 	return
 }
 
@@ -293,4 +280,12 @@ func (lf *LogFile) flushSyncLocked() (err error) {
 		}
 	}
 	return
+}
+
+func filenames(files []*LogFile) []string {
+	names := make([]string, len(files))
+	for i, fn := range files {
+		names[i] = fn.Fullname.String()
+	}
+	return names
 }

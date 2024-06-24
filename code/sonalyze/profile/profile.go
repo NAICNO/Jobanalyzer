@@ -7,7 +7,7 @@ import (
 	. "sonalyze/command"
 )
 
-type ProfileCommand struct /* implements AnalysisCommand */ {
+type ProfileCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
 
 	// Filtering and aggregation

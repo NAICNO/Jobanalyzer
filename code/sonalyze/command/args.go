@@ -278,11 +278,30 @@ func (args *SourceArgs) InterpretFromToWithBounds(bounds sonarlog.Timebounds) (i
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// RecordFilterArgs pertain to including and excluding records by purely record-local criteria.  In
-// addition to these, the -from / -to arguments of the SourceArgs are applied as record filters.
+// HostArgs and RecordFilterArgs pertain to including and excluding records by purely record-local
+// criteria.  In addition to these, the -from / -to arguments of the SourceArgs are applied as
+// record filters.
+
+type HostArgs struct {
+	Host              []string
+}
+
+func (h *HostArgs) Add(fs *flag.FlagSet) {
+	fs.Var(newRepeatableString(&h.Host), "host",
+		"Select records for this `host` (repeatable) [default: all]")
+}
+
+func (h *HostArgs) ReifyForRemote(x *Reifier) error {
+	x.RepeatableString("host", h.Host)
+	return nil
+}
+
+func (h *HostArgs) Validate() error {
+	return nil
+}
 
 type RecordFilterArgs struct {
-	Host              []string
+	HostArgs
 	User              []string
 	ExcludeUser       []string
 	Command           []string
@@ -293,8 +312,7 @@ type RecordFilterArgs struct {
 }
 
 func (r *RecordFilterArgs) Add(fs *flag.FlagSet) {
-	fs.Var(newRepeatableString(&r.Host), "host",
-		"Select records for this `host` (repeatable) [default: all]")
+	r.HostArgs.Add(fs)
 	fs.Var(newRepeatableString(&r.User), "user",
 		"Select records for this `user`, \"-\" for all (repeatable) [default: command dependent]")
 	fs.Var(newRepeatableString(&r.User), "u", "Short for -user `user`")
@@ -314,7 +332,7 @@ func (r *RecordFilterArgs) Add(fs *flag.FlagSet) {
 }
 
 func (r *RecordFilterArgs) ReifyForRemote(x *Reifier) error {
-	x.RepeatableString("host", r.Host)
+	e := r.HostArgs.ReifyForRemote(x)
 	x.RepeatableString("user", r.User)
 	x.RepeatableString("exclude-user", r.ExcludeUser)
 	x.RepeatableString("command", r.Command)
@@ -322,11 +340,11 @@ func (r *RecordFilterArgs) ReifyForRemote(x *Reifier) error {
 	x.Bool("exclude-system-jobs", r.ExcludeSystemJobs)
 	x.RepeatableUint32("job", r.Job)
 	x.RepeatableUint32("exclude-job", r.ExcludeJob)
-	return nil
+	return e
 }
 
 func (r *RecordFilterArgs) Validate() error {
-	return nil
+	return r.HostArgs.Validate()
 }
 
 func (rfa *RecordFilterArgs) DefaultUserFilters() (allUsers, skipSystemUsers, determined bool) {

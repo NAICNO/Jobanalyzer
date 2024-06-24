@@ -77,14 +77,24 @@ import (
 // Methods that assume the lock is held on self when called are named whateverMethodLocked().
 
 type PersistentCluster struct /* implements AppendableCluster */ {
-	sync.Mutex
-	closed bool
+	// MT: Immutable after initialization
+	sampleFiles  sampleFilesAdapter
+	sysinfoFiles sysinfoFilesAdapter
 
+	// MT: Immutable after initialization
+	samplesMethods           ReadSyncMethods
+	loadDataMethods          ReadSyncMethods
+	nodeConfigRecordsMethods ReadSyncMethods
+
+	// MT: Immutable after initialization
 	// The dataDir must have been path.Clean'd, it is the root directory for the cluster.
 	dataDir string
 
-	// This is set when the PersistentCluster is created
+	// MT: Immutable after initialization
 	cfg *config.ClusterConfig
+
+	sync.Mutex
+	closed bool
 
 	// The shadow directory tree underneath dataDir.  The timestamps are 00:00:00 UTC the earliest
 	// day for which we have created directories and the start of the day after the latest day,
@@ -119,12 +129,15 @@ func newPersistentCluster(dataDir string, cfg *config.ClusterConfig) *Persistent
 	toDate := fromDate.AddDate(0, 0, 1)
 	dirs := findSortedDateIndexedDirectories(dataDir, fromDate, toDate)
 	return &PersistentCluster{
-		dataDir:  dataDir,
-		cfg:      cfg,
-		dirs:     dirs,
-		fromDate: fromDate,
-		toDate:   toDate,
-		dirty:    make(map[*LogFile]bool),
+		samplesMethods:           newSampleFileMethods(cfg, sampleFileKindSample),
+		loadDataMethods:          newSampleFileMethods(cfg, sampleFileKindLoadDatum),
+		nodeConfigRecordsMethods: newSysinfoFileMethods(cfg),
+		dataDir:                  dataDir,
+		cfg:                      cfg,
+		dirs:                     dirs,
+		fromDate:                 fromDate,
+		toDate:                   toDate,
+		dirty:                    make(map[*LogFile]bool),
 	}
 }
 
@@ -199,7 +212,7 @@ func (pc *PersistentCluster) SampleFilenames(
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
 	}
-	return pc.findFilenames(fromDate, toDate, hosts, &samplesAdapter{})
+	return pc.findFilenames(fromDate, toDate, hosts, &pc.sampleFiles)
 }
 
 func (pc *PersistentCluster) SysinfoFilenames(
@@ -210,7 +223,7 @@ func (pc *PersistentCluster) SysinfoFilenames(
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
 	}
-	return pc.findFilenames(fromDate, toDate, hosts, &sysinfoAdapter{})
+	return pc.findFilenames(fromDate, toDate, hosts, &pc.sysinfoFiles)
 }
 
 func (pc *PersistentCluster) findFilenames(
@@ -241,7 +254,24 @@ func (pc *PersistentCluster) ReadSamples(
 		Assert(toDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, hosts, verbose, &samplesAdapter{}, readSamples)
+		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.samplesMethods,
+		readSampleSlice,
+	)
+}
+
+func (pc *PersistentCluster) ReadLoadData(
+	fromDate, toDate time.Time,
+	hosts *hostglob.HostGlobber,
+	verbose bool,
+) (data []*LoadDatum, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.loadDataMethods,
+		readLoadDatumSlice,
+	)
 }
 
 func (pc *PersistentCluster) ReadSysinfo(
@@ -254,7 +284,9 @@ func (pc *PersistentCluster) ReadSysinfo(
 		Assert(toDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, hosts, verbose, &sysinfoAdapter{}, readSysinfo)
+		pc, fromDate, toDate, hosts, verbose, &pc.sysinfoFiles, pc.nodeConfigRecordsMethods,
+		readNodeConfigRecordSlice,
+	)
 }
 
 func readPersistentClusterRecords[V any, U ~[]*V](
@@ -263,7 +295,8 @@ func readPersistentClusterRecords[V any, U ~[]*V](
 	hosts *hostglob.HostGlobber,
 	verbose bool,
 	fa filesAdapter,
-	reader func(files []*LogFile, verbose bool, cfg *config.ClusterConfig) (U, int, error),
+	methods ReadSyncMethods,
+	reader func(files []*LogFile, verbose bool, methods ReadSyncMethods) (U, int, error),
 ) (records U, dropped int, err error) {
 	// TODO: IMPROVEME: Don't hold the lock while reading, it's not necessary, caching is per-file
 	// and does not interact with the cluster.  But be sure to get pc.cfg while holding the lock.
@@ -277,16 +310,16 @@ func readPersistentClusterRecords[V any, U ~[]*V](
 	if err != nil {
 		return nil, 0, err
 	}
-	return reader(files, verbose, pc.cfg)
+	return reader(files, verbose, methods)
 }
 
 func (pc *PersistentCluster) AppendSamplesAsync(host, timestamp string, payload any) error {
-	return pc.appendDataAsync(timestamp, fmt.Sprintf("%s.csv", host), payload, &samplesAdapter{})
+	return pc.appendDataAsync(timestamp, fmt.Sprintf("%s.csv", host), payload, pc.sampleFiles)
 }
 
 func (pc *PersistentCluster) AppendSysinfoAsync(host, timestamp string, payload any) error {
 	return pc.appendDataAsync(
-		timestamp, fmt.Sprintf("sysinfo-%s.json", host), payload, &sysinfoAdapter{})
+		timestamp, fmt.Sprintf("sysinfo-%s.json", host), payload, pc.sysinfoFiles)
 }
 
 func (pc *PersistentCluster) appendDataAsync(
@@ -322,36 +355,31 @@ func (pc *PersistentCluster) appendDataAsync(
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Adapters to hide file type idiosyncracies
+// Adapters to hide file idiosyncracies in a persistent store.
 
 type filesAdapter interface {
 	glob() string
-	contentAttribute() fileAttr
 	proscribed(fn string) bool
 	getFiles(*persistentDir) map[string]*LogFile
 	setFiles(*persistentDir, map[string]*LogFile)
 }
 
-type samplesAdapter struct {
+type sampleFilesAdapter struct {
 }
 
-func (_ samplesAdapter) glob() string {
+func (_ sampleFilesAdapter) glob() string {
 	return "*.csv"
 }
 
-func (_ samplesAdapter) contentAttribute() fileAttr {
-	return fileSonarSamples
-}
-
-func (_ samplesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
+func (_ sampleFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
 	return d.sampleFiles
 }
 
-func (_ samplesAdapter) setFiles(d *persistentDir, files map[string]*LogFile) {
+func (_ sampleFilesAdapter) setFiles(d *persistentDir, files map[string]*LogFile) {
 	d.sampleFiles = files
 }
 
-func (_ samplesAdapter) proscribed(fn string) bool {
+func (_ sampleFilesAdapter) proscribed(fn string) bool {
 	// Backward compatible: remove cpuhog.csv and bughunt.csv, these later moved into separate
 	// directory trees.
 	//
@@ -359,26 +387,22 @@ func (_ samplesAdapter) proscribed(fn string) bool {
 	return fn == "cpuhog.csv" || fn == "bughunt.csv"
 }
 
-type sysinfoAdapter struct {
+type sysinfoFilesAdapter struct {
 }
 
-func (_ sysinfoAdapter) glob() string {
+func (_ sysinfoFilesAdapter) glob() string {
 	return "sysinfo-*.json"
 }
 
-func (_ sysinfoAdapter) contentAttribute() fileAttr {
-	return fileSonarSysinfo
-}
-
-func (_ sysinfoAdapter) getFiles(d *persistentDir) map[string]*LogFile {
+func (_ sysinfoFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
 	return d.sysinfoFiles
 }
 
-func (_ sysinfoAdapter) setFiles(d *persistentDir, files map[string]*LogFile) {
+func (_ sysinfoFilesAdapter) setFiles(d *persistentDir, files map[string]*LogFile) {
 	d.sysinfoFiles = files
 }
 
-func (_ sysinfoAdapter) proscribed(fn string) bool {
+func (_ sysinfoFilesAdapter) proscribed(fn string) bool {
 	return false
 }
 
@@ -425,7 +449,7 @@ func (pc *PersistentCluster) findFilesLocked(
 						dirname:  d.name,
 						basename: name,
 					},
-					fileCacheable|fileAppendable|fa.contentAttribute(),
+					fileAppendable,
 				)
 				newFiles[name] = f
 			}
@@ -478,7 +502,7 @@ func (pc *PersistentCluster) findFileByTimeLocked(
 		dirname:  d.name,
 		basename: filename,
 	}
-	attrs := fileCacheable | fileAppendable | fa.contentAttribute()
+	attrs := fileAppendable
 	files := fa.getFiles(d)
 	if files == nil {
 		files = make(map[string]*LogFile, 5)

@@ -2,6 +2,7 @@ package sonarlog
 
 import (
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -69,7 +70,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries, discarded, err := db.ParseSonarLog(f, NewUstrFacade(), true)
+	entries, _, discarded, err := db.ParseSonarLog(f, NewUstrFacade(), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,5 +176,17 @@ func TestParseVersion(t *testing.T) {
 	a, b, c = parseVersion(StringToUstr("x.y.z"))
 	if a != 0 || b != 0 || c != 0 {
 		t.Fatal("Incorrectly parsed version")
+	}
+}
+
+func TestDecodeBase45Delta(t *testing.T) {
+	// This is the test from the Sonar sources, it's pretty basic.  The string should represent the
+	// array [*1, *0, *29, *43, 1, *11] with * denoting an INITIAL char.
+	xs, err := decodeLoadData([]byte(")(t*1b"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(xs, []uint64{1, 30, 89, 12}) {
+		t.Fatal("Failed decode")
 	}
 }

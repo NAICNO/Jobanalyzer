@@ -18,7 +18,7 @@ import (
 	"sonalyze/sonarlog"
 )
 
-type ParseCommand struct /* implements AnalysisCommand */ {
+type ParseCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
 	MergeByHostAndJob bool
 	MergeByJob        bool

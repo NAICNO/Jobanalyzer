@@ -232,7 +232,7 @@ var uintArgs = []uintArg{
 	},
 }
 
-type JobsCommand struct /* implements AnalysisCommand */ {
+type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
 
 	// Filter args

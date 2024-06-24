@@ -41,3 +41,26 @@ func ReadSampleStreams(
 	streams, bounds = createInputStreams(samples)
 	return
 }
+
+func ReadLoadDataStreams(
+	c db.SampleCluster,
+	fromDate, toDate time.Time,
+	hostGlobber *hostglob.HostGlobber,
+	verbose bool,
+) (
+	streams LoadDataSet,
+	bounds Timebounds,
+	read, dropped int,
+	err error,
+) {
+	// Read and establish invariants
+
+	data, dropped, err := c.ReadLoadData(fromDate, toDate, hostGlobber, verbose)
+	if err != nil {
+		return
+	}
+	read = len(data)
+	streams, bounds, errors := rectifyLoadData(data)
+	dropped += errors
+	return
+}
