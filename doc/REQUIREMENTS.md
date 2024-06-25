@@ -157,11 +157,14 @@ maker.  NAIC management is lumped in with the administrators, mostly.
 Unless otherwise stated, we are assuming that there is continual data collection (sampling) on all
 systems.  For some use cases, more is needed.
 
+I have annotated these with the Work Packages they most likely pertain to, see [Gitlab
+issues](https://gitlab.sigma2.no/naic/wp2/identify-most-resource-intensive-users/-/issues).
+
 ### "Admin" user stories
 
 #### `adm_systems_at_a_glance`
 
-*Story 1:* *A* wants a quick overview of the state of the various systems: whether they are up, and
+*Story 1 (WP2.3.5):* *A* wants a quick overview of the state of the various systems: whether they are up, and
 how busy they are.
 
 To retrieve these data, *A* goes to the web-based overview dashboard and selects the system(s) and
@@ -174,7 +177,7 @@ down during a period this is marked clearly and distinguished from zero load.
 last week (hourly data), or last month (daily data).  Moment-by-moment data are as fresh as possible,
 hourly data are at most an hour out of date, and daily data at most a day out of date.
 
-*Story 2:* *A* wants an overview of processes that are stuck (zombie, defunct) or holding onto GPU
+*Story 2 (WP2.3.5):* *A* wants an overview of processes that are stuck (zombie, defunct) or holding onto GPU
 resources (GPU lists them as active but they are dead).
 
 To retrieve these data, *A* goes to the web-based overview dashboard, selects system and time window
@@ -183,10 +186,10 @@ be dead weight and the reason for this.
 
 #### `adm_historical_system_load`
 
-*Story 1:* *A* wants to know the historical load on a system (single node or all nodes) to see how
-busy it has been.  *A* is interested in short-term historical utilization, on the order of hours to
-weeks, in a time window ending at the present time.  *A* is interested in the load as a percentage of
-the system resources: cpu, main memory, gpu, and gpu memory.  (TBD: queue length)
+*Story 1 (WP2.3.5):* *A* wants to know the historical load on a system (single node or all nodes) to
+see how busy it has been.  *A* is interested in short-term historical utilization, on the order of
+hours to weeks, in a time window ending at the present time.  *A* is interested in the load as a
+percentage of the system resources: cpu, main memory, gpu, and gpu memory.  (TBD: queue length)
 
 To retrieve the load, *A* goes to the web-based load dashboard and selects the appropriate system and
 time period, and a plot is produced showing the interesting quantities.
@@ -200,8 +203,8 @@ On multi-node systems, *A* can select at least between one specific node or all 
 On systems with many nodes, or when there are many systems to select between, *A* can type in the
 system name or part of it to quickly select the system.
 
-*Story 2:* *A* finds something interesting in the plot and wants to communicate this to a coworker or
-archive the situation for later.  *A* needs an artifact that can be used later.
+*Story 2 (WP2.3.5):* *A* finds something interesting in the plot and wants to communicate this to a
+coworker or archive the situation for later.  *A* needs an artifact that can be used later.
 
 To get this artifact, *A* can (in the worst case) take a screenshot of the plot.  That requires the
 screenshot to contain the information about the time range and system selected.
@@ -212,10 +215,11 @@ the necessary information and is not restricted to *A*'s use.
 
 #### `adm_historical_uptime`
 
-*Story 1:* *A* wants to know the historical uptime of a system (single node or all nodes).  *A* is
-interested in longer-term historical uptime, going back a few months or a year, up to the present
-time.  *A* is interested in reporting the uptime to somebody.  Uptime is defined as a time during
-which a user could have run a job.  A system can thus be running without being "up" per se.
+*Story 1 (WP2.3.5/2.3.6):* *A* wants to know the historical uptime of a system (single node or all
+nodes).  *A* is interested in longer-term historical uptime, going back a few months or a year, up
+to the present time.  *A* is interested in reporting the uptime to somebody.  Uptime is defined as a
+time during which a user could have run a job.  A system can thus be running without being "up" per
+se.
 
 To retrieve the uptime data, *A* goes to the web-based uptime dashboard and selects the appropriate
 system and time period, and a report is produced in a text area showing the interesting quantities.
@@ -232,7 +236,7 @@ system name or part of it to quickly select the system.
 
 #### `adm_unused_capacity`
 
-*Story 1:* A course is held during a time period, placing a great deal of strain on Fox (say).
+*Story 1 (WP2.3.3):* A course is held during a time period, placing a great deal of strain on Fox (say).
 Meanwhile, Saga (say) has a lot of spare capacity.  *A* is interested in learning about this imbalance
 so that he can tell instructors to move work to Saga.
 
@@ -241,7 +245,7 @@ so that he can tell instructors to move work to Saga.
 situation has not been detected for some days. *A* will have to verify that the situation is still
 the case before alerting instructors.
 
-*Story 2:* *A* does not want to have to poll the dashboard every morning, and wants to be able to
+*Story 2 (WP2.3.3):* *A* does not want to have to poll the dashboard every morning, and wants to be able to
 register to receive an alert by email when the situation arises.
 
 *A* can state this preference in his profile on the console.
@@ -266,51 +270,68 @@ his profile on the console.
 
 For some of these use cases, near real time data / alerts is probably desirable - TBD.
 
-*Story 1 (gpuhog):* *U* is occupying and using a lot of GPU resources for a long time (on a system
-without a batch queue).  This creates a situation where the work of one user prevents many other
-users from getting work done.  *A* wants to move *U* to a system that has more GPUs and a batch
-system.
+*Story 1 (gpuhog) (WP2.3.1/2.3.2):* *U* is occupying and using a lot of GPU resources for a long
+time (on a system without a batch queue).  This creates a situation where the work of one user
+prevents many other users from getting work done.  *A* wants to move *U* to a system that has more
+GPUs and a batch system.
 
-*Story 2 (whale):* This is a generalization of *Story 1* but applies to all systems: *U* is too big
-for the system - uses too much cpu, gpu, or memory, or for too long a time - and in the way of other
-users.  And it may not be a matter of a single job that *U* is running, but the aggregate of those
-jobs.  *A* wants to know this so that *U* can be moved to a larger system.
+*Story 2 (whale) (WP2.3.1/2.3.2):* This is a generalization of *Story 1* but applies to all systems:
+*U* is too big for the system - uses too much cpu, gpu, or memory, or for too long a time - and in
+the way of other users.  And it may not be a matter of a single job that *U* is running, but the
+aggregate of those jobs.  *A* wants to know this so that *U* can be moved to a larger system.
 
-*Story 3 (cpuhog):* *U* is occupying and using a lot of CPU resources for a long time but not using
-any GPU, on a system reserved for GPU computation.  This creates a situation where the work of one
-user prevents many other users from getting work done.  *A* wants to move *U* to a system without
-GPUs.
+*Story 3 (cpuhog) (WP2.3.3):* *U* is occupying and using a lot of CPU resources for a long time but
+not using any GPU, on a system reserved for GPU computation.  This creates a situation where the
+work of one user prevents many other users from getting work done.  *A* wants to move *U* to a
+system without GPUs.
 
-*Story 4 (greedy):* This is a generalization of *Story 3* but pertains more to systems with batch
-queues: *U* has asked for resources but are not using them.  *A* wants to alert *U* to this fact.
+*Story 4 (greedy) (WP2.3.3):* This is a generalization of *Story 3* but pertains more to systems
+with batch queues: *U* has asked for resources but are not using them.  *A* wants to alert *U* to
+this fact.
 
-*Story 5 (mouse):* An important wrinkle on Story 4 for systems with implicit resource allocation (eg
-the ML nodes) is when a program is in the way because it is *too small* for a system.  ML8 is case
-in point: Everyone wants to use the fancy A100s.  But when a program uses a measly 8GB VRAM, it
-could likely run on any of the ML nodes, yet when it runs on ML8 it is in the way of programs that
-could use the 40GB provided by those cards.  (And when some of the other ML nodes stand unused, this
-is Story 1 of `adm_unused_capacity` as well.)
+*Story 5 (mouse) (WP2.3.3):* An important wrinkle on Story 4 for systems with implicit resource
+allocation (eg the ML nodes) is when a program is in the way because it is *too small* for a system.
+ML8 is case in point: Everyone wants to use the fancy A100s.  But when a program uses a measly 8GB
+VRAM, it could likely run on any of the ML nodes, yet when it runs on ML8 it is in the way of
+programs that could use the 40GB provided by those cards.  (And when some of the other ML nodes
+stand unused, this is Story 1 of `adm_unused_capacity` as well.)
 
-*Story 6 (vampire):* Another variation of *Story 3*, this problem occurs when *U* does not run one
-big job that uses a lot of CPU and no GPU, but many smaller jobs, sometimes overlapping, that
-together have the effect of being a big job in violation of the cpuhog policy.  See issue 55 for an
-exploration.  *A* wants to move *U* to a system without GPUs.
+*Story 6 (vampire) (WP2.3.1/2.3.2/2.3.3):* Another variation of *Story 3*, this problem occurs when
+*U* does not run one big job that uses a lot of CPU and no GPU, but many smaller jobs, sometimes
+overlapping, that together have the effect of being a big job in violation of the cpuhog policy.
+See issue 55 for an exploration.  *A* wants to move *U* to a system without GPUs.
 
 #### `adm_software_use`
 
-*Story 1:* *A* wants to know which software is being used by the users.  The reason may be that the
-system is being upgraded and *A* doesn't want to upgrade dead software.
+*Story 1 (WP2.3.2):* *A* wants to know which software is being used by the users.  The reason may be
+that the system is being upgraded and *A* doesn't want to upgrade dead software.
 
 *A* should be able to at least run an ad-hoc report generator with a time window argument, it would
 compile a textual report of the names of modules or programs that have been used.
 
-*Story 2:* *A* wants to know which software uses the most resources on a system.  The reason may be
-to see if there is a way of reducing overall system load by upgrading or replacing software.
+*Story 2 (WP2.3.2):* *A* wants to know which software uses the most resources on a system.  The
+reason may be to see if there is a way of reducing overall system load by upgrading or replacing
+software.
 
 *A* should be able to run another ad-hoc report generator with a time window argument, it should
 compile a textual report of the names of programs that have been used.
 
 (See issue #20 for more.)
+
+#### `adm_users`
+
+*Story 1 (WP2.3.1):* *A* wants to know which users and projects are using the system most heavily.  The
+reason might be to use them as a user group, or offer them special training, or other things.
+
+#### `adm_management`
+
+*Story 1 (WP2.3.6):* NAIC staff generates a report of system usage over time and sends to Management.
+
+We want this to be high-level summary, probably pertinent to last month but maybe also including
+historical trend for last quarter, half year maybe.
+
+The report would contain information about users, projects, systems, software.
+
 
 ### "User" user stories
 
@@ -323,7 +344,7 @@ not that of the admin.
 
 #### `usr_resource_use`
 
-*Story 1:* *U* submits an HPC job and wants to assess how the job used the available hardware,
+*Story 1 (WP2.3.5):* *U* submits an HPC job and wants to assess how the job used the available hardware,
 without having any particular focus on anything in particular.  This is frequently the first thing
 one does after porting a code to a new machine.
 
@@ -332,20 +353,20 @@ completed.  There is probably a predefined, named query that will apply the most
 options.  (Sabry brings up the similarity to the Slurm `seff` command, see the "Other tools" section
 of [DESIGN.md](DESIGN.md).)
 
-*Story 2:* *U* submits an HPC job expecting to use 16 cores and 8GB memory per CPU. Admins complain
+*Story 2 (WP2.3.5):* *U* submits an HPC job expecting to use 16 cores and 8GB memory per CPU. Admins complain
 that *U* is wasting resources (the program runs on one core and uses 4GB). In order to debug the
 problem, *U* wants to check which resources the job just finished used.
 
 *U* breaks out the Jobanalyzer command line tool and asks to see the statistics on her last job that
 completed.
 
-*Story 3:* *U* runs an analysis using Pytorch. *U* expects the code to use GPUs. *U* wants to check
+*Story 3 (WP2.3.5):* *U* runs an analysis using Pytorch. *U* expects the code to use GPUs. *U* wants to check
 that the code did indeed use the GPU during the last 10 analyses that ran to completion.
 
 *U* again breaks out the command line tool and asks to see the statistics on her last 10 jobs that
 completed.
 
-*Story 4:* *U* runs a complex pipeline on the ML nodes and observes that it crashes due to apparent
+*Story 4 (WP2.3.5):* *U* runs a complex pipeline on the ML nodes and observes that it crashes due to apparent
 resource exhaustion.  *U* wants to find out how the individual commands behaved over time.
 
 *U* can run the command line tool and ask to see the per-time-step statistics for the failing job.
@@ -357,20 +378,20 @@ in README.md)
 
 #### `usr_scalability`
 
-*Story 1:* *U* wants to understand a (say) matrix multiplication program written in C++ with an eye
+*Story 1 (WP2.3.5):* *U* wants to understand a (say) matrix multiplication program written in C++ with an eye
 to whether it will scale to larger systems.
 
 *U* breaks out the command line tool and looks at the statistics for a run of the program, relative
 to the system configuration.  If the program is not using the system effectively then it probably
 will not scale; if it does use all of the system, it might scale.
 
-*Story 2:* *U* runs a job on several nodes of a supercomputer and the jobs communicate heavily, but
+*Story 2 (WP2.3.5):* *U* runs a job on several nodes of a supercomputer and the jobs communicate heavily, but
 the communication does not use the best conduit available (say, uses Ethernet and not InfiniBand).
 *U* should be alerted to the problem so that *U* can change the code to use a better conduit.
 
 TODO: To be developed.
 
-*Story 3:* Same thing, but for disk I/O.
+*Story 3 (WP2.3.5):* Same thing, but for disk I/O.
 
 TODO: To be developed.
 
@@ -381,7 +402,7 @@ tickets #18 and #58.)
 
 #### `pub_periodic_reports`
 
-*Story:* *D* wants quarterly and annual reports of how the systems are being used, in order to decide
+*Story (WP2.3.6):* *D* wants quarterly and annual reports of how the systems are being used, in order to decide
 whether to provide more money.
 
 *D* asks *A* for this report... and maybe it turns into an admin use case.  Obvious things to want to
