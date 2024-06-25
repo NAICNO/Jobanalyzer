@@ -150,6 +150,9 @@ def heavy_gpu_users(cluster, hostglob, from_date, to_date):
                 mark = "*"
                 break
 
+        # TODO: Gputime must be formatted as DDdHHhMMmSSs probably.
+        # TODO: Duration might be interesting.
+        # TODO: Proper layout, also heading
         print(mark,
               job_fields[user_ix],
               str(job_fields[gputime_ix]) + "s",
@@ -160,4 +163,3 @@ def heavy_gpu_users(cluster, hostglob, from_date, to_date):
 
 if __name__ == "__main__":
     main()
-        
