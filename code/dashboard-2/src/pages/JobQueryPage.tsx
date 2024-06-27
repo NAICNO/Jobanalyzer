@@ -169,7 +169,12 @@ export default function JobQueryPage() {
                 </Grid>
                 <VStack alignItems={'start'} mt={'10px'}>
                   <HStack mt="20px">
-                    <Button colorScheme="blue" onClick={submitForm} isDisabled={!isValid}>
+                    <Button
+                      colorScheme="blue"
+                      onClick={submitForm}
+                      isDisabled={!isValid}
+                      type="submit"
+                    >
                       Select Jobs
                     </Button>
                     <SelectJobsPopover/>
