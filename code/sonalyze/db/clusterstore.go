@@ -140,6 +140,27 @@ type SysinfoCluster interface {
 	) (records []*config.NodeConfigRecord, dropped int, err error)
 }
 
+// TODO: FIXME: Not completely sure what meaning the hostglobber has here.  On the one hand, it does
+// make sense to filter by the nodes that ran a task (if we have node information).  On the other
+// hand, this is probably a fairly strange thing to do.
+type SacctCluster interface {
+	Cluster
+
+	// Find all filenames for Slurm `sacct` data in the cluster selected by the date range and the
+	// host matcher, if any.  Times must be UTC.
+	SacctFilenames(
+		fromDate, toDate time.Time,
+		hosts *hostglob.HostGlobber,
+	) ([]string, error)
+
+	// Read `sacct` records from all the files selected by SacctFilenames().  Times must be UTC.
+	ReadSacctData(
+		fromDate, toDate time.Time,
+		hosts *hostglob.HostGlobber,
+		verbose bool,
+	) (records []*config.NodeConfigRecord, dropped int, err error)
+}
+
 // An AppendableCluster (not yet well developed, this could be split into appending different types
 // of data) allows data to be appended to the cluster store.
 //
@@ -148,6 +169,7 @@ type SysinfoCluster interface {
 type AppendableCluster interface {
 	SampleCluster
 	SysinfoCluster
+	SacctCluster
 
 	// Trigger flushing of all pending data.  In principle the flushing is asynchronous, but
 	// synchronously flushing the data is also allowed.

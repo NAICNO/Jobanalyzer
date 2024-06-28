@@ -313,6 +313,21 @@ func readPersistentClusterRecords[V any, U ~[]*V](
 	return reader(files, verbose, methods)
 }
 
+func (pc *PersistentCluster) SacctFilenames(
+		fromDate, toDate time.Time,
+		hosts *hostglob.HostGlobber,
+) ([]string, error) {
+	panic("NYI")
+}
+
+func (pc *PersistentCluster) ReadSacctData(
+	fromDate, toDate time.Time,
+	hosts *hostglob.HostGlobber,
+	verbose bool,
+) (records []*config.NodeConfigRecord, dropped int, err error) {
+	panic("NYI")
+}
+
 // Samples are stored under yyyy/mm/dd/<hostname>.csv
 
 func (pc *PersistentCluster) AppendSamplesAsync(host, timestamp string, payload any) error {

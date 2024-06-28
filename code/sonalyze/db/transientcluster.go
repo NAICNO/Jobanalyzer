@@ -115,3 +115,21 @@ func (fc *TransientSampleCluster) ReadLoadData(
 
 	return readLoadDatumSlice(fc.files, verbose, fc.loadDataMethods)
 }
+
+type TransientSacctCluster struct /* implements SacctCluster */ {
+}
+
+func (pc *TransientSacctCluster) SacctFilenames(
+		fromDate, toDate time.Time,
+		hosts *hostglob.HostGlobber,
+) ([]string, error) {
+	panic("NYI")
+}
+
+func (pc *TransientSacctCluster) ReadSacctData(
+	fromDate, toDate time.Time,
+	hosts *hostglob.HostGlobber,
+	verbose bool,
+) (records []*config.NodeConfigRecord, dropped int, err error) {
+	panic("NYI")
+}
