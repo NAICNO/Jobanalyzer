@@ -283,7 +283,7 @@ func (args *SourceArgs) InterpretFromToWithBounds(bounds sonarlog.Timebounds) (i
 // record filters.
 
 type HostArgs struct {
-	Host              []string
+	Host []string
 }
 
 func (h *HostArgs) Add(fs *flag.FlagSet) {

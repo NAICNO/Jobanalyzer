@@ -95,7 +95,7 @@ func TestCompressHostnames(t *testing.T) {
 			"c6-2",
 			"c6-3",
 			"c66-4",
-			"cesium",				// No number
+			"cesium", // No number
 			"c6-1234567890123456789012345678901234567890", // Numbers out of range
 			"c6-1234567890123456789012345678901234567891", // Numbers out of range
 		},
@@ -135,7 +135,7 @@ func testCompress(t *testing.T, hosts []string, expect map[string]bool) {
 	if len(cs) != len(expect) {
 		t.Fatal(cs)
 	}
-	for i := 0 ; i < len(cs) ; i++ {
+	for i := 0; i < len(cs); i++ {
 		if !expect[cs[i]] {
 			t.Fatal(cs)
 		}
@@ -143,64 +143,63 @@ func testCompress(t *testing.T, hosts []string, expect map[string]bool) {
 }
 
 func TestGlobber1(t *testing.T) {
-    hf, err := NewGlobber(true, []string{"ml8", "ml3.hpc"})
-    if err != nil {
+	hf, err := NewGlobber(true, []string{"ml8", "ml3.hpc"})
+	if err != nil {
 		t.Fatal("Insert 1+2")
 	}
 
-    // Single-element prefix match against this
-    if !hf.Match("ml8.hpc.uio.no") {
+	// Single-element prefix match against this
+	if !hf.Match("ml8.hpc.uio.no") {
 		t.Fatal("Match 1")
 	}
 
-    // Multi-element prefix match against this
-    if !hf.Match("ml3.hpc.uio.no") {
+	// Multi-element prefix match against this
+	if !hf.Match("ml3.hpc.uio.no") {
 		t.Fatal("Match 2")
 	}
 
-    hf, err = NewGlobber(false, []string{"ml4.hpc.uio.no"})
+	hf, err = NewGlobber(false, []string{"ml4.hpc.uio.no"})
 	if err != nil {
 		t.Fatal("Insert 3")
 	}
 
-    // Exhaustive match against this
-    if !hf.Match("ml4.hpc.uio.no") {
+	// Exhaustive match against this
+	if !hf.Match("ml4.hpc.uio.no") {
 		t.Fatal("Match 3")
 	}
-    if hf.Match("ml4.hpc.uio.no.yes") {
+	if hf.Match("ml4.hpc.uio.no.yes") {
 		t.Fatal("Match 4")
 	}
 }
 
 func TestGlobber2(t *testing.T) {
-    hf, err := NewGlobber(true, []string{"ml[1-3]*"})
-    if err != nil {
+	hf, err := NewGlobber(true, []string{"ml[1-3]*"})
+	if err != nil {
 		t.Fatal(err)
 	}
-    if !hf.Match("ml1") {
+	if !hf.Match("ml1") {
 		t.Fatal("Match 1")
 	}
-    if !hf.Match("ml1x") {
+	if !hf.Match("ml1x") {
 		t.Fatal("Match 2")
 	}
-    if !hf.Match("ml1.uio") {
+	if !hf.Match("ml1.uio") {
 		t.Fatal("Match 3")
 	}
 }
 
 func TestGlobber3(t *testing.T) {
-    hf, err := NewGlobber(false, []string{"c[1-3]-[2,4]"})
-    if err != nil {
+	hf, err := NewGlobber(false, []string{"c[1-3]-[2,4]"})
+	if err != nil {
 		t.Fatal(err)
 	}
-    if !hf.Match("c1-2") {
+	if !hf.Match("c1-2") {
 		t.Fatal("Match 1")
 	}
-    if !hf.Match("c2-2") {
+	if !hf.Match("c2-2") {
 		t.Fatal("Match 2")
 	}
-    if hf.Match("c2-3") {
+	if hf.Match("c2-3") {
 		t.Fatal("Match 3")
 	}
 }
-

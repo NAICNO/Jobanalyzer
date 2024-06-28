@@ -29,7 +29,7 @@ type Server struct {
 	failed  func(error)
 	stop    chan bool
 	server  atomic.Pointer[http.Server]
-	tlsKey string
+	tlsKey  string
 	tlsCert string
 }
 
@@ -52,7 +52,7 @@ func NewTLS(verbose bool, port int, tlsKey, tlsCert string, failed func(error)) 
 		verbose: verbose,
 		port:    port,
 		failed:  failed,
-		tlsKey: tlsKey,
+		tlsKey:  tlsKey,
 		tlsCert: tlsCert,
 		stop:    make(chan bool),
 	}
