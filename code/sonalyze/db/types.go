@@ -11,10 +11,11 @@ const (
 	FlagHeartbeat = 1 // Record is a heartbeat record
 )
 
-// The core type is the `Sample`, which represents one log record.
+// The core type for process samples is the `Sample`, which represents one log record without the
+// per-system data (such as `load`).
 //
 // After ingestion and initial correction this datum is *strictly* read-only.  It will be accessed
-// concurrently without locking from many thread and must not be written by any of them.
+// concurrently without locking from many threads and must not be written by any of them.
 //
 //
 // Memory use.
@@ -83,4 +84,17 @@ type Sample struct {
 	Rolledup    uint32
 	GpuFail     uint8
 	Flags       uint8
+}
+
+// The LoadDatum represents the `load` field from a record.  The data array is owned by its datum
+// and does not share storage with the input.  It is represented encoded as that is the most
+// sensible representation for the cache.
+//
+// After ingestion and initial correction this datum is *strictly* read-only.  It will be accessed
+// concurrently without locking from many threads and must not be written by any of them.
+
+type LoadDatum struct {
+	Timestamp int64
+	Host      Ustr
+	Encoded   []byte
 }

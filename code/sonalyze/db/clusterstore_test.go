@@ -464,7 +464,7 @@ func TestCaching(t *testing.T) {
 
 	// Read five times to stress the cache a bit
 	numReads := 5
-	for i := 0 ; i < numReads ; i++ {
+	for i := 0; i < numReads; i++ {
 		_, _, err = pc.ReadSamples(
 			time.Date(2023, 05, 01, 0, 0, 0, 0, time.UTC),
 			time.Date(2023, 06, 30, 0, 0, 0, 0, time.UTC),
@@ -526,7 +526,7 @@ func TestCaching(t *testing.T) {
 			if !inCache[ms[2]] {
 				t.Fatalf("Purge not in cache %s", ms[2])
 			}
-			delete( inCache, ms[2])
+			delete(inCache, ms[2])
 		}
 		if ms[3] != "" {
 			found[ms[3]]++

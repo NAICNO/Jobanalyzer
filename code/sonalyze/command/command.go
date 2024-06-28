@@ -54,12 +54,21 @@ type RemotableCommand interface {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Represents a sonalyze data analysis command: jobs, load, parse, etc
+// Represents a generic analysis command that can be run remotely, independently of the data that
+// are manipulated.
 
 type AnalysisCommand interface {
 	SetRestArgumentsAPI
 	FormatHelpAPI
 	RemotableCommand
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Represents a sonalyze "sonar sample" analysis command: jobs, load, parse, etc
+
+type SampleAnalysisCommand interface {
+	AnalysisCommand
 
 	// Retrieve shared arguments
 	SharedFlags() *SharedArgs

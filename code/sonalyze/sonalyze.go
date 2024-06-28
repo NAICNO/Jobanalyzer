@@ -32,14 +32,16 @@ import (
 	"sonalyze/metadata"
 	"sonalyze/parse"
 	"sonalyze/profile"
+	"sonalyze/top"
 	"sonalyze/uptime"
 )
 
 // v0.1.0 - translation from Rust
 // v0.2.0 - added 'add' verb
 // v0.3.0 - added 'daemon' verb (integrating sonalyzed into sonalyze), added caching
+// v0.4.0 - added 'top' verb
 
-const SonalyzeVersion = "0.3.0"
+const SonalyzeVersion = "0.4.0"
 
 // See end of file for documentation.
 // MT: Constant after initialization; immutable (no fields)
@@ -76,6 +78,7 @@ func sonalyze() error {
 		fmt.Fprintf(out, "  metadata - parse data, print stats and metadata\n")
 		fmt.Fprintf(out, "  parse    - parse, select and reformat input data\n")
 		fmt.Fprintf(out, "  profile  - print the profile of a particular job\n")
+		fmt.Fprintf(out, "  top      - print per-cpu load information across time\n")
 		fmt.Fprintf(out, "  uptime   - print aggregated information about system uptime\n")
 		fmt.Fprintf(out, "  version  - print information about the program\n")
 		fmt.Fprintf(out, "  help     - print this message\n")
@@ -186,6 +189,8 @@ func (_ *standardCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd C
 		cmd = new(parse.ParseCommand)
 	case "profile":
 		cmd = new(profile.ProfileCommand)
+	case "top":
+		cmd = new(top.TopCommand)
 	case "uptime":
 		cmd = new(uptime.UptimeCommand)
 	default:
@@ -235,10 +240,12 @@ func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func()
 
 func (_ *standardCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Reader, stdout, stderr io.Writer) error {
 	switch cmd := anyCmd.(type) {
-	case AnalysisCommand:
+	case SampleAnalysisCommand:
 		return localAnalysis(cmd, stdin, stdout, stderr)
 	case *add.AddCommand:
 		return cmd.AddData(stdin, stdout, stderr)
+	case *top.TopCommand:
+		return cmd.Top(stdin, stdout, stderr)
 	case *daemon.DaemonCommand:
 		return cmd.RunDaemon(stdin, stdout, stderr)
 	default:

@@ -91,7 +91,8 @@ type Cluster interface {
 	Close() error
 }
 
-// A SampleCluster can provide `sonar ps` samples.
+// A SampleCluster can provide data from `sonar ps` samples: per-process samples, and per-system
+// load data.
 type SampleCluster interface {
 	Cluster
 
@@ -103,15 +104,24 @@ type SampleCluster interface {
 		hosts *hostglob.HostGlobber,
 	) ([]string, error)
 
-	// Read `ps` samples from all the files selected by SampleFilenames().  Times must be UTC.
+	// Read `ps` samples from all the files selected by SampleFilenames() and extract the
+	// per-process sample data.  Times must be UTC.
 	ReadSamples(
 		fromDate, toDate time.Time,
 		hosts *hostglob.HostGlobber,
 		verbose bool,
 	) (samples []*Sample, dropped int, err error)
+
+	// Read `ps` samples from all the files selected by SampleFilenames() and extract the load data.
+	// Times must be UTC.
+	ReadLoadData(
+		fromDate, toDate time.Time,
+		hosts *hostglob.HostGlobber,
+		verbose bool,
+	) (data []*LoadDatum, dropped int, err error)
 }
 
-// A SysinfoCluster can provide `sonar sysinfo` data.
+// A SysinfoCluster can provide `sonar sysinfo` data: per-system hardware configuration data.
 type SysinfoCluster interface {
 	Cluster
 
@@ -156,6 +166,19 @@ type AppendableCluster interface {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Cluster store API
+
+// TODO: IMPROVEME?  These could be passed as parameters to OpenPersistentCluster and
+// OpenTransientSampleCluster instead of being global variables.
+
+var (
+	// This is applied to a set of samples newly read from a file, before caching.
+	// MT: Constant after initialization; immutable
+	SampleRectifier func([]*Sample, *config.ClusterConfig) []*Sample
+
+	// This is applied to a set of load data newly read from a file, before caching.
+	// MT: Constant after initialization; immutable
+	LoadDatumRectifier func([]*LoadDatum, *config.ClusterConfig) []*LoadDatum
+)
 
 // Open a directory and attach it to the global logstore.
 //
@@ -276,7 +299,7 @@ func (ls *clusterStore) close() {
 type parseRequest struct {
 	file    *LogFile
 	id      any
-	cfg     *config.ClusterConfig
+	reader  ReadSyncMethods
 	results chan parseResult
 	verbose bool
 }
@@ -327,30 +350,13 @@ func init() {
 					var result parseResult
 					result.id = request.id
 					result.data, result.dropped, result.err =
-						request.file.ReadSync(uf, request.verbose, request.cfg)
+						request.file.ReadSync(uf, request.verbose, request.reader)
 					request.results <- result
 				}
 			},
 			os.Stderr,
 		)
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Sundry helpers on sets of files.
-//
-// The files must not be locked in the caller because the methods on the files called by the code
-// below (directly or indirectly) may wish to lock them.
-
-// For a list of files, produce a list of full names (not necessarily absolute names, though)
-
-func filenames(files []*LogFile) []string {
-	names := make([]string, len(files))
-	for i, fn := range files {
-		names[i] = fn.Fullname.String()
-	}
-	return names
 }
 
 // Read a set of records from a set of files and return the resulting list, which may be in any
@@ -367,7 +373,7 @@ func filenames(files []*LogFile) []string {
 func readRecordsFromFiles[T any](
 	files []*LogFile,
 	verbose bool,
-	cfg *config.ClusterConfig,
+	reader ReadSyncMethods,
 ) (records []*T, dropped int, err error) {
 	if verbose {
 		Log.Infof("%d files", len(files))
@@ -391,7 +397,7 @@ func readRecordsFromFiles[T any](
 			file:    files[toSend],
 			results: results,
 			verbose: verbose,
-			cfg:     cfg,
+			reader:  reader,
 		}:
 			toSend++
 		case res := <-results:
@@ -422,25 +428,4 @@ func readRecordsFromFiles[T any](
 	}
 
 	return
-}
-
-// Read sonar `ps` samples with a config to be passed to a rectifier function that will be applied
-// to freshly read data only (before caching).
-
-func readSamples(
-	files []*LogFile,
-	verbose bool,
-	cfg *config.ClusterConfig,
-) (samples []*Sample, dropped int, err error) {
-	return readRecordsFromFiles[Sample](files, verbose, cfg)
-}
-
-// Read sonar `sysinfo` records.
-
-func readSysinfo(
-	files []*LogFile,
-	verbose bool,
-	cfg *config.ClusterConfig,
-) ([]*config.NodeConfigRecord, int, error) {
-	return readRecordsFromFiles[config.NodeConfigRecord](files, verbose, cfg)
 }

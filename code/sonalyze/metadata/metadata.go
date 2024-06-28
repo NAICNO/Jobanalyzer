@@ -16,7 +16,7 @@ import (
 	"sonalyze/sonarlog"
 )
 
-type MetadataCommand struct /* implements AnalysisCommand */ {
+type MetadataCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
 	MergeByHostAndJob bool // Inert, but compatible
 	MergeByJob        bool

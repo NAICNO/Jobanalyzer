@@ -51,7 +51,7 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	}
 
 	switch cmd := rCmd.(type) {
-	case AnalysisCommand:
+	case SampleAnalysisCommand:
 		curlArgs = append(curlArgs, "--get")
 	case *add.AddCommand:
 		// This turns into a POST with data coming from the standard DataSource

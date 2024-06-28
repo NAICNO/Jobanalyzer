@@ -58,5 +58,39 @@ type InputStreamKey struct {
 //
 // - the vector is sorted ascending by timestamp
 // - no two adjacent timestamps are the same
+// - the Decoded arrays within a given Data array all have the same length
 
 type InputStreamSet map[InputStreamKey]*SampleStream
+
+// Per-cpu load data, expanded.
+
+type LoadData struct {
+	Host Ustr
+	Data []LoadDatum
+}
+
+type LoadDatum struct {
+	Time    int64    // seconds since epoch UTC
+	Decoded []uint64 // since-boot cpu time values for cores in core order
+}
+
+func LoadDatumLessByTime(a, b LoadDatum) int {
+	if a.Time < b.Time {
+		return -1
+	}
+	if a.Time > b.Time {
+		return 1
+	}
+	return 0
+}
+
+// The table key is the same value as the value's Host member.
+//
+// After postprocessing, some invariants:
+//
+// - the LoadData.Data vectors are sorted ascending by time
+// - no two adjacent timestamps are the same
+//
+// TODO: Not sure yet whether this really needs to be a map.
+
+type LoadDataSet map[Ustr]*LoadData

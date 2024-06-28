@@ -13,6 +13,7 @@ import (
 // LogLevel indicates the level of logging that should be done.
 
 type LogLevel int
+
 const (
 	LogLevelDebug LogLevel = iota
 	LogLevelInfo
@@ -65,15 +66,15 @@ type UnderlyingLogger interface {
 
 type StandardLogger struct {
 	sync.Mutex
-	level LogLevel
-	stderr io.Writer
+	level      LogLevel
+	stderr     io.Writer
 	underlying UnderlyingLogger
 }
 
 // MT: Constant after initialization, thread-safe.
 var defaultLogger Logger = &StandardLogger{
-	level: LogLevelError,
-	stderr: os.Stderr,
+	level:      LogLevelError,
+	stderr:     os.Stderr,
 	underlying: nil,
 }
 

@@ -24,7 +24,7 @@ const (
 	loadDefaultFields = "date,time,cpu,mem,gpu,gpumem,gpumask"
 )
 
-type LoadCommand struct /* implements AnalysisCommand */ {
+type LoadCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
 
 	// Filtering and aggregation args

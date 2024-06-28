@@ -8,6 +8,7 @@ import (
 	"go-utils/gpuset"
 	"io"
 	"math"
+	"slices"
 	"time"
 
 	. "sonalyze/common"
@@ -23,8 +24,9 @@ func ParseSonarLog(
 	ustrs UstrAllocator,
 	verbose bool,
 ) (
-	readings []*Sample,
-	discarded int,
+	samples []*Sample,
+	loadData []*LoadDatum,
+	softErrors int,
 	err error,
 ) {
 	const (
@@ -33,7 +35,8 @@ func ParseSonarLog(
 		taggedFormat
 	)
 
-	readings = make([]*Sample, 0)
+	samples = make([]*Sample, 0)
+	loadData = make([]*LoadDatum, 0)
 	tokenizer := NewTokenizer(input)
 	v060 := ustrs.Alloc("0.6.0")
 	heartbeat := ustrs.Alloc("_heartbeat_")
@@ -66,8 +69,9 @@ LineLoop:
 			gpuFail          uint8   = math.MaxUint8
 			cpuTimeSec       uint64  = math.MaxUint64
 			rolledup         uint32  = math.MaxUint32
-			format                   = unknownFormat
-			untaggedPosition         = 0
+			load             []byte
+			format           = unknownFormat
+			untaggedPosition = 0
 		)
 
 	FieldLoop:
@@ -80,7 +84,7 @@ LineLoop:
 					return
 				}
 				tokenizer.ScanEol()
-				discarded++
+				softErrors++
 				continue LineLoop
 			}
 
@@ -139,7 +143,7 @@ LineLoop:
 					var tmp time.Time
 					tmp, err = time.Parse(time.RFC3339Nano, string(val))
 					if err != nil {
-						discarded++
+						softErrors++
 						tokenizer.ScanEol()
 						continue LineLoop
 					}
@@ -150,7 +154,7 @@ LineLoop:
 					var tmp uint64
 					tmp, err = parseUint(val)
 					if err != nil {
-						discarded++
+						softErrors++
 						tokenizer.ScanEol()
 						continue LineLoop
 					}
@@ -161,7 +165,7 @@ LineLoop:
 					var tmp uint64
 					tmp, err = parseUint(val)
 					if err != nil {
-						discarded++
+						softErrors++
 						tokenizer.ScanEol()
 						continue LineLoop
 					}
@@ -173,7 +177,7 @@ LineLoop:
 					var tmp float64
 					tmp, err = parseFloat(val, true)
 					if err != nil {
-						discarded++
+						softErrors++
 						tokenizer.ScanEol()
 						continue LineLoop
 					}
@@ -182,7 +186,7 @@ LineLoop:
 					var tmp uint64
 					tmp, err = parseUint(val)
 					if err != nil {
-						discarded++
+						softErrors++
 						tokenizer.ScanEol()
 						continue LineLoop
 					}
@@ -206,7 +210,7 @@ LineLoop:
 							"(elided)", /*tokenizer.BufSubstringSlow(start, lim), - see NOTE above*/
 						)
 					}
-					discarded++
+					softErrors++
 					continue FieldLoop
 				}
 
@@ -300,6 +304,11 @@ LineLoop:
 						jobId = uint32(tmp)
 						matched = true
 					}
+				case 'l':
+					if val, ok := match(tokenizer, start, lim, eqloc, "load"); ok {
+						load = slices.Clone(val)
+						matched = true
+					}
 				case 'm':
 					if val, ok := match(tokenizer, start, lim, eqloc, "memtotalkib"); ok {
 						memTotalKib, err = parseUint(val)
@@ -358,7 +367,7 @@ LineLoop:
 						)
 					}
 					if err == nil {
-						discarded++
+						softErrors++
 					}
 				}
 				if err != nil {
@@ -369,7 +378,7 @@ LineLoop:
 							err,
 						)
 					}
-					discarded++
+					softErrors++
 					tokenizer.ScanEol()
 					continue LineLoop
 				}
@@ -392,7 +401,7 @@ LineLoop:
 					untaggedPosition,
 				)
 			}
-			discarded++
+			softErrors++
 			continue LineLoop
 		}
 
@@ -420,7 +429,7 @@ LineLoop:
 			if verbose {
 				Log.Warningf("Dropping record with missing mandatory field(s): %s", irritants)
 			}
-			discarded++
+			softErrors++
 			continue LineLoop
 		}
 
@@ -473,7 +482,7 @@ LineLoop:
 		if command == heartbeat {
 			flags |= FlagHeartbeat
 		}
-		readings = append(readings, &Sample{
+		samples = append(samples, &Sample{
 			Version:     version,
 			Timestamp:   timestamp,
 			Host:        hostname,
@@ -495,6 +504,13 @@ LineLoop:
 			Rolledup:    rolledup,
 			Flags:       flags,
 		})
+		if load != nil {
+			loadData = append(loadData, &LoadDatum{
+				Timestamp: timestamp,
+				Host:      hostname,
+				Encoded:   load,
+			})
+		}
 	}
 
 	err = nil

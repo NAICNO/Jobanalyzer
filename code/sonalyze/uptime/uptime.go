@@ -13,7 +13,7 @@ import (
 	. "sonalyze/command"
 )
 
-type UptimeCommand struct /* implements AnalysisCommand */ {
+type UptimeCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
 
 	Interval uint

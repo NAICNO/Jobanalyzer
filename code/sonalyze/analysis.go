@@ -16,7 +16,7 @@ import (
 	"sonalyze/sonarlog"
 )
 
-func localAnalysis(cmd AnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
+func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
 	args := cmd.SharedFlags()
 
 	cfg, err := MaybeGetConfig(cmd.ConfigFile())
@@ -66,7 +66,7 @@ func localAnalysis(cmd AnalysisCommand, _ io.Reader, stdout, stderr io.Writer) e
 }
 
 func buildFilters(
-	cmd AnalysisCommand,
+	cmd SampleAnalysisCommand,
 	cfg *config.ClusterConfig,
 ) (*hostglob.HostGlobber, func(*sonarlog.Sample) bool, error) {
 	args := cmd.SharedFlags()

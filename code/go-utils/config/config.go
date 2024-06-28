@@ -133,12 +133,12 @@ func NewClusterConfig(
 		nodemap[v.Hostname] = v
 	}
 	return &ClusterConfig{
-		Version: version,
-		Name: name,
+		Version:     version,
+		Name:        name,
 		Description: desc,
-		Aliases: append([]string{}, aliases...),
+		Aliases:     append([]string{}, aliases...),
 		ExcludeUser: append([]string{}, excludeUsers...),
-		nodes: nodemap,
+		nodes:       nodemap,
 	}
 }
 

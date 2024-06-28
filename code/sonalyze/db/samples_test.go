@@ -146,7 +146,7 @@ func TestParseSonarLogTagged(t *testing.T) {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
 	uf := NewUstrFacade()
-	readings, bad, err := ParseSonarLog(bytes.NewReader(bs), uf, true)
+	readings, _, bad, err := ParseSonarLog(bytes.NewReader(bs), uf, true)
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestParseSonarLogUntagged(t *testing.T) {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
 	uf := NewUstrFacade()
-	readings, bad, err := ParseSonarLog(bytes.NewReader(bs), uf, true)
+	readings, _, bad, err := ParseSonarLog(bytes.NewReader(bs), uf, true)
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}

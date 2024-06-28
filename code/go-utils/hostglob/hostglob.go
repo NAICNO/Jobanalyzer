@@ -305,7 +305,7 @@ func CompressHostnames(hosts []string) []string {
 		}
 		for k, v := range same {
 			a, b, _ := strings.Cut(k, ",")
-			result = pushHostName(result, a + compressRange(v) + b, suffix)
+			result = pushHostName(result, a+compressRange(v)+b, suffix)
 		}
 	}
 
@@ -314,7 +314,7 @@ func CompressHostnames(hosts []string) []string {
 
 func pushHostName(result []string, elt, suffix string) []string {
 	if suffix != "" {
-		return append(result, elt + "." + suffix)
+		return append(result, elt+"."+suffix)
 	}
 	return append(result, elt)
 }
@@ -376,11 +376,11 @@ func NewGlobber(isPrefixMatcher bool, patterns []string) (*HostGlobber, error) {
 		if err != nil {
 			return nil, err
 		}
-		matchers = append(matchers, hostGlob{ re, pattern })
+		matchers = append(matchers, hostGlob{re, pattern})
 	}
 	return &HostGlobber{
 		isPrefixMatcher: isPrefixMatcher,
-		matchers: matchers,
+		matchers:        matchers,
 	}, nil
 }
 
@@ -458,13 +458,13 @@ Parser:
 			r += string(c)
 		}
 	}
-    if prefix {
-        // Matching a prefix: we need to match entire host-elements, so following a prefix there
-        // should either be EOS or `.` followed by whatever until EOS.
-        r += "(?:\\..*)?$"
-    } else {
-        r += "$"
-    }
+	if prefix {
+		// Matching a prefix: we need to match entire host-elements, so following a prefix there
+		// should either be EOS or `.` followed by whatever until EOS.
+		r += "(?:\\..*)?$"
+	} else {
+		r += "$"
+	}
 	re, err := regexp.Compile(r)
 	if err != nil {
 		return nil, "", err

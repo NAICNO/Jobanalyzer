@@ -14,10 +14,16 @@ import (
 )
 
 type TransientSampleCluster struct /* implements SampleCluster */ {
+	// MT: Immutable after initialization
+	samplesMethods  ReadSyncMethods
+	loadDataMethods ReadSyncMethods
+
+	// MT: Immutable after initialization
+	cfg   *config.ClusterConfig
+	files []*LogFile
+
 	sync.Mutex
 	closed bool
-	cfg    *config.ClusterConfig
-	files  []*LogFile
 }
 
 func newTransientSampleCluster(
@@ -36,13 +42,15 @@ func newTransientSampleCluster(
 					dirname:  path.Dir(fn),
 					basename: path.Base(fn),
 				},
-				fileSonarSamples,
+				0,
 			),
 		)
 	}
 	return &TransientSampleCluster{
-		cfg:   cfg,
-		files: files,
+		samplesMethods:  newSampleFileMethods(cfg, sampleFileKindSample),
+		loadDataMethods: newSampleFileMethods(cfg, sampleFileKindLoadDatum),
+		cfg:             cfg,
+		files:           files,
 	}
 }
 
@@ -91,5 +99,19 @@ func (fc *TransientSampleCluster) ReadSamples(
 		return nil, 0, ClusterClosedErr
 	}
 
-	return readSamples(fc.files, verbose, fc.cfg)
+	return readSampleSlice(fc.files, verbose, fc.samplesMethods)
+}
+
+func (fc *TransientSampleCluster) ReadLoadData(
+	_, _ time.Time,
+	_ *hostglob.HostGlobber,
+	verbose bool,
+) (data []*LoadDatum, dropped int, err error) {
+	fc.Lock()
+	defer fc.Unlock()
+	if fc.closed {
+		return nil, 0, ClusterClosedErr
+	}
+
+	return readLoadDatumSlice(fc.files, verbose, fc.loadDataMethods)
 }

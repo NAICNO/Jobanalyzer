@@ -4,7 +4,7 @@ package slices
 // we can't express that.  And it's probably much more important that f's result can have a
 // different type than its input.
 
-func Map[S ~[]V, V, W any](xs S, f func(V)W) []W {
+func Map[S ~[]V, V, W any](xs S, f func(V) W) []W {
 	ys := make([]W, 0, len(xs))
 	for _, v := range xs {
 		ys = append(ys, f(v))
