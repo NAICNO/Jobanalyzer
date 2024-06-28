@@ -161,6 +161,7 @@ type AppendableCluster interface {
 	// that (JSON does, CSV does not).
 	AppendSamplesAsync(host, timestamp string, payload any) error
 	AppendSysinfoAsync(host, timestamp string, payload any) error
+	AppendSlurmSacctAsync(jobid int, payload any) error
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

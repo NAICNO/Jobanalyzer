@@ -313,9 +313,13 @@ func readPersistentClusterRecords[V any, U ~[]*V](
 	return reader(files, verbose, methods)
 }
 
+// Samples are stored under yyyy/mm/dd/<hostname>.csv
+
 func (pc *PersistentCluster) AppendSamplesAsync(host, timestamp string, payload any) error {
 	return pc.appendDataAsync(timestamp, fmt.Sprintf("%s.csv", host), payload, pc.sampleFiles)
 }
+
+// Sysinfo is stored under yyyy/mm/dd/sysinfo-<hostname>.json
 
 func (pc *PersistentCluster) AppendSysinfoAsync(host, timestamp string, payload any) error {
 	return pc.appendDataAsync(
@@ -351,6 +355,15 @@ func (pc *PersistentCluster) appendDataAsync(
 	shouldUnlock = false
 	pc.Unlock()
 	return file.AppendAsync(payload)
+}
+
+// Sacct data are stored under a/b/.../x/sacct-<jobid>.csv where the a, b, ..., x are derived from
+// jobid by dividing into factors of 1000.  Data for job 1034876 are in 1/1034/sacct-1034876.csv,
+// while data for job 35893 are in 35/sacct-35893.csv.
+
+func (pc *PersistentCluster) AppendSlurmSacctAsync(jobid int, payload any) error {
+	// Here we'll have pc.findFileByJobIdLocked(jobid, filename, fa).
+	panic("NYI")
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
