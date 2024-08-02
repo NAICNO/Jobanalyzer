@@ -39,17 +39,17 @@ export default function SubclusterPage() {
 
   return (
     <VStack alignItems={'start'}>
-      <HStack mb="20px">
+      <HStack mb="20px" alignItems={'start'}>
         <NavigateBackButton/>
-        <Heading ml="20px">{`${cluster.name} (${subcluster.name}) aggregated weekly load`}</Heading>
-      </HStack>
-      <Box>
-        <Text>{hostDetails?.system.description}</Text>
-      </Box>
+        <VStack alignItems={'start'} ml={'20px'} spacing={4}>
+          <Heading>{`${cluster.name} (${subcluster.name}) aggregated weekly load`}</Heading>
+          <Text whiteSpace={'pre-line'}>{hostDetails?.system.description}</Text>
+          <ChakraLink as={ReactRouterLink} color="teal.500" to={jobQueryLink}>
+            Job query for this subcluster
+          </ChakraLink>
 
-      <ChakraLink as={ReactRouterLink} color="teal.500" to={jobQueryLink}>
-        Job query for this subcluster
-      </ChakraLink>
+        </VStack>
+      </HStack>
 
       <MachineDetailsChart
         dataItems={hostDetails?.chart?.dataItems || []}
