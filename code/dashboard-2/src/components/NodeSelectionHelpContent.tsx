@@ -34,15 +34,15 @@ const abbreviations = [
   {name: 'hugemem', desc: 'hugemem*'},
   {name: 'login', desc: 'login*'},
   {name: 'cpu-busy', desc: 'cpu% >= 50'},
-  {name: 'cpu-idle', desc: 'cpu% &lt; 50'},
+  {name: 'cpu-idle', desc: 'cpu% < 50'},
   {name: 'virt-busy', desc: 'virt% >= 50'},
-  {name: 'virt-idle', desc: 'virt% &lt; 50'},
+  {name: 'virt-idle', desc: 'virt% < 50'},
   {name: 'res-busy', desc: 'res% >= 50'},
-  {name: 'res-idle', desc: 'res% &lt; 50'},
+  {name: 'res-idle', desc: 'res% < 50'},
   {name: 'gpu-busy', desc: 'gpu and gpu% >= 50'},
-  {name: 'gpu-idle', desc: 'gpu and gpu% &lt; 50'},
+  {name: 'gpu-idle', desc: 'gpu and gpu% < 50'},
   {name: 'gpumem-busy', desc: 'gpu and gpumem% >= 50'},
-  {name: 'gpumem-idle', desc: 'gpu and gpumem% &lt; 50'},
+  {name: 'gpumem-idle', desc: 'gpu and gpumem% < 50'},
   {name: 'cpu-down', desc: 'cpufail > 0'},
   {name: 'gpu-down', desc: 'gpu and gpufail > 0'},
   {name: 'busy', desc: 'cpu-busy or gpu-busy or virt-busy or res-busy or gpumem-busy'},
@@ -79,7 +79,7 @@ export default function NodeSelectionHelpContent() {
             selects nodes whose field <Text as="em">fieldname</Text> has a numeric <Text as="em">value</Text> that
             satisfies
             the relational operator, for example, "cpu% {'>'} 50" means that the node must be using more
-            than 50% of its CPU capacity. The relational operators are "&lt;", "&lt;=", "{'>'}", "{'>'}=",
+            than 50% of its CPU capacity. The relational operators are "{'<'}", "{'<='}", "{'>'}", "{'>'}=",
             and "=". The field names are listed below.
           </Text>
         </ListItem>
