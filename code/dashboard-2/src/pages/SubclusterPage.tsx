@@ -1,4 +1,4 @@
-import { Heading, HStack, VStack, Text, Box, Link as ChakraLink } from '@chakra-ui/react'
+import { Heading, HStack, VStack, Text, Link as ChakraLink } from '@chakra-ui/react'
 import { Link as ReactRouterLink, Navigate, useParams } from 'react-router-dom'
 
 import { findSubcluster } from '../util'
@@ -39,17 +39,17 @@ export default function SubclusterPage() {
 
   return (
     <VStack alignItems={'start'}>
-      <HStack mb="20px">
+      <HStack mb="20px" alignItems={'start'}>
         <NavigateBackButton/>
-        <Heading ml="20px">{`${cluster.name} (${subcluster.name}) aggregated weekly load`}</Heading>
-      </HStack>
-      <Box>
-        <Text>{hostDetails?.system.description}</Text>
-      </Box>
+        <VStack alignItems={'start'} ml={'20px'} spacing={4}>
+          <Heading>{`${cluster.name} (${subcluster.name}) aggregated weekly load`}</Heading>
+          <Text whiteSpace={'pre-line'}>{hostDetails?.system.description}</Text>
+          <ChakraLink as={ReactRouterLink} color="teal.500" to={jobQueryLink}>
+            Job query for this subcluster
+          </ChakraLink>
 
-      <ChakraLink as={ReactRouterLink} color="teal.500" to={jobQueryLink}>
-        Job query for this subcluster
-      </ChakraLink>
+        </VStack>
+      </HStack>
 
       <MachineDetailsChart
         dataItems={hostDetails?.chart?.dataItems || []}
@@ -66,7 +66,7 @@ export default function SubclusterPage() {
       </Text>
 
       <Text>Main memory (RAM) can go over 100% due to paging and similar system effects; the
-        measurement is the sum of the sizes of the jobs' private memories.
+        measurement is the sum of the sizes of the jobs&apos; private memories.
       </Text>
     </VStack>
   )
