@@ -8,6 +8,7 @@ import {
   Heading,
   Text,
   VStack,
+  Link,
   useBreakpointValue,
 } from '@chakra-ui/react'
 import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from '@tanstack/react-table'
@@ -25,11 +26,11 @@ import { prepareQueryString, useFetchJobQuery } from '../hooks/useFetchJobQuery.
 import JobQueryFormTextInput from '../components/JobQueryFormTextInput.tsx'
 import JobQueryFormRadioInput from '../components/JobQueryFormRadioInput.tsx'
 import JobQueryResultsTable from '../components/table/JobQueryResultsTable.tsx'
-import SelectJobsPopover from '../components/SelectJobsPopover.tsx'
 import { getJobQueryResultsTableColumns } from '../util/TableUtils.ts'
 import JobQueryResultsSkeleton from '../components/skeleton/JobQueryResultsSkeleton.tsx'
 import ShareLinkPopover from '../components/ShareLinkPopover.tsx'
 import JobQueryValues from '../types/JobQueryValues.ts'
+import { ExternalLinkIcon } from '@chakra-ui/icons'
 
 export default function JobQueryPage() {
 
@@ -177,7 +178,18 @@ export default function JobQueryPage() {
                     >
                       Select Jobs
                     </Button>
-                    <SelectJobsPopover/>
+                    <Text as="em" fontSize="sm" ml={'10px'} color="gray">
+                      Password protected.{' '}
+                      <Link
+                        color="teal.500"
+                        href="https://github.com/NAICNO/Jobanalyzer/issues/new?title=Access"
+                        isExternal
+                      >
+                        File an issue with the title &quot;Access&quot;
+                        <ExternalLinkIcon mx="4px" mb="4px"/>
+                      </Link>
+                      {' '}if you need access.
+                    </Text>
                   </HStack>
                   <Text as="em" fontSize="sm" mt="10px" color="gray">
                     More query terms, data fields, and profiler options are available with the command line interface.
