@@ -1,6 +1,6 @@
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import moment from 'moment'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AxisDomain, DataKey } from 'recharts/types/util/types'
 
 interface HostDetailsChartProps {
@@ -35,14 +35,27 @@ const HostDetailsChart = ({
     })
   }
 
+  useEffect(() => {
+    // To ensure lineVisibility array matches seriesConfigs length
+    if (lineVisibility.length !== seriesConfigs.length) {
+      setLineVisibility(seriesConfigs.map(() => true))
+    }
+  }, [seriesConfigs])
+
+
   const dateTimeFormatter = (datetime: number) => {
     return moment(datetime).format('MMM D, HH:mm')
+  }
+
+  if (!dataItems.length || !seriesConfigs.length) {
+    return
   }
 
   return (
     <ResponsiveContainer width={containerProps.width} height={containerProps.height}>
       <LineChart
         data={dataItems}
+        key={JSON.stringify(dataItems)}
       >
         <CartesianGrid strokeDasharray="3 3"/>
         <XAxis
@@ -68,7 +81,7 @@ const HostDetailsChart = ({
             handleLegendClick(payload.dataKey)
           }}
         />
-        {seriesConfigs.map((config) => {
+        {seriesConfigs.map((config, index) => {
           return (
             <Line
               key={config.dataKey}
@@ -78,7 +91,7 @@ const HostDetailsChart = ({
               dot={isShowDataPoints}
               name={config.label}
               strokeWidth={config.strokeWidth}
-              hide={lineVisibility[seriesConfigs.indexOf(config)]}
+              hide={!lineVisibility[index]}
             />
           )
         })}
