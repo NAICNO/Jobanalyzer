@@ -178,8 +178,7 @@ export default function JobQueryPage() {
                     >
                       Select Jobs
                     </Button>
-                    {/*<SelectJobsPopover/>*/}
-                    <Text as="em" fontSize="sm" ml={"10px"} color="gray">
+                    <Text as="em" fontSize="sm" ml={'10px'} color="gray">
                       Password protected.{' '}
                       <Link
                         color="teal.500"
