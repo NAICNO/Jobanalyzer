@@ -176,7 +176,7 @@ export default function HostDetailsPage() {
         }}
         yAxisDomain={([dataMin, dataMax]) => {
           const min = dataMin
-          const max = Math.round(dataMax / 100) * 100
+          const max = Math.floor((dataMax + 10) / 10) * 10
           return [min, max]
         }}
         isShowDataPoints={isShowDataPoints}
