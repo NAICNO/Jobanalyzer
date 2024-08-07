@@ -6,6 +6,7 @@ import { useFetchHostDetails } from '../hooks/useFetchHostDetails.ts'
 import MachineDetailsChart from '../components/chart/MachineDetailsChart.tsx'
 import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
 import { useEffect, useState } from 'react'
+import PageTitle from '../components/PageTitle.tsx'
 
 export default function SubclusterPage() {
 
@@ -38,36 +39,39 @@ export default function SubclusterPage() {
 
 
   return (
-    <VStack alignItems={'start'}>
-      <HStack mb="20px" alignItems={'start'}>
-        <NavigateBackButton/>
-        <VStack alignItems={'start'} ml={'20px'} spacing={4}>
-          <Heading>{`${cluster.name} (${subcluster.name}) aggregated weekly load`}</Heading>
-          <Text whiteSpace={'pre-line'}>{hostDetails?.system.description}</Text>
-          <ChakraLink as={ReactRouterLink} color="teal.500" to={jobQueryLink}>
-            Job query for this subcluster
-          </ChakraLink>
+    <>
+      <PageTitle title={`${cluster.name} (${subcluster.name}) aggregated weekly load`}/>
+      <VStack alignItems={'start'}>
+        <HStack mb="20px" alignItems={'start'}>
+          <NavigateBackButton/>
+          <VStack alignItems={'start'} ml={'20px'} spacing={4}>
+            <Heading>{`${cluster.name} (${subcluster.name}) aggregated weekly load`}</Heading>
+            <Text whiteSpace={'pre-line'}>{hostDetails?.system.description}</Text>
+            <ChakraLink as={ReactRouterLink} color="teal.500" to={jobQueryLink}>
+              Job query for this subcluster
+            </ChakraLink>
 
-        </VStack>
-      </HStack>
+          </VStack>
+        </HStack>
 
-      <MachineDetailsChart
-        dataItems={hostDetails?.chart?.dataItems || []}
-        seriesConfigs={hostDetails?.chart?.seriesConfigs || []}
-        containerProps={{
-          width: '100%',
-          height: 600,
-        }}
-        isShowDataPoints={false}
-      />
+        <MachineDetailsChart
+          dataItems={hostDetails?.chart?.dataItems || []}
+          seriesConfigs={hostDetails?.chart?.seriesConfigs || []}
+          containerProps={{
+            width: '100%',
+            height: 600,
+          }}
+          isShowDataPoints={false}
+        />
 
-      <Text>Data are relative to all system resources (e.g., 100% CPU
-        means all cores are completely busy; 100% GPU means all cards are completely busy).
-      </Text>
+        <Text>Data are relative to all system resources (e.g., 100% CPU
+          means all cores are completely busy; 100% GPU means all cards are completely busy).
+        </Text>
 
-      <Text>Main memory (RAM) can go over 100% due to paging and similar system effects; the
-        measurement is the sum of the sizes of the jobs&apos; private memories.
-      </Text>
-    </VStack>
+        <Text>Main memory (RAM) can go over 100% due to paging and similar system effects; the
+          measurement is the sum of the sizes of the jobs&apos; private memories.
+        </Text>
+      </VStack>
+    </>
   )
 }
