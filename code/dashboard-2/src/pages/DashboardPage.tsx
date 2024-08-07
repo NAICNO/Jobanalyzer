@@ -1,5 +1,5 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react'
-import { Navigate, useParams, Link as ReactRouterLink } from 'react-router-dom'
+import { ReactNode, useMemo, useRef, useState } from 'react'
+import { Navigate, useParams, Link as ReactRouterLink, useSearchParams } from 'react-router-dom'
 import {
   Container,
   Heading,
@@ -38,13 +38,11 @@ export default function DashboardPage() {
       <Navigate to="/"/>
     )
   }
+
+  const [searchParams, setSearchParams] = useSearchParams()
   const defaultQuery = selectedCluster.defaultQuery
 
-  const [query, setQuery] = useState<string>(defaultQuery)
-
-  useEffect(() => {
-    setQuery(defaultQuery)
-  }, [selectedCluster])
+  const query = searchParams.get('query') || defaultQuery
 
   const {data, isFetched} = useFetchDashboard(clusterName!, query)
 
@@ -67,6 +65,10 @@ export default function DashboardPage() {
   const focusRef = useRef<HTMLInputElement | null>(null)
 
   const jobQueryLink = `/jobquery?cluster=${clusterName}`
+
+  const handleSubmitClick = (query: string) => {
+    setSearchParams({query})
+  }
 
   const subclusterLinks = selectedCluster.subclusters.map((subcluster: Subcluster) => (
     <ChakraLink
@@ -97,8 +99,8 @@ export default function DashboardPage() {
           <Text>Recent: 30 mins Longer: 12 hrs{' '} </Text>
           <ViolatorsAndZombiesLinks cluster={selectedCluster}/>
           <NodeSelectionInput
-            defaultQuery={defaultQuery}
-            onClickSubmit={setQuery}
+            defaultQuery={query}
+            onClickSubmit={handleSubmitClick}
             onClickHelp={onOpenHelpSidebar}
             focusRef={focusRef}
           />
