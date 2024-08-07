@@ -266,3 +266,25 @@ export const sortByDuration: SortingFn<JobQueryResultsTableItem> = (rowA, rowB, 
   }
   return 0
 }
+
+// failing cpus are sorted higher
+// failing gpus are sorted higher
+// then non-failing systems
+// within each group, by hostname
+export const sortDashboardTableRows = (a: DashboardTableItem, b: DashboardTableItem, uptime: boolean) => {
+  if (uptime) {
+    if (a.cpu_status != b.cpu_status) {
+      return b.cpu_status - a.cpu_status
+    }
+    if (a.gpu_status != b.gpu_status) {
+      return b.gpu_status - a.gpu_status
+    }
+  }
+  if (a.hostname < b.hostname) {
+    return -1
+  }
+  if (a.hostname > b.hostname) {
+    return 1
+  }
+  return 0
+}

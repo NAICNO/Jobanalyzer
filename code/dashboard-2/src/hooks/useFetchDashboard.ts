@@ -4,6 +4,7 @@ import { AxiosInstance } from 'axios'
 import useAxios from './useAxios.ts'
 import { QueryKeys } from '../Constants.ts'
 import { makeFilter } from '../util/query/QueryUtils.ts'
+import { sortDashboardTableRows } from '../util/TableUtils.ts'
 
 const fetchDashboard = async (axios: AxiosInstance, clusterName: string) => {
   const endpoint = `/${clusterName}-at-a-glance.json`
@@ -11,8 +12,9 @@ const fetchDashboard = async (axios: AxiosInstance, clusterName: string) => {
   return response.data
 }
 
-export const useFetchDashboard = (clusterName: string, query: string) => {
+export const useFetchDashboard = (cluster: Cluster, query: string) => {
   const axios = useAxios()
+  const clusterName = cluster.cluster
   return useQuery(
     {
       queryKey: [QueryKeys.DASHBOARD_TABLE, clusterName],
@@ -20,6 +22,8 @@ export const useFetchDashboard = (clusterName: string, query: string) => {
       select: data => {
         const filter = makeFilter(query)
         const filtered = data.filter(filter)
+        filtered.sort((a: DashboardTableItem, b: DashboardTableItem) => sortDashboardTableRows(a, b, cluster.uptime))
+
         return filtered.map((item: Partial<DashboardTableItem>) => {
           return {
             ...item,
