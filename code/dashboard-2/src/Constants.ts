@@ -1,6 +1,5 @@
 import { GrNodes, GrServers } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
-import { MdOutlineQueryStats } from 'react-icons/md'
 import * as yup from 'yup'
 
 import {
@@ -21,8 +20,11 @@ import {
 } from './util'
 import { sortByDuration } from './util/TableUtils.ts'
 import JobQueryValues from './types/JobQueryValues.ts'
+import { Cluster } from './types/Cluster.ts'
 
 export const APP_NAME = 'NAIC Jobanalyzer'
+
+export const PAGE_TITLE_SUFFIX = ' | ' + APP_NAME
 
 // URLs and API Endpoints to be moved to .env files once dev and prod environments are set up
 export const APP_URL = 'https://naic-monitor.uio.no'
@@ -75,16 +77,6 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     text: 'Saga',
     icon: GrServers
   },
-  {
-    type: 'separator'
-  },
-  {
-    type: 'link',
-    path: '/jobQuery',
-    matches: '/jobQuery',
-    text: 'Job Query',
-    icon: MdOutlineQueryStats
-  }
 ]
 
 export const FETCH_FREQUENCIES = [

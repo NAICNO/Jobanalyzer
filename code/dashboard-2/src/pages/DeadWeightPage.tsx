@@ -20,6 +20,7 @@ import { getDeadWeightTableColumns } from '../util/TableUtils.ts'
 import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
 import DeadWeightTable from '../components/table/DeadWeightTable.tsx'
 import { useFetchDeadWeight } from '../hooks/useFetchDeadWeight.ts'
+import PageTitle from '../components/PageTitle.tsx'
 
 export default function DeadWeightPage() {
   const {clusterName} = useParams<string>()
@@ -49,19 +50,22 @@ export default function DeadWeightPage() {
   })
 
   return (
-    <VStack alignItems={'start'}>
-      <HStack mb="20px">
-        <NavigateBackButton/>
-        <Heading ml="20px">{cluster.name} dead weight</Heading>
-      </HStack>
-      <Text mb='20px'>
-        The following processes and jobs are zombies or defuncts or
-        otherwise dead and may be bogging down the system. The list is
-        recomputed at noon and midnight and goes back four weeks.
-      </Text>
-      <SlideFade in={isFetched}>
-        <DeadWeightTable table={deadWeightTable}/>
-      </SlideFade>
-    </VStack>
+    <>
+      <PageTitle title={`${cluster.name} Deadweight`}/>
+      <VStack alignItems={'start'}>
+        <HStack mb="20px">
+          <NavigateBackButton/>
+          <Heading ml="20px">{cluster.name} dead weight</Heading>
+        </HStack>
+        <Text mb="20px">
+          The following processes and jobs are zombies or defuncts or
+          otherwise dead and may be bogging down the system. The list is
+          recomputed at noon and midnight and goes back four weeks.
+        </Text>
+        <SlideFade in={isFetched}>
+          <DeadWeightTable table={deadWeightTable}/>
+        </SlideFade>
+      </VStack>
+    </>
   )
 }

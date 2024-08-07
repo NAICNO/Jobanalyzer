@@ -15,6 +15,7 @@ import { getViolatingJobTableColumns, getViolatingUserTableColumns } from '../ut
 import ViolatingUserTable from '../components/table/ViolatingUserTable.tsx'
 import ViolatingJobTable from '../components/table/ViolatingJobTable.tsx'
 import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
+import PageTitle from '../components/PageTitle.tsx'
 
 export default function ViolatorsPage() {
   const {clusterName} = useParams<string>()
@@ -58,26 +59,29 @@ export default function ViolatorsPage() {
   })
 
   return (
-    <VStack alignItems={'start'}>
-      <HStack mb="10px">
-        <NavigateBackButton/>
-        <Heading ml="10px">{cluster.name} policy violators</Heading>
-      </HStack>
-      <Text>The following users and jobs have been running significantly outside of policy and are probably
-        not appropriate to run on this cluster. The list is recomputed at noon and midnight
-        and goes back four weeks.</Text>
-      <Heading as="h4" size="lg" mt="20px">
-        By user
-      </Heading>
-      <SlideFade in={isFetched}>
-        <ViolatingUserTable table={violatingUserTable}/>
-      </SlideFade>
-      <Heading as="h4" size="lg" mt="20px">
-        By job and time
-      </Heading>
-      <SlideFade in={isFetched}>
-        <ViolatingJobTable table={violatingJobTable}/>
-      </SlideFade>
-    </VStack>
+    <>
+      <PageTitle title={`${cluster.name} Policy Violators`}/>
+      <VStack alignItems={'start'}>
+        <HStack mb="10px">
+          <NavigateBackButton/>
+          <Heading ml="10px">{cluster.name} policy violators</Heading>
+        </HStack>
+        <Text>The following users and jobs have been running significantly outside of policy and are probably
+          not appropriate to run on this cluster. The list is recomputed at noon and midnight
+          and goes back four weeks.</Text>
+        <Heading as="h4" size="lg" mt="20px">
+          By user
+        </Heading>
+        <SlideFade in={isFetched}>
+          <ViolatingUserTable table={violatingUserTable}/>
+        </SlideFade>
+        <Heading as="h4" size="lg" mt="20px">
+          By job and time
+        </Heading>
+        <SlideFade in={isFetched}>
+          <ViolatingJobTable table={violatingJobTable}/>
+        </SlideFade>
+      </VStack>
+    </>
   )
 }

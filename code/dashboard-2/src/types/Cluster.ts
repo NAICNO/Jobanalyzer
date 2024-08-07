@@ -1,4 +1,4 @@
-interface Cluster {
+export interface Cluster {
   cluster: string;
   subclusters: Subcluster[];
   uptime: boolean;

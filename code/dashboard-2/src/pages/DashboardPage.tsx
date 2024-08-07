@@ -24,6 +24,8 @@ import { getDashboardTableColumns } from '../util/TableUtils.ts'
 import DashboardTable from '../components/table/DasboardTable.tsx'
 import NodeSelectionHelpDrawer from '../components/NodeSelectionHelpDrawer.tsx'
 import NodeSelectionInput from '../components/NodeSelectionInput.tsx'
+import PageTitle from '../components/PageTitle.tsx'
+import { Cluster } from '../types/Cluster.ts'
 
 export default function DashboardPage() {
 
@@ -66,28 +68,27 @@ export default function DashboardPage() {
 
   const jobQueryLink = `/jobquery?cluster=${clusterName}`
 
-  const subclusterLinks = selectedCluster.subclusters.map((subcluster) => (
-    <>
-      <ChakraLink
-        key={subcluster.name}
-        as={ReactRouterLink}
-        color="teal.500"
-        to={`/${clusterName}/subcluster/${subcluster.name}`}
-      >
-        {subcluster.name}
-      </ChakraLink>
+  const subclusterLinks = selectedCluster.subclusters.map((subcluster: Subcluster) => (
+    <ChakraLink
+      key={subcluster.name}
+      as={ReactRouterLink}
+      color="teal.500"
+      to={`/${clusterName}/subcluster/${subcluster.name}`}
+    >
+      {subcluster.name}
       {' '}
-    </>
+    </ChakraLink>
   ))
 
   return (
     <>
+      <PageTitle title={`${selectedCluster.name} Dashboard`}/>
       <Container centerContent>
         <VStack spacing={1}>
           <Heading size="lg" mb={4}>{selectedCluster.name}: Jobanalyzer Dashboard</Heading>
           <Text>Click on hostname for machine details.</Text>
           <Text>
-            <ChakraLink as={ReactRouterLink} to={jobQueryLink} isExternal mr="10px">
+            <ChakraLink as={ReactRouterLink} to={jobQueryLink} isExternal mr="10px" color="teal.500">
               Job query <ExternalLinkIcon mx="2px"/>
             </ChakraLink>
             Aggregates:{' '}
