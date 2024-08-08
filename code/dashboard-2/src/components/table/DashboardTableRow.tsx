@@ -3,6 +3,7 @@ import { Row } from '@tanstack/react-table'
 
 import { CELL_BACKGROUND_COLORS } from '../../Constants.ts'
 import TableRow from './TableRow.tsx'
+import { Cluster } from '../../types/Cluster.ts'
 
 interface DashboardTableRowProps {
   row: Row<DashboardTableItem>

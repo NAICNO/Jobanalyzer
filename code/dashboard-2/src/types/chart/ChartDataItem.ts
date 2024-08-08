@@ -5,6 +5,6 @@ interface ChartDataItem {
   rres: number;
   rgpu: number | null;
   rgpumem: number | null;
-  downhost?: 0 | 1;
-  downgpu?: 0 | 1;
+  downhost?: number;
+  downgpu?: number;
 }

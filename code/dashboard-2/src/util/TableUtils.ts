@@ -5,6 +5,7 @@ import {
   VIOLATING_JOB_SUMMARY_COLUMN,
   VIOLATING_USER_SUMMARY_COLUMN
 } from '../Constants.ts'
+import { Cluster } from '../types/Cluster.ts'
 
 export const getDashboardTableColumns = (selectedCluster: Cluster) => {
   const columns: AccessorKeyColumnDef<DashboardTableItem, any>[] = [

@@ -137,6 +137,7 @@ sketch
 .env.sentry-build-plugin
 
 .env
+.env.development
 .env.production
 .env.production.old
 
