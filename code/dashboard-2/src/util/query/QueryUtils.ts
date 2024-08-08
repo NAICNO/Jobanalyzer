@@ -76,7 +76,7 @@ export function compileQuery(query: string, knownFields: Record<string, string |
 
   // Character indices in `query`
   let i = 0
-  let lim = query.length
+  const lim = query.length
 
   // Location of last token gotten, used for error reporting.
   let loc = 0
@@ -101,7 +101,7 @@ export function compileQuery(query: string, knownFields: Record<string, string |
       return false
     }
     pending_i = i
-    let probe = query.charAt(i)
+    const probe = query.charAt(i)
     if (isDelim(probe)) {
       pending = probe
       i++
@@ -134,7 +134,7 @@ export function compileQuery(query: string, knownFields: Record<string, string |
       loc = i
       fail('Unexpected end of expression')
     }
-    let s = pending
+    const s = pending
     loc = pending_i
     pending_i = -1
     return s
@@ -155,47 +155,47 @@ export function compileQuery(query: string, knownFields: Record<string, string |
     return false
   }
 
-  function exprBin(next, constructor, ...ops) {
+  function exprBin(next: any, constructor: any, ...ops : any[]) {
     return function () {
       let e = next()
       Outer:
-        for (; ;) {
-          for (let op of ops) {
-            if (eatToken(op)) {
-              let e2 = next()
-              try {
-                e = new constructor(op, e, e2)
-              } catch (ex) {
-                fail(ex)
-              }
-              continue Outer
+      for (; ;) {
+        for (const op of ops) {
+          if (eatToken(op)) {
+            const e2 = next()
+            try {
+              e = new constructor(op, e, e2)
+            } catch (ex) {
+              fail(ex)
             }
+            continue Outer
           }
-          break
         }
+        break
+      }
       return e
     }
   }
 
   function exprPrim() {
     if (eatToken('(')) {
-      let e = exprOr()
+      const e = exprOr()
       if (!eatToken(')')) {
         fail('Expected \')\' here')
       }
       return e
     }
     if (eatToken('~')) {
-      let e = exprPrim()
+      const e: unknown = exprPrim()
       return new NotOperation(e)
     }
     let t = get()
-    let probe = parseFloat(t)
+    const probe = parseFloat(t)
     if (isFinite(probe)) {
       return probe
     }
     while (knownFields.hasOwnProperty(t)) {
-      let mapping = knownFields[t]
+      const mapping = knownFields[t]
       if (mapping === true)
         return t
       if (typeof mapping != 'string') {
@@ -219,7 +219,7 @@ export function compileQuery(query: string, knownFields: Record<string, string |
   const exprOr = exprBin(exprAnd, SetOperation, 'or')
 
   function expr() {
-    let e = exprOr()
+    const e = exprOr()
     if (fill()) {
       fail(`Junk at end of expression: ${get()}`)
     }
@@ -340,14 +340,14 @@ builtinOperation['Idle'] =
 builtinOperation['down'] = compileQuery('cpu-down or gpu-down', knownFields, builtinOperation)
 
 export function makeFilter(query: string) {
-  let q: any | string = compileQuery(query, knownFields, builtinOperation)
+  const q: any | string = compileQuery(query, knownFields, builtinOperation)
   if (typeof q === 'string') {
     throw new Error(q)
   }
   return (d: any) => {
-    let s = new Bitset(1)
+    const s = new Bitset(1)
     s.fill()
-    let r = q.eval([d], s)
+    const r = q.eval([d], s)
     return r.isSet(0)
   }
 }
