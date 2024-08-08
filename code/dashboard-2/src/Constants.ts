@@ -40,7 +40,7 @@ export const DURATION_REGEX = /^(.*)d(.*)h(.*)m$/
 
 export const PROFILE_NAMES = [
   {key: 'cpu', text: 'CPU'},
-  {key: 'mem', text: 'RAM'},
+  {key: 'res', text: 'RAM'},
   {key: 'gpu', text: 'GPU'},
   {key: 'gpumem', text: 'GPU RAM'}
 ]
