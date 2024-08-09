@@ -300,7 +300,7 @@ function recomputeURLs() {
 
 // Pick up parameters and create a new window with the selected profile
 
-var profnames = ["cpu", "mem", "gpu", "gpumem"]
+var profnames = ["cpu", "res", "gpu", "gpumem"]
 
 function makeProfileURL(cluster, from, to, row) {
     // About adding "host" here always:
