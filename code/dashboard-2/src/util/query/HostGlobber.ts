@@ -62,7 +62,8 @@ export class HostGlobber {
   private readonly re: RegExp
 
   constructor(pattern: string, prefix?: boolean) {
-    const [re] = this.compileGlobber(pattern, prefix)
+    // @ts-ignore
+    const [re, reSrc] = this.compileGlobber(pattern, prefix)
     this.re = re
   }
 

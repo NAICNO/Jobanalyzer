@@ -177,7 +177,9 @@ export function compileQuery(query: string, knownFields: Record<string, string |
     }
   }
 
-  function exprPrim() {
+  type QueryExpression = NotOperation | RelOperation | SetOperation | GlobOperation | number | string
+
+  function exprPrim() : QueryExpression {
     if (eatToken('(')) {
       const e = exprOr()
       if (!eatToken(')')) {
@@ -186,7 +188,7 @@ export function compileQuery(query: string, knownFields: Record<string, string |
       return e
     }
     if (eatToken('~')) {
-      const e: unknown = exprPrim()
+      const e : QueryExpression = exprPrim()
       return new NotOperation(e)
     }
     let t = get()
@@ -340,7 +342,7 @@ builtinOperation['Idle'] =
 builtinOperation['down'] = compileQuery('cpu-down or gpu-down', knownFields, builtinOperation)
 
 export function makeFilter(query: string) {
-  const q: any | string = compileQuery(query, knownFields, builtinOperation)
+  const q: any = compileQuery(query, knownFields, builtinOperation)
   if (typeof q === 'string') {
     throw new Error(q)
   }
