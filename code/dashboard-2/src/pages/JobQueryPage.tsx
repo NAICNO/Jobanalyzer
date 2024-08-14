@@ -16,7 +16,6 @@ import { Form, Formik } from 'formik'
 import { useSearchParams } from 'react-router-dom'
 
 import {
-  APP_URL,
   EMPTY_ARRAY,
   JOB_QUERY_GPU_OPTIONS,
   JOB_QUERY_VALIDATION_SCHEMA,
@@ -84,7 +83,8 @@ export default function JobQueryPage() {
   })
 
   const queryString = prepareQueryString(formValues)
-  const shareableLink = `${APP_URL}/jobQuery?${queryString}`
+  const uri = `${window.location.origin}/jobQuery?${queryString}`
+  const shareableLink = encodeURI(uri)
 
   const formGridTemplateColumns = useBreakpointValue({base: '1fr', md: 'repeat(2, 1fr)'})
 
