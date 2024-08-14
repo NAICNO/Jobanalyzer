@@ -60,10 +60,13 @@ export function splitMultiPattern(s: string) {
 
 export class HostGlobber {
   private readonly re: RegExp
+  // @ts-ignore
   private reSrc: string
+  // @ts-ignore
   private pattern: string
 
   constructor(pattern: string, prefix?: boolean) {
+    // @ts-ignore
     const [re, reSrc] = this.compileGlobber(pattern, prefix)
     this.re = re
     this.reSrc = reSrc

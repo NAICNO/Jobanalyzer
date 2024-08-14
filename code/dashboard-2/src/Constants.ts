@@ -28,8 +28,8 @@ export const PAGE_TITLE_SUFFIX = ' | ' + APP_NAME
 
 // URLs and API Endpoints to be moved to .env files once dev and prod environments are set up
 export const APP_URL = 'https://naic-monitor.uio.no'
-export const API_ENDPOINT = 'http://localhost:5173/api'
-export const JOB_QUERY_API_ENDPOINT = 'http://localhost:5173/rest'
+export const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
+export const JOB_QUERY_API_ENDPOINT = import.meta.env.VITE_JOB_QUERY_API_ENDPOINT
 
 // The representation of "true" is a hack, but it's determined by the server, so live with it.
 export const TRUE_VAL = 'xxxxxtruexxxxx'
@@ -616,8 +616,8 @@ export const initialFormValues: JobQueryValues = {
   fromDate: '',
   toDate: '',
   minRuntime: '',
-  minPeakCpuCores: '',
-  minPeakResidentGb: '',
+  minPeakCpuCores: 0,
+  minPeakResidentGb: 0,
   gpuUsage: 'either',
 }
 

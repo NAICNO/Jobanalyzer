@@ -1,41 +1,81 @@
 import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
-import DashboardTableRow from '../../../src/components/table/DashboardTableRow'
-import { Table, Tbody } from '@chakra-ui/react'
+import { Cluster } from '../../../src/types/Cluster.ts'
+import { getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import DashboardTable from '../../../src/components/table/DasboardTable.tsx'
+import { getDashboardTableColumns } from '../../../src/util/TableUtils.ts'
+import { ChakraProvider } from '@chakra-ui/react'
+import { BrowserRouter } from 'react-router-dom'
 
+const DashboardTableWrapper = ({data, cluster}: { data: DashboardTableItem[], cluster: Cluster }) => {
+  const tableColumns = getDashboardTableColumns(cluster)
+
+  const table = useReactTable({
+    columns: tableColumns,
+    data: data,
+    getCoreRowModel: getCoreRowModel(),
+  })
+
+  return <DashboardTable table={table} cluster={cluster}/>
+}
 
 describe('DashboardTableRow', () => {
   it('applies correct style when cluster.uptime is true and cpuStatusCell value is not 0', () => {
-    const row = {
-      id: '1',
-      getAllCells: () => [
-        {
-          id: 'cell1',
-          column: {id: 'cpu_status', columnDef: {meta: {isNumeric: true}, cell: () => 'Cell 1'}},
-          getValue: () => 1,
-          getContext: () => {
-          }
-        },
-        {
-          id: 'cell2',
-          column: {id: 'memory_status', columnDef: {meta: {isNumeric: false}, cell: () => 'Cell 2'}},
-          getValue: () => 0,
-          getContext: () => {
-          }
-        }
-      ]
+
+    const data: DashboardTableItem[] = [
+      {
+        hostname: {text: 'ml1.hpc.uio.no', link: '/test/ml1.hpc.uio.no'},
+        tag: 'ML Nodes',
+        machine: '2x14 Intel Xeon Gold 5120 (hyperthreaded), 128GB, 4x NVIDIA RTX 2080 Ti @ 11GB',
+        recent: 30,
+        longer: 720,
+        long: 1440,
+        cpu_status: 1,
+        gpu_status: 1,
+        jobs_recent: 3,
+        jobs_longer: 3,
+        users_recent: 3,
+        users_longer: 3,
+        cpu_recent: 0,
+        cpu_longer: 0,
+        mem_recent: 38,
+        mem_longer: 38,
+        resident_recent: 0,
+        resident_longer: 0,
+        violators_long: 0,
+        zombies_long: 0,
+        gpu_recent: 0,
+        gpu_longer: 0,
+        gpumem_recent: 0,
+        gpumem_longer: 0
+      },
+    ]
+
+    const cluster: Cluster = {
+      cluster: 'test',
+      subclusters: [],
+      uptime: true,
+      violators: true,
+      deadweight: true,
+      defaultQuery: '*',
+      hasDowntime: true,
+      name: 'Test Cluster',
+      description: 'Test Description',
+      prefix: 'test',
+      policy: 'test',
     }
-    const cluster = {uptime: true}
+
     render(
-      <Table>
-        <Tbody>
-          <DashboardTableRow row={row} cluster={cluster}/>
-        </Tbody>
-      </Table>
+      <ChakraProvider>
+        <BrowserRouter>
+          <DashboardTableWrapper data={data} cluster={cluster}/>
+        </BrowserRouter>
+      </ChakraProvider>
     )
 
     const table = screen.getByRole('table')
-    const rowElement = within(table).getByRole('row')
-    expect(rowElement).toHaveStyle({backgroundColor: '#ff6347'})  // tomato
+    const rowElements = within(table).getAllByRole('row')
+    const dataRow = rowElements[1]
+    expect(dataRow).toHaveStyle({backgroundColor: '#ff6347'})  // tomato
   })
 })

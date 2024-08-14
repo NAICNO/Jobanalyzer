@@ -58,8 +58,8 @@ export default function JobQueryPage() {
       fromDate: fromDate || '',
       toDate: toDate || '',
       minRuntime: minRuntime || '',
-      minPeakCpuCores: minPeakCpuCores || '',
-      minPeakResidentGb: minPeakResidentGb || '',
+      minPeakCpuCores: parseInt(minPeakCpuCores || '0'),
+      minPeakResidentGb: parseInt(minPeakResidentGb || '0'),
       gpuUsage: gpuUsage,
     })
   }, [searchParams])
@@ -156,13 +156,13 @@ export default function JobQueryPage() {
                       name="minPeakCpuCores"
                       label="Minimum peak CPU cores"
                       type="text"
-                      placeholder="default all"
+                      placeholder="default 0"
                     />
                     <JobQueryFormTextInput
                       name="minPeakResidentGb"
                       label="Minimum peak Resident GB"
                       type="text"
-                      placeholder="default all"
+                      placeholder="default 0"
                     />
 
                     <JobQueryFormRadioInput

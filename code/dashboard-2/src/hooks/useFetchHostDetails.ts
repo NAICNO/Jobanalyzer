@@ -134,7 +134,7 @@ export const useFetchHostDetails = (
 
 const processDowntimeData = (data: (0 | 1)[] | undefined, multiplier: number) => {
   if (!data) return null
-  let processedData = data.map(d => d * multiplier)
+  const processedData = data.map(d => d * multiplier)
   for (let i = processedData.length - 1; i > 0; i--) {
     if (processedData[i - 1] > 0) {
       processedData[i] = processedData[i - 1]
