@@ -44,7 +44,7 @@ export default function DashboardPage() {
 
   const query = searchParams.get('query') || defaultQuery
 
-  const {data, isFetched} = useFetchDashboard(clusterName!, query)
+  const {data, isFetched} = useFetchDashboard(selectedCluster, query)
 
   const [sorting, setSorting] = useState<SortingState>([])
 
