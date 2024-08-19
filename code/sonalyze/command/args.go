@@ -547,4 +547,3 @@ func DurationToSeconds(option, s string) (int64, error) {
 	}
 	return 0, fmt.Errorf("Invalid %s specifier, try -h", option)
 }
-
