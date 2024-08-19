@@ -5,9 +5,6 @@ package jobs
 import (
 	"errors"
 	"flag"
-	"fmt"
-	"regexp"
-	"strconv"
 
 	. "sonalyze/command"
 )
@@ -328,34 +325,7 @@ func (jc *JobsCommand) Validate() error {
 
 	var e3 error
 	if jc.minRuntimeStr != "" {
-		var re *regexp.Regexp
-		re, e3 = regexp.Compile(`^(?:(\d+)w)?(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?$`)
-		if e3 != nil {
-			panic(e3)
-		}
-		if matches := re.FindStringSubmatch(jc.minRuntimeStr); matches != nil {
-			var weeks, days, hours, minutes int64
-			var x1, x2, x3, x4 error
-			if matches[1] != "" {
-				weeks, x1 = strconv.ParseInt(matches[1], 10, 64)
-			}
-			if matches[2] != "" {
-				days, x2 = strconv.ParseInt(matches[2], 10, 64)
-			}
-			if matches[3] != "" {
-				hours, x3 = strconv.ParseInt(matches[3], 10, 64)
-			}
-			if matches[4] != "" {
-				minutes, x4 = strconv.ParseInt(matches[4], 10, 64)
-			}
-			jc.MinRuntimeSec = (((weeks*7+days)*24+hours)*60 + minutes) * 60
-			e3 = errors.Join(x1, x2, x3, x4)
-			if e3 != nil {
-				e3 = fmt.Errorf("Invalid runtime specifier, try -h")
-			}
-		} else {
-			e3 = errors.New("Invalid runtime specifier, try -h")
-		}
+		jc.MinRuntimeSec, e3 = DurationToSeconds("-min-runtime", jc.minRuntimeStr)
 	}
 
 	var e4 error
