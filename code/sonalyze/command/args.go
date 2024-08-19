@@ -287,7 +287,7 @@ type HostArgs struct {
 }
 
 func (h *HostArgs) Add(fs *flag.FlagSet) {
-	fs.Var(newRepeatableString(&h.Host), "host",
+	fs.Var(NewRepeatableString(&h.Host), "host",
 		"Select records for this `host` (repeatable) [default: all]")
 }
 
@@ -313,21 +313,21 @@ type RecordFilterArgs struct {
 
 func (r *RecordFilterArgs) Add(fs *flag.FlagSet) {
 	r.HostArgs.Add(fs)
-	fs.Var(newRepeatableString(&r.User), "user",
+	fs.Var(NewRepeatableString(&r.User), "user",
 		"Select records for this `user`, \"-\" for all (repeatable) [default: command dependent]")
-	fs.Var(newRepeatableString(&r.User), "u", "Short for -user `user`")
-	fs.Var(newRepeatableString(&r.ExcludeUser), "exclude-user",
+	fs.Var(NewRepeatableString(&r.User), "u", "Short for -user `user`")
+	fs.Var(NewRepeatableString(&r.ExcludeUser), "exclude-user",
 		"Exclude records where the `user` equals this string (repeatable) [default: none]")
-	fs.Var(newRepeatableString(&r.Command), "command",
+	fs.Var(NewRepeatableString(&r.Command), "command",
 		"Select records where the `command` equals this string (repeatable) [default: all]")
-	fs.Var(newRepeatableString(&r.ExcludeCommand), "exclude-command",
+	fs.Var(NewRepeatableString(&r.ExcludeCommand), "exclude-command",
 		"Exclude records where the `command` equals this string (repeatable) [default: none]")
 	fs.BoolVar(&r.ExcludeSystemJobs, "exclude-system-jobs", false,
 		"Exclude records for system jobs (uid < 1000)")
-	fs.Var(newRepeatableUint32(&r.Job), "job",
+	fs.Var(NewRepeatableUint32(&r.Job), "job",
 		"Select records for this `job` ID (repeatable) [default: all]")
-	fs.Var(newRepeatableUint32(&r.Job), "j", "Short for -job `job`")
-	fs.Var(newRepeatableUint32(&r.ExcludeJob), "exclude-job",
+	fs.Var(NewRepeatableUint32(&r.Job), "j", "Short for -job `job`")
+	fs.Var(NewRepeatableUint32(&r.ExcludeJob), "exclude-job",
 		"Exclude jobs where the `job` ID equals this ID (repeatable) [default: none]")
 }
 
@@ -446,22 +446,22 @@ func (s *SharedArgs) Validate() error {
 //
 // Repeatable arguments.  If we get one more of these types we should parameterize.
 
-type repeatableString struct {
+type RepeatableString struct {
 	xs *[]string
 }
 
-func newRepeatableString(xs *[]string) *repeatableString {
-	return &repeatableString{xs}
+func NewRepeatableString(xs *[]string) *RepeatableString {
+	return &RepeatableString{xs}
 }
 
-func (rs *repeatableString) String() string {
+func (rs *RepeatableString) String() string {
 	if rs == nil || rs.xs == nil {
 		return ""
 	}
 	return strings.Join(*rs.xs, ",")
 }
 
-func (rs *repeatableString) Set(s string) error {
+func (rs *RepeatableString) Set(s string) error {
 	// String arguments can't be comma-separated because host patterns such as 'ml[1,2],ml9' would
 	// not really work without heroic effort.
 	if *rs.xs == nil {
@@ -472,15 +472,15 @@ func (rs *repeatableString) Set(s string) error {
 	return nil
 }
 
-type repeatableUint32 struct {
+type RepeatableUint32 struct {
 	xs *[]uint32
 }
 
-func newRepeatableUint32(xs *[]uint32) *repeatableUint32 {
-	return &repeatableUint32{xs}
+func NewRepeatableUint32(xs *[]uint32) *RepeatableUint32 {
+	return &RepeatableUint32{xs}
 }
 
-func (rs *repeatableUint32) String() string {
+func (rs *RepeatableUint32) String() string {
 	if rs == nil || rs.xs == nil {
 		return ""
 	}
@@ -494,7 +494,7 @@ func (rs *repeatableUint32) String() string {
 	return s
 }
 
-func (rs *repeatableUint32) Set(s string) error {
+func (rs *RepeatableUint32) Set(s string) error {
 	// It's OK to allow comma-separated integer options since there is no parsing ambiguity.
 	ys := strings.Split(s, ",")
 	ws := make([]uint32, 0, len(ys))
