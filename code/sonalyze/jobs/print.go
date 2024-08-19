@@ -124,8 +124,10 @@ var jobsAliases = map[string][]string{
 	"rres":    []string{"rres-avg", "rres-peak"},
 	"gpu":     []string{"gpu-avg", "gpu-peak"},
 	"rgpu":    []string{"rgpu-avg", "rgpu-peak"},
+	"sgpu":    []string{"sgpu-avg", "sgpu-peak"},
 	"gpumem":  []string{"gpumem-avg", "gpumem-peak"},
 	"rgpumem": []string{"rgpumem-avg", "rgpumem-peak"},
+	"sgpumem": []string{"sgpumem-avg", "sgpumem-peak"},
 }
 
 const (
@@ -298,6 +300,18 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 		},
 		"Peak relative GPU utilization in percent (100% = all cards)",
 	},
+	"sgpu-avg": {
+		func(d *jobSummary, _ jobCtx) string {
+			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kSgpuPctAvg])))
+		},
+		"Average relative GPU utilization in percent (100% = all cards used by job)",
+	},
+	"sgpu-peak": {
+		func(d *jobSummary, _ jobCtx) string {
+			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kSgpuPctPeak])))
+		},
+		"Peak relative GPU utilization in percent (100% = all cards used by job)",
+	},
 	"gpumem-avg": {
 		func(d *jobSummary, _ jobCtx) string {
 			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kGpuGibAvg])))
@@ -321,6 +335,18 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRgpuGibPeak])))
 		},
 		"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)",
+	},
+	"sgpumem-avg": {
+		func(d *jobSummary, _ jobCtx) string {
+			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kSgpuGibAvg])))
+		},
+		"Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
+	},
+	"sgpumem-peak": {
+		func(d *jobSummary, _ jobCtx) string {
+			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kSgpuGibPeak])))
+		},
+		"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
 	},
 	"gpus": {
 		func(d *jobSummary, _ jobCtx) string {

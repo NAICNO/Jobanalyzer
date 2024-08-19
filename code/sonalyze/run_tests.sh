@@ -9,7 +9,7 @@ echo "======================================================================="
 go build
 
 echo "COMPONENTS"
-for i in common db sonarlog; do
+for i in command common db sonarlog; do
     ( cd $i ; go test )
 done
 
