@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"go-utils/config"
+	"go-utils/gpuset"
 	"go-utils/hostglob"
 	. "sonalyze/command"
 	. "sonalyze/common"
@@ -35,6 +36,10 @@ const (
 	kGpuGibPeak             // Peak memory utilization ditto
 	kRgpuGibAvg             // Average GPU memory utilization, all cards == 100%
 	kRgpuGibPeak            // Peak GPU memory utilization ditto
+	kSgpuPctAvg             // Average GPU utilization, all cards used by job == 100%
+	kSgpuPctPeak            // Peak GPU utilization, all cards used by job == 100%
+	kSgpuGibAvg             // Average GPU memory utilization, all cards used by job == 100%
+	kSgpuGibPeak            // Peak GPU memory utilization ditto
 	kDuration               // Duration of job in seconds (wall clock, not CPU)
 	numF64Fields
 )
@@ -210,8 +215,8 @@ func (jc *JobsCommand) aggregateJob(
 	host := job[0].S.Host
 	duration := last - first
 	needZombie := jc.Zombie
+	gpus := gpuset.EmptyGpuSet()
 	var (
-		usesGpu                         bool
 		gpuFail                         uint8
 		cpuPctAvg, cpuPctPeak           float64
 		rCpuPctAvg, rCpuPctPeak         float64
@@ -219,17 +224,19 @@ func (jc *JobsCommand) aggregateJob(
 		rCpuGibAvg, rCpuGibPeak         float64
 		gpuPctAvg, gpuPctPeak           float64
 		rGpuPctAvg, rGpuPctPeak         float64
+		sGpuPctAvg, sGpuPctPeak         float64
 		rssAnonGibAvg, rssAnonGibPeak   float64
 		rRssAnonGibAvg, rRssAnonGibPeak float64
 		gpuGibAvg, gpuGibPeak           float64
 		rGpuGibAvg, rGpuGibPeak         float64
+		sGpuGibAvg, sGpuGibPeak         float64
 		flags                           int
 		isZombie                        bool
 	)
 	const kib2gib = 1.0 / (1024 * 1024)
 
 	for _, s := range job {
-		usesGpu = usesGpu || !s.S.Gpus.IsEmpty()
+		gpus = gpuset.UnionGpuSets(gpus, s.S.Gpus)
 		gpuFail = sonarlog.MergeGpuFail(gpuFail, s.S.GpuFail)
 		cpuPctAvg += float64(s.CpuUtilPct)
 		cpuPctPeak = math.Max(cpuPctPeak, float64(s.CpuUtilPct))
@@ -247,6 +254,7 @@ func (jc *JobsCommand) aggregateJob(
 			isZombie = strings.Contains(cmd, "<defunct>") || strings.HasPrefix(cmd, "_zombie_")
 		}
 	}
+	usesGpu := !gpus.IsEmpty()
 
 	if cfg != nil {
 		if sys := cfg.LookupHost(host.String()); sys != nil {
@@ -270,6 +278,18 @@ func (jc *JobsCommand) aggregateJob(
 				// job, so we need not look to sys.GpuMemPct here.
 				rGpuGibAvg = (gpuGibAvg * 100) / gpuMemory
 				rGpuGibPeak = (gpuGibPeak * 100) / gpuMemory
+			}
+			if usesGpu {
+				nCards := float64(gpus.Size())
+				sGpuPctAvg = gpuPctAvg / nCards
+				sGpuPctPeak = gpuPctPeak / nCards
+				if gpuCards := float64(sys.GpuCards); gpuCards > 0 {
+					if gpuMemory := float64(sys.GpuMemGB); gpuMemory > 0 {
+						jobGpuGib := nCards * (gpuMemory / gpuCards)
+						sGpuGibAvg = (gpuGibAvg * 100) / jobGpuGib
+						sGpuGibPeak = (gpuGibPeak * 100) / jobGpuGib
+					}
+				}
 			}
 		}
 	}
@@ -325,11 +345,15 @@ func (jc *JobsCommand) aggregateJob(
 	a.computed[kGpuPctPeak] = gpuPctPeak
 	a.computed[kRgpuPctAvg] = rGpuPctAvg / n
 	a.computed[kRgpuPctPeak] = rGpuPctPeak
+	a.computed[kSgpuPctAvg] = sGpuPctAvg / n
+	a.computed[kSgpuPctPeak] = sGpuPctPeak
 
 	a.computed[kGpuGibAvg] = gpuGibAvg / n
 	a.computed[kGpuGibPeak] = gpuGibPeak
 	a.computed[kRgpuGibAvg] = rGpuGibAvg / n
 	a.computed[kRgpuGibPeak] = rGpuGibPeak
+	a.computed[kSgpuGibAvg] = sGpuGibAvg / n
+	a.computed[kSgpuGibPeak] = sGpuGibPeak
 
 	a.computed[kDuration] = float64(duration)
 
