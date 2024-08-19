@@ -46,6 +46,12 @@ echo
 ( cd numdiff ; go build )
 ( cd numdiff ; ./numdiff numdiff.go numdiff.go )
 
+echo "======================================================================="
+echo " HEATMAP RELEASE BUILD + SMOKE TEST"
+echo
+( cd heatmap ; go build )
+( cd heatmap ; ./heatmap -h 2&> /dev/null )
+
 ( cd attic ; ./build.sh )
 
 echo "======================================================================="

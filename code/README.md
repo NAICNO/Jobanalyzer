@@ -9,7 +9,8 @@
 
 #### Core programs and libraries
 
-* `dashboard/` - HTML+CSS+JS source code for the web front-end
+* `dashboard/` - HTML+CSS+JS source code for the old web front-end
+* `dashboard-2/` - HTML+CSS+React+TypeScript source code for the new web front-end
 * `go-utils/` - Go source code for utility functions used by all the Go programs in this repo
 * `naicreport/` - Go source code for a program that runs sonalyze and generates reports
 * `sonalyze/` - Go source code for a program that ingests and queries the Sonar data
@@ -17,6 +18,7 @@
 #### Utility programs, tests, and other
 
 * `dashtest/` - Test code for the dashboard
+* `heatmap/` - Go source code for a utility that parses text data and creates a simple 2D heat map of it
 * `jsoncheck/` - Go source code for a simple utility that syntax checks JSON data
 * `make-cluster-config/` - Go source code for a utility that collects sysinfo data into cluster config files
 * `netsink/` - Go source code for a program that receives random input from a port and logs it
@@ -24,10 +26,6 @@
 * `slurminfo/` - Go source code for a utility that runs `sinfo` and constructs a cluster config file
 * `sonard/` - Go source code for a utility that runs Sonar in the background with custom settings
 * `tests/` - Test cases for everything
-
-#### Work in progress
-
-* `dashboard-2/` - New front-end, WIP
 
 #### Attic - obsolete but not deleted
 
