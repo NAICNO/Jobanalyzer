@@ -204,7 +204,8 @@ var loadFormatters = map[string]Formatter[sonarlog.Sample, loadCtx]{
 			if ctx.sys.GpuCards == 0 {
 				return "0"
 			}
-			return fmt.Sprint(math.Round(float64(d.S.GpuPct) / float64(ctx.sys.GpuCards) * 100))
+			// GpuPct is already scaled by 100 so don't do it again
+			return fmt.Sprint(math.Round(float64(d.S.GpuPct) / float64(ctx.sys.GpuCards)))
 		},
 		"Average relative GPU utilization in percent in the aggregation window (100% = all cards)",
 	},
