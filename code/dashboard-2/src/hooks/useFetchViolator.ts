@@ -6,7 +6,7 @@ import { POLICIES, QueryKeys } from '../Constants.ts'
 
 const fetchViolator = async (axios: AxiosInstance, clusterName: string) => {
   const endpoint = `/${clusterName}-violator-report.json`
-  const response: AxiosResponse<ViolatingJob[]> = await axios.get(endpoint)
+  const response: AxiosResponse<FetchedViolatingJob[]> = await axios.get(endpoint)
   return response.data
 }
 

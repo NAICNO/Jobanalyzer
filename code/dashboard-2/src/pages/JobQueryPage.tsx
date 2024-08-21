@@ -14,6 +14,7 @@ import {
 import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from '@tanstack/react-table'
 import { Form, Formik } from 'formik'
 import { useSearchParams } from 'react-router-dom'
+import { ExternalLinkIcon } from '@chakra-ui/icons'
 
 import {
   EMPTY_ARRAY,
@@ -21,7 +22,7 @@ import {
   JOB_QUERY_VALIDATION_SCHEMA,
   initialFormValues,
 } from '../Constants.ts'
-import { prepareQueryString, useFetchJobQuery } from '../hooks/useFetchJobQuery.ts'
+import { useFetchJobQuery } from '../hooks/useFetchJobQuery.ts'
 import JobQueryFormTextInput from '../components/JobQueryFormTextInput.tsx'
 import JobQueryFormRadioInput from '../components/JobQueryFormRadioInput.tsx'
 import JobQueryResultsTable from '../components/table/JobQueryResultsTable.tsx'
@@ -30,7 +31,7 @@ import JobQueryResultsSkeleton from '../components/skeleton/JobQueryResultsSkele
 import ShareLinkPopover from '../components/ShareLinkPopover.tsx'
 import JobQueryValues from '../types/JobQueryValues.ts'
 import PageTitle from '../components/PageTitle.tsx'
-import { ExternalLinkIcon } from '@chakra-ui/icons'
+import { prepareShareableJobQueryLink } from '../util/query/QueryUtils.ts'
 
 export default function JobQueryPage() {
 
@@ -82,9 +83,7 @@ export default function JobQueryPage() {
     autoResetExpanded: false,
   })
 
-  const queryString = prepareQueryString(formValues)
-  const uri = `${window.location.origin}/jobQuery?${queryString}`
-  const shareableLink = encodeURI(uri)
+  const shareableLink = prepareShareableJobQueryLink(formValues)
 
   const formGridTemplateColumns = useBreakpointValue({base: '1fr', md: 'repeat(2, 1fr)'})
 

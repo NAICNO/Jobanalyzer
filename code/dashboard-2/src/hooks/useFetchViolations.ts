@@ -3,6 +3,8 @@ import { AxiosInstance, AxiosResponse } from 'axios'
 
 import useAxios from './useAxios.ts'
 import { QueryKeys } from '../Constants.ts'
+import JobQueryValues from '../types/JobQueryValues.ts'
+import { prepareShareableJobQueryLink } from '../util/query/QueryUtils.ts'
 
 interface Filter {
   afterDate: Date | null
@@ -11,7 +13,7 @@ interface Filter {
 
 const fetchViolations = async (axios: AxiosInstance, clusterName: string) => {
   const endpoint = `/${clusterName}-violator-report.json`
-  const response: AxiosResponse<ViolatingJob[]> = await axios.get(endpoint)
+  const response: AxiosResponse<FetchedViolatingJob[]> = await axios.get(endpoint)
   return response.data
 }
 
@@ -24,26 +26,47 @@ export const useFetchViolations = (clusterName: string, filter: Filter | null = 
       queryFn: () => fetchViolations(axios, clusterName),
       select: (data) => {
 
+        let violatingJobs: ViolatingJob[] = data.map((d) => {
+          const jobQueryValues : JobQueryValues = {
+            gpuUsage: '',
+            minPeakCpuCores: null,
+            minPeakResidentGb: null,
+            minRuntime: null,
+            nodeNames: d.hostname,
+            clusterName: clusterName,
+            jobIds: d.id.toString(),
+            usernames: d.user,
+            fromDate: '',
+            toDate: '',
+          }
+          const shareableLink = prepareShareableJobQueryLink(jobQueryValues)
+          return {
+            ...d,
+            user: {text: d.user, link: shareableLink, openInNewTab: true},
+          }
+        })
+
         if (filter) {
           if (filter.hostname) {
-            data = data.filter((d) => d.hostname === filter.hostname)
+            violatingJobs = violatingJobs.filter((d) => d.hostname === filter.hostname)
           }
           if (filter.afterDate) {
-            data = data.filter((d) => new Date(d['last-seen']) > filter.afterDate!)
+            violatingJobs = violatingJobs.filter((d) => new Date(d['last-seen']) > filter.afterDate!)
           }
         }
 
         const users: Record<string, ViolatingUser> = {}
 
-        for (const violatingJob of data) {
-          let u = users[violatingJob.user]
+        for (const violatingJob of violatingJobs) {
+          const username = violatingJob.user.text
+          const u = users[username]
           if (u) {
             u.count++
             u.earliest = u.earliest < violatingJob['started-on-or-before'] ? u.earliest : violatingJob['started-on-or-before']
             u.latest = u.latest > violatingJob['last-seen'] ? u.latest : violatingJob['last-seen']
           } else {
-            users[violatingJob.user] = {
-              user: {text: violatingJob.user, link: `${violatingJob.user}`},
+            users[username] = {
+              user: {text: username, link: username},
               count: 1,
               earliest: violatingJob['started-on-or-before'],
               latest: violatingJob['last-seen'],
@@ -54,10 +77,10 @@ export const useFetchViolations = (clusterName: string, filter: Filter | null = 
         const byUser = Object.values(users)
           .sort((a, b) => a.user.text.localeCompare(b.user.text))
 
-        data.sort((a, b) => a['last-seen'] > b['last-seen'] ? -1 : 1)
+        violatingJobs.sort((a, b) => a['last-seen'] > b['last-seen'] ? -1 : 1)
         return {
           byUser,
-          byJob: data
+          byJob: violatingJobs
         }
       }
     }
