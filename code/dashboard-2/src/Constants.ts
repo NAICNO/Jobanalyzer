@@ -347,7 +347,7 @@ export const VIOLATING_JOB_SUMMARY_COLUMN: { [K in keyof ViolatingJob]: Violatin
     key: 'user',
     title: 'User',
     sortable: true,
-    renderFn: GenericCell
+    renderFn: CellWithLink
   },
   id: {
     key: 'id',
@@ -440,14 +440,14 @@ export const DEAD_WEIGHT_COLUMN: { [K in keyof DeadWeightTableItem]: DeadWeightT
     key: 'user',
     title: 'User',
     sortable: true,
-    renderFn: GenericCell,
+    renderFn: CellWithLink,
     minSize: 120,
   },
   id: {
     key: 'id',
     title: 'Job',
     sortable: true,
-    renderFn: GenericCell,
+    renderFn: CellWithLink,
     minSize: 100,
   },
   cmd: {

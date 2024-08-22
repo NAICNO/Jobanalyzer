@@ -71,6 +71,9 @@ import { RelOperation } from './RelOperation.ts'
 import { SetOperation } from './SetOperation.ts'
 import { GlobOperation } from './GlobOperation.ts'
 import { Bitset } from './Bitset.ts'
+import JobQueryValues from '../../types/JobQueryValues.ts'
+import { splitMultiPattern } from './HostGlobber.ts'
+import { TRUE_VAL } from '../../Constants.ts'
 
 export function compileQuery(query: string, knownFields: Record<string, string | boolean> = {}, builtinOperations: Record<string, any> = {}) {
 
@@ -352,6 +355,71 @@ export function makeFilter(query: string) {
     const r = q.eval([d], s)
     return r.isSet(0)
   }
+}
+
+export const prepareJobQueryString = (jobQueryValues?: JobQueryValues) => {
+  if(!jobQueryValues) {
+    return ''
+  }
+  let query = `cluster=${jobQueryValues.clusterName}`
+
+  const trimmedUsernames = jobQueryValues.usernames || ''
+
+  const userNameList = trimmedUsernames.split(',').map(item => item.trim())
+  if (userNameList?.length === 0) {
+    query += '&user=-'
+  } else {
+    userNameList?.forEach(userName => {
+      query += `&user=${userName}`
+    })
+  }
+
+  const nodeNameList = jobQueryValues.nodeNames ? splitMultiPattern(jobQueryValues.nodeNames) : []
+  nodeNameList.forEach(nodeName => {
+    query += `&host=${nodeName}`
+  })
+
+  const jobIdList = jobQueryValues.jobIds ? jobQueryValues.jobIds.split(',').map(id => parseInt(id)) : []
+  jobIdList.forEach(jobId => {
+    query += `&job=${jobId}`
+  })
+
+  const fromDate = jobQueryValues.fromDate
+  query += `&from=${fromDate}`
+
+  const toDate = jobQueryValues.toDate
+  query += `&to=${toDate}`
+
+  const minRuntime = jobQueryValues.minRuntime
+  if (minRuntime) {
+    query += `&min-runtime=${minRuntime}`
+  }
+
+  const minPeakCpuCores = jobQueryValues.minPeakCpuCores
+  if (minPeakCpuCores) {
+    query += `&min-cpu-peak=${minPeakCpuCores * 100}`
+  }
+
+  const minPeakResidentGb = jobQueryValues.minPeakResidentGb
+  if (minPeakResidentGb) {
+    query += `&min-res-peak=${minPeakResidentGb}`
+  }
+
+  const gpuUsage = jobQueryValues.gpuUsage
+  if (gpuUsage !== 'either') {
+    query += `&${gpuUsage}=${TRUE_VAL}`
+  }
+
+  const fmt = 'fmt=json,job,user,host,duration,start,end,cpu-peak,res-peak,mem-peak,gpu-peak,gpumem-peak,cmd'
+  query += `&${fmt}`
+
+  return query
+}
+
+export const prepareShareableJobQueryLink = (jobQueryValues?: JobQueryValues) => {
+  const queryString = prepareJobQueryString(jobQueryValues)
+  const uri = `${window.location.origin}/jobQuery?${queryString}`
+  return encodeURI(uri)
 }
 
 function isSpace(c: string) {

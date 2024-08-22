@@ -1,7 +1,7 @@
-interface ViolatingJob {
+interface FetchedViolatingJob {
   hostname: string;
   id: number;
-  user: TextWithLink;
+  user: string;
   cmd: string;
   'started-on-or-before': Date;
   'first-violation': string;

@@ -8,10 +8,11 @@ interface CellWithLinkProps {
 }
 
 const CellWithLink = ({value}: CellWithLinkProps) => {
+  const {text, link, openInNewTab} = value
   return (
     <CellWrapper styleProps={{paddingLeft: 2}}>
-      <ChakraLink as={ReactRouterLink} to={value.link} color={'teal.500'}>
-        {value.text}
+      <ChakraLink as={ReactRouterLink} to={link} color={'teal.500'} isExternal={openInNewTab}>
+        {text}
       </ChakraLink>
     </CellWrapper>
   )

@@ -1,7 +1,7 @@
-interface DeadWeight {
+interface FetchedDeadWeight {
   hostname: string;
-  id: TextWithLink;
-  user: TextWithLink;
+  id: string;
+  user: string;
   cmd: string;
   'started-on-or-before': Date;
   'first-violation': Date;
