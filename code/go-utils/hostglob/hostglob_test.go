@@ -158,6 +158,11 @@ func TestGlobber1(t *testing.T) {
 		t.Fatal("Match 2")
 	}
 
+	// The pattern can change if the glob compiler changes
+	if hf.String() != `[^ml8(?:\..*)?$ ^ml3\.hpc(?:\..*)?$]` {
+		t.Fatal(hf.String())
+	}
+
 	hf, err = NewGlobber(false, []string{"ml4.hpc.uio.no"})
 	if err != nil {
 		t.Fatal("Insert 3")
@@ -186,6 +191,10 @@ func TestGlobber2(t *testing.T) {
 	if !hf.Match("ml1.uio") {
 		t.Fatal("Match 3")
 	}
+	// The pattern can change if the glob compiler changes
+	if hf.String() != `[^ml(?:1|2|3)[^.]*(?:\..*)?$]` {
+		t.Fatal(hf.String())
+	}
 }
 
 func TestGlobber3(t *testing.T) {
@@ -201,5 +210,9 @@ func TestGlobber3(t *testing.T) {
 	}
 	if hf.Match("c2-3") {
 		t.Fatal("Match 3")
+	}
+	// The pattern can change if the glob compiler changes
+	if hf.String() != `[^c(?:1|2|3)-(?:2|4)$]` {
+		t.Fatal(hf.String())
 	}
 }

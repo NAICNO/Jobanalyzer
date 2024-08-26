@@ -60,6 +60,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"go-utils/slices"
 )
 
 // This takes a <multi-pattern> according to the grammar above and returns a list of individual
@@ -388,6 +390,14 @@ func NewGlobber(isPrefixMatcher bool, patterns []string) (*HostGlobber, error) {
 
 func (hg *HostGlobber) IsEmpty() bool {
 	return len(hg.matchers) == 0
+}
+
+func (hg *HostGlobber) String() string {
+	return fmt.Sprint(
+		slices.Map(hg.matchers, func (hg hostGlob) string {
+			return hg.pattern
+		}),
+	)
 }
 
 // Match s against the patterns and return true iff it matches at least one pattern.
