@@ -149,6 +149,9 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 
 	summaries := make([]*jobSummary, 0)
 	minSamples := jc.lookupUint("min-samples")
+	if jc.Verbose && minSamples > 1 {
+		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
+	}
 	discarded := 0
 	for _, job := range jobs {
 		if uint(len(*job)) >= minSamples {
@@ -406,15 +409,24 @@ func (jc *JobsCommand) buildAggregationFilter(
 		if v.aggregateIx != -1 && (cfg != nil || !v.relative) {
 			val := jc.lookupUint(v.name)
 			if strings.HasPrefix(v.name, "min-") && val != 0 {
+				if jc.Verbose {
+					Log.Infof("Excluding jobs: Min-filtering %s for %d", v.name, val)
+				}
 				minFilters = append(minFilters, filterVal{float64(val), v.aggregateIx})
 			}
 			if strings.HasPrefix(v.name, "max-") && val != v.initial {
+				if jc.Verbose {
+					Log.Infof("Excluding jobs: Max-filtering %s for %d", v.name, val)
+				}
 				maxFilters = append(maxFilters, filterVal{float64(val), v.aggregateIx})
 			}
 		}
 	}
 	if jc.MinRuntimeSec > 0 {
 		// This is *running time*, not CPU time
+		if jc.Verbose {
+			Log.Infof("Excluding jobs: Min-filtering by elapsed time < %ds", jc.MinRuntimeSec)
+		}
 		minFilters = append(minFilters, filterVal{float64(jc.MinRuntimeSec), kDuration})
 	}
 
@@ -435,6 +447,9 @@ func (jc *JobsCommand) buildAggregationFilter(
 	}
 	if jc.Zombie {
 		flags |= kIsZombie
+	}
+	if jc.Verbose && flags != 0 {
+		Log.Infof("Flag-filtering (UTSL): %x", flags)
 	}
 
 	if len(minFilters) == 0 && len(maxFilters) == 0 && flags == 0 {

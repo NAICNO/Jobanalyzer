@@ -9,6 +9,8 @@ import (
 
 	"go-utils/config"
 	"go-utils/hostglob"
+	"go-utils/maps"
+	"go-utils/slices"
 	. "sonalyze/command"
 	. "sonalyze/common"
 	"sonalyze/db"
@@ -24,7 +26,7 @@ func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wri
 		return err
 	}
 
-	hostGlobber, recordFilter, err := buildFilters(cmd, cfg)
+	hostGlobber, recordFilter, err := buildFilters(cmd, cfg, args.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to create record filter\n%w", err)
 	}
@@ -68,6 +70,7 @@ func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wri
 func buildFilters(
 	cmd SampleAnalysisCommand,
 	cfg *config.ClusterConfig,
+	verbose bool,
 ) (*hostglob.HostGlobber, func(*sonarlog.Sample) bool, error) {
 	args := cmd.SharedFlags()
 
@@ -199,6 +202,47 @@ func buildFilters(
 			(!excludeSystemJobs || e.S.Pid >= 1000) &&
 			(!haveFrom || from <= e.S.Timestamp) &&
 			(!haveTo || e.S.Timestamp <= to)
+	}
+
+	if verbose {
+		if haveFrom {
+			Log.Infof("Including records starting on or after %s", args.SourceArgs.FromDate)
+		}
+		if haveTo {
+			Log.Infof("Including records ending on or before %s", args.SourceArgs.ToDate)
+		}
+		if len(includeUsers) > 0 {
+			Log.Infof("Including records with users %s", maps.Values(includeUsers))
+		}
+		if !includeHosts.IsEmpty() {
+			Log.Infof("Including records with hosts matching %s", includeHosts)
+		}
+		if len(includeJobs) > 0 {
+			Log.Infof(
+				"Including records with job id matching %s",
+				slices.Map(maps.Keys(includeJobs), func (x uint32) string {
+					return fmt.Sprint(x)
+				}))
+		}
+		if len(includeCommands) > 0 {
+			Log.Infof("Including records with commands matching %s", maps.Keys(includeCommands))
+		}
+		if len(excludeUsers) > 0 {
+			Log.Infof("Excluding records with users matching %s", maps.Keys(excludeUsers))
+		}
+		if len(excludeJobs) > 0 {
+			Log.Infof(
+				"Excluding records with job ids matching %s",
+				slices.Map(maps.Keys(excludeJobs), func (x uint32) string {
+					return fmt.Sprint(x)
+				}))
+		}
+		if len(excludeCommands) > 0 {
+			Log.Infof("Excluding records with commands matching %s", maps.Keys(excludeCommands))
+		}
+		if excludeSystemJobs {
+			Log.Infof("Excluding records with PID < 1000")
+		}
 	}
 
 	return includeHosts, recordFilter, nil

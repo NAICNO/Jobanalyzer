@@ -53,6 +53,9 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 	// in the vector and marking the numJobs first per user.
 	numRemoved := 0
 	if jc.NumJobs > 0 {
+		if jc.Verbose {
+			Log.Infof("Selecting only %d top jobs per user", jc.NumJobs)
+		}
 		counts := make(map[Ustr]uint)
 		for i := len(summaries) - 1; i >= 0; i-- {
 			u := summaries[i].job[0].S.User
