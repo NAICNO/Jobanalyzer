@@ -167,8 +167,7 @@ func (pc *ProfileCommand) Perform(
 		Log.Infof("Number of time steps: %d", timesteps)
 	}
 
-	pc.printProfile(out, uint32(jobId), hostName, userName, hasRolledup, m, processes)
-	return nil
+	return pc.printProfile(out, uint32(jobId), hostName, userName, hasRolledup, m, processes)
 }
 
 // TODO: IMPROVEME: Pids are not unique b/c rolled-up and merged pids are zero and there may be
