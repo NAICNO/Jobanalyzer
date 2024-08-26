@@ -118,6 +118,7 @@ func (mdc *MetadataCommand) Perform(
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *hostglob.HostGlobber,
+	_ func(*sonarlog.Sample) bool,
 ) error {
 	if mdc.Times {
 		fmt.Fprintf(out, "From: %s\n", mdc.FromDate.Format(time.RFC3339))

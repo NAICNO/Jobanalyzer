@@ -21,6 +21,7 @@ func (pc *ProfileCommand) Perform(
 	streams sonarlog.InputStreamSet,
 	_ sonarlog.Timebounds,
 	_ *hostglob.HostGlobber,
+	_ func(*sonarlog.Sample) bool,
 ) error {
 	jobId := pc.Job[0]
 

@@ -76,7 +76,9 @@ type SampleAnalysisCommand interface {
 	// Provide appropriate default settings for these flags
 	DefaultRecordFilters() (allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool)
 
-	// Perform the operation
+	// Perform the operation.  The streams and bounds are as read from the DB using the globber and
+	// the filter, but the globber and filter are passed since the client may want to do something
+	// more / something different.
 	Perform(
 		out io.Writer,
 		cfg *config.ClusterConfig,
@@ -84,6 +86,7 @@ type SampleAnalysisCommand interface {
 		streams sonarlog.InputStreamSet,
 		bounds sonarlog.Timebounds,
 		hostGlobber *hostglob.HostGlobber,
+		recordFilter func(*sonarlog.Sample) bool,
 	) error
 
 	// Retrieve configfile for those commands that allow it, otherwise "", or "" for absent
