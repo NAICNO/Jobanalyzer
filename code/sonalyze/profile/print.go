@@ -325,7 +325,7 @@ function render() {
  <body onload="render()">
   <center><h1>%s</h1></center>
   <div><canvas id="chart_node"></canvas></div>
-  <center><b>%s</b></center>
+  <center><b>X axis: UTC timestamp</b><br><b>%s</b></center>
  </body>
 <html>
 `,
