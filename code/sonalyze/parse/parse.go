@@ -93,6 +93,7 @@ func (pc *ParseCommand) Perform(
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *hostglob.HostGlobber,
+	recordFilter func(*sonarlog.Sample) bool,
 ) error {
 	var mergedSamples []*sonarlog.SampleStream
 	var samples sonarlog.SampleStream
@@ -105,12 +106,20 @@ func (pc *ParseCommand) Perform(
 		if err != nil {
 			return err
 		}
-		samples = sonarlog.SampleStream(slices.Map(
+		// Simulate the normal pipeline
+		mapped := slices.Map(
 			records,
 			func(r *db.Sample) sonarlog.Sample {
 				return sonarlog.Sample{S: r}
 			},
-		))
+		)
+		// We still need to filter the records or things will be very confusing
+		if recordFilter != nil {
+			mapped = slices.Filter(mapped, func (s sonarlog.Sample) bool {
+				return recordFilter(&s)
+			})
+		}
+		samples = sonarlog.SampleStream(mapped)
 
 	case pc.Clean:
 		mergedSamples = maps.Values(streams)

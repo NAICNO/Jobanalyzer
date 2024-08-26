@@ -56,7 +56,7 @@ func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wri
 	}
 
 	sonarlog.ComputeAndFilter(streams, recordFilter)
-	err = cmd.Perform(stdout, cfg, theLog, streams, bounds, hostGlobber)
+	err = cmd.Perform(stdout, cfg, theLog, streams, bounds, hostGlobber, recordFilter)
 
 	if err != nil {
 		return fmt.Errorf("Failed to perform operation\n%w", err)
