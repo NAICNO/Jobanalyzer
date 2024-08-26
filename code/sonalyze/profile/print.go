@@ -122,7 +122,7 @@ func (pc *ProfileCommand) collectHtml(
 	processes sonarlog.SampleStreams,
 ) (labels []string, rows []string, err error) {
 	var formatter func(*profDatum) string
-	formatter, err = checkFields(pc.printFields)
+	formatter, err = checkFields(pc.printFields, true)
 	if err != nil {
 		return
 	}
@@ -169,7 +169,7 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 	processes sonarlog.SampleStreams,
 ) (header []string, matrix [][]string, err error) {
 	var formatter func(*profDatum) string
-	formatter, err = checkFields(pc.printFields)
+	formatter, err = checkFields(pc.printFields, false)
 	if err != nil {
 		return
 	}
@@ -240,12 +240,16 @@ func (pc *ProfileCommand) collectFixed(
 	return
 }
 
-func checkFields(fields []string) (formatter func(*profDatum) string, err error) {
+func checkFields(fields []string, scaleCpuGpu bool) (formatter func(*profDatum) string, err error) {
 	n := 0
 	for _, f := range fields {
 		switch f {
 		case "cpu":
-			formatter = formatCpuUtilPct
+			if scaleCpuGpu {
+				formatter = formatCpuUtilPctScaled
+			} else {
+				formatter = formatCpuUtilPct
+			}
 			n++
 		case "mem":
 			formatter = formatMem
@@ -254,7 +258,11 @@ func checkFields(fields []string) (formatter func(*profDatum) string, err error)
 			formatter = formatRes
 			n++
 		case "gpu":
-			formatter = formatGpuPct
+			if scaleCpuGpu {
+				formatter = formatGpuPctScaled
+			} else {
+				formatter = formatGpuPct
+			}
 			n++
 		case "gpumem":
 			formatter = formatGpuMem
@@ -270,7 +278,14 @@ func checkFields(fields []string) (formatter func(*profDatum) string, err error)
 	return
 }
 
-// TODO: IMPROVEME: Use html/template for this?
+var htmlCaptions = map[string]string {
+	"cpu": "Y axis: Number of CPU cores (1.0 = 1 core at 100%)",
+	"mem": "Y axis: Virtual primary memory in GB",
+	"rss": "Y axis: Resident primary memory in GB",
+	"res": "Y axis: Resident primary memory in GB",
+	"gpu": "Y axis: Number of GPU cards in use (1.0 = 1 card at 100%)",
+	"gpumem": "Y axis: Real GPU memory in GB",
+}
 
 func formatHtml(
 	unbufOut io.Writer,
@@ -310,6 +325,7 @@ function render() {
  <body onload="render()">
   <center><h1>%s</h1></center>
   <div><canvas id="chart_node"></canvas></div>
+  <center><b>X axis: UTC timestamp</b><br><b>%s</b></center>
  </body>
 <html>
 `,
@@ -317,6 +333,7 @@ function render() {
 		strings.Join(labels, ","),
 		strings.Join(rows, ","),
 		title,
+		htmlCaptions[quant],
 	)
 }
 
@@ -422,7 +439,7 @@ var profileFormatters = map[string]Formatter[profileLine, profileCtx]{
 		func(d profileLine, _ profileCtx) string {
 			return formatCpuUtilPct(d.r)
 		},
-		"CPU utilization in percent, 100% = 1 core",
+		"CPU utilization in percent, 100% = 1 core (except for HTML)",
 	},
 	"mem": {
 		func(d profileLine, _ profileCtx) string {
@@ -440,7 +457,7 @@ var profileFormatters = map[string]Formatter[profileLine, profileCtx]{
 		func(d profileLine, _ profileCtx) string {
 			return formatGpuPct(d.r)
 		},
-		"GPU utilization in percent, 100% = 1 card",
+		"GPU utilization in percent, 100% = 1 card (except for HTML)",
 	},
 	"gpumem": {
 		func(d profileLine, _ profileCtx) string {
@@ -473,6 +490,10 @@ func formatCpuUtilPct(s *profDatum) string {
 	return fmt.Sprint(math.Round(float64(s.cpuUtilPct)))
 }
 
+func formatCpuUtilPctScaled(s *profDatum) string {
+	return fmt.Sprintf("%.1f", float64(s.cpuUtilPct)/100)
+}
+
 func formatMem(s *profDatum) string {
 	return fmt.Sprint(math.Round(float64(s.cpuKib) / (1024 * 1024)))
 }
@@ -483,6 +504,10 @@ func formatRes(s *profDatum) string {
 
 func formatGpuPct(s *profDatum) string {
 	return fmt.Sprint(math.Round(float64(s.gpuPct)))
+}
+
+func formatGpuPctScaled(s *profDatum) string {
+	return fmt.Sprintf("%.1f", float64(s.gpuPct)/100)
 }
 
 func formatGpuMem(s *profDatum) string {

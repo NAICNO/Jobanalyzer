@@ -70,7 +70,7 @@ func ParseFormatSpec[Data, Ctx any](
 //
 // There are five format options, "fixed", "csv", "json", "awk", and default.  If none of the former
 // four are requested and def is not DefaultNone then one of Fixed, Csv, Json, and Awk will be set
-// according to the value of def, otherwise no flat is set and the default interpretation is up to
+// according to the value of def, otherwise no format is set and the default interpretation is up to
 // the formatter (see the parse command for an example of the latter).
 //
 // Header is set if the format (after defaulting) is "fixed" and no "noheader" attribute is present,
