@@ -55,6 +55,7 @@ LineLoop:
 			memTotalKib      uint64  = math.MaxUint64
 			user                     = UstrEmpty
 			pid              uint32  = math.MaxUint32
+			ppid             uint32  = math.MaxUint32
 			jobId            uint32  = math.MaxUint32
 			command                  = UstrEmpty
 			cpuPct           float32 = math.MaxFloat32
@@ -319,6 +320,11 @@ LineLoop:
 						tmp, err = parseUint(val)
 						pid = uint32(tmp)
 						matched = true
+					} else if val, ok := match(tokenizer, start, lim, eqloc, "ppid"); ok {
+						var tmp uint64
+						tmp, err = parseUint(val)
+						ppid = uint32(tmp)
+						matched = true
 					}
 				case 'r':
 					if val, ok := match(tokenizer, start, lim, eqloc, "rssanonkib"); ok {
@@ -446,6 +452,9 @@ LineLoop:
 		if pid == math.MaxUint32 {
 			pid = 0
 		}
+		if ppid == math.MaxUint32 {
+			ppid = 0
+		}
 		if cpuPct == math.MaxFloat32 {
 			cpuPct = 0
 		}
@@ -489,6 +498,7 @@ LineLoop:
 			MemtotalKib: memTotalKib,
 			User:        user,
 			Pid:         pid,
+			Ppid:        ppid,
 			Job:         jobId,
 			Cmd:         command,
 			CpuPct:      cpuPct,

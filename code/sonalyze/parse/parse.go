@@ -275,6 +275,15 @@ var parseFormatters = map[string]Formatter[sonarlog.Sample, parseCtx]{
 		},
 		"Process ID",
 	},
+	"ppid": {
+		func(d sonarlog.Sample, nodefaults parseCtx) string {
+			if bool(nodefaults) && d.S.Ppid == 0 {
+				return "*skip*"
+			}
+			return fmt.Sprint(d.S.Ppid)
+		},
+		"Process parent ID",
+	},
 	"job": {
 		func(d sonarlog.Sample, _ parseCtx) string {
 			return fmt.Sprint(d.S.Job)

@@ -76,6 +76,7 @@ type Sample struct {
 	User        Ustr
 	Job         uint32
 	Pid         uint32
+	Ppid        uint32
 	Cmd         Ustr
 	CpuPct      float32
 	Gpus        gpuset.GpuSet
