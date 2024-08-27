@@ -25,8 +25,8 @@ const bigValue = 100000000
 // MT: Constant after initialization; immutable
 var uintArgs = []uintArg{
 	uintArg{
-		"Select only jobs with at least this many samples [default: 2]",
-		2,
+		"Select only jobs with at least this many samples [default: 1]",
+		1,
 		"min-samples",
 		-1,
 		false,
