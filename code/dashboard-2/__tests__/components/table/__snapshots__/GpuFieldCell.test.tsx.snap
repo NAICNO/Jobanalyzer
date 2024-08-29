@@ -27,15 +27,3 @@ exports[`GpuFieldCell > renders correctly when value is not 0 or undefined 1`] =
   </div>
 </DocumentFragment>
 `;
-
-exports[`GpuFieldCell > renders correctly when value is undefined 1`] = `
-<DocumentFragment>
-  <div
-    class="css-1kbur35"
-  >
-    <p
-      class="chakra-text css-0"
-    />
-  </div>
-</DocumentFragment>
-`;
