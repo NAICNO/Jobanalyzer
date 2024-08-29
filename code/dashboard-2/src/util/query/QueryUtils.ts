@@ -365,10 +365,10 @@ export const prepareJobQueryString = (jobQueryValues?: JobQueryValues) => {
 
   const trimmedUsernames = jobQueryValues.usernames || ''
 
-  const userNameList = trimmedUsernames.split(',').map(item => item.trim())
-  if (userNameList?.length === 0) {
+  if (trimmedUsernames.length === 0) {
     query += '&user=-'
   } else {
+    const userNameList = trimmedUsernames.split(',').map(item => item.trim())
     userNameList?.forEach(userName => {
       query += `&user=${userName}`
     })
