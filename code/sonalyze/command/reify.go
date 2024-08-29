@@ -1,5 +1,8 @@
 // The reifier is used to build a command line for remote execution from parsed and checked
 // arguments.
+//
+// Uniformly, repeatable strings that could be comma-separated on input are exploded as separate
+// arguments here, to keep it simple.
 
 package command
 

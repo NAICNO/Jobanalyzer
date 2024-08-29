@@ -288,7 +288,7 @@ type HostArgs struct {
 }
 
 func (h *HostArgs) Add(fs *flag.FlagSet) {
-	fs.Var(NewRepeatableString(&h.Host), "host",
+	fs.Var(NewRepeatableStringNoCommas(&h.Host), "host",
 		"Select records for this `host` (repeatable) [default: all]")
 }
 
@@ -445,26 +445,27 @@ func (s *SharedArgs) Validate() error {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Repeatable arguments.  If we get one more of these types we should parameterize.
+// Repeatable arguments.
 
-type RepeatableString struct {
+// Some string arguments can't be comma-separated because host patterns such as 'ml[1,2],ml9' would
+// not really work without heroic effort.
+
+type RepeatableStringNoCommas struct {
 	xs *[]string
 }
 
-func NewRepeatableString(xs *[]string) *RepeatableString {
-	return &RepeatableString{xs}
+func NewRepeatableStringNoCommas(xs *[]string) *RepeatableStringNoCommas {
+	return &RepeatableStringNoCommas{xs}
 }
 
-func (rs *RepeatableString) String() string {
+func (rs *RepeatableStringNoCommas) String() string {
 	if rs == nil || rs.xs == nil {
 		return ""
 	}
 	return strings.Join(*rs.xs, ",")
 }
 
-func (rs *RepeatableString) Set(s string) error {
-	// String arguments can't be comma-separated because host patterns such as 'ml[1,2],ml9' would
-	// not really work without heroic effort.
+func (rs *RepeatableStringNoCommas) Set(s string) error {
 	if *rs.xs == nil {
 		*rs.xs = []string{s}
 	} else {
@@ -473,15 +474,12 @@ func (rs *RepeatableString) Set(s string) error {
 	return nil
 }
 
-type RepeatableUint32 struct {
-	xs *[]uint32
+type RepeatableCommaSeparated[T any] struct {
+	xs *[]T
+	fromString func(string) (T, error)
 }
 
-func NewRepeatableUint32(xs *[]uint32) *RepeatableUint32 {
-	return &RepeatableUint32{xs}
-}
-
-func (rs *RepeatableUint32) String() string {
+func (rs *RepeatableCommaSeparated[T]) String() string {
 	if rs == nil || rs.xs == nil {
 		return ""
 	}
@@ -495,19 +493,18 @@ func (rs *RepeatableUint32) String() string {
 	return s
 }
 
-func (rs *RepeatableUint32) Set(s string) error {
-	// It's OK to allow comma-separated integer options since there is no parsing ambiguity.
+func (rs *RepeatableCommaSeparated[T]) Set(s string) error {
 	ys := strings.Split(s, ",")
-	ws := make([]uint32, 0, len(ys))
+	ws := make([]T, 0, len(ys))
 	for _, y := range ys {
 		if y == "" {
 			return errors.New("Empty string")
 		}
-		n, err := strconv.ParseUint(y, 10, 32)
+		n, err := rs.fromString(y)
 		if err != nil {
 			return err
 		}
-		ws = append(ws, uint32(n))
+		ws = append(ws, n)
 	}
 	if *rs.xs == nil {
 		*rs.xs = ws
@@ -515,6 +512,32 @@ func (rs *RepeatableUint32) Set(s string) error {
 		*rs.xs = append(*rs.xs, ws...)
 	}
 	return nil
+}
+
+type RepeatableUint32 = RepeatableCommaSeparated[uint32]
+
+func NewRepeatableUint32(xs *[]uint32) *RepeatableUint32 {
+	return &RepeatableCommaSeparated[uint32]{
+		xs,
+		func(s string) (uint32, error) {
+			n, err := strconv.ParseUint(s, 10, 32)
+			if err != nil {
+				return 0, err
+			}
+			return uint32(n), nil
+		},
+	}
+}
+
+type RepeatableString = RepeatableCommaSeparated[string]
+
+func NewRepeatableString(xs *[]string) *RepeatableString {
+	return &RepeatableString{
+		xs,
+		func (s string) (string, error) {
+			return s, nil
+		},
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
