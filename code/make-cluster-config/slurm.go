@@ -157,10 +157,14 @@ func readSinfo(background map[string]*config.NodeConfigRecord) map[string]*confi
 				gpu,
 			)
 			nodes[h] = &config.NodeConfigRecord{
-				Hostname:      h + desc.suffix,
+				Hostname:      h,
 				Description:   description,
+				CrossNodeJobs: desc.crossNode,
 				CpuCores:      desc.sockets * desc.cores * desc.threads,
 				MemGB:         int(memgb),
+				GpuCards:      desc.gpus,
+				GpuMemGB:      desc.gpuMemGB,
+				GpuMemPct:     desc.gpuMemPct,
 			}
 		}
 	}

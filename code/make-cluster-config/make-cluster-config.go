@@ -190,7 +190,7 @@ func readBackground() map[string]*config.NodeConfigRecord {
 
 func parseFlags() {
 	dataDirStr := flag.String("data-dir", "", "Find sysinfo files in tree below `directory` (required)")
-	fromStr := flag.String("from", "1d", "Start `date` of log window, yyyy-mm-dd or Nd (days ago) or Nw (weeks ago)")
+	fromStr := flag.String("from", "", "Start `date` of log window, yyyy-mm-dd or Nd (days ago) or Nw (weeks ago)")
 	toStr := flag.String("to", "", "End `date` of log window, yyyy-mm-dd or Nd (days ago) or Nw (weeks ago)")
 	backgroundStr := flag.String("background-file", "", "Find background data in `filename`")
 	nameStr := flag.String("name", "", "Canonical cluster `name` (required)")
