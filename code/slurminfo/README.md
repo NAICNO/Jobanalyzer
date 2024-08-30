@@ -1,7 +1,5 @@
 A utility program that processes the output of an sinfo command into JSON for a cluster config file.
 
-This is closely related to the `sysinfo` utility, see `../sysinfo`.
-
 Basically, run `slurminfo` on the cluster and you'll get some JSON output describing the information
 about the cluster that the program can extract using `sinfo`.
 
