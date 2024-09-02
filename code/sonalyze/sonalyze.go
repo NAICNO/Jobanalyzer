@@ -6,7 +6,9 @@
 // every HTTP handler runs on a separate goroutine as well.  Most components and libraries therefore
 // need to be thread-safe (by using locks or being immutable).  The exception to that requirement is
 // the individual analysis commands (`jobs`, etc) and the `add` command, which are created in
-// response to a request and are themselves only used on a single thread.
+// response to a request and are themselves only used on a single thread.  Global variables are
+// invariably annotated with an `MT: Constraint` comment that documents how the global interacts
+// with the thread-safety requirement.
 //
 // Data are cached by the I/O subsystem.  Cached data are shared (to hold memory usage down) but
 // must be regarded as completely immutable, including the slices that point to those data.
@@ -41,8 +43,9 @@ import (
 // v0.2.0 - added 'add' verb
 // v0.3.0 - added 'daemon' verb (integrating sonalyzed into sonalyze), added caching
 // v0.4.0 - added 'top' verb
+// v0.5.0 - added 'sacct' verb and 'add -slurm-sacct', and a number of bug fixes
 
-const SonalyzeVersion = "0.4.0"
+const SonalyzeVersion = "0.5.0"
 
 // See end of file for documentation.
 // MT: Constant after initialization; immutable (no fields)

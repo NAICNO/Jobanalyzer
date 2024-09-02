@@ -2,9 +2,9 @@
 
 ## USAGE
 
-`sonalyze` is the database manager and query interface for time series data coming from sonar and
-other monitoring components.  Use it to add data and to query, manipulate, summarize, and export
-data.
+`sonalyze` is the database manager and query interface for time series data coming from sonar,
+sacctd, and other monitoring components.  Use it to add data and to query, manipulate, summarize,
+and export data.
 
 ### Summary
 
@@ -12,7 +12,7 @@ data.
 sonalyze operation [options] [-- logfile ...]
 ```
 
-where `operation` is `add`, `jobs`, `load`, `uptime`, `profile`, `version`, `parse`, `metadata`, or `help`:
+where `operation` is `add`, `jobs`, `load`, `uptime`, `profile`, `top`, `sacct`, `version`, `parse`, `metadata`, or `help`:
 
 * The `add` operation appends new records to the database (the database is append-only).
 * The `jobs` operation prints information about jobs, collected from the sonar records.
@@ -21,6 +21,8 @@ where `operation` is `add`, `jobs`, `load`, `uptime`, `profile`, `version`, `par
 * The `uptime` operation prints information about when systems and their components were up
   or down, collected from sonar records.
 * The `profile` operation prints information about the behavior of a single job across time.
+* The `top` operation prints information about CPU allocation, collected from sonar records.
+* The `sacct` operation prints information about Slurm job control, collected from sacctd records.
 * The `parse` and `metadata` operations are for testing, mainly: They perform low-level operations on
   the sonar logs and print the results.
 * The `version` operation prints machine-readable information about sonalyze and its configuration,
@@ -49,7 +51,13 @@ data are self-identifying and are always read from stdin.
 
 `--sysinfo`
 
-  The data are JSON data coming from `sonar sysinfo`, identifying one particular system, one record exactly.
+  The data are JSON data coming from `sonar sysinfo`, identifying one particular system, one
+  record exactly.
+
+`--slurm-sacct`
+
+  The data are "free CSV" data coming from `sacctd`, which extracts data from the Slurm databases
+  using `sacct`.
 
 `--data-path=<path>`
 
@@ -279,6 +287,75 @@ specified filters.
   Sum bucketed/averaged data by time step across all the selected hosts, yielding an aggregate for this
   group/subcluster of hosts.  Requires bucketing other than `--none`.
 
+#### Sacct filtering and aggregation options
+
+Since these are not sample records they have their own filtering rules.
+
+The default is to print "regular" jobs, ie, not Array jobs or Het jobs.  Select the latter groups
+with `-array` and `-het`.
+
+`--state`
+
+  Select jobs by termination state: `COMPLETED`, `CANCELLED`, `DEADLINE`, `FAILED`,
+  `OUT_OF_MEMORY`, `TIMEOUT`
+
+`--host`
+
+  Select by node names.
+
+`--user`
+
+  Select by user names.
+
+`--account`
+
+  Select by account names.
+
+`--partition`
+
+  Select by partition name.
+
+`--job`
+
+  Select by job number.  If the job number is the overarching ID of an array or het job then all
+  the subjobs are selected, otherwise only the one job.
+
+`--all`
+
+  Turn off some default filters.
+
+`--min-runtime`, `--max-runtime`
+
+  Filter by job elapsed time.
+
+`--min-reserved-mem`, `--max-reserved-mem`
+
+  Filter by amount of memory requested for the job.
+
+`--min-reserved-cores`, `--max-reserved-cores`
+
+  Filter by the number of cores requested for the job, this is usually node count times cores per node.
+
+`--no-gpu`
+
+  Select only jobs that used no GPU.
+
+`--some-gpu`
+
+  Select only jobs that used some GPU.
+
+`--regular`
+
+  Select only regular jobs (default).
+
+`--array`
+
+  Select only array jobs (including subjobs of an array job).
+
+`--het`
+
+  Select only het jobs (not implemented yet).
+
 #### Job printing options
 
 `--breakdown=<keywords>`
@@ -370,6 +447,16 @@ instant is 5800/19200, ie 30%.
 
   Format the output for `profile` according to `format`, which is a comma-separated list of keywords,
   see OUTPUT FORMAT below.
+
+#### Top printing options
+
+There are no options.  This verb is really a WIP.  The only output at the moment is a human-readable
+representation of how busy the node was in a given interval, giving a visual indication of load
+balancing.  CSV, awk and JSON need to be implemented but are not yet.
+
+#### Sacct printing options
+
+There are no options for printing beyond `-fmt`, but a lot of selection options.
 
 ## MISC EXAMPLES
 
@@ -583,17 +670,22 @@ To do so, use the `--remote` argument to provide an http URL for the remote host
 argument to name the cluster for which we want data:
 
 ```
-$ sonalyze jobs --remote http://some.host.no:8087 --cluster ml -f 20w -u - --some-gpu --host ml8
+$ sonalyze jobs --remote http://some.host.no:8087 \
+                --cluster ml \
+                --auth-file some-file.txt \
+                -f 20w \
+                -u - \
+                --some-gpu \
+                --host ml8
 ```
 
-It is additionally possible (sometimes necessary) to use `--auth-file` to specify a file holding the
-identity information of yourself as a `username:password` pair (this is crude but implements HTTP
-"basic" authentication).  In this case, the server must have been told about this identity.  See the
-server manual for how to set that up.
+The auth-file holds the identity information of yourself as a `username:password` pair (this is
+crude but implements HTTP "basic" authentication), keep this file secret.  In this case, the server
+must have been told about this identity.  See the server manual for how to set that up.
 
 In the case of remote access, the server supplies the `--data-path` and `--config-file` arguments
 based on the `--cluster` argument, so the former must be omitted from the local command invocation.
-Additionally, no trailing file arguments (`-- filename ...`) are allowed in the local invocation.
+Additionally, no trailing file arguments (`-- filename ...`) are allowed here.
 
 For the `add` operation, the credential supplied with `--auth-file` will be matched against the
 server's "upload credentials" database.
