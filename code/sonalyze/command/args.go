@@ -475,7 +475,7 @@ func (rs *RepeatableStringNoCommas) Set(s string) error {
 }
 
 type RepeatableCommaSeparated[T any] struct {
-	xs *[]T
+	xs         *[]T
 	fromString func(string) (T, error)
 }
 
@@ -534,7 +534,7 @@ type RepeatableString = RepeatableCommaSeparated[string]
 func NewRepeatableString(xs *[]string) *RepeatableString {
 	return &RepeatableString{
 		xs,
-		func (s string) (string, error) {
+		func(s string) (string, error) {
 			return s, nil
 		},
 	}

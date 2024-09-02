@@ -27,6 +27,10 @@
 * `sonard/` - Go source code for a utility that runs Sonar in the background with custom settings
 * `tests/` - Test cases for everything
 
+#### Work in progress
+
+* `sacctd/` - Go source code for a core program that runs Slurm's `sacct` on a cluster and massages the output for exfiltration
+
 #### Attic - obsolete but not deleted
 
 * `attic/exfiltrate/` - Go source code for a program that ships Sonar data to a remote host

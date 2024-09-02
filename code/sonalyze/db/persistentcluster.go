@@ -80,11 +80,13 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	// MT: Immutable after initialization
 	sampleFiles  sampleFilesAdapter
 	sysinfoFiles sysinfoFilesAdapter
+	sacctFiles   sacctFilesAdapter
 
 	// MT: Immutable after initialization
 	samplesMethods           ReadSyncMethods
 	loadDataMethods          ReadSyncMethods
 	nodeConfigRecordsMethods ReadSyncMethods
+	sacctMethods             ReadSyncMethods
 
 	// MT: Immutable after initialization
 	// The dataDir must have been path.Clean'd, it is the root directory for the cluster.
@@ -121,6 +123,7 @@ type persistentDir struct {
 	// independent.  We could have represented these as a single map indexed by the glob.
 	sampleFiles  map[string]*LogFile
 	sysinfoFiles map[string]*LogFile
+	sacctFiles   map[string]*LogFile
 }
 
 func newPersistentCluster(dataDir string, cfg *config.ClusterConfig) *PersistentCluster {
@@ -132,6 +135,7 @@ func newPersistentCluster(dataDir string, cfg *config.ClusterConfig) *Persistent
 		samplesMethods:           newSampleFileMethods(cfg, sampleFileKindSample),
 		loadDataMethods:          newSampleFileMethods(cfg, sampleFileKindLoadDatum),
 		nodeConfigRecordsMethods: newSysinfoFileMethods(cfg),
+		sacctMethods:             newSacctFileMethods(cfg),
 		dataDir:                  dataDir,
 		cfg:                      cfg,
 		dirs:                     dirs,
@@ -226,6 +230,16 @@ func (pc *PersistentCluster) SysinfoFilenames(
 	return pc.findFilenames(fromDate, toDate, hosts, &pc.sysinfoFiles)
 }
 
+func (pc *PersistentCluster) SacctFilenames(
+	fromDate, toDate time.Time,
+) ([]string, error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return pc.findFilenames(fromDate, toDate, nil, &pc.sacctFiles)
+}
+
 func (pc *PersistentCluster) findFilenames(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
@@ -289,6 +303,20 @@ func (pc *PersistentCluster) ReadSysinfo(
 	)
 }
 
+func (pc *PersistentCluster) ReadSacctData(
+	fromDate, toDate time.Time,
+	verbose bool,
+) (records []*SacctInfo, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, nil, verbose, &pc.sacctFiles, pc.sacctMethods,
+		readSacctSlice,
+	)
+}
+
 func readPersistentClusterRecords[V any, U ~[]*V](
 	pc *PersistentCluster,
 	fromDate, toDate time.Time,
@@ -313,13 +341,23 @@ func readPersistentClusterRecords[V any, U ~[]*V](
 	return reader(files, verbose, methods)
 }
 
+// Samples are stored under yyyy/mm/dd/<hostname>.csv
+
 func (pc *PersistentCluster) AppendSamplesAsync(host, timestamp string, payload any) error {
 	return pc.appendDataAsync(timestamp, fmt.Sprintf("%s.csv", host), payload, pc.sampleFiles)
 }
 
+// Sysinfo is stored under yyyy/mm/dd/sysinfo-<hostname>.json
+
 func (pc *PersistentCluster) AppendSysinfoAsync(host, timestamp string, payload any) error {
 	return pc.appendDataAsync(
 		timestamp, fmt.Sprintf("sysinfo-%s.json", host), payload, pc.sysinfoFiles)
+}
+
+// Sacct data are stored under yyyy/mm/dd/slurm-sacct.csv
+
+func (pc *PersistentCluster) AppendSlurmSacctAsync(timestamp string, payload any) error {
+	return pc.appendDataAsync(timestamp, "slurm-sacct.csv", payload, pc.sacctFiles)
 }
 
 func (pc *PersistentCluster) appendDataAsync(
@@ -383,8 +421,9 @@ func (_ sampleFilesAdapter) proscribed(fn string) bool {
 	// Backward compatible: remove cpuhog.csv and bughunt.csv, these later moved into separate
 	// directory trees.
 	//
-	// TODO: REMOVEME: Remove once we know that all data stores have been cleaned of those files.
-	return fn == "cpuhog.csv" || fn == "bughunt.csv"
+	// TODO: REMOVEME: Remove those tests once we know that all data stores have been cleaned of
+	// those files.
+	return fn == "cpuhog.csv" || fn == "bughunt.csv" || fn == "slurm-sacct.csv"
 }
 
 type sysinfoFilesAdapter struct {
@@ -403,6 +442,25 @@ func (_ sysinfoFilesAdapter) setFiles(d *persistentDir, files map[string]*LogFil
 }
 
 func (_ sysinfoFilesAdapter) proscribed(fn string) bool {
+	return false
+}
+
+type sacctFilesAdapter struct {
+}
+
+func (_ sacctFilesAdapter) glob() string {
+	return "slurm-sacct.csv"
+}
+
+func (_ sacctFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
+	return d.sacctFiles
+}
+
+func (_ sacctFilesAdapter) setFiles(d *persistentDir, files map[string]*LogFile) {
+	d.sacctFiles = files
+}
+
+func (_ sacctFilesAdapter) proscribed(fn string) bool {
 	return false
 }
 

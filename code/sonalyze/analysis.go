@@ -220,7 +220,7 @@ func buildFilters(
 		if len(includeJobs) > 0 {
 			Log.Infof(
 				"Including records with job id matching %s",
-				slices.Map(maps.Keys(includeJobs), func (x uint32) string {
+				slices.Map(maps.Keys(includeJobs), func(x uint32) string {
 					return fmt.Sprint(x)
 				}))
 		}
@@ -233,7 +233,7 @@ func buildFilters(
 		if len(excludeJobs) > 0 {
 			Log.Infof(
 				"Excluding records with job ids matching %s",
-				slices.Map(maps.Keys(excludeJobs), func (x uint32) string {
+				slices.Map(maps.Keys(excludeJobs), func(x uint32) string {
 					return fmt.Sprint(x)
 				}))
 		}
