@@ -1,0 +1,7 @@
+SHELL=/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+#MAILTO=larstha@uio.no
+
+# Run `sacctd` every hour and exfiltrate its output.
+52 0-23 * * * /cluster/var/sonar/sacctd.sh
