@@ -7,23 +7,23 @@ import JobQueryValues from '../types/JobQueryValues.ts'
 import { parseDateString } from '../util'
 import { prepareJobQueryString } from '../util/query/QueryUtils.ts'
 
-const fetchFetchJobQuery = async (axios: AxiosInstance, jobQueryValues: JobQueryValues) => {
+const fetchJobQuery = async (axios: AxiosInstance, jobQueryValues: JobQueryValues, fields: string[], format?: string) => {
   const endpoint = '/jobs'
-  const query = prepareJobQueryString(jobQueryValues)
+  const query = prepareJobQueryString(jobQueryValues, fields, format)
   const url = `${endpoint}?${query}`
 
   const response = await axios.get<FetchedJobQueryResultItem[]>(url)
   return response.data
 }
 
-export const useFetchJobQuery = (jobQueryValues: JobQueryValues) => {
+export const useFetchJobQuery = (jobQueryValues: JobQueryValues, fields: string[]) => {
   const axios = useAxios(JOB_QUERY_API_ENDPOINT)
   return useQuery<FetchedJobQueryResultItem[], Error, JobQueryResultsTableItem[]>(
     {
       enabled: false,
       gcTime: 0,
       queryKey: [QueryKeys.JOB_QUERY, jobQueryValues],
-      queryFn: () => fetchFetchJobQuery(axios, jobQueryValues),
+      queryFn: () => fetchJobQuery(axios, jobQueryValues, fields),
       select: data => {
         const converted = data.map((fetchedItem) => {
           const job: JobQueryJobId = {
@@ -34,18 +34,10 @@ export const useFetchJobQuery = (jobQueryValues: JobQueryValues) => {
             to: jobQueryValues.toDate,
           }
           return {
+            ...fetchedItem,
             job: job,
-            user: fetchedItem.user,
-            host: fetchedItem.host,
-            duration: fetchedItem.duration,
             start: parseDateString(fetchedItem.start),
             end: parseDateString(fetchedItem.end),
-            cpuPeak: fetchedItem['cpu-peak'],
-            resPeak: fetchedItem['res-peak'],
-            memPeak: fetchedItem['mem-peak'],
-            gpuPeak: fetchedItem['gpu-peak'],
-            gpumemPeak: fetchedItem['gpumem-peak'],
-            cmd: fetchedItem.cmd,
           }
         })
         //sort by end date descending

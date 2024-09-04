@@ -10,6 +10,8 @@ import {
   VStack,
   Link,
   useBreakpointValue,
+  Spacer,
+  useDisclosure,
 } from '@chakra-ui/react'
 import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from '@tanstack/react-table'
 import { Form, Formik } from 'formik'
@@ -21,6 +23,7 @@ import {
   JOB_QUERY_GPU_OPTIONS,
   JOB_QUERY_VALIDATION_SCHEMA,
   initialFormValues,
+  JOB_QUERY_RESULTS_COLUMN,
 } from '../Constants.ts'
 import { useFetchJobQuery } from '../hooks/useFetchJobQuery.ts'
 import JobQueryFormTextInput from '../components/JobQueryFormTextInput.tsx'
@@ -32,6 +35,7 @@ import ShareLinkPopover from '../components/ShareLinkPopover.tsx'
 import JobQueryValues from '../types/JobQueryValues.ts'
 import PageTitle from '../components/PageTitle.tsx'
 import { prepareShareableJobQueryLink } from '../util/query/QueryUtils.ts'
+import JobQueryResultExportModal from '../modals/JobQueryResultExportModal.tsx'
 
 export default function JobQueryPage() {
 
@@ -65,7 +69,9 @@ export default function JobQueryPage() {
     })
   }, [searchParams])
 
-  const {data, refetch, isLoading} = useFetchJobQuery(formValues)
+  const fields = Object.keys(JOB_QUERY_RESULTS_COLUMN)
+
+  const {data, refetch, isLoading} = useFetchJobQuery(formValues, fields)
 
   const jobQueryResultsTableColumns = useMemo(() => getJobQueryResultsTableColumns(), [])
   const [sorting, setSorting] = useState<SortingState>([])
@@ -83,9 +89,11 @@ export default function JobQueryPage() {
     autoResetExpanded: false,
   })
 
-  const shareableLink = prepareShareableJobQueryLink(formValues)
+  const shareableLink = prepareShareableJobQueryLink(formValues, fields)
 
   const formGridTemplateColumns = useBreakpointValue({base: '1fr', md: 'repeat(2, 1fr)'})
+
+  const {isOpen, onOpen, onClose} = useDisclosure()
 
   return (
     <>
@@ -117,7 +125,7 @@ export default function JobQueryPage() {
                     />
                     <JobQueryFormTextInput
                       name="usernames"
-                      label="User names(s)"
+                      label="User name(s)"
                       type="text"
                       placeholder="Comma separated. Eg: user1,user2"
                     />
@@ -221,17 +229,29 @@ export default function JobQueryPage() {
                   showToast
                 />
               </HStack>
-              <Text fontSize="sm" mt="20px">
+              <Text fontSize="sm" mt="10px">
                 Memory values are in GB, cpu/gpu in percent of one core/card.
               </Text>
-              <Text marginY="20px">
-                Click on a job link in the table below to select a profile of the job.
-              </Text>
+              <HStack spacing={2} my="20px">
+                <Text>
+                  Click on a job link in the table below to select a profile of the job.
+                </Text>
+                <Spacer/>
+                <Button
+                  colorScheme="blue"
+                  type="submit"
+                  size="sm"
+                  onClick={onOpen}
+                >
+                  Export
+                </Button>
+              </HStack>
               <JobQueryResultsTable table={jobQueryResultsTable}/>
             </CardBody>
           </Card>
         }
       </VStack>
+      <JobQueryResultExportModal isOpen={isOpen} onClose={onClose} jobQueryFormValues={formValues}/>
     </>
   )
 }

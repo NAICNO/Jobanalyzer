@@ -209,11 +209,11 @@ export const getJobQueryResultsTableColumns = () => {
     createJobQueryResultsTableColumn('duration'),
     createJobQueryResultsTableColumn('start'),
     createJobQueryResultsTableColumn('end'),
-    createJobQueryResultsTableColumn('cpuPeak'),
-    createJobQueryResultsTableColumn('resPeak'),
-    createJobQueryResultsTableColumn('memPeak'),
-    createJobQueryResultsTableColumn('gpuPeak'),
-    createJobQueryResultsTableColumn('gpumemPeak'),
+    createJobQueryResultsTableColumn('cpu-peak'),
+    createJobQueryResultsTableColumn('res-peak'),
+    createJobQueryResultsTableColumn('mem-peak'),
+    createJobQueryResultsTableColumn('gpu-peak'),
+    createJobQueryResultsTableColumn('gpumem-peak'),
     createJobQueryResultsTableColumn('cmd'),
   ]
   return columns

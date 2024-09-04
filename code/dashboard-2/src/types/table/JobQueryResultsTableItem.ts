@@ -5,10 +5,10 @@ interface JobQueryResultsTableItem {
   duration: string;
   start: Date;
   end: Date;
-  cpuPeak: number;
-  resPeak: number;
-  memPeak: number;
-  gpuPeak: number;
-  gpumemPeak: number;
+  'cpu-peak': number;
+  'res-peak': number;
+  'mem-peak': number;
+  'gpu-peak': number;
+  'gpumem-peak': number;
   cmd: string;
 }
