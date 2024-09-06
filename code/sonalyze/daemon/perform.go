@@ -1,3 +1,5 @@
+// See ../REST.md for a definition of the protocol.
+
 package daemon
 
 import (
@@ -8,6 +10,7 @@ import (
 	"io"
 	"log/syslog"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"syscall"
@@ -16,6 +19,7 @@ import (
 	"go-utils/httpsrv"
 	"go-utils/process"
 	. "sonalyze/common"
+	. "sonalyze/command"
 	"sonalyze/db"
 )
 
@@ -103,19 +107,12 @@ func httpGetHandler(
 
 			// Repeats are OK, the commands allow them in a number of cases.
 			//
-			// Booleans carry the magic boolean value, allowing us to construct a boolean option
-			// without a value without tracking name->type mappings.  This is a hack, but it works.
-			// The reason we have to exclude the value for boolean options (`--some-gpu` instead of
-			// `--some-gpu=true`) is a limitation of Rust's `clap` library.  The reason the value
-			// carried is not simply "true" is that that is a more likely value for some other
-			// parameters (host names?)  and we can't exclude it here without risk.
-			//
-			// TODO: IMPROVEME: Now that we're no longer running the Rust `sonalyze`, the magic
-			// boolean hack can be removed.
+			// Booleans carry the regular true/false values or, for backward compatibility, the
+			// magic boolean value.  See comments in ../command/reify.go.
 
 			for _, v := range vs {
 				arguments = append(arguments, "--"+name)
-				if v != magicBoolean {
+				if v != MagicBoolean {
 					arguments = append(arguments, v)
 				}
 			}
@@ -138,26 +135,33 @@ func httpGetHandler(
 	}
 }
 
+func parseAddQuery(query url.Values, name string) (isSet bool, err error) {
+	vs, isName := query[name]
+	if !isName {
+		return
+	}
+	if len(vs) == 1 {
+		switch vs[0] {
+		case "true", MagicBoolean:
+			isSet = true
+			return
+		case "false":
+			return
+		}
+	}
+	err = fmt.Errorf("Bad `%s` parameter", name)
+	return
+}
+
 func httpAddHandler(dc *DaemonCommand) func(http.ResponseWriter, *http.Request) {
 	forSample := httpPostHandler(dc, "sample", "text/csv")
 	forSlurmSacct := httpPostHandler(dc, "slurm-sacct", "text/csv")
 	forSysinfo := httpPostHandler(dc, "sysinfo", "application/json")
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
-
-		var e1, e2, e3, e4 error
-		vs, isSample := query["sample"]
-		if isSample && (len(vs) != 1 || vs[0] != magicBoolean) {
-			e1 = errors.New("Bad `sample` parameter")
-		}
-		ws, isSysinfo := query["sysinfo"]
-		if isSysinfo && (len(ws) != 1 || ws[0] != magicBoolean) {
-			e2 = errors.New("Bad `sysinfo` parameter")
-		}
-		xs, isSlurmSacct := query["slurm-sacct"]
-		if isSlurmSacct && (len(xs) != 1 || xs[0] != magicBoolean) {
-			e3 = errors.New("Bad `slurm-sacct` parameter")
-		}
+		isSample, e1 := parseAddQuery(query, "sample")
+		isSysinfo, e2 := parseAddQuery(query, "sysinfo")
+		isSlurmSacct, e3 := parseAddQuery(query, "slurm-sacct")
 		n := 0
 		if isSample {
 			n++
@@ -168,6 +172,7 @@ func httpAddHandler(dc *DaemonCommand) func(http.ResponseWriter, *http.Request) 
 		if isSlurmSacct {
 			n++
 		}
+		var e4 error
 		if n != 1 {
 			e4 = errors.New("Need exactly one of `-sample`, `-sysinfo`, or `-slurm-sacct`")
 		}
@@ -378,7 +383,7 @@ func argOk(command, arg string) bool {
 	case "config-file":
 		// ConfigFileArgs
 		return false
-	case "verbose":
+	case "verbose", "v":
 		// VerboseArgs
 		return false
 	case "raw":
