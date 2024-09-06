@@ -729,8 +729,8 @@ export const JOB_QUERY_EXPORT_VALIDATION_SCHEMA = yup.object({
 })
 
 export const JOB_QUERY_EXPORT_FORMATS: ExportFormat[] = [
-  {label: 'CSV with field header', value: 'csvnamed', mimeType: 'text/csv', fileExtension: 'csv'},
-  {label: 'CSV', value: 'csv', mimeType: 'text/csv', fileExtension: 'csv'},
+  {label: 'CSV with embedded field names', value: 'csvnamed', mimeType: 'text/csv', fileExtension: 'csv'},
+  {label: 'CSV with header', value: 'csv,header', mimeType: 'text/csv', fileExtension: 'csv'},
   {label: 'JSON', value: 'json', mimeType: 'application/json', fileExtension: 'json'},
   {label: 'AWK (space separated)', value: 'awk', mimeType: 'text/plain', fileExtension: 'awk'},
   {label: 'Fixed width with header', value: 'fixed', mimeType: 'text/plain', fileExtension: 'txt'}, // or 'fw' if preferred
