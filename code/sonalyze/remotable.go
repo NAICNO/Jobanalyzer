@@ -26,14 +26,18 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	}
 
 	args := rCmd.RemotingFlags()
-	bs, err := os.ReadFile(args.AuthFile)
-	if err != nil {
-		// Note, file name is redacted
-		return errors.New("Failed to read auth file")
-	}
-	username, password, ok := strings.Cut(strings.TrimSpace(string(bs)), ":")
-	if !ok {
-		return errors.New("Invalid auth file syntax")
+	var username, password string
+	if args.AuthFile != "" {
+		bs, err := os.ReadFile(args.AuthFile)
+		if err != nil {
+			// Note, file name is redacted
+			return errors.New("Failed to read auth file")
+		}
+		var ok bool
+		username, password, ok = strings.Cut(strings.TrimSpace(string(bs)), ":")
+		if !ok {
+			return errors.New("Invalid auth file syntax")
+		}
 	}
 
 	curlArgs := []string{
