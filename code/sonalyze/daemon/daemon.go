@@ -10,10 +10,10 @@
 // operating within and determines a bunch of file paths.
 //
 // Other parameter names are always the long parameter names for sonalyze and the parameter values
-// are always urlencoded as necessary; boolean values must be the value defined as `magicBoolean`
-// below.  Most parameters and names are forwarded to sonalyze, with eg --data-path and
-// --config-file supplied by this code.  The returned output is the raw output from sonalyze,
-// whether for success or error.  A successful runs yields 2xx and an error yields 4xx or 5xx.
+// are always urlencoded as necessary; parameter-less flags default to not-present.  Most parameters
+// and names are forwarded to sonalyze, with eg --data-path and --config-file supplied by this code.
+// The returned output is the raw output from sonalyze, whether for success or error.  A successful
+// runs yields 2xx and an error yields 4xx or 5xx.
 //
 // Arguments:
 //
@@ -110,7 +110,6 @@ const (
 	clusterAliasesFilename = "cluster-aliases.json"
 	logTag                 = "jobanalyzer/sonalyze"
 	authRealm              = "Jobanalyzer remote access"
-	magicBoolean           = "xxxxxtruexxxxx"
 )
 
 // MT: Immutable (no mutator operations) and thread-safe.

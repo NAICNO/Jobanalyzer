@@ -3,6 +3,8 @@
 //
 // Uniformly, repeatable strings that could be comma-separated on input are exploded as separate
 // arguments here, to keep it simple.
+//
+// See ../REST.md for a definition of the protocol.
 
 package command
 
@@ -19,7 +21,18 @@ func NewReifier() Reifier {
 	return Reifier{""}
 }
 
-// This must equal `magicBoolean` in the `sonalyzed` sources.
+// This is the old "true" value that was used for flag options in query strings.  We'll continue to
+// allow this indefinitely but new code should use just "true" or (God forbid) "false".
+//
+// This value existed because Rust's `clap` library insisted that boolean flags should not carry
+// parameter values (--some-gpu=true is illegal), and so the command line builder in
+// ../daemon/perform.go could not simply append received values to the command line.  But filtering
+// out the value "true" uniformly or assuming that empty string meant a true value would be risky.
+// And filtering by type would require maintaining name -> type mappings.
+//
+// With Sonalyze rewritten in Go, this hack is no longer necessary but backward compatibility
+// requires us to continue to parse this value.
+
 const MagicBoolean = "xxxxxtruexxxxx"
 
 func (r *Reifier) addString(name, val string) {
@@ -33,7 +46,11 @@ func (r *Reifier) addString(name, val string) {
 
 func (r *Reifier) Bool(n string, v bool) {
 	if v {
+		// TODO: This will change from MagicBoolean to true when the new server has
+		// been deployed.
 		r.addString(n, MagicBoolean)
+		// Future code:
+		//r.addString(n, "true")
 	}
 }
 
