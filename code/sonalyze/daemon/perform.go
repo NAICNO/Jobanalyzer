@@ -18,8 +18,8 @@ import (
 	"go-utils/auth"
 	"go-utils/httpsrv"
 	"go-utils/process"
-	. "sonalyze/common"
 	. "sonalyze/command"
+	. "sonalyze/common"
 	"sonalyze/db"
 )
 
@@ -107,14 +107,17 @@ func httpGetHandler(
 
 			// Repeats are OK, the commands allow them in a number of cases.
 			//
-			// Booleans carry the regular true/false values or, for backward compatibility, the
-			// magic boolean value.  See comments in ../command/reify.go.
+			// Booleans carry the regular true/false values or, for backward compatibility, the old
+			// MagicBoolean value.  See comments in ../command/reify.go.
 
 			for _, v := range vs {
-				arguments = append(arguments, "--"+name)
-				if v != MagicBoolean {
-					arguments = append(arguments, v)
+				// The MagicBoolean is handled by transforming it to "true", for uniformity.
+				if v == MagicBoolean {
+					v = "true"
 				}
+				// Go requires "=" between parameter and name for boolean params, but allows it for
+				// every type, so do it uniformly.
+				arguments = append(arguments, "--"+name+"="+v)
 			}
 		}
 
