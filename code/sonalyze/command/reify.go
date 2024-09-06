@@ -21,8 +21,8 @@ func NewReifier() Reifier {
 	return Reifier{""}
 }
 
-// This is the old "true" value that was used for flag options in query strings.  We'll continue to
-// allow this indefinitely but new code should use just "true" or (God forbid) "false".
+// MagicBoolean is the old "true" value that was used for flag options in query strings.  We'll
+// continue to allow this indefinitely but new code should use just "true" or (for pedants) "false".
 //
 // This value existed because Rust's `clap` library insisted that boolean flags should not carry
 // parameter values (--some-gpu=true is illegal), and so the command line builder in
@@ -46,11 +46,7 @@ func (r *Reifier) addString(name, val string) {
 
 func (r *Reifier) Bool(n string, v bool) {
 	if v {
-		// TODO: This will change from MagicBoolean to true when the new server has
-		// been deployed.
-		r.addString(n, MagicBoolean)
-		// Future code:
-		//r.addString(n, "true")
+		r.addString(n, "true")
 	}
 }
 
