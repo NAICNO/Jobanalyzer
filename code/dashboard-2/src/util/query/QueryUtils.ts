@@ -73,7 +73,7 @@ import { GlobOperation } from './GlobOperation.ts'
 import { Bitset } from './Bitset.ts'
 import JobQueryValues from '../../types/JobQueryValues.ts'
 import { splitMultiPattern } from './HostGlobber.ts'
-import { TRUE_VAL } from '../../Constants.ts'
+import { JOB_QUERY_RESULTS_COLUMN, TRUE_VAL } from '../../Constants.ts'
 
 export function compileQuery(query: string, knownFields: Record<string, string | boolean> = {}, builtinOperations: Record<string, any> = {}) {
 
@@ -158,7 +158,7 @@ export function compileQuery(query: string, knownFields: Record<string, string |
     return false
   }
 
-  function exprBin(next: any, constructor: any, ...ops : any[]) {
+  function exprBin(next: any, constructor: any, ...ops: any[]) {
     return function () {
       let e = next()
       Outer:
@@ -182,7 +182,7 @@ export function compileQuery(query: string, knownFields: Record<string, string |
 
   type QueryExpression = NotOperation | RelOperation | SetOperation | GlobOperation | number | string
 
-  function exprPrim() : QueryExpression {
+  function exprPrim(): QueryExpression {
     if (eatToken('(')) {
       const e = exprOr()
       if (!eatToken(')')) {
@@ -191,7 +191,7 @@ export function compileQuery(query: string, knownFields: Record<string, string |
       return e
     }
     if (eatToken('~')) {
-      const e : QueryExpression = exprPrim()
+      const e: QueryExpression = exprPrim()
       return new NotOperation(e)
     }
     let t = get()
@@ -357,10 +357,7 @@ export function makeFilter(query: string) {
   }
 }
 
-export const prepareJobQueryString = (jobQueryValues?: JobQueryValues) => {
-  if(!jobQueryValues) {
-    return ''
-  }
+export const prepareJobQueryString = (jobQueryValues: JobQueryValues, fields: string[], format: string = 'json') => {
   let query = `cluster=${jobQueryValues.clusterName}`
 
   const trimmedUsernames = jobQueryValues.usernames || ''
@@ -410,14 +407,19 @@ export const prepareJobQueryString = (jobQueryValues?: JobQueryValues) => {
     query += `&${gpuUsage}=${TRUE_VAL}`
   }
 
-  const fmt = 'fmt=json,job,user,host,duration,start,end,cpu-peak,res-peak,mem-peak,gpu-peak,gpumem-peak,cmd'
-  query += `&${fmt}`
+  const fmt = `fmt=${format}`
+  const fieldsString = fields.join(',')
+
+  query += `&${fmt},${fieldsString}`
 
   return query
 }
 
-export const prepareShareableJobQueryLink = (jobQueryValues?: JobQueryValues) => {
-  const queryString = prepareJobQueryString(jobQueryValues)
+export const prepareShareableJobQueryLink = (jobQueryValues: JobQueryValues, fields?: string[]) => {
+  if (!fields) {
+    fields = Object.keys(JOB_QUERY_RESULTS_COLUMN)
+  }
+  const queryString = prepareJobQueryString(jobQueryValues, fields)
   const uri = `${window.location.origin}/jobQuery?${queryString}`
   return encodeURI(uri)
 }

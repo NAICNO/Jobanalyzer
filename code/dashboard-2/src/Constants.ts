@@ -53,6 +53,7 @@ export const QueryKeys = {
   HOSTNAME_LIST: 'HOSTNAME_LIST',
   HOSTNAME: 'HOSTNAME',
   JOB_QUERY: 'JOB_QUERY',
+  EXPORT_JOB_QUERY: 'EXPORT_JOB_QUERY',
 }
 
 export const SIDEBAR_ITEMS: SidebarItem[] = [
@@ -567,34 +568,34 @@ export const JOB_QUERY_RESULTS_COLUMN: { [K in keyof JobQueryResultsTableItem]: 
     renderFn: GenericCell,
     minSize: 150,
   },
-  cpuPeak: {
-    key: 'cpuPeak',
+  'cpu-peak': {
+    key: 'cpu-peak',
     title: 'Peak #cores',
     sortable: true,
     formatterFns: [toPercentage],
     renderFn: GenericCell,
   },
-  resPeak: {
-    key: 'resPeak',
+  'res-peak': {
+    key: 'res-peak',
     title: 'Peak resident GB',
     sortable: true,
     renderFn: GenericCell,
   },
-  memPeak: {
-    key: 'memPeak',
+  'mem-peak': {
+    key: 'mem-peak',
     title: 'Peak virtual GB',
     sortable: true,
     renderFn: GenericCell,
   },
-  gpuPeak: {
-    key: 'gpuPeak',
+  'gpu-peak': {
+    key: 'gpu-eak',
     title: 'Peak GPU cards',
     sortable: true,
     formatterFns: [toPercentage],
     renderFn: GenericCell,
   },
-  gpumemPeak: {
-    key: 'gpumemPeak',
+  'gpumem-peak': {
+    key: 'gpumem-peak',
     title: 'Peak GPU RAM GB',
     sortable: true,
     renderFn: GenericCell,
@@ -605,6 +606,7 @@ export const JOB_QUERY_RESULTS_COLUMN: { [K in keyof JobQueryResultsTableItem]: 
     sortable: true,
     formatterFns: [breakText],
     renderFn: GenericCell,
+    minSize: 300,
   },
 }
 
@@ -721,3 +723,15 @@ export const JOB_QUERY_VALIDATION_SCHEMA = yup.object({
     .required('GPU usage is required')
 })
 
+export const JOB_QUERY_EXPORT_VALIDATION_SCHEMA = yup.object({
+  format: yup.string().required('A format must be selected'),
+  fields: yup.array().of(yup.string()).min(1, 'At least one field must be selected'),
+})
+
+export const JOB_QUERY_EXPORT_FORMATS: ExportFormat[] = [
+  {label: 'CSV with embedded field names', value: 'csvnamed', mimeType: 'text/csv', fileExtension: 'csv'},
+  {label: 'CSV with header', value: 'csv,header', mimeType: 'text/csv', fileExtension: 'csv'},
+  {label: 'JSON', value: 'json', mimeType: 'application/json', fileExtension: 'json'},
+  {label: 'AWK (space separated)', value: 'awk', mimeType: 'text/plain', fileExtension: 'awk'},
+  {label: 'Fixed width with header', value: 'fixed', mimeType: 'text/plain', fileExtension: 'txt'}, // or 'fw' if preferred
+]
