@@ -321,3 +321,4 @@ type Uint32Slice []uint32
 func (s Uint32Slice) Len() int           { return len(s) }
 func (s Uint32Slice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s Uint32Slice) Less(i, j int) bool { return s[i] < s[j] }
+

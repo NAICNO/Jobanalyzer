@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"math"
 	"os"
 
 	"go-utils/config"
@@ -67,11 +68,13 @@ func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wri
 	return nil
 }
 
+type filterFunc = func (*sonarlog.Sample) bool
+
 func buildFilters(
 	cmd SampleAnalysisCommand,
 	cfg *config.ClusterConfig,
 	verbose bool,
-) (*hostglob.HostGlobber, func(*sonarlog.Sample) bool, error) {
+) (*hostglob.HostGlobber, filterFunc, error) {
 	args := cmd.SharedFlags()
 
 	// Temporary limitation.
@@ -184,13 +187,42 @@ func buildFilters(
 		}
 	}
 
-	// Record filtering logic is the same for all commands.
+	// Record filtering logic is the same for all commands.  The filter is applied to every record
+	// and can be quite expensive.  The typical case for most attributes is that there is no filter,
+	// and for the rest that there is one value to filter by (one job, one user, one host).
+	// Probably the common case for from/to is that they are present.  It may be better to use a
+	// closure style here.
 
 	excludeSystemJobs := args.RecordFilterArgs.ExcludeSystemJobs
 	haveFrom := args.SourceArgs.HaveFrom
 	haveTo := args.SourceArgs.HaveTo
 	from := args.SourceArgs.FromDate.Unix()
 	to := args.SourceArgs.ToDate.Unix()
+
+	var recordFilter filterFunc
+	// Time filter must be first, it does not call `next`, it's an optimization.  The others must
+	// consider that `next` may be nil.
+	if haveFrom || haveTo {
+		if !haveFrom {
+			from = 0
+		}
+		if !haveTo {
+			to = math.MaxInt64
+		}
+		recordFilter = filterByTimeRange(from, to)
+	}
+	recordFilter = filterByUser(includeUsers, true, recordFilter)
+	recordFilter = filterByHost(includeHosts, true, recordFilter)
+	recordFilter = filterByJob(includeJobs, true, recordFilter)
+	recordFilter = filterByCommand(includeCommands, true, recordFilter)
+	recordFilter = filterByUser(excludeUsers, false, recordFilter)
+	recordFilter = filterByJob(excludeJobs, false, recordFilter)
+	recordFilter = filterByCommand(excludeCommands, false, recordFilter)
+	if excludeSystemJobs {
+		recordFilter = filterSystemJobs(recordFilter)
+	}
+
+	/*
 	recordFilter := func(e *sonarlog.Sample) bool {
 		return (len(includeUsers) == 0 || includeUsers[e.S.User]) &&
 			(includeHosts.IsEmpty() || includeHosts.Match(e.S.Host.String())) &&
@@ -203,6 +235,7 @@ func buildFilters(
 			(!haveFrom || from <= e.S.Timestamp) &&
 			(!haveTo || e.S.Timestamp <= to)
 	}
+	*/
 
 	if verbose {
 		if haveFrom {
@@ -246,4 +279,82 @@ func buildFilters(
 	}
 
 	return includeHosts, recordFilter, nil
+}
+
+func filterByTimeRange(from, to int64) filterFunc {
+	return func (e *sonarlog.Sample) bool {
+		return from <= e.S.Timestamp && e.S.Timestamp <= to
+	}
+}
+
+func filterByUser(users map[Ustr]bool, answer bool, next filterFunc) filterFunc {
+	if len(users) == 0 {
+		return next
+	}
+	// TODO: Maybe optimize for the 1 case, see below for an example.
+	return func(e *sonarlog.Sample) bool {
+		if _, found := users[e.S.User]; found != answer {
+			return false
+		}
+		return next == nil || next(e)
+	}
+}
+
+func filterByJob(jobs map[uint32]bool, answer bool, next filterFunc) filterFunc {
+	switch len(jobs) {
+	case 0:
+		return next
+	case 1:
+		var theJob uint32
+		for j := range(jobs) {
+			theJob = j
+		}
+		return func(e *sonarlog.Sample) bool {
+			if (e.S.Job == theJob) != answer {
+				return false
+			}
+			return next == nil || next(e)
+		}
+	default:
+		return func(e *sonarlog.Sample) bool {
+			if _, found := jobs[e.S.Job]; found != answer {
+				return false
+			}
+			return next == nil || next(e)
+		}
+	}
+}
+
+func filterByHost(hosts *hostglob.HostGlobber, answer bool, next filterFunc) filterFunc {
+	if hosts.IsEmpty() {
+		return next
+	}
+	return func (e *sonarlog.Sample) bool {
+		if hosts.Match(e.S.Host.String()) != answer {
+			return false
+		}
+		return next == nil || next(e)
+	}
+}
+
+func filterByCommand(commands map[Ustr]bool, answer bool, next filterFunc) filterFunc {
+	if len(commands) == 0 {
+		return next
+	}
+	// TODO: Maybe optimize for the 1 case, see below for an example.
+	return func(e *sonarlog.Sample) bool {
+		if _, found := commands[e.S.Cmd]; found != answer {
+			return false
+		}
+		return next == nil || next(e)
+	}
+}
+
+func filterSystemJobs(next filterFunc) filterFunc {
+	return func(e *sonarlog.Sample) bool {
+		if e.S.Pid < 1000 {
+			return false
+		}
+		return next == nil || next(e)
+	}
 }

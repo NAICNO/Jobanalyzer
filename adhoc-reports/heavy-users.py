@@ -26,7 +26,7 @@
 #   This must currently be run from the directory it's in, so that it can find the sonalyze binary,
 #   which you must have compiled.
 
-import os, subprocess, sys
+import os, subprocess, sys, time
 
 # TODO: Very unfortunate to have this table here.
 
@@ -88,11 +88,15 @@ def heavy_gpu_users(cluster, hostglob, from_date, to_date):
     host_ix=4
     cmd_ix=5
 
+    print(jobs_cmd)
+    then=time.time()
     job_proc = subprocess.run(jobs_cmd, capture_output=True, text=True, cwd=os.getcwd())
     if job_proc.returncode != 0:
         raise RuntimeError("Sonalyze jobs failed:" + job_proc.stderr)
+    print("Time: " + str(time.time() - then))
+    print("Size: " + str(len(job_proc.stdout)))
 
-    rows = [[">24h","User","GpuTime","GpuTime/","Host(s)","Command"],
+    rows = [[">24h","User","GpuTime","GpuTime/","Host(s)","Job", "Command"],
             ["",    "",    "",       "duration"]]
     for job_line in job_proc.stdout.splitlines():
         job_fields=job_line.split(" ")
@@ -125,9 +129,13 @@ def heavy_gpu_users(cluster, hostglob, from_date, to_date):
         if to_date != "":
             prof_cmd += ["-to", to_date]
 
+        print(prof_cmd)
+        then=time.time()
         prof_proc = subprocess.run(prof_cmd, capture_output=True, text=True, cwd=os.getcwd())
         if prof_proc.returncode != 0:
             raise RuntimeError("Sonalyze profile failed: " + job_line + "\n" + prof_proc.stderr)
+        print("Time: " + str(time.time() - then))
+        print("Size: " + str(len(prof_proc.stdout)))
 
         # For the process, generate a timeline of GPU usage.
         timeline=[]
@@ -162,6 +170,7 @@ def heavy_gpu_users(cluster, hostglob, from_date, to_date):
                      formatDuration(int(job_fields[gputime_ix])),
                      str(int(int(job_fields[gputime_ix])/int(job_fields[duration_ix])*100)) + "%",
                      job_fields[host_ix],
+                     job_fields[job_ix],
                      job_fields[cmd_ix]])
     tabulate(rows)
 

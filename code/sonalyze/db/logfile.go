@@ -205,6 +205,7 @@ func (lf *LogFile) ReadSync(
 	}
 
 	if !gotCachedData {
+		//Log.Infof("Reading %s", lf.Fullname.String())
 		var inputFile *os.File
 		inputFile, err = os.Open(lf.Fullname.String())
 		if err != nil {
