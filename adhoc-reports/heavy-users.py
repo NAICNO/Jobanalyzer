@@ -117,11 +117,14 @@ def heavy_gpu_users(cluster, hostglob, from_date, to_date):
         # To see this, we must generate a profile.  The gpu usage of a time step is the sum across
         # the gpu fields for the step.  We can collect these in a timeline and look for a 24h window
         # where every slot has >= 100.
+        #
+        # Filter by host here because this massively speeds up processing for large data sets.
         prof_cmd = [sonalyze, "profile",
                     "-remote", remote,
                     "-auth-file", auth_file,
                     "-cluster", cluster,
                     "-job", job_fields[job_ix],
+                    "-host", job_fields[host_ix],
                     "-fmt", "csv,gpu",
                     "-bucket", str(bucketing)]
         if from_date != "":
