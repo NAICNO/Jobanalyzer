@@ -658,6 +658,38 @@ $ sonalyze profile -j <job-number> --fmt=html,cpu --bucket=3 -- my-logfile.csv >
 
 Bucketing is performed after clamping.
 
+### Performance
+
+#### Filter by host/node when possible
+
+Dealing with large data sets can be comparatively slow, especially if the set has to be queried many
+times for a report - the amount of caching of intermediate data in the server is variable, for good
+and bad reasons.
+
+The `adhoc-reports/heavy-users.py` script is a case in point.  It performs a single `jobs` query to
+extract a number of jobs and users and then performs a `profile` query per job to retrieve a profile
+of the job, which is then further processed.  It pays to make the profile query as precise as
+possible to winnow the initial set of records to be processed.
+
+The database is organized by cluster, by date, and by host, and these are the keys used when
+constructing the initial set of records.  Cluster and date range are mandatory filters for every
+query, but if the query does not filter by host (node), then records for all nodes will be read.
+All other filtering (user name, job number, command, ...) happens subsequently.
+
+Even on Fox, which has a modest number of nodes, there may be a large number of records for an
+interesting date range such as a month.  Filtering by the node name for a job, which should always
+be possible when constructing a profile and in many other cases, can reduce the time for each query
+by a factor of 20 or so.  On a larger system the factor will be correspondingly larger.
+
+#### Batching queries
+
+In principle, queries that use the same base set of records can be batched so that the base set is
+constructed once, queries are run against it, and multiple results are returned.  (One might wish
+that caching in the server would automatically do this, but it does not.)
+
+No such batch option exists at this time.  Make some noise if this is starting to look like an
+important feature.
+
 ## REMOTE ACCESS
 
 Sometimes the log files are not stored locally but on a remote host to which we cannot log in.  If
