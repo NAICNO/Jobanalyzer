@@ -26,6 +26,7 @@ func ReadSampleStreams(
 	c db.SampleCluster,
 	fromDate, toDate time.Time,
 	hostGlobber *hostglob.HostGlobber,
+	recordFilter db.SampleFilter,
 	verbose bool,
 ) (
 	streams InputStreamSet,
@@ -38,7 +39,7 @@ func ReadSampleStreams(
 		return
 	}
 	read = len(samples)
-	streams, bounds = createInputStreams(samples)
+	streams, bounds = createInputStreams(samples, recordFilter)
 	return
 }
 

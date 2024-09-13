@@ -108,6 +108,9 @@ func (pc *ParseCommand) Perform(
 		if err != nil {
 			return err
 		}
+
+		// TODO: Merge these loops?  Or don't we care for this case?
+
 		// Simulate the normal pipeline
 		mapped := slices.Map(
 			records,

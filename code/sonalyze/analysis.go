@@ -47,6 +47,7 @@ func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wri
 			args.FromDate,
 			args.ToDate,
 			hostGlobber,
+			recordFilter,
 			args.Verbose,
 		)
 	if err != nil {
@@ -57,7 +58,7 @@ func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wri
 		UstrStats(stderr, false)
 	}
 
-	sonarlog.ComputeAndFilter(streams, recordFilter)
+	sonarlog.ComputePerSampleFields(streams)
 	err = cmd.Perform(stdout, cfg, theLog, streams, bounds, hostGlobber, recordFilter)
 
 	if err != nil {

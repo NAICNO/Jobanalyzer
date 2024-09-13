@@ -87,7 +87,10 @@ func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.S
 // Samples, where each vector is sorted in ascending order of time.  In each vector, there may be no
 // adjacent records with the same timestamp.
 
-func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
+func createInputStreams(
+	entries []*db.Sample,
+	recordFilter db.SampleFilter,
+) (InputStreamSet, Timebounds) {
 	streams := make(InputStreamSet)
 	bounds := make(Timebounds)
 
@@ -100,15 +103,12 @@ func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
 	//
 	// TODO: OPTIMIZEME: Bounds computation could be performed more efficiently (fewer lookups)
 	// on the sorted streams, probably.
+	//
+	// TODO: Maybe hoist the recordFilter != nil out of the loop by duplicating the loop.  But note
+	// the bounds computation runs on unfiltered records and having the filter here makes both this
+	// and the above TODO harder.
 
 	for _, e := range entries {
-		key := InputStreamKey{e.Host, streamId(e), e.Cmd}
-		if stream, found := streams[key]; found {
-			*stream = append(*stream, Sample{S: e})
-		} else {
-			streams[key] = &SampleStream{Sample{S: e}}
-		}
-
 		if bound, found := bounds[e.Host]; found {
 			bounds[e.Host] = Timebound{
 				Earliest: min(bound.Earliest, e.Timestamp),
@@ -119,6 +119,17 @@ func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
 				Earliest: e.Timestamp,
 				Latest:   e.Timestamp,
 			}
+		}
+
+		if recordFilter != nil && !recordFilter(e) {
+			continue
+		}
+
+		key := InputStreamKey{e.Host, streamId(e), e.Cmd}
+		if stream, found := streams[key]; found {
+			*stream = append(*stream, Sample{S: e})
+		} else {
+			streams[key] = &SampleStream{Sample{S: e}}
 		}
 	}
 
@@ -160,16 +171,15 @@ func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
 	return streams, bounds
 }
 
-// Apply postprocessing to the records in the array:
+// Apply some postprocessing to the records in the array:
 //
 // - compute the cpu_util_pct field from cputime_sec and timestamp for consecutive records in
 //   streams
-// - subsequently, remove records for which the filter function returns false or which
-//   meet fixed filtering crieria.
+// - remove records for which the cpu utilization is less than zero
 //
 // This updates the individual streams and will also remove empty streams from the set.
 
-func ComputeAndFilter(streams InputStreamSet, filter db.SampleFilter) {
+func ComputePerSampleFields(streams InputStreamSet) {
 	// For each stream, compute the cpu_util_pct field of each record.
 	//
 	// For v0.7.0 and later, compute this as the difference in cputime_sec between adjacent records
@@ -188,33 +198,26 @@ func ComputeAndFilter(streams InputStreamSet, filter db.SampleFilter) {
 				es[i].CpuUtilPct = es[i].S.CpuPct
 			}
 		} else {
-			for i := 1; i < len(es); i++ {
-				dt := float64(es[i].S.Timestamp - es[i-1].S.Timestamp)
-				dc := float64(int64(es[i].S.CpuTimeSec) - int64(es[i-1].S.CpuTimeSec))
+			dst := 1
+			src := 1
+			for ; src < len(es); src++ {
+				dt := float64(es[src].S.Timestamp - es[src-1].S.Timestamp)
+				dc := float64(int64(es[src].S.CpuTimeSec) - int64(es[src-1].S.CpuTimeSec))
 				// It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
-				// We filter these in the next step.
-				es[i].CpuUtilPct = float32((dc / dt) * 100)
+				es[src].CpuUtilPct = float32((dc / dt) * 100)
+				if es[src].CpuUtilPct >= 0 {
+					es[dst] = es[src]
+					dst++
+				}
 			}
+
+			// TODO: OPTIMIZEME: Clear the elements beyond dst?  There probably won't be many
+			// empty elements, so not worth spending much effort on it.
+
+			// Some streams may now be empty; remove them.
+			removeEmptyStreams(streams)
 		}
 	}
-
-	// Remove elements that don't pass the filter and pack the array.  This preserves ordering.
-	// TODO: OPTIMIZEME: Clear the elements beyond dst?
-	for _, stream := range streams {
-		dst := 0
-		es := *stream
-		for src := range es {
-			// See comments above re the test for cpu_util_pct
-			if (filter == nil || filter(es[src].S)) && es[src].CpuUtilPct >= 0 {
-				es[dst] = es[src]
-				dst++
-			}
-		}
-		*stream = es[:dst]
-	}
-
-	// Some streams may now be empty; remove them.
-	removeEmptyStreams(streams)
 }
 
 func parseVersion(v Ustr) (major, minor, bugfix int) {
