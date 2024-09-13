@@ -169,7 +169,7 @@ func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
 //
 // This updates the individual streams and will also remove empty streams from the set.
 
-func ComputeAndFilter(streams InputStreamSet, filter func(*Sample) bool) {
+func ComputeAndFilter(streams InputStreamSet, filter db.SampleFilter) {
 	// For each stream, compute the cpu_util_pct field of each record.
 	//
 	// For v0.7.0 and later, compute this as the difference in cputime_sec between adjacent records
@@ -205,7 +205,7 @@ func ComputeAndFilter(streams InputStreamSet, filter func(*Sample) bool) {
 		es := *stream
 		for src := range es {
 			// See comments above re the test for cpu_util_pct
-			if (filter == nil || filter(&es[src])) && es[src].CpuUtilPct >= 0 {
+			if (filter == nil || filter(es[src].S)) && es[src].CpuUtilPct >= 0 {
 				es[dst] = es[src]
 				dst++
 			}

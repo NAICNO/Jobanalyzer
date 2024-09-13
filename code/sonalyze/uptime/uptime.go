@@ -26,6 +26,8 @@ type UptimeCommand struct /* implements SampleAnalysisCommand */ {
 	printOpts   *FormatOptions
 }
 
+var _ SampleAnalysisCommand = (*UptimeCommand)(nil)
+
 func (_ *UptimeCommand) Summary() []string {
 	return []string{
 		"Compute and print information about uptime and downtime of nodes",

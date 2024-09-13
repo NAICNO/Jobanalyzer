@@ -24,6 +24,8 @@ type ProfileCommand struct /* implements SampleAnalysisCommand */ {
 	testNoMemory bool
 }
 
+var _ SampleAnalysisCommand = (*ProfileCommand)(nil)
+
 func (_ *ProfileCommand) Summary() []string {
 	return []string{
 		"Print profile information for one aspect of a particular job.",

@@ -26,7 +26,7 @@ func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wri
 		return err
 	}
 
-	hostGlobber, recordFilter, err := buildFilters(cmd, cfg, args.Verbose)
+	hostGlobber, recordFilter, err := buildRecordFilters(cmd, cfg, args.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to create record filter\n%w", err)
 	}
@@ -67,11 +67,11 @@ func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wri
 	return nil
 }
 
-func buildFilters(
+func buildRecordFilters(
 	cmd SampleAnalysisCommand,
 	cfg *config.ClusterConfig,
 	verbose bool,
-) (*hostglob.HostGlobber, func(*sonarlog.Sample) bool, error) {
+) (*hostglob.HostGlobber, db.SampleFilter, error) {
 	args := cmd.SharedFlags()
 
 	// Temporary limitation.
@@ -184,24 +184,25 @@ func buildFilters(
 		}
 	}
 
-	// Record filtering logic is the same for all commands.
+	// Record filtering logic is the same for all commands.  The record filter can use only raw
+	// ingested data, it can be applied at any point in the pipeline.  It *must* be thread-safe.
 
 	excludeSystemJobs := args.RecordFilterArgs.ExcludeSystemJobs
 	haveFrom := args.SourceArgs.HaveFrom
 	haveTo := args.SourceArgs.HaveTo
 	from := args.SourceArgs.FromDate.Unix()
 	to := args.SourceArgs.ToDate.Unix()
-	recordFilter := func(e *sonarlog.Sample) bool {
-		return (len(includeUsers) == 0 || includeUsers[e.S.User]) &&
-			(includeHosts.IsEmpty() || includeHosts.Match(e.S.Host.String())) &&
-			(len(includeJobs) == 0 || includeJobs[e.S.Job]) &&
-			(len(includeCommands) == 0 || includeCommands[e.S.Cmd]) &&
-			!excludeUsers[e.S.User] &&
-			!excludeJobs[e.S.Job] &&
-			!excludeCommands[e.S.Cmd] &&
-			(!excludeSystemJobs || e.S.Pid >= 1000) &&
-			(!haveFrom || from <= e.S.Timestamp) &&
-			(!haveTo || e.S.Timestamp <= to)
+	recordFilter := func(e *db.Sample) bool {
+		return (len(includeUsers) == 0 || includeUsers[e.User]) &&
+			(includeHosts.IsEmpty() || includeHosts.Match(e.Host.String())) &&
+			(len(includeJobs) == 0 || includeJobs[e.Job]) &&
+			(len(includeCommands) == 0 || includeCommands[e.Cmd]) &&
+			!excludeUsers[e.User] &&
+			!excludeJobs[e.Job] &&
+			!excludeCommands[e.Cmd] &&
+			(!excludeSystemJobs || e.Pid >= 1000) &&
+			(!haveFrom || from <= e.Timestamp) &&
+			(!haveTo || e.Timestamp <= to)
 	}
 
 	if verbose {
@@ -245,5 +246,5 @@ func buildFilters(
 		}
 	}
 
-	return includeHosts, recordFilter, nil
+	return includeHosts, (db.SampleFilter)(recordFilter), nil
 }

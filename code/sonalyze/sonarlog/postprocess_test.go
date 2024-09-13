@@ -83,7 +83,9 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 
 	root := StringToUstr("root")
 	streams, _ := createInputStreams(entries)
-	ComputeAndFilter(streams, func(r *Sample) bool { return r.S.User != root })
+	ComputeAndFilter(streams, func(r *db.Sample) bool {
+		return r.User != root
+	})
 
 	if len(streams) != 4 {
 		t.Fatalf("Expected 4 streams, got %d", len(streams))

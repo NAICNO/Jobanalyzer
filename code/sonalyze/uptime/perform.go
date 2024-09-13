@@ -88,7 +88,7 @@ func (uc *UptimeCommand) Perform(
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *hostglob.HostGlobber,
-	_ func(*sonarlog.Sample) bool,
+	_ db.SampleFilter,
 ) error {
 	samples := slices.CatenateP(maps.Values(streams))
 	if uc.Verbose {

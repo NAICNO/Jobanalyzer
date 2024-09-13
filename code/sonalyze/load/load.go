@@ -48,6 +48,8 @@ type LoadCommand struct /* implements SampleAnalysisCommand */ {
 	printOpts   *FormatOptions
 }
 
+var _ SampleAnalysisCommand = (*LoadCommand)(nil)
+
 func (_ *LoadCommand) Summary() []string {
 	return []string{
 		"Compute aggregate system load across various timeframes based on sample",
