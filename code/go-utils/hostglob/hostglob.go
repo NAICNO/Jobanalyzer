@@ -348,11 +348,6 @@ func compressRange(xs []int) string {
 	return s
 }
 
-type hostGlob struct {
-	re      *regexp.Regexp
-	pattern string
-}
-
 // A `HostGlobber` is a matcher of patterns against hostnames.
 //
 // The matcher holds a number of patterns, added with `insert`.  Each `pattern` is a <pattern> in
@@ -361,24 +356,34 @@ type hostGlob struct {
 // The `match_hostname` method attempts to match its argument against the patterns in the matcher,
 // returning true if any of them match.
 //
-// The hostGlobber is immutable.
+// The hostGlobber is immutable and thread-safe: the embedded regexes are defined to be thread-safe
+// for concurrent use. cf https://pkg.go.dev/regexp#Regexp:
+//
+//  A Regexp is safe for concurrent use by multiple goroutines, except for configuration methods,
+//  such as Regexp.Longest.
+//
+// However note that the RegExp machinery has some shared global state internally in a sync.Map, and
+// so executing a regexp is not necessarily lock-free.  Hence the hostglobber is also not
+// necessarily lock-free.  But I'm guessing that map is not heavily contended, TBD.  It could look
+// like it is only used for fairly complex regexes; ours will tend to be simple (single host
+// pattern that should require no backtracking).
 
 type HostGlobber struct {
 	isPrefixMatcher bool
-	matchers        []hostGlob
+	matchers        []*regexp.Regexp
 }
 
 // Create a new, empty filter.  The flag indicates whether the globbers in the filter could match
 // only a prefix of the hostname elements or must match all of them.
 
 func NewGlobber(isPrefixMatcher bool, patterns []string) (*HostGlobber, error) {
-	matchers := make([]hostGlob, 0, len(patterns))
+	matchers := make([]*regexp.Regexp, 0, len(patterns))
 	for _, p := range patterns {
-		re, pattern, err := compileGlobber(p, isPrefixMatcher)
+		re, _, err := compileGlobber(p, isPrefixMatcher)
 		if err != nil {
 			return nil, err
 		}
-		matchers = append(matchers, hostGlob{re, pattern})
+		matchers = append(matchers, re)
 	}
 	return &HostGlobber{
 		isPrefixMatcher: isPrefixMatcher,
@@ -394,8 +399,8 @@ func (hg *HostGlobber) IsEmpty() bool {
 
 func (hg *HostGlobber) String() string {
 	return fmt.Sprint(
-		slices.Map(hg.matchers, func (hg hostGlob) string {
-			return hg.pattern
+		slices.Map(hg.matchers, func (re *regexp.Regexp) string {
+			return re.String()
 		}),
 	)
 }
@@ -403,8 +408,8 @@ func (hg *HostGlobber) String() string {
 // Match s against the patterns and return true iff it matches at least one pattern.
 
 func (hg *HostGlobber) Match(host string) bool {
-	for _, m := range hg.matchers {
-		if m.re.Match([]byte(host)) {
+	for _, re := range hg.matchers {
+		if re.Match([]byte(host)) {
 			return true
 		}
 	}
