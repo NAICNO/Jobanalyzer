@@ -16,6 +16,10 @@ import (
 // The db.SampleFilter will be applied to individual records and must return true for records to be
 // included and false for all others.
 //
+// The db.SampleFilter is never nil.  (Nil would be meaningful in some corner cases but generally it
+// will almost never be nil in practical situations and remembering the extra nil check is just
+// annoying.)
+//
 // HARD REQUIREMENT: The SampleFilter *must* be thread-safe and *should* be non-locking and
 // non-contending; if it refers to shared resources then the resources should be
 // shared-read-without-locking by all threads.  The filter can be applied at any point in the

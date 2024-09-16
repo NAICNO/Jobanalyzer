@@ -109,22 +109,14 @@ func (pc *ParseCommand) Perform(
 			return err
 		}
 
-		// TODO: Merge these loops?  Or don't we care for this case?
-
-		// Simulate the normal pipeline
-		mapped := slices.Map(
+		// Simulate the normal pipeline, the recordFilter application is expected by the user.
+		samples = sonarlog.SampleStream(slices.FilterMap(
 			records,
+			recordFilter,
 			func(r *db.Sample) sonarlog.Sample {
 				return sonarlog.Sample{S: r}
 			},
-		)
-		// We still need to filter the records or things will be very confusing
-		if recordFilter != nil {
-			mapped = slices.Filter(mapped, func (s sonarlog.Sample) bool {
-				return recordFilter(s.S)
-			})
-		}
-		samples = sonarlog.SampleStream(mapped)
+		))
 
 	case pc.Clean:
 		mergedSamples = maps.Values(streams)

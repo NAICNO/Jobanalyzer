@@ -97,17 +97,9 @@ func createInputStreams(
 	// Reconstruct the individual sample streams.  Each job with job id 0 gets its own stream, these
 	// must not be merged downstream (they get different stream IDs but the job IDs remain 0).
 	//
-	// Also compute time bounds.  Bounds are computed from a sample stream, because we compute
-	// bounds on the entire input set before filtering or other postprocessing.  This is closest to
-	// what's expected.
-	//
-	// TODO: OPTIMIZEME: Bounds computation could be performed more efficiently (fewer lookups)
-	// on the sorted streams, probably.
-	//
-	// TODO: Maybe hoist the recordFilter != nil out of the loop by duplicating the loop.  But note
-	// the bounds computation runs on unfiltered records and having the filter here makes both this
-	// and the above TODO harder.
-
+	// Also compute time bounds.  Bounds are computed from the entire input set before filtering or
+	// other postprocessing - this is closest to what's expected.  But that makes the bound
+	// computation a significant expense.
 	for _, e := range entries {
 		if bound, found := bounds[e.Host]; found {
 			bounds[e.Host] = Timebound{
@@ -121,7 +113,7 @@ func createInputStreams(
 			}
 		}
 
-		if recordFilter != nil && !recordFilter(e) {
+		if !recordFilter(e) {
 			continue
 		}
 
@@ -133,7 +125,9 @@ func createInputStreams(
 		}
 	}
 
-	// Sort the streams by ascending timestamp.
+	// Sort the streams by ascending timestamp.  This sort is stable so that records coming from the
+	// same data file are kept in order, in corner cases (esp around roundtripping with `parse`)
+	// it's surprising if they are not in order.
 	for _, stream := range streams {
 		sort.Stable(TimeSortableSampleStream(*stream))
 	}
@@ -141,28 +135,14 @@ func createInputStreams(
 	// Remove duplicate timestamps.  These may appear due to system effects, notably, sonar log
 	// generation may be delayed due to disk waits, which may be long because network disks may
 	// go away.  It should not matter which of the duplicate records we remove here, they should
-	// be identical.
-	// TODO: Go 1.21: Use slices.CompactFunc instead?
+	// be identical.  CompactFunc keeps the first.
 	for _, stream := range streams {
-		es := *stream
-		good := 0
-		candidate := good + 1
-		// Invariant: good < len(es)
-		// Invariant: es[good] is a record we will keep
-		// Invariant: candidate > good points to unexamined record or past end
-		for candidate < len(es) {
-			// Skip until end or we find a record that has different time
-			for candidate < len(es) && es[good].S.Timestamp == es[candidate].S.Timestamp {
-				candidate++
-			}
-			// Keep the new candidate, if there is one
-			if candidate < len(es) {
-				good++
-				es[good] = es[candidate]
-				candidate++
-			}
-		}
-		*stream = es[:good+1]
+		*stream = slices.CompactFunc(
+			*stream,
+			func(a, b Sample) bool {
+				return a.S.Timestamp == b.S.Timestamp
+			},
+		)
 	}
 
 	// Some streams may now be empty; remove them.
@@ -211,13 +191,15 @@ func ComputePerSampleFields(streams InputStreamSet) {
 				}
 			}
 
-			// TODO: OPTIMIZEME: Clear the elements beyond dst?  There probably won't be many
-			// empty elements, so not worth spending much effort on it.
-
-			// Some streams may now be empty; remove them.
-			removeEmptyStreams(streams)
+			// Clear the tail, if there is any, just to not hang onto garbage.
+			clear(es[dst:])
+			*stream = es[:dst]
 		}
 	}
+
+	// Some streams may now be empty; remove them.  Technically this will only be the case for v>0.6
+	// streams, but it doesn't matter.
+	removeEmptyStreams(streams)
 }
 
 func parseVersion(v Ustr) (major, minor, bugfix int) {
