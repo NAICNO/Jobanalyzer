@@ -110,7 +110,7 @@ func (tsc *TransientSampleCluster) ReadSamples(
 	_, _ time.Time,
 	_ *hostglob.HostGlobber,
 	verbose bool,
-) (samples []*Sample, dropped int, err error) {
+) (sampleBlobs [][]*Sample, dropped int, err error) {
 	tsc.Lock()
 	defer tsc.Unlock()
 	if tsc.closed {
@@ -124,7 +124,7 @@ func (tsc *TransientSampleCluster) ReadLoadData(
 	_, _ time.Time,
 	_ *hostglob.HostGlobber,
 	verbose bool,
-) (data []*LoadDatum, dropped int, err error) {
+) (dataBlobs [][]*LoadDatum, dropped int, err error) {
 	tsc.Lock()
 	defer tsc.Unlock()
 	if tsc.closed {
@@ -161,7 +161,7 @@ func (tsc *TransientSacctCluster) SacctFilenames(_, _ time.Time) ([]string, erro
 func (tsc *TransientSacctCluster) ReadSacctData(
 	fromDate, toDate time.Time,
 	verbose bool,
-) (records []*SacctInfo, dropped int, err error) {
+) (recordBlobs [][]*SacctInfo, dropped int, err error) {
 	tsc.Lock()
 	defer tsc.Unlock()
 	if tsc.closed {

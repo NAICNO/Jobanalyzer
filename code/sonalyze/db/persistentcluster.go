@@ -262,7 +262,7 @@ func (pc *PersistentCluster) ReadSamples(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
 	verbose bool,
-) (samples []*Sample, dropped int, err error) {
+) (sampleBlobs [][]*Sample, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
@@ -277,7 +277,7 @@ func (pc *PersistentCluster) ReadLoadData(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
 	verbose bool,
-) (data []*LoadDatum, dropped int, err error) {
+) (dataBlobs [][]*LoadDatum, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
@@ -292,7 +292,7 @@ func (pc *PersistentCluster) ReadSysinfo(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
 	verbose bool,
-) (samples []*config.NodeConfigRecord, dropped int, err error) {
+) (sysinfoBlobs [][]*config.NodeConfigRecord, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
@@ -306,7 +306,7 @@ func (pc *PersistentCluster) ReadSysinfo(
 func (pc *PersistentCluster) ReadSacctData(
 	fromDate, toDate time.Time,
 	verbose bool,
-) (records []*SacctInfo, dropped int, err error) {
+) (sacctBlobs [][]*SacctInfo, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
@@ -317,7 +317,7 @@ func (pc *PersistentCluster) ReadSacctData(
 	)
 }
 
-func readPersistentClusterRecords[V any, U ~[]*V](
+func readPersistentClusterRecords[V any, U ~[][]*V](
 	pc *PersistentCluster,
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
@@ -325,7 +325,7 @@ func readPersistentClusterRecords[V any, U ~[]*V](
 	fa filesAdapter,
 	methods ReadSyncMethods,
 	reader func(files []*LogFile, verbose bool, methods ReadSyncMethods) (U, int, error),
-) (records U, dropped int, err error) {
+) (recordBlobs U, dropped int, err error) {
 	// TODO: IMPROVEME: Don't hold the lock while reading, it's not necessary, caching is per-file
 	// and does not interact with the cluster.  But be sure to get pc.cfg while holding the lock.
 	pc.Lock()

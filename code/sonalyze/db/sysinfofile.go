@@ -39,6 +39,6 @@ func readNodeConfigRecordSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) ([]*config.NodeConfigRecord, int, error) {
+) ([][]*config.NodeConfigRecord, int, error) {
 	return readRecordsFromFiles[config.NodeConfigRecord](files, verbose, reader)
 }

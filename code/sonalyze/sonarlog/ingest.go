@@ -34,12 +34,14 @@ func ReadSampleStreams(
 	read, dropped int,
 	err error,
 ) {
-	samples, dropped, err := c.ReadSamples(fromDate, toDate, hostGlobber, verbose)
+	sampleBlobs, dropped, err := c.ReadSamples(fromDate, toDate, hostGlobber, verbose)
 	if err != nil {
 		return
 	}
-	read = len(samples)
-	streams, bounds = createInputStreams(samples, recordFilter)
+	for _, samples := range sampleBlobs {
+		read += len(samples)
+	}
+	streams, bounds = createInputStreams(sampleBlobs, recordFilter)
 	return
 }
 
@@ -56,12 +58,14 @@ func ReadLoadDataStreams(
 ) {
 	// Read and establish invariants
 
-	data, dropped, err := c.ReadLoadData(fromDate, toDate, hostGlobber, verbose)
+	dataBlobs, dropped, err := c.ReadLoadData(fromDate, toDate, hostGlobber, verbose)
 	if err != nil {
 		return
 	}
-	read = len(data)
-	streams, bounds, errors := rectifyLoadData(data)
+	for _, data := range dataBlobs {
+		read += len(data)
+	}
+	streams, bounds, errors := rectifyLoadData(dataBlobs)
 	dropped += errors
 	return
 }

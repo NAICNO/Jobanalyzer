@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"go-utils/hostglob"
+	uslices "go-utils/slices"
 
 	. "sonalyze/common"
 	"sonalyze/db"
@@ -39,7 +40,7 @@ func (sc *SacctCommand) Sacct(_ io.Reader, stdout, stderr io.Writer) error {
 
 	// Read the raw sacct data.
 
-	records, dropped, err := theLog.ReadSacctData(
+	recordBlobs, dropped, err := theLog.ReadSacctData(
 		sc.FromDate,
 		sc.ToDate,
 		sc.Verbose,
@@ -47,6 +48,9 @@ func (sc *SacctCommand) Sacct(_ io.Reader, stdout, stderr io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("Failed to read log records\n%w", err)
 	}
+	// TODO: The catenation is expedient, we should be looping over the nested set (or in the
+	// future, using an iterator).
+	records := uslices.Catenate(recordBlobs)
 	if sc.Verbose {
 		Log.Infof("%d records read + %d dropped", len(records), dropped)
 		UstrStats(stderr, false)

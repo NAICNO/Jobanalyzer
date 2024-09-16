@@ -11,7 +11,7 @@ import (
 	"go-utils/config"
 	"go-utils/hostglob"
 	"go-utils/maps"
-	"go-utils/slices"
+	uslices "go-utils/slices"
 	. "sonalyze/command"
 	. "sonalyze/common"
 	"sonalyze/db"
@@ -104,19 +104,23 @@ func (pc *ParseCommand) Perform(
 		// Reread the data, bypassing all postprocessing, to get the expected raw values.  If it's
 		// expensive then so be it - this is special-case code usually used for limited testing, not
 		// something you'd use for analysis.
-		records, _, err := cluster.ReadSamples(pc.FromDate, pc.ToDate, hostGlobber, pc.Verbose)
+		recordBlobs, _, err := cluster.ReadSamples(pc.FromDate, pc.ToDate, hostGlobber, pc.Verbose)
 		if err != nil {
 			return err
 		}
 
 		// Simulate the normal pipeline, the recordFilter application is expected by the user.
-		samples = sonarlog.SampleStream(slices.FilterMap(
-			records,
-			recordFilter,
-			func(r *db.Sample) sonarlog.Sample {
-				return sonarlog.Sample{S: r}
-			},
-		))
+		mapped := make([]sonarlog.Sample, 0)
+		for _, records := range recordBlobs {
+			mapped = append(mapped, uslices.FilterMap(
+				records,
+				recordFilter,
+				func(r *db.Sample) sonarlog.Sample {
+					return sonarlog.Sample{S: r}
+				},
+			)...)
+		}
+		samples = sonarlog.SampleStream(mapped)
 
 	case pc.Clean:
 		mergedSamples = maps.Values(streams)

@@ -88,7 +88,7 @@ func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.S
 // adjacent records with the same timestamp.
 
 func createInputStreams(
-	entries []*db.Sample,
+	entryBlobs [][]*db.Sample,
 	recordFilter db.SampleFilter,
 ) (InputStreamSet, Timebounds) {
 	streams := make(InputStreamSet)
@@ -100,28 +100,30 @@ func createInputStreams(
 	// Also compute time bounds.  Bounds are computed from the entire input set before filtering or
 	// other postprocessing - this is closest to what's expected.  But that makes the bound
 	// computation a significant expense.
-	for _, e := range entries {
-		if bound, found := bounds[e.Host]; found {
-			bounds[e.Host] = Timebound{
-				Earliest: min(bound.Earliest, e.Timestamp),
-				Latest:   max(bound.Latest, e.Timestamp),
+	for _, entries := range entryBlobs {
+		for _, e := range entries {
+			if bound, found := bounds[e.Host]; found {
+				bounds[e.Host] = Timebound{
+					Earliest: min(bound.Earliest, e.Timestamp),
+					Latest:   max(bound.Latest, e.Timestamp),
+				}
+			} else {
+				bounds[e.Host] = Timebound{
+					Earliest: e.Timestamp,
+					Latest:   e.Timestamp,
+				}
 			}
-		} else {
-			bounds[e.Host] = Timebound{
-				Earliest: e.Timestamp,
-				Latest:   e.Timestamp,
+
+			if !recordFilter(e) {
+				continue
 			}
-		}
 
-		if !recordFilter(e) {
-			continue
-		}
-
-		key := InputStreamKey{e.Host, streamId(e), e.Cmd}
-		if stream, found := streams[key]; found {
-			*stream = append(*stream, Sample{S: e})
-		} else {
-			streams[key] = &SampleStream{Sample{S: e}}
+			key := InputStreamKey{e.Host, streamId(e), e.Cmd}
+			if stream, found := streams[key]; found {
+				*stream = append(*stream, Sample{S: e})
+			} else {
+				streams[key] = &SampleStream{Sample{S: e}}
+			}
 		}
 	}
 
@@ -235,27 +237,29 @@ func removeEmptyStreams(streams InputStreamSet) {
 	})
 }
 
-func rectifyLoadData(data []*db.LoadDatum) (streams LoadDataSet, bounds Timebounds, errors int) {
+func rectifyLoadData(dataBlobs [][]*db.LoadDatum) (streams LoadDataSet, bounds Timebounds, errors int) {
 	// Divide data among the hosts and decode each array
 	streams = make(LoadDataSet)
-	for _, d := range data {
-		decoded, err := decodeLoadData(d.Encoded)
-		if err != nil {
-			errors++
-			continue
-		}
-		datum := LoadDatum{
-			Time:    d.Timestamp,
-			Decoded: decoded,
-		}
-		if stream, found := streams[d.Host]; found {
-			stream.Data = append(stream.Data, datum)
-		} else {
-			stream := LoadData{
-				Host: d.Host,
-				Data: []LoadDatum{datum},
+	for _, data := range dataBlobs {
+		for _, d := range data {
+			decoded, err := decodeLoadData(d.Encoded)
+			if err != nil {
+				errors++
+				continue
 			}
-			streams[d.Host] = &stream
+			datum := LoadDatum{
+				Time:    d.Timestamp,
+				Decoded: decoded,
+			}
+			if stream, found := streams[d.Host]; found {
+				stream.Data = append(stream.Data, datum)
+			} else {
+				stream := LoadData{
+					Host: d.Host,
+					Data: []LoadDatum{datum},
+				}
+				streams[d.Host] = &stream
+			}
 		}
 	}
 
