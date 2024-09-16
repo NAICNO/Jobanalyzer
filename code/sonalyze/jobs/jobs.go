@@ -254,6 +254,8 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	minRuntimeStr string
 }
 
+var _ SampleAnalysisCommand = (*JobsCommand)(nil)
+
 func (_ *JobsCommand) Summary() []string {
 	return []string{
 		"Select jobs by various criteria and present aggregate information",

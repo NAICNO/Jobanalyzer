@@ -87,28 +87,20 @@ func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.S
 // Samples, where each vector is sorted in ascending order of time.  In each vector, there may be no
 // adjacent records with the same timestamp.
 
-func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
+func createInputStreams(
+	entries []*db.Sample,
+	recordFilter db.SampleFilter,
+) (InputStreamSet, Timebounds) {
 	streams := make(InputStreamSet)
 	bounds := make(Timebounds)
 
 	// Reconstruct the individual sample streams.  Each job with job id 0 gets its own stream, these
 	// must not be merged downstream (they get different stream IDs but the job IDs remain 0).
 	//
-	// Also compute time bounds.  Bounds are computed from a sample stream, because we compute
-	// bounds on the entire input set before filtering or other postprocessing.  This is closest to
-	// what's expected.
-	//
-	// TODO: OPTIMIZEME: Bounds computation could be performed more efficiently (fewer lookups)
-	// on the sorted streams, probably.
-
+	// Also compute time bounds.  Bounds are computed from the entire input set before filtering or
+	// other postprocessing - this is closest to what's expected.  But that makes the bound
+	// computation a significant expense.
 	for _, e := range entries {
-		key := InputStreamKey{e.Host, streamId(e), e.Cmd}
-		if stream, found := streams[key]; found {
-			*stream = append(*stream, Sample{S: e})
-		} else {
-			streams[key] = &SampleStream{Sample{S: e}}
-		}
-
 		if bound, found := bounds[e.Host]; found {
 			bounds[e.Host] = Timebound{
 				Earliest: min(bound.Earliest, e.Timestamp),
@@ -120,9 +112,22 @@ func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
 				Latest:   e.Timestamp,
 			}
 		}
+
+		if !recordFilter(e) {
+			continue
+		}
+
+		key := InputStreamKey{e.Host, streamId(e), e.Cmd}
+		if stream, found := streams[key]; found {
+			*stream = append(*stream, Sample{S: e})
+		} else {
+			streams[key] = &SampleStream{Sample{S: e}}
+		}
 	}
 
-	// Sort the streams by ascending timestamp.
+	// Sort the streams by ascending timestamp.  This sort is stable so that records coming from the
+	// same data file are kept in order, in corner cases (esp around roundtripping with `parse`)
+	// it's surprising if they are not in order.
 	for _, stream := range streams {
 		sort.Stable(TimeSortableSampleStream(*stream))
 	}
@@ -130,28 +135,14 @@ func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
 	// Remove duplicate timestamps.  These may appear due to system effects, notably, sonar log
 	// generation may be delayed due to disk waits, which may be long because network disks may
 	// go away.  It should not matter which of the duplicate records we remove here, they should
-	// be identical.
-	// TODO: Go 1.21: Use slices.CompactFunc instead?
+	// be identical.  CompactFunc keeps the first.
 	for _, stream := range streams {
-		es := *stream
-		good := 0
-		candidate := good + 1
-		// Invariant: good < len(es)
-		// Invariant: es[good] is a record we will keep
-		// Invariant: candidate > good points to unexamined record or past end
-		for candidate < len(es) {
-			// Skip until end or we find a record that has different time
-			for candidate < len(es) && es[good].S.Timestamp == es[candidate].S.Timestamp {
-				candidate++
-			}
-			// Keep the new candidate, if there is one
-			if candidate < len(es) {
-				good++
-				es[good] = es[candidate]
-				candidate++
-			}
-		}
-		*stream = es[:good+1]
+		*stream = slices.CompactFunc(
+			*stream,
+			func(a, b Sample) bool {
+				return a.S.Timestamp == b.S.Timestamp
+			},
+		)
 	}
 
 	// Some streams may now be empty; remove them.
@@ -160,16 +151,15 @@ func createInputStreams(entries []*db.Sample) (InputStreamSet, Timebounds) {
 	return streams, bounds
 }
 
-// Apply postprocessing to the records in the array:
+// Apply some postprocessing to the records in the array:
 //
 // - compute the cpu_util_pct field from cputime_sec and timestamp for consecutive records in
 //   streams
-// - subsequently, remove records for which the filter function returns false or which
-//   meet fixed filtering crieria.
+// - remove records for which the cpu utilization is less than zero
 //
 // This updates the individual streams and will also remove empty streams from the set.
 
-func ComputeAndFilter(streams InputStreamSet, filter func(*Sample) bool) {
+func ComputePerSampleFields(streams InputStreamSet) {
 	// For each stream, compute the cpu_util_pct field of each record.
 	//
 	// For v0.7.0 and later, compute this as the difference in cputime_sec between adjacent records
@@ -188,32 +178,27 @@ func ComputeAndFilter(streams InputStreamSet, filter func(*Sample) bool) {
 				es[i].CpuUtilPct = es[i].S.CpuPct
 			}
 		} else {
-			for i := 1; i < len(es); i++ {
-				dt := float64(es[i].S.Timestamp - es[i-1].S.Timestamp)
-				dc := float64(int64(es[i].S.CpuTimeSec) - int64(es[i-1].S.CpuTimeSec))
+			dst := 1
+			src := 1
+			for ; src < len(es); src++ {
+				dt := float64(es[src].S.Timestamp - es[src-1].S.Timestamp)
+				dc := float64(int64(es[src].S.CpuTimeSec) - int64(es[src-1].S.CpuTimeSec))
 				// It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
-				// We filter these in the next step.
-				es[i].CpuUtilPct = float32((dc / dt) * 100)
+				es[src].CpuUtilPct = float32((dc / dt) * 100)
+				if es[src].CpuUtilPct >= 0 {
+					es[dst] = es[src]
+					dst++
+				}
 			}
+
+			// Clear the tail, if there is any, just to not hang onto garbage.
+			clear(es[dst:])
+			*stream = es[:dst]
 		}
 	}
 
-	// Remove elements that don't pass the filter and pack the array.  This preserves ordering.
-	// TODO: OPTIMIZEME: Clear the elements beyond dst?
-	for _, stream := range streams {
-		dst := 0
-		es := *stream
-		for src := range es {
-			// See comments above re the test for cpu_util_pct
-			if (filter == nil || filter(&es[src])) && es[src].CpuUtilPct >= 0 {
-				es[dst] = es[src]
-				dst++
-			}
-		}
-		*stream = es[:dst]
-	}
-
-	// Some streams may now be empty; remove them.
+	// Some streams may now be empty; remove them.  Technically this will only be the case for v>0.6
+	// streams, but it doesn't matter.
 	removeEmptyStreams(streams)
 }
 

@@ -13,6 +13,37 @@ import (
 	. "sonalyze/common"
 )
 
+// The db.SampleFilter will be applied to individual records and must return true for records to be
+// included and false for all others.
+//
+// The db.SampleFilter is never nil.  (Nil would be meaningful in some corner cases but generally it
+// will almost never be nil in practical situations and remembering the extra nil check is just
+// annoying.)
+//
+// HARD REQUIREMENT: The SampleFilter *must* be thread-safe and *should* be non-locking and
+// non-contending; if it refers to shared resources then the resources should be
+// shared-read-without-locking by all threads.  The filter can be applied at any point in the
+// ingestion pipeline.
+//
+// Notes:
+//
+// - Go maps are safe for concurrent read access without locking and can be used by the SampleFilter
+//   with that restriction.  From https://go.dev/doc/faq#atomic_maps:
+//
+//     Map access is unsafe only when updates are occurring. As long as all goroutines are only
+//     reading—looking up elements in the map, including iterating through it using a for range
+//     loop—and not changing the map by assigning to elements or doing deletions, it is safe for
+//     them to access the map concurrently without synchronization.
+//
+//   Almost certainly, the program must be careful to establish a happens-before relationship
+//   between map initialization and all map reads for this to be true.  Since the map will likely be
+//   broadcast to a bunch of goroutines this will often happen as a matter of course.
+//
+// - Sonalyze hostglobbers are thread-safe (but not always contention-free due to shared state in
+//   the regex engine, impact TBD.)
+
+type SampleFilter func (*Sample) bool
+
 // Read a stream of Sonar data records, parse them and return them in order.  Returns the number of
 // benign errors, and non-nil error if non-benign error.
 //

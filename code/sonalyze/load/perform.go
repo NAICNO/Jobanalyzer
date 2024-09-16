@@ -18,7 +18,7 @@ func (lc *LoadCommand) Perform(
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *hostglob.HostGlobber,
-	_ func(*sonarlog.Sample) bool,
+	_ db.SampleFilter,
 ) error {
 	fromIncl, toIncl := lc.InterpretFromToWithBounds(bounds)
 

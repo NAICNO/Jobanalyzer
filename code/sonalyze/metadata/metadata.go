@@ -30,6 +30,8 @@ type MetadataCommand struct /* implements SampleAnalysisCommand */ {
 	printOpts   *FormatOptions
 }
 
+var _ SampleAnalysisCommand = (*MetadataCommand)(nil)
+
 func (_ *MetadataCommand) Summary() []string {
 	return []string{
 		"Display metadata about the sample streams in the database.",
@@ -118,7 +120,7 @@ func (mdc *MetadataCommand) Perform(
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *hostglob.HostGlobber,
-	_ func(*sonarlog.Sample) bool,
+	_ db.SampleFilter,
 ) error {
 	if mdc.Times {
 		fmt.Fprintf(out, "From: %s\n", mdc.FromDate.Format(time.RFC3339))

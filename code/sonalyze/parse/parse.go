@@ -30,6 +30,8 @@ type ParseCommand struct /* implements SampleAnalysisCommand */ {
 	printOpts   *FormatOptions
 }
 
+var _ SampleAnalysisCommand = (*ParseCommand)(nil)
+
 func (_ *ParseCommand) Summary() []string {
 	return []string{
 		"Export sample data in various formats, after optional preprocessing.",
@@ -93,7 +95,7 @@ func (pc *ParseCommand) Perform(
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *hostglob.HostGlobber,
-	recordFilter func(*sonarlog.Sample) bool,
+	recordFilter db.SampleFilter,
 ) error {
 	var mergedSamples []*sonarlog.SampleStream
 	var samples sonarlog.SampleStream
@@ -106,20 +108,15 @@ func (pc *ParseCommand) Perform(
 		if err != nil {
 			return err
 		}
-		// Simulate the normal pipeline
-		mapped := slices.Map(
+
+		// Simulate the normal pipeline, the recordFilter application is expected by the user.
+		samples = sonarlog.SampleStream(slices.FilterMap(
 			records,
+			recordFilter,
 			func(r *db.Sample) sonarlog.Sample {
 				return sonarlog.Sample{S: r}
 			},
-		)
-		// We still need to filter the records or things will be very confusing
-		if recordFilter != nil {
-			mapped = slices.Filter(mapped, func (s sonarlog.Sample) bool {
-				return recordFilter(&s)
-			})
-		}
-		samples = sonarlog.SampleStream(mapped)
+		))
 
 	case pc.Clean:
 		mergedSamples = maps.Values(streams)
