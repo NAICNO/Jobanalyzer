@@ -43,17 +43,19 @@ func TestRectifyGpuMem(t *testing.T) {
 	// gpumem%=12 so we should see a computed value for gpukib which is different from the gpukib
 	// figure in the data.
 	var notime time.Time
-	samples, _, err := c.ReadSamples(notime, notime, nil, false)
+	sampleBlobs, _, err := c.ReadSamples(notime, notime, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	found := 0
 	expect := uint64((memsize * 12) / 100 * 1024 * 1024)
-	for _, s := range samples {
-		if s.Job == 1249151 {
-			found++
-			if s.GpuKib != expect {
-				t.Errorf("GpuKib %v expected %v (%v %v)", s.GpuKib, expect, s.GpuPct, s.GpuMemPct)
+	for _, samples := range sampleBlobs {
+		for _, s := range samples {
+			if s.Job == 1249151 {
+				found++
+				if s.GpuKib != expect {
+					t.Errorf("GpuKib %v expected %v (%v %v)", s.GpuKib, expect, s.GpuPct, s.GpuMemPct)
+				}
 			}
 		}
 	}
@@ -85,7 +87,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	filter := func(r *db.Sample) bool {
 		return r.User != root
 	}
-	streams, _ := createInputStreams(entries, filter)
+	streams, _ := createInputStreams([][]*db.Sample{entries}, filter)
 	ComputePerSampleFields(streams)
 
 	if len(streams) != 4 {

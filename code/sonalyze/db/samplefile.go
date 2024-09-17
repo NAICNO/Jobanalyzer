@@ -100,7 +100,7 @@ func readSampleSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) (samples []*Sample, dropped int, err error) {
+) (sampleBlobs [][]*Sample, dropped int, err error) {
 	return readRecordsFromFiles[Sample](files, verbose, reader)
 }
 
@@ -108,6 +108,6 @@ func readLoadDatumSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) (samples []*LoadDatum, dropped int, err error) {
+) (loadDataBlobs [][]*LoadDatum, dropped int, err error) {
 	return readRecordsFromFiles[LoadDatum](files, verbose, reader)
 }

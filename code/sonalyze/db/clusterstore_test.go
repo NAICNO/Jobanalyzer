@@ -18,6 +18,7 @@ import (
 
 	"go-utils/filesys"
 	"go-utils/hostglob"
+	uslices "go-utils/slices"
 	"go-utils/status"
 	. "sonalyze/common"
 )
@@ -103,13 +104,17 @@ func TestTransientSampleRead(t *testing.T) {
 	}
 	// The parameters are ignored here
 	var d time.Time
-	samples, dropped, err := fs.ReadSamples(d, d, nil, verbose)
+	sampleBlobs, dropped, err := fs.ReadSamples(d, d, nil, verbose)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_ = dropped
-	if len(samples) != 7 {
-		t.Fatal("Length", samples)
+	n := 0
+	for _, s := range sampleBlobs {
+		n += len(s)
+	}
+	if n != 7 {
+		t.Fatal("Length", sampleBlobs)
 	}
 }
 
@@ -168,7 +173,7 @@ func TestPersistentSampleRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	samples, dropped, err := pc.ReadSamples(
+	sampleBlobs, dropped, err := pc.ReadSamples(
 		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
 		nil,
@@ -182,8 +187,12 @@ func TestPersistentSampleRead(t *testing.T) {
 	if dropped != 1 {
 		t.Fatal("Dropped", dropped)
 	}
-	if len(samples) != 7 {
-		t.Fatal("Length", samples)
+	n := 0
+	for _, s := range sampleBlobs {
+		n += len(s)
+	}
+	if n != 7 {
+		t.Fatal("Length", sampleBlobs)
 	}
 }
 
@@ -198,7 +207,7 @@ func TestPersistentSysinfoRead(t *testing.T) {
 	// 5/30 "b" should have one record
 	// 5/31 "a" should have two records, not equal
 	// 5/32 "b" should have two records, equal
-	records, dropped, err := pc.ReadSysinfo(
+	recordBlobs, dropped, err := pc.ReadSysinfo(
 		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
 		nil,
@@ -210,8 +219,12 @@ func TestPersistentSysinfoRead(t *testing.T) {
 	if dropped != 0 {
 		t.Fatal("Dropped", dropped)
 	}
-	if len(records) != 6 {
-		t.Fatal("Length", records)
+	n := 0
+	for _, rs := range recordBlobs {
+		n += len(rs)
+	}
+	if n != 6 {
+		t.Fatal("Length", recordBlobs)
 	}
 }
 
@@ -310,7 +323,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	// to not see the data - a synchronous flush is technically required - and if we ever implement
 	// that path then this test will need to have a FlushSync() call before the read.
 
-	records, _, err := pc.ReadSysinfo(
+	recordBlobs, _, err := pc.ReadSysinfo(
 		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		time.Date(2023, 05, 28, 23, 0, 12, 0, time.UTC),
 		nil,
@@ -321,11 +334,15 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	}
 	// In the original data we had nonempty sysinfo only for "a" on "2023/05/28", and only one
 	// record, so now we should have 3 in the first window and 1 in the second window.
-	if len(records) != 3 {
-		t.Fatal("Length", records)
+	n := 0
+	for _, rs := range recordBlobs {
+		n += len(rs)
+	}
+	if n != 3 {
+		t.Fatal("Length", recordBlobs)
 	}
 
-	records2, _, err := pc.ReadSysinfo(
+	recordBlobs2, _, err := pc.ReadSysinfo(
 		time.Date(2024, 01, 01, 12, 37, 55, 0, time.UTC),
 		time.Date(2024, 05, 01, 23, 0, 12, 0, time.UTC),
 		nil,
@@ -334,8 +351,12 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(records2) != 1 {
-		t.Fatal("Length", records)
+	n = 0
+	for _, rs := range recordBlobs2 {
+		n += len(rs)
+	}
+	if n != 1 {
+		t.Fatal("Length", recordBlobs)
 	}
 
 	pc.Close()
@@ -577,7 +598,7 @@ func TestCaching(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	samples, _, err := pc.ReadSamples(
+	sampleBlobs, _, err := pc.ReadSamples(
 		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
 		glob,
@@ -595,9 +616,18 @@ func TestCaching(t *testing.T) {
 	if !m {
 		t.Fatal("Missing caching msg", msgs)
 	}
-	cmd := samples[len(samples)-1].Cmd
-	if cmd.String() != "awk" {
-		t.Fatal(cmd)
+
+	// There should be exactly one record matching cmd from above in that record set, as there were
+	// no awk commands to begin with
+
+	awks := 0
+	for _, s := range uslices.Catenate(sampleBlobs) {
+		if s.Cmd.String() == "awk" {
+			awks++
+		}
+	}
+	if awks != 1 {
+		t.Fatal("append failed")
 	}
 
 	// Purging of dirty data causes writeback
@@ -654,14 +684,19 @@ func TestCaching(t *testing.T) {
 	if !m {
 		t.Fatal("Missing caching msg", msgs)
 	}
-	samples, _, err = pc.ReadSamples(
+	sampleBlobs, _, err = pc.ReadSamples(
 		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
 		glob,
 		false,
 	)
-	cmd = samples[len(samples)-1].Cmd
-	if cmd.String() != "zappa" {
-		t.Fatal(cmd)
+	zappas := 0
+	for _, s := range uslices.Catenate(sampleBlobs) {
+		if s.Cmd.String() == "zappa" {
+			zappas++
+		}
+	}
+	if zappas != 1 {
+		t.Fatal("append failed")
 	}
 }

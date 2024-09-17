@@ -53,6 +53,6 @@ func readSacctSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) ([]*SacctInfo, int, error) {
+) ([][]*SacctInfo, int, error) {
 	return readRecordsFromFiles[SacctInfo](files, verbose, reader)
 }

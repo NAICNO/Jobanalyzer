@@ -105,20 +105,22 @@ type SampleCluster interface {
 	) ([]string, error)
 
 	// Read `ps` samples from all the files selected by SampleFilenames() and extract the
-	// per-process sample data.  Times must be UTC.
+	// per-process sample data.  Times must be UTC.  The inner slices of the result, and the
+	// records they point to, must not be mutated in any way.
 	ReadSamples(
 		fromDate, toDate time.Time,
 		hosts *hostglob.HostGlobber,
 		verbose bool,
-	) (samples []*Sample, dropped int, err error)
+	) (sampleBlobs [][]*Sample, dropped int, err error)
 
 	// Read `ps` samples from all the files selected by SampleFilenames() and extract the load data.
-	// Times must be UTC.
+	// Times must be UTC.  The inner slices of the result, and the records they point to, must not
+	// be mutated in any way.
 	ReadLoadData(
 		fromDate, toDate time.Time,
 		hosts *hostglob.HostGlobber,
 		verbose bool,
-	) (data []*LoadDatum, dropped int, err error)
+	) (dataBlobs [][]*LoadDatum, dropped int, err error)
 }
 
 // A SysinfoCluster can provide `sonar sysinfo` data: per-system hardware configuration data.
@@ -133,11 +135,13 @@ type SysinfoCluster interface {
 	) ([]string, error)
 
 	// Read `sysinfo` records from all the files selected by SysinfoFilenames().  Times must be UTC.
+	// The inner slices of the result, and the records they point to, must not be mutated in any
+	// way.
 	ReadSysinfo(
 		fromDate, toDate time.Time,
 		hosts *hostglob.HostGlobber,
 		verbose bool,
-	) (records []*config.NodeConfigRecord, dropped int, err error)
+	) (sysinfoBlobs [][]*config.NodeConfigRecord, dropped int, err error)
 }
 
 // There is no HostGlobber here, as the sacct data are not mostly node-oriented.  Any analysis
@@ -152,10 +156,12 @@ type SacctCluster interface {
 	) ([]string, error)
 
 	// Read `sacct` records from all the files selected by SacctFilenames().  Times must be UTC.
+	// The inner slices of the result, and the records they point to, must not be mutated in any
+	// way.
 	ReadSacctData(
 		fromDate, toDate time.Time,
 		verbose bool,
-	) (records []*SacctInfo, dropped int, err error)
+	) (recordBlobs [][]*SacctInfo, dropped int, err error)
 }
 
 // An AppendableCluster (not yet well developed, this could be split into appending different types
@@ -389,9 +395,16 @@ func init() {
 	}
 }
 
-// Read a set of records from a set of files and return the resulting list, which may be in any
-// order (b/c concurrency) but will always be freshly allocated (pointing to shared, immutable data
-// objects).  We do this by passing read request to the pool of readers and collecting the results.
+// Read a set of records from a set of files and return a slice of slices, normally one inner slice
+// per file.  The outer slice is always freshly allocated but the inner slices, though immutable,
+// are owned by the database layer, as is their underlying storage.  The objects pointed to from the
+// inner slices are also shared and immutable.  The inner slices may be in any order due to
+// concurrency in the database access layer (reading is implemented by by passing the read request
+// to the pool of readers and collecting the results).
+//
+// To be safe, clients should iterate over the data structure as soon as they can and not retain
+// references to the slices longer than necessary.  The inner slices *MUST* not be mutated; in
+// particular, they must not be sorted.
 //
 // On return, `dropped` is an indication of the number of benign errors, but it conflates dropped
 // records and dropped fields.  err is non-nil only for non-benign records, in which case it
@@ -399,12 +412,16 @@ func init() {
 //
 // TODO: IMPROVEME: The API is a little crusty.  We could distinguish dropped fields vs dropped
 // records, and we could sensibly return partial results too.
+//
+// TODO: We could strengthen the notion of immutability of the results by wrapping the result set in
+// a typesafe container that can be iterated over, esp in Go 1.23 or later.  But even defining a
+// type a la ResultSet[T] and returning that would help, probably.
 
 func readRecordsFromFiles[T any](
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) (records []*T, dropped int, err error) {
+) (recordBlobs [][]*T, dropped int, err error) {
 	if verbose {
 		Log.Infof("%d files", len(files))
 	}
@@ -414,7 +431,7 @@ func readRecordsFromFiles[T any](
 	// about 32e6 records).
 
 	results := make(chan parseResult, 100)
-	records = make([]*T, 0)
+	recordBlobs = make([][]*T, 0)
 
 	toReceive := len(files)
 	toSend := 0
@@ -434,7 +451,7 @@ func readRecordsFromFiles[T any](
 			if res.err != nil {
 				bad += "  " + res.err.Error() + "\n"
 			} else {
-				records = append(records, res.data.([]*T)...)
+				recordBlobs = append(recordBlobs, res.data.([]*T))
 				dropped += res.dropped
 			}
 			toReceive--
@@ -445,14 +462,14 @@ func readRecordsFromFiles[T any](
 		if res.err != nil {
 			bad += "  " + res.err.Error() + "\n"
 		} else {
-			records = append(records, res.data.([]*T)...)
+			recordBlobs = append(recordBlobs, res.data.([]*T))
 			dropped += res.dropped
 		}
 		toReceive--
 	}
 
 	if bad != "" {
-		records = nil
+		recordBlobs = nil
 		err = fmt.Errorf("Failed to process one or more files:\n%s", bad)
 		return
 	}
