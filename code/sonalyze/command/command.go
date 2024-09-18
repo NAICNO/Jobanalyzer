@@ -76,6 +76,10 @@ type SampleAnalysisCommand interface {
 	// Provide appropriate default settings for these flags
 	DefaultRecordFilters() (allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool)
 
+	// Return true if the data ingestion step also should compute time bounds for all the hosts
+	// (this is somewhat costly and often not necessary)
+	NeedsBounds() bool
+
 	// Perform the operation.  The streams and bounds are as read from the DB using the globber and
 	// the filter, but the globber and filter are passed since the client may want to do something
 	// more / something different.

@@ -79,6 +79,10 @@ type jobAggregate struct {
 	computed      [numF64Fields]float64
 }
 
+func (jc *JobsCommand) NeedsBounds() bool {
+	return true
+}
+
 func (jc *JobsCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,

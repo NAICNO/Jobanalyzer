@@ -14,6 +14,10 @@ import (
 	"sonalyze/sonarlog"
 )
 
+func (pc *ProfileCommand) NeedsBounds() bool {
+	return false
+}
+
 func (pc *ProfileCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,

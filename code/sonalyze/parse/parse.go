@@ -88,12 +88,16 @@ func (pc *ParseCommand) ConfigFile() string {
 	return ""
 }
 
+func (pc *ParseCommand) NeedsBounds() bool {
+	return pc.MergeByJob
+}
+
 func (pc *ParseCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
 	cluster db.SampleCluster,
 	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds,
+	bounds sonarlog.Timebounds,	// for pc.MergeByJob only
 	hostGlobber *hostglob.HostGlobber,
 	recordFilter db.SampleFilter,
 ) error {

@@ -87,7 +87,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	filter := func(r *db.Sample) bool {
 		return r.User != root
 	}
-	streams, _ := createInputStreams([][]*db.Sample{entries}, filter)
+	streams, _ := createInputStreams([][]*db.Sample{entries}, filter, false)
 	ComputePerSampleFields(streams)
 
 	if len(streams) != 4 {

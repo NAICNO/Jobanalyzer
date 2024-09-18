@@ -18,15 +18,16 @@ func init() {
 // createInputStreams (or later) is stitch streams together and resolve issues at the joins, and
 // finally compute the computed (context-depenent) fields, currently only CpuUtilPct.
 //
-// In particular, it's possible that ReadSampleStreams should not return an InputStreamSet but a set
-// of those, and let later processing take care of stitching and filtering at the same time.  The
-// data thus returned would be read-only.
+// In particular, it's possible that ReadSampleStreamsAndMaybeBounds should not return an
+// InputStreamSet but a set of those, and let later processing take care of stitching and filtering
+// at the same time.  The data thus returned would be read-only.
 
-func ReadSampleStreams(
+func ReadSampleStreamsAndMaybeBounds(
 	c db.SampleCluster,
 	fromDate, toDate time.Time,
 	hostGlobber *hostglob.HostGlobber,
 	recordFilter db.SampleFilter,
+	wantBounds bool,
 	verbose bool,
 ) (
 	streams InputStreamSet,
@@ -41,7 +42,7 @@ func ReadSampleStreams(
 	for _, samples := range sampleBlobs {
 		read += len(samples)
 	}
-	streams, bounds = createInputStreams(sampleBlobs, recordFilter)
+	streams, bounds = createInputStreams(sampleBlobs, recordFilter, wantBounds)
 	return
 }
 

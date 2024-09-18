@@ -42,12 +42,13 @@ func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wri
 	}
 
 	streams, bounds, read, dropped, err :=
-		sonarlog.ReadSampleStreams(
+		sonarlog.ReadSampleStreamsAndMaybeBounds(
 			theLog,
 			args.FromDate,
 			args.ToDate,
 			hostGlobber,
 			recordFilter,
+			cmd.NeedsBounds(),
 			args.Verbose,
 		)
 	if err != nil {
