@@ -89,11 +89,13 @@ func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.S
 
 func createInputStreams(
 	entryBlobs [][]*db.Sample,
-	recordFilter db.SampleFilter,
+	recordFilter *db.SampleFilter,
 	wantBounds bool,
 ) (InputStreamSet, Timebounds) {
 	streams := make(InputStreamSet)
 	bounds := make(Timebounds)
+
+	filterFunc := db.InstantiateSampleFilter(recordFilter)
 
 	// Reconstruct the individual sample streams.  Each job with job id 0 gets its own stream, these
 	// must not be merged downstream (they get different stream IDs but the job IDs remain 0).
@@ -117,7 +119,7 @@ func createInputStreams(
 				}
 			}
 
-			if !recordFilter(e) {
+			if !filterFunc(e) {
 				continue
 			}
 
