@@ -81,6 +81,10 @@ type window struct {
 	start, end int // inclusive indices in `samples`
 }
 
+func (uc *UptimeCommand) NeedsBounds() bool {
+	return true
+}
+
 func (uc *UptimeCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,

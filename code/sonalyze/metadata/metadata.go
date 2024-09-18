@@ -113,12 +113,16 @@ func (xs HostTimeSortableItems) Swap(i, j int) {
 	xs[i], xs[j] = xs[j], xs[i]
 }
 
+func (mdc *MetadataCommand) NeedsBounds() bool {
+	return mdc.Bounds
+}
+
 func (mdc *MetadataCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
 	cluster db.SampleCluster,
 	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds,
+	bounds sonarlog.Timebounds,	// for mdc.Bounds only
 	hostGlobber *hostglob.HostGlobber,
 	_ db.SampleFilter,
 ) error {

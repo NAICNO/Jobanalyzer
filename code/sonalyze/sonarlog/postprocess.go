@@ -90,6 +90,7 @@ func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.S
 func createInputStreams(
 	entryBlobs [][]*db.Sample,
 	recordFilter db.SampleFilter,
+	wantBounds bool,
 ) (InputStreamSet, Timebounds) {
 	streams := make(InputStreamSet)
 	bounds := make(Timebounds)
@@ -102,15 +103,17 @@ func createInputStreams(
 	// computation a significant expense.
 	for _, entries := range entryBlobs {
 		for _, e := range entries {
-			if bound, found := bounds[e.Host]; found {
-				bounds[e.Host] = Timebound{
-					Earliest: min(bound.Earliest, e.Timestamp),
-					Latest:   max(bound.Latest, e.Timestamp),
-				}
-			} else {
-				bounds[e.Host] = Timebound{
-					Earliest: e.Timestamp,
-					Latest:   e.Timestamp,
+			if wantBounds {
+				if bound, found := bounds[e.Host]; found {
+					bounds[e.Host] = Timebound{
+						Earliest: min(bound.Earliest, e.Timestamp),
+						Latest:   max(bound.Latest, e.Timestamp),
+					}
+				} else {
+					bounds[e.Host] = Timebound{
+						Earliest: e.Timestamp,
+						Latest:   e.Timestamp,
+					}
 				}
 			}
 
