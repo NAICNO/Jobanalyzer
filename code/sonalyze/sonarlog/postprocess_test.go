@@ -1,6 +1,7 @@
 package sonarlog
 
 import (
+	"math"
 	"os"
 	"reflect"
 	"testing"
@@ -83,11 +84,18 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 		t.Fatalf("Expected 2 discarded, got %d", discarded)
 	}
 
-	root := StringToUstr("root")
-	filter := func(r *db.Sample) bool {
-		return r.User != root
-	}
-	streams, _ := createInputStreams([][]*db.Sample{entries}, filter, false)
+	streams, _ := createInputStreams(
+		[][]*db.Sample{
+			entries,
+		},
+		&db.SampleFilter{
+			ExcludeUsers: map[Ustr]bool{
+				StringToUstr("root"): true,
+			},
+			To: math.MaxInt64,
+		},
+		false,
+	)
 	ComputePerSampleFields(streams)
 
 	if len(streams) != 4 {

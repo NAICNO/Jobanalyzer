@@ -99,7 +99,7 @@ func (pc *ParseCommand) Perform(
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,	// for pc.MergeByJob only
 	hostGlobber *hostglob.HostGlobber,
-	recordFilter db.SampleFilter,
+	recordFilter *db.SampleFilter,
 ) error {
 	var mergedSamples []*sonarlog.SampleStream
 	var samples sonarlog.SampleStream
@@ -118,7 +118,7 @@ func (pc *ParseCommand) Perform(
 		for _, records := range recordBlobs {
 			mapped = append(mapped, uslices.FilterMap(
 				records,
-				recordFilter,
+				db.InstantiateSampleFilter(recordFilter),
 				func(r *db.Sample) sonarlog.Sample {
 					return sonarlog.Sample{S: r}
 				},

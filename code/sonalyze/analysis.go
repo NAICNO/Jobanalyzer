@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"math"
 	"os"
 
 	"go-utils/config"
@@ -73,7 +74,7 @@ func buildRecordFilters(
 	cmd SampleAnalysisCommand,
 	cfg *config.ClusterConfig,
 	verbose bool,
-) (*hostglob.HostGlobber, db.SampleFilter, error) {
+) (*hostglob.HostGlobber, *db.SampleFilter, error) {
 	args := cmd.SharedFlags()
 
 	// Temporary limitation.
@@ -192,19 +193,30 @@ func buildRecordFilters(
 	excludeSystemJobs := args.RecordFilterArgs.ExcludeSystemJobs
 	haveFrom := args.SourceArgs.HaveFrom
 	haveTo := args.SourceArgs.HaveTo
-	from := args.SourceArgs.FromDate.Unix()
-	to := args.SourceArgs.ToDate.Unix()
-	recordFilter := func(e *db.Sample) bool {
-		return (len(includeUsers) == 0 || includeUsers[e.User]) &&
-			(includeHosts.IsEmpty() || includeHosts.Match(e.Host.String())) &&
-			(len(includeJobs) == 0 || includeJobs[e.Job]) &&
-			(len(includeCommands) == 0 || includeCommands[e.Cmd]) &&
-			!excludeUsers[e.User] &&
-			!excludeJobs[e.Job] &&
-			!excludeCommands[e.Cmd] &&
-			(!excludeSystemJobs || e.Pid >= 1000) &&
-			(!haveFrom || from <= e.Timestamp) &&
-			(!haveTo || e.Timestamp <= to)
+	var from int64 = 0
+	if haveFrom {
+		from = args.SourceArgs.FromDate.Unix()
+	}
+	var to int64 = math.MaxInt64
+	if haveTo {
+		to = args.SourceArgs.ToDate.Unix()
+	}
+	var minPid uint32
+	if excludeSystemJobs {
+		minPid = 1000
+	}
+
+	var recordFilter = &db.SampleFilter{
+		IncludeUsers:    includeUsers,
+		IncludeHosts:    includeHosts,
+		IncludeJobs:     includeJobs,
+		IncludeCommands: includeCommands,
+		ExcludeUsers:    excludeUsers,
+		ExcludeJobs:     excludeJobs,
+		ExcludeCommands: excludeCommands,
+		MinPid:          minPid,
+		From:            from,
+		To:              to,
 	}
 
 	if verbose {
@@ -248,5 +260,5 @@ func buildRecordFilters(
 		}
 	}
 
-	return includeHosts, (db.SampleFilter)(recordFilter), nil
+	return includeHosts, recordFilter, nil
 }
