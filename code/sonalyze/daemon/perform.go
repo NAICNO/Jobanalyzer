@@ -36,15 +36,19 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 
 	// Note "daemon" is not a command here
 	http.HandleFunc("/add", httpAddHandler(dc))
+	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))
+	http.HandleFunc("/config", httpGetHandler(dc, "config"))
+	http.HandleFunc("/node", httpGetHandler(dc, "node"))
 	http.HandleFunc("/jobs", httpGetHandler(dc, "jobs"))
 	http.HandleFunc("/load", httpGetHandler(dc, "load"))
 	http.HandleFunc("/uptime", httpGetHandler(dc, "uptime"))
 	http.HandleFunc("/profile", httpGetHandler(dc, "profile"))
-	http.HandleFunc("/parse", httpGetHandler(dc, "parse"))
+	http.HandleFunc("/parse", httpGetHandler(dc, "sample"))
+	http.HandleFunc("/sample", httpGetHandler(dc, "sample"))
 	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata"))
 	http.HandleFunc("/sacct", httpGetHandler(dc, "sacct"))
 	// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
-	// upload infra already running on the clusters.
+	// upload infra already running on the clusters.  We'd like to get rid of them eventually.
 	http.HandleFunc("/sonar-freecsv", httpPostHandler(dc, "sample", "text/csv"))
 	http.HandleFunc("/sysinfo", httpPostHandler(dc, "sysinfo", "application/json"))
 
@@ -81,16 +85,29 @@ func httpGetHandler(
 	command string,
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, _, clusterName, ok := requestPreamble(dc, w, r, "GET", dc.getAuthenticator, authRealm, "")
+		_, _, clusterName, ok :=
+			requestPreamble(dc, command, w, r, "GET", dc.getAuthenticator, authRealm, "")
 		if !ok {
 			return
 		}
 
 		verb := command
-		arguments := []string{
-			"--data-path",
-			db.MakeClusterDataPath(dc.jobanalyzerDir, clusterName),
+		arguments := []string{}
+
+		// For `cluster` we want only the jobanalyzerDir
+		switch command {
+		case "cluster":
+			arguments = append(arguments, "--jobanalyzer-dir", dc.jobanalyzerDir)
+		case "config":
+			// Nothing, we add the config-file below
+		default:
+			arguments = append(
+				arguments,
+				"--data-path",
+				db.MakeClusterDataPath(dc.jobanalyzerDir, clusterName),
+			)
 		}
+
 		for name, vs := range r.URL.Query() {
 			if name == "cluster" {
 				continue
@@ -121,12 +138,14 @@ func httpGetHandler(
 			}
 		}
 
-		// Everyone gets a config, which they will need for caching things properly.
-		arguments = append(
-			arguments,
-			"--config-file",
-			db.MakeConfigFilePath(dc.jobanalyzerDir, clusterName),
-		)
+		// Everyone except `cluster` gets a config, which they will need for caching things properly.
+		if command != "cluster" {
+			arguments = append(
+				arguments,
+				"--config-file",
+				db.MakeConfigFilePath(dc.jobanalyzerDir, clusterName),
+			)
+		}
 
 		stdout, ok := runSonalyze(dc, w, verb, arguments, []byte{})
 		if !ok {
@@ -206,7 +225,8 @@ func httpPostHandler(
 	contentType string,
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		payload, userName, clusterName, ok := requestPreamble(dc, w, r, "POST", dc.postAuthenticator, "", contentType)
+		payload, userName, clusterName, ok :=
+			requestPreamble(dc, "add", w, r, "POST", dc.postAuthenticator, "", contentType)
 		if !ok {
 			return
 		}
@@ -239,6 +259,7 @@ func httpPostHandler(
 
 func requestPreamble(
 	dc *DaemonCommand,
+	command string,
 	w http.ResponseWriter,
 	r *http.Request,
 	method string,
@@ -272,18 +293,29 @@ func requestPreamble(
 	}
 
 	clusterValues, found := r.URL.Query()["cluster"]
-	if !found || len(clusterValues) != 1 || clusterValues[0] == "" {
-		w.WriteHeader(400)
-		fmt.Fprintf(w, "Bad parameters - missing or empty or repeated 'cluster'")
-		if dc.Verbose {
-			Log.Warningf("Bad parameters - missing or empty or repeated 'cluster'")
+	if command != "cluster" {
+		if !found || len(clusterValues) != 1 || clusterValues[0] == "" {
+			w.WriteHeader(400)
+			fmt.Fprintf(w, "Bad parameters - missing or empty or repeated 'cluster'")
+			if dc.Verbose {
+				Log.Warningf("Bad parameters - missing or empty or repeated 'cluster'")
+			}
+			return
 		}
-		return
-	}
 
-	clusterName = clusterValues[0]
-	if dc.aliasResolver != nil {
-		clusterName = dc.aliasResolver.Resolve(clusterName)
+		clusterName = clusterValues[0]
+		if dc.aliasResolver != nil {
+			clusterName = dc.aliasResolver.Resolve(clusterName)
+		}
+	} else {
+		if found {
+			w.WriteHeader(400)
+			fmt.Fprintf(w, "Bad parameters - illegal 'cluster'")
+			if dc.Verbose {
+				Log.Warningf("Bad parameters - illegal 'cluster'")
+			}
+			return
+		}
 	}
 
 	ok = true

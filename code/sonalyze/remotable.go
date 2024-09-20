@@ -13,8 +13,11 @@ import (
 	"time"
 
 	"sonalyze/add"
+	"sonalyze/clusters"
 	. "sonalyze/command"
 	. "sonalyze/common"
+	"sonalyze/configs"
+	"sonalyze/nodes"
 	"sonalyze/sacct"
 )
 
@@ -60,6 +63,12 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	case SampleAnalysisCommand:
 		curlArgs = append(curlArgs, "--get")
 	case *sacct.SacctCommand:
+		curlArgs = append(curlArgs, "--get")
+	case *nodes.NodeCommand:
+		curlArgs = append(curlArgs, "--get")
+	case *configs.ConfigCommand:
+		curlArgs = append(curlArgs, "--get")
+	case *clusters.ClusterCommand:
 		curlArgs = append(curlArgs, "--get")
 	case *add.AddCommand:
 		// This turns into a POST with data coming from the standard DataSource
