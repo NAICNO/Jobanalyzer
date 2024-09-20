@@ -43,6 +43,7 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	curlArgs := []string{
 		"--silent",
 		"--fail-with-body",
+		"--location",
 	}
 
 	// TODO: IMPROVEME: Using -u is broken as the name/passwd will be in clear text on the command line
