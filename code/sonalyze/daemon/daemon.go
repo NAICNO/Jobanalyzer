@@ -103,13 +103,13 @@ import (
 	"go-utils/auth"
 	"go-utils/options"
 	. "sonalyze/command"
+	. "sonalyze/common"
 )
 
 const (
-	defaultListenPort      = 8087
-	clusterAliasesFilename = "cluster-aliases.json"
-	logTag                 = "jobanalyzer/sonalyze"
-	authRealm              = "Jobanalyzer remote access"
+	defaultListenPort = 8087
+	logTag            = "jobanalyzer/sonalyze"
+	authRealm         = "Jobanalyzer remote access"
 )
 
 // MT: Immutable (no mutator operations) and thread-safe.
@@ -163,7 +163,7 @@ func (dc *DaemonCommand) Validate() error {
 	var e1, e2, e3, e4, e5, e6, e7 error
 	e1 = dc.DevArgs.Validate()
 	e2 = dc.VerboseArgs.Validate()
-	dc.jobanalyzerDir, e3 = options.RequireDirectory(dc.jobanalyzerDir, "-jobanalyzer-path")
+	dc.jobanalyzerDir, e3 = options.RequireDirectory(dc.jobanalyzerDir, "-jobanalyzer-dir")
 	if dc.getAuthFile != "" {
 		dc.getAuthenticator, e4 = auth.ReadPasswords(dc.getAuthFile)
 		if e4 != nil {
@@ -178,7 +178,7 @@ func (dc *DaemonCommand) Validate() error {
 	}
 	// The aliases file is optional, but if something with that name is there it is an error to fail
 	// to open it.
-	aliasesFile := path.Join(dc.jobanalyzerDir, clusterAliasesFilename)
+	aliasesFile := path.Join(dc.jobanalyzerDir, ClusterAliasesFilename)
 	if info, err := os.Stat(aliasesFile); err == nil {
 		if info.Mode()&fs.ModeType != 0 {
 			e6 = errors.New("Cluster alias file is not a regular file")

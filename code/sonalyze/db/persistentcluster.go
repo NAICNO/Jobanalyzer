@@ -288,7 +288,7 @@ func (pc *PersistentCluster) ReadLoadData(
 	)
 }
 
-func (pc *PersistentCluster) ReadSysinfo(
+func (pc *PersistentCluster) ReadSysinfoData(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
 	verbose bool,

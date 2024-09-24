@@ -11,7 +11,7 @@ import (
 )
 
 func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSummary) {
-	FormatData(stdout, sc.printFields, sacctFormatters, sc.printOpts, regular, sc.printOpts.Fixed)
+	FormatData(stdout, sc.PrintFields, sacctFormatters, sc.PrintOpts, regular, sc.PrintOpts.Fixed)
 }
 
 func (sc *SacctCommand) MaybeFormatHelp() *FormatHelp {
@@ -207,13 +207,13 @@ var sacctFormatters = map[string]Formatter[*sacctSummary, sacctCtx]{
 		"Raw requested GPU cards",
 	},
 	"ArrayJobID": {
-		func (d *sacctSummary, _ sacctCtx) string {
+		func(d *sacctSummary, _ sacctCtx) string {
 			return fmt.Sprint(d.main.ArrayJobID)
 		},
 		"ID of the overarching array job",
 	},
 	"ArrayIndex": {
-		func (d *sacctSummary, _ sacctCtx) string {
+		func(d *sacctSummary, _ sacctCtx) string {
 			return fmt.Sprint(d.main.ArrayIndex)
 		},
 		"Index of this job within an array job",

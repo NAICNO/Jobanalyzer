@@ -11,9 +11,9 @@ func (uc *UptimeCommand) printReports(out io.Writer, reports []report) {
 	sort.Sort(sortableReports(reports))
 	FormatData(
 		out,
-		uc.printFields,
+		uc.PrintFields,
 		uptimeFormatters,
-		uc.printOpts,
+		uc.PrintOpts,
 		reports,
 		uptimeCtx(false),
 	)

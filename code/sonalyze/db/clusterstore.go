@@ -137,7 +137,7 @@ type SysinfoCluster interface {
 	// Read `sysinfo` records from all the files selected by SysinfoFilenames().  Times must be UTC.
 	// The inner slices of the result, and the records they point to, must not be mutated in any
 	// way.
-	ReadSysinfo(
+	ReadSysinfoData(
 		fromDate, toDate time.Time,
 		hosts *hostglob.HostGlobber,
 		verbose bool,
@@ -242,6 +242,16 @@ func OpenTransientSacctCluster(
 		return nil, errors.New("Empty list of files")
 	}
 	return newTransientSacctCluster(files, cfg), nil
+}
+
+func OpenTransientSysinfoCluster(
+	files []string,
+	cfg *config.ClusterConfig,
+) (*TransientSysinfoCluster, error) {
+	if len(files) == 0 {
+		return nil, errors.New("Empty list of files")
+	}
+	return newTransientSysinfoCluster(files, cfg), nil
 }
 
 // Drain all pending writes in the global logstore, close all the attached Cluster nodes, and return

@@ -231,6 +231,7 @@ var uintArgs = []uintArg{
 
 type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
+	FormatArgs
 
 	// Filter args
 	Uints         map[string]*uint
@@ -244,11 +245,6 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 
 	// Print args
 	NumJobs uint
-	Fmt     string
-
-	// Synthesized and other
-	printFields []string
-	printOpts   *FormatOptions
 
 	// Internal / working storage
 	minRuntimeStr string
@@ -272,6 +268,7 @@ func (jc *JobsCommand) lookupUint(s string) uint {
 
 func (jc *JobsCommand) Add(fs *flag.FlagSet) {
 	jc.SharedArgs.Add(fs)
+	jc.FormatArgs.Add(fs)
 
 	// Filter args
 	jc.Uints = make(map[string]*uint)
@@ -296,13 +293,13 @@ func (jc *JobsCommand) Add(fs *flag.FlagSet) {
 	fs.UintVar(&jc.NumJobs, "numjobs", 0,
 		"Print at most these many most recent jobs per user [default: all]")
 	fs.UintVar(&jc.NumJobs, "n", 0, "Short for -numjobs n")
-	fs.StringVar(&jc.Fmt, "fmt", "",
-		"Select `field,...` and format for the output [default: try -fmt=help]")
 }
 
 func (jc *JobsCommand) ReifyForRemote(x *Reifier) error {
-	e1 := jc.SharedArgs.ReifyForRemote(x)
-
+	e1 := errors.Join(
+		jc.SharedArgs.ReifyForRemote(x),
+		jc.FormatArgs.ReifyForRemote(x),
+	)
 	for _, v := range uintArgs {
 		box := jc.Uints[v.name]
 		if *box != v.initial {
@@ -317,28 +314,23 @@ func (jc *JobsCommand) ReifyForRemote(x *Reifier) error {
 	x.Bool("batch", jc.Batch)
 	x.String("min-runtime", jc.minRuntimeStr)
 	x.Uint("numjobs", jc.NumJobs)
-	x.String("fmt", jc.Fmt)
 
 	return e1
 }
 
 func (jc *JobsCommand) Validate() error {
-	e1 := jc.SharedArgs.Validate()
+	e1 := errors.Join(
+		jc.SharedArgs.Validate(),
+		ValidateFormatArgs(
+			&jc.FormatArgs, jobsDefaultFields, jobsFormatters, jobsAliases, DefaultFixed),
+	)
 
 	var e3 error
 	if jc.minRuntimeStr != "" {
 		jc.MinRuntimeSec, e3 = DurationToSeconds("-min-runtime", jc.minRuntimeStr)
 	}
 
-	var e4 error
-	var others map[string]bool
-	jc.printFields, others, e4 = ParseFormatSpec(jobsDefaultFields, jc.Fmt, jobsFormatters, jobsAliases)
-	if e4 == nil && len(jc.printFields) == 0 {
-		e4 = errors.New("No output fields were selected in format string")
-	}
-	jc.printOpts = StandardFormatOptions(others, DefaultFixed)
-
-	return errors.Join(e1, e3, e4)
+	return errors.Join(e1, e3)
 }
 
 func (jc *JobsCommand) DefaultRecordFilters() (

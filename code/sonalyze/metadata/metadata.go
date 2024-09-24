@@ -18,16 +18,13 @@ import (
 
 type MetadataCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
+	FormatArgs
+
 	MergeByHostAndJob bool // Inert, but compatible
 	MergeByJob        bool
 	Times             bool
 	Files             bool
 	Bounds            bool
-	Fmt               string
-
-	// Synthesized and other
-	printFields []string
-	printOpts   *FormatOptions
 }
 
 var _ SampleAnalysisCommand = (*MetadataCommand)(nil)
@@ -42,6 +39,7 @@ func (_ *MetadataCommand) Summary() []string {
 
 func (mdc *MetadataCommand) Add(fs *flag.FlagSet) {
 	mdc.SharedArgs.Add(fs)
+	mdc.FormatArgs.Add(fs)
 
 	fs.BoolVar(&mdc.MergeByHostAndJob, "merge-by-host-and-job", false,
 		"Merge streams that have the same host and job ID")
@@ -50,33 +48,32 @@ func (mdc *MetadataCommand) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&mdc.Files, "files", false, "List selected files")
 	fs.BoolVar(&mdc.Times, "times", false, "Show parsed from/to timestamps")
 	fs.BoolVar(&mdc.Bounds, "bounds", false, "Show host with earliest/latest timestamp")
-	fs.StringVar(&mdc.Fmt, "fmt", "",
-		"Select `field,...` and format for the output [default: try -fmt=help]")
 }
 
 func (mdc *MetadataCommand) ReifyForRemote(x *Reifier) error {
-	e1 := mdc.SharedArgs.ReifyForRemote(x)
+	e1 := errors.Join(
+		mdc.SharedArgs.ReifyForRemote(x),
+		mdc.FormatArgs.ReifyForRemote(x),
+	)
 	x.Bool("merge-by-host-and-job", mdc.MergeByHostAndJob)
 	x.Bool("merge-by-job", mdc.MergeByJob)
 	x.Bool("files", mdc.Files)
 	x.Bool("times", mdc.Times)
 	x.Bool("bounds", mdc.Bounds)
-	x.String("fmt", mdc.Fmt)
 	return e1
 }
 
 func (mdc *MetadataCommand) Validate() error {
-	e1 := mdc.SharedArgs.Validate()
-
-	var e2 error
-	var others map[string]bool
-	mdc.printFields, others, e2 = ParseFormatSpec(metadataDefaultFields, mdc.Fmt, metadataFormatters, metadataAliases)
-	if e2 == nil && len(mdc.printFields) == 0 {
-		e2 = errors.New("No output fields were selected in format string")
-	}
-	mdc.printOpts = StandardFormatOptions(others, DefaultCsv)
-
-	return errors.Join(e1, e2)
+	return errors.Join(
+		mdc.SharedArgs.Validate(),
+		ValidateFormatArgs(
+			&mdc.FormatArgs,
+			metadataDefaultFields,
+			metadataFormatters,
+			metadataAliases,
+			DefaultCsv,
+		),
+	)
 }
 
 func (mdc *MetadataCommand) DefaultRecordFilters() (
@@ -122,7 +119,7 @@ func (mdc *MetadataCommand) Perform(
 	_ *config.ClusterConfig,
 	cluster db.SampleCluster,
 	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds,	// for mdc.Bounds only
+	bounds sonarlog.Timebounds, // for mdc.Bounds only
 	hostGlobber *hostglob.HostGlobber,
 	_ *db.SampleFilter,
 ) error {
@@ -161,7 +158,7 @@ func (mdc *MetadataCommand) Perform(
 			})
 		}
 		sort.Sort(HostTimeSortableItems(items))
-		FormatData(out, mdc.printFields, metadataFormatters, mdc.printOpts, items, metadataCtx(false))
+		FormatData(out, mdc.PrintFields, metadataFormatters, mdc.PrintOpts, items, metadataCtx(false))
 	}
 
 	return nil

@@ -15,15 +15,11 @@ import (
 
 type UptimeCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
+	FormatArgs
 
 	Interval uint
 	OnlyUp   bool
 	OnlyDown bool
-	Fmt      string
-
-	// Synthesized and other
-	printFields []string
-	printOpts   *FormatOptions
 }
 
 var _ SampleAnalysisCommand = (*UptimeCommand)(nil)
@@ -37,21 +33,22 @@ func (_ *UptimeCommand) Summary() []string {
 
 func (uc *UptimeCommand) Add(fs *flag.FlagSet) {
 	uc.SharedArgs.Add(fs)
+	uc.FormatArgs.Add(fs)
 
 	fs.UintVar(&uc.Interval, "interval", 0,
 		"The maximum sampling `interval` in minutes (before any randomization) seen in the data")
 	fs.BoolVar(&uc.OnlyUp, "only-up", false, "Show only times when systems are up")
 	fs.BoolVar(&uc.OnlyDown, "only-down", false, "Show only times when systems are down")
-	fs.StringVar(&uc.Fmt, "fmt", "",
-		"Select `field,...` and format for the output [default: try -fmt=help]")
 }
 
 func (uc *UptimeCommand) ReifyForRemote(x *Reifier) error {
-	e1 := uc.SharedArgs.ReifyForRemote(x)
+	e1 := errors.Join(
+		uc.SharedArgs.ReifyForRemote(x),
+		uc.FormatArgs.ReifyForRemote(x),
+	)
 	x.Uint("interval", uc.Interval)
 	x.Bool("only-up", uc.OnlyUp)
 	x.Bool("only-down", uc.OnlyDown)
-	x.String("fmt", uc.Fmt)
 	return e1
 }
 
@@ -64,12 +61,8 @@ func (uc *UptimeCommand) Validate() error {
 	if uc.OnlyUp && uc.OnlyDown {
 		e4 = errors.New("Nonsensical -only-up AND -only-down")
 	}
-	var others map[string]bool
-	uc.printFields, others, e5 = ParseFormatSpec(uptimeDefaultFields, uc.Fmt, uptimeFormatters, uptimeAliases)
-	if e5 == nil && len(uc.printFields) == 0 {
-		e5 = errors.New("No output fields were selected in format string")
-	}
-	uc.printOpts = StandardFormatOptions(others, DefaultFixed)
+	e5 = ValidateFormatArgs(
+		&uc.FormatArgs, uptimeDefaultFields, uptimeFormatters, uptimeAliases, DefaultFixed)
 	return errors.Join(e1, e3, e4, e5)
 }
 

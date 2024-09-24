@@ -207,7 +207,7 @@ func TestPersistentSysinfoRead(t *testing.T) {
 	// 5/30 "b" should have one record
 	// 5/31 "a" should have two records, not equal
 	// 5/32 "b" should have two records, equal
-	recordBlobs, dropped, err := pc.ReadSysinfo(
+	recordBlobs, dropped, err := pc.ReadSysinfoData(
 		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
 		nil,
@@ -323,7 +323,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	// to not see the data - a synchronous flush is technically required - and if we ever implement
 	// that path then this test will need to have a FlushSync() call before the read.
 
-	recordBlobs, _, err := pc.ReadSysinfo(
+	recordBlobs, _, err := pc.ReadSysinfoData(
 		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		time.Date(2023, 05, 28, 23, 0, 12, 0, time.UTC),
 		nil,
@@ -342,7 +342,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 		t.Fatal("Length", recordBlobs)
 	}
 
-	recordBlobs2, _, err := pc.ReadSysinfo(
+	recordBlobs2, _, err := pc.ReadSysinfoData(
 		time.Date(2024, 01, 01, 12, 37, 55, 0, time.UTC),
 		time.Date(2024, 05, 01, 23, 0, 12, 0, time.UTC),
 		nil,
