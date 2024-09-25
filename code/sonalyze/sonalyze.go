@@ -25,13 +25,16 @@ import (
 
 	"go-utils/status"
 	"sonalyze/add"
+	"sonalyze/clusters"
 	. "sonalyze/command"
 	. "sonalyze/common"
+	"sonalyze/configs"
 	"sonalyze/daemon"
 	"sonalyze/db"
 	"sonalyze/jobs"
 	"sonalyze/load"
 	"sonalyze/metadata"
+	"sonalyze/nodes"
 	"sonalyze/parse"
 	"sonalyze/profile"
 	"sonalyze/sacct"
@@ -44,8 +47,9 @@ import (
 // v0.3.0 - added 'daemon' verb (integrating sonalyzed into sonalyze), added caching
 // v0.4.0 - added 'top' verb
 // v0.5.0 - added 'sacct' verb and 'add -slurm-sacct', and a number of bug fixes
+// v0.6.0 - added 'cluster', 'config', and 'node' verbs, rename/alias 'parse' as 'sample'
 
-const SonalyzeVersion = "0.5.0"
+const SonalyzeVersion = "0.6.0"
 
 // See end of file for documentation.
 // MT: Constant after initialization; immutable (no fields)
@@ -76,13 +80,16 @@ func sonalyze() error {
 		fmt.Fprintf(out, "Usage: %s command [options] [-- logfile ...]\n", cmdName)
 		fmt.Fprintf(out, "Commands:\n")
 		fmt.Fprintf(out, "  add      - add data to the database\n")
+		fmt.Fprintf(out, "  cluster  - print cluster information\n")
+		fmt.Fprintf(out, "  config   - print node information extracted from cluster config\n")
 		fmt.Fprintf(out, "  daemon   - spin up a server daemon to process requests\n")
 		fmt.Fprintf(out, "  jobs     - summarize and filter jobs\n")
 		fmt.Fprintf(out, "  load     - print system load across time\n")
 		fmt.Fprintf(out, "  metadata - parse data, print stats and metadata\n")
-		fmt.Fprintf(out, "  parse    - parse, select and reformat input data\n")
+		fmt.Fprintf(out, "  node     - print node information extracted from sysinfo table\n")
 		fmt.Fprintf(out, "  profile  - print the profile of a particular job\n")
-		fmt.Fprintf(out, "  sacct    - print information extracted from SLURM sacct data\n")
+		fmt.Fprintf(out, "  sacct    - print information extracted from Slurm sacct data\n")
+		fmt.Fprintf(out, "  sample   - print sonar sample information (aka `parse`)\n")
 		fmt.Fprintf(out, "  top      - print per-cpu load information across time\n")
 		fmt.Fprintf(out, "  uptime   - print aggregated information about system uptime\n")
 		fmt.Fprintf(out, "  version  - print information about the program\n")
@@ -181,8 +188,14 @@ func (_ *standardCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd C
 	switch maybeVerb {
 	case "add":
 		cmd = new(add.AddCommand)
+	case "cluster":
+		cmd = new(clusters.ClusterCommand)
+	case "config":
+		cmd = new(configs.ConfigCommand)
 	case "daemon":
 		cmd = daemon.New(&daemonCommandLineHandler{})
+	case "node":
+		cmd = new(nodes.NodeCommand)
 	case "jobs":
 		cmd = new(jobs.JobsCommand)
 	case "load":
@@ -190,8 +203,9 @@ func (_ *standardCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd C
 	case "meta", "metadata":
 		cmd = new(metadata.MetadataCommand)
 		maybeVerb = "metadata"
-	case "parse":
+	case "sample", "parse":
 		cmd = new(parse.ParseCommand)
+		maybeVerb = "sample"
 	case "profile":
 		cmd = new(profile.ProfileCommand)
 	case "sacct":
@@ -253,6 +267,12 @@ func (_ *standardCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Read
 		return localAnalysis(cmd, stdin, stdout, stderr)
 	case *add.AddCommand:
 		return cmd.AddData(stdin, stdout, stderr)
+	case *clusters.ClusterCommand:
+		return cmd.Clusters(stdin, stdout, stderr)
+	case *configs.ConfigCommand:
+		return cmd.Configs(stdin, stdout, stderr)
+	case *nodes.NodeCommand:
+		return cmd.Nodes(stdin, stdout, stderr)
 	case *top.TopCommand:
 		return cmd.Top(stdin, stdout, stderr)
 	case *sacct.SacctCommand:

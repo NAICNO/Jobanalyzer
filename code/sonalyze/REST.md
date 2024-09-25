@@ -2,6 +2,9 @@
 
 The `sonalyze` server can be accessed via a simple REST protocol.
 
+For the following to make sense you should be familiar with data model and command line syntax, see
+MANUAL.md.
+
 ## Background
 
 The protocol was originally developed to allow a command-line invocation of `sonalyze` on the
@@ -30,10 +33,10 @@ processed in the normal manner).
 The request URL is always `<verb>?<query>`.  The Jobanalyzer HTTP server is generally set up so that
 these requests are top-level: `/<verb>?<query>`.
 
-The `<verb>` is one of the verbs accepted by sonalyze on the command line: `add`, `jobs`, `load`,
-`uptime`, `profile`, `parse`, `metadata`, `sacct`.  In addition two special verbs are accepted for
-backward compatibility, `sonar-freecsv` and `sysinfo`; these are aliases for `add -sample` and
-`add -sysinfo` respectively.
+The `<verb>` is one of the verbs accepted by sonalyze on the command line: `add`, `cluster`,
+`config`, `jobs`, `load`, `node`, `uptime`, `profile`, `sacct`, `sample` (aka `parse`), `metadata`,
+`top`.  In addition two special verbs are accepted for backward compatibility, `sonar-freecsv` and
+`sysinfo`; these are aliases for `add -sample` and `add -sysinfo` respectively.
 
 For `add`, `sonar-freecsv`, and `sysinfo` the HTTP operation must be `POST` and the payload to be
 inserted into the database is the body of the the request.
@@ -62,16 +65,16 @@ name and syntax for both the parameter names (without the leading `-`) and param
 `sonalyze help` or `sonalyze <verb> -h` for more information, read MANUAL.md in this directory, or
 examine the code.
 
-Some parameters are scrubbed by `sonalyze` if it is used to construct the remote request, and
-various consistency checks are applied.  For example, `-remote` and `-cluster` must be used together
-(and `-auth-file` can be used with these) and are exclusive with `-data-dir` and `-- logfile...`.
-`-v` is not forwarded.  A remote query executed with `-v` will print the final URL.
+Some parameters are scrubbed by `sonalyze` when it constructs the remote request, and various
+consistency checks are applied.  For example, `-remote` usually requires `-cluster` (and
+`-auth-file` can be used with these) and are exclusive with `-data-dir` and `-- logfile...`.  `-v`
+is not forwarded (a remote query executed with `-v` will print the final URL).
 
 When constructing a query by hand, there are no client-side restrictions, but the server will
 quietly ignore the query parameters `cpuprofile`, `data-dir`, `data-path`, `remote`, `auth-file`,
 `config-file`, `v`, `verbose`, and `raw`.
 
-The `cluster` parameter is required.
+The `cluster` parameter is required except for with the `cluster` verb.
 
 The server will infer `config-file` and `data-dir` from `cluster`.
 

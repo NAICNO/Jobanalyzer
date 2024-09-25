@@ -3,36 +3,68 @@
 ## USAGE
 
 `sonalyze` is the database manager and query interface for time series data coming from sonar,
-sacctd, and other monitoring components.  Use it to add data and to query, manipulate, summarize,
-and export data.
+sacctd, and other monitoring components.  Use it to add data and to query, aggregate, and export
+data.
 
-### Summary
+### Data model at a glance
+
+Notionally there are these tables:
+
+* `cluster` is the table of clusters known to the DB manager, with their aliases and descriptions
+* `config` is the table of per-node configuration information
+* `sysinfo` is the table of per-node system information extracted by Sonar on each node every day
+* `sacct` is the table of completed Slurm jobs on the cluster
+* `sample` is the table of Sonar samples, collected by Sonar on each node
+
+The sonalyze operations (next section) insert data into a table, extract raw data from a table, or
+generate cooked data from one or more tables.
+
+See db/README.md for more information about the data model and how it maps onto the data store.
+
+### Summary of operations
 
 ```
 sonalyze operation [options] [-- logfile ...]
 ```
 
-where `operation` is `add`, `jobs`, `load`, `uptime`, `profile`, `top`, `sacct`, `version`, `parse`, `metadata`, or `help`:
+where `operation` is one of the following.
+
+There is one data insertion operation that works on the `sysinfo`, `sacct`, and `sample` tables:
 
 * The `add` operation appends new records to the database (the database is append-only).
-* The `jobs` operation prints information about jobs, collected from the sonar records.
-* The `load` operation prints information about the load on the systems, collected from the sonar
-  records.
-* The `uptime` operation prints information about when systems and their components were up
-  or down, collected from sonar records.
-* The `profile` operation prints information about the behavior of a single job across time.
-* The `top` operation prints information about CPU allocation, collected from sonar records.
-* The `sacct` operation prints information about Slurm job control, collected from sacctd records.
-* The `parse` and `metadata` operations are for testing, mainly: They perform low-level operations on
-  the sonar logs and print the results.
+
+There are raw data extractors that work on a single table:
+
+* The `cluster` operation prints information from the `cluster` table
+* The `config` operation prints information from the `config` table
+* The `sacct` operation prints information from the `sacct` table
+* The `sample` operation prints information from the `sample` table
+* The `node` operation prints information from the `sysinfo` table (this operation should have
+  been called `sysinfo` but that name is currently taken)
+
+Then there are built-in aggregation operations that work on the `sample` table joined with the
+`config` table.  You almost never want raw sample data, but cooked data from some of the aggregation
+operations instead.  The data thus requested could have been represented in (precomputed or
+lazily-computed) tables, but at the moment they are not and this of course affects performance as
+the data have to be computed when they are requested:
+
+* The `jobs` operation prints information about jobs
+* The `load` operation prints information about system load
+* The `uptime` operation prints information about system and component uptime and downtime
+* The `profile` operation prints information about the behavior of a single job across time
+* The `top` operation prints information about CPU allocation
+
+Finally there are some debugging operations:
+
+* The `metadata` operation prints meta-information about the `sample` table
 * The `version` operation prints machine-readable information about sonalyze and its configuration,
   useful mostly for testing.
 * The `help` operation prints high-level usage information.
 
 Run `sonalyze <operation> -h` to get help about options for the specific operation.
 
-All the operations that produce output take a `--fmt` option to control the output; run with
-`--fmt=help` to get help on formatting options and the available output fields.
+All the operations that produce structured output take a `--fmt` option to control the output; run
+with `--fmt=help` to get help on formatting options and the available output fields.
 
 Command line parsing allows for `--option=value`, `--option value`, and also to spell `-option` with
 a single dash in either case.  It is however not possible to run single-letter options together with
