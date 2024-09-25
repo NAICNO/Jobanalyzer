@@ -75,17 +75,17 @@ func (pc *ProfileCommand) printProfile(
 	if hasRolledup {
 		// Add the "nproc" field if it is required and the fields are still the defaults.  This is
 		// sort of dumb, but compatible with the Rust code.
-		if strings.Join(pc.printFields, ",") == profileDefaultFields {
-			pc.printFields = strings.Split(profileDefaultFieldsWithNproc, ",")
+		if strings.Join(pc.PrintFields, ",") == profileDefaultFields {
+			pc.PrintFields = strings.Split(profileDefaultFieldsWithNproc, ",")
 		}
 	}
 
-	if pc.printOpts.Csv || pc.printOpts.Awk {
+	if pc.PrintOpts.Csv || pc.PrintOpts.Awk {
 		header, matrix, err := pc.collectCsvOrAwk(m, processes)
 		if err != nil {
 			return err
 		}
-		if pc.printOpts.Csv {
+		if pc.PrintOpts.Csv {
 			FormatRawRowmajorCsv(out, header, matrix)
 		} else {
 			FormatRawRowmajorAwk(out, header, matrix)
@@ -95,15 +95,15 @@ func (pc *ProfileCommand) printProfile(
 		if err != nil {
 			return err
 		}
-		quant := pc.printFields[0]
+		quant := pc.PrintFields[0]
 		formatHtml(out, jobId, quant, host, user, int(pc.Bucket), labels, rows)
-	} else if pc.printOpts.Fixed {
+	} else if pc.PrintOpts.Fixed {
 		data, err := pc.collectFixed(m, processes)
 		if err != nil {
 			return err
 		}
-		FormatData(out, pc.printFields, profileFormatters, pc.printOpts, data, profileCtx(false))
-	} else if pc.printOpts.Json {
+		FormatData(out, pc.PrintFields, profileFormatters, pc.PrintOpts, data, profileCtx(false))
+	} else if pc.PrintOpts.Json {
 		formatJson(out, m, processes, pc.testNoMemory)
 	} else {
 		panic("Unknown print format")
@@ -122,7 +122,7 @@ func (pc *ProfileCommand) collectHtml(
 	processes sonarlog.SampleStreams,
 ) (labels []string, rows []string, err error) {
 	var formatter func(*profDatum) string
-	formatter, err = checkFields(pc.printFields, true)
+	formatter, err = checkFields(pc.PrintFields, true)
 	if err != nil {
 		return
 	}
@@ -169,15 +169,15 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 	processes sonarlog.SampleStreams,
 ) (header []string, matrix [][]string, err error) {
 	var formatter func(*profDatum) string
-	formatter, err = checkFields(pc.printFields, false)
+	formatter, err = checkFields(pc.PrintFields, false)
 	if err != nil {
 		return
 	}
 
-	if pc.printOpts.Header {
+	if pc.PrintOpts.Header {
 		header = []string{"time"}
 		sep := ""
-		if pc.printOpts.Csv {
+		if pc.PrintOpts.Csv {
 			sep = " "
 		}
 		for _, process := range processes {

@@ -61,6 +61,7 @@ import (
 	"sort"
 
 	"go-utils/hostglob"
+	umaps "go-utils/maps"
 )
 
 type NodeMeta struct {
@@ -153,6 +154,11 @@ func (cc *ClusterConfig) LookupHost(hostname string) *NodeConfigRecord {
 		return probe
 	}
 	return nil
+}
+
+// Return a fresh slice of all nodes in the config
+func (cc *ClusterConfig) Hosts() []*NodeConfigRecord {
+	return umaps.Values(cc.nodes)
 }
 
 // Returns the hosts that were defined within the time window.  With our current structure we don't

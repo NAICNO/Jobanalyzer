@@ -20,14 +20,11 @@ import (
 
 type ParseCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
+	FormatArgs
+
 	MergeByHostAndJob bool
 	MergeByJob        bool
 	Clean             bool
-	Fmt               string
-
-	// Synthesized and other
-	printFields []string
-	printOpts   *FormatOptions
 }
 
 var _ SampleAnalysisCommand = (*ParseCommand)(nil)
@@ -40,36 +37,32 @@ func (_ *ParseCommand) Summary() []string {
 
 func (pc *ParseCommand) Add(fs *flag.FlagSet) {
 	pc.SharedArgs.Add(fs)
+	pc.FormatArgs.Add(fs)
 	fs.BoolVar(&pc.MergeByHostAndJob, "merge-by-host-and-job", false,
 		"Merge streams that have the same host and job ID")
 	fs.BoolVar(&pc.MergeByJob, "merge-by-job", false,
 		"Merge streams that have the same job ID, across hosts")
 	fs.BoolVar(&pc.Clean, "clean", false,
 		"Clean the job but perform no merging")
-	fs.StringVar(&pc.Fmt, "fmt", "",
-		"Select `field,...` and format for the output [default: try -fmt=help]")
 }
 
 func (pc *ParseCommand) ReifyForRemote(x *Reifier) error {
-	e1 := pc.SharedArgs.ReifyForRemote(x)
+	e1 := errors.Join(
+		pc.SharedArgs.ReifyForRemote(x),
+		pc.FormatArgs.ReifyForRemote(x),
+	)
 	x.Bool("merge-by-host-and-job", pc.MergeByHostAndJob)
 	x.Bool("merge-by-job", pc.MergeByJob)
 	x.Bool("clean", pc.Clean)
-	x.String("fmt", pc.Fmt)
 	return e1
 }
 
 func (pc *ParseCommand) Validate() error {
-	var e1, e2 error
-	e1 = pc.SharedArgs.Validate()
-	var others map[string]bool
-	pc.printFields, others, e2 = ParseFormatSpec(parseDefaultFields, pc.Fmt, parseFormatters, parseAliases)
-	if e2 == nil && len(pc.printFields) == 0 {
-		e2 = errors.New("No output fields were selected in format string")
-	}
-	pc.printOpts = StandardFormatOptions(others, DefaultCsv)
-
-	return errors.Join(e1, e2)
+	return errors.Join(
+		pc.SharedArgs.Validate(),
+		ValidateFormatArgs(
+			&pc.FormatArgs, parseDefaultFields, parseFormatters, parseAliases, DefaultCsv),
+	)
 }
 
 func (pc *ParseCommand) DefaultRecordFilters() (
@@ -97,7 +90,7 @@ func (pc *ParseCommand) Perform(
 	_ *config.ClusterConfig,
 	cluster db.SampleCluster,
 	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds,	// for pc.MergeByJob only
+	bounds sonarlog.Timebounds, // for pc.MergeByJob only
 	hostGlobber *hostglob.HostGlobber,
 	recordFilter *db.SampleFilter,
 ) error {
@@ -143,21 +136,21 @@ func (pc *ParseCommand) Perform(
 			fmt.Fprintln(out, "*")
 			FormatData(
 				out,
-				pc.printFields,
+				pc.PrintFields,
 				parseFormatters,
-				pc.printOpts,
+				pc.PrintOpts,
 				*stream,
-				parseCtx(pc.printOpts.NoDefaults),
+				parseCtx(pc.PrintOpts.NoDefaults),
 			)
 		}
 	} else {
 		FormatData(
 			out,
-			pc.printFields,
+			pc.PrintFields,
 			parseFormatters,
-			pc.printOpts,
+			pc.PrintOpts,
 			samples,
-			parseCtx(pc.printOpts.NoDefaults),
+			parseCtx(pc.PrintOpts.NoDefaults),
 		)
 	}
 	return nil

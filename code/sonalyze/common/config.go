@@ -6,6 +6,10 @@ import (
 	"go-utils/config"
 )
 
+const (
+	ClusterAliasesFilename = "cluster-aliases.json"
+)
+
 // The config objects are cached.  Currently this cache is never cleaned.  It could be cleaned if
 // the daemon code catches SIGHUP (telling it to reinitialize itself), but in that case we must also
 // purge the entire LogFile cache, as those data have been rectified with config data.

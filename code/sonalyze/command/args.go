@@ -109,21 +109,40 @@ func (dd *DataDirArgs) Validate() error {
 // -auth-file depends on the operation: for `add` it would normally be `cluster:cluster-password`
 // pairs, not `user:password`.
 
-type RemotingArgs struct {
+type RemotingArgsNoCluster struct {
 	Remote   string
-	Cluster  string
 	AuthFile string
 
 	Remoting bool
 }
 
-func (ra *RemotingArgs) Add(fs *flag.FlagSet) {
+func (ra *RemotingArgsNoCluster) Add(fs *flag.FlagSet) {
 	fs.StringVar(&ra.Remote, "remote", "",
-		"Select a remote `url` to serve the query [default: none].  Requires -cluster.")
-	fs.StringVar(&ra.Cluster, "cluster", "",
-		"Select the cluster `name` for which we want data [default: none].  For use with -remote.")
+		"Select a remote `url` to serve the query [default: none].")
 	fs.StringVar(&ra.AuthFile, "auth-file", "",
 		"Provide a `file` with username:password [default: none].  For use with -remote.")
+}
+
+func (ra *RemotingArgsNoCluster) Validate() error {
+	if ra.Remote != "" {
+		ra.Remoting = true
+	}
+	return nil
+}
+
+func (va *RemotingArgsNoCluster) RemotingFlags() *RemotingArgsNoCluster {
+	return va
+}
+
+type RemotingArgs struct {
+	RemotingArgsNoCluster
+	Cluster string
+}
+
+func (ra *RemotingArgs) Add(fs *flag.FlagSet) {
+	ra.RemotingArgsNoCluster.Add(fs)
+	fs.StringVar(&ra.Cluster, "cluster", "",
+		"Select the cluster `name` for which we want data [default: none].  For use with -remote.")
 }
 
 func (ra *RemotingArgs) Validate() error {
@@ -136,8 +155,8 @@ func (ra *RemotingArgs) Validate() error {
 	return nil
 }
 
-func (va *RemotingArgs) RemotingFlags() *RemotingArgs {
-	return va
+func (va *RemotingArgs) RemotingFlags() *RemotingArgsNoCluster {
+	return &va.RemotingArgsNoCluster
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -441,6 +460,46 @@ func (s *SharedArgs) Validate() error {
 		s.VerboseArgs.Validate(),
 		s.ConfigFileArgs.Validate(),
 	)
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Format arguments - same logic for most consumers.
+
+type FormatArgs struct {
+	// Print args
+	Fmt string
+
+	// Synthesized and other
+	PrintFields []string
+	PrintOpts   *FormatOptions
+}
+
+func (fa *FormatArgs) Add(fs *flag.FlagSet) {
+	fs.StringVar(&fa.Fmt, "fmt", "",
+		"Select `field,...` and format for the output [default: try -fmt=help]")
+}
+
+func (fa *FormatArgs) ReifyForRemote(x *Reifier) error {
+	x.String("fmt", fa.Fmt)
+	return nil
+}
+
+func ValidateFormatArgs[Data, Ctx any](
+	fa *FormatArgs,
+	defaultFields string,
+	formatters map[string]Formatter[Data, Ctx],
+	aliases map[string][]string,
+	def DefaultFormat,
+) error {
+	var err error
+	var others map[string]bool
+	fa.PrintFields, others, err = ParseFormatSpec(defaultFields, fa.Fmt, formatters, aliases)
+	if err == nil && len(fa.PrintFields) == 0 {
+		err = errors.New("No output fields were selected in format string")
+	}
+	fa.PrintOpts = StandardFormatOptions(others, def)
+	return err
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

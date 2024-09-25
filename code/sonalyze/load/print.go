@@ -14,7 +14,7 @@ import (
 )
 
 func (lc *LoadCommand) printRequiresConfig() bool {
-	for _, f := range lc.printFields {
+	for _, f := range lc.PrintFields {
 		switch f {
 		case "rcpu", "rmem", "rres", "rgpu", "rgpumem":
 			return true
@@ -37,23 +37,23 @@ func (lc *LoadCommand) printStreams(
 	// The handling of hostname is a hack.
 	// The handling of JSON is also a hack.
 	explicitHost := false
-	for _, f := range lc.printFields {
+	for _, f := range lc.PrintFields {
 		if f == "host" {
 			explicitHost = true
 			break
 		}
 	}
 	jsonSep := ""
-	if lc.printOpts.Json {
+	if lc.PrintOpts.Json {
 		fmt.Fprint(out, "[")
 	}
 	for _, stream := range mergedStreams {
-		if lc.printOpts.Json {
+		if lc.PrintOpts.Json {
 			fmt.Fprint(out, jsonSep)
 			jsonSep = ","
 		}
 		hostname := (*stream)[0].S.Host.String()
-		if lc.printOpts.Fixed && !explicitHost {
+		if lc.PrintOpts.Fixed && !explicitHost {
 			fmt.Fprintf(out, "HOST: %s\n", hostname)
 		}
 		conf := mergedConf
@@ -63,7 +63,7 @@ func (lc *LoadCommand) printStreams(
 
 		// For JSON, add richer information about the host so that the client does not have to
 		// synthesize this information itself.
-		if lc.printOpts.Json {
+		if lc.PrintOpts.Json {
 			description := "Unknown"
 			gpuCards := 0
 			if conf != nil {
@@ -93,13 +93,13 @@ func (lc *LoadCommand) printStreams(
 			// Invariant: there's always at least one record
 			data = data[len(data)-1:]
 		}
-		FormatData(out, lc.printFields, loadFormatters, lc.printOpts, data, ctx)
+		FormatData(out, lc.PrintFields, loadFormatters, lc.PrintOpts, data, ctx)
 
-		if lc.printOpts.Json {
+		if lc.PrintOpts.Json {
 			fmt.Fprint(out, "}")
 		}
 	}
-	if lc.printOpts.Json {
+	if lc.PrintOpts.Json {
 		fmt.Fprint(out, "]")
 	}
 }

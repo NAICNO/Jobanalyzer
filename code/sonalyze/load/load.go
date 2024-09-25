@@ -26,6 +26,7 @@ const (
 
 type LoadCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
+	FormatArgs
 
 	// Filtering and aggregation args
 	Hourly     bool
@@ -40,12 +41,9 @@ type LoadCommand struct /* implements SampleAnalysisCommand */ {
 	All     bool
 	Last    bool
 	Compact bool
-	Fmt     string
 
 	// Synthesized and other
 	bucketing   bucketTy
-	printFields []string
-	printOpts   *FormatOptions
 }
 
 var _ SampleAnalysisCommand = (*LoadCommand)(nil)
@@ -59,6 +57,7 @@ func (_ *LoadCommand) Summary() []string {
 
 func (lc *LoadCommand) Add(fs *flag.FlagSet) {
 	lc.SharedArgs.Add(fs)
+	lc.FormatArgs.Add(fs)
 
 	fs.BoolVar(&lc.Hourly, "hourly", false, "Bucket and average records hourly [default]")
 	fs.BoolVar(&lc.HalfHourly, "half-hourly", false, "Bucket and average records half-hourly")
@@ -73,12 +72,13 @@ func (lc *LoadCommand) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&lc.Last, "last", false, "Print records for the last time instant (after bucketing)")
 	fs.BoolVar(&lc.Compact, "compact", false,
 		"After bucketing, do not print anything for time slots that are empty")
-	fs.StringVar(&lc.Fmt, "fmt", "",
-		"Select `field,...` and format for the output [default: try -fmt=help]")
 }
 
 func (lc *LoadCommand) ReifyForRemote(x *Reifier) error {
-	e1 := lc.SharedArgs.ReifyForRemote(x)
+	e1 := errors.Join(
+		lc.SharedArgs.ReifyForRemote(x),
+		lc.FormatArgs.ReifyForRemote(x),
+	)
 
 	x.Bool("hourly", lc.Hourly)
 	x.Bool("half-hourly", lc.HalfHourly)
@@ -91,13 +91,16 @@ func (lc *LoadCommand) ReifyForRemote(x *Reifier) error {
 	x.Bool("all", lc.All)
 	x.Bool("last", lc.Last)
 	x.Bool("compact", lc.Compact)
-	x.String("fmt", lc.Fmt)
 
 	return e1
 }
 
 func (lc *LoadCommand) Validate() error {
-	e1 := lc.SharedArgs.Validate()
+	e1 := errors.Join(
+		lc.SharedArgs.Validate(),
+		ValidateFormatArgs(
+			&lc.FormatArgs, loadDefaultFields, loadFormatters, loadAliases, DefaultFixed),
+	)
 
 	var e3 error
 	n := 0
@@ -152,15 +155,7 @@ func (lc *LoadCommand) Validate() error {
 		e5 = errors.New("Grouping across hosts requires first bucketing by time")
 	}
 
-	var e6 error
-	var others map[string]bool
-	lc.printFields, others, e6 = ParseFormatSpec(loadDefaultFields, lc.Fmt, loadFormatters, loadAliases)
-	if e6 == nil && len(lc.printFields) == 0 {
-		e6 = errors.New("No output fields were selected in format string")
-	}
-	lc.printOpts = StandardFormatOptions(others, DefaultFixed)
-
-	return errors.Join(e1, e3, e4, e5, e6)
+	return errors.Join(e1, e3, e4, e5)
 }
 
 func (lc *LoadCommand) DefaultRecordFilters() (

@@ -18,7 +18,7 @@ import (
 )
 
 func (jc *JobsCommand) printRequiresConfig() bool {
-	for _, f := range jc.printFields {
+	for _, f := range jc.PrintFields {
 		switch f {
 		case "rcpu-avg", "rcpu-peak", "rmem-avg", "rmem-peak", "rgpu-avg", "rgpu-peak",
 			"rgpumem-avg", "rgpumem-peak", "rres-avg", "rres-peak":
@@ -86,13 +86,13 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 
 	FormatData(
 		out,
-		jc.printFields,
+		jc.PrintFields,
 		jobsFormatters,
-		jc.printOpts,
+		jc.PrintOpts,
 		summaries,
 		jobCtx(jobCtx{
 			now:         time.Now().UTC().Unix(),
-			fixedFormat: jc.printOpts.Fixed,
+			fixedFormat: jc.PrintOpts.Fixed,
 		}),
 	)
 	return nil

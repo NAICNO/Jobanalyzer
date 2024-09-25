@@ -49,7 +49,7 @@ type RemotableCommand interface {
 	// Reify all arguments including shared arguments for remote execution, with checking
 	ReifyForRemote(x *Reifier) error
 
-	RemotingFlags() *RemotingArgs
+	RemotingFlags() *RemotingArgsNoCluster
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

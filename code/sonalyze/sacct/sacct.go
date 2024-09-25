@@ -21,6 +21,7 @@ type SacctCommand struct /* implements AnalysisCommand */ {
 	HostArgs
 	VerboseArgs
 	ConfigFileArgs
+	FormatArgs
 
 	// Selections
 	// COMPLETED, TIMEOUT etc - "or" these, except "" for all
@@ -46,13 +47,6 @@ type SacctCommand struct /* implements AnalysisCommand */ {
 	Array            bool
 	Het              bool
 
-	// Printing
-	Fmt string
-
-	// Synthesized and other
-	printFields []string
-	printOpts   *FormatOptions
-
 	// Internal
 	minRuntimeStr string
 	maxRuntimeStr string
@@ -72,6 +66,7 @@ func (sc *SacctCommand) Add(fs *flag.FlagSet) {
 	sc.HostArgs.Add(fs)
 	sc.VerboseArgs.Add(fs)
 	sc.ConfigFileArgs.Add(fs)
+	sc.FormatArgs.Add(fs)
 	fs.StringVar(&sc.minRuntimeStr, "min-runtime", "",
 		"Select jobs with elapsed time at least this, format `WwDdHhMm`, all parts\n"+
 			"optional [default: 0m]")
@@ -102,12 +97,9 @@ func (sc *SacctCommand) Add(fs *flag.FlagSet) {
 		"Select jobs on partition `partition1,...`")
 	fs.Var(NewRepeatableUint32(&sc.Job), "job",
 		"Select jobs with primary job ID `job1,...`")
-	fs.StringVar(&sc.Fmt, "fmt", "",
-		"Select `field,...` and format for the output [default: try -fmt=help]")
 }
 
 func (sc *SacctCommand) ReifyForRemote(x *Reifier) error {
-	x.String("fmt", sc.Fmt)
 	x.RepeatableString("state", sc.State)
 	x.RepeatableString("user", sc.User)
 	x.RepeatableString("account", sc.Account)
@@ -130,16 +122,21 @@ func (sc *SacctCommand) ReifyForRemote(x *Reifier) error {
 		sc.SourceArgs.ReifyForRemote(x),
 		sc.HostArgs.ReifyForRemote(x),
 		sc.ConfigFileArgs.ReifyForRemote(x),
+		sc.FormatArgs.ReifyForRemote(x),
 	)
 }
 
 func (sc *SacctCommand) Validate() error {
-	var e1, e2, e3, e4, e5, e6, e7, e8, e9 error
-	e1 = sc.DevArgs.Validate()
-	e2 = sc.SourceArgs.Validate()
-	e3 = sc.HostArgs.Validate()
-	e4 = sc.VerboseArgs.Validate()
-	e5 = sc.ConfigFileArgs.Validate()
+	var e1, e7, e8, e9 error
+	e1 = errors.Join(
+		sc.DevArgs.Validate(),
+		sc.SourceArgs.Validate(),
+		sc.HostArgs.Validate(),
+		sc.VerboseArgs.Validate(),
+		sc.ConfigFileArgs.Validate(),
+		ValidateFormatArgs(
+			&sc.FormatArgs, sacctDefaultFields, sacctFormatters, sacctAliases, DefaultFixed),
+	)
 	sc.MinRuntime, e7 = DurationToSeconds("-min-runtime", sc.minRuntimeStr)
 	sc.MaxRuntime, e8 = DurationToSeconds("-max-runtime", sc.maxRuntimeStr)
 
@@ -166,13 +163,6 @@ func (sc *SacctCommand) Validate() error {
 		sc.MaxReservedCores = math.MaxUint
 	}
 
-	var others map[string]bool
-	sc.printFields, others, e6 = ParseFormatSpec(sacctDefaultFields, sc.Fmt, sacctFormatters, sacctAliases)
-	if e6 == nil && len(sc.printFields) == 0 {
-		e6 = errors.New("No output fields were selected in format string")
-	}
-	sc.printOpts = StandardFormatOptions(others, DefaultFixed)
-
 	var types int
 	if sc.Regular {
 		types++
@@ -190,5 +180,5 @@ func (sc *SacctCommand) Validate() error {
 		e9 = errors.New("Too many output types, pick only one")
 	}
 
-	return errors.Join(e1, e2, e3, e4, e5, e6, e7, e8, e9)
+	return errors.Join(e1, e7, e8, e9)
 }

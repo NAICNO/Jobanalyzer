@@ -9,17 +9,13 @@ import (
 
 type ProfileCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
+	FormatArgs
 
 	// Filtering and aggregation
 	Max    float64
 	Bucket uint
 
-	// Printing
-	Fmt string
-
 	// Synthesized and other
-	printFields  []string
-	printOpts    *FormatOptions
 	htmlOutput   bool
 	testNoMemory bool
 }
@@ -34,22 +30,24 @@ func (_ *ProfileCommand) Summary() []string {
 
 func (pc *ProfileCommand) Add(fs *flag.FlagSet) {
 	pc.SharedArgs.Add(fs)
+	pc.FormatArgs.Add(fs)
 
 	fs.Float64Var(&pc.Max, "max", 0, "Clamp values to this (helps deal with noise) (memory in GiB)")
 	fs.UintVar(&pc.Bucket, "bucket", 0, "Bucket these many consecutive elements (helps reduce noise)")
-	fs.StringVar(&pc.Fmt, "fmt", "",
-		"Select `field,...` and format for the output [default: try -fmt=help]")
 }
 
 func (pc *ProfileCommand) ReifyForRemote(x *Reifier) error {
-	e1 := pc.SharedArgs.ReifyForRemote(x)
+	e1 := errors.Join(
+		pc.SharedArgs.ReifyForRemote(x),
+		pc.FormatArgs.ReifyForRemote(x),
+	)
 	x.Float64("max", pc.Max)
 	x.Uint("bucket", pc.Bucket)
-	x.String("fmt", pc.Fmt)
 	return e1
 }
 
 func (pc *ProfileCommand) Validate() error {
+	// FormatArgs are handled specially below
 	e1 := pc.SharedArgs.Validate()
 
 	var e2 error
@@ -64,8 +62,13 @@ func (pc *ProfileCommand) Validate() error {
 
 	var others map[string]bool
 	var e4 error
-	pc.printFields, others, e4 = ParseFormatSpec(profileDefaultFields, pc.Fmt, profileFormatters, profileAliases)
-	if e4 == nil && len(pc.printFields) == 0 && !others["json"] {
+	pc.PrintFields, others, e4 = ParseFormatSpec(
+		profileDefaultFields,
+		pc.Fmt,
+		profileFormatters,
+		profileAliases,
+	)
+	if e4 == nil && len(pc.PrintFields) == 0 && !others["json"] {
 		e4 = errors.New("No output fields were selected in format string")
 	}
 
@@ -78,23 +81,23 @@ func (pc *ProfileCommand) Validate() error {
 	if pc.htmlOutput {
 		def = DefaultNone
 	}
-	pc.printOpts = StandardFormatOptions(others, def)
+	pc.PrintOpts = StandardFormatOptions(others, def)
 
 	var e5 error
-	if pc.htmlOutput && !pc.printOpts.IsDefaultFormat() {
+	if pc.htmlOutput && !pc.PrintOpts.IsDefaultFormat() {
 		e5 = errors.New("Multiple formats requested")
 	}
 
 	// The printing code uses custom logic for everything but Fixed layout, and the custom logic
 	// does not support named fields or nodefaults.  Indeed the "profile" is always a fixed matrix
 	// of data, so nodefaults is disabled even for Fixed.
-	pc.printOpts.NoDefaults = false
+	pc.PrintOpts.NoDefaults = false
 
 	// The Header setting is grandfathered from the Rust code, but it makes more sense than the
 	// opposite.  The main reason to not perpetuate this hack is that it is different from all the
 	// other commands.
-	if pc.printOpts.Csv && !others["noheader"] {
-		pc.printOpts.Header = true
+	if pc.PrintOpts.Csv && !others["noheader"] {
+		pc.PrintOpts.Header = true
 	}
 
 	return errors.Join(e1, e2, e3, e4, e5)

@@ -170,3 +170,47 @@ func (tsc *TransientSacctCluster) ReadSacctData(
 
 	return readSacctSlice(tsc.files, verbose, tsc.methods)
 }
+
+type TransientSysinfoCluster struct /* implements SysinfoCluster */ {
+	// MT: Immutable after initialization
+	methods ReadSyncMethods
+
+	TransientCluster
+}
+
+var _ SysinfoCluster = (*TransientSysinfoCluster)(nil)
+
+func newTransientSysinfoCluster(
+	fileNames []string,
+	cfg *config.ClusterConfig,
+) *TransientSysinfoCluster {
+	return &TransientSysinfoCluster{
+		methods: newSysinfoFileMethods(cfg),
+		TransientCluster: TransientCluster{
+			cfg:   cfg,
+			files: processTransientFiles(fileNames),
+		},
+	}
+}
+
+func (tsc *TransientSysinfoCluster) SysinfoFilenames(
+	_,
+	_ time.Time,
+	_ *hostglob.HostGlobber,
+) ([]string, error) {
+	return tsc.Filenames()
+}
+
+func (tsc *TransientSysinfoCluster) ReadSysinfoData(
+	fromDate, toDate time.Time,
+	_ *hostglob.HostGlobber,
+	verbose bool,
+) (recordBlobs [][]*config.NodeConfigRecord, dropped int, err error) {
+	tsc.Lock()
+	defer tsc.Unlock()
+	if tsc.closed {
+		return nil, 0, ClusterClosedErr
+	}
+
+	return readNodeConfigRecordSlice(tsc.files, verbose, tsc.methods)
+}

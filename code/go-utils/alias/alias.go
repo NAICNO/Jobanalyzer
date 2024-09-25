@@ -75,6 +75,18 @@ func (a *Aliases) Resolve(alias string) string {
 	return alias
 }
 
+// Map from canonical cluster name to all its aliases.  The map and alias slices are both new.
+
+func (a *Aliases) ReverseExpand() map[string][]string {
+	xs := make(map[string][]string)
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	for alias, cluster := range a.mapping {
+		xs[cluster] = append(xs[cluster], alias)
+	}
+	return xs
+}
+
 func (a *Aliases) Reread() error {
 	mapping, err := readAliases(a.filepath)
 	if err != nil {
