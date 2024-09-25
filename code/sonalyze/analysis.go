@@ -22,7 +22,7 @@ import (
 func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
 	args := cmd.SharedFlags()
 
-	cfg, err := MaybeGetConfig(cmd.ConfigFile())
+	cfg, err := db.MaybeGetConfig(cmd.ConfigFile())
 	if err != nil {
 		return err
 	}

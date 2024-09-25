@@ -93,9 +93,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/fs"
-	"os"
-	"path"
 	"strconv"
 	"strings"
 
@@ -103,7 +100,7 @@ import (
 	"go-utils/auth"
 	"go-utils/options"
 	. "sonalyze/command"
-	. "sonalyze/common"
+	"sonalyze/db"
 )
 
 const (
@@ -176,16 +173,7 @@ func (dc *DaemonCommand) Validate() error {
 			return fmt.Errorf("Failed to read upload authentication file %w", e5)
 		}
 	}
-	// The aliases file is optional, but if something with that name is there it is an error to fail
-	// to open it.
-	aliasesFile := path.Join(dc.jobanalyzerDir, ClusterAliasesFilename)
-	if info, err := os.Stat(aliasesFile); err == nil {
-		if info.Mode()&fs.ModeType != 0 {
-			e6 = errors.New("Cluster alias file is not a regular file")
-		} else {
-			dc.aliasResolver, e6 = alias.ReadAliases(aliasesFile)
-		}
-	}
+	_, dc.aliasResolver, e6 = db.ReadClusterData(dc.jobanalyzerDir)
 	if dc.cache != "" {
 		var scale int64
 		var before string

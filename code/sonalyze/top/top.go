@@ -94,7 +94,7 @@ func (tc *TopCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 func (tc *TopCommand) Top(stdin io.Reader, stdout, stderr io.Writer) error {
-	cfg, err := MaybeGetConfig(tc.ConfigFile())
+	cfg, err := db.MaybeGetConfig(tc.ConfigFile())
 	if err != nil {
 		return err
 	}
