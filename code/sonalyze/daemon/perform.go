@@ -89,7 +89,7 @@ func httpGetHandler(
 		verb := command
 		arguments := []string{
 			"--data-path",
-			path.Join(dc.jobanalyzerDir, "data", clusterName),
+			db.MakeClusterDataPath(dc.jobanalyzerDir, clusterName),
 		}
 		for name, vs := range r.URL.Query() {
 			if name == "cluster" {
@@ -125,7 +125,7 @@ func httpGetHandler(
 		arguments = append(
 			arguments,
 			"--config-file",
-			path.Join(dc.jobanalyzerDir, "scripts", clusterName, clusterName+"-config.json"),
+			db.MakeConfigFilePath(dc.jobanalyzerDir, clusterName),
 		)
 
 		stdout, ok := runSonalyze(dc, w, verb, arguments, []byte{})
@@ -224,7 +224,7 @@ func httpPostHandler(
 		arguments := []string{
 			"--" + dataType,
 			"--data-path",
-			path.Join(dc.jobanalyzerDir, "data", clusterName),
+			db.MakeClusterDataPath(dc.jobanalyzerDir, clusterName),
 		}
 
 		stdout, ok := runSonalyze(dc, w, verb, arguments, payload)

@@ -24,7 +24,7 @@ func (sc *SacctCommand) Sacct(_ io.Reader, stdout, stderr io.Writer) error {
 	var theLog db.SacctCluster
 	var err error
 
-	cfg, err := MaybeGetConfig(sc.ConfigFile())
+	cfg, err := db.MaybeGetConfig(sc.ConfigFile())
 	if err != nil {
 		return err
 	}

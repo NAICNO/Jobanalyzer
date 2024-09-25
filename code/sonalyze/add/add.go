@@ -145,7 +145,7 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 		// TODO: IMPROVEME: Benign if timestamp missing?
 		return errors.New("Missing timestamp or host in Sonar sysinfo data")
 	}
-	cfg, err := MaybeGetConfig(ac.ConfigFile())
+	cfg, err := db.MaybeGetConfig(ac.ConfigFile())
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sample records %d bytes", len(payload))
 	}
-	cfg, err := MaybeGetConfig(ac.ConfigFile())
+	cfg, err := db.MaybeGetConfig(ac.ConfigFile())
 	if err != nil {
 		return err
 	}
@@ -205,7 +205,7 @@ func (ac *AddCommand) addSlurmSacctFreeCsv(payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sacct records %d bytes", len(payload))
 	}
-	cfg, err := MaybeGetConfig(ac.ConfigFile())
+	cfg, err := db.MaybeGetConfig(ac.ConfigFile())
 	if err != nil {
 		return err
 	}
