@@ -19,7 +19,7 @@ func TestConfig(t *testing.T) {
 	if len(hosts) != 2 {
 		t.Fatal("Hosts ", hosts)
 	}
-	slices.SortFunc(hosts, func (a, b *config.NodeConfigRecord) int {
+	slices.SortFunc(hosts, func(a, b *config.NodeConfigRecord) int {
 		return cmp.Compare(a.Hostname, b.Hostname)
 	})
 	if hosts[0].Hostname != "n1.cluster1.uio.no" {

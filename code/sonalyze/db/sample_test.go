@@ -1,3 +1,5 @@
+// Some simple (and old) test cases for Sonar `sample` data.
+
 package db
 
 import (

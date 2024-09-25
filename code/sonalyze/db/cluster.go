@@ -27,16 +27,16 @@ package db
 import (
 	"errors"
 	"io/fs"
-	"path"
 	"os"
+	"path"
 	"sync"
 
 	"go-utils/alias"
 )
 
 const (
-	dataDirName = "data"
-	clusterConfigDirName = "scripts"
+	dataDirName            = "data"
+	clusterConfigDirName   = "scripts"
 	clusterAliasesFilename = "cluster-aliases.json"
 )
 
@@ -61,8 +61,8 @@ var (
 
 	// The cache has a value if the clusterCache map is not nil.  The clusterAliases may be nil if
 	// there was no alias file.
-	clusterCache     map[string]*ClusterEntry
-	clusterAliases   *alias.Aliases
+	clusterCache   map[string]*ClusterEntry
+	clusterAliases *alias.Aliases
 )
 
 type ClusterEntry struct {

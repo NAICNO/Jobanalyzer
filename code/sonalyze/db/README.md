@@ -25,6 +25,8 @@ and additional "background" files with augmenting information that are not store
 
 ## Implementation
 
+### Representation
+
 In the implementation:
 
 * `cluster` is a table constructed from the names of the subdirectories of the Sonalyze daemon's
@@ -47,7 +49,12 @@ It is a bug that `cluster-aliases.json` exists at all, as the per-cluster config
 carry alias information.  However, currently the alias information in the per-cluster configuration
 files is ignored by everyone, only the global aliases file is consulted.
 
-## Caching
+Note that there are no index files or files of computed data - everything currently operates on raw
+data, recomputing what is needed when it is needed, and relying on in-memory caching to make this
+fast.  There are good (resilience, simplicity) and bad (performance, complexity) consequences of
+this that I won't go into here.
+
+### Caching
 
 Data are broadly cached.  For `cluster` and `config` these caches are never purged except by a
 restart.  For the data tables the caches are capacity-based and are cleaned by a 2-random LRU
@@ -57,3 +64,25 @@ file on disk.  Subsequent read access to the file will cache it again.
 
 It is a bug that a restart is required to purge the caches.  Caches should all be purged if the
 daemon receives SIGHUP.
+
+### Code
+
+In this directory:
+
+- the `cluster.go` file implements the `cluster` table
+- the `config.go` file implements the `config` table
+- the `sample*.go` files implement the `sample` table
+- the `sysinfo*.go` files implement the `sysinfo` table
+- the `sacct*.go` files implement the `sacct` table
+
+Below that:
+
+- `clusterstore.go` is an interface to the loading and caching subsystem for `sample`, `sysinfo`, and `sacct` data
+- `persistentcluster.go` and `transientcluster.go` are implementations of that interface for a disk-based directory tree
+  and a list of files, respectively
+- `logfile.go` handles individual files in all cases
+- `cache.go` is the cache logic used by all this
+
+And at the bottom:
+
+- `csvtokens.go` and `csvutil.go` support fast, non-allocating CSV parsers

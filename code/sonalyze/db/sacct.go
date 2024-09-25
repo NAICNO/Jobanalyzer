@@ -1,4 +1,4 @@
-// Data representation of Sacct info, and parser for CSV files holding that info.
+// Data representation of Sacct data, and parser for CSV files holding those data.
 
 package db
 

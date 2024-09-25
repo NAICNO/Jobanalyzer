@@ -1,3 +1,5 @@
+// Parser for JSON files holding Sonar `sysinfo` data.
+
 package db
 
 import (
