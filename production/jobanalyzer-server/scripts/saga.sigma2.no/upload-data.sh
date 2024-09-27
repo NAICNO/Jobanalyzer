@@ -1,5 +1,8 @@
 #!/usr/bin/bash
 
+echo "UPDATE THIS TO NEW REALITY ONCE SAGA IS ON-LINE"
+exit 1
+
 # Upload generated reports to a web server.
 
 # We need globbing, stay away from -f

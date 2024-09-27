@@ -1,9 +1,7 @@
-# Crontab to run on the jobanalyzer server.
+# Crontab to run on the jobanalyzer server to run all the naicreport scripts for all defined
+# clusters periodically.
 
 MAILTO=larstha@uio.no
-
-@reboot $HOME/sonar/start-infiltrate.sh
-@reboot $HOME/sonar/start-sonalyzed.sh
 
 # UiO ML nodes cluster "mlx.hpc.uio.no"
 

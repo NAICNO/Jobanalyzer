@@ -5,6 +5,9 @@
 #
 # It also generates a file of hostnames and uploads that.
 
+echo "UPDATE THIS TO NEW REALITY ONCE SAGA IS ON-LINE"
+exit 1
+
 # We need globbing, stay away from -f
 set -eu -o pipefail
 

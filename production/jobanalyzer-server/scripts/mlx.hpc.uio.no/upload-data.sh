@@ -6,9 +6,8 @@
 set -eu -o pipefail
 
 cluster=mlx.hpc.uio.no
-sonar_dir=${sonar_dir:-$HOME/sonar}
-script_dir=$sonar_dir/scripts/$cluster
-report_dir=$sonar_dir/reports/$cluster
+naicreport_dir=${naicreport_dir:-$HOME/sonar}
+source $naicreport_dir/naicreport-config
 
 upload_files="$report_dir/*.json"
 source $script_dir/upload-subr.sh

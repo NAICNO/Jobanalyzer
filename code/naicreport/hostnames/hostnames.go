@@ -1,27 +1,28 @@
-// hostnames - compute a set of host names from a set of report file names.
+// hostnames - compute a set of host names on a cluster.
+//
+// The output is a json array of strings, lexicographically sorted.
+//
+// NOTE: Clients should no longer use the output from this, but instead go directly to sonalyze and
+// run eg `sonalyze node -remote ... -cluster ... -auth-file ... -from 14d -newest -fmt csv,host` to
+// get an unsorted list of host names, one per line (or ask for JSON and get the "host" field from
+// each object of the resulting array).
 //
 // End-user options:
 //
-//  -report-dir <report-directory>
-//  <report-directory> (obsolete form)
-//     The name of the directory holding generated reports
+//  -remote url
+//  -auth-file filename
+//    Required: The server (with optional authorization) that will serve data to us
 //
-// Description:
+//  -cluster clustername
+//    Required: the cluster for which we want information from the server
 //
-// Enumerate the files in the report directory.  For each file name that has the form
-// <something>-<word>.json where <word> is from a known set, remember <something>.  Sort the list of
-// <something>s lexicographically, remove duplicates, and print the resulting list as a JSON array
-// of strings on stdout.
+//  -sonalyze filename
+//    The `sonalyze` executable.
 //
-// The set of <word>s is: {`minutely`, `daily`, `weekly`, `monthly`, `quarterly`}.
+// Debugging / development options:
 //
-// -------------------------------------------------------------------------------------------------
-//
-// Implementation notes.
-//
-// Obviously this could be a shell script but it's better integrated into naicreport.
-//
-// Obviously this could also be implemented by scanning the logs.
+//  -v
+//    Print various (verbose) debugging output
 
 package hostnames
 
@@ -30,54 +31,21 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/fs"
 	"os"
-	"regexp"
-	"sort"
+	"slices"
+	"strings"
+
+	"go-utils/options"
+	"go-utils/process"
+
+	"naicreport/util"
 )
 
-var glob *regexp.Regexp = regexp.MustCompile("^(.*)-(?:minutely|daily|weekly|monthly|quarterly).json$")
-
 func Hostnames(progname string, args []string) (err error) {
-	dirname, err := commandLine()
-	if err != nil {
-		return
-	}
-	err = hostnames(dirname)
-	return
-}
-
-func hostnames(dirname string) (err error) {
-	entries, err := os.ReadDir(dirname)
-	if err != nil {
-		return
-	}
-	files := make(map[string]bool)
-	for _, entry := range entries {
-		if (entry.Type() & fs.ModeType) != 0 {
-			continue
-		}
-		// File, we hope
-		if matches := glob.FindStringSubmatch(entry.Name()); matches != nil {
-			hostname := matches[1]
-			files[hostname] = true
-		}
-	}
-	hosts := make(sort.StringSlice, 0, len(files))
-	for k, _ := range files {
-		hosts = append(hosts, k)
-	}
-	hosts.Sort()
-	encoding, err := json.Marshal(hosts)
-	if err == nil {
-		fmt.Println(string(encoding))
-	}
-	return
-}
-
-func commandLine() (dirname string, err error) {
-	opts := flag.NewFlagSet(os.Args[0]+" hostnames", flag.ContinueOnError)
-	opts.StringVar(&dirname, "report-dir", "", "Report `directory`")
+	opts := flag.NewFlagSet(progname+" hostnames", flag.ContinueOnError)
+	sonalyzePath := opts.String("sonalyze", "", "Sonalyze executable `filename` (required)")
+	remoteOpts := util.AddRemoteOptions(opts)
+	verbose := opts.Bool("v", false, "Verbose (debugging) output")
 	err = opts.Parse(os.Args[2:])
 	if err == flag.ErrHelp {
 		os.Exit(0)
@@ -85,14 +53,40 @@ func commandLine() (dirname string, err error) {
 	if err != nil {
 		return
 	}
-	// Backwards compatible
-	if dirname == "" {
-		rest := opts.Args()
-		if len(rest) == 0 {
-			err = errors.New("No report directory specified")
-			return
+	if remoteOpts.Server == "" || remoteOpts.Cluster == "" {
+		err = errors.New("Both -remote and -cluster are required")
+		return
+	}
+	*sonalyzePath, err = options.RequireCleanPath(*sonalyzePath, "-sonalyze")
+	if err != nil {
+		return
+	}
+
+	nodeArgs := util.ForwardRemoteOptions([]string{"node", "-from", "14d", "-newest", "-fmt", "csv,host"}, remoteOpts)
+	if *verbose {
+		nodeArgs = append(nodeArgs, "-v")
+	}
+	if *verbose {
+		fmt.Fprintf(os.Stderr, "Sonalyze node arguments\n%v\n", nodeArgs)
+	}
+	hnOutput, hnErrOutput, err := process.RunSubprocess(
+		"sonalyze",
+		*sonalyzePath,
+		nodeArgs,
+	)
+	if err != nil {
+		if hnErrOutput != "" {
+			err = errors.Join(err, fmt.Errorf("With stderr:\n%s", hnErrOutput))
 		}
-		dirname = rest[0]
+	}
+	if *verbose && hnErrOutput != "" {
+		fmt.Fprint(os.Stderr, hnErrOutput)
+	}
+	hosts := strings.Fields(hnOutput)
+	slices.Sort(hosts)
+	encoding, err := json.Marshal(hosts)
+	if err == nil {
+		fmt.Println(string(encoding))
 	}
 	return
 }
