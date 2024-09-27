@@ -3,7 +3,6 @@
 // End-user options:
 //
 //  -state-dir directory
-//  -data-path directory (obsolete name)
 //     The directory that holds the database file and is the root of the directory tree
 //     containing the periodic reports.
 //
@@ -403,8 +402,6 @@ func commandLine() (
 	var nowOpt string
 	opts.StringVar(&nowOpt, "now", "", "ISO `timestamp` to use as the present time (for testing)")
 	opts.BoolVar(&verbose, "v", false, "Verbose (debugging) output")
-	var dataPath string
-	opts.StringVar(&dataPath, "data-path", "", "Obsolete name for -state-dir")
 	err = opts.Parse(os.Args[2:])
 	if err == flag.ErrHelp {
 		os.Exit(0)
@@ -415,9 +412,6 @@ func commandLine() (
 	err = util.RectifyDateFilterOptions(filterOpts, opts)
 	if err != nil {
 		return
-	}
-	if fileOpts.Path == "" && fileOpts.Files == nil && dataPath != "" {
-		fileOpts.Path = dataPath
 	}
 	err = util.RectifyDataFilesOptions(fileOpts, opts)
 	if err != nil {

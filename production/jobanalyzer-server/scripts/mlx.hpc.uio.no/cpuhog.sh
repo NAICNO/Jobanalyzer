@@ -6,12 +6,10 @@
 set -euf -o pipefail
 
 cluster=mlx.hpc.uio.no
-sonar_dir=${sonar_dir:-$HOME/sonar}
-script_dir=$sonar_dir/scripts/$cluster
-data_dir=$sonar_dir/data/$cluster
-state_dir=$sonar_dir/state/$cluster
-output_dir=${state_dir}/$(date +'%Y/%m/%d')
+naicreport_dir=${naicreport_dir:-$HOME/sonar}
+source $naicreport_dir/naicreport-config
 
+output_dir=${state_dir}/$(date +'%Y/%m/%d')
 mkdir -p ${output_dir}
 
 # Report jobs that have used "a lot" of CPU and have run for at least 10 minutes but have not touched the
@@ -24,9 +22,8 @@ mkdir -p ${output_dir}
 # at least, but ==> IMPORTANTLY, it MUST be run often enough that job IDs are not reused between
 # consecutive runs.  It is not expensive, and can be run fairly often.
 
-$sonar_dir/sonalyze jobs \
-		    --data-path $data_dir \
-		    --config-file=$script_dir/$cluster-config.json \
+$naicreport_dir/sonalyze jobs \
+		    $data_source \
 		    -u - \
 		    --no-gpu --min-rcpu-peak=10 --min-runtime=10m \
 		    --fmt=csvnamed,tag:cpuhog,now,std,cpu-peak,gpu-peak,rcpu,rmem,start,end,cmd \

@@ -1,6 +1,6 @@
-// Superstructure for stateful naic reporting.
+// Superstructure for stateful and other NAIC reports that are useful to have in one place.
 //
-// Run `naicreport help` for help.
+// Run `naicreport help` for help.  All commands have their own syntax.
 
 package main
 

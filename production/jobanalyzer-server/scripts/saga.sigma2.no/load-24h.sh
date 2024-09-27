@@ -3,6 +3,9 @@
 # Analysis job to run on one node every 24h.  This job generates the monthly and quarterly load
 # reports for the nodes.
 
+echo "UPDATE THIS TO NEW REALITY ONCE SAGA IS ON-LINE"
+exit 1
+
 set -euf -o pipefail
 
 cluster=saga.sigma2.no

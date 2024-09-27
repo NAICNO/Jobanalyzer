@@ -2,15 +2,15 @@
 //
 // End-user options:
 //
-//  -data-dir directory
-//  -data-path directory (obsolete name)
-//    The root directory of the Sonar data store, for a particular cluster.
+//  -remote url
+//  -auth-file filename
+//    Required: The server (with optional authorization) that will serve data to us
+//
+//  -cluster clustername
+//    Required: the cluster for which we want information from the server
 //
 //  -sonalyze filename
 //    The `sonalyze` executable.
-//
-//  -config-file filename
-//    The machine configuration file for the cluster.
 //
 //  -report-dir directory
 //  -output-path directory (obsolete name)
@@ -52,6 +52,13 @@
 //    interval in minutes for the cluster.
 //
 // Debugging / development options:
+//
+//  -- filename ...
+//    Test input files.
+//
+//  -config-file filename
+//    The machine configuration file for the cluster, required if there are literal file names
+//    on the command line and forbidden otherwise.
 //
 //  -v
 //    Print various (verbose) debugging output
@@ -102,7 +109,8 @@ var (
 	none           bool
 	withDowntime   uint
 	filterOpts     *util.DateFilterOptions
-	filesOpts      *util.DataFilesOptions
+	testFiles      []string
+	remoteOpts     *util.RemoteOptions
 	verbose        bool
 )
 
@@ -157,8 +165,15 @@ func Load(progname string, args []string) error {
 
 	// For -- this must come last, so do standard log options last always
 
-	loadArguments = util.ForwardDataFilesOptions(loadArguments, "--data-path", filesOpts)
-	downtimeArguments = util.ForwardDataFilesOptions(downtimeArguments, "--data-path", filesOpts)
+	if len(testFiles) > 0 {
+		loadArguments = append(loadArguments, "--")
+		loadArguments = append(loadArguments, testFiles...)
+		downtimeArguments = append(downtimeArguments, "--")
+		downtimeArguments = append(downtimeArguments, testFiles...)
+	} else {
+		loadArguments = util.ForwardRemoteOptions(loadArguments, remoteOpts)
+		downtimeArguments = util.ForwardRemoteOptions(downtimeArguments, remoteOpts)
+	}
 
 	// Obtain all the data
 
@@ -378,13 +393,16 @@ func generateDowntimeData(ld *loadDataBySystem, dd []*downtimeDataByHost, hasGpu
 // date.  Then we can just slurp that in here and avoid overhead and complexity.
 
 func downtimeInitialArgs() []string {
-	return []string{
+	args := []string{
 		"uptime",
-		"--config-file", configFilename,
 		"--interval", fmt.Sprint(withDowntime),
 		"--only-down",
 		"--fmt=json,device,host,start,end",
 	}
+	if len(testFiles) > 0 {
+		args = append(args, "--config-file", configFilename)
+	}
+	return args
 }
 
 type downtimeDatum struct {
@@ -492,11 +510,14 @@ type loadDataBySystem struct {
 // outer list is sorted by ascending host name.
 
 func loadInitialArgs() []string {
-	return []string{
+	args := []string{
 		"load",
-		"--config-file", configFilename,
 		"--fmt=json,datetime,cpu,mem,gpu,gpumem,rcpu,rmem,rres,rgpu,rgpumem,gpus,host",
 	}
+	if len(testFiles) > 0 {
+		args = append(args, "--config-file", configFilename)
+	}
+	return args
 }
 
 func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
@@ -572,21 +593,22 @@ func parseLoadOutputBySystem(output string) ([]*loadDataBySystem, error) {
 
 func commandLine() error {
 	opts := flag.NewFlagSet(os.Args[0]+" load", flag.ContinueOnError)
-	filesOpts = util.AddDataFilesOptions(opts, "data-dir", "Root `directory` of data store")
+	remoteOpts = util.AddRemoteOptions(opts)
 	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
-	opts.StringVar(&configFilename, "config-file", "", "Read cluster configuration from `filename` (required)")
+	opts.StringVar(&configFilename, "config-file", "",
+		"Read cluster configuration from `filename` (required for literal test files, forbidden otherwise)")
 	filterOpts = util.AddDateFilterOptions(opts)
 	const defaultReportDir = "."
 	opts.StringVar(&reportDir, "report-dir", defaultReportDir, "Store reports in `directory`")
 	opts.StringVar(&tag, "tag", "", "Tag report file names with `tag-name` (optional)")
-	opts.StringVar(&group, "group", "", "Group these `host name patterns` (comma-separated) (requires bucketing, too)")
+	opts.StringVar(&group, "group", "",
+		"Group these `host name patterns` (comma-separated) (requires bucketing, too)")
 	opts.BoolVar(&hourly, "hourly", true, "Bucket data hourly")
 	opts.BoolVar(&daily, "daily", false, "Bucket data daily")
 	opts.BoolVar(&none, "none", false, "Do not bucket data")
-	opts.UintVar(&withDowntime, "with-downtime", 0, "Include downtime data for this sampling `interval` (minutes)")
+	opts.UintVar(&withDowntime, "with-downtime", 0,
+		"Include downtime data for this sampling `interval` (minutes)")
 	opts.BoolVar(&verbose, "v", false, "Verbose (debugging) output")
-	var dataPath string
-	opts.StringVar(&dataPath, "data-path", "", "Obsolete name for -data-dir")
 	var outputPath string
 	opts.StringVar(&outputPath, "output-path", "", "Obsolete name for -report-dir")
 	err := opts.Parse(os.Args[2:])
@@ -596,14 +618,27 @@ func commandLine() error {
 	if err != nil {
 		return err
 	}
-	err5 := util.RectifyDateFilterOptions(filterOpts, opts)
-	if filesOpts.Path == "" && filesOpts.Files == nil && dataPath != "" {
-		filesOpts.Path = dataPath
+	testFiles = opts.Args()
+	var err1, err2, err3, err4 error
+	if len(testFiles) > 0 {
+		if remoteOpts.Server != "" || remoteOpts.Cluster != "" {
+			err1 = errors.New("Can't combine remote options and local test files")
+		} else if configFilename == "" {
+			err1 = errors.New("Local test files require -config-file")
+		} else {
+			configFilename, err3 = options.RequireCleanPath(configFilename, "-config-file")
+			testFiles, err1 = util.CleanRestArgs(testFiles)
+		}
+	} else {
+		if remoteOpts.Server == "" || remoteOpts.Cluster == "" {
+			err1 = errors.New("Both -remote and -cluster are required")
+		}
+		if configFilename != "" {
+			err1 = errors.New("-config-file is only allowed with local test files")
+		}
 	}
-	var err2, err3, err4 error
-	err1 := util.RectifyDataFilesOptions(filesOpts, opts)
+	err5 := util.RectifyDateFilterOptions(filterOpts, opts)
 	sonalyzePath, err2 = options.RequireCleanPath(sonalyzePath, "-sonalyze")
-	configFilename, err3 = options.RequireCleanPath(configFilename, "-config-file")
 	if reportDir == defaultReportDir && outputPath != "" {
 		reportDir = outputPath
 	}
