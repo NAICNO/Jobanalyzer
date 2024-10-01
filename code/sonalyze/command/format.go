@@ -78,9 +78,23 @@ func ParseFormatSpec[T any](
 // name or the alias.  Default lists in client code can refer to whatever fields they want.
 //
 // There must be no duplicates in the union of field names and aliases.
+//
+// Probably the ctx should be a flag vector (that can vary with the field b/c formatting specifiers
+// like "/sec").  For the needs we have there would be a small set of standard bits: Fixed,
+// OmitDefault, and then one bit per format specifier: /sec, /iso, ...  The use of it for "now" is
+// just a hack (in jobs and load).  The use of it for sysinfo is more concerning but is really also
+// a hack.  Really, the older printing code for jobs and load is full of hacks.  We may end up
+// needing only the format specs, which would make the most sense.
 
-func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Formatter[Datum, Ctx] {
-	formatters := make(map[string]Formatter[Datum, Ctx])
+type PrintMods = int
+
+const (
+	PrintModSec = (1 << iota) // timestamps are printed as seconds since epoch
+	PrintModIso				  // timestamps are printed as Iso timestamps
+)
+
+func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatter[Datum, PrintMods] {
+	formatters := make(map[string]Formatter[Datum, PrintMods])
 	// FIXME when we can adopt Go 1.22
 	//t := reflect.TypeFor[Datum]()
 	var d Datum
@@ -106,14 +120,14 @@ func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Fo
 		if desc == "" {
 			continue
 		}
-		var f Formatter[Datum, Ctx]
+		var f Formatter[Datum, PrintMods]
 		f.Help = desc
 		switch fld.Type.Kind() {
 		case reflect.Slice:
 			elemTy := fld.Type.Elem()
 			switch elemTy.Kind() {
 			case reflect.String:
-				f.Fmt = func(d Datum, _ Ctx) string {
+				f.Fmt = func(d Datum, _ PrintMods) string {
 					vs := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
 					lim := vs.Len()
 					ss := make([]string, lim)
@@ -126,11 +140,11 @@ func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Fo
 				panic("NYI")
 			}
 		case reflect.String:
-			f.Fmt = func(d Datum, _ Ctx) string {
+			f.Fmt = func(d Datum, _ PrintMods) string {
 				return reflect.Indirect(reflect.ValueOf(d)).Field(ix).String()
 			}
 		case reflect.Bool:
-			f.Fmt = func(d Datum, _ Ctx) string {
+			f.Fmt = func(d Datum, _ PrintMods) string {
 				if reflect.Indirect(reflect.ValueOf(d)).Field(ix).Bool() {
 					return "1"
 				}
@@ -138,36 +152,42 @@ func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Fo
 			}
 		case reflect.Uint32:
 			if fld.Type.Name() == "Ustr" && fld.Type.PkgPath() == "sonalyze/common" {
-				f.Fmt = func(d Datum, _ Ctx) string {
+				f.Fmt = func(d Datum, _ PrintMods) string {
 					return Ustr(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()).String()
 				}
 			} else {
-				f.Fmt = func(d Datum, _ Ctx) string {
+				f.Fmt = func(d Datum, _ PrintMods) string {
 					return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
 				}
 			}
 		case reflect.Int64:
 			if fld.Type.Name() == "UnixTime" && fld.Type.PkgPath() == "sonalyze/common" {
-				// TODO: Here we want the context to carry information so that we can select how to
-				// print the time.
-				f.Fmt = func(d Datum, _ Ctx) string {
-					return FormatYyyyMmDdHhMmUtc(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
+				f.Fmt = func(d Datum, ctx PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+					switch {
+					case (ctx & PrintModSec) != 0:
+						return fmt.Sprint(val)
+					case (ctx & PrintModIso) != 0:
+						panic("NYI") // FIXME
+					default:
+						return FormatYyyyMmDdHhMmUtc(val)
+					}
 				}
 			} else {
-				f.Fmt = func(d Datum, _ Ctx) string {
+				f.Fmt = func(d Datum, _ PrintMods) string {
 					return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
 				}
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
-			f.Fmt = func(d Datum, _ Ctx) string {
+			f.Fmt = func(d Datum, _ PrintMods) string {
 				return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
 			}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint64:
-			f.Fmt = func(d Datum, _ Ctx) string {
+			f.Fmt = func(d Datum, _ PrintMods) string {
 				return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
 			}
 		case reflect.Float32, reflect.Float64:
-			f.Fmt = func(d Datum, _ Ctx) string {
+			f.Fmt = func(d Datum, _ PrintMods) string {
 				return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Float())
 			}
 		default:

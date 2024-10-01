@@ -98,7 +98,7 @@ func (cc *ClusterCommand) Clusters(_ io.Reader, stdout, stderr io.Writer) error 
 		clustersFormatters,
 		cc.FormatArgs.PrintOpts,
 		printable,
-		false,
+		PrintMods(0),
 	)
 
 	return nil
@@ -131,4 +131,4 @@ var clustersAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var clustersFormatters = ReflectFormatters[*db.ClusterEntry, bool](nil)
+var clustersFormatters = ReflectFormatters[*db.ClusterEntry](nil)

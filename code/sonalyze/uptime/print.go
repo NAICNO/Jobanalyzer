@@ -16,7 +16,7 @@ func (uc *UptimeCommand) printReports(out io.Writer, reports []UptimeLine) {
 		uptimeFormatters,
 		uc.PrintOpts,
 		reports,
-		false,
+		PrintMods(0),
 	)
 }
 
@@ -70,4 +70,4 @@ var uptimeAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var uptimeFormatters = ReflectFormatters[UptimeLine, bool](nil)
+var uptimeFormatters = ReflectFormatters[UptimeLine](nil)

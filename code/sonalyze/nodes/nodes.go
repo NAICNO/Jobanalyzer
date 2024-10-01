@@ -174,7 +174,7 @@ func (nc *NodeCommand) Nodes(_ io.Reader, stdout, stderr io.Writer) error {
 		nodesFormatters,
 		nc.FormatArgs.PrintOpts,
 		records,
-		false,
+		PrintMods(0),
 	)
 
 	return nil
@@ -239,6 +239,6 @@ var nodesAliases = map[string][]string{
 
 // MT: Constant after initialization; immutable
 // The context is unused and should always be false
-var nodesFormatters = ReflectFormatters[*config.NodeConfigRecord, bool](map[string]bool{
+var nodesFormatters = ReflectFormatters[*config.NodeConfigRecord](map[string]bool{
 	"CrossNodeJobs": true,
 })

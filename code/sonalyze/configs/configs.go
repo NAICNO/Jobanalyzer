@@ -115,7 +115,7 @@ func (cc *ConfigCommand) Configs(_ io.Reader, stdout, _ io.Writer) error {
 		configsFormatters,
 		cc.FormatArgs.PrintOpts,
 		records,
-		false,
+		PrintMods(0),
 	)
 
 	return nil
@@ -150,4 +150,4 @@ var configsAliases = map[string][]string{
 
 // MT: Constant after initialization; immutable
 // The context is unused and should always be false
-var configsFormatters = ReflectFormatters[*config.NodeConfigRecord, bool](nil)
+var configsFormatters = ReflectFormatters[*config.NodeConfigRecord](nil)

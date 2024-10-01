@@ -160,7 +160,7 @@ func (mdc *MetadataCommand) Perform(
 			})
 		}
 		sort.Sort(HostTimeSortableItems(items))
-		FormatData(out, mdc.PrintFields, metadataFormatters, mdc.PrintOpts, items, false)
+		FormatData(out, mdc.PrintFields, metadataFormatters, mdc.PrintOpts, items, PrintMods(0))
 	}
 
 	return nil
@@ -189,4 +189,4 @@ var metadataAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var metadataFormatters = ReflectFormatters[metadataItem, bool](nil)
+var metadataFormatters = ReflectFormatters[metadataItem](nil)
