@@ -119,35 +119,16 @@ nodes
   Output records are sorted by cluster name.  The default format is 'fixed'.
 `
 
-type clustersCtx = bool
-type clustersSummary = db.ClusterEntry
-
-const clustersDefaultFields = "cluster,aliases,desc"
+const v0ClustersDefaultFields = "cluster,aliases,desc"
+const v1ClustersDefaultFields = "Name,Aliases,Description"
+const clustersDefaultFields = v0ClustersDefaultFields
 
 // MT: Constant after initialization; immutable
 var clustersAliases = map[string][]string{
-	"default":     strings.Split(clustersDefaultFields, ","),
-	"description": []string{"desc"},
+	"default":   strings.Split(clustersDefaultFields, ","),
+	"v0default": strings.Split(v0ClustersDefaultFields, ","),
+	"v1default": strings.Split(v1ClustersDefaultFields, ","),
 }
 
 // MT: Constant after initialization; immutable
-var clustersFormatters = map[string]Formatter[*clustersSummary, clustersCtx]{
-	"cluster": {
-		func(i *clustersSummary, _ clustersCtx) string {
-			return i.Name
-		},
-		"Cluster name",
-	},
-	"desc": {
-		func(i *clustersSummary, _ clustersCtx) string {
-			return i.Description
-		},
-		"Human-consumable cluster summary",
-	},
-	"aliases": {
-		func(i *clustersSummary, _ clustersCtx) string {
-			return strings.Join(i.Aliases, ",")
-		},
-		"Aliases of cluster",
-	},
-}
+var clustersFormatters = ReflectFormatters[db.ClusterEntry, bool](nil)

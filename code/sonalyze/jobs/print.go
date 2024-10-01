@@ -137,6 +137,14 @@ const (
 	KibToGibFactor = 1024 * 1024
 )
 
+// This is a complicated data structure and hard to format with simple reflection.  It is nested,
+// and we don't really want to flatten it completely just so that we can print it - lots of work,
+// and we're just moving code from the printing into table computation.
+//
+// On the other hand, doing so would put the table on a firmer foundation, semantics would be
+// defined by the table and not by the printer, and directives such as /sec could be handled by
+// generic printing code and not here.
+
 // MT: Constant after initialization; immutable
 var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 	"jobm": {

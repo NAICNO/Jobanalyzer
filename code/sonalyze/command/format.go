@@ -5,12 +5,15 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
 	"unicode/utf8"
 
-	"go-utils/maps"
+	umaps "go-utils/maps"
+
+	. "sonalyze/common"
 )
 
 type FormatOptions struct {
@@ -34,9 +37,9 @@ func (fo *FormatOptions) IsDefaultFormat() bool {
 // strings found in `spec`, plus also "help" if fmtOpt=="help".  Expand aliases (though not
 // recursively: aliases must map to fundamental names).
 
-func ParseFormatSpec[Data, Ctx any](
+func ParseFormatSpec[T any](
 	defaults, fmtOpt string,
-	formatters map[string]Formatter[Data, Ctx],
+	formatters map[string]T,
 	aliases map[string][]string,
 ) ([]string, map[string]bool, error) {
 	spec := fmtOpt
@@ -64,6 +67,101 @@ func ParseFormatSpec[Data, Ctx any](
 		}
 	}
 	return fields, others, nil
+}
+
+// Given a struct type, construct a map from field names to formatters for the field.  Fields are
+// excluded if they appear in isExcluded.
+//
+// A field may have an alias in addition to its name.  The alias is treated just as the name.
+// Aliases are a consequence of older code using "convenient" names for fields while we want to move
+// to a world where fields are named in a transparent and uniform way.  Clients can ask for the real
+// name or the alias.  Default lists in client code can refer to whatever fields they want.
+//
+// There must be no duplicates in the union of field names and aliases.
+
+func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Formatter[*Datum, Ctx] {
+	formatters := make(map[string]Formatter[*Datum, Ctx])
+	// FIXME when we can adopt Go 1.22
+	//t := reflect.TypeFor[Datum]()
+	var d Datum
+	t := reflect.TypeOf(d)
+	if t.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("Bad %d", t.Kind()))
+	}
+	for i, lim := 0, t.NumField(); i < lim; i++ {
+		fld := t.Field(i)
+		name := fld.Name
+		if isExcluded[name] {
+			continue
+		}
+		alias := fld.Tag.Get("alias")
+		if alias != "" && isExcluded[alias] {
+			continue
+		}
+		desc := fld.Tag.Get("desc")
+		if desc == "" {
+			continue
+		}
+		var f Formatter[*Datum, Ctx]
+		f.Help = desc
+		switch fld.Type.Kind() {
+		case reflect.Slice:
+			elemTy := fld.Type.Elem()
+			switch elemTy.Kind() {
+			case reflect.String:
+				ix := i // FIXME when we adopt Go 1.22
+				f.Fmt = func(d *Datum, _ Ctx) string {
+					vs := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
+					lim := vs.Len()
+					ss := make([]string, lim)
+					for j := 0; j < lim; j++ {
+						ss[j] = vs.Index(j).String()
+					}
+					return strings.Join(ss, ",")
+				}
+			default:
+				panic("NYI")
+			}
+		case reflect.String:
+			ix := i // FIXME when we adopt Go 1.22
+			f.Fmt = func(d *Datum, _ Ctx) string {
+				return reflect.Indirect(reflect.ValueOf(d)).Field(ix).String()
+			}
+		case reflect.Bool:
+			ix := i // FIXME when we adopt Go 1.22
+			f.Fmt = func(d *Datum, _ Ctx) string {
+				if reflect.Indirect(reflect.ValueOf(d)).Field(ix).Bool() {
+					return "1"
+				}
+				return "0"
+			}
+		case reflect.Int:
+			ix := i // FIXME when we adopt Go 1.22
+			f.Fmt = func(d *Datum, _ Ctx) string {
+				return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
+			}
+		case reflect.Int64:
+			ix := i // FIXME when we adopt Go 1.22
+			if fld.Type.Name() == "UnixTime" && fld.Type.PkgPath() == "sonalyze/common" {
+				// TODO: Here we want the context to carry information so that we can select how to
+				// print the time.
+				f.Fmt = func(d *Datum, _ Ctx) string {
+					return FormatYyyyMmDdHhMmUtc(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
+				}
+			} else {
+				f.Fmt = func(d *Datum, _ Ctx) string {
+					return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
+				}
+			}
+		default:
+			continue
+		}
+		formatters[name] = f
+		if alias != "" {
+			formatters[alias] = f
+		}
+	}
+	return formatters
 }
 
 // Parse the non-field-name attributes as a set of formatting options.
@@ -484,7 +582,7 @@ func PrintFormatHelp(out io.Writer, h *FormatHelp) {
 		}
 		if len(h.Aliases) > 0 {
 			fmt.Fprintln(out, "\nAliases:")
-			aliases := maps.Keys(h.Aliases)
+			aliases := umaps.Keys(h.Aliases)
 			sort.Sort(sort.StringSlice(aliases))
 			for _, k := range aliases {
 				// Do not sort the names in the expansion because the order matters

@@ -122,6 +122,39 @@ type loadCtx struct {
 	now int64
 }
 
+// This is complicated in several ways: loadCtx carries both the "now" timestamp and a node config
+// record; fields are printed under names other than their field names (datetime, date, time); there
+// is computation; there is indirection in the sonarlog.Sample record.
+//
+// In a sense I think what's happening here is that the "table" is an array of maps from field name
+// to string value, where the keys are the selected fields for the record and the values are the
+// formatted values.  But they don't have to be formatted - they could just be computed.  And it
+// does not have to be a map: there could be a slice of keys, and then a []any to hold the values,
+// and the values would carry their types, and that would be fine.  But then we'd end up with
+// pre-formatting logic to select fields that looks a lot like formatting logic?  There would be a
+// loop across keys of the first array and a dispatch to extract or compute values.  But the
+// formatting code might still be able to do all the formatting and layout for us, which would be a
+// win.
+//
+// Still we don't want to have to compute the formatting function for each line in the output.
+//
+// It's possibly faster to just compute everything than to try to optimize - at least here.  In
+// the case of jobs it's probably different?  But there we compute everything already anyway.
+
+/*
+type ReportRecord struct {
+	Now UnixTime
+	DateTime UnixTime
+	Date     DateValue
+	Time     TimeValue
+	Cpu      int
+	RCpu     int
+	...;
+	Gpus     GpuSet
+	Hostname String
+}
+*/
+
 // MT: Constant after initialization; immutable
 var loadFormatters = map[string]Formatter[sonarlog.Sample, loadCtx]{
 	"now": {

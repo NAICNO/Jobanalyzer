@@ -18,7 +18,6 @@ import (
 	"cmp"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"slices"
 	"strings"
@@ -138,79 +137,17 @@ configs
   default format is 'fixed'.
 `
 
-type configCtx = bool
-type configSummary = config.NodeConfigRecord
-
-const configsDefaultFields = "host,cores,mem,gpus,gpumem,xnode,desc"
+const v0ConfigsDefaultFields = "host,cores,mem,gpus,gpumem,xnode,desc"
+const v1ConfigsDefaultFields = "Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,CrossNodeJobs,Description"
+const configsDefaultFields = v0ConfigsDefaultFields
 
 // MT: Constant after initialization; immutable
 var configsAliases = map[string][]string{
-	"default":     strings.Split(configsDefaultFields, ","),
-	"hostname":    []string{"host"},
-	"description": []string{"desc"},
-	"ram":         []string{"mem"},
+	"default": strings.Split(configsDefaultFields, ","),
+	"v0default": strings.Split(v0ConfigsDefaultFields, ","),
+	"v1default": strings.Split(v1ConfigsDefaultFields, ","),
 }
 
 // MT: Constant after initialization; immutable
-var configsFormatters = map[string]Formatter[*configSummary, configCtx]{
-	"timestamp": {
-		func(i *configSummary, _ configCtx) string {
-			return i.Timestamp
-		},
-		"Timestamp of record (UTC)",
-	},
-	"host": {
-		func(i *configSummary, _ configCtx) string {
-			return i.Hostname
-		},
-		"Node name",
-	},
-	"desc": {
-		func(i *configSummary, _ configCtx) string {
-			return i.Description
-		},
-		"Human-consumable node summary",
-	},
-	"xnode": {
-		func(i *configSummary, _ configCtx) string {
-			if i.CrossNodeJobs {
-				return "yes"
-			}
-			return "no"
-		},
-		"Can node participate in cross-node jobs?",
-	},
-	"cores": {
-		func(i *configSummary, _ configCtx) string {
-			return fmt.Sprint(i.CpuCores)
-		},
-		"Number of cores on the node (virtual cores)",
-	},
-	"mem": {
-		func(i *configSummary, _ configCtx) string {
-			return fmt.Sprint(i.MemGB)
-		},
-		"GB of physical RAM on the node",
-	},
-	"gpus": {
-		func(i *configSummary, _ configCtx) string {
-			return fmt.Sprint(i.GpuCards)
-		},
-		"Number of installed GPU cards on the node",
-	},
-	"gpumem": {
-		func(i *configSummary, _ configCtx) string {
-			return fmt.Sprint(i.GpuMemGB)
-		},
-		"GB of GPU RAM on the node (across all cards)",
-	},
-	"gpumempct": {
-		func(i *configSummary, _ configCtx) string {
-			if i.GpuMemPct {
-				return "yes"
-			}
-			return "no"
-		},
-		"GPUs report memory in percentage",
-	},
-}
+// The context is unused and should always be false
+var configsFormatters = ReflectFormatters[config.NodeConfigRecord, bool](nil)

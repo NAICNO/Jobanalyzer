@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+// This is used in some data records to signify a particular kind of formatting.  It is just a
+// second count since epoch.
+
+type UnixTime int64
+
 // Parse a relative date string and return the time in the UTC time zone.  The base time is folded
 // to UTC if it is not already utc.
 //

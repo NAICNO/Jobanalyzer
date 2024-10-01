@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 	"time"
 
 	"go-utils/config"
@@ -89,21 +90,22 @@ func (mdc *MetadataCommand) DefaultRecordFilters() (
 }
 
 type metadataItem struct {
-	host             string
-	earliest, latest int64
+	Hostname string   `alias:"host"     desc:"Name that host is known by on the cluster"`
+	Earliest UnixTime `alias:"earliest" desc:"Timestamp of earliest sample for host"`
+	Latest   UnixTime `alias:"latest"   desc:"Timestamp of latest sample for host"`
 }
 
-type HostTimeSortableItems []metadataItem
+type HostTimeSortableItems []*metadataItem
 
 func (xs HostTimeSortableItems) Len() int {
 	return len(xs)
 }
 
 func (xs HostTimeSortableItems) Less(i, j int) bool {
-	if xs[i].host == xs[j].host {
-		return xs[i].earliest < xs[j].earliest
+	if xs[i].Hostname == xs[j].Hostname {
+		return xs[i].Earliest < xs[j].Earliest
 	}
-	return xs[i].host < xs[j].host
+	return xs[i].Hostname < xs[j].Hostname
 }
 
 func (xs HostTimeSortableItems) Swap(i, j int) {
@@ -148,24 +150,26 @@ func (mdc *MetadataCommand) Perform(
 			_, bounds = sonarlog.MergeByJob(streams, bounds)
 		}
 
-		// Print the bounds
-		items := make([]metadataItem, 0)
+		// Print the bounds.  Didn't need to be array-of-pointer but this is dictated by the
+		// formatting framework.
+		items := make([]*metadataItem, 0)
 		for k, v := range bounds {
-			items = append(items, metadataItem{
-				host:     k.String(),
-				earliest: v.Earliest,
-				latest:   v.Latest,
+			items = append(items, &metadataItem{
+				Hostname: k.String(),
+				Earliest: UnixTime(v.Earliest),
+				Latest:   UnixTime(v.Latest),
 			})
 		}
 		sort.Sort(HostTimeSortableItems(items))
-		FormatData(out, mdc.PrintFields, metadataFormatters, mdc.PrintOpts, items, metadataCtx(false))
+		FormatData(out, mdc.PrintFields, metadataFormatters, mdc.PrintOpts, items, false)
 	}
 
 	return nil
 }
 
 func (mdc *MetadataCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(mdc.Fmt, metadataHelp, metadataFormatters, metadataAliases, metadataDefaultFields)
+	return StandardFormatHelp(
+		mdc.Fmt, metadataHelp, metadataFormatters, metadataAliases, metadataDefaultFields)
 }
 
 const metadataHelp = `
@@ -173,33 +177,17 @@ metadata
   Compute time bounds and file names for the run.
 `
 
-const metadataDefaultFields = "all"
+const v0MetadataDefaultFields = "host,earliest,latest"
+const v1MetadataDefaultFields = "Hostname,Earliest,Latest"
+const metadataDefaultFields = v0MetadataDefaultFields
 
 // MT: Constant after initialization; immutable
 var metadataAliases = map[string][]string{
-	"all": []string{"host", "earliest", "latest"},
+	"all":         []string{"host","earliest","latest"},
+	"default":     strings.Split(metadataDefaultFields, ","),
+	"v0default":     strings.Split(v0MetadataDefaultFields, ","),
+	"v1default":     strings.Split(v1MetadataDefaultFields, ","),
 }
-
-type metadataCtx bool
 
 // MT: Constant after initialization; immutable
-var metadataFormatters = map[string]Formatter[metadataItem, metadataCtx]{
-	"host": {
-		func(d metadataItem, _ metadataCtx) string {
-			return d.host
-		},
-		"The host name for a sample stream",
-	},
-	"earliest": {
-		func(d metadataItem, _ metadataCtx) string {
-			return FormatYyyyMmDdHhMmUtc(d.earliest)
-		},
-		"The earliest time in a sample stream (yyyy-mm-dd hh:mm)",
-	},
-	"latest": {
-		func(d metadataItem, _ metadataCtx) string {
-			return FormatYyyyMmDdHhMmUtc(d.latest)
-		},
-		"The latest time in a sample stream (yyyy-mm-dd hh:mm)",
-	},
-}
+var metadataFormatters = ReflectFormatters[metadataItem, bool](nil)

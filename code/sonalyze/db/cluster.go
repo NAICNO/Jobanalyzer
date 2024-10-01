@@ -66,9 +66,9 @@ var (
 )
 
 type ClusterEntry struct {
-	Name        string
-	Description string
-	Aliases     []string
+	Name        string    `alias:"cluster" desc:"Cluster name"`
+	Description string    `alias:"desc"    desc:"Human-consumable cluster summary"`
+	Aliases     []string  `alias:"aliases" desc:"Aliases of cluster"`
 }
 
 // The cluster table is returned as a pair: a shared immutable map from cluster name to cluster
