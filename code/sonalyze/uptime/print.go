@@ -8,7 +8,7 @@ import (
 	. "sonalyze/command"
 )
 
-func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) {
+func (uc *UptimeCommand) printReports(out io.Writer, reports []UptimeLine) {
 	sort.Sort(sortableReports(reports))
 	FormatData(
 		out,
@@ -20,7 +20,7 @@ func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) {
 	)
 }
 
-type sortableReports []*UptimeLine
+type sortableReports []UptimeLine
 
 func (sr sortableReports) Len() int {
 	return len(sr)

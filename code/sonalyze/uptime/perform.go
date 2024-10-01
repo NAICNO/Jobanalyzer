@@ -112,8 +112,8 @@ func (uc *UptimeCommand) computeReports(
 	bounds sonarlog.Timebounds,
 	cfg *config.ClusterConfig,
 	hostGlobber *hostglob.HostGlobber,
-) []*UptimeLine {
-	reports := make([]*UptimeLine, 0)
+) []UptimeLine {
+	reports := make([]UptimeLine, 0)
 	fromIncl, toIncl := uc.InterpretFromToWithBounds(bounds)
 
 	sort.Stable(sonarlog.HostTimeSortableSampleStream(samples))
@@ -133,7 +133,7 @@ func (uc *UptimeCommand) computeReports(
 				Log.Infof("  Down at start")
 			}
 			if !uc.OnlyUp {
-				reports = append(reports, &UptimeLine{
+				reports = append(reports, UptimeLine{
 					Device: "host",
 					Hostname:   hostFirst.S.Host.String(),
 					State:  "down",
@@ -149,7 +149,7 @@ func (uc *UptimeCommand) computeReports(
 				Log.Infof("  Down at end")
 			}
 			if !uc.OnlyUp {
-				reports = append(reports, &UptimeLine{
+				reports = append(reports, UptimeLine{
 					Device: "host",
 					Hostname:   hostFirst.S.Host.String(),
 					State:  "down",
@@ -180,7 +180,7 @@ func (uc *UptimeCommand) computeReports(
 				Log.Infof("  Up window %d..%d inclusive", windowStart, j-1)
 			}
 			if !uc.OnlyDown {
-				reports = append(reports, &UptimeLine{
+				reports = append(reports, UptimeLine{
 					Device: "host",
 					Hostname:   hostFirst.S.Host.String(),
 					State:  "up",
@@ -203,7 +203,7 @@ func (uc *UptimeCommand) computeReports(
 				Log.Infof("  Down window %d..%d inclusive\n", j-1, j)
 			}
 			if !uc.OnlyUp {
-				reports = append(reports, &UptimeLine{
+				reports = append(reports, UptimeLine{
 					Device: "host",
 					Hostname:   hostFirst.S.Host.String(),
 					State:  "down",
@@ -230,7 +230,7 @@ func (uc *UptimeCommand) computeReports(
 				updown = "up"
 			}
 			if !(updown == "up" && uc.OnlyDown) && !(updown == "down" && uc.OnlyUp) {
-				reports = append(reports, &UptimeLine{
+				reports = append(reports, UptimeLine{
 					Device: "gpu",
 					Hostname:   samples[w.start].S.Host.String(),
 					State:  updown,
@@ -300,7 +300,7 @@ func (uc *UptimeCommand) computeHostWindows(
 // The samples are sorted by host and then by ascending timestamp.
 
 func (uc *UptimeCommand) computeAlwaysDown(
-	reports *[]*UptimeLine,
+	reports *[]UptimeLine,
 	samples sonarlog.SampleStream,
 	cfg *config.ClusterConfig,
 	hostGlobber *hostglob.HostGlobber,
@@ -318,9 +318,8 @@ func (uc *UptimeCommand) computeAlwaysDown(
 			if !hostGlobber.IsEmpty() && !hostGlobber.Match(h.String()) {
 				continue
 			}
-			// `h` is down in the entire window.  The fact that it's *UptimeLine is dictated by
-			// the formatter framework.
-			*reports = append(*reports, &UptimeLine{
+			// `h` is down in the entire window.
+			*reports = append(*reports, UptimeLine{
 				Device: "host",
 				Hostname:   h.String(),
 				State:  "down",

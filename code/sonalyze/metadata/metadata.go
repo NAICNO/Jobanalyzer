@@ -95,7 +95,7 @@ type metadataItem struct {
 	Latest   UnixTime `alias:"latest"   desc:"Timestamp of latest sample for host"`
 }
 
-type HostTimeSortableItems []*metadataItem
+type HostTimeSortableItems []metadataItem
 
 func (xs HostTimeSortableItems) Len() int {
 	return len(xs)
@@ -150,11 +150,10 @@ func (mdc *MetadataCommand) Perform(
 			_, bounds = sonarlog.MergeByJob(streams, bounds)
 		}
 
-		// Print the bounds.  Didn't need to be array-of-pointer but this is dictated by the
-		// formatting framework.
-		items := make([]*metadataItem, 0)
+		// Print the bounds.
+		items := make([]metadataItem, 0)
 		for k, v := range bounds {
-			items = append(items, &metadataItem{
+			items = append(items, metadataItem{
 				Hostname: k.String(),
 				Earliest: UnixTime(v.Earliest),
 				Latest:   UnixTime(v.Latest),

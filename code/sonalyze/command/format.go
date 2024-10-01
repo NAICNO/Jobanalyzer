@@ -69,8 +69,8 @@ func ParseFormatSpec[T any](
 	return fields, others, nil
 }
 
-// Given a struct type, construct a map from field names to formatters for the field.  Fields are
-// excluded if they appear in isExcluded.
+// Given a struct or pointer-to-struct type, construct a map from field names to formatters for the
+// field.  Fields are excluded if they appear in isExcluded.
 //
 // A field may have an alias in addition to its name.  The alias is treated just as the name.
 // Aliases are a consequence of older code using "convenient" names for fields while we want to move
@@ -79,12 +79,15 @@ func ParseFormatSpec[T any](
 //
 // There must be no duplicates in the union of field names and aliases.
 
-func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Formatter[*Datum, Ctx] {
-	formatters := make(map[string]Formatter[*Datum, Ctx])
+func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Formatter[Datum, Ctx] {
+	formatters := make(map[string]Formatter[Datum, Ctx])
 	// FIXME when we can adopt Go 1.22
 	//t := reflect.TypeFor[Datum]()
 	var d Datum
 	t := reflect.TypeOf(d)
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
 	if t.Kind() != reflect.Struct {
 		panic(fmt.Sprintf("Bad %d", t.Kind()))
 	}
@@ -103,14 +106,14 @@ func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Fo
 		if desc == "" {
 			continue
 		}
-		var f Formatter[*Datum, Ctx]
+		var f Formatter[Datum, Ctx]
 		f.Help = desc
 		switch fld.Type.Kind() {
 		case reflect.Slice:
 			elemTy := fld.Type.Elem()
 			switch elemTy.Kind() {
 			case reflect.String:
-				f.Fmt = func(d *Datum, _ Ctx) string {
+				f.Fmt = func(d Datum, _ Ctx) string {
 					vs := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
 					lim := vs.Len()
 					ss := make([]string, lim)
@@ -123,11 +126,11 @@ func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Fo
 				panic("NYI")
 			}
 		case reflect.String:
-			f.Fmt = func(d *Datum, _ Ctx) string {
+			f.Fmt = func(d Datum, _ Ctx) string {
 				return reflect.Indirect(reflect.ValueOf(d)).Field(ix).String()
 			}
 		case reflect.Bool:
-			f.Fmt = func(d *Datum, _ Ctx) string {
+			f.Fmt = func(d Datum, _ Ctx) string {
 				if reflect.Indirect(reflect.ValueOf(d)).Field(ix).Bool() {
 					return "1"
 				}
@@ -135,11 +138,11 @@ func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Fo
 			}
 		case reflect.Uint32:
 			if fld.Type.Name() == "Ustr" && fld.Type.PkgPath() == "sonalyze/common" {
-				f.Fmt = func(d *Datum, _ Ctx) string {
+				f.Fmt = func(d Datum, _ Ctx) string {
 					return Ustr(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()).String()
 				}
 			} else {
-				f.Fmt = func(d *Datum, _ Ctx) string {
+				f.Fmt = func(d Datum, _ Ctx) string {
 					return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
 				}
 			}
@@ -147,24 +150,24 @@ func ReflectFormatters[Datum, Ctx any](isExcluded map[string]bool) map[string]Fo
 			if fld.Type.Name() == "UnixTime" && fld.Type.PkgPath() == "sonalyze/common" {
 				// TODO: Here we want the context to carry information so that we can select how to
 				// print the time.
-				f.Fmt = func(d *Datum, _ Ctx) string {
+				f.Fmt = func(d Datum, _ Ctx) string {
 					return FormatYyyyMmDdHhMmUtc(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
 				}
 			} else {
-				f.Fmt = func(d *Datum, _ Ctx) string {
+				f.Fmt = func(d Datum, _ Ctx) string {
 					return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
 				}
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
-			f.Fmt = func(d *Datum, _ Ctx) string {
+			f.Fmt = func(d Datum, _ Ctx) string {
 				return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
 			}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint64:
-			f.Fmt = func(d *Datum, _ Ctx) string {
+			f.Fmt = func(d Datum, _ Ctx) string {
 				return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
 			}
 		case reflect.Float32, reflect.Float64:
-			f.Fmt = func(d *Datum, _ Ctx) string {
+			f.Fmt = func(d Datum, _ Ctx) string {
 				return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Float())
 			}
 		default:

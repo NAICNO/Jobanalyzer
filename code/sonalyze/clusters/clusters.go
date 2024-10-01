@@ -131,4 +131,4 @@ var clustersAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var clustersFormatters = ReflectFormatters[db.ClusterEntry, bool](nil)
+var clustersFormatters = ReflectFormatters[*db.ClusterEntry, bool](nil)

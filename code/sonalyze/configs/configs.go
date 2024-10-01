@@ -150,4 +150,4 @@ var configsAliases = map[string][]string{
 
 // MT: Constant after initialization; immutable
 // The context is unused and should always be false
-var configsFormatters = ReflectFormatters[config.NodeConfigRecord, bool](nil)
+var configsFormatters = ReflectFormatters[*config.NodeConfigRecord, bool](nil)
