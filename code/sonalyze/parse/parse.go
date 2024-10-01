@@ -217,6 +217,13 @@ var parseAliases = map[string][]string{
 
 type parseCtx bool
 
+// FIXME: Here we get into trouble, b/c elsewhere the formatting code assumes we operate on []*T,
+// for reified formatters on T, but here we have []T for formatters on T.  The right fix is probably
+// to fix the framework to handle the indirection somehow, we don't want to change the data
+// structure.  The fallout from that is that some pointers that were introduced in the other
+// packages (metadata, uptime) can be removed again.  I believe the original culprit was that
+// for eg clusters, the data are *db.ClusterEntry.  So that's a good place to start?
+
 // TODO: IMPROVEME: The defaulted fields here follow the Rust code.  We'll keep it this way until we
 // switch over.  Then we can maybe default more fields.
 // MT: Constant after initialization; immutable
