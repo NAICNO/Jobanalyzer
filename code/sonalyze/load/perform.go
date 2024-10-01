@@ -2,6 +2,8 @@ package load
 
 import (
 	"io"
+	"math"
+	"time"
 
 	"go-utils/config"
 	"go-utils/hostglob"
@@ -70,7 +72,7 @@ func (lc *LoadCommand) Perform(
 		if cfg != nil {
 			for _, stream := range mergedStreams {
 				// probe is non-nil by previous construction
-				probe := cfg.LookupHost((*stream)[0].S.Host.String())
+				probe := cfg.LookupHost((*stream)[0].Host.String())
 				if theConf.Description != "" {
 					theConf.Description += "|||" // JSON-compatible separator
 				}
@@ -96,7 +98,23 @@ func (lc *LoadCommand) Perform(
 		}
 	}
 
-	lc.printStreams(out, cfg, mergedConf, mergedStreams)
+	// Generate data to be printed
+	reports := make([]LoadReport, 0)
+	for _, stream := range mergedStreams {
+		hostname := (*stream)[0].Host.String()
+		conf := mergedConf
+		if conf == nil && cfg != nil {
+			conf = cfg.LookupHost(hostname)
+		}
+		reports = append(reports, LoadReport{
+			hostname: hostname,
+			records:  generateReport(*stream, time.Now().Unix(), conf),
+			conf:     conf,
+		})
+	}
+
+	// And print it
+	lc.printStreams(out, reports)
 
 	return nil
 }
@@ -123,13 +141,13 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 	default:
 		panic("Unexpected case")
 	}
-	host := (*ss)[0].S.Host
+	host := (*ss)[0].Host
 	t := trunc(fromIncl)
 	result := make(sonarlog.SampleStream, 0)
 
 	for _, s := range *ss {
-		for t < s.S.Timestamp {
-			newS := sonarlog.Sample{S: &db.Sample{Timestamp: t, Host: host}}
+		for t < s.Timestamp {
+			newS := sonarlog.Sample{Sample: &db.Sample{Timestamp: t, Host: host}}
 			result = append(result, newS)
 			t = step(t)
 		}
@@ -138,9 +156,59 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 	}
 	ending := trunc(toIncl)
 	for t <= ending {
-		newS := sonarlog.Sample{S: &db.Sample{Timestamp: t, Host: host}}
+		newS := sonarlog.Sample{Sample: &db.Sample{Timestamp: t, Host: host}}
 		result = append(result, newS)
 		t = step(t)
 	}
 	*ss = result
+}
+
+// `sys` may be nil if none of the requested fields use its data, so we must guard against that.
+func generateReport(
+	input []sonarlog.Sample,
+	now int64,
+	sys *config.NodeConfigRecord,
+) (result []*ReportRecord) {
+	result = make([]*ReportRecord, 0, len(input))
+	for _, d := range input {
+		var relativeCpu, relativeVirtualMem, relativeResidentMem, relativeGpu, relativeGpuMem int
+		if sys != nil {
+			if sys.CpuCores > 0 {
+				relativeCpu = int(math.Round(float64(d.CpuUtilPct) / float64(sys.CpuCores)))
+			}
+			if sys.MemGB > 0 {
+				relativeVirtualMem =
+					int(math.Round(float64(d.CpuKib) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
+				relativeResidentMem =
+					int(math.Round(float64(d.RssAnonKib) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
+			}
+			if sys.GpuCards > 0 {
+				// GpuPct is already scaled by 100 so don't do it again
+				relativeGpu = int(math.Round(float64(d.GpuPct) / float64(sys.GpuCards)))
+			}
+			if sys.GpuMemGB > 0 {
+				relativeGpuMem =
+					int(math.Round(float64(d.GpuKib) / (1024 * 1024) / float64(sys.GpuMemGB) * 100))
+			}
+		}
+		result = append(result, &ReportRecord{
+			Now:                 DateTimeValue(now),
+			DateTime:            DateTimeValue(d.Timestamp),
+			Date:                DateValue(d.Timestamp),
+			Time:                TimeValue(d.Timestamp),
+			Cpu:                 int(d.CpuUtilPct),
+			RelativeCpu:         relativeCpu,
+			VirtualGB:           int(d.CpuKib / (1024 * 1024)),
+			RelativeVirtualMem:  relativeVirtualMem,
+			ResidentGB:          int(d.RssAnonKib / (1024 * 1024)),
+			RelativeResidentMem: relativeResidentMem,
+			Gpu:                 int(d.GpuPct),
+			RelativeGpu:         relativeGpu,
+			GpuGB:               int(d.GpuKib / (1024 * 1024)),
+			RelativeGpuMem:      relativeGpuMem,
+			Gpus:                d.Gpus,
+			Hostname:            d.Host,
+		})
+	}
+	return
 }
