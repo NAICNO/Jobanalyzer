@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -170,11 +171,11 @@ func (nc *NodeCommand) Nodes(_ io.Reader, stdout, stderr io.Writer) error {
 
 	FormatData(
 		stdout,
-		nc.FormatArgs.PrintFields,
+		nc.PrintFields,
 		nodesFormatters,
-		nc.FormatArgs.PrintOpts,
-		records,
-		false,
+		nc.PrintOpts,
+		uslices.Map(records, func(x *config.NodeConfigRecord) any { return x }),
+		ComputePrintMods(nc.PrintOpts),
 	)
 
 	return nil
@@ -212,8 +213,8 @@ func (nc *NodeCommand) buildRecordFilter(
 //
 // Printing
 //
-// There is no printer for cross-node because that is a config-level attribute, it does not appear
-// in the raw sysinfo data.
+// Note cross-node is a config-level attribute, it does not appear in the raw sysinfo data, and so
+// it is excluded here.
 
 func (nc *NodeCommand) MaybeFormatHelp() *FormatHelp {
 	return StandardFormatHelp(nc.Fmt, nodesHelp, nodesFormatters, nodesAliases, nodesDefaultFields)
@@ -226,70 +227,31 @@ nodes
   format is 'fixed'.
 `
 
-type nodeCtx = bool
-type nodeSummary = config.NodeConfigRecord
-
-const nodesDefaultFields = "host,cores,mem,gpus,gpumem,desc"
+const v0NodesDefaultFields = "host,cores,mem,gpus,gpumem,desc"
+const v1NodesDefaultFields = "Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,Description"
+const nodesDefaultFields = v0NodesDefaultFields
 
 // MT: Constant after initialization; immutable
 var nodesAliases = map[string][]string{
-	"default":     strings.Split(nodesDefaultFields, ","),
-	"hostname":    []string{"host"},
-	"description": []string{"desc"},
-	"ram":         []string{"mem"},
+	"default":   strings.Split(nodesDefaultFields, ","),
+	"v0default": strings.Split(v0NodesDefaultFields, ","),
+	"v1default": strings.Split(v1NodesDefaultFields, ","),
 }
 
+type SFS = SimpleFormatSpec
+
 // MT: Constant after initialization; immutable
-var nodesFormatters = map[string]Formatter[*nodeSummary, nodeCtx]{
-	"timestamp": {
-		func(i *nodeSummary, _ nodeCtx) string {
-			return i.Timestamp
-		},
-		"Timestamp of record (UTC)",
+var nodesFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromMap(
+	// TODO: Go 1.22, reflect.TypeFor[config.NodeConfigRecord]
+	reflect.TypeOf((*config.NodeConfigRecord)(nil)).Elem(),
+	map[string]any{
+		"Timestamp":   SFS{"Full ISO timestamp of when the reading was taken", "timestamp"},
+		"Hostname":    SFS{"Name that host is known by on the cluster", "host"},
+		"Description": SFS{"End-user description, not parseable", "desc"},
+		"CpuCores":    SFS{"Total number of cores x threads", "cores"},
+		"MemGB":       SFS{"GB of installed main RAM", "mem"},
+		"GpuCards":    SFS{"Number of installed cards", "gpus"},
+		"GpuMemGB":    SFS{"Total GPU memory across all cards", "gpumem"},
+		"GpuMemPct":   SFS{"True if GPUs report accurate memory usage in percent", "gpumempct"},
 	},
-	"host": {
-		func(i *nodeSummary, _ nodeCtx) string {
-			return i.Hostname
-		},
-		"Node name",
-	},
-	"desc": {
-		func(i *nodeSummary, _ nodeCtx) string {
-			return i.Description
-		},
-		"Human-consumable node summary",
-	},
-	"cores": {
-		func(i *nodeSummary, _ nodeCtx) string {
-			return fmt.Sprint(i.CpuCores)
-		},
-		"Number of cores on the node (virtual cores)",
-	},
-	"mem": {
-		func(i *nodeSummary, _ nodeCtx) string {
-			return fmt.Sprint(i.MemGB)
-		},
-		"GB of physical RAM on the node",
-	},
-	"gpus": {
-		func(i *nodeSummary, _ nodeCtx) string {
-			return fmt.Sprint(i.GpuCards)
-		},
-		"Number of installed GPU cards on the node",
-	},
-	"gpumem": {
-		func(i *nodeSummary, _ nodeCtx) string {
-			return fmt.Sprint(i.GpuMemGB)
-		},
-		"GB of GPU RAM on the node (across all cards)",
-	},
-	"gpumempct": {
-		func(i *nodeSummary, _ nodeCtx) string {
-			if i.GpuMemPct {
-				return "yes"
-			}
-			return "no"
-		},
-		"GPUs report memory in percentage",
-	},
-}
+)

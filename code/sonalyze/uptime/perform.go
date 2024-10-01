@@ -48,6 +48,7 @@ import (
 	"go-utils/hostglob"
 	"go-utils/maps"
 	"go-utils/slices"
+	. "sonalyze/command"
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
@@ -69,11 +70,12 @@ import (
 // In some cases, this will result in duplicate records in the output, where the data stream we
 // operated on had sub-minute precision and we constructed records according to that.  Mostly this
 // will happen when the data are somewhat wonky, but it's still wrong.
-type report struct {
-	device     string
-	host       string
-	state      string
-	start, end string
+type UptimeLine struct {
+	Device   string        `alias:"device" desc:"Device type: 'host' or 'gpu'"`
+	Hostname string        `alias:"host"   desc:"Host name for the device"`
+	State    string        `alias:"state"  desc:"Device state: 'up' or 'down'"`
+	Start    DateTimeValue `alias:"start"  desc:"Start time of 'up' or 'down' window"`
+	End      DateTimeValue `alias:"end"    desc:"End time of 'up' or 'down' window"`
 }
 
 // TODO: CLEANUP: The window is just a []sonarlog.Sample, the indices are a Rust-ism.
@@ -111,8 +113,8 @@ func (uc *UptimeCommand) computeReports(
 	bounds sonarlog.Timebounds,
 	cfg *config.ClusterConfig,
 	hostGlobber *hostglob.HostGlobber,
-) []report {
-	reports := make([]report, 0)
+) []*UptimeLine {
+	reports := make([]*UptimeLine, 0)
 	fromIncl, toIncl := uc.InterpretFromToWithBounds(bounds)
 
 	sort.Stable(sonarlog.HostTimeSortableSampleStream(samples))
@@ -127,33 +129,33 @@ func (uc *UptimeCommand) computeReports(
 
 		// If the host is down at the start, push out a record saying so.  Then we start in the "up"
 		// state always.
-		if !(hostFirst.S.Timestamp-fromIncl <= cutoff) {
+		if !(hostFirst.Timestamp-fromIncl <= cutoff) {
 			if uc.Verbose {
 				Log.Infof("  Down at start")
 			}
 			if !uc.OnlyUp {
-				reports = append(reports, report{
-					device: "host",
-					host:   hostFirst.S.Host.String(),
-					state:  "down",
-					start:  formatTime(fromIncl),
-					end:    formatTime(hostFirst.S.Timestamp),
+				reports = append(reports, &UptimeLine{
+					Device:   "host",
+					Hostname: hostFirst.Host.String(),
+					State:    "down",
+					Start:    DateTimeValue(fromIncl),
+					End:      DateTimeValue(hostFirst.Timestamp),
 				})
 			}
 		}
 
 		// If the host is down at the end, push out a record saying so.
-		if !(toIncl-hostLast.S.Timestamp <= cutoff) {
+		if !(toIncl-hostLast.Timestamp <= cutoff) {
 			if uc.Verbose {
 				Log.Infof("  Down at end")
 			}
 			if !uc.OnlyUp {
-				reports = append(reports, report{
-					device: "host",
-					host:   hostFirst.S.Host.String(),
-					state:  "down",
-					start:  formatTime(hostLast.S.Timestamp),
-					end:    formatTime(toIncl),
+				reports = append(reports, &UptimeLine{
+					Device:   "host",
+					Hostname: hostFirst.Host.String(),
+					State:    "down",
+					Start:    DateTimeValue(hostLast.Timestamp),
+					End:      DateTimeValue(toIncl),
 				})
 			}
 		}
@@ -163,12 +165,12 @@ func (uc *UptimeCommand) computeReports(
 		// we've ensured that above.
 		windowStart := w.start
 		for {
-			prevTimestamp := samples[windowStart].S.Timestamp
+			prevTimestamp := samples[windowStart].Timestamp
 
 			// We're in an "up" window, scan to its end.
 			j := windowStart + 1
-			for j <= w.end && samples[j].S.Timestamp-prevTimestamp <= cutoff {
-				prevTimestamp = samples[j].S.Timestamp
+			for j <= w.end && samples[j].Timestamp-prevTimestamp <= cutoff {
+				prevTimestamp = samples[j].Timestamp
 				j++
 			}
 
@@ -179,12 +181,12 @@ func (uc *UptimeCommand) computeReports(
 				Log.Infof("  Up window %d..%d inclusive", windowStart, j-1)
 			}
 			if !uc.OnlyDown {
-				reports = append(reports, report{
-					device: "host",
-					host:   hostFirst.S.Host.String(),
-					state:  "up",
-					start:  formatTime(samples[windowStart].S.Timestamp),
-					end:    formatTime(samples[j-1].S.Timestamp),
+				reports = append(reports, &UptimeLine{
+					Device:   "host",
+					Hostname: hostFirst.Host.String(),
+					State:    "up",
+					Start:    DateTimeValue(samples[windowStart].Timestamp),
+					End:      DateTimeValue(samples[j-1].Timestamp),
 				})
 			}
 
@@ -202,12 +204,12 @@ func (uc *UptimeCommand) computeReports(
 				Log.Infof("  Down window %d..%d inclusive\n", j-1, j)
 			}
 			if !uc.OnlyUp {
-				reports = append(reports, report{
-					device: "host",
-					host:   hostFirst.S.Host.String(),
-					state:  "down",
-					start:  formatTime(prevTimestamp),
-					end:    formatTime(samples[j].S.Timestamp),
+				reports = append(reports, &UptimeLine{
+					Device:   "host",
+					Hostname: hostFirst.Host.String(),
+					State:    "down",
+					Start:    DateTimeValue(prevTimestamp),
+					End:      DateTimeValue(samples[j].Timestamp),
 				})
 			}
 
@@ -219,9 +221,9 @@ func (uc *UptimeCommand) computeReports(
 	for _, w := range hostUpWindows {
 		i := w.start
 		for i <= w.end {
-			gpuIsUp := samples[i].S.GpuFail == 0
+			gpuIsUp := samples[i].GpuFail == 0
 			start := i
-			for i <= w.end && (samples[i].S.GpuFail == 0) == gpuIsUp {
+			for i <= w.end && (samples[i].GpuFail == 0) == gpuIsUp {
 				i++
 			}
 			updown := "down"
@@ -229,12 +231,12 @@ func (uc *UptimeCommand) computeReports(
 				updown = "up"
 			}
 			if !(updown == "up" && uc.OnlyDown) && !(updown == "down" && uc.OnlyUp) {
-				reports = append(reports, report{
-					device: "gpu",
-					host:   samples[w.start].S.Host.String(),
-					state:  updown,
-					start:  formatTime(samples[start].S.Timestamp),
-					end:    formatTime(samples[min(w.end, i)].S.Timestamp),
+				reports = append(reports, &UptimeLine{
+					Device:   "gpu",
+					Hostname: samples[w.start].Host.String(),
+					State:    updown,
+					Start:    DateTimeValue(samples[start].Timestamp),
+					End:      DateTimeValue(samples[min(w.end, i)].Timestamp),
 				})
 			}
 		}
@@ -259,7 +261,7 @@ func (uc *UptimeCommand) computeHostWindows(
 	lim := len(samples)
 	for i < lim {
 		// Skip anything for before the window we're interested in.
-		for i < lim && samples[i].S.Timestamp < fromIncl {
+		for i < lim && samples[i].Timestamp < fromIncl {
 			i++
 		}
 		if i == lim {
@@ -268,11 +270,11 @@ func (uc *UptimeCommand) computeHostWindows(
 		// Collect the window
 		hostStart := i
 		hostEnd := i
-		host := samples[hostStart].S.Host
+		host := samples[hostStart].Host
 		hostStr := host.String()
 		i++
-		for i < lim && samples[i].S.Host == host {
-			if samples[i].S.Timestamp <= toIncl {
+		for i < lim && samples[i].Host == host {
+			if samples[i].Timestamp <= toIncl {
 				hostEnd = i
 			}
 			i++
@@ -299,7 +301,7 @@ func (uc *UptimeCommand) computeHostWindows(
 // The samples are sorted by host and then by ascending timestamp.
 
 func (uc *UptimeCommand) computeAlwaysDown(
-	reports *[]report,
+	reports *[]*UptimeLine,
 	samples sonarlog.SampleStream,
 	cfg *config.ClusterConfig,
 	hostGlobber *hostglob.HostGlobber,
@@ -311,24 +313,20 @@ func (uc *UptimeCommand) computeAlwaysDown(
 			hs[StringToUstr(h)] = true
 		}
 		for _, sample := range samples {
-			delete(hs, sample.S.Host)
+			delete(hs, sample.Host)
 		}
 		for h := range hs {
 			if !hostGlobber.IsEmpty() && !hostGlobber.Match(h.String()) {
 				continue
 			}
-			// `h` is down in the entire window
-			*reports = append(*reports, report{
-				device: "host",
-				host:   h.String(),
-				state:  "down",
-				start:  formatTime(fromIncl),
-				end:    formatTime(toIncl),
+			// `h` is down in the entire window.
+			*reports = append(*reports, &UptimeLine{
+				Device:   "host",
+				Hostname: h.String(),
+				State:    "down",
+				Start:    DateTimeValue(fromIncl),
+				End:      DateTimeValue(toIncl),
 			})
 		}
 	}
-}
-
-func formatTime(t int64) string {
-	return FormatYyyyMmDdHhMmUtc(t)
 }

@@ -40,7 +40,7 @@ func (ss sortableSummaries) Swap(i, j int) {
 
 func (ss sortableSummaries) Less(i, j int) bool {
 	if ss[i].aggregate.first == ss[j].aggregate.first {
-		return ss[i].job[0].S.Job < ss[j].job[0].S.Job
+		return ss[i].job[0].Job < ss[j].job[0].Job
 	}
 	return ss[i].aggregate.first < ss[j].aggregate.first
 }
@@ -58,7 +58,7 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 		}
 		counts := make(map[Ustr]uint)
 		for i := len(summaries) - 1; i >= 0; i-- {
-			u := summaries[i].job[0].S.User
+			u := summaries[i].job[0].User
 			c := counts[u] + 1
 			counts[u] = c
 			if c > jc.NumJobs {
@@ -151,19 +151,19 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 			case c&kIsLiveAtEnd != 0:
 				mark = ">"
 			}
-			return fmt.Sprint(d.job[0].S.Job, mark)
+			return fmt.Sprint(d.job[0].Job, mark)
 		},
 		"Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window",
 	},
 	"job": {
 		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(d.job[0].S.Job)
+			return fmt.Sprint(d.job[0].Job)
 		},
 		"Job ID",
 	},
 	"user": {
 		func(d *jobSummary, _ jobCtx) string {
-			return d.job[0].S.User.String()
+			return d.job[0].User.String()
 		},
 		"Name of user running the job",
 	},
@@ -355,7 +355,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 		func(d *jobSummary, _ jobCtx) string {
 			gpus := gpuset.EmptyGpuSet()
 			for _, j := range d.job {
-				gpus = gpuset.UnionGpuSets(gpus, j.S.Gpus)
+				gpus = gpuset.UnionGpuSets(gpus, j.Gpus)
 			}
 			return gpus.String()
 		},
@@ -375,14 +375,14 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 			names := make(map[Ustr]bool)
 			name := ""
 			for _, sample := range d.job {
-				if _, found := names[sample.S.Cmd]; found {
+				if _, found := names[sample.Cmd]; found {
 					continue
 				}
 				if name != "" {
 					name += ", "
 				}
-				name += sample.S.Cmd.String()
-				names[sample.S.Cmd] = true
+				name += sample.Cmd.String()
+				names[sample.Cmd] = true
 			}
 			return name
 		},
@@ -405,9 +405,9 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 			for _, s := range d.job {
 				var name string
 				if c.fixedFormat {
-					name, _, _ = strings.Cut(s.S.Host.String(), ".")
+					name, _, _ = strings.Cut(s.Host.String(), ".")
 				} else {
-					name = s.S.Host.String()
+					name = s.Host.String()
 				}
 				hosts[name] = true
 			}

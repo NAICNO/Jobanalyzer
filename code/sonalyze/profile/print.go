@@ -34,15 +34,16 @@
 //    `LABELS` array that contains one value per value of the arrays of `DATASETS`, a string
 //    representing the timestamp for the colum.
 //
-// For fixed output, the output is presented in blocks, one block per timestamp (time increases
-// along the y axis).  The first line of a block has the timestamp and data for the first process;
-// subsequent lines of the block have only data for subsequent processes at that time.  On each
-// line, all the requested fields are printed.
-//
 // For JSON output, we print an array of objects, each representing a "job" at a "time" (these are
 // fields in each object).  In each object, there is a field "points" which is an array of data
 // points.  Each data point has the value for all the data fields (regardless of what was requested)
 // for that job at that time.
+//
+// For fixed output, the output is presented in blocks, one block per timestamp (time increases
+// along the y axis).  The first line of a block has the timestamp and data for the first process;
+// subsequent lines of the block have only data for subsequent processes at that time.  On each
+// line, all the requested fields are printed.  Essentially, the fixed output is the flattened JSON
+// output: the intermediate job objects are not printed.
 
 package profile
 
@@ -52,17 +53,15 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"reflect"
 	"strings"
 
+	uslices "go-utils/slices"
+
 	. "sonalyze/command"
-	"sonalyze/common"
+	. "sonalyze/common"
 	"sonalyze/sonarlog"
 )
-
-type profileLine struct {
-	t int64 // timestamp or 0
-	r *profDatum
-}
 
 func (pc *ProfileCommand) printProfile(
 	out io.Writer,
@@ -73,10 +72,13 @@ func (pc *ProfileCommand) printProfile(
 	processes sonarlog.SampleStreams,
 ) error {
 	if hasRolledup {
-		// Add the "nproc" field if it is required and the fields are still the defaults.  This is
-		// sort of dumb, but compatible with the Rust code.
-		if strings.Join(pc.PrintFields, ",") == profileDefaultFields {
-			pc.PrintFields = strings.Split(profileDefaultFieldsWithNproc, ",")
+		// Add the "nproc" / "NumProcs" field if it is required and the fields are still the
+		// defaults.  This is pretty dumb (but compatible with the Rust code); it gets even dumber
+		// with two versions of the default fields string.
+		if strings.Join(pc.PrintFields, ",") == v0ProfileDefaultFields {
+			pc.PrintFields = strings.Split(v0ProfileDefaultFieldsWithNproc, ",")
+		} else if strings.Join(pc.PrintFields, ",") == v1ProfileDefaultFields {
+			pc.PrintFields = strings.Split(v1ProfileDefaultFieldsWithNproc, ",")
 		}
 	}
 
@@ -102,7 +104,10 @@ func (pc *ProfileCommand) printProfile(
 		if err != nil {
 			return err
 		}
-		FormatData(out, pc.PrintFields, profileFormatters, pc.PrintOpts, data, profileCtx(false))
+		FormatData(out, pc.PrintFields, profileFormatters, pc.PrintOpts,
+			uslices.Map(data, func(x *fixedLine) any { return x }),
+			ComputePrintMods(pc.PrintOpts),
+		)
 	} else if pc.PrintOpts.Json {
 		formatJson(out, m, processes, pc.testNoMemory)
 	} else {
@@ -122,7 +127,7 @@ func (pc *ProfileCommand) collectHtml(
 	processes sonarlog.SampleStreams,
 ) (labels []string, rows []string, err error) {
 	var formatter func(*profDatum) string
-	formatter, err = checkFields(pc.PrintFields, true)
+	formatter, err = lookupSingleFormatter(pc.PrintFields, true)
 	if err != nil {
 		return
 	}
@@ -138,7 +143,7 @@ func (pc *ProfileCommand) collectHtml(
 	rowLabels := make([]string, len(processes))
 	for i, p := range processes {
 		// Here, use the raw pid for compatibility with the Rust code
-		rowLabels[i] = fmt.Sprintf("%s (%d)", (*p)[0].S.Cmd.String(), (*p)[0].S.Pid)
+		rowLabels[i] = fmt.Sprintf("%s (%d)", (*p)[0].Cmd.String(), (*p)[0].Pid)
 	}
 
 	rows = make([]string, len(processes))
@@ -169,7 +174,7 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 	processes sonarlog.SampleStreams,
 ) (header []string, matrix [][]string, err error) {
 	var formatter func(*profDatum) string
-	formatter, err = checkFields(pc.PrintFields, false)
+	formatter, err = lookupSingleFormatter(pc.PrintFields, false)
 	if err != nil {
 		return
 	}
@@ -181,7 +186,9 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 			sep = " "
 		}
 		for _, process := range processes {
-			header = append(header, fmt.Sprintf("%s%s(%d)", (*process)[0].S.Cmd, sep, (*process)[0].S.Pid))
+			header = append(header,
+				fmt.Sprintf(
+					"%s%s(%d)", (*process)[0].Cmd, sep, (*process)[0].Pid))
 		}
 	}
 
@@ -210,28 +217,54 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 // The output is time-sorted but timestamps may be duplicated.  The first profileLine at a timestamp
 // has a non-zero time value, the rest are zero.
 
+// TODO: Should the derivation of these data be lifted to perform.go?
+// TODO: Merge with JSON-formatting logic somehow?
+
+type fixedLine struct {
+	Timestamp     DateTimeValueOrBlank `alias:"time" desc:"Time of the start of the profiling bucket"`
+	CpuUtilPct    int                  `alias:"cpu"  desc:"CPU utilization in percent, 100% = 1 core (except for HTML)"`
+	VirtualMemGB  int                  `alias:"mem"  desc:"Main virtual memory usage in GiB"`
+	ResidentMemGB int                  `alias:"res"  desc:"Main resident memory usage in GiB"`
+	Gpu           int                  `alias:"gpu"  desc:"GPU utilization in percent, 100% = 1 card (except for HTML)"`
+	GpuMemGB      int                  `alias:"gpumem" desc:"GPU resident memory usage in GiB (across all cards)"`
+	Command       Ustr                 `alias:"cmd"  desc:"Name of executable starting the process"`
+	NumProcs      IntOrEmpty           `alias:"nproc" desc:"Number of rolled-up processes, blank for zero"`
+}
+
 func (pc *ProfileCommand) collectFixed(
 	m *profData,
 	processes sonarlog.SampleStreams,
-) (data []profileLine, err error) {
+) (data []*fixedLine, err error) {
 	rowNames := m.rows()
 
 	// The length of this will eventually be the number of defined elements in m
-	data = make([]profileLine, 0)
+	data = make([]*fixedLine, 0)
 
 	// Iterate by processes rather than m.cols() since process order is what we care about.
-
 	for _, rn := range rowNames {
 		first := true
 		for _, p := range processes {
 			cn := processId((*p)[0])
 			entry := m.get(rn, cn)
 			if entry != nil {
+				var timestamp int64
+				var numprocs int
 				if first {
-					data = append(data, profileLine{entry.s.Timestamp, entry})
-				} else {
-					data = append(data, profileLine{0, entry})
+					timestamp = entry.s.Timestamp
 				}
+				if entry.s.Rolledup > 0 {
+					numprocs = int(entry.s.Rolledup) + 1
+				}
+				data = append(data, &fixedLine{
+					Timestamp:     DateTimeValueOrBlank(timestamp),
+					CpuUtilPct:    int(math.Round(float64(entry.cpuUtilPct))),
+					VirtualMemGB:  int(math.Round(float64(entry.cpuKib) / (1024 * 1024))),
+					ResidentMemGB: int(math.Round(float64(entry.rssAnonKib) / (1024 * 1024))),
+					Gpu:           int(math.Round(float64(entry.gpuPct))),
+					GpuMemGB:      int(math.Round(float64(entry.gpuKib) / (1024 * 1024))),
+					Command:       entry.s.Cmd,
+					NumProcs:      IntOrEmpty(numprocs),
+				})
 				first = false
 			}
 		}
@@ -240,31 +273,36 @@ func (pc *ProfileCommand) collectFixed(
 	return
 }
 
-func checkFields(fields []string, scaleCpuGpu bool) (formatter func(*profDatum) string, err error) {
+// TODO: Ideally this function would just delegate to the derived formatters where it can, so that
+// we can have canonical formatters.  Indeed, the "scaled" thing is really part of the computation,
+// not formatting anyway, so should be applied earlier, and we should probably derive some table of
+// values to be printed.
+
+func lookupSingleFormatter(fields []string, scaleCpuGpu bool) (formatter func(*profDatum) string, err error) {
 	n := 0
 	for _, f := range fields {
 		switch f {
-		case "cpu":
+		case "cpu", "CpuUtilPct":
 			if scaleCpuGpu {
 				formatter = formatCpuUtilPctScaled
 			} else {
 				formatter = formatCpuUtilPct
 			}
 			n++
-		case "mem":
+		case "mem", "VirtualMemGB":
 			formatter = formatMem
 			n++
-		case "res", "rss":
+		case "res", "rss", "ResidentMemGB":
 			formatter = formatRes
 			n++
-		case "gpu":
+		case "gpu", "Gpu":
 			if scaleCpuGpu {
 				formatter = formatGpuPctScaled
 			} else {
 				formatter = formatGpuPct
 			}
 			n++
-		case "gpumem":
+		case "gpumem", "GpuMemGB":
 			formatter = formatGpuMem
 			n++
 		default:
@@ -278,13 +316,50 @@ func checkFields(fields []string, scaleCpuGpu bool) (formatter func(*profDatum) 
 	return
 }
 
+// TODO: These formatters are now only used by lookupSingleFormatter().  It's bad that the
+// formatting logic also does things like conversion and truncation - we could have generated data
+// first and then formatted.
+
+func formatCpuUtilPct(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.cpuUtilPct)))
+}
+
+func formatCpuUtilPctScaled(s *profDatum) string {
+	return fmt.Sprintf("%.1f", float64(s.cpuUtilPct)/100)
+}
+
+func formatMem(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.cpuKib) / (1024 * 1024)))
+}
+
+func formatRes(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.rssAnonKib) / (1024 * 1024)))
+}
+
+func formatGpuPct(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.gpuPct)))
+}
+
+func formatGpuPctScaled(s *profDatum) string {
+	return fmt.Sprintf("%.1f", float64(s.gpuPct)/100)
+}
+
+func formatGpuMem(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.gpuKib) / (1024 * 1024)))
+}
+
 var htmlCaptions = map[string]string{
-	"cpu":    "Y axis: Number of CPU cores (1.0 = 1 core at 100%)",
-	"mem":    "Y axis: Virtual primary memory in GB",
-	"rss":    "Y axis: Resident primary memory in GB",
-	"res":    "Y axis: Resident primary memory in GB",
-	"gpu":    "Y axis: Number of GPU cards in use (1.0 = 1 card at 100%)",
-	"gpumem": "Y axis: Real GPU memory in GB",
+	"cpu":           "Y axis: Number of CPU cores (1.0 = 1 core at 100%)",
+	"CpuUtilPct":    "Y axis: Number of CPU cores (1.0 = 1 core at 100%)",
+	"mem":           "Y axis: Virtual primary memory in GB",
+	"VirtualMemGB":  "Y axis: Virtual primary memory in GB",
+	"rss":           "Y axis: Resident primary memory in GB",
+	"res":           "Y axis: Resident primary memory in GB",
+	"ResidentMemGB": "Y axis: Resident primary memory in GB",
+	"gpu":           "Y axis: Number of GPU cards in use (1.0 = 1 card at 100%)",
+	"Gpu":           "Y axis: Number of GPU cards in use (1.0 = 1 card at 100%)",
+	"gpumem":        "Y axis: Real GPU memory in GB",
+	"GpuMemGB":      "Y axis: Real GPU memory in GB",
 }
 
 func formatHtml(
@@ -336,6 +411,9 @@ function render() {
 		htmlCaptions[quant],
 	)
 }
+
+// TODO: Canonical names too?
+// TODO: Merge with fixed-formatting logic somehow?
 
 func formatJson(
 	out io.Writer,
@@ -414,102 +492,29 @@ profile
   attributes.  Default output format is 'fixed'.
 `
 
-const profileDefaultFields = "time,cpu,mem,gpu,gpumem,cmd"
-const profileDefaultFieldsWithNproc = "time,cpu,mem,gpu,gpumem,nproc,cmd"
+const v0ProfileDefaultFields = "time,cpu,mem,gpu,gpumem,cmd"
+const v1ProfileDefaultFields = "Timestamp,CpuUtilPct,ResidentMemGB,Gpu,GpuMemGB,Command"
+const profileDefaultFields = v0ProfileDefaultFields
+
+const v0ProfileDefaultFieldsWithNproc = "time,cpu,mem,gpu,gpumem,nproc,cmd"
+const v1ProfileDefaultFieldsWithNproc = "Timestamp,CpuUtilPct,VirtualMemGB,Gpu,GpuMemGB,NumProcs,Command"
+const profileDefaultFieldsWithNproc = v0ProfileDefaultFieldsWithNproc
 
 // MT: Constant after initialization; immutable
 var profileAliases = map[string][]string{
-	"rss": []string{"res"},
+	"default":   strings.Split(profileDefaultFields, ","),
+	"v0default": strings.Split(v0ProfileDefaultFields, ","),
+	"v1default": strings.Split(v1ProfileDefaultFields, ","),
+	"rss":       []string{"res"},
 }
-
-type profileCtx bool
 
 // MT: Constant after initialization; immutable
-var profileFormatters = map[string]Formatter[profileLine, profileCtx]{
-	"time": {
-		func(d profileLine, _ profileCtx) string {
-			if d.t != 0 {
-				return formatTime(d.t)
-			}
-			return "                " // YYYY-MM-DD HH:MM
-		},
-		"Time of the start of the profiling bucket",
-	},
-	"cpu": {
-		func(d profileLine, _ profileCtx) string {
-			return formatCpuUtilPct(d.r)
-		},
-		"CPU utilization in percent, 100% = 1 core (except for HTML)",
-	},
-	"mem": {
-		func(d profileLine, _ profileCtx) string {
-			return formatMem(d.r)
-		},
-		"Main virtual memory usage in GiB",
-	},
-	"res": {
-		func(d profileLine, _ profileCtx) string {
-			return formatRes(d.r)
-		},
-		"Main resident memory usage in GiB",
-	},
-	"gpu": {
-		func(d profileLine, _ profileCtx) string {
-			return formatGpuPct(d.r)
-		},
-		"GPU utilization in percent, 100% = 1 card (except for HTML)",
-	},
-	"gpumem": {
-		func(d profileLine, _ profileCtx) string {
-			return formatGpuMem(d.r)
-		},
-		"GPU resident memory usage in GiB (across all cards)",
-	},
-	"cmd": {
-		func(d profileLine, _ profileCtx) string {
-			return d.r.s.Cmd.String()
-		},
-		"Name of executable starting the process",
-	},
-	"nproc": {
-		func(d profileLine, _ profileCtx) string {
-			if d.r.s.Rolledup == 0 {
-				return ""
-			}
-			return fmt.Sprint(d.r.s.Rolledup + 1)
-		},
-		"Number of rolled-up processes, blank for zero",
-	},
-}
+var profileFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromTags(
+	// TODO: Go 1.22, reflect.TypeFor[fixedLine]
+	reflect.TypeOf((*fixedLine)(nil)).Elem(),
+	nil,
+)
 
 func formatTime(t int64) string {
-	return common.FormatYyyyMmDdHhMmUtc(t)
-}
-
-func formatCpuUtilPct(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.cpuUtilPct)))
-}
-
-func formatCpuUtilPctScaled(s *profDatum) string {
-	return fmt.Sprintf("%.1f", float64(s.cpuUtilPct)/100)
-}
-
-func formatMem(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.cpuKib) / (1024 * 1024)))
-}
-
-func formatRes(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.rssAnonKib) / (1024 * 1024)))
-}
-
-func formatGpuPct(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.gpuPct)))
-}
-
-func formatGpuPctScaled(s *profDatum) string {
-	return fmt.Sprintf("%.1f", float64(s.gpuPct)/100)
-}
-
-func formatGpuMem(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.gpuKib) / (1024 * 1024)))
+	return FormatYyyyMmDdHhMmUtc(t)
 }

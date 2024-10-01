@@ -18,13 +18,14 @@ import (
 	"cmp"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
+	"reflect"
 	"slices"
 	"strings"
 
 	"go-utils/config"
 	"go-utils/hostglob"
+	uslices "go-utils/slices"
 
 	. "sonalyze/command"
 	. "sonalyze/common"
@@ -119,11 +120,11 @@ func (cc *ConfigCommand) Configs(_ io.Reader, stdout, _ io.Writer) error {
 
 	FormatData(
 		stdout,
-		cc.FormatArgs.PrintFields,
+		cc.PrintFields,
 		configsFormatters,
-		cc.FormatArgs.PrintOpts,
-		records,
-		false,
+		cc.PrintOpts,
+		uslices.Map(records, func(x *config.NodeConfigRecord) any { return x }),
+		ComputePrintMods(cc.PrintOpts),
 	)
 
 	return nil
@@ -145,79 +146,34 @@ configs
   default format is 'fixed'.
 `
 
-type configCtx = bool
-type configSummary = config.NodeConfigRecord
-
-const configsDefaultFields = "host,cores,mem,gpus,gpumem,xnode,desc"
+const (
+	v0ConfigsDefaultFields = "host,cores,mem,gpus,gpumem,xnode,desc"
+	v1ConfigsDefaultFields = "Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,CrossNodeJobs,Description"
+	configsDefaultFields   = v0ConfigsDefaultFields
+)
 
 // MT: Constant after initialization; immutable
 var configsAliases = map[string][]string{
-	"default":     strings.Split(configsDefaultFields, ","),
-	"hostname":    []string{"host"},
-	"description": []string{"desc"},
-	"ram":         []string{"mem"},
+	"default":   strings.Split(configsDefaultFields, ","),
+	"v0default": strings.Split(v0ConfigsDefaultFields, ","),
+	"v1default": strings.Split(v1ConfigsDefaultFields, ","),
 }
 
+type SFS = SimpleFormatSpec
+
 // MT: Constant after initialization; immutable
-var configsFormatters = map[string]Formatter[*configSummary, configCtx]{
-	"timestamp": {
-		func(i *configSummary, _ configCtx) string {
-			return i.Timestamp
-		},
-		"Timestamp of record (UTC)",
+var configsFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromMap(
+	// TODO: Go 1.22, reflect.TypeFor[config.NodeConfigRecord]
+	reflect.TypeOf((*config.NodeConfigRecord)(nil)).Elem(),
+	map[string]any{
+		"Timestamp":     SFS{"Full ISO timestamp of when the reading was taken", "timestamp"},
+		"Hostname":      SFS{"Name that host is known by on the cluster", "host"},
+		"Description":   SFS{"End-user description, not parseable", "desc"},
+		"CrossNodeJobs": SFS{"True if jobs on this node can be multi-node", "xnode"},
+		"CpuCores":      SFS{"Total number of cores x threads", "cores"},
+		"MemGB":         SFS{"GB of installed main RAM", "mem"},
+		"GpuCards":      SFS{"Number of installed cards", "gpus"},
+		"GpuMemGB":      SFS{"Total GPU memory across all cards", "gpumem"},
+		"GpuMemPct":     SFS{"True if GPUs report accurate memory usage in percent", "gpumempct"},
 	},
-	"host": {
-		func(i *configSummary, _ configCtx) string {
-			return i.Hostname
-		},
-		"Node name",
-	},
-	"desc": {
-		func(i *configSummary, _ configCtx) string {
-			return i.Description
-		},
-		"Human-consumable node summary",
-	},
-	"xnode": {
-		func(i *configSummary, _ configCtx) string {
-			if i.CrossNodeJobs {
-				return "yes"
-			}
-			return "no"
-		},
-		"Can node participate in cross-node jobs?",
-	},
-	"cores": {
-		func(i *configSummary, _ configCtx) string {
-			return fmt.Sprint(i.CpuCores)
-		},
-		"Number of cores on the node (virtual cores)",
-	},
-	"mem": {
-		func(i *configSummary, _ configCtx) string {
-			return fmt.Sprint(i.MemGB)
-		},
-		"GB of physical RAM on the node",
-	},
-	"gpus": {
-		func(i *configSummary, _ configCtx) string {
-			return fmt.Sprint(i.GpuCards)
-		},
-		"Number of installed GPU cards on the node",
-	},
-	"gpumem": {
-		func(i *configSummary, _ configCtx) string {
-			return fmt.Sprint(i.GpuMemGB)
-		},
-		"GB of GPU RAM on the node (across all cards)",
-	},
-	"gpumempct": {
-		func(i *configSummary, _ configCtx) string {
-			if i.GpuMemPct {
-				return "yes"
-			}
-			return "no"
-		},
-		"GPUs report memory in percentage",
-	},
-}
+)

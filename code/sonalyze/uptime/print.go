@@ -2,24 +2,28 @@ package uptime
 
 import (
 	"io"
+	"reflect"
 	"sort"
+	"strings"
+
+	uslices "go-utils/slices"
 
 	. "sonalyze/command"
 )
 
-func (uc *UptimeCommand) printReports(out io.Writer, reports []report) {
+func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) {
 	sort.Sort(sortableReports(reports))
 	FormatData(
 		out,
 		uc.PrintFields,
 		uptimeFormatters,
 		uc.PrintOpts,
-		reports,
-		uptimeCtx(false),
+		uslices.Map(reports, func(x *UptimeLine) any { return x }),
+		ComputePrintMods(uc.PrintOpts),
 	)
 }
 
-type sortableReports []report
+type sortableReports []*UptimeLine
 
 func (sr sortableReports) Len() int {
 	return len(sr)
@@ -31,76 +35,46 @@ func (sr sortableReports) Swap(i, j int) {
 
 func (sr sortableReports) Less(i, j int) bool {
 	// Sort the reports by hostname, start time, device type, end time, and state
-	if sr[i].host == sr[j].host {
-		if sr[i].start == sr[j].start {
-			if sr[i].device == sr[j].device {
-				if sr[i].end == sr[j].end {
-					return sr[i].state < sr[j].state
+	if sr[i].Hostname == sr[j].Hostname {
+		if sr[i].Start == sr[j].Start {
+			if sr[i].Device == sr[j].Device {
+				if sr[i].End == sr[j].End {
+					return sr[i].State < sr[j].State
 				}
-				return sr[i].end < sr[j].end
+				return sr[i].End < sr[j].End
 			}
-			return sr[i].device == "host"
+			return sr[i].Device == "host"
 		}
-		return sr[i].start < sr[j].start
+		return sr[i].Start < sr[j].Start
 	}
-	return sr[i].host < sr[j].host
+	return sr[i].Hostname < sr[j].Hostname
 }
 
 func (uc *UptimeCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(uc.Fmt, printHelp, uptimeFormatters, uptimeAliases, uptimeDefaultFields)
+	return StandardFormatHelp(uc.Fmt, uptimeHelp, uptimeFormatters, uptimeAliases, uptimeDefaultFields)
 }
 
-const printHelp = `
+const uptimeHelp = `
 print
   Compute the status of hosts and GPUs across time.  Default output format
   is 'fixed'.
 `
 
-const uptimeDefaultFields = "device,host,state,start,end"
+const v0UptimeDefaultFields = "device,host,state,start,end"
+const v1UptimeDefaultFields = "Device,Hostname,State,Start,End"
+const uptimeDefaultFields = v0UptimeDefaultFields
 
 // MT: Constant after initialization; immutable
 var uptimeAliases = map[string][]string{
-	"all": []string{
-		"device",
-		"host",
-		"state",
-		"start",
-		"end",
-	},
+	"all":       []string{"device", "host", "state", "start", "end"},
+	"default":   strings.Split(uptimeDefaultFields, ","),
+	"v0default": strings.Split(v0UptimeDefaultFields, ","),
+	"v1default": strings.Split(v1UptimeDefaultFields, ","),
 }
-
-type uptimeCtx bool
 
 // MT: Constant after initialization; immutable
-var uptimeFormatters = map[string]Formatter[report, uptimeCtx]{
-	"device": {
-		func(d report, _ uptimeCtx) string {
-			return d.device
-		},
-		"Device type: 'host' or 'gpu'",
-	},
-	"host": {
-		func(d report, _ uptimeCtx) string {
-			return d.host
-		},
-		"Host name for the device",
-	},
-	"state": {
-		func(d report, _ uptimeCtx) string {
-			return d.state
-		},
-		"Device state: 'up' or 'down'",
-	},
-	"start": {
-		func(d report, _ uptimeCtx) string {
-			return d.start
-		},
-		"Start time of 'up' or 'down' window (yyyy-mm-dd hh:mm)",
-	},
-	"end": {
-		func(d report, _ uptimeCtx) string {
-			return d.end
-		},
-		"End time of 'up' or 'down' window (yyyy-mm-dd hh:mm)",
-	},
-}
+var uptimeFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromTags(
+	// TODO: Go 1.22, reflect.TypeFor[UptimeLine]
+	reflect.TypeOf((*UptimeLine)(nil)).Elem(),
+	nil,
+)
