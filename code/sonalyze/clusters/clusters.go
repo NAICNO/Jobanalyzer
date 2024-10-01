@@ -11,11 +11,13 @@ import (
 	"errors"
 	"flag"
 	"io"
+	"reflect"
 	"slices"
 	"strings"
 
 	umaps "go-utils/maps"
 	"go-utils/options"
+	uslices "go-utils/slices"
 
 	. "sonalyze/command"
 	"sonalyze/db"
@@ -87,10 +89,11 @@ func (cc *ClusterCommand) Clusters(_ io.Reader, stdout, stderr io.Writer) error 
 		return err
 	}
 
-	printable := umaps.Values(clusters)
-	slices.SortFunc(printable, func(a, b *db.ClusterEntry) int {
+	sortable := umaps.Values(clusters)
+	slices.SortFunc(sortable, func(a, b *db.ClusterEntry) int {
 		return cmp.Compare(a.Name, b.Name)
 	})
+	printable := uslices.Map(sortable, func(x *db.ClusterEntry) any { return x })
 
 	FormatData(
 		stdout,
@@ -98,7 +101,7 @@ func (cc *ClusterCommand) Clusters(_ io.Reader, stdout, stderr io.Writer) error 
 		clustersFormatters,
 		cc.FormatArgs.PrintOpts,
 		printable,
-		false,
+		PrintMods(0),
 	)
 
 	return nil
@@ -119,35 +122,25 @@ nodes
   Output records are sorted by cluster name.  The default format is 'fixed'.
 `
 
-type clustersCtx = bool
-type clustersSummary = db.ClusterEntry
-
-const clustersDefaultFields = "cluster,aliases,desc"
+const v0ClustersDefaultFields = "cluster,aliases,desc"
+const v1ClustersDefaultFields = "Name,Aliases,Description"
+const clustersDefaultFields = v0ClustersDefaultFields
 
 // MT: Constant after initialization; immutable
 var clustersAliases = map[string][]string{
-	"default":     strings.Split(clustersDefaultFields, ","),
-	"description": []string{"desc"},
+	"default":   strings.Split(clustersDefaultFields, ","),
+	"v0default": strings.Split(v0ClustersDefaultFields, ","),
+	"v1default": strings.Split(v1ClustersDefaultFields, ","),
 }
 
+type SFS = SimpleFormatSpec
+
 // MT: Constant after initialization; immutable
-var clustersFormatters = map[string]Formatter[*clustersSummary, clustersCtx]{
-	"cluster": {
-		func(i *clustersSummary, _ clustersCtx) string {
-			return i.Name
-		},
-		"Cluster name",
+var clustersFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromMap(
+	reflect.TypeOf((*db.ClusterEntry)(nil)).Elem(),
+	map[string]FormatSpec{
+		"Name":        &SFS{"Cluster name", "cluster"},
+		"Description": &SFS{"Human-consumable cluster summary", "desc"},
+		"Aliases":     &SFS{"Aliases of cluster", "aliases"},
 	},
-	"desc": {
-		func(i *clustersSummary, _ clustersCtx) string {
-			return i.Description
-		},
-		"Human-consumable cluster summary",
-	},
-	"aliases": {
-		func(i *clustersSummary, _ clustersCtx) string {
-			return strings.Join(i.Aliases, ",")
-		},
-		"Aliases of cluster",
-	},
-}
+)

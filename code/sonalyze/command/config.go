@@ -26,7 +26,7 @@ func EnsureConfigForInputStreams(
 	// Remove streams for which we have no config data.
 	bad := make(map[sonarlog.InputStreamKey]bool)
 	for key, stream := range streams {
-		hn := (*stream)[0].S.Host.String()
+		hn := (*stream)[0].Host.String()
 		if cfg.LookupHost(hn) == nil {
 			bad[key] = true
 			Log.Infof("Warning: Missing host configuration for %s", hn)

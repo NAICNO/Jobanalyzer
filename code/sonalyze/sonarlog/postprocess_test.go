@@ -124,10 +124,10 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	if len(*s2) != 3 {
 		t.Fatalf("Expected three elements in stream s2")
 	}
-	if (*s2)[0].S.Timestamp >= (*s2)[1].S.Timestamp {
+	if (*s2)[0].Timestamp >= (*s2)[1].Timestamp {
 		t.Fatal("Timestamp 0")
 	}
-	if (*s2)[1].S.Timestamp >= (*s2)[2].S.Timestamp {
+	if (*s2)[1].Timestamp >= (*s2)[2].Timestamp {
 		t.Fatal("Timestamp 1")
 	}
 

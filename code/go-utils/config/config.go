@@ -69,39 +69,22 @@ type NodeMeta struct {
 	Value string `json:"v"`
 }
 
+// Timestamp and CrossNodeJobs are missing in older data.  CrossNodeJobs has an implied time window.
+//
+// Metadata carries additional information used by code generators.  This field is not intended to
+// appear in "production" configuration files, only in background files.
+
 type NodeConfigRecord struct {
-	// Full ISO timestamp of when the reading was taken (missing in older data)
-	Timestamp string `json:"timestamp,omitempty"`
-
-	// Name that host is known by on the cluster
-	Hostname string `json:"hostname"`
-
-	// End-user description, not parseable
-	Description string `json:"description"`
-
-	// True iff a job on this node can be merged with a job from a different node within an
-	// appropriate time window if their job numbers are the same. (Missing in older data.)
-	CrossNodeJobs bool `json:"cross_node_jobs,omitempty"`
-
-	// Total number of cores x threads
-	CpuCores int `json:"cpu_cores"`
-
-	// GB of installed main RAM
-	MemGB int `json:"mem_gb"`
-
-	// Number of installed cards
-	GpuCards int `json:"gpu_cards,omitempty"`
-
-	// Total GPU memory across all cards
-	GpuMemGB int `json:"gpumem_gb,omitempty"`
-
-	// If true, use the percentage-of-memory-per-process figure from the card rather than a memory
-	// measurement
-	GpuMemPct bool `json:"gpumem_pct,omitempty"`
-
-	// Carries additional information used by code generators.  This field is not intended to appear
-	// in "production" configuration files, only in background files.
-	Metadata []NodeMeta `json:"metadata,omitempty"`
+	Timestamp     string     `json:"timestamp,omitempty"`
+	Hostname      string     `json:"hostname"`
+	Description   string     `json:"description"`
+	CrossNodeJobs bool       `json:"cross_node_jobs,omitempty"`
+	CpuCores      int        `json:"cpu_cores"`
+	MemGB         int        `json:"mem_gb"`
+	GpuCards      int        `json:"gpu_cards,omitempty"`
+	GpuMemGB      int        `json:"gpumem_gb,omitempty"`
+	GpuMemPct     bool       `json:"gpumem_pct,omitempty"`
+	Metadata      []NodeMeta `json:"metadata,omitempty"`
 }
 
 type ClusterConfigV2Repr struct {

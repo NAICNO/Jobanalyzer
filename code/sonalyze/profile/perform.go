@@ -41,7 +41,7 @@ func (pc *ProfileCommand) Perform(
 	var hostName string
 	for k, vs := range streams {
 		for _, v := range *vs {
-			hasRolledup = hasRolledup || v.S.Rolledup > 0
+			hasRolledup = hasRolledup || v.Rolledup > 0
 		}
 		if hostName != "" && k.Host.String() != hostName {
 			return errors.New("`profile` only implemented for single-host jobs")
@@ -68,7 +68,7 @@ func (pc *ProfileCommand) Perform(
 	processes := maps.Values(streams)
 	sort.Stable(sonarlog.TimeSortableSampleStreams(processes))
 
-	userName := (*processes[0])[0].S.User.String()
+	userName := (*processes[0])[0].User.String()
 
 	// Number of nonempty streams remaining, this is the termination condition.
 	nonempty := 0
@@ -97,7 +97,7 @@ func (pc *ProfileCommand) Perform(
 		currentTime := int64(math.MaxInt64)
 		for i, p := range processes {
 			if indices[i] < len(*p) {
-				currentTime = min(currentTime, (*p)[indices[i]].S.Timestamp)
+				currentTime = min(currentTime, (*p)[indices[i]].Timestamp)
 			}
 		}
 		if currentTime == math.MaxInt64 {
@@ -110,7 +110,7 @@ func (pc *ProfileCommand) Perform(
 		for i, p := range processes {
 			if indices[i] < len(*p) {
 				r := (*p)[indices[i]]
-				if r.S.Timestamp == currentTime {
+				if r.Timestamp == currentTime {
 					m.set(currentTime, processId(r), newProfDatum(r, pc.Max))
 					indices[i]++
 					if indices[i] == len(*p) {
@@ -187,11 +187,11 @@ func (pc *ProfileCommand) Perform(
 
 func processId(s sonarlog.Sample) uint32 {
 	// Rolled-up processes have pid=0
-	if s.S.Pid != 0 {
-		return s.S.Pid
+	if s.Pid != 0 {
+		return s.Pid
 	}
 	// But in that case the Ustr value of the command should be unique enough
-	return uint32(s.S.Cmd)
+	return uint32(s.Cmd)
 }
 
 // Max clamping: If the value x is greater than the clamp then return the clamp c, except if x is
@@ -238,11 +238,11 @@ type profDatum struct {
 func newProfDatum(r sonarlog.Sample, max float64) *profDatum {
 	var v profDatum
 	v.cpuUtilPct = r.CpuUtilPct
-	v.gpuPct = r.S.GpuPct
-	v.cpuKib = r.S.CpuKib
-	v.gpuKib = r.S.GpuKib
-	v.rssAnonKib = r.S.RssAnonKib
-	v.s = r.S
+	v.gpuPct = r.GpuPct
+	v.cpuKib = r.CpuKib
+	v.gpuKib = r.GpuKib
+	v.rssAnonKib = r.RssAnonKib
+	v.s = r.Sample
 
 	if max != 0 {
 		// Clamping is a hack but it works.
