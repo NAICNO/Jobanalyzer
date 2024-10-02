@@ -1,4 +1,6 @@
-interface JobQueryResultsTableItem {
+import { JobQueryJobId } from './JobQueryJobId.ts'
+
+export interface JobQueryResultsTableItem {
   job: JobQueryJobId;
   user: string;
   host: string;

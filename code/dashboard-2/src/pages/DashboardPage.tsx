@@ -21,11 +21,9 @@ import { useFetchDashboard } from '../hooks/useFetchDashboard.ts'
 import { EMPTY_ARRAY, } from '../Constants.ts'
 import { findCluster } from '../util'
 import { getDashboardTableColumns } from '../util/TableUtils.ts'
-import DashboardTable from '../components/table/DasboardTable.tsx'
-import NodeSelectionHelpDrawer from '../components/NodeSelectionHelpDrawer.tsx'
-import NodeSelectionInput from '../components/NodeSelectionInput.tsx'
-import PageTitle from '../components/PageTitle.tsx'
-import { Cluster } from '../types/Cluster.ts'
+import { NodeSelectionHelpDrawer, NodeSelectionInput, PageTitle } from '../components'
+import { DashboardTable } from '../components/table'
+import { Cluster, Subcluster } from '../types'
 
 export default function DashboardPage() {
 

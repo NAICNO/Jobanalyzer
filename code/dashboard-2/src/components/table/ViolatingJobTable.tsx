@@ -1,13 +1,15 @@
 import { Table, Tbody } from '@chakra-ui/react'
 import { Table as TableType } from '@tanstack/react-table'
-import TableRow from './TableRow.tsx'
-import TableHeader from './TableHeader.tsx'
+
+import { ViolatingJobTableItem } from '../../types'
+import { TableHeader } from './TableHeader.tsx'
+import { TableRow } from './TableRow.tsx'
 
 interface ViolatingJobTableProps {
   table: TableType<ViolatingJobTableItem>
 }
 
-const ViolatingJobTable = ({table}: ViolatingJobTableProps) => {
+export const ViolatingJobTable = ({table}: ViolatingJobTableProps) => {
   return (
     <Table size="sm" border="1px solid" borderColor="gray.200">
       <TableHeader table={table}/>
@@ -19,5 +21,3 @@ const ViolatingJobTable = ({table}: ViolatingJobTableProps) => {
     </Table>
   )
 }
-
-export default ViolatingJobTable

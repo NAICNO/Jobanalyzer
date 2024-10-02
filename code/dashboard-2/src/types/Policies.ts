@@ -1,10 +1,10 @@
-interface Policy {
+export interface Policy {
   name: string;
   trigger: string;
   problem: string;
   remedy: string;
 }
 
-interface Policies {
+export interface Policies {
   [clusterName: string]: Policy[];
 }

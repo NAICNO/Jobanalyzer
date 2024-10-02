@@ -1,4 +1,4 @@
-interface ChartSeriesConfig {
+export interface ChartSeriesConfig {
   dataKey: string;
   label: string;
   lineColor: string;

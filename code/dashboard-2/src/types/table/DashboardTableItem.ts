@@ -1,4 +1,6 @@
-interface DashboardTableItem {
+import { TextWithLink } from '../TextWithLink.ts'
+
+export interface DashboardTableItem {
   hostname: TextWithLink;
   tag: string;
   machine: string;

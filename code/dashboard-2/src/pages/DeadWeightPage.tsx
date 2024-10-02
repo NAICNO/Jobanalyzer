@@ -17,17 +17,17 @@ import {
 import { EMPTY_ARRAY } from '../Constants.ts'
 import { findCluster } from '../util'
 import { getDeadWeightTableColumns } from '../util/TableUtils.ts'
-import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
-import DeadWeightTable from '../components/table/DeadWeightTable.tsx'
+import { NavigateBackButton, PageTitle } from '../components'
+import { DeadWeightTable } from '../components/table'
 import { useFetchDeadWeight } from '../hooks/useFetchDeadWeight.ts'
-import PageTitle from '../components/PageTitle.tsx'
+
 
 export default function DeadWeightPage() {
   const {clusterName} = useParams<string>()
 
   const cluster = findCluster(clusterName)
 
-  if(!cluster) {
+  if (!cluster) {
     return (
       <Navigate to="/"/>
     )

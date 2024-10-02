@@ -1,4 +1,4 @@
-interface DeadWeightTableItem {
+export interface DeadWeightTableItem {
   hostname: string;
   user: string;
   id: string;

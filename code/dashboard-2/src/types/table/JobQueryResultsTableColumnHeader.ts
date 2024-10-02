@@ -1,4 +1,4 @@
-interface JobQueryResultsTableColumnHeader {
+export interface JobQueryResultsTableColumnHeader {
   key: string;
   title: string;
   shortTitle?: string;

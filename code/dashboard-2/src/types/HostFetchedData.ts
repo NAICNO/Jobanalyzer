@@ -1,4 +1,4 @@
-interface HostFetchedData {
+export interface HostFetchedData {
   hostname: string;
   date: Date;
   tag: string;

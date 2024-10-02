@@ -1,11 +1,12 @@
 import '@testing-library/jest-dom'
-import { render, screen, within } from '@testing-library/react'
-import { Cluster } from '../../../src/types/Cluster.ts'
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import DashboardTable from '../../../src/components/table/DasboardTable.tsx'
-import { getDashboardTableColumns } from '../../../src/util/TableUtils.ts'
 import { ChakraProvider } from '@chakra-ui/react'
 import { BrowserRouter } from 'react-router-dom'
+import { render, screen, within } from '@testing-library/react'
+import { getCoreRowModel, useReactTable } from '@tanstack/react-table'
+
+import { Cluster, DashboardTableItem } from '../../../src/types'
+import { DashboardTable } from '../../../src/components/table'
+import { getDashboardTableColumns } from '../../../src/util/TableUtils.ts'
 
 const DashboardTableWrapper = ({data, cluster}: { data: DashboardTableItem[], cluster: Cluster }) => {
   const tableColumns = getDashboardTableColumns(cluster)

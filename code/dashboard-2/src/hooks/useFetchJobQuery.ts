@@ -3,7 +3,12 @@ import { AxiosInstance } from 'axios'
 
 import useAxios from './useAxios.ts'
 import { JOB_QUERY_API_ENDPOINT, QueryKeys } from '../Constants.ts'
-import JobQueryValues from '../types/JobQueryValues.ts'
+import {
+  FetchedJobQueryResultItem,
+  JobQueryJobId,
+  JobQueryResultsTableItem,
+  JobQueryValues,
+} from '../types'
 import { parseDateString } from '../util'
 import { prepareJobQueryString } from '../util/query/QueryUtils.ts'
 

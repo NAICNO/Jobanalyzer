@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import moment from 'moment'
-import { useEffect, useState } from 'react'
 import { AxisDomain, DataKey } from 'recharts/types/util/types'
+
+import { ChartDataItem, ChartSeriesConfig } from '../../types'
 
 interface HostDetailsChartProps {
   dataItems: ChartDataItem[];
@@ -15,7 +17,7 @@ interface HostDetailsChartProps {
   isShowDataPoints?: boolean;
 }
 
-const HostDetailsChart = ({
+export const MachineDetailsChart = ({
   dataItems,
   seriesConfigs,
   containerProps,
@@ -71,7 +73,7 @@ const HostDetailsChart = ({
 
         />
         <YAxis
-          domain={ yAxisDomain || ['auto', 'auto']}
+          domain={yAxisDomain || ['auto', 'auto']}
         />
         <Tooltip labelFormatter={dateTimeFormatter}/>
         <Legend
@@ -99,5 +101,3 @@ const HostDetailsChart = ({
     </ResponsiveContainer>
   )
 }
-
-export default HostDetailsChart

@@ -1,4 +1,4 @@
-interface FetchedViolatingJob {
+export interface FetchedViolatingJob {
   hostname: string;
   id: number;
   user: string;

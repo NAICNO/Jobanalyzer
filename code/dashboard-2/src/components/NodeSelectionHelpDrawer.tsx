@@ -4,13 +4,15 @@ import {
   DrawerCloseButton,
   DrawerContent,
   DrawerHeader,
-  DrawerOverlay, Heading, HStack,
+  DrawerOverlay,
+  HStack,
+  Heading,
   Link as ChakraLink,
 } from '@chakra-ui/react'
 import { Link as ReactRouterLink } from 'react-router-dom'
-
-import NodeSelectionHelpContent from './NodeSelectionHelpContent.tsx'
 import { ExternalLinkIcon } from '@chakra-ui/icons'
+
+import { NodeSelectionHelpContent } from './NodeSelectionHelpContent.tsx'
 
 interface NodeSelectionHelpDrawerProps {
   isOpen: boolean
@@ -18,7 +20,7 @@ interface NodeSelectionHelpDrawerProps {
   finalFocusRef: any
 }
 
-const NodeSelectionHelpDrawer = ({isOpen, onClose, finalFocusRef}: NodeSelectionHelpDrawerProps) => {
+export const NodeSelectionHelpDrawer = ({isOpen, onClose, finalFocusRef}: NodeSelectionHelpDrawerProps) => {
   return (
     <Drawer
       isOpen={isOpen}
@@ -48,5 +50,3 @@ const NodeSelectionHelpDrawer = ({isOpen, onClose, finalFocusRef}: NodeSelection
     </Drawer>
   )
 }
-
-export default NodeSelectionHelpDrawer

@@ -1,4 +1,4 @@
-interface ViolatingJobTableItem {
+export interface ViolatingJobTableItem {
   hostname: string;
   user: string;
   id: string;

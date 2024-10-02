@@ -12,10 +12,8 @@ import { EMPTY_ARRAY } from '../Constants.ts'
 import { findCluster } from '../util'
 import { useFetchViolations } from '../hooks/useFetchViolations.ts'
 import { getViolatingJobTableColumns, getViolatingUserTableColumns } from '../util/TableUtils.ts'
-import ViolatingUserTable from '../components/table/ViolatingUserTable.tsx'
-import ViolatingJobTable from '../components/table/ViolatingJobTable.tsx'
-import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
-import PageTitle from '../components/PageTitle.tsx'
+import { ViolatingUserTable, ViolatingJobTable } from '../components/table'
+import { NavigateBackButton, PageTitle } from '../components'
 
 export default function ViolatorsPage() {
   const {clusterName} = useParams<string>()

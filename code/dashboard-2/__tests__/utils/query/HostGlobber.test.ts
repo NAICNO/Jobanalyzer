@@ -2,7 +2,7 @@ import { HostGlobber, splitMultiPattern } from '../../../src/util/query/HostGlob
 
 describe('HostGlobber', () => {
   it('should be tested', () => {
-     let g = new HostGlobber('a*[10-30].b[2,4]')
+    let g = new HostGlobber('a*[10-30].b[2,4]')
     assert.isTrue(g.match('a15.b2'))
     assert.isTrue(g.match('abc27.b4'))
     assert.isFalse(g.match('a31.b2'))
@@ -17,14 +17,14 @@ describe('HostGlobber', () => {
     assert.isTrue(g.match('c2-2'))
     assert.isFalse(g.match('c2-3'))
 
-    assertExcept(() => new HostGlobber("a[]"), "Invalid number")
-    assertExcept(() => new HostGlobber("a[1-123456789012]"), "Number out of range")
-    assertExcept(() => new HostGlobber("a[1000000-1009999]"), "Expression too large")
-    assertExcept(() => new HostGlobber("a[4-3]"), "Invalid range")
-    assertExcept(() => new HostGlobber("a[1-50000]"), "Range too large")
-    assertExcept(() => new HostGlobber("a[1-5x]"), "Expected ','")
-    assertExcept(() => new HostGlobber("a[1"), "Expected ','")
-    assertExcept(() => new HostGlobber("a,b"), "',' not allowed here")
+    assertExcept(() => new HostGlobber('a[]'), 'Invalid number')
+    assertExcept(() => new HostGlobber('a[1-123456789012]'), 'Number out of range')
+    assertExcept(() => new HostGlobber('a[1000000-1009999]'), 'Expression too large')
+    assertExcept(() => new HostGlobber('a[4-3]'), 'Invalid range')
+    assertExcept(() => new HostGlobber('a[1-50000]'), 'Range too large')
+    assertExcept(() => new HostGlobber('a[1-5x]'), 'Expected \',\'')
+    assertExcept(() => new HostGlobber('a[1'), 'Expected \',\'')
+    assertExcept(() => new HostGlobber('a,b'), '\',\' not allowed here')
 
   })
 

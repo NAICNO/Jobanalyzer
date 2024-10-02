@@ -1,4 +1,4 @@
-interface ViolatingUserTableColumnHeader {
+export interface ViolatingUserTableColumnHeader {
   key: string;
   title: string;
   shortTitle?: string;

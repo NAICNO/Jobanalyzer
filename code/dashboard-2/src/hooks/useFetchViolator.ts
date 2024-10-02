@@ -3,6 +3,7 @@ import { AxiosInstance, AxiosResponse } from 'axios'
 
 import useAxios from './useAxios.ts'
 import { POLICIES, QueryKeys } from '../Constants.ts'
+import { FetchedViolatingJob } from '../types'
 
 const fetchViolator = async (axios: AxiosInstance, clusterName: string) => {
   const endpoint = `/${clusterName}-violator-report.json`

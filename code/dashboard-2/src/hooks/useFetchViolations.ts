@@ -3,7 +3,12 @@ import { AxiosInstance, AxiosResponse } from 'axios'
 
 import useAxios from './useAxios.ts'
 import { QueryKeys } from '../Constants.ts'
-import JobQueryValues from '../types/JobQueryValues.ts'
+import {
+  FetchedViolatingJob,
+  JobQueryValues,
+  ViolatingJob,
+  ViolatingUser
+} from '../types'
 import { prepareShareableJobQueryLink } from '../util/query/QueryUtils.ts'
 
 interface Filter {
@@ -27,7 +32,7 @@ export const useFetchViolations = (clusterName: string, filter: Filter | null = 
       select: (data) => {
 
         let violatingJobs: ViolatingJob[] = data.map((d) => {
-          const jobQueryValues : JobQueryValues = {
+          const jobQueryValues: JobQueryValues = {
             gpuUsage: '',
             minPeakCpuCores: null,
             minPeakResidentGb: null,

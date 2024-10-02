@@ -2,7 +2,7 @@ import { HamburgerIcon } from '@chakra-ui/icons'
 import { IconButton } from '@chakra-ui/react'
 
 interface HamburgerButtonProps {
-    opOpenSidebarDrawer: () => void
+  opOpenSidebarDrawer: () => void
 }
 
 export const HamburgerButton = ({opOpenSidebarDrawer}: HamburgerButtonProps) => {

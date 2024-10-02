@@ -1,4 +1,4 @@
-interface FetchedJobQueryResultItem {
+export interface FetchedJobQueryResultItem {
   job: string;
   user: string;
   host: string;

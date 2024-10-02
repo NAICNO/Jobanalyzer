@@ -50,7 +50,7 @@ const abbreviations = [
   {name: 'down', desc: 'cpu-down or gpu-down'},
 ]
 
-export default function NodeSelectionHelpContent() {
+export const NodeSelectionHelpContent = () => {
   return (
     <VStack alignItems="start" spacing={2}>
       <Text>The query expression selects a subset of all nodes by applying filters.</Text>

@@ -1,16 +1,15 @@
 import { Text } from '@chakra-ui/react'
-import CellWrapper from './CellWrapper.tsx'
+
+import { CellWrapper } from './CellWrapper.tsx'
 
 interface GenericCellProps {
   value: number;
 }
 
-const GenericCell = ({value}: GenericCellProps) => {
+export const GenericCell = ({value}: GenericCellProps) => {
   return (
     <CellWrapper>
       <Text>{value}</Text>
     </CellWrapper>
   )
 }
-
-export default GenericCell

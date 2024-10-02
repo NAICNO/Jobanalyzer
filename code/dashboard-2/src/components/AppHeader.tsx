@@ -15,7 +15,7 @@ interface AppHeaderProps {
   opOpenSidebarDrawer: () => void
 }
 
-export default function AppHeader({opOpenSidebarDrawer}: AppHeaderProps) {
+export const AppHeader = ({opOpenSidebarDrawer}: AppHeaderProps) => {
 
   const {colorMode} = useColorMode()
 

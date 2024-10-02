@@ -1,4 +1,4 @@
-interface Subcluster {
+export interface Subcluster {
   name: string;
   nodes: string;
 }

@@ -24,7 +24,7 @@ interface SidebarProps {
   isDrawerOpen: boolean
 }
 
-export default function Sidebar({onCloseDrawer, isDrawerOpen}: SidebarProps) {
+export const Sidebar = ({onCloseDrawer, isDrawerOpen}: SidebarProps) => {
 
   const isDrawer = useBreakpointValue({base: true, md: false})
 

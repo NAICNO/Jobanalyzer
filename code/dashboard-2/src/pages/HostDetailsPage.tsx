@@ -17,20 +17,18 @@ import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from 
 import { EMPTY_ARRAY, FETCH_FREQUENCIES } from '../Constants.ts'
 import { useFetchHostnames } from '../hooks/useFetchHosts.ts'
 import { useFetchHostDetails } from '../hooks/useFetchHostDetails.ts'
-import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
 import { useFetchViolations } from '../hooks/useFetchViolations.ts'
+import { useFetchDeadWeight } from '../hooks/useFetchDeadWeight.ts'
 import { findCluster } from '../util'
 import {
   getDeadWeightTableColumns,
   getViolatingJobTableColumns,
   getViolatingUserTableColumns
 } from '../util/TableUtils.ts'
-import ViolatingUserTable from '../components/table/ViolatingUserTable.tsx'
-import ViolatingJobTable from '../components/table/ViolatingJobTable.tsx'
-import DeadWeightTable from '../components/table/DeadWeightTable.tsx'
-import { useFetchDeadWeight } from '../hooks/useFetchDeadWeight.ts'
-import MachineDetailsChart from '../components/chart/MachineDetailsChart.tsx'
-import PageTitle from '../components/PageTitle.tsx'
+import { NavigateBackButton, PageTitle } from '../components'
+import { ViolatingUserTable, ViolatingJobTable, DeadWeightTable } from '../components/table'
+import { MachineDetailsChart } from '../components/chart/MachineDetailsChart'
+
 
 export default function HostDetailsPage() {
 

@@ -1,9 +1,10 @@
-import JobQueryValues from '../types/JobQueryValues.ts'
-import useAxios from './useAxios.ts'
-import { JOB_QUERY_API_ENDPOINT, QueryKeys } from '../Constants.ts'
 import { useQuery } from '@tanstack/react-query'
 import { AxiosInstance } from 'axios'
+
+import useAxios from './useAxios.ts'
+import { JOB_QUERY_API_ENDPOINT, QueryKeys } from '../Constants.ts'
 import { prepareJobQueryString } from '../util/query/QueryUtils.ts'
+import { ExportOptions, JobQueryValues } from '../types'
 
 const exportJobQuery = async (axios: AxiosInstance, jobQueryValues: JobQueryValues, fields: string[], format?: string) => {
   const endpoint = '/jobs'
