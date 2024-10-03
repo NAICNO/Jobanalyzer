@@ -1,4 +1,6 @@
-interface ViolatingJob {
+import { TextWithLink } from './TextWithLink.ts'
+
+export interface ViolatingJob {
   hostname: string;
   id: number;
   user: TextWithLink;

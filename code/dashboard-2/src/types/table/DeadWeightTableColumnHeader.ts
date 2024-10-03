@@ -1,4 +1,4 @@
-interface DeadWeightTableColumnHeader {
+export interface DeadWeightTableColumnHeader {
   key: string;
   title: string;
   shortTitle?: string;

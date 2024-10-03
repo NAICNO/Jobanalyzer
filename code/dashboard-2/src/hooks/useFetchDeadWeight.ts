@@ -3,8 +3,12 @@ import { AxiosInstance, AxiosResponse } from 'axios'
 
 import useAxios from './useAxios.ts'
 import { QueryKeys } from '../Constants.ts'
-import JobQueryValues from '../types/JobQueryValues.ts'
 import { prepareShareableJobQueryLink } from '../util/query/QueryUtils.ts'
+import {
+  DeadWeight,
+  FetchedDeadWeight,
+  JobQueryValues,
+} from '../types'
 
 interface Filter {
   afterDate: Date | null

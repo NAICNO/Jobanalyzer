@@ -1,11 +1,18 @@
 import { AccessorKeyColumnDef, createColumnHelper, SortingFn } from '@tanstack/react-table'
+
 import {
   DASHBOARD_COLUMN,
   DEAD_WEIGHT_COLUMN, DURATION_REGEX, JOB_QUERY_RESULTS_COLUMN,
   VIOLATING_JOB_SUMMARY_COLUMN,
   VIOLATING_USER_SUMMARY_COLUMN
 } from '../Constants.ts'
-import { Cluster } from '../types/Cluster.ts'
+import {
+  Cluster,
+  DashboardTableItem,
+  DeadWeightTableItem, JobQueryResultsTableItem,
+  ViolatingJobTableItem,
+  ViolatingUserTableItem,
+} from '../types'
 
 export const getDashboardTableColumns = (selectedCluster: Cluster) => {
   const columns: AccessorKeyColumnDef<DashboardTableItem, any>[] = [

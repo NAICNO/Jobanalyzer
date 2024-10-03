@@ -1,6 +1,6 @@
 import { CLUSTER_INFO } from '../Constants.ts'
 import moment from 'moment'
-import { Cluster } from '../types/Cluster.ts'
+import { Cluster, Subcluster } from '../types'
 
 export const findCluster = (clusterName?: string | null): Cluster | null => {
   return clusterName && CLUSTER_INFO[clusterName] ? CLUSTER_INFO[clusterName] : null

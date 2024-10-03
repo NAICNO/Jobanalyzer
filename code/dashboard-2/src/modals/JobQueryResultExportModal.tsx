@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
   Box,
   Button, Checkbox, CheckboxGroup, FormControl, FormErrorMessage, FormLabel,
@@ -10,15 +11,15 @@ import {
   ModalOverlay, Radio, RadioGroup,
   VStack,
 } from '@chakra-ui/react'
-import { useEffect, useState } from 'react'
-import JobQueryValues from '../types/JobQueryValues.ts'
+import { Field, FieldProps, Form, Formik } from 'formik'
+
 import {
   JOB_QUERY_EXPORT_FORMATS,
   JOB_QUERY_EXPORT_VALIDATION_SCHEMA,
   JOB_QUERY_RESULTS_COLUMN,
 } from '../Constants.ts'
 import { useExportJobQuery } from '../hooks/useExportJobQuery.ts'
-import { Field, FieldProps, Form, Formik } from 'formik'
+import { ExportOptions, JobQueryValues } from '../types'
 
 const downloadExported = (exportContent: string, filename: string, mimeType: string) => {
   const file = new Blob([exportContent], {type: mimeType})

@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
+
 import { WorkingFieldCell } from '../../../src/components/table/cell'
 
 describe('WorkingFieldCell', () => {

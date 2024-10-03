@@ -8,7 +8,7 @@ interface JobQueryFormTextInputProps {
   placeholder: string;
 }
 
-const JobQueryFormTextInput = ({name, label, type, placeholder}: JobQueryFormTextInputProps) => {
+export const JobQueryFormTextInput = ({name, label, type, placeholder}: JobQueryFormTextInputProps) => {
   return (
     <Field name={name}>
       {({field, meta}: FieldProps) => (
@@ -21,5 +21,3 @@ const JobQueryFormTextInput = ({name, label, type, placeholder}: JobQueryFormTex
     </Field>
   )
 }
-
-export default JobQueryFormTextInput

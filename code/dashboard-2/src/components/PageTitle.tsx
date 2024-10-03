@@ -6,7 +6,7 @@ interface PageTitleProps {
   title: string
 }
 
-const PageTitle = ({title}: PageTitleProps) => {
+export const PageTitle = ({title}: PageTitleProps) => {
   const location = useLocation()
 
   const pageTitle = title ? `${title}${PAGE_TITLE_SUFFIX}` : APP_NAME
@@ -18,4 +18,3 @@ const PageTitle = ({title}: PageTitleProps) => {
   return null
 }
 
-export default PageTitle

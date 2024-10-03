@@ -5,6 +5,12 @@ import moment from 'moment'
 import useAxios from './useAxios.ts'
 import { CHART_SERIES_CONFIGS, QueryKeys } from '../Constants.ts'
 import { reformatHostDescriptions } from '../util'
+import {
+  ChartDataItem,
+  ChartSeriesConfig,
+  HostDetails,
+  HostFetchedData,
+} from '../types'
 
 const fetchHostDetails = async (axios: AxiosInstance, hostname: string, frequency: string) => {
   const endpoint = `/${hostname}-${frequency}.json`

@@ -8,7 +8,7 @@ import {
 
 const SKELETON_COUNT = 10
 
-const JobQueryResultsSkeleton = () => {
+export const JobQueryResultsSkeleton = () => {
   return (
     <VStack alignItems={'start'} w="80%">
       <Card mt="10px" w="100%">
@@ -30,5 +30,3 @@ const JobQueryResultsSkeleton = () => {
     </VStack>
   )
 }
-
-export default JobQueryResultsSkeleton

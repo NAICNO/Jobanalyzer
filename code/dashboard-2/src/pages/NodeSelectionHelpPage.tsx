@@ -1,6 +1,5 @@
 import { Heading, VStack } from '@chakra-ui/react'
-import NodeSelectionHelpContent from '../components/NodeSelectionHelpContent.tsx'
-import PageTitle from '../components/PageTitle.tsx'
+import { NodeSelectionHelpContent, PageTitle } from '../components'
 
 export default function NodeSelectionHelpPage() {
   return (

@@ -1,4 +1,4 @@
-interface SidebarItem {
+export interface SidebarItem {
   type: 'link' | 'separator'
   path?: string
   matches?: string

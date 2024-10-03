@@ -1,12 +1,12 @@
+import { useEffect, useState } from 'react'
 import { Heading, HStack, VStack, Text, Link as ChakraLink } from '@chakra-ui/react'
 import { Link as ReactRouterLink, Navigate, useParams } from 'react-router-dom'
 
 import { findSubcluster } from '../util'
 import { useFetchHostDetails } from '../hooks/useFetchHostDetails.ts'
-import MachineDetailsChart from '../components/chart/MachineDetailsChart.tsx'
-import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
-import { useEffect, useState } from 'react'
-import PageTitle from '../components/PageTitle.tsx'
+import { MachineDetailsChart } from '../components/chart/MachineDetailsChart.tsx'
+import { NavigateBackButton, PageTitle } from '../components'
+import { HostDetails } from '../types'
 
 export default function SubclusterPage() {
 

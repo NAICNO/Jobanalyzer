@@ -1,4 +1,4 @@
-interface DashboardTableColumnHeader {
+export interface DashboardTableColumnHeader {
   key: string;
   title: string;
   shortTitle?: string;

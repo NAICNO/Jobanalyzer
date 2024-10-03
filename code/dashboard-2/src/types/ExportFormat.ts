@@ -1,4 +1,4 @@
-interface ExportFormat {
+export interface ExportFormat {
   label: string;
   value: string;
   mimeType: string;

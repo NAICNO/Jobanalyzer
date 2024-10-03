@@ -5,7 +5,7 @@ import useAxios from './useAxios.ts'
 import { QueryKeys } from '../Constants.ts'
 import { makeFilter } from '../util/query/QueryUtils.ts'
 import { sortDashboardTableRows } from '../util/TableUtils.ts'
-import { Cluster } from '../types/Cluster.ts'
+import { Cluster, DashboardTableItem } from '../types'
 
 const fetchDashboard = async (axios: AxiosInstance, clusterName: string) => {
   const endpoint = `/${clusterName}-at-a-glance.json`

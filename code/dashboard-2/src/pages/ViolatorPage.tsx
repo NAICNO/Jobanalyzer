@@ -26,10 +26,9 @@ import moment from 'moment-timezone'
 import { EMPTY_ARRAY, POLICIES } from '../Constants.ts'
 import { findCluster } from '../util'
 import { getUserViolatingJobTableColumns } from '../util/TableUtils.ts'
-import ViolatingJobTable from '../components/table/ViolatingJobTable.tsx'
 import { useFetchViolator } from '../hooks/useFetchViolator.ts'
-import { NavigateBackButton } from '../components/NavigateBackButton.tsx'
-import PageTitle from '../components/PageTitle.tsx'
+import { NavigateBackButton, PageTitle } from '../components'
+import { ViolatingJobTable } from '../components/table'
 
 export default function ViolatorPage() {
   const {clusterName, violator} = useParams<string>()

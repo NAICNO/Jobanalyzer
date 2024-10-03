@@ -1,5 +1,6 @@
 import { Field, FieldProps } from 'formik'
 import { FormControl, FormLabel, HStack, Radio, RadioGroup } from '@chakra-ui/react'
+import { SimpleRadioInputOption } from '../types'
 
 interface JobQueryFormRadioInputProps {
   name: string;
@@ -7,7 +8,7 @@ interface JobQueryFormRadioInputProps {
   options: SimpleRadioInputOption[];
 }
 
-const JobQueryFormRadioInput = ({name, label, options}: JobQueryFormRadioInputProps) => {
+export const JobQueryFormRadioInput = ({name, label, options}: JobQueryFormRadioInputProps) => {
   return (
     <Field name={name}>
       {({field, form}: FieldProps) => (
@@ -33,5 +34,3 @@ const JobQueryFormRadioInput = ({name, label, options}: JobQueryFormRadioInputPr
     </Field>
   )
 }
-
-export default JobQueryFormRadioInput

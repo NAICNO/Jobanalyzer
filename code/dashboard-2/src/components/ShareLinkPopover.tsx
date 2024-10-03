@@ -27,7 +27,7 @@ interface ShareLinkPopoverProps {
 }
 
 
-const ShareLinkPopover = ({link, text, placement, showToast, toastProps}: ShareLinkPopoverProps) => {
+export const ShareLinkPopover = ({link, text, placement, showToast, toastProps}: ShareLinkPopoverProps) => {
 
   const toast = useToast()
 
@@ -69,5 +69,3 @@ const ShareLinkPopover = ({link, text, placement, showToast, toastProps}: ShareL
     </Popover>
   )
 }
-
-export default ShareLinkPopover

@@ -1,8 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { Grid, GridItem, useColorMode, useDisclosure } from '@chakra-ui/react'
 
-import AppHeader from '../components/AppHeader.tsx'
-import Sidebar from '../components/Sidebar.tsx'
+import { AppHeader, Sidebar } from '../components'
 
 export default function RootLayout() {
 

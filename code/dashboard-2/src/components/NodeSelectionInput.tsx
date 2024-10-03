@@ -8,7 +8,7 @@ interface NodeSelectionInputProps {
   focusRef: React.RefObject<HTMLInputElement>
 }
 
-const NodeSelectionInput = ({defaultQuery, onClickSubmit, onClickHelp, focusRef}: NodeSelectionInputProps) => {
+export const NodeSelectionInput = ({defaultQuery, onClickSubmit, onClickHelp, focusRef}: NodeSelectionInputProps) => {
 
   const [query, setQuery] = useState<string>(defaultQuery)
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)
@@ -43,5 +43,3 @@ const NodeSelectionInput = ({defaultQuery, onClickSubmit, onClickHelp, focusRef}
     </HStack>
   )
 }
-
-export default NodeSelectionInput

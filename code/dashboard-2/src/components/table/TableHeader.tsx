@@ -7,7 +7,7 @@ interface TableHeaderProps<T> {
   table: TableType<T>
 }
 
-const TableHeader = ({table}: TableHeaderProps<any>) => {
+export const TableHeader = ({table}: TableHeaderProps<any>) => {
   return (
     <Thead borderBottom="1px solid" borderColor="gray.200">
       {table.getHeaderGroups().map((headerGroup) => (
@@ -50,5 +50,3 @@ const TableHeader = ({table}: TableHeaderProps<any>) => {
     </Thead>
   )
 }
-
-export default TableHeader

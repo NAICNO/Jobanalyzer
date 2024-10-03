@@ -1,3 +1,5 @@
+import { Subcluster } from './SubCluster.ts'
+
 export interface Cluster {
   cluster: string;
   subclusters: Subcluster[];

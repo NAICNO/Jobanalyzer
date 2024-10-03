@@ -1,15 +1,16 @@
 import { Table, Tbody } from '@chakra-ui/react'
 import { Table as TableType } from '@tanstack/react-table'
-import DashboardTableRow from './DashboardTableRow.tsx'
-import TableHeader from './TableHeader.tsx'
-import { Cluster } from '../../types/Cluster.ts'
+
+import { DashboardTableRow } from './DashboardTableRow'
+import { TableHeader } from './TableHeader.tsx'
+import { Cluster, DashboardTableItem } from '../../types/'
 
 interface DashboardTableProps {
   table: TableType<DashboardTableItem>
   cluster: Cluster
 }
 
-const DashboardTable = ({table, cluster}: DashboardTableProps) => {
+export const DashboardTable = ({table, cluster}: DashboardTableProps) => {
   return (
     <Table size="sm" border="1px solid" borderColor="gray.200">
       <TableHeader table={table}/>
@@ -21,5 +22,3 @@ const DashboardTable = ({table, cluster}: DashboardTableProps) => {
     </Table>
   )
 }
-
-export default DashboardTable

@@ -1,4 +1,4 @@
-interface FetchedDeadWeight {
+export interface FetchedDeadWeight {
   hostname: string;
   id: string;
   user: string;

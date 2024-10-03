@@ -26,14 +26,11 @@ import {
   JOB_QUERY_RESULTS_COLUMN,
 } from '../Constants.ts'
 import { useFetchJobQuery } from '../hooks/useFetchJobQuery.ts'
-import JobQueryFormTextInput from '../components/JobQueryFormTextInput.tsx'
-import JobQueryFormRadioInput from '../components/JobQueryFormRadioInput.tsx'
-import JobQueryResultsTable from '../components/table/JobQueryResultsTable.tsx'
+import { JobQueryFormTextInput, JobQueryFormRadioInput, ShareLinkPopover, PageTitle, } from '../components'
+import { JobQueryResultsTable } from '../components/table'
 import { getJobQueryResultsTableColumns } from '../util/TableUtils.ts'
-import JobQueryResultsSkeleton from '../components/skeleton/JobQueryResultsSkeleton.tsx'
-import ShareLinkPopover from '../components/ShareLinkPopover.tsx'
-import JobQueryValues from '../types/JobQueryValues.ts'
-import PageTitle from '../components/PageTitle.tsx'
+import { JobQueryResultsSkeleton } from '../components/skeleton/JobQueryResultsSkeleton.tsx'
+import { JobQueryValues } from '../types'
 import { prepareShareableJobQueryLink } from '../util/query/QueryUtils.ts'
 import JobQueryResultExportModal from '../modals/JobQueryResultExportModal.tsx'
 

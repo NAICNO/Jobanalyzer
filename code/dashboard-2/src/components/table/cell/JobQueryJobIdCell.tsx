@@ -12,14 +12,15 @@ import {
 } from '@chakra-ui/react'
 import { Link as ReactRouterLink } from 'react-router-dom'
 
-import CellWrapper from './CellWrapper.tsx'
+import { CellWrapper } from './CellWrapper.tsx'
 import { APP_URL, PROFILE_NAMES } from '../../../Constants.ts'
+import { JobQueryJobId } from '../../../types'
 
 interface JobQueryJobIdCellProps {
   value: JobQueryJobId
 }
 
-const JobQueryJobIdCell = ({value}: JobQueryJobIdCellProps) => {
+export const JobQueryJobIdCell = ({value}: JobQueryJobIdCellProps) => {
   return (
     <CellWrapper styleProps={{paddingLeft: 2}}>
       <Popover
@@ -92,5 +93,3 @@ const LinkButton = ({cluster, jobId, host, from, to, profile}: LinkButtonProps) 
     </ChakraLink>
   )
 }
-
-export default JobQueryJobIdCell

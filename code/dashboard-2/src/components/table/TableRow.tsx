@@ -7,9 +7,9 @@ interface TableRowProps<T> {
   styles?: React.CSSProperties
 }
 
-const TableRow = ({row, styles}: TableRowProps<any>) => {
+export const TableRow = ({row, styles}: TableRowProps<any>) => {
 
-  let rowStyles : React.CSSProperties = {
+  let rowStyles: React.CSSProperties = {
     borderBottom: '1px solid',
     borderColor: 'gray.200',
     ...styles
@@ -34,5 +34,3 @@ const TableRow = ({row, styles}: TableRowProps<any>) => {
     </Tr>
   )
 }
-
-export default TableRow

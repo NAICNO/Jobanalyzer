@@ -1,4 +1,4 @@
-interface ViolatingJobTableColumnHeader {
+export interface ViolatingJobTableColumnHeader {
   key: string;
   title: string;
   shortTitle?: string;
