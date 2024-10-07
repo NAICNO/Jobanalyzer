@@ -1,3 +1,6 @@
+// This report should disappear.  All client should use `sonalyze node ... -from 2w -newest` or
+// something like that.  The output format will be somewhat different.
+//
 // hostnames - compute a set of host names from a set of report file names.
 //
 // End-user options:

@@ -14,6 +14,28 @@ import (
 	gut "go-utils/time"
 )
 
+type RemoteOptions struct {
+	Server, AuthFile, Cluster string
+}
+
+func AddRemoteOptions(opts *flag.FlagSet) *RemoteOptions {
+	var ra RemoteOptions
+	opts.StringVar(&ra.Server, "remote", "", "A remote `url` to serve the query")
+	opts.StringVar(&ra.AuthFile, "auth-file", "",
+		"A `file` with username:password.  For use with -remote.")
+	opts.StringVar(&ra.Cluster, "cluster", "",
+		"The cluster `name` for which we want data.  For use with -remote.")
+	return &ra
+}
+
+func ForwardRemoteOptions(arguments []string, opts *RemoteOptions) []string {
+	arguments = append(arguments, "-remote", opts.Server, "-cluster", opts.Cluster)
+	if opts.AuthFile != "" {
+		arguments = append(arguments, "-auth-file", opts.AuthFile)
+	}
+	return arguments
+}
+
 type DataFilesOptions struct {
 	Path  string
 	Files []string // For -- filename ...
@@ -34,13 +56,9 @@ func RectifyDataFilesOptions(s *DataFilesOptions, opts *flag.FlagSet) error {
 	// Figure out files
 	var err error
 	if s.Path == "" {
-		files := []string{}
-		for _, f := range opts.Args() {
-			fn, err := options.RequireCleanPath(f, "--")
-			if err != nil {
-				return err
-			}
-			files = append(files, fn)
+		files, err := CleanRestArgs(opts.Args())
+		if err != nil {
+			return err
 		}
 		if len(files) == 0 {
 			return errors.New("No file arguments provided")
@@ -55,6 +73,18 @@ func RectifyDataFilesOptions(s *DataFilesOptions, opts *flag.FlagSet) error {
 	}
 
 	return nil
+}
+
+func CleanRestArgs(args []string) ([]string, error) {
+	files := []string{}
+	for _, f := range args {
+		fn, err := options.RequireCleanPath(f, "--")
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, fn)
+	}
+	return files, nil
 }
 
 func ForwardDataFilesOptions(arguments []string, optName string, opts *DataFilesOptions) []string {
