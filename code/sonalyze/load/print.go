@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"go-utils/config"
+	"go-utils/gpuset"
+
 	. "sonalyze/command"
-	"sonalyze/common"
+	. "sonalyze/common"
 	"sonalyze/sonarlog"
 )
 
@@ -83,17 +85,13 @@ func (lc *LoadCommand) printStreams(
 			)
 		}
 
-		ctx := loadCtx{
-			sys: conf,
-			now: time.Now().Unix(),
-		}
-
 		var data sonarlog.SampleStream = *stream
 		if !lc.All {
 			// Invariant: there's always at least one record
 			data = data[len(data)-1:]
 		}
-		FormatData(out, lc.PrintFields, loadFormatters, lc.PrintOpts, data, ctx)
+		report := GenerateReport(data, time.Now().Unix(), conf)
+		FormatData(out, lc.PrintFields, loadFormatters, lc.PrintOpts, report, PrintMods(0))
 
 		if lc.PrintOpts.Json {
 			fmt.Fprint(out, "}")
@@ -117,82 +115,82 @@ load
 // MT: Constant after initialization; immutable
 var loadAliases = map[string][]string{ /* No aliases */ }
 
-type loadCtx struct {
-	sys *config.NodeConfigRecord
-	now int64
-}
-
-// This is complicated in several ways: loadCtx carries both the "now" timestamp and a node config
-// record; fields are printed under names other than their field names (datetime, date, time); there
-// is computation; there is indirection in the sonarlog.Sample record.
-//
-// In a sense I think what's happening here is that the "table" is an array of maps from field name
-// to string value, where the keys are the selected fields for the record and the values are the
-// formatted values.  But they don't have to be formatted - they could just be computed.  And it
-// does not have to be a map: there could be a slice of keys, and then a []any to hold the values,
-// and the values would carry their types, and that would be fine.  But then we'd end up with
-// pre-formatting logic to select fields that looks a lot like formatting logic?  There would be a
-// loop across keys of the first array and a dispatch to extract or compute values.  But the
-// formatting code might still be able to do all the formatting and layout for us, which would be a
-// win.
-//
-// Still we don't want to have to compute the formatting function for each line in the output.
-//
-// It's possibly faster to just compute everything than to try to optimize - at least here.  In
-// the case of jobs it's probably different?  But there we compute everything already anyway.
-
-// Should we have `DateValue` and `TimeValue` or should there be a `format` annotation or should
-// something be computed?
-
 type ReportRecord struct {
-	Now      UnixTime		`alias:"now"      desc:"The current time (yyyy-mm-dd hh:mm)"`
-	DateTime UnixTime       `alias:"datetime" desc:"The starting date and time of the aggregation window (yyyy-mm-dd hh:mm)"`
-	Date     DateValue      `alias:"date"     desc:"The starting date of the aggregation window (yyyy-mm-dd)"`
-	Time     TimeValue      `alias:"time"     desc:"The startint time of the aggregation window (hh:mm)"`
-	Cpu      int            `alias:"cpu"      desc:"Average CPU utilization in percent in the aggregation window (100% = 1 core)"`
-	RelativeCpu int
-    VirtualMem      int
-    RelativeVirtualMem float32
-    ResidentMem int
-    RelativeResidentMem float32
-    Gpu      int
-    RelativeGpu float32
-    GpuMem int
-    RelativeGpuMem float32
-	Gpus     GpuSet
-	Hostname String
+	Now                 UnixTime      `alias:"now"      desc:"The current time (yyyy-mm-dd hh:mm)"`
+	DateTime            UnixTime      `alias:"datetime" desc:"The starting date and time of the aggregation window (yyyy-mm-dd hh:mm)"`
+	Date                DateValue     `alias:"date"     desc:"The starting date of the aggregation window (yyyy-mm-dd)"`
+	Time                TimeValue     `alias:"time"     desc:"The startint time of the aggregation window (hh:mm)"`
+	Cpu                 int           `alias:"cpu"      desc:"Average CPU utilization in percent in the aggregation window (100% = 1 core)"`
+	RelativeCpu         int           `alias:"rcpu"     desc:"Average relative CPU utilization in percent in the aggregation window (100% = all cores)"`
+    VirtualGB           int           `alias:"mem"      desc:"Average virtual memory utilization in GiB in the aggregation window"`
+    RelativeVirtualMem  int           `alias:"rmem"     desc:"Relative virtual memory utilization in GiB in the aggregation window (100% = system RAM)"`
+    ResidentGB          int           `alias:"res"      desc:"Average resident memory utilization in GiB in the aggregation window"`
+    RelativeResidentMem int           `alias:"rres"     desc:"Relative resident memory utilization in GiB in the aggregation window (100% = system RAM)"`
+    Gpu                 int           `alias:"gpu"      desc:"Average GPU utilization in percent in the aggregation window (100% = 1 card)"`
+    RelativeGpu         int           `alias:"rgpu"     desc:"Average relative GPU utilization in percent in the aggregation window (100% = all cards)"`
+    GpuGB               int           `alias:"gpumem"   desc:"Average gpu memory utilization in GiB in the aggregation window"`
+    RelativeGpuMem      int           `alias:"rgpumem"  desc:"Average relative gpu memory utilization in GiB in the aggregation window (100% = all GPU RAM)"`
+	Gpus                gpuset.GpuSet `alias:"gpus"     desc:"GPU device numbers used by the job, 'none' if none or 'unknown' in error states"`
+	Hostname            Ustr          `alias:"host"     desc:"Combined host names of jobs active in the aggregation window"`
 }
 
-func GenerateReport(input []sonarlog.Sample, now UnixTime, sys *config.NodeConfigRecord) (result []ReportRecord) {
-   result = make([]ReportRecord, 0, len(input))
-   for _, d := range input {
-       relativeCpu := 0
-       if sys != nil && sys.CpuCores > 0 {
-           relativeCpu = float32(math.Round(float64(d.CpuUtilPct) / float64(ctx.sys.CpuCores)))
-       }
-       result = append(result, ReportRecord{
-           Now: now,
-           DateTime: d.S.Timestamp,
-           Date: DateValue(d.S.Timestamp),
-           Time: TimeValue(d.S.Timestamp),
-           Cpu: int(d.CpuUtilPct),
-           RelativeCpu: relativeCpu,
-           ...,
-	   })
-   }
+// `sys` may be nil if none of the requested fields use its data, so we must guard against that.
+func GenerateReport(input []sonarlog.Sample, now int64, sys *config.NodeConfigRecord) (result []ReportRecord) {
+	result = make([]ReportRecord, 0, len(input))
+	for _, d := range input {
+		var relativeCpu, relativeVirtualMem, relativeResidentMem, relativeGpu, relativeGpuMem int
+		if sys != nil {
+			if sys.CpuCores > 0 {
+				relativeCpu = int(math.Round(float64(d.CpuUtilPct) / float64(sys.CpuCores)))
+			}
+			if sys.MemGB > 0 {
+				relativeVirtualMem = int(math.Round(float64(d.S.CpuKib) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
+				relativeResidentMem = int(math.Round(float64(d.S.RssAnonKib) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
+			}
+			if sys.GpuCards > 0 {
+				// GpuPct is already scaled by 100 so don't do it again
+				relativeGpu = int(math.Round(float64(d.S.GpuPct) / float64(sys.GpuCards)))
+			}
+			if sys.GpuMemGB > 0 {
+				relativeGpuMem = int(math.Round(float64(d.S.GpuKib) / (1024 * 1024) / float64(sys.GpuMemGB) * 100))
+			}
+		}
+		result = append(result, ReportRecord{
+			Now:         UnixTime(now),
+			DateTime:    UnixTime(d.S.Timestamp),
+			Date:        DateValue(d.S.Timestamp),
+			Time:        TimeValue(d.S.Timestamp),
+			Cpu:         int(d.CpuUtilPct),
+			RelativeCpu: relativeCpu,
+			VirtualGB:   int(d.S.CpuKib / (1024 * 1024)),
+			RelativeVirtualMem: relativeVirtualMem,
+			ResidentGB:  int(d.S.RssAnonKib / (1024 * 1024)),
+			RelativeResidentMem: relativeResidentMem,
+			Gpu: int(d.S.GpuPct),
+			RelativeGpu: relativeGpu,
+			GpuGB: int(d.S.GpuKib / (1024 * 1024)),
+			RelativeGpuMem: relativeGpuMem,
+			Gpus: d.S.Gpus,
+			Hostname: d.S.Host,
+		})
+	}
+	return
 }
 
 // MT: Constant after initialization; immutable
+var loadFormatters = ReflectFormatters[ReportRecord](nil)
+
+/*
 var loadFormatters = map[string]Formatter[sonarlog.Sample, loadCtx]{
 	"now": {
 		func(_ sonarlog.Sample, ctx loadCtx) string {
-			return common.FormatYyyyMmDdHhMmUtc(ctx.now)
+			return FormatYyyyMmDdHhMmUtc(ctx.now)
 		},
 		"The current time (yyyy-mm-dd hh:mm)",
 	},
 	"datetime": {
 		func(d sonarlog.Sample, _ loadCtx) string {
-			return common.FormatYyyyMmDdHhMmUtc(d.S.Timestamp)
+			return FormatYyyyMmDdHhMmUtc(d.S.Timestamp)
 		},
 		"The starting time of the aggregation window (yyyy-mm-dd hh:mm)",
 	},
@@ -297,3 +295,4 @@ var loadFormatters = map[string]Formatter[sonarlog.Sample, loadCtx]{
 		"Combined host names of jobs active in the aggregation window",
 	},
 }
+*/

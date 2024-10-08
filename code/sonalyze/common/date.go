@@ -12,6 +12,23 @@ import (
 
 type UnixTime int64
 
+// Same value but we only want to print the date part
+
+type DateValue int64
+
+func (d DateValue) String() string {
+	return time.Unix(int64(d), 0).UTC().Format("2006-01-02")
+}
+
+// Same value but we only want to print the time part
+
+type TimeValue int64
+
+func (d TimeValue) String() string {
+	return time.Unix(int64(d), 0).UTC().Format("15:04")
+}
+
+
 // Parse a relative date string and return the time in the UTC time zone.  The base time is folded
 // to UTC if it is not already utc.
 //

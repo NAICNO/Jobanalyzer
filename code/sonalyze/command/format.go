@@ -9,8 +9,10 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 	"unicode/utf8"
 
+	"go-utils/gpuset"
 	umaps "go-utils/maps"
 
 	. "sonalyze/common"
@@ -128,11 +130,11 @@ func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatt
 			switch elemTy.Kind() {
 			case reflect.String:
 				f.Fmt = func(d Datum, _ PrintMods) string {
-					vs := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
-					lim := vs.Len()
+					vals := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
+					lim := vals.Len()
 					ss := make([]string, lim)
 					for j := 0; j < lim; j++ {
-						ss[j] = vs.Index(j).String()
+						ss[j] = vals.Index(j).String()
 					}
 					return strings.Join(ss, ",")
 				}
@@ -141,23 +143,34 @@ func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatt
 			}
 		case reflect.String:
 			f.Fmt = func(d Datum, _ PrintMods) string {
-				return reflect.Indirect(reflect.ValueOf(d)).Field(ix).String()
+				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).String()
+				return val
 			}
 		case reflect.Bool:
 			f.Fmt = func(d Datum, _ PrintMods) string {
-				if reflect.Indirect(reflect.ValueOf(d)).Field(ix).Bool() {
+				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Bool()
+				if val {
 					return "1"
 				}
 				return "0"
 			}
 		case reflect.Uint32:
+			// TODO: One feels that it might be more sensible to lookup these types and compare for
+			// equality here and below?
 			if fld.Type.Name() == "Ustr" && fld.Type.PkgPath() == "sonalyze/common" {
 				f.Fmt = func(d Datum, _ PrintMods) string {
-					return Ustr(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()).String()
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
+					return Ustr(val).String()
+				}
+			} else if fld.Type.Name() == "GpuSet" && fld.Type.PkgPath() == "go-utils/gpuset" {
+				f.Fmt = func(d Datum, _ PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
+					return gpuset.GpuSet(val).String()
 				}
 			} else {
 				f.Fmt = func(d Datum, _ PrintMods) string {
-					return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
+					return fmt.Sprint(val)
 				}
 			}
 		case reflect.Int64:
@@ -173,22 +186,36 @@ func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatt
 						return FormatYyyyMmDdHhMmUtc(val)
 					}
 				}
+			} else if fld.Type.Name() == "DateValue" && fld.Type.PkgPath() == "sonalyze/common" {
+				f.Fmt = func(d Datum, _ PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+					return time.Unix(val, 0).UTC().Format("2006-01-02")
+				}
+			} else if fld.Type.Name() == "TimeValue" && fld.Type.PkgPath() == "sonalyze/common" {
+				f.Fmt = func(d Datum, _ PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+					return time.Unix(val, 0).UTC().Format("15:04")
+				}
 			} else {
 				f.Fmt = func(d Datum, _ PrintMods) string {
-					return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+					return fmt.Sprint(val)
 				}
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 			f.Fmt = func(d Datum, _ PrintMods) string {
-				return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int())
+				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+				return fmt.Sprint(val)
 			}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint64:
 			f.Fmt = func(d Datum, _ PrintMods) string {
-				return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
+				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
+				return fmt.Sprint(val)
 			}
 		case reflect.Float32, reflect.Float64:
 			f.Fmt = func(d Datum, _ PrintMods) string {
-				return fmt.Sprint(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Float())
+				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Float()
+				return fmt.Sprint(val)
 			}
 		default:
 			continue
