@@ -141,19 +141,46 @@ type loadCtx struct {
 // It's possibly faster to just compute everything than to try to optimize - at least here.  In
 // the case of jobs it's probably different?  But there we compute everything already anyway.
 
-/*
+// Should we have `DateValue` and `TimeValue` or should there be a `format` annotation or should
+// something be computed?
+
 type ReportRecord struct {
-	Now UnixTime
-	DateTime UnixTime
-	Date     DateValue
-	Time     TimeValue
-	Cpu      int
-	RCpu     int
-	...;
+	Now      UnixTime		`alias:"now"      desc:"The current time (yyyy-mm-dd hh:mm)"`
+	DateTime UnixTime       `alias:"datetime" desc:"The starting date and time of the aggregation window (yyyy-mm-dd hh:mm)"`
+	Date     DateValue      `alias:"date"     desc:"The starting date of the aggregation window (yyyy-mm-dd)"`
+	Time     TimeValue      `alias:"time"     desc:"The startint time of the aggregation window (hh:mm)"`
+	Cpu      int            `alias:"cpu"      desc:"Average CPU utilization in percent in the aggregation window (100% = 1 core)"`
+	RelativeCpu int
+    VirtualMem      int
+    RelativeVirtualMem float32
+    ResidentMem int
+    RelativeResidentMem float32
+    Gpu      int
+    RelativeGpu float32
+    GpuMem int
+    RelativeGpuMem float32
 	Gpus     GpuSet
 	Hostname String
 }
-*/
+
+func GenerateReport(input []sonarlog.Sample, now UnixTime, sys *config.NodeConfigRecord) (result []ReportRecord) {
+   result = make([]ReportRecord, 0, len(input))
+   for _, d := range input {
+       relativeCpu := 0
+       if sys != nil && sys.CpuCores > 0 {
+           relativeCpu = float32(math.Round(float64(d.CpuUtilPct) / float64(ctx.sys.CpuCores)))
+       }
+       result = append(result, ReportRecord{
+           Now: now,
+           DateTime: d.S.Timestamp,
+           Date: DateValue(d.S.Timestamp),
+           Time: TimeValue(d.S.Timestamp),
+           Cpu: int(d.CpuUtilPct),
+           RelativeCpu: relativeCpu,
+           ...,
+	   })
+   }
+}
 
 // MT: Constant after initialization; immutable
 var loadFormatters = map[string]Formatter[sonarlog.Sample, loadCtx]{
