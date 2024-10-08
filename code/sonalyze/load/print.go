@@ -115,6 +115,18 @@ load
 // MT: Constant after initialization; immutable
 var loadAliases = map[string][]string{ /* No aliases */ }
 
+// TODO here:
+//  - ReportRecord (maybe) and GenerateReport (for sure) should move into perform.go
+//  - perform.go should generate the reports
+//  - printStreams() should take a set of reports
+//  - probably there will be no cfg argument to printStreams()
+//  - test all fields esp GpuSet
+//  - run test suite
+//  - compare against a standard run
+//  - define aliases and defaults
+//  - should UnixTime be DateTimeValue?
+//  - defaults should be defined in this file not in load.go
+
 type ReportRecord struct {
 	Now                 UnixTime      `alias:"now"      desc:"The current time (yyyy-mm-dd hh:mm)"`
 	DateTime            UnixTime      `alias:"datetime" desc:"The starting date and time of the aggregation window (yyyy-mm-dd hh:mm)"`
@@ -179,120 +191,3 @@ func GenerateReport(input []sonarlog.Sample, now int64, sys *config.NodeConfigRe
 
 // MT: Constant after initialization; immutable
 var loadFormatters = ReflectFormatters[ReportRecord](nil)
-
-/*
-var loadFormatters = map[string]Formatter[sonarlog.Sample, loadCtx]{
-	"now": {
-		func(_ sonarlog.Sample, ctx loadCtx) string {
-			return FormatYyyyMmDdHhMmUtc(ctx.now)
-		},
-		"The current time (yyyy-mm-dd hh:mm)",
-	},
-	"datetime": {
-		func(d sonarlog.Sample, _ loadCtx) string {
-			return FormatYyyyMmDdHhMmUtc(d.S.Timestamp)
-		},
-		"The starting time of the aggregation window (yyyy-mm-dd hh:mm)",
-	},
-	"date": {
-		func(d sonarlog.Sample, _ loadCtx) string {
-			return time.Unix(d.S.Timestamp, 0).UTC().Format("2006-01-02")
-		},
-		"The starting time of the aggregation window (yyyy-mm-dd)",
-	},
-	"time": {
-		func(d sonarlog.Sample, _ loadCtx) string {
-			return time.Unix(d.S.Timestamp, 0).UTC().Format("15:04")
-		},
-		"The starting time of the aggregation window (hh:mm)",
-	},
-	"cpu": {
-		func(d sonarlog.Sample, _ loadCtx) string {
-			return fmt.Sprint(int(d.CpuUtilPct))
-		},
-		"Average CPU utilization in percent in the aggregation window (100% = 1 core)",
-	},
-	"rcpu": {
-		func(d sonarlog.Sample, ctx loadCtx) string {
-			if ctx.sys.CpuCores == 0 {
-				return "0"
-			}
-			return fmt.Sprint(math.Round(float64(d.CpuUtilPct) / float64(ctx.sys.CpuCores)))
-		},
-		"Average relative CPU utilization in percent in the aggregation window (100% = all cores)",
-	},
-	"mem": {
-		func(d sonarlog.Sample, _ loadCtx) string {
-			return fmt.Sprint(d.S.CpuKib / (1024 * 1024))
-		},
-		"Average virtual memory utilization in GiB in the aggregation window",
-	},
-	"rmem": {
-		func(d sonarlog.Sample, ctx loadCtx) string {
-			if ctx.sys.MemGB == 0 {
-				return "0"
-			}
-			return fmt.Sprint(math.Round(float64(d.S.CpuKib) / (1024 * 1024) / float64(ctx.sys.MemGB) * 100.0))
-		},
-		"Relative virtual memory utilization in GiB in the aggregation window (100% = system RAM)",
-	},
-	"res": {
-		func(d sonarlog.Sample, _ loadCtx) string {
-			return fmt.Sprint(d.S.RssAnonKib / (1024 * 1024))
-		},
-		"Average resident memory utilization in GiB in the aggregation window",
-	},
-	"rres": {
-		func(d sonarlog.Sample, ctx loadCtx) string {
-			if ctx.sys.MemGB == 0 {
-				return "0"
-			}
-			return fmt.Sprint(math.Round(float64(d.S.RssAnonKib) / (1024 * 1024) / float64(ctx.sys.MemGB) * 100.0))
-		},
-		"Relative resident memory utilization in GiB in the aggregation window (100% = system RAM)",
-	},
-	"gpu": {
-		func(d sonarlog.Sample, _ loadCtx) string {
-			return fmt.Sprint(int(d.S.GpuPct))
-		},
-		"Average GPU utilization in percent in the aggregation window (100% = 1 card)",
-	},
-	"rgpu": {
-		func(d sonarlog.Sample, ctx loadCtx) string {
-			if ctx.sys.GpuCards == 0 {
-				return "0"
-			}
-			// GpuPct is already scaled by 100 so don't do it again
-			return fmt.Sprint(math.Round(float64(d.S.GpuPct) / float64(ctx.sys.GpuCards)))
-		},
-		"Average relative GPU utilization in percent in the aggregation window (100% = all cards)",
-	},
-	"gpumem": {
-		func(d sonarlog.Sample, _ loadCtx) string {
-			return fmt.Sprint(int(d.S.GpuKib / (1024 * 1024)))
-		},
-		"Average gpu memory utilization in GiB in the aggregation window",
-	},
-	"rgpumem": {
-		func(d sonarlog.Sample, ctx loadCtx) string {
-			if ctx.sys.GpuMemGB == 0 {
-				return "0"
-			}
-			return fmt.Sprint(math.Round(float64(d.S.GpuKib) / (1024 * 1024) / float64(ctx.sys.GpuMemGB) * 100))
-		},
-		"Average relative gpu memory utilization in GiB in the aggregation window (100% = all GPU RAM)",
-	},
-	"gpus": {
-		func(d sonarlog.Sample, _ loadCtx) string {
-			return d.S.Gpus.String()
-		},
-		"GPU device numbers used by the job, 'none' if none or 'unknown' in error states",
-	},
-	"host": {
-		func(d sonarlog.Sample, _ loadCtx) string {
-			return d.S.Host.String()
-		},
-		"Combined host names of jobs active in the aggregation window",
-	},
-}
-*/
