@@ -12,7 +12,6 @@ import (
 	"go-utils/config"
 	"go-utils/hostglob"
 	. "sonalyze/command"
-	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
 )
@@ -90,9 +89,9 @@ func (mdc *MetadataCommand) DefaultRecordFilters() (
 }
 
 type metadataItem struct {
-	Hostname string   `alias:"host"     desc:"Name that host is known by on the cluster"`
-	Earliest UnixTime `alias:"earliest" desc:"Timestamp of earliest sample for host"`
-	Latest   UnixTime `alias:"latest"   desc:"Timestamp of latest sample for host"`
+	Hostname string        `alias:"host"     desc:"Name that host is known by on the cluster"`
+	Earliest DateTimeValue `alias:"earliest" desc:"Timestamp of earliest sample for host"`
+	Latest   DateTimeValue `alias:"latest"   desc:"Timestamp of latest sample for host"`
 }
 
 type HostTimeSortableItems []metadataItem
@@ -155,8 +154,8 @@ func (mdc *MetadataCommand) Perform(
 		for k, v := range bounds {
 			items = append(items, metadataItem{
 				Hostname: k.String(),
-				Earliest: UnixTime(v.Earliest),
-				Latest:   UnixTime(v.Latest),
+				Earliest: DateTimeValue(v.Earliest),
+				Latest:   DateTimeValue(v.Latest),
 			})
 		}
 		sort.Sort(HostTimeSortableItems(items))

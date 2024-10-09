@@ -1,38 +1,27 @@
 package load
 
 import (
+	"cmp"
 	"fmt"
 	"io"
-	"sort"
+	"slices"
 	"strings"
-	"time"
 
 	"go-utils/config"
 	"go-utils/gpuset"
 
 	. "sonalyze/command"
 	. "sonalyze/common"
-	"sonalyze/sonarlog"
 )
 
 // TODO here:
-//  - perform.go should generate the reports
-//  - printStreams() should take a list of reports
-//  - probably there will be no cfg argument to printStreams() then
-//  - printRequiresConfig must also test canonical names
-//
-//  - test all fields esp GpuSet
+//  - test all fields esp Gpus
 //  - run test suite
 //  - compare against a standard run
-//
-//  - should "UnixTime" be "DateTimeValue"?  Almost certainly!  It's useful to separate formatting from representation.
-//  - should DateTimeValue, DateValue, TimeValue be defined in the formatting code then?  Possibly.
-//
-//  - in the formatting code, can we make better use of "this thing implements fmt.Stringer" as a catchall?
 
 type ReportRecord struct {
-	Now                 UnixTime      `alias:"now"      desc:"The current time (yyyy-mm-dd hh:mm)"`
-	DateTime            UnixTime      `alias:"datetime" desc:"The starting date and time of the aggregation window (yyyy-mm-dd hh:mm)"`
+	Now                 DateTimeValue `alias:"now"      desc:"The current time (yyyy-mm-dd hh:mm)"`
+	DateTime            DateTimeValue `alias:"datetime" desc:"The starting date and time of the aggregation window (yyyy-mm-dd hh:mm)"`
 	Date                DateValue     `alias:"date"     desc:"The starting date of the aggregation window (yyyy-mm-dd)"`
 	Time                TimeValue     `alias:"time"     desc:"The startint time of the aggregation window (hh:mm)"`
 	Cpu                 int           `alias:"cpu"      desc:"Average CPU utilization in percent in the aggregation window (100% = 1 core)"`
@@ -49,10 +38,28 @@ type ReportRecord struct {
 	Hostname            Ustr          `alias:"host"     desc:"Combined host names of jobs active in the aggregation window"`
 }
 
+type LoadReport struct {
+	hostname string
+	conf     *config.NodeConfigRecord // may be nil, beware
+	records  []ReportRecord
+}
+
+var relativeFields = map[string]bool{
+	"RelativeCpu":true,
+	"rcpu":true,
+	"RelativeVirtualMem":true,
+	"rmem":true,
+	"RelativeResidentMem":true,
+	"rres":true,
+	"RelativeGpu":true,
+	"rgpu":true,
+	"RelativeGpuMem":true,
+	"rgpumem":true,
+}
+
 func (lc *LoadCommand) printRequiresConfig() bool {
 	for _, f := range lc.PrintFields {
-		switch f {
-		case "rcpu", "rmem", "rres", "rgpu", "rgpumem":
+		if relativeFields[f] {
 			return true
 		}
 	}
@@ -61,14 +68,14 @@ func (lc *LoadCommand) printRequiresConfig() bool {
 
 func (lc *LoadCommand) printStreams(
 	out io.Writer,
-	cfg *config.ClusterConfig,
-	mergedConf *config.NodeConfigRecord,
-	mergedStreams sonarlog.SampleStreams,
+	reports []LoadReport,
 ) {
 
 	// Sort hosts lexicographically.  This is not ideal because hosts like c1-10 vs c1-5 are not in
 	// the order we expect but at least it's predictable.
-	sort.Stable(sonarlog.HostSortableSampleStreams(mergedStreams))
+	slices.SortStableFunc(reports, func(a, b LoadReport) int {
+		return cmp.Compare(a.hostname, b.hostname)
+	})
 
 	// The handling of hostname for "fixed" formatting is a hack: if the records don't contain the
 	// host name, print the host above each run of records for a host.
@@ -92,18 +99,13 @@ func (lc *LoadCommand) printStreams(
 		fmt.Fprint(out, "[")
 	}
 
-	for _, stream := range mergedStreams {
+	for _, report := range reports {
 		if lc.PrintOpts.Json {
 			fmt.Fprint(out, jsonSep)
 			jsonSep = ","
 		}
-		hostname := (*stream)[0].S.Host.String()
 		if lc.PrintOpts.Fixed && !explicitHost {
-			fmt.Fprintf(out, "HOST: %s\n", hostname)
-		}
-		conf := mergedConf
-		if conf == nil && cfg != nil {
-			conf = cfg.LookupHost(hostname)
+			fmt.Fprintf(out, "HOST: %s\n", report.hostname)
 		}
 
 		// For JSON, add richer information about the host so that the client does not have to
@@ -111,9 +113,9 @@ func (lc *LoadCommand) printStreams(
 		if lc.PrintOpts.Json {
 			description := "Unknown"
 			gpuCards := 0
-			if conf != nil {
-				description = conf.Description
-				gpuCards = conf.GpuCards
+			if report.conf != nil {
+				description = report.conf.Description
+				gpuCards = report.conf.GpuCards
 			}
 			fmt.Fprintf(
 				out,
@@ -122,19 +124,18 @@ func (lc *LoadCommand) printStreams(
 					"\"description\":\"%s\","+
 					"\"gpucards\":\"%d\""+
 					"},\"records\":",
-				hostname,
+				report.hostname,
 				QuoteJson(description),
 				gpuCards,
 			)
 		}
 
-		var data sonarlog.SampleStream = *stream
+		records := report.records
 		if !lc.All {
 			// Invariant: there's always at least one record
-			data = data[len(data)-1:]
+			records = records[len(records)-1:]
 		}
-		report := generateReport(data, time.Now().Unix(), conf)
-		FormatData(out, lc.PrintFields, loadFormatters, lc.PrintOpts, report, PrintMods(0))
+		FormatData(out, lc.PrintFields, loadFormatters, lc.PrintOpts, records, PrintMods(0))
 
 		if lc.PrintOpts.Json {
 			fmt.Fprint(out, "}")

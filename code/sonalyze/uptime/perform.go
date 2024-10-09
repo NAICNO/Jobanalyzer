@@ -49,6 +49,7 @@ import (
 	"go-utils/maps"
 	"go-utils/slices"
 	. "sonalyze/common"
+	. "sonalyze/command"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
 )
@@ -73,8 +74,8 @@ type UptimeLine struct {
 	Device     string   `alias:"device" desc:"Device type: 'host' or 'gpu'"`
 	Hostname   string   `alias:"host"   desc:"Host name for the device"`
 	State      string   `alias:"state"  desc:"Device state: 'up' or 'down'"`
-	Start      UnixTime `alias:"start"  desc:"Start time of 'up' or 'down' window"`
-	End        UnixTime `alias:"end"    desc:"End time of 'up' or 'down' window"`
+	Start      DateTimeValue `alias:"start"  desc:"Start time of 'up' or 'down' window"`
+	End        DateTimeValue `alias:"end"    desc:"End time of 'up' or 'down' window"`
 }
 
 // TODO: CLEANUP: The window is just a []sonarlog.Sample, the indices are a Rust-ism.
@@ -137,8 +138,8 @@ func (uc *UptimeCommand) computeReports(
 					Device: "host",
 					Hostname:   hostFirst.S.Host.String(),
 					State:  "down",
-					Start:  UnixTime(fromIncl),
-					End:    UnixTime(hostFirst.S.Timestamp),
+					Start:  DateTimeValue(fromIncl),
+					End:    DateTimeValue(hostFirst.S.Timestamp),
 				})
 			}
 		}
@@ -153,8 +154,8 @@ func (uc *UptimeCommand) computeReports(
 					Device: "host",
 					Hostname:   hostFirst.S.Host.String(),
 					State:  "down",
-					Start:  UnixTime(hostLast.S.Timestamp),
-					End:    UnixTime(toIncl),
+					Start:  DateTimeValue(hostLast.S.Timestamp),
+					End:    DateTimeValue(toIncl),
 				})
 			}
 		}
@@ -184,8 +185,8 @@ func (uc *UptimeCommand) computeReports(
 					Device: "host",
 					Hostname:   hostFirst.S.Host.String(),
 					State:  "up",
-					Start:  UnixTime(samples[windowStart].S.Timestamp),
-					End:    UnixTime(samples[j-1].S.Timestamp),
+					Start:  DateTimeValue(samples[windowStart].S.Timestamp),
+					End:    DateTimeValue(samples[j-1].S.Timestamp),
 				})
 			}
 
@@ -207,8 +208,8 @@ func (uc *UptimeCommand) computeReports(
 					Device: "host",
 					Hostname:   hostFirst.S.Host.String(),
 					State:  "down",
-					Start:  UnixTime(prevTimestamp),
-					End:    UnixTime(samples[j].S.Timestamp),
+					Start:  DateTimeValue(prevTimestamp),
+					End:    DateTimeValue(samples[j].S.Timestamp),
 				})
 			}
 
@@ -234,8 +235,8 @@ func (uc *UptimeCommand) computeReports(
 					Device: "gpu",
 					Hostname:   samples[w.start].S.Host.String(),
 					State:  updown,
-					Start:  UnixTime(samples[start].S.Timestamp),
-					End:    UnixTime(samples[min(w.end, i)].S.Timestamp),
+					Start:  DateTimeValue(samples[start].S.Timestamp),
+					End:    DateTimeValue(samples[min(w.end, i)].S.Timestamp),
 				})
 			}
 		}
@@ -323,8 +324,8 @@ func (uc *UptimeCommand) computeAlwaysDown(
 				Device: "host",
 				Hostname:   h.String(),
 				State:  "down",
-				Start:  UnixTime(fromIncl),
-				End:    UnixTime(toIncl),
+				Start:  DateTimeValue(fromIncl),
+				End:    DateTimeValue(toIncl),
 			})
 		}
 	}

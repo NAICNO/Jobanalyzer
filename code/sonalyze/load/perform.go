@@ -3,6 +3,7 @@ package load
 import (
 	"io"
 	"math"
+	"time"
 
 	"go-utils/config"
 	"go-utils/hostglob"
@@ -97,7 +98,23 @@ func (lc *LoadCommand) Perform(
 		}
 	}
 
-	lc.printStreams(out, cfg, mergedConf, mergedStreams)
+	// Generate data to be printed
+	reports := make([]LoadReport, 0)
+	for _, stream := range mergedStreams {
+		hostname := (*stream)[0].S.Host.String()
+		conf := mergedConf
+		if conf == nil && cfg != nil {
+			conf = cfg.LookupHost(hostname)
+		}
+ 		reports = append(reports, LoadReport{
+			hostname: hostname,
+			records:  generateReport(*stream, time.Now().Unix(), conf),
+			conf:     conf,
+		})
+	}
+
+	// And print it
+	lc.printStreams(out, reports)
 
 	return nil
 }
@@ -147,7 +164,11 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 }
 
 // `sys` may be nil if none of the requested fields use its data, so we must guard against that.
-func generateReport(input []sonarlog.Sample, now int64, sys *config.NodeConfigRecord) (result []ReportRecord) {
+func generateReport(
+	input []sonarlog.Sample,
+	now int64,
+	sys *config.NodeConfigRecord,
+) (result []ReportRecord) {
 	result = make([]ReportRecord, 0, len(input))
 	for _, d := range input {
 		var relativeCpu, relativeVirtualMem, relativeResidentMem, relativeGpu, relativeGpuMem int
@@ -156,20 +177,23 @@ func generateReport(input []sonarlog.Sample, now int64, sys *config.NodeConfigRe
 				relativeCpu = int(math.Round(float64(d.CpuUtilPct) / float64(sys.CpuCores)))
 			}
 			if sys.MemGB > 0 {
-				relativeVirtualMem = int(math.Round(float64(d.S.CpuKib) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
-				relativeResidentMem = int(math.Round(float64(d.S.RssAnonKib) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
+				relativeVirtualMem =
+					int(math.Round(float64(d.S.CpuKib) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
+				relativeResidentMem =
+					int(math.Round(float64(d.S.RssAnonKib) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
 			}
 			if sys.GpuCards > 0 {
 				// GpuPct is already scaled by 100 so don't do it again
 				relativeGpu = int(math.Round(float64(d.S.GpuPct) / float64(sys.GpuCards)))
 			}
 			if sys.GpuMemGB > 0 {
-				relativeGpuMem = int(math.Round(float64(d.S.GpuKib) / (1024 * 1024) / float64(sys.GpuMemGB) * 100))
+				relativeGpuMem =
+					int(math.Round(float64(d.S.GpuKib) / (1024 * 1024) / float64(sys.GpuMemGB) * 100))
 			}
 		}
 		result = append(result, ReportRecord{
-			Now:                 UnixTime(now),
-			DateTime:            UnixTime(d.S.Timestamp),
+			Now:                 DateTimeValue(now),
+			DateTime:            DateTimeValue(d.S.Timestamp),
 			Date:                DateValue(d.S.Timestamp),
 			Time:                TimeValue(d.S.Timestamp),
 			Cpu:                 int(d.CpuUtilPct),

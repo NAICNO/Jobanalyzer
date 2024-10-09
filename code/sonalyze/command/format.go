@@ -18,6 +18,12 @@ import (
 	. "sonalyze/common"
 )
 
+// These types hold an int64 unix timestamp and indicate a particular kind of formatting.
+
+type DateTimeValue int64		// yyyy-mm-dd hh:mm
+type DateValue int64			// yyyy-mm-dd
+type TimeValue int64			// hh:mm
+
 type FormatOptions struct {
 	Tag        string // if not ""
 	Json       bool   // json explicitly requested
@@ -94,6 +100,10 @@ const (
 	PrintModSec = (1 << iota) // timestamps are printed as seconds since epoch
 	PrintModIso				  // timestamps are printed as Iso timestamps
 )
+
+// TODO: It feels like it should be possible to make better use of "this thing implements
+// fmt.Stringer" as a catchall?  Certainly for eg DateValue, TimeValue, Ustr, rather than baking in
+// a bunch of special cases.  Still may need to dispatch on type first?  Hard to say.
 
 func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatter[Datum, PrintMods] {
 	formatters := make(map[string]Formatter[Datum, PrintMods])
@@ -174,24 +184,24 @@ func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatt
 				}
 			}
 		case reflect.Int64:
-			if fld.Type.Name() == "UnixTime" && fld.Type.PkgPath() == "sonalyze/common" {
+			if fld.Type.Name() == "DateTimeValue" && fld.Type.PkgPath() == "sonalyze/command" {
 				f.Fmt = func(d Datum, ctx PrintMods) string {
 					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
 					switch {
 					case (ctx & PrintModSec) != 0:
 						return fmt.Sprint(val)
 					case (ctx & PrintModIso) != 0:
-						panic("NYI") // FIXME
+						return time.Unix(val, 0).UTC().Format(time.RFC3339)
 					default:
 						return FormatYyyyMmDdHhMmUtc(val)
 					}
 				}
-			} else if fld.Type.Name() == "DateValue" && fld.Type.PkgPath() == "sonalyze/common" {
+			} else if fld.Type.Name() == "DateValue" && fld.Type.PkgPath() == "sonalyze/command" {
 				f.Fmt = func(d Datum, _ PrintMods) string {
 					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
 					return time.Unix(val, 0).UTC().Format("2006-01-02")
 				}
-			} else if fld.Type.Name() == "TimeValue" && fld.Type.PkgPath() == "sonalyze/common" {
+			} else if fld.Type.Name() == "TimeValue" && fld.Type.PkgPath() == "sonalyze/command" {
 				f.Fmt = func(d Datum, _ PrintMods) string {
 					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
 					return time.Unix(val, 0).UTC().Format("15:04")
