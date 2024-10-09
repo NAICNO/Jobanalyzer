@@ -34,15 +34,16 @@
 //    `LABELS` array that contains one value per value of the arrays of `DATASETS`, a string
 //    representing the timestamp for the colum.
 //
-// For fixed output, the output is presented in blocks, one block per timestamp (time increases
-// along the y axis).  The first line of a block has the timestamp and data for the first process;
-// subsequent lines of the block have only data for subsequent processes at that time.  On each
-// line, all the requested fields are printed.
-//
 // For JSON output, we print an array of objects, each representing a "job" at a "time" (these are
 // fields in each object).  In each object, there is a field "points" which is an array of data
 // points.  Each data point has the value for all the data fields (regardless of what was requested)
 // for that job at that time.
+//
+// For fixed output, the output is presented in blocks, one block per timestamp (time increases
+// along the y axis).  The first line of a block has the timestamp and data for the first process;
+// subsequent lines of the block have only data for subsequent processes at that time.  On each
+// line, all the requested fields are printed.  Essentially, the fixed output is the flattened JSON
+// output: the intermediate job objects are not printed.
 
 package profile
 
@@ -117,7 +118,7 @@ func (pc *ProfileCommand) collectHtml(
 	processes sonarlog.SampleStreams,
 ) (labels []string, rows []string, err error) {
 	var formatter func(*profDatum) string
-	formatter, err = checkFields(pc.PrintFields, true)
+	formatter, err = lookupSingleFormatter(pc.PrintFields, true)
 	if err != nil {
 		return
 	}
@@ -164,7 +165,7 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 	processes sonarlog.SampleStreams,
 ) (header []string, matrix [][]string, err error) {
 	var formatter func(*profDatum) string
-	formatter, err = checkFields(pc.PrintFields, false)
+	formatter, err = lookupSingleFormatter(pc.PrintFields, false)
 	if err != nil {
 		return
 	}
@@ -206,6 +207,7 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 // has a non-zero time value, the rest are zero.
 
 // TODO: Should the derivation of these data be lifted to perform.go?
+// TODO: Merge with JSON-formatting logic somehow?
 
 type fixedLine struct {
 	Timestamp     DateTimeValueOrBlank `alias:"time" desc:"Time of the start of the profiling bucket"`
@@ -267,7 +269,7 @@ func (pc *ProfileCommand) collectFixed(
 // formatting anyway, so should be applied earlier, and we should probably derive some table of
 // values to be printed.
 
-func checkFields(fields []string, scaleCpuGpu bool) (formatter func(*profDatum) string, err error) {
+func lookupSingleFormatter(fields []string, scaleCpuGpu bool) (formatter func(*profDatum) string, err error) {
 	n := 0
 	for _, f := range fields {
 		switch f {
@@ -304,6 +306,40 @@ func checkFields(fields []string, scaleCpuGpu bool) (formatter func(*profDatum) 
 	}
 	return
 }
+
+// TODO: These formatters are now only used by lookupSingleFormatter().  It's bad that the
+// formatting logic also does things like conversion and truncation - we could have generated data
+// first and then formatted.
+
+func formatCpuUtilPct(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.cpuUtilPct)))
+}
+
+func formatCpuUtilPctScaled(s *profDatum) string {
+	return fmt.Sprintf("%.1f", float64(s.cpuUtilPct)/100)
+}
+
+func formatMem(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.cpuKib) / (1024 * 1024)))
+}
+
+func formatRes(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.rssAnonKib) / (1024 * 1024)))
+}
+
+func formatGpuPct(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.gpuPct)))
+}
+
+func formatGpuPctScaled(s *profDatum) string {
+	return fmt.Sprintf("%.1f", float64(s.gpuPct)/100)
+}
+
+func formatGpuMem(s *profDatum) string {
+	return fmt.Sprint(math.Round(float64(s.gpuKib) / (1024 * 1024)))
+}
+
+// TODO: Canonical names too?
 
 var htmlCaptions = map[string]string{
 	"cpu":    "Y axis: Number of CPU cores (1.0 = 1 core at 100%)",
@@ -363,6 +399,9 @@ function render() {
 		htmlCaptions[quant],
 	)
 }
+
+// TODO: Canonical names too?
+// TODO: Merge with fixed-formatting logic somehow?
 
 func formatJson(
 	out io.Writer,
@@ -456,30 +495,3 @@ func formatTime(t int64) string {
 	return FormatYyyyMmDdHhMmUtc(t)
 }
 
-func formatCpuUtilPct(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.cpuUtilPct)))
-}
-
-func formatCpuUtilPctScaled(s *profDatum) string {
-	return fmt.Sprintf("%.1f", float64(s.cpuUtilPct)/100)
-}
-
-func formatMem(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.cpuKib) / (1024 * 1024)))
-}
-
-func formatRes(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.rssAnonKib) / (1024 * 1024)))
-}
-
-func formatGpuPct(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.gpuPct)))
-}
-
-func formatGpuPctScaled(s *profDatum) string {
-	return fmt.Sprintf("%.1f", float64(s.gpuPct)/100)
-}
-
-func formatGpuMem(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.gpuKib) / (1024 * 1024)))
-}
