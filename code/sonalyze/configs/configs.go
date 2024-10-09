@@ -137,9 +137,11 @@ configs
   default format is 'fixed'.
 `
 
-const v0ConfigsDefaultFields = "host,cores,mem,gpus,gpumem,xnode,desc"
-const v1ConfigsDefaultFields = "Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,CrossNodeJobs,Description"
-const configsDefaultFields = v0ConfigsDefaultFields
+const (
+	v0ConfigsDefaultFields = "host,cores,mem,gpus,gpumem,xnode,desc"
+	v1ConfigsDefaultFields = "Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,CrossNodeJobs,Description"
+	configsDefaultFields = v0ConfigsDefaultFields
+)
 
 // MT: Constant after initialization; immutable
 var configsAliases = map[string][]string{
