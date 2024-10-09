@@ -23,6 +23,11 @@ import (
 type DateTimeValue int64		// yyyy-mm-dd hh:mm
 type DateValue int64			// yyyy-mm-dd
 type TimeValue int64			// hh:mm
+type DateTimeValueOrBlank int64 // yyyy-mm-dd hh:mm or 16 blanks
+
+// More of the same
+
+type IntOrEmpty int             // the int value, but "" if zero
 
 type FormatOptions struct {
 	Tag        string // if not ""
@@ -196,6 +201,20 @@ func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatt
 						return FormatYyyyMmDdHhMmUtc(val)
 					}
 				}
+			} else if fld.Type.Name() == "DateTimeValueOrBlank" && fld.Type.PkgPath() == "sonalyze/command" {
+				f.Fmt = func(d Datum, ctx PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+					switch {
+					case val == 0:
+						return "                "
+					case (ctx & PrintModSec) != 0:
+						return fmt.Sprint(val)
+					case (ctx & PrintModIso) != 0:
+						return time.Unix(val, 0).UTC().Format(time.RFC3339)
+					default:
+						return FormatYyyyMmDdHhMmUtc(val)
+					}
+				}
 			} else if fld.Type.Name() == "DateValue" && fld.Type.PkgPath() == "sonalyze/command" {
 				f.Fmt = func(d Datum, _ PrintMods) string {
 					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
@@ -212,7 +231,22 @@ func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatt
 					return fmt.Sprint(val)
 				}
 			}
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
+		case reflect.Int:
+			if fld.Type.Name() == "IntOrEmpty" && fld.Type.PkgPath() == "sonalyze/command" {
+				f.Fmt = func(d Datum, _ PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+					if val == 0 {
+						return ""
+					}
+					return fmt.Sprint(val)
+				}
+			} else {
+				f.Fmt = func(d Datum, _ PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+					return fmt.Sprint(val)
+				}
+			}
+		case reflect.Int8, reflect.Int16, reflect.Int32:
 			f.Fmt = func(d Datum, _ PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
 				return fmt.Sprint(val)
