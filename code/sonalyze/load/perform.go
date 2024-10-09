@@ -106,7 +106,7 @@ func (lc *LoadCommand) Perform(
 		if conf == nil && cfg != nil {
 			conf = cfg.LookupHost(hostname)
 		}
- 		reports = append(reports, LoadReport{
+		reports = append(reports, LoadReport{
 			hostname: hostname,
 			records:  generateReport(*stream, time.Now().Unix(), conf),
 			conf:     conf,

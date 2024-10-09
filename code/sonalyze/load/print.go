@@ -14,11 +14,6 @@ import (
 	. "sonalyze/common"
 )
 
-// TODO here:
-//  - test all fields esp Gpus
-//  - run test suite
-//  - compare against a standard run
-
 type ReportRecord struct {
 	Now                 DateTimeValue `alias:"now"      desc:"The current time (yyyy-mm-dd hh:mm)"`
 	DateTime            DateTimeValue `alias:"datetime" desc:"The starting date and time of the aggregation window (yyyy-mm-dd hh:mm)"`
@@ -45,16 +40,16 @@ type LoadReport struct {
 }
 
 var relativeFields = map[string]bool{
-	"RelativeCpu":true,
-	"rcpu":true,
-	"RelativeVirtualMem":true,
-	"rmem":true,
-	"RelativeResidentMem":true,
-	"rres":true,
-	"RelativeGpu":true,
-	"rgpu":true,
-	"RelativeGpuMem":true,
-	"rgpumem":true,
+	"RelativeCpu":         true,
+	"rcpu":                true,
+	"RelativeVirtualMem":  true,
+	"rmem":                true,
+	"RelativeResidentMem": true,
+	"rres":                true,
+	"RelativeGpu":         true,
+	"rgpu":                true,
+	"RelativeGpuMem":      true,
+	"rgpumem":             true,
 }
 
 func (lc *LoadCommand) printRequiresConfig() bool {
