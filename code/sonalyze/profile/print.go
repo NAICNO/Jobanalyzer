@@ -483,6 +483,8 @@ profile
 const profileDefaultFields = "time,cpu,mem,gpu,gpumem,cmd"
 const profileDefaultFieldsWithNproc = "time,cpu,mem,gpu,gpumem,nproc,cmd"
 
+// FIXME: More aliases
+
 // MT: Constant after initialization; immutable
 var profileAliases = map[string][]string{
 	"rss": []string{"res"},

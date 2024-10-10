@@ -8,11 +8,11 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"go-utils/gpuset"
 	umaps "go-utils/maps"
 
 	. "sonalyze/common"
@@ -21,13 +21,28 @@ import (
 // These types hold an int64 unix timestamp and indicate a particular kind of formatting.
 
 type DateTimeValue int64		// yyyy-mm-dd hh:mm
+type DateTimeValueOrBlank int64 // yyyy-mm-dd hh:mm or 16 blanks
 type DateValue int64			// yyyy-mm-dd
 type TimeValue int64			// hh:mm
-type DateTimeValueOrBlank int64 // yyyy-mm-dd hh:mm or 16 blanks
+
+func (val DateValue) String() string {
+	return time.Unix(int64(val), 0).UTC().Format("2006-01-02")
+}
+
+func (val TimeValue) String() string {
+	return time.Unix(int64(val), 0).UTC().Format("15:04")
+}
 
 // More of the same
 
 type IntOrEmpty int             // the int value, but "" if zero
+
+func (val IntOrEmpty) String() string {
+	if val == 0 {
+		return ""
+	}
+	return strconv.FormatInt(int64(val), 10)
+}
 
 type FormatOptions struct {
 	Tag        string // if not ""
@@ -106,25 +121,29 @@ const (
 	PrintModIso				  // timestamps are printed as Iso timestamps
 )
 
-// TODO: It feels like it should be possible to make better use of "this thing implements
-// fmt.Stringer" as a catchall?  Certainly for eg DateValue, TimeValue, Ustr, rather than baking in
-// a bunch of special cases.  Still may need to dispatch on type first?  Hard to say.
-
 func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatter[Datum, PrintMods] {
+	// FIXME when we can adopt Go 1.22: valTy := reflect.TypeFor[TypeName]()
+	var dummyDateTimeValue DateTimeValue
+	dateTimeValueTy := reflect.TypeOf(dummyDateTimeValue)
+	var dummyDateTimeValueOrBlank DateTimeValueOrBlank
+	dateTimeValueOrBlankTy := reflect.TypeOf(dummyDateTimeValueOrBlank)
+	// See the Example for reflect.TypeOf in the Go documentation.
+	stringerTy := reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+
+	// FIXME when we can adopt Go 1.22: datumTy := reflect.TypeFor[Datum]()
+	var dummyDatum Datum
+	datumTy := reflect.TypeOf(dummyDatum)
+	if datumTy.Kind() == reflect.Pointer {
+		datumTy = datumTy.Elem()
+	}
+	if datumTy.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("Bad %d", datumTy.Kind()))
+	}
+
 	formatters := make(map[string]Formatter[Datum, PrintMods])
-	// FIXME when we can adopt Go 1.22
-	//t := reflect.TypeFor[Datum]()
-	var d Datum
-	t := reflect.TypeOf(d)
-	if t.Kind() == reflect.Pointer {
-		t = t.Elem()
-	}
-	if t.Kind() != reflect.Struct {
-		panic(fmt.Sprintf("Bad %d", t.Kind()))
-	}
-	for i, lim := 0, t.NumField(); i < lim; i++ {
+	for i, lim := 0, datumTy.NumField(); i < lim; i++ {
 		ix := i // FIXME when we adopt Go 1.22
-		fld := t.Field(ix)
+		fld := datumTy.Field(ix)
 		name := fld.Name
 		if isExcluded[name] {
 			continue
@@ -137,10 +156,27 @@ func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatt
 		if desc == "" {
 			continue
 		}
+
 		var f Formatter[Datum, PrintMods]
 		f.Help = desc
-		switch fld.Type.Kind() {
-		case reflect.Slice:
+
+		switch {
+		case fld.Type == dateTimeValueTy || fld.Type == dateTimeValueOrBlankTy:
+			f.Fmt = func(d Datum, ctx PrintMods) string {
+				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+				switch {
+				case val == 0 && fld.Type == dateTimeValueOrBlankTy:
+					return "                "
+				case (ctx & PrintModSec) != 0:
+					return strconv.FormatInt(val, 10)
+				case (ctx & PrintModIso) != 0:
+					return time.Unix(val, 0).UTC().Format(time.RFC3339)
+				default:
+					return FormatYyyyMmDdHhMmUtc(val)
+				}
+			}
+		case fld.Type.Kind() == reflect.Slice:
+			// Slices are a little weird now, only []string
 			elemTy := fld.Type.Elem()
 			switch elemTy.Kind() {
 			case reflect.String:
@@ -156,114 +192,48 @@ func ReflectFormatters[Datum any](isExcluded map[string]bool) map[string]Formatt
 			default:
 				panic("NYI")
 			}
-		case reflect.String:
+		case fld.Type.Implements(stringerTy):
+			// If it implements fmt.Stringer then use it
 			f.Fmt = func(d Datum, _ PrintMods) string {
-				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).String()
-				return val
-			}
-		case reflect.Bool:
-			f.Fmt = func(d Datum, _ PrintMods) string {
-				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Bool()
-				if val {
-					return "1"
-				}
-				return "0"
-			}
-		case reflect.Uint32:
-			// TODO: One feels that it might be more sensible to lookup these types and compare for
-			// equality here and below?
-			if fld.Type.Name() == "Ustr" && fld.Type.PkgPath() == "sonalyze/common" {
-				f.Fmt = func(d Datum, _ PrintMods) string {
-					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
-					return Ustr(val).String()
-				}
-			} else if fld.Type.Name() == "GpuSet" && fld.Type.PkgPath() == "go-utils/gpuset" {
-				f.Fmt = func(d Datum, _ PrintMods) string {
-					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
-					return gpuset.GpuSet(val).String()
-				}
-			} else {
-				f.Fmt = func(d Datum, _ PrintMods) string {
-					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
-					return fmt.Sprint(val)
-				}
-			}
-		case reflect.Int64:
-			if fld.Type.Name() == "DateTimeValue" && fld.Type.PkgPath() == "sonalyze/command" {
-				f.Fmt = func(d Datum, ctx PrintMods) string {
-					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-					switch {
-					case (ctx & PrintModSec) != 0:
-						return fmt.Sprint(val)
-					case (ctx & PrintModIso) != 0:
-						return time.Unix(val, 0).UTC().Format(time.RFC3339)
-					default:
-						return FormatYyyyMmDdHhMmUtc(val)
-					}
-				}
-			} else if fld.Type.Name() == "DateTimeValueOrBlank" && fld.Type.PkgPath() == "sonalyze/command" {
-				f.Fmt = func(d Datum, ctx PrintMods) string {
-					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-					switch {
-					case val == 0:
-						return "                "
-					case (ctx & PrintModSec) != 0:
-						return fmt.Sprint(val)
-					case (ctx & PrintModIso) != 0:
-						return time.Unix(val, 0).UTC().Format(time.RFC3339)
-					default:
-						return FormatYyyyMmDdHhMmUtc(val)
-					}
-				}
-			} else if fld.Type.Name() == "DateValue" && fld.Type.PkgPath() == "sonalyze/command" {
-				f.Fmt = func(d Datum, _ PrintMods) string {
-					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-					return time.Unix(val, 0).UTC().Format("2006-01-02")
-				}
-			} else if fld.Type.Name() == "TimeValue" && fld.Type.PkgPath() == "sonalyze/command" {
-				f.Fmt = func(d Datum, _ PrintMods) string {
-					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-					return time.Unix(val, 0).UTC().Format("15:04")
-				}
-			} else {
-				f.Fmt = func(d Datum, _ PrintMods) string {
-					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-					return fmt.Sprint(val)
-				}
-			}
-		case reflect.Int:
-			if fld.Type.Name() == "IntOrEmpty" && fld.Type.PkgPath() == "sonalyze/command" {
-				f.Fmt = func(d Datum, _ PrintMods) string {
-					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-					if val == 0 {
-						return ""
-					}
-					return fmt.Sprint(val)
-				}
-			} else {
-				f.Fmt = func(d Datum, _ PrintMods) string {
-					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-					return fmt.Sprint(val)
-				}
-			}
-		case reflect.Int8, reflect.Int16, reflect.Int32:
-			f.Fmt = func(d Datum, _ PrintMods) string {
-				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-				return fmt.Sprint(val)
-			}
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint64:
-			f.Fmt = func(d Datum, _ PrintMods) string {
-				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
-				return fmt.Sprint(val)
-			}
-		case reflect.Float32, reflect.Float64:
-			f.Fmt = func(d Datum, _ PrintMods) string {
-				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Float()
-				return fmt.Sprint(val)
+				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
+				return val.MethodByName("String").Call(nil)[0].String()
 			}
 		default:
-			continue
+			// Everything else is a basic type that is handled according to kind
+			switch fld.Type.Kind() {
+			case reflect.Bool:
+				f.Fmt = func(d Datum, _ PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Bool()
+					if val {
+						return "1"
+					}
+					return "0"
+				}
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				f.Fmt = func(d Datum, _ PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+					return strconv.FormatInt(val, 10)
+				}
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				f.Fmt = func(d Datum, _ PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
+					return strconv.FormatUint(val, 10)
+				}
+			case reflect.Float32, reflect.Float64:
+				f.Fmt = func(d Datum, _ PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Float()
+					return strconv.FormatFloat(val, 'g', -1, 64)
+				}
+			case reflect.String:
+				f.Fmt = func(d Datum, _ PrintMods) string {
+					val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).String()
+					return val
+				}
+			default:
+				panic(fmt.Sprintf("Unhandled type kind %d", fld.Type.Kind()))
+			}
 		}
+
 		formatters[name] = f
 		if alias != "" {
 			formatters[alias] = f
