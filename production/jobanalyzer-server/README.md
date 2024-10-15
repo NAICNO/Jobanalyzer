@@ -3,20 +3,36 @@
 This file normally lives in `$JOBANALYZER/production/jobanalyzer-server/README.md`.
 
 If the VM itself has not been set up then see a later section, "Setting up naic-monitor.uio.no".
-The rest of this document assumes that there is a functional Linux server with https web, email,
-disk, and backup.
+For the rest of this document we assume that there is a functional Linux server with https web,
+email, disk, and backup.
 
 To-do items are generally filed in the issue tracker, not documented here.
 
-## Fundamentals
+The jobanalyzer server has three distinct functions:
 
-Let `$JOBANALYZER` be the Jobanalyzer source code root directory.
+- `sonalyzed`: a daemon that ingests data from clusters for the sonar data store and serves queries
+  against this store - basically a database engine
+- `naicreport`: a continously and intermittently running analysis infrastructure that generates
+  standard reports by querying the database and maintaining its own state
+- `web`: a web server that serves static web content (HTML+JS) and generated reports from
+  naicreport, and routes queries to sonalyzed
 
-### Step 1: Build
+These functions are independent and can run on independent infrastructure: naicreport performs
+remote accesses against sonalyzed for its data, has its own private data store, and can upload
+reports to the web server's data directories; and the web API can proxy queries and route them to
+sonalyzed.
 
-First build and test the executables, as follows.  Remember, you may first need to `module load` Go
-1.20 or later (and for some older code in attic/, Rust 1.65 or later, but it's OK to not build these
-old programs), or otherwise obtain those tools.
+**NOTE:** The three functions are slightly intertwined at the moment because they were initially
+developed to run on the same system and share the same cron job.  Disentangling them is an ongoing
+process.
+
+In the following, let `$JOBANALYZER` be the Jobanalyzer source code root directory.
+
+## Building the programs
+
+On some systems, you may first need to `module load` Go 1.21.10 or later (and for some older code in
+attic/, Rust 1.65 or later, but it's OK to not build these old programs), or otherwise obtain or
+install those tools.  Older versions of Go 1.21 may work but the go.mod files must be updated.
 
 ```
   cd $JOBANALYZER/code
@@ -24,27 +40,27 @@ old programs), or otherwise obtain those tools.
   ./build.sh
 ```
 
-**IMPORTANT:** Run `build.sh` last, as the test builds may be created with unusual options.
+**IMPORTANT:** Run `build.sh` after `run_tests.sh`, as the test builds may be created with unusual
+options.
 
-### Step 2: Set up data ingestion and reporting
+## Setting up, activating and maintaining `sonalyzed`
+
+### Set up data ingestion and remote query
 
 Create working directories if necessary and copy files, as follows.  The working directory is always
-`$HOME/sonar` for whatever user is running the server, if you want something else you need to edit a
-bunch of scripts.  (The name of the working directory is historical; `$HOME/jobanalyzer` would have
-been better.  But it's a pain to change everything.)
+`$HOME/sonar` for whatever user is running the server.  (See below for overriding information.)
 
 ```
   cd $JOBANALYZER
 
-  mkdir -p ~/sonar/data ~/sonar/reports ~/sonar/secrets
+  mkdir -p ~/sonar/data ~/sonar/secrets
   chmod go-rwx ~/sonar/secrets
 
-  cp code/naicreport/naicreport ~/sonar
   cp code/sonalyze/sonalyze ~/sonar
 
   cp production/jobanalyzer-server/cluster-aliases.json ~/sonar
   cp production/jobanalyzer-server/POINTER.md ~/sonar
-  cp production/jobanalyzer-server/server-config ~/sonar
+  cp production/jobanalyzer-server/sonalyzed-config ~/sonar
   cp production/jobanalyzer-server/*.{sh,cron} ~/sonar
   cp -r production/jobanalyzer-server/scripts ~/sonar
 ```
@@ -52,31 +68,36 @@ been better.  But it's a pain to change everything.)
 If `~/sonar/scripts` does not have a subdirectory for your cluster, you will need to create one.  See
 "Adding a new cluster" below.
 
-### Step 3: Set up the web server
+We must create a password file in `~/sonar/secrets/sonalyzed-auth.txt`.  This is a plaintext file on
+`username:password` format, one per line.  It controls access to the analysis commands of the query
+server, `sonalyzed`.
 
-The web server must currently run on the same machine as ingest, analysis, and query.  Generated
-reports will be copied from the directory they are generated in and into the web server's data
-directory.  The web server also proxies access to the query engine and the ingestion module.
+We must create a password file in `~/sonar/secrets/exfil-auth.txt`.  This is a plaintext file on
+`username:password` format, one per line.  It controls access to the data ingestion commands of the
+query server, `sonalyzed`.
 
-But first, set up the dashboard: The dashboard code must be copied to a suitable directory at or
-under the web server's root, we'll call this the dashboard directory, `$DASHBOARD`.  The
-configuration used below puts this in `/data/www`.
+Ideally the files in `secrets` are not readable or writable by anyone but the owner, but nobody
+checks this.
 
-The directory `$DASHBOARD/output` must exist and must be writable by the user that is going to run the
-Jobanalyzer server.
+We must then edit `~/sonar/sonalyzed-config` to point to the various authorization files and define the
+ports used for various services.  The port for `sonalyzed` must be open for remote access.
+
+### Overriding the default directory
+
+To use a home directory for sonalyzed that is something other than `$HOME/sonar`, edit at least
+`start-sonalyzed.sh` and `jobanalyzer.cron`.
+
+### Setting up the web server on the sonalyzed host
+
+The web server on the sonalyzed host proxies access to the query engine and the ingestion module.
+
+These are my additions to nginx.conf for the default `server` for sonalyzed (see further down about
+HTTPS setup and so on) with the default port assignment for sonalyzed:
 
 ```
-  # mkdir -p $DASHBOARD/output
-  # chown -R <jobanalyzer-user>:<jobanalyzer-user-group> $DASHBOARD
-  # ^D
-  $ cd $JOBANALYZER
-  $ cp code/dashboard/*.{html,js,css} $DASHBOARD
-```
+        # Some commands take a long time, but 1d is probably too long
+        proxy_read_timeout 1d;
 
-Second, the web server must be configured.  These are my additions to nginx.conf for the default
-`server` (see further down about HTTPS setup and so on):
-
-```
         # sonalyzed upload commands
         location /sonar-freecsv {
                 proxy_pass http://localhost:1559;
@@ -84,8 +105,20 @@ Second, the web server must be configured.  These are my additions to nginx.conf
         location /sysinfo {
                 proxy_pass http://localhost:1559;
         }
+        location /add {
+                proxy_pass http://localhost:1559;
+        }
 
         # sonalyzed analysis commands
+        location /cluster {
+                proxy_pass http://localhost:1559;
+        }
+        location /config {
+                proxy_pass http://localhost:1559;
+        }
+        location /node {
+                proxy_pass http://localhost:1559;
+        }
         location /jobs {
                 proxy_pass http://localhost:1559;
         }
@@ -101,52 +134,135 @@ Second, the web server must be configured.  These are my additions to nginx.conf
         location /parse {
                 proxy_pass http://localhost:1559;
         }
+        location /sample {
+                proxy_pass http://localhost:1559;
+        }
         location /metadata {
                 proxy_pass http://localhost:1559;
         }
-
-        # Dashboard static content
-        location / {
-                root /data/www;
+        location /sacct {
+                proxy_pass http://localhost:1559;
         }
 ```
 
-### Step 4: Configure data ingestion and remote query
-
-We must create a password file in `~/sonar/secrets/sonalyzed-auth.txt`.  This is a plaintext file on
-`username:password` format, one per line.  It controls access to the analysis commands of the query
-server, `sonalyzed`.
-
-We must create a password file in `~/sonar/secrets/exfil-auth.txt`.  This is a plaintext file on
-`username:password` format, one per line.  It controls access to the data ingestion commands of the
-query server, `sonalyzed`.
-
-Ideally the files in `secrets` are not readable or writable by anyone but the owner, but nobody
-checks this.
-
-We must then edit `~/sonar/server-config` to point to the various authorization files, to define the
-path to `$DASHBOARD/output`, and to define the ports used for various services.  The port for
-`sonalyzed` must be open for remote access.
-
-### Step 5: Activate server
+### Start the sonalyzed server
 
 Activate the cron jobs and start the data logger and the query server:
 
 ```
   cd ~/sonar
-  crontab jobanalyzer.cron
+  crontab sonalyzed.cron
   ./start-sonalyzed.sh
 ```
 
-The data logger and query server run on ports defined in the config file, see above.
+The data logger and query server run on ports defined in the `sonalyzed-config` file, see above.  You
+may wish to edit the MAILTO address in sonalyzed.cron.
 
-## Upgrading `sonalyze`
+### Upgrading `sonalyze`
 
 One does not simply copy new executables into place.
 
 `sonalyze daemon` (aka `sonalyzed`), whose pid was recorded on startup in `sonalyzed.pid`, must be
 spun down on the analysis host by killing it with TERM.  Once it is down the executable can be
 replaced and the start script `start-sonalyzed.sh` can be run to start new server.
+
+
+## Setting up, activating and maintaining `naicreport`
+
+### If naicreport is under the same user as sonalyzed
+
+In this case, we'll assume you've done all the steps above and want to share the directory structure
+for the two.  The naicreport home directory will be `$HOME/sonar`, as for sonalyzed.
+
+Additionally do this:
+
+```
+  cd $JOBANALYZER
+
+  cp code/naicreport/naicreport ~/sonar
+  cp production/jobanalyzer-server/naicreport-config ~/sonar
+```
+
+Now edit `~/sonar/naicreport-config` to have correct paths and server addresses.
+
+Next set up additional identity files in `~/sonar/secrets`.  There is one identity file for
+naicreport to use per cluster that it wants to generate reports for:
+`~/sonar/secrets/naicreport-auth-<clustername>.txt` has a username:password that naicreport will use
+when it runs sonalyze remotely against the server.  (Currently, the remote access identity can be
+the same for every cluster.)
+
+Instead of running `crontab sonalyzed.cron` run `crontab sonalyzed-and-naicreport.cron`.  Again you
+may want to change the MAILTO.
+
+### If naicreport is on its own host
+
+Basically this:
+
+```
+  cd $JOBANALYZER
+
+  mkdir -p ~/sonar/data ~/sonar/secrets
+  chmod go-rwx ~/sonar/secrets
+
+  cp code/sonalyze/sonalyze ~/sonar
+  cp code/naicreport/naicreport ~/sonar
+
+  cp production/jobanalyzer-server/POINTER.md ~/sonar
+  cp production/jobanalyzer-server/naicreport-config ~/sonar
+  cp production/jobanalyzer-server/naicreport.cron ~/sonar
+  cp -r production/jobanalyzer-server/scripts ~/sonar
+```
+
+Otherwise mostly follow the instructions from earlier, note there's no `sonalyzed-config` file here.
+
+Instead of running `crontab sonalyzed.cron` or `crontab sonalyzed-and-naicreport.cron` you need to
+run `crontab naicreport.cron`.  Again you may want to change the MAILTO.
+
+### Setting up the web server
+
+Normally, naicreport will copy its output to `/data/www/output`, let's call this `$OUTPUT`.  The
+directory `$OUTPUT` must exist and must be writable by the user that is going to run the Jobanalyzer
+server.
+
+```
+  # mkdir -p /data/www/output
+  # chown -R <naicreport-user>:<naicreport-user-group> /data/www
+```
+
+These are my additions to nginx.conf for the default `server` (see further down about HTTPS setup
+and so on).  They just allow the server to serve the generated data:
+
+```
+        location / {
+                root /data/www;
+        }
+```
+
+There's no particular reason for naicreport to run on the same host as sonalyzed, the two components
+are pretty well decoupled.  However, due to same-origin restrictions on the web, if the hosts for
+sonalyzed, naicreport, and dashboard are not all the same, then additional proxying must be done to
+make them appear to be one host.
+
+## Setting up the dashboard
+
+The dashboard mostly lives in the parent directory of `$OUTPUT` (previous section) and so basically:
+
+```
+  # mkdir -p /data/www/output
+  # chown -R <naicreport-user>:<naicreport-user-group> /data/www
+  # ^D
+  $ cd $JOBANALYZER
+  $ cp code/dashboard-2/*.{html,js,css} $DASHBOARD
+```
+
+with this addition for nginx.conf:
+
+```
+        location / {
+                root /data/www;
+        }
+```
+
 
 ## Adding a new cluster
 
@@ -155,7 +271,7 @@ Information about how to set up sonar on the the compute nodes is in
 
 The analysis scripts to run on the Jobanalyzer server are in the subdirectory named for the cluster,
 eg, `scripts/mlx.hpc.uio.no`.  These scripts are in turn run by the cron script,
-[`jobanalyzer.cron`](jobanalyzer.cron).
+eg [`naicreport.cron`](naicreport.cron).
 
 To add a new cluster, add a new subdirectory in `scripts/` and populate it with appropriate scripts,
 probably modifying those from a similar cluster.  Normally you'll want at least scripts to compute
@@ -170,11 +286,12 @@ The process of creating the `CLUSTER-config.json` file has been automated to som
 that run slurm.  See `../../code/slurminfo`.  It runs `sinfo` and produces a JSON array that is
 suitable for the `CLUSTER-config.json` file.  See more documentation in that directory.
 
-The dashboard also needs a few additions in `index.html` and in `code/dashboard/dashboard.js` to
-link to the cluster's dashboard and describe the cluster.
+The (old) dashboard also needs a few additions in `index.html` and in `code/dashboard/dashboard.js` to
+link to the cluster's dashboard and describe the cluster.  Not sure what's needed for the new dashboard.
 
 See [the PR that added everything for Saga](https://github.com/NAICNO/Jobanalyzer/pull/364) for an
 example of what support for a new cluster looks like.
+
 
 ## Setting up naic-monitor.uio.no
 

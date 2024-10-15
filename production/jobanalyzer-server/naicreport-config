@@ -1,0 +1,59 @@
+# -*- mode: shell-script; fill-column: 100 -*-
+#
+# Set up variables for the naicreport shell scripts.  This file is to be included by those scripts.
+#
+# Free variables
+#
+# - $cluster        - the full name of the cluster we're operating withink
+# - $naicreport_dir - the naicreport root directory
+
+####################################################################################################
+#
+# Naicreport working directories
+
+report_dir=$naicreport_dir/reports/$cluster
+script_dir=$naicreport_dir/scripts/$cluster
+state_dir=$naicreport_dir/state/$cluster
+secrets_dir=$naicreport_dir/secrets
+
+# Make writeable working directories exist
+
+mkdir -p $report_dir
+mkdir -p $state_dir
+
+####################################################################################################
+#
+# Sonalyze data source
+#
+# All runs of naicreport and sonalyze access the server at this address with these credentials.  The
+# credentials should not be provided if the server does not want them.
+
+data_source="-remote https://naic-monitor.uio.no -cluster $cluster -auth-file $secrets_dir/naicreport-auth-$cluster.txt"
+
+####################################################################################################
+#
+# Naicreport report upload directories for the upload step
+
+naicreport_upload_dir=${naicreport_upload_dir:-/data/www/output}
+
+####################################################################################################
+#
+# Email.
+
+# How to send mail.  This is invoked as `$naicreport_mail -s subject recipient` with the text to
+# send on stdin.
+
+naicreport_mail=${naicreport_mail:-mail}
+
+# A number of ad-hoc reports are output as formatted text to be emailed to appropriate recipients.
+# The following is a list of addresses, one per cluster and report type running on that cluster.
+
+# ML nodes (mlx.hpc.uio.no)
+ml_deadweight_recipient=itf-ai-support@usit.uio.no
+ml_violator_recipient=itf-ai-support@usit.uio.no
+
+# Fox nodes (fox.educloud.no)
+fox_deadweight_recipient=larstha@uio.no
+
+# Saga nodes (saga.sigma2.no)
+saga_deadweight_recipient=larstha@uio.no

@@ -4,17 +4,17 @@
 # `sonalyze daemon` (previously known as `sonalyzed`) server, which runs sonalyze locally on behalf
 # of a remote client in response to a GET or POST.
 
-sonar_dir=${sonar_dir:-$HOME/sonar}
-source $sonar_dir/server-config
+sonalyzed_dir=${sonalyzed_dir:-$HOME/sonar}
+source $sonalyzed_dir/sonalyzed-config
 
-data_dir=$sonar_dir/data
+data_dir=$sonalyzed_dir/data
 mkdir -p $data_dir
 
-pidfile=$sonar_dir/sonalyzed.pid
+pidfile=$sonalyzed_dir/sonalyzed.pid
 rm -f $pidfile
-$sonar_dir/sonalyze daemon \
+$sonalyzed_dir/sonalyze daemon \
     -cache 12G \
-    -jobanalyzer-dir $sonar_dir \
+    -jobanalyzer-dir $sonalyzed_dir \
     -port $sonalyzed_port \
     -match-user-and-cluster \
     -analysis-auth $sonalyzed_analysis_auth_file \

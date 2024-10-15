@@ -21,6 +21,19 @@ import (
 	"sonalyze/sacct"
 )
 
+const (
+	// Some reports created for naicreport take a *really* long time to produce, for example the
+	// 90-day load report for all of Fox takes several minutes, even against cached data.  It's a
+	// little open if we even want a timeout.  But 1h seems like it is an OK compromise for now.
+	//
+	// TODO: This timeout will do nothing for the job running on the server, if any.  It could be
+	// running for days, for all we know.  It may be that server-side actions should have a timeout,
+	// too, and it could be that the client should always send some sort of cancellation signal to
+	// the server if the client is cancelled (SIGHUP, etc, not just timeout).  Simpler would be if
+	// we could reduce the running times of these reports to something sensible...
+	remoteTimeoutSec = 3600
+)
+
 func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout, stderr io.Writer) error {
 	r := NewReifier()
 	err := rCmd.ReifyForRemote(&r)
@@ -91,7 +104,10 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	}
 	curlArgs = append(curlArgs, args.Remote+"/"+verb+"?"+r.EncodedArguments())
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	if rCmd.VerboseFlag() {
+		Log.Infof("NOTE, we will kill the request if no response after %s seconds", remoteTimeoutSec)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), remoteTimeoutSec*time.Second)
 	defer cancel()
 
 	command := exec.CommandContext(ctx, "curl", curlArgs...)
@@ -110,11 +126,11 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 		if rCmd.VerboseFlag() {
 			outs := newStdout.String()
 			if outs != "" {
-				fmt.Fprint(stdout, outs)
+				fmt.Fprint(stdout, "Output from failed (%s) subprocess: %s", err, outs)
 			}
 			errs := newStderr.String()
 			if errs != "" {
-				fmt.Fprint(stdout, errs)
+				fmt.Fprint(stdout, "Errors from failed (%s) subprocess: %s", err, errs)
 			}
 		}
 		// Print this unredacted on the assumption that the remote sonalyzed/sonalyze don't

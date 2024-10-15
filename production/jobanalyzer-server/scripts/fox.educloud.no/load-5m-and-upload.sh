@@ -9,37 +9,30 @@
 set -eu -o pipefail
 
 cluster=fox.educloud.no
+naicreport_dir=${naicreport_dir:-$HOME/sonar}
+source $naicreport_dir/naicreport-config
+
 abbrev=fox
 tag="Fox Nodes"
 
-sonar_dir=${sonar_dir:-$HOME/sonar}
-data_dir=$sonar_dir/data/$cluster
-report_dir=$sonar_dir/reports/$cluster
-script_dir=$sonar_dir/scripts/$cluster
-state_dir=$sonar_dir/state/$cluster
-
-mkdir -p $state_dir
-mkdir -p $report_dir
-
-$sonar_dir/naicreport load \
-		      -sonalyze $sonar_dir/sonalyze \
-		      -config-file $script_dir/$cluster-config.json \
-		      -data-dir $data_dir \
+$naicreport_dir/naicreport load \
+		      -sonalyze $naicreport_dir/sonalyze \
+                      $data_source \
 		      -report-dir $report_dir \
 		      -with-downtime 5 \
 		      -tag minutely \
 		      -none
 
-$sonar_dir/naicreport at-a-glance \
-		      -sonalyze $sonar_dir/sonalyze \
-		      -config-file $script_dir/$cluster-config.json \
-		      -data-dir $data_dir \
+$naicreport_dir/naicreport at-a-glance \
+		      -sonalyze $naicreport_dir/sonalyze \
+                      $data_source \
 		      -state-dir $state_dir \
 		      -tag "$tag" \
 		      > $report_dir/$abbrev-at-a-glance.json
 
-$sonar_dir/naicreport hostnames \
-		      -report-dir $report_dir \
+$naicreport_dir/naicreport hostnames \
+		      -sonalyze $naicreport_dir/sonalyze \
+                      $data_source \
 		      > $report_dir/$abbrev-hostnames.json
 
 upload_files="$report_dir/*-minutely.json $report_dir/$abbrev-hostnames.json $report_dir/$abbrev-at-a-glance.json"

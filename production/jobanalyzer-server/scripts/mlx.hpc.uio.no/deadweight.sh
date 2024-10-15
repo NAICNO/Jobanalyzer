@@ -6,11 +6,10 @@
 set -euf -o pipefail
 
 cluster=mlx.hpc.uio.no
-sonar_dir=${sonar_dir:-$HOME/sonar}
-data_dir=$sonar_dir/data/$cluster
-state_dir=$sonar_dir/state/$cluster
-output_dir=${state_dir}/$(date +'%Y/%m/%d')
+naicreport_dir=${naicreport_dir:-$HOME/sonar}
+source $naicreport_dir/naicreport-config
 
+output_dir=${state_dir}/$(date +'%Y/%m/%d')
 mkdir -p ${output_dir}
 
 # Report jobs that are not doing anything useful but are hanging onto system resources (zombies,
@@ -20,8 +19,8 @@ mkdir -p ${output_dir}
 # at least, but ==> IMPORTANTLY, it MUST be run often enough that job IDs are not reused between
 # consecutive runs.  It is not expensive, and can be run fairly often.
 
-$sonar_dir/sonalyze jobs \
-		    --data-path $data_dir \
+$naicreport_dir/sonalyze jobs \
+		    $data_source \
 		    -u - \
 		    --zombie \
 		    --fmt=csvnamed,tag:deadweight,now,std,start,end,cmd \
