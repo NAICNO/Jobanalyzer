@@ -9,7 +9,7 @@
 // The remaining file must then conform to this grammar:
 //   file ::= section*
 //   section ::= section-header section-statement*
-//   section-header = /^\[IDENT\]\s*$/
+//   section-header ::= /^\[IDENT\]\s*$/
 //   section-statement ::= /^\s*IDENT\s*=VALUE$/
 //
 // where

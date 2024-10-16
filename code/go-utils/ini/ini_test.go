@@ -12,9 +12,9 @@ func TestIni(t *testing.T) {
 
 [abra]
 x=10
-y =20 and some more
+ y =20 and some more
 #hi
-[zappa]
+[zappa]  
 [zuppa]
 z=z
 [cadabra]`))
