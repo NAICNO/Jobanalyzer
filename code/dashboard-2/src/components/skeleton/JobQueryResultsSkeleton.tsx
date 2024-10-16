@@ -11,7 +11,7 @@ const SKELETON_COUNT = 10
 export const JobQueryResultsSkeleton = () => {
   return (
     <VStack alignItems={'start'} w="80%">
-      <Card mt="10px" w="100%">
+      <Card mt="10px" w="100%" variant={'outline'}>
         <CardBody>
           <Stack spacing={4}>
             <Skeleton height="30px" width="200px"/>

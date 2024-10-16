@@ -75,9 +75,9 @@ export default function ViolatorPage() {
       <VStack alignItems={'start'}>
         <HStack mb="20px">
           <NavigateBackButton/>
-          <Heading ml="20px">{cluster.name} individual policy violator report</Heading>
+          <Heading ml={3} size={{base: 'md', md: 'lg'}}>{cluster.name} individual policy violator report</Heading>
         </HStack>
-        <Card>
+        <Card variant={'outline'}>
           <CardBody>
             <VStack alignItems="start">
               <Text>Hi,</Text>

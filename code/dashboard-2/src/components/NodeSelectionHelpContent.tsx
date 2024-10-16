@@ -105,7 +105,7 @@ export const NodeSelectionHelpContent = () => {
         capitalized names ("Cpu%").
       </Text>
       <TableContainer mt="10px">
-        <Table size="sm" border="1px solid" borderColor="gray.200">
+        <Table size="sm">
           <Thead bg="gray.100">
             <Tr>
               <Th>Field</Th>
@@ -128,7 +128,7 @@ export const NodeSelectionHelpContent = () => {
       <Heading as="h4" size="md" mt="20px">Abbreviations</Heading>
       <Text>The predefined abbreviations are these:</Text>
       <TableContainer my="20px">
-        <Table size="sm" border="1px solid" borderColor="gray.200">
+        <Table size="sm">
           <Thead bg="gray.100">
             <Tr>
               <Th>Abbreviation</Th>
@@ -151,7 +151,7 @@ export const NodeSelectionHelpContent = () => {
       <Text>These have Capitalized variants for the "*-longer" data where that makes sense, eg, "Idle")</Text>
       <Text> For example, to find nodes with spare capacity, simply run "idle". ("Idle" is a poor
         moniker for something running at 49% utilization, so perhaps we want something more subtle.{' '}
-        <ChakraLink color="teal.500" href="https://github.com/NAICNO/Jobanalyzer/issues/new" isExternal>
+        <ChakraLink href="https://github.com/NAICNO/Jobanalyzer/issues/new" isExternal>
           File an issue here.
           <ExternalLinkIcon mx="4px" mb="4px"/>
         </ChakraLink>
@@ -161,7 +161,7 @@ export const NodeSelectionHelpContent = () => {
 
       <Text> It's easy to add abbreviations - but at this time the abbreviations must be added in the
         query engine, they can't be added by the user.{' '}
-        <ChakraLink color="teal.500" href="https://github.com/NAICNO/Jobanalyzer/issues/new" isExternal>
+        <ChakraLink href="https://github.com/NAICNO/Jobanalyzer/issues/new" isExternal>
           File an issue here.
           <ExternalLinkIcon mx="4px" mb="4px"/>
         </ChakraLink>

@@ -12,10 +12,7 @@ interface DashboardTableRowProps {
 
 export const DashboardTableRow = ({row, cluster}: DashboardTableRowProps) => {
 
-  let rowStyles: React.CSSProperties = {
-    borderBottom: '1px solid',
-    borderColor: 'gray.200',
-  }
+  let rowStyles: React.CSSProperties = {}
 
   if (cluster.uptime) {
     const allCells = row.getAllCells()
@@ -24,7 +21,6 @@ export const DashboardTableRow = ({row, cluster}: DashboardTableRowProps) => {
 
     if (cpuStatusCell?.getValue() != 0) {
       rowStyles = {
-        ...rowStyles,
         backgroundColor: CELL_BACKGROUND_COLORS.DOWN,
       }
     }

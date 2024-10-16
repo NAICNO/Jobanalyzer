@@ -1,4 +1,9 @@
-import { AccessorKeyColumnDef, createColumnHelper, SortingFn } from '@tanstack/react-table'
+import {
+  AccessorKeyColumnDef,
+  createColumnHelper,
+  GroupColumnDef,
+  SortingFn
+} from '@tanstack/react-table'
 
 import {
   DASHBOARD_COLUMN,
@@ -15,39 +20,35 @@ import {
 } from '../types'
 
 export const getDashboardTableColumns = (selectedCluster: Cluster) => {
-  const columns: AccessorKeyColumnDef<DashboardTableItem, any>[] = [
+  const columns: (AccessorKeyColumnDef<DashboardTableItem, any> | GroupColumnDef<DashboardTableItem>)[] = [
     createDashboardTableColumn('hostname'),
   ]
 
-  if (selectedCluster.uptime) {
-    columns.push(
-      createDashboardTableColumn('cpu_status'),
-      createDashboardTableColumn('gpu_status')
-    )
+  const addGroupedColumns = (id: string, header: string, keys: (keyof DashboardTableItem)[]) => {
+    columns.push(dashboardTableColumnHelper.group({
+      id,
+      header,
+      columns: keys.map(key => createDashboardTableColumn(key, true)),
+    }))
   }
 
-  columns.push(
-    // Unique users in the period.  This will never be greater than jobs; a user can have
-    // several jobs, but not zero, and jobs can only have one user.
-    createDashboardTableColumn('users_recent'),
-    createDashboardTableColumn('users_longer'),
+  if (selectedCluster.uptime) {
+    addGroupedColumns('uptime', 'Uptime', ['cpu_status', 'gpu_status'])
+  }
 
-    // Unique jobs running within the period.
-    createDashboardTableColumn('jobs_recent'),
-    createDashboardTableColumn('jobs_longer'),
+  // Unique users in the period.  This will never be greater than jobs; a user can have
+  // several jobs, but not zero, and jobs can only have one user.
+  addGroupedColumns('users', 'User', ['users_recent', 'users_longer'])
 
-    // Relative to system information.
-    createDashboardTableColumn('cpu_recent'),
-    createDashboardTableColumn('cpu_longer'),
-    createDashboardTableColumn('resident_recent'),
-    createDashboardTableColumn('resident_longer'),
-    createDashboardTableColumn('mem_recent'),
-    createDashboardTableColumn('mem_longer'),
-    createDashboardTableColumn('gpu_recent'),
-    createDashboardTableColumn('gpu_longer'),
-    createDashboardTableColumn('gpumem_recent'),
-    createDashboardTableColumn('gpumem_longer'),
-  )
+  // Unique jobs running within the period.
+  addGroupedColumns('jobs', 'Jobs', ['jobs_recent', 'jobs_longer'])
+
+  // Relative to system information.
+  addGroupedColumns('cpu', 'CPU %', ['cpu_recent', 'cpu_longer'])
+  addGroupedColumns('resident', 'Resident %', ['resident_recent', 'resident_longer'])
+  addGroupedColumns('mem', 'Virt %', ['mem_recent', 'mem_longer'])
+  addGroupedColumns('gpu', 'GPU %', ['gpu_recent', 'gpu_longer'])
+  addGroupedColumns('gpu_mem', 'GPU Mem %', ['gpumem_recent', 'gpumem_longer'])
 
   // Number of *new* violators and zombies encountered in the period, as of the last
   // generated report.  This currently changes rarely.
@@ -67,12 +68,14 @@ export const getDashboardTableColumns = (selectedCluster: Cluster) => {
 
 const dashboardTableColumnHelper = createColumnHelper<DashboardTableItem>()
 
-function createDashboardTableColumn<K extends keyof DashboardTableItem>(key: K) {
+function createDashboardTableColumn<K extends keyof DashboardTableItem>(key: K, isGrouped = false) {
   // Ensure that column definition exists in the constants
   const columnDef = DASHBOARD_COLUMN[key]
   if (!columnDef) {
     throw new Error(`Column definition for key '${key}' not found.`)
   }
+
+  const header = isGrouped ? (columnDef.shortTitle ?? columnDef.title) : columnDef.title
 
   // Accessor and Header are always used, but other properties like cell and meta are added as needed
   return dashboardTableColumnHelper.accessor(key, {
@@ -82,7 +85,7 @@ function createDashboardTableColumn<K extends keyof DashboardTableItem>(key: K) 
       }
       return props.getValue()
     },
-    header: columnDef.title,
+    header: header,
     meta: columnDef,
   })
 }

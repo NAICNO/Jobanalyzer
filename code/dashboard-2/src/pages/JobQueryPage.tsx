@@ -12,6 +12,7 @@ import {
   useBreakpointValue,
   Spacer,
   useDisclosure,
+  Stack,
 } from '@chakra-ui/react'
 import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from '@tanstack/react-table'
 import { Form, Formik } from 'formik'
@@ -96,8 +97,14 @@ export default function JobQueryPage() {
     <>
       <PageTitle title={'Job Query'}/>
       <VStack alignItems={'start'}>
-        <Card maxW={{md: '700px'}}>
+        <Card maxW={{md: '700px'}} variant={'outline'}>
           <CardBody>
+            <Heading
+              size={{base: 'md', md: 'lg'}}
+              mb={4}
+            >
+              Job Query
+            </Heading>
             <Formik
               enableReinitialize={true}
               initialValues={formValues}
@@ -176,7 +183,12 @@ export default function JobQueryPage() {
                     />
                   </Grid>
                   <VStack alignItems={'start'} mt={'10px'}>
-                    <HStack mt="20px">
+                    <Stack
+                      direction={{base: 'column', md: 'row'}}
+                      alignItems={{base: 'start', md: 'center'}}
+                      spacing={4}
+                      mt={4}
+                    >
                       <Button
                         colorScheme="blue"
                         onClick={submitForm}
@@ -188,7 +200,6 @@ export default function JobQueryPage() {
                       <Text as="em" fontSize="sm" ml={'10px'} color="gray">
                         Password protected.{' '}
                         <Link
-                          color="teal.500"
                           href="https://github.com/NAICNO/Jobanalyzer/issues/new?title=Access"
                           isExternal
                         >
@@ -197,7 +208,7 @@ export default function JobQueryPage() {
                         </Link>
                         {' '}if you need access.
                       </Text>
-                    </HStack>
+                    </Stack>
                     <Text as="em" fontSize="sm" mt="10px" color="gray">
                       More query terms, data fields, and profiler options are available with the command line interface.
                     </Text>
@@ -213,7 +224,7 @@ export default function JobQueryPage() {
         }
         {
           data &&
-          <Card mt="10px">
+          <Card mt="10px" variant={'outline'}>
             <CardBody>
               <HStack spacing={2}>
                 <Heading as="h2" size="lg">

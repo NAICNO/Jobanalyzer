@@ -17,6 +17,7 @@ export const NavigateBackButton = () => {
 
   return (
     <IconButton
+      variant={'subtle'}
       isRound={true}
       icon={<ArrowBackIcon boxSize={{base: 4, md: 6}}/>}
       aria-label="Back"

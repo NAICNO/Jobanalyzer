@@ -72,7 +72,6 @@ export default function DashboardPage() {
     <ChakraLink
       key={subcluster.name}
       as={ReactRouterLink}
-      color="teal.500"
       to={`/${clusterName}/subcluster/${subcluster.name}`}
     >
       {subcluster.name}
@@ -83,30 +82,27 @@ export default function DashboardPage() {
   return (
     <>
       <PageTitle title={`${selectedCluster.name} Dashboard`}/>
-      <Container centerContent>
-        <VStack spacing={1}>
-          <Heading size="lg" mb={4}>{selectedCluster.name}: Jobanalyzer Dashboard</Heading>
-          <Text>Click on hostname for machine details.</Text>
-          <Text>
-            <ChakraLink as={ReactRouterLink} to={jobQueryLink} isExternal mr="10px" color="teal.500">
-              Job query <ExternalLinkIcon mx="2px"/>
-            </ChakraLink>
-            Aggregates:{' '}
-            {subclusterLinks}
-          </Text>
-          <Text>Recent: 30 mins Longer: 12 hrs{' '} </Text>
-          <ViolatorsAndZombiesLinks cluster={selectedCluster}/>
-          <NodeSelectionInput
-            defaultQuery={query}
-            onClickSubmit={handleSubmitClick}
-            onClickHelp={onOpenHelpSidebar}
-            focusRef={focusRef}
-          />
-          <SlideFade in={isFetched}>
-            <DashboardTable table={table} cluster={selectedCluster}/>
-          </SlideFade>
-        </VStack>
-      </Container>
+      <VStack spacing={1}>
+        <Heading size={{base: 'md', md: 'lg'}} mb={4}>{selectedCluster.name}: Jobanalyzer Dashboard</Heading>
+        <Text>Click on hostname for machine details.</Text>
+        <Text>
+          <ChakraLink as={ReactRouterLink} to={jobQueryLink} isExternal mr="10px">
+            Job query <ExternalLinkIcon mx="2px"/>
+          </ChakraLink>
+          Aggregates:{' '}
+          {subclusterLinks}
+        </Text>
+        <ViolatorsAndZombiesLinks cluster={selectedCluster}/>
+        <NodeSelectionInput
+          defaultQuery={query}
+          onClickSubmit={handleSubmitClick}
+          onClickHelp={onOpenHelpSidebar}
+          focusRef={focusRef}
+        />
+        <SlideFade in={isFetched}>
+          <DashboardTable table={table} cluster={selectedCluster}/>
+        </SlideFade>
+      </VStack>
       <NodeSelectionHelpDrawer isOpen={isOpenHelpSidebar} onClose={onClose} finalFocusRef={focusRef}/>
     </>
   )
@@ -129,7 +125,6 @@ const ViolatorsAndZombiesLinks = ({cluster}: { cluster: Cluster }) => {
     return (
       <ChakraLink
         as={ReactRouterLink}
-        color="teal.500"
         to={to}
       >
         {children}

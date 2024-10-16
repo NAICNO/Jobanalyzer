@@ -53,11 +53,11 @@ export default function DeadWeightPage() {
     <>
       <PageTitle title={`${cluster.name} Deadweight`}/>
       <VStack alignItems={'start'}>
-        <HStack mb="20px">
+        <HStack mb={3}>
           <NavigateBackButton/>
-          <Heading ml="20px">{cluster.name} dead weight</Heading>
+          <Heading ml={2} size={{base: 'md', md: 'lg'}}>{cluster.name} dead weight</Heading>
         </HStack>
-        <Text mb="20px">
+        <Text mb={3}>
           The following processes and jobs are zombies or defuncts or
           otherwise dead and may be bogging down the system. The list is
           recomputed at noon and midnight and goes back four weeks.

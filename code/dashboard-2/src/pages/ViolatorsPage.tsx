@@ -62,12 +62,12 @@ export default function ViolatorsPage() {
       <VStack alignItems={'start'}>
         <HStack mb="10px">
           <NavigateBackButton/>
-          <Heading ml="10px">{cluster.name} policy violators</Heading>
+          <Heading ml={2} size={{base: 'md', md: 'lg'}}>{cluster.name} policy violators</Heading>
         </HStack>
         <Text>The following users and jobs have been running significantly outside of policy and are probably
           not appropriate to run on this cluster. The list is recomputed at noon and midnight
           and goes back four weeks.</Text>
-        <Heading as="h4" size="lg" mt="20px">
+        <Heading as="h4" size={{base: 'md', md: 'lg'}} mt={4}>
           By user
         </Heading>
         <SlideFade in={isFetched}>

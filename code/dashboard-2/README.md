@@ -18,7 +18,8 @@ To set up your local environment, follow these steps:
 ```commandline
 cd code/dashboard-2
 ```
-3. Install the dependencies.
+3. Follow the instructions [here](https://github.com/NAICNO/web-components/blob/main/README.md) to set up authentication for NAIC Web Components. Note that `.npmrc` file should be created at `code/dashboard-2` directory.
+4. Install the dependencies.
 ```commandline
 yarn install
 ```

@@ -12,7 +12,7 @@ export const CellWithLink = ({value}: CellWithLinkProps) => {
   const {text, link, openInNewTab} = value
   return (
     <CellWrapper styleProps={{paddingLeft: 2}}>
-      <ChakraLink as={ReactRouterLink} to={link} color={'teal.500'} isExternal={openInNewTab}>
+      <ChakraLink as={ReactRouterLink} to={link} isExternal={openInNewTab}>
         {text}
       </ChakraLink>
     </CellWrapper>
