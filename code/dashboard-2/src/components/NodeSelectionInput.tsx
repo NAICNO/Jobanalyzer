@@ -38,8 +38,8 @@ export const NodeSelectionInput = ({defaultQuery, onClickSubmit, onClickHelp, fo
         onChange={handleChange}
         onKeyDown={handleKeyDown}
       />
-      <Button colorScheme="blue" px="30px" onClick={submitQuery}>Submit</Button>
-      <Button variant="outline" onClick={onClickHelp}>Help</Button>
+      <Button onClick={submitQuery} width="120px">Submit</Button>
+      <Button onClick={onClickHelp} variant={'subtle'} width="100px">Help</Button>
     </HStack>
   )
 }

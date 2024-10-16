@@ -7,6 +7,7 @@ export const LightDarkModeButton = () => {
 
   return (
     <IconButton
+      variant={'subtle'}
       size={{base: 'sm', md: 'sm', lg: 'md'}}
       aria-label="switch theme"
       icon={colorMode === 'light' ? <MoonIcon/> : <SunIcon/>}

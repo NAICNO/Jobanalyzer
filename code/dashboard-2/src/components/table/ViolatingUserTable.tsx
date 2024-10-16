@@ -11,7 +11,7 @@ interface ViolatingUserTableProps {
 
 export const ViolatingUserTable = ({table}: ViolatingUserTableProps) => {
   return (
-    <Table size="sm" border="1px solid" borderColor="gray.200">
+    <Table size="sm">
       <TableHeader table={table}/>
       <Tbody>
         {table.getRowModel().rows.map((row) =>

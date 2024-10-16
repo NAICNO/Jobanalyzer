@@ -186,7 +186,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
   users_recent: {
     key: 'users_recent',
     title: 'Users (recent)',
-    shortTitle: 'Recent',
+    shortTitle: '30m.',
     helpText: 'Unique users running jobs',
     sortable: true,
     renderFn: GenericCell
@@ -194,7 +194,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
   users_longer: {
     key: 'users_longer',
     title: 'Users (longer)',
-    shortTitle: 'Longer',
+    shortTitle: '12hr.',
     helpText: 'Unique users running jobs',
     sortable: true,
     renderFn: GenericCell
@@ -202,7 +202,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
   jobs_recent: {
     key: 'jobs_recent',
     title: 'Jobs (recent)',
-    shortTitle: 'Recent',
+    shortTitle: '30m.',
     helpText: 'Jobs big enough to count',
     sortable: true,
     renderFn: GenericCell
@@ -210,7 +210,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
   jobs_longer: {
     key: 'jobs_longer',
     title: 'Jobs (longer)',
-    shortTitle: 'Longer',
+    shortTitle: '12hr.',
     helpText: 'Jobs big enough to count',
     sortable: true,
     renderFn: GenericCell
@@ -218,7 +218,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
   cpu_recent: {
     key: 'cpu_recent',
     title: 'CPU % (recent)',
-    shortTitle: 'Recent',
+    shortTitle: '30m.',
     helpText: 'Running average',
     sortable: true,
     renderFn: WorkingFieldCell,
@@ -226,7 +226,7 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
   cpu_longer: {
     key: 'cpu_longer',
     title: 'CPU % (longer)',
-    shortTitle: 'Longer',
+    shortTitle: '12hr.',
     helpText: 'Running average',
     sortable: true,
     renderFn: WorkingFieldCell,
@@ -234,56 +234,56 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
   resident_recent: {
     key: 'resident_recent',
     title: 'Resident% (recent)',
-    shortTitle: 'Recent',
+    shortTitle: '30m.',
     helpText: 'Running average',
     renderFn: WorkingFieldCell,
   },
   resident_longer: {
     key: 'resident_longer',
     title: 'Resident% (longer)',
-    shortTitle: 'Longer',
+    shortTitle: '12hr.',
     helpText: 'Running average',
     renderFn: WorkingFieldCell,
   },
   mem_recent: {
     key: 'mem_recent',
     title: 'Virt % (recent)',
-    shortTitle: 'Recent',
+    shortTitle: '30m.',
     helpText: 'Running average',
     renderFn: WorkingFieldCell,
   },
   mem_longer: {
     key: 'mem_longer',
     title: 'Virt % (longer)',
-    shortTitle: 'Longer',
+    shortTitle: '12hr.',
     helpText: 'Running average',
     renderFn: WorkingFieldCell,
   },
   gpu_recent: {
     key: 'gpu_recent',
     title: 'GPU % (recent)',
-    shortTitle: 'Recent',
+    shortTitle: '30m.',
     helpText: 'Running average',
     renderFn: WorkingFieldCell,
   },
   gpu_longer: {
     key: 'gpu_longer',
     title: 'GPU % (longer)',
-    shortTitle: 'Longer',
+    shortTitle: '12hr.',
     helpText: 'Running average',
     renderFn: WorkingFieldCell,
   },
   gpumem_recent: {
     key: 'gpumem_recent',
     title: 'GPU Mem % (recent)',
-    shortTitle: 'Recent',
+    shortTitle: '30m.',
     helpText: 'Running average',
     renderFn: WorkingFieldCell,
   },
   gpumem_longer: {
     key: 'gpumem_longer',
     title: 'GPU Mem % (longer)',
-    shortTitle: 'Longer',
+    shortTitle: '12hr.',
     helpText: 'Running average',
     renderFn: WorkingFieldCell,
   },

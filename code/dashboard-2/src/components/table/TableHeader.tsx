@@ -9,21 +9,37 @@ interface TableHeaderProps<T> {
 
 export const TableHeader = ({table}: TableHeaderProps<any>) => {
   return (
-    <Thead borderBottom="1px solid" borderColor="gray.200">
+    <Thead>
       {table.getHeaderGroups().map((headerGroup) => (
         <Tr key={headerGroup.id}>
           {headerGroup.headers.map((header,) => {
             const meta: any = header.column.columnDef.meta
+            const columnRelativeDepth = header.depth - header.column.depth
+            if (
+              !header.isPlaceholder &&
+              columnRelativeDepth > 1 &&
+              header.id === header.column.id
+            ) {
+              return null
+            }
+
+            let rowSpan = 1
+            if(header.isPlaceholder) {
+              const leafs = header.getLeafHeaders()
+              rowSpan = leafs[leafs.length - 1].depth - header.depth
+            }
+
             return (
               <Th
+                padding={2}
                 key={header.id}
-                borderRight={header.index !== headerGroup.headers.length - 1 ? '1px solid' : 'none'}
-                borderColor="gray.200"
                 onClick={header.column.getToggleSortingHandler()}
                 isNumeric={meta?.isNumeric}
                 colSpan={header.colSpan}
+                {...(header.depth > 1 ? { 'data-is-grouped-column-sub-header':true } : {})}
+                {...(header.colSpan > 1 ? { 'data-is-grouped-column-header':true } : {})}
+                rowSpan={rowSpan}
                 style={{
-                  textTransform: 'none',
                   minWidth: header.column.columnDef.minSize,
                 }}
                 title={meta?.helpText}

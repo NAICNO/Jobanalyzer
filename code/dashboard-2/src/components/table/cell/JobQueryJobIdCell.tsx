@@ -31,7 +31,7 @@ export const JobQueryJobIdCell = ({value}: JobQueryJobIdCellProps) => {
         openDelay={250}
       >
         <PopoverTrigger>
-          <ChakraLink color={'teal.500'}>
+          <ChakraLink>
             {value.jobId}
           </ChakraLink>
         </PopoverTrigger>

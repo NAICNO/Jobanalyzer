@@ -9,7 +9,7 @@ export default function RootLayout() {
 
   const colorMode = useColorMode()
 
-  const mainGridItemBackgroundColor = colorMode.colorMode === 'light' ? 'gray.50' : 'gray.800'
+  const mainGridItemBackgroundColor = colorMode.colorMode === 'light' ? 'white' : 'gray.800'
   const sidebarBackgroundColor = colorMode.colorMode === 'light' ? 'gray.100' : 'gray.700'
 
   return (

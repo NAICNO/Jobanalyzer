@@ -119,7 +119,7 @@ export default function HostDetailsPage() {
       <VStack spacing={4} alignItems="start">
         <HStack mb="15px">
           <NavigateBackButton/>
-          <Heading as="h3" size="lg">
+          <Heading as="h3" ml={2} size={{base: 'md', md: 'lg'}}>
             Machine Details: {hostDetails?.system.hostname}
           </Heading>
         </HStack>
