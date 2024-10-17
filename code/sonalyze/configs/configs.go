@@ -157,15 +157,15 @@ type SFS = SimpleFormatSpec
 // MT: Constant after initialization; immutable
 var configsFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromMap(
 	reflect.TypeOf((*config.NodeConfigRecord)(nil)).Elem(),
-	map[string]FormatSpec{
-		"Timestamp":     &SFS{"Full ISO timestamp of when the reading was taken", "timestamp"},
-		"Hostname":      &SFS{"Name that host is known by on the cluster", "host"},
-		"Description":   &SFS{"End-user description, not parseable", "desc"},
-		"CrossNodeJobs": &SFS{"True if jobs on this node can be multi-node", "xnode"},
-		"CpuCores":      &SFS{"Total number of cores x threads", "cores"},
-		"MemGB":         &SFS{"GB of installed main RAM", "mem"},
-		"GpuCards":      &SFS{"Number of installed cards", "gpus"},
-		"GpuMemGB":      &SFS{"Total GPU memory across all cards", "gpumem"},
-		"GpuMemPct":     &SFS{"True if GPUs report accurate memory usage in percent", "gpumempct"},
+	map[string]any{
+		"Timestamp":     SFS{"Full ISO timestamp of when the reading was taken", "timestamp"},
+		"Hostname":      SFS{"Name that host is known by on the cluster", "host"},
+		"Description":   SFS{"End-user description, not parseable", "desc"},
+		"CrossNodeJobs": SFS{"True if jobs on this node can be multi-node", "xnode"},
+		"CpuCores":      SFS{"Total number of cores x threads", "cores"},
+		"MemGB":         SFS{"GB of installed main RAM", "mem"},
+		"GpuCards":      SFS{"Number of installed cards", "gpus"},
+		"GpuMemGB":      SFS{"Total GPU memory across all cards", "gpumem"},
+		"GpuMemPct":     SFS{"True if GPUs report accurate memory usage in percent", "gpumempct"},
 	},
 )

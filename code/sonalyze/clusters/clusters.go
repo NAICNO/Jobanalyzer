@@ -138,9 +138,9 @@ type SFS = SimpleFormatSpec
 // MT: Constant after initialization; immutable
 var clustersFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromMap(
 	reflect.TypeOf((*db.ClusterEntry)(nil)).Elem(),
-	map[string]FormatSpec{
-		"Name":        &SFS{"Cluster name", "cluster"},
-		"Description": &SFS{"Human-consumable cluster summary", "desc"},
-		"Aliases":     &SFS{"Aliases of cluster", "aliases"},
+	map[string]any{
+		"Name":        SFS{"Cluster name", "cluster"},
+		"Description": SFS{"Human-consumable cluster summary", "desc"},
+		"Aliases":     SFS{"Aliases of cluster", "aliases"},
 	},
 )
