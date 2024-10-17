@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"reflect"
 	"sort"
 	"time"
 
@@ -400,6 +401,55 @@ var parseFormatters = map[string]Formatter[sonarlog.Sample, parseCtx]{
 		"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)",
 	},
 }
+
+type SFS = SimpleFormatSpec
+type AFS = SimpleFormatSpecWithAttr
+type CFS = ComputedFormatSpec
+
+var newFormatters = ReflectFormattersFromMap(
+	reflect.TypeOf((*sonarlog.Sample)(nil)).Elem(),
+	map[string]any{
+		"Version":     SFS{"Semver string (MAJOR.MINOR.BUGFIX)", "version"},
+		// TODO: IMPROVEME: The use of utc for localtime is a bug that comes from the Rust code.
+		"Timestamp":   AFS{"Timestamp (yyyy-mm-dd hh:mm)", "localtime", FmtDateTimeValue},
+		"time":        CFS{"Timestamp", "Timestamp (ISO date with seconds)", func (d any) string {
+			return time.Unix(d.(*db.Sample).Timestamp, 0).UTC().Format(time.RFC3339)
+		}},
+		"Host":        SFS{"Host name (FQDN)", "host"},
+		"Cores":       SFS{"Total number of cores (including hyperthreads)", "cores"},
+		"MemtotalKib": SFS{"Installed main memory", ""},
+		"memtotal":    CFS{"MemtotalKib", "Installed main memory (GiB)", func (d any) string {
+			return fmt.Sprint(d.(*db.Sample).MemtotalKib / (1024 * 1024))
+		}},
+		"User":        SFS{"Username of process owner", "user"},
+		"Pid":         AFS{"Process ID", "pid", FmtDefaultable},
+		"Ppid":        AFS{"Process parent ID", "ppid", FmtDefaultable},
+		"Job":         SFS{"Job ID", "job"},
+		"Cmd":         SFS{"Command name", "cmd"},
+		"CpuPct":      SFS{"cpu% reading (CONSULT DOCUMENTATION)", "cpu_pct"},
+		"CpuKib":      SFS{"Virtual memory reading", "cpukib"},
+		"mem_gb":      CFS{"CpuKib", "Virtual memory reading (GiB)", func (d any) string {
+			return fmt.Sprint(d.(*db.Sample).CpuKib / (1024 * 1024))
+		}},
+		"RssAnonKib":  SFS{"RssAnon reading", ""},
+		"res_gb":      CFS{"RssAnonKib", "RssAnon reading (GiB)", func (d any) string {
+			return fmt.Sprint(d.(*db.Sample).RssAnonKib / (1024 * 1024))
+		}},
+		"Gpus":        AFS{"GPU set (`none`,`unknown`,list)", "gpus", FmtDefaultable},
+		"GpuPct":      AFS{"GPU utilization reading", "gpu_pct", FmtDefaultable},
+		"GpuMemPct":   AFS{"GPU memory percentage reading", "gpumem_pct", FmtDefaultable},
+		"GpuKib":      AFS{"GPU memory utilization reading", "gpukib", FmtDefaultable},
+		"gpumem_gb":   CFS{"GpuKib", "GPU memory utilization reading (GiB)", func (d any) string {
+			return fmt.Sprint(d.(*db.Sample).GpuKib / (1024 * 1024))
+		}},
+		"GpuFail":     AFS{"GPU status flag (0=ok, 1=error state)", "gpu_status", FmtDefaultable},
+		"CpuTimeSec":  AFS{"CPU time since last reading (seconds, CONSULT DOCUMENTATION)",
+			"cputime_sec", FmtDefaultable},
+		"Rolledup":    AFS{"Number of rolled-up processes, minus 1", "rolledup", FmtDefaultable},
+		"GpuUtilPct":  AFS{"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)",
+			"gpu_util_pct", FmtDefaultable},
+	},
+)
 
 func init() {
 	// These are needed for true roundtripping but they can't be defined as aliases because the

@@ -182,28 +182,46 @@ func ReflectFormattersFromTags(
 // any formatting rules in the structure definition because the structure definition is in a package
 // different from the printing.
 //
-// TODO: At the moment, the format specification is an interface; this may evolve.
-
-type FormatSpec interface {
-	Aliases() []string
-	Desc() string
-}
+// The field values must be one of the *FormatSpec types below.
+//
+// ComputedFormatSpec is used for synthesized fields: fields not in the data array.  It's good
+// hygiene for them to be passed together with actual fields so that there are no duplicates in the
+// name space.
 
 type SimpleFormatSpec struct {
-	Desc_, Aliases_ string
+	Desc string
+	Aliases string
 }
 
-func (fs SimpleFormatSpec) Desc() string {
-	return fs.Desc_
+// `FmtDefaultable` indicates that the field has a default value to skip if nodefaults is set.
+// Numbers, Ustr, string, and GpuSet are defaultable.
+//
+// For Fmt<Typename> see typename at top of file
+
+const (
+	FmtDefaultable = (1 << iota)
+	FmtDateTimeValue			// must be int64
+)
+
+type SimpleFormatSpecWithAttr struct {
+	Desc string
+	Aliases string
+	Attr int
 }
 
-func (fs SimpleFormatSpec) Aliases() []string {
-	return strings.Split(fs.Aliases_, ",")
+type ComputedFormatSpec struct {
+	Name string					// field name this is derived from
+	Desc string
+	Fmt func(d any) string		// d will be a pointer value
 }
+
+// TODO: To handle computed formatters we need to create a map from the computed name's real
+// name to computed info, and then when the real name is encountered during traversal we will
+// know to generate a computed formatter for it at that point.
 
 func ReflectFormattersFromMap(
 	structTy reflect.Type,
-	fields   map[string]FormatSpec,
+	fields   map[string]any,
 ) (formatters map[string]Formatter[any, PrintMods]) {
 	formatters = make(map[string]Formatter[any, PrintMods])
 	reflectStructFormatters(
@@ -211,16 +229,33 @@ func ReflectFormattersFromMap(
 		formatters,
 		func (fld reflect.StructField) (ok bool, name, desc string, aliases []string) {
 			name = fld.Name
-			if attr, found := fields[name]; found {
-				desc = attr.Desc()
-				aliases = attr.Aliases()
-				ok = true
+			if spec, found := fields[name]; found {
+				switch s := spec.(type) {
+				case SimpleFormatSpec:
+					desc = s.Desc
+					aliases = strings.Split(s.Aliases, ",")
+					ok = true
+				case SimpleFormatSpecWithAttr:
+					// As above but we need to return the attr, which must then be used for
+					// formatting.
+					panic("NYI")
+				case ComputedFormatSpec:
+					// This is actually an error in the spec: no computed field should be named the
+					// same as an actual field (I think... there may be exceptions...).  So maybe
+					// change the error message.
+					panic("NYI")
+				default:
+					panic("Invalid FormatSpec")
+				}
 			}
 			return
 		},
 	)
 	return
 }
+
+// TODO: Handle attributes by passing the attribute bits to reflectTypeFormatter, which should
+// generate a formatter that returns "*skip*" if the field value is the default value.
 
 func reflectStructFormatters(
 	structTy   reflect.Type,
