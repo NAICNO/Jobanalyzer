@@ -2,15 +2,15 @@
 //
 // End-user options:
 //
-//  -data-dir directory
-//  -data-path directory (obsolete name)
-//    Required: The root directory of the Sonar data store, for a particular cluster.
+//  -remote url
+//  -auth-file filename
+//    Required: The server (with optional authorization) that will serve data to us
+//
+//  -cluster clustername
+//    Required: the cluster for which we want information from the server
 //
 //  -sonalyze filename
 //    Required: The `sonalyze` executable.
-//
-//  -config-file filename
-//    Required: The machine configuration file for the cluster.
 //
 //  -state-dir directory
 //  -state-path directory (obsolete name)
@@ -43,9 +43,9 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strconv"
 	"time"
 
-	"go-utils/config"
 	"go-utils/options"
 	"go-utils/process"
 	"go-utils/sonalyze"
@@ -81,19 +81,30 @@ var longerCutoff = nowUTC.Add(-LONGER_MINS * 60 * nanosPerSec)
 var longCutoff = nowUTC.Add(-LONG_MINS * 60 * nanosPerSec)
 
 type optionsPkg struct {
-	filesOpts  *util.DataFilesOptions
+	remoteOpts *util.RemoteOptions
 	filterOpts *util.DateFilterOptions
+}
+
+type ConfigRecordRepr struct {
+	Hostname    string `json:"host,omitempty"`
+	GpuCards    string `json:"gpus,omitempty"`
+	Description string `json:"desc,omitempty"`
+}
+
+type ConfigRecord struct {
+	Hostname    string
+	GpuCards    int
+	Description string
 }
 
 // Command-line arguments
 var (
-	sonalyzePath   string
-	configFilename string
-	stateDir       string
-	tag            string
-	filesOpts      *util.DataFilesOptions
-	filterOpts     *util.DateFilterOptions
-	verbose        bool
+	sonalyzePath string
+	stateDir     string
+	tag          string
+	remoteOpts   *util.RemoteOptions
+	filterOpts   *util.DateFilterOptions
+	verbose      bool
 )
 
 func Report(progname string, args []string) error {
@@ -102,16 +113,11 @@ func Report(progname string, args []string) error {
 		return err
 	}
 
-	config, err := config.ReadConfig(configFilename)
-	if err != nil {
-		return err
-	}
-
 	// It's possible that the code in this module would be a little less verbose if there were a
 	// centralized database mapping host -> glanceRecord that is just passed around for everyone to
 	// use.  But it's not obvious the code would be as easy to understand.
 
-	logOpts := &optionsPkg{filesOpts, filterOpts}
+	logOpts := &optionsPkg{remoteOpts, filterOpts}
 	ujbh, err := collectUsersAndJobs(sonalyzePath, logOpts)
 	if err != nil {
 		return err
@@ -120,7 +126,7 @@ func Report(progname string, args []string) error {
 	if err != nil {
 		return err
 	}
-	labh, err := collectLoadAverages(sonalyzePath, configFilename, logOpts)
+	labh, err := collectLoadAverages(sonalyzePath, logOpts)
 	if err != nil {
 		return err
 	}
@@ -131,6 +137,30 @@ func Report(progname string, args []string) error {
 	deadweightbh, err := collectDeadweight(path.Join(stateDir, "deadweight-state.csv"))
 	if err != nil {
 		return err
+	}
+
+	// Mini-config
+	var rawData []ConfigRecordRepr
+	err = runAndUnmarshal(
+		sonalyzePath,
+		[]string{"config", "-fmt=json,host,gpus,desc"},
+		&optionsPkg{remoteOpts, &util.DateFilterOptions{}}, // No date filter
+		&rawData,
+	)
+	if err != nil {
+		return err
+	}
+	config := make(map[string]ConfigRecord)
+	for _, c := range rawData {
+		cards, err := strconv.Atoi(c.GpuCards)
+		if err != nil {
+			continue
+		}
+		config[c.Hostname] = ConfigRecord{
+			Hostname:    c.Hostname,
+			GpuCards:    cards,
+			Description: c.Description,
+		}
 	}
 
 	recordsByHost := make(map[string]*glanceRecord)
@@ -162,7 +192,7 @@ func Report(progname string, args []string) error {
 		r.MemLonger = d.mem_longer
 		r.ResidentRecent = d.resident_recent
 		r.ResidentLonger = d.resident_longer
-		if cfg := config.LookupHost(d.hostname); cfg != nil && cfg.GpuCards > 0 {
+		if cfg, found := config[d.hostname]; found && cfg.GpuCards > 0 {
 			r.GpuRecent = d.gpu_recent
 			r.GpuLonger = d.gpu_longer
 			r.GpumemRecent = d.gpumem_recent
@@ -195,14 +225,14 @@ func Report(progname string, args []string) error {
 func glanceRecordForHost(
 	recordsByHost map[string]*glanceRecord,
 	hostname string,
-	config *config.ClusterConfig,
+	config map[string]ConfigRecord,
 	tag string,
 ) *glanceRecord {
 	if r, found := recordsByHost[hostname]; found {
 		return r
 	}
 	machine := ""
-	if cfg := config.LookupHost(hostname); cfg != nil {
+	if cfg, found := config[hostname]; found {
 		machine = cfg.Description
 	}
 	r := &glanceRecord{
@@ -372,7 +402,6 @@ func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStat
 		sonalyzePath,
 		[]string{
 			"uptime",
-			"--config-file", configFilename,
 			"--interval", fmt.Sprint(UPTIME_MINS),
 			"--fmt=json,host,device,state",
 		},
@@ -437,7 +466,6 @@ type loadAveragesByHost struct {
 
 func collectLoadAverages(
 	sonalyzePath string,
-	configFilename string,
 	progOpts *optionsPkg,
 ) ([]*loadAveragesByHost, error) {
 
@@ -446,7 +474,6 @@ func collectLoadAverages(
 	}
 	recentData, err := collectLoadAveragesOnce(
 		sonalyzePath,
-		configFilename,
 		progOpts,
 		"--half-hourly")
 	if err != nil {
@@ -458,7 +485,6 @@ func collectLoadAverages(
 	}
 	longerData, err := collectLoadAveragesOnce(
 		sonalyzePath,
-		configFilename,
 		progOpts,
 		"--half-daily")
 	if err != nil {
@@ -509,7 +535,7 @@ type sonalyzeLoadData struct {
 }
 
 func collectLoadAveragesOnce(
-	sonalyzePath, configFilename string,
+	sonalyzePath string,
 	progOpts *optionsPkg,
 	bucketArg string,
 ) (map[string]*sonalyzeLoadData, error) {
@@ -542,8 +568,7 @@ func collectLoadAveragesOnce(
 		[]string{
 			"load",
 			bucketArg,
-			"--fmt=json,host,rcpu,rmem,rres,rgpu,rgpumem",
-			"--config-file", configFilename},
+			"--fmt=json,host,rcpu,rmem,rres,rgpu,rgpumem"},
 		progOpts,
 		&rawData)
 	if err != nil {
@@ -639,7 +664,7 @@ func runAndUnmarshal(
 	rawData any,
 ) error {
 	arguments = util.ForwardDateFilterOptions(arguments, progOpts.filterOpts)
-	arguments = util.ForwardDataFilesOptions(arguments, "--data-path", progOpts.filesOpts)
+	arguments = util.ForwardRemoteOptions(arguments, progOpts.remoteOpts)
 	if verbose {
 		fmt.Printf("Sonalyze (run) arguments\n%v\n", arguments)
 	}
@@ -669,16 +694,12 @@ func runAndUnmarshal(
 
 func commandLine() error {
 	opts := flag.NewFlagSet(os.Args[0]+" at-a-glance", flag.ContinueOnError)
-	filesOpts = util.AddDataFilesOptions(opts, "data-dir", "Root `directory` of data store (required)")
+	remoteOpts = util.AddRemoteOptions(opts)
 	filterOpts = util.AddDateFilterOptions(opts)
 	opts.StringVar(&sonalyzePath, "sonalyze", "", "Sonalyze executable `filename` (required)")
-	opts.StringVar(&configFilename, "config-file", "",
-		"Read cluster configuration from `filename` (required)")
 	opts.StringVar(&stateDir, "state-dir", "",
 		"Directory holding databases for system state (required)")
 	opts.StringVar(&tag, "tag", "", "Annotate output with `cluster-name` (optional)")
-	var dataPath string
-	opts.StringVar(&dataPath, "data-path", "", "Obsolete name for -data-dir")
 	var statePath string
 	opts.StringVar(&statePath, "state-path", "", "Obsolete name for -state-dir")
 	opts.BoolVar(&verbose, "v", false, "Verbose and debug output")
@@ -689,14 +710,12 @@ func commandLine() error {
 	if err != nil {
 		return err
 	}
-	if filesOpts.Path == "" && filesOpts.Files == nil && dataPath != "" {
-		filesOpts.Path = dataPath
-	}
 	var err1, err2, err3, err4, err5 error
-	err1 = util.RectifyDataFilesOptions(filesOpts, opts)
+	if remoteOpts.Server == "" || remoteOpts.Cluster == "" {
+		err1 = errors.New("Both -remote and -cluster are required")
+	}
 	err5 = util.RectifyDateFilterOptions(filterOpts, opts)
 	sonalyzePath, err2 = options.RequireCleanPath(sonalyzePath, "-sonalyze")
-	configFilename, err3 = options.RequireCleanPath(configFilename, "-config-file")
 	if stateDir == "" && statePath != "" {
 		stateDir = statePath
 	}

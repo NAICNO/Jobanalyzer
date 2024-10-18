@@ -1,0 +1,30 @@
+# -*- mode: shell-script; fill-column: 100 -*-
+
+# This file is to be included by other scripts.  It defines variables used by those scripts.
+#
+# Free variables:
+#
+#    $sonalyzed_dir - sonalyzed root directory, must be defined by the including script.
+
+####
+# Identities and authorization.
+#
+# `sonalyze daemon` (previously `sonalyzed`) uses these files to check that remote operations are
+# performed only by authorized users.  Both files have any number of lines on `username:password`
+# format.
+
+# The "upload" file is used for data uploads and the users are cluster names.
+sonalyzed_upload_auth_file=$sonalyzed_dir/secrets/exfil-auth.txt
+
+# The "analysis" file is used for data extraction and the users are actual user names.
+sonalyzed_analysis_auth_file=$sonalyzed_dir/secrets/sonalyzed-auth.txt
+
+####
+# Ports.
+#
+# Central Services has locked down most ports, here is the list of what's open:
+# https://www-int.usit.uio.no/om/organisasjon/iti/nettdrift/dokumentasjon/nett-info/uio-acl/nexus-xx-gw-2616.acl.txt
+
+# `sonalyzed` listens on this port for remote sonalyze queries.  This is an open `Oracle` port.
+sonalyzed_port=1559
+

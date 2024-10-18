@@ -8,6 +8,9 @@
 #
 #   upload_files - expanded list of file names to upload
 
+echo "UPDATE THIS TO NEW REALITY ONCE SAGA IS ON-LINE"
+exit 1
+
 # Define report_target_path.  The directory at report_target_path must
 # exist with the appropriate permissions and ownership.
 source $sonar_dir/server-config
