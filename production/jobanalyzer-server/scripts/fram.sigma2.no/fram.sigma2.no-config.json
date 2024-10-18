@@ -1,0 +1,471 @@
+{
+    "name":"fram.sigma2.no",
+    "aliases":["fram"],
+    "description":"Sigma2 'Fram' supercomputer",
+    "# batch-system":"slurm",
+    "exclude-user":["root"],
+    "nodes":[
+        {
+            "hostname": "c10-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c11-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c12-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c13-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c14-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c15-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c16-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c17-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c18-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c19-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c20-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c21-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c22-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c23-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c24-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c25-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c26-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c27-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c28-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c29-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c3-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c30-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c31-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c32-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c33-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c34-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c35-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c36-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c37-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c38-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c39-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c4-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c40-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c41-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c42-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c43-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c44-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c5-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c51-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c52-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c53-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c54-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c55-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c56-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c57-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c58-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c59-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c6-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c60-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c61-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c62-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c63-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c64-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c65-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c66-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c67-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c68-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c69-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c7-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c70-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c71-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c72-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c73-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c74-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c75-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c76-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c77-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c78-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c79-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c8-[1-8]",
+            "description": "2x16 intel (hyperthreaded), 494GB",
+            "cpu_cores": 64,
+            "mem_gb": 494
+        },
+        {
+            "hostname": "c80-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c81-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c82-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c83-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c84-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c85-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        },
+        {
+            "hostname": "c9-[1-12]",
+            "description": "2x16 intel (hyperthreaded), 59GB",
+            "cpu_cores": 64,
+            "mem_gb": 59
+        }
+    ]
+}

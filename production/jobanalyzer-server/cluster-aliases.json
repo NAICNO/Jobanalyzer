@@ -1,4 +1,7 @@
 [{"alias":"ml", "value":"mlx.hpc.uio.no"},
  {"alias":"mlx", "value":"mlx.hpc.uio.no"},
  {"alias":"fox", "value":"fox.educloud.no"},
- {"alias":"saga", "value":"saga.sigma2.no"}]
+ {"alias":"saga", "value":"saga.sigma2.no"},
+ {"alias":"fram", "value":"fram.sigma2.no"},
+ {"alias":"olivia", "value":"olivia.sigma2.no"},
+ {"alias":"betzy", "value":"betzy.sigma2.no"}]

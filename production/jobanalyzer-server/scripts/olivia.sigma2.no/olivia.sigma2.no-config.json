@@ -1,0 +1,9 @@
+{
+    "name":"olivia.sigma2.no",
+    "aliases":["olivia"],
+    "description":"Sigma2 'Olivia' supercomputer",
+    "# batch-system":"slurm",
+    "exclude-user":["root"],
+    "nodes":[
+    ]
+}
