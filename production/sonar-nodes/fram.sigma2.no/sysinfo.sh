@@ -5,7 +5,7 @@
 set -euf -o pipefail
 
 # sonar_dir contains the binaries and the config file.  Other paths are defined by the config file.
-sonar_dir=/cluster/shared/sonar
+sonar_dir=${sonar_dir:-/cluster/shared/sonar}
 source $sonar_dir/sonar-config.sh
 
 output=$($sonar_dir/sonar sysinfo)
