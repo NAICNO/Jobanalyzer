@@ -7,7 +7,8 @@
 # Free variables:
 #
 #   upload_files - expanded list of file names to upload
-#   naicreport_upload_dir - the directory into which to copy those files
+#   naicreport_new_upload_dir - the directory into which to copy those files (optional)
+#   naicreport_upload_dir - the directory into which to copy those files (otherwise)
 
 # The chmod is done here so that we don't have to do it in the generating scripts or on the server,
 # and we won't have to depend on the umask.  But it must be done, or the files may not be readable
@@ -18,5 +19,8 @@ chmod go+r $upload_files
 if [[ -v NOUPLOAD ]]; then
     echo $upload_files
 else
+    if [[ $naicreport_new_upload_dir != "" ]]; then
+        cp $upload_files $naicreport_new_upload_dir
+    fi
     cp $upload_files $naicreport_upload_dir
 fi

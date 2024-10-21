@@ -7,7 +7,7 @@ function compute_filename(fn) {
     if (globalThis["TESTDATA"]) {
         return "test-data/" + fn;
     } else {
-        return "output/" + fn;
+        return "reports/" + cluster_info(CURRENT_CLUSTER).canonical + "/" + fn;
     }
 }
 

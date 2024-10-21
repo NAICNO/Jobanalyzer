@@ -8,12 +8,12 @@
 # We need globbing, stay away from -f
 set -eu -o pipefail
 
-cluster=saga.sigma2.no
+cluster=fram.sigma2.no
 naicreport_dir=${naicreport_dir:-$HOME/sonar}
 source $naicreport_dir/naicreport-config
 
-abbrev=saga
-tag="Saga Nodes"
+abbrev=fram
+tag="Fram Nodes"
 
 $naicreport_dir/naicreport load \
 		      -sonalyze $naicreport_dir/sonalyze \

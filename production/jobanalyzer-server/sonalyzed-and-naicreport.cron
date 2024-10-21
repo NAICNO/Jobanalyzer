@@ -26,10 +26,23 @@ MAILTO=larstha@uio.no
 2 0-23/2 * * * $HOME/sonar/scripts/fox.educloud.no/deadweight.sh
 3 0-23/12 * * * $HOME/sonar/scripts/fox.educloud.no/deadweight-report.sh
 
+# Sigma2 "Fram" supercomputer "fram.sigma2.no"
+
+2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/scripts/fram.sigma2.no/load-5m-and-upload.sh
+3 0-23 * * * $HOME/sonar/scripts/fram.sigma2.no/load-1h.sh
+3 1 1-31 * * $HOME/sonar/scripts/fram.sigma2.no/load-24h.sh
+4 0-23 * * * $HOME/sonar/scripts/fram.sigma2.no/upload-data.sh
+
 # Sigma2 "Saga" supercomputer "saga.sigma2.no"
 
-0,15,30,45 * * * * $HOME/sonar/scripts/saga.sigma2.no/saga-slurp.sh
 2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/scripts/saga.sigma2.no/load-5m-and-upload.sh
 3 0-23 * * * $HOME/sonar/scripts/saga.sigma2.no/load-1h.sh
 3 1 1-31 * * $HOME/sonar/scripts/saga.sigma2.no/load-24h.sh
 4 0-23 * * * $HOME/sonar/scripts/saga.sigma2.no/upload-data.sh
+
+# Sigma2 "Betzy" supercomputer "betzy.sigma2.no"
+
+2,7,12,17,22,27,32,37,42,47,52,57 * * * * $HOME/sonar/scripts/betzy.sigma2.no/load-5m-and-upload.sh
+3 0-23 * * * $HOME/sonar/scripts/betzy.sigma2.no/load-1h.sh
+3 1 1-31 * * $HOME/sonar/scripts/betzy.sigma2.no/load-24h.sh
+4 0-23 * * * $HOME/sonar/scripts/betzy.sigma2.no/upload-data.sh

@@ -14,6 +14,7 @@ function cluster_info(cluster) {
     case "ml":
         return {
             cluster,
+            canonical: "mlx.hpc.uio.no",
             subclusters: [{name:"nvidia", nodes:"ml[1-3,6-9]"}],
             uptime: true,
             violators: true,
@@ -28,6 +29,7 @@ function cluster_info(cluster) {
     case "fox":
         return {
             cluster,
+            canonical: "fox.educloud.no",
             subclusters: [{name:"cpu", nodes:"c*"},
                           {name:"gpu", nodes:"gpu*"},
                           {name:"int", nodes:"int*"},
@@ -45,15 +47,46 @@ function cluster_info(cluster) {
     case "saga":
         return {
             cluster,
-            subclusters: [{name:"login", nodes:"login*"}],
+            canonical: "saga.sigma2.no",
+            subclusters: [],
             uptime: false,
             violators: false,
             deadweight: false,
-            defaultQuery: "login*",
+            defaultQuery: "c*-1",
             name:"Saga",
             hasDowntime: false,
             description:"Sigma2 'Saga' supercomputer",
             prefix:"saga-",
+            policy:"(To be determined)",
+        }
+    case "fram":
+        return {
+            cluster,
+            canonical: "fram.sigma2.no",
+            subclusters: [],
+            uptime: false,
+            violators: false,
+            deadweight: false,
+            defaultQuery: "c*-1",
+            name:"Fram",
+            hasDowntime: false,
+            description:"Sigma2 'Fram' supercomputer",
+            prefix:"fram-",
+            policy:"(To be determined)",
+        }
+    case "betzy":
+        return {
+            cluster,
+            canonical: "betzy.sigma2.no",
+            subclusters: [],
+            uptime: false,
+            violators: false,
+            deadweight: false,
+            defaultQuery: "b11*",
+            name:"Betzy",
+            hasDowntime: false,
+            description:"Sigma2 'Betzy' supercomputer",
+            prefix:"betzy-",
             policy:"(To be determined)",
         }
     }

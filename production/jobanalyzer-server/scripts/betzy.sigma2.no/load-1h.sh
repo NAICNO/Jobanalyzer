@@ -5,7 +5,7 @@
 
 set -euf -o pipefail
 
-cluster=saga.sigma2.no
+cluster=betzy.sigma2.no
 naicreport_dir=${naicreport_dir:-$HOME/sonar}
 source $naicreport_dir/naicreport-config
 

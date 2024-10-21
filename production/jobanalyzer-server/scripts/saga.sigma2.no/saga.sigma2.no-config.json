@@ -64,17 +64,21 @@
         },
         {
             "hostname": "c7-[1-8]",
-            "description": "2x12 intel (hyperthreaded), 364GB",
+            "description": "2x12 intel (hyperthreaded), 364GB, 4x Tesla P100-PCIE-16GB",
             "cross_node_jobs":true,
             "cpu_cores": 48,
-            "mem_gb": 364
+            "mem_gb": 364,
+            "gpu_cards": 4,
+            "gpumem_gb": 64
         },
         {
             "hostname": "gpu-12-[1-8]",
-            "description": "1x32 amd (hyperthreaded), 1000GB",
+            "description": "1x32 amd (hyperthreaded), 1000GB, 4x A100-SXM4-80GB",
             "cross_node_jobs":true,
             "cpu_cores": 64,
-            "mem_gb": 1000
+            "mem_gb": 1000,
+            "gpu_cards": 4,
+            "gpumem_gb": 320
         },
         {
             "hostname": "hugemem-8-1",

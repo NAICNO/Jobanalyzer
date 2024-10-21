@@ -1,27 +1,28 @@
 #!/usr/bin/bash
 
-# Analysis job to run on the analysis host every 1h.  This job generates the hourly and daily load
+# Analysis job to run on one node every 24h.  This job generates the monthly and quarterly load
 # reports for the nodes.
 
 set -euf -o pipefail
 
-cluster=saga.sigma2.no
+cluster=betzy.sigma2.no
 naicreport_dir=${naicreport_dir:-$HOME/sonar}
 source $naicreport_dir/naicreport-config
 
 $naicreport_dir/naicreport load \
 		      -sonalyze $naicreport_dir/sonalyze \
                       $data_source \
+		      -report-dir $report_dir \
 		      -with-downtime 5 \
-		      -tag daily \
-		      -hourly \
-		      -report-dir $report_dir
+		      -tag monthly \
+		      -daily \
+		      -from 30d
 
 $naicreport_dir/naicreport load \
 		      -sonalyze $naicreport_dir/sonalyze \
                       $data_source \
+		      -report-dir $report_dir \
 		      -with-downtime 5 \
-		      -tag weekly \
-		      -hourly \
-		      -from 7d \
-		      -report-dir $report_dir
+		      -tag quarterly \
+		      -daily \
+		      -from 90d
