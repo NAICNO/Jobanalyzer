@@ -1,0 +1,9 @@
+{
+  "timestamp": "2024-10-21T00:00:01+02:00",
+  "hostname": "ml4.hpc.uio.no",
+  "description": "2x16 (hyperthreaded) AMD EPYC 7301 16-Core Processor, 125 GiB",
+  "cpu_cores": 64,
+  "mem_gb": 125,
+  "gpu_cards": 0,
+  "gpumem_gb": 0
+}

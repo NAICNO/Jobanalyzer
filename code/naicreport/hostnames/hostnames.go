@@ -21,6 +21,9 @@
 //
 // Debugging / development options:
 //
+//  -- filename ...
+//    Test input files - these must be sysinfo-*.json type files.
+//
 //  -v
 //    Print various (verbose) debugging output
 
@@ -53,8 +56,19 @@ func Hostnames(progname string, args []string) (err error) {
 	if err != nil {
 		return
 	}
-	if remoteOpts.Server == "" || remoteOpts.Cluster == "" {
-		err = errors.New("Both -remote and -cluster are required")
+	testFiles := opts.Args()
+	if len(testFiles) > 0 {
+		if remoteOpts.Server != "" || remoteOpts.Cluster != "" {
+			err = errors.New("Can't combine remote options and local test files")
+		} else {
+			testFiles, err = util.CleanRestArgs(testFiles)
+		}
+	} else {
+		if remoteOpts.Server == "" || remoteOpts.Cluster == "" {
+			err = errors.New("Both -remote and -cluster are required")
+		}
+	}
+	if err != nil {
 		return
 	}
 	*sonalyzePath, err = options.RequireCleanPath(*sonalyzePath, "-sonalyze")
@@ -62,9 +76,16 @@ func Hostnames(progname string, args []string) (err error) {
 		return
 	}
 
-	nodeArgs := util.ForwardRemoteOptions([]string{"node", "-from", "14d", "-newest", "-fmt", "csv,host"}, remoteOpts)
+	nodeArgs := []string{"node", "-from", "14d", "-newest", "-fmt", "csv,host"}
 	if *verbose {
 		nodeArgs = append(nodeArgs, "-v")
+	}
+	// Files must come last.
+	if len(testFiles) > 0 {
+		nodeArgs = append(nodeArgs, "--")
+		nodeArgs = append(nodeArgs, testFiles...)
+	} else {
+		nodeArgs = util.ForwardRemoteOptions(nodeArgs, remoteOpts)
 	}
 	if *verbose {
 		fmt.Fprintf(os.Stderr, "Sonalyze node arguments\n%v\n", nodeArgs)
