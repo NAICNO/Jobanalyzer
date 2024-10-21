@@ -1,0 +1,9 @@
+{
+  "timestamp": "2024-10-21T00:00:01+02:00",
+  "hostname": "ml1.hpc.uio.no",
+  "description": "2x14 (hyperthreaded) Intel(R) Xeon(R) Gold 5120 CPU @ 2.20GHz, 125 GiB, 3x NVIDIA GeForce RTX 2080 Ti @ 11GiB",
+  "cpu_cores": 56,
+  "mem_gb": 125,
+  "gpu_cards": 3,
+  "gpumem_gb": 33
+}

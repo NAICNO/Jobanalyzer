@@ -1,10 +1,2 @@
-# There is an -hourly file here but that is not a valid keyword as of now.
-output=$($NAICREPORT hostnames .)
-CHECK hostnames_basic '["host1","host3"]' "$output"
-
-output=$($NAICREPORT hostnames yossarian 2>&1)
-exitcode=$?
-CHECK_ERR hostnames_no_dir $exitcode "$output" 'no such file or directory'
-
-output=$($NAICREPORT hostnames ..)
-CHECK hostnames_empty '[]' "$output"
+output=$($NAICREPORT hostnames -sonalyze $SONALYZE -- sysinfo*json)
+CHECK hostnames_basic '["ml1.hpc.uio.no","ml2.hpc.uio.no","ml3.hpc.uio.no","ml4.hpc.uio.no","ml6.hpc.uio.no","ml7.hpc.uio.no","ml9.hpc.uio.no"]' "$output"
