@@ -1,0 +1,3 @@
+# Crontab to run on the jobanalyzer server to keep sonalyzed running and to run all the naicreport
+# scripts for all defined clusters periodically.
+

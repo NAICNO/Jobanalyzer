@@ -1,0 +1,3 @@
+
+# TODO: This is pretty primitive and we want somthing better.
+@reboot $HOME/sonar/start-sonalyzed.sh
