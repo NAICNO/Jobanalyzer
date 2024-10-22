@@ -26,7 +26,7 @@ export default function ViolatorsPage() {
     )
   }
 
-  const {data, isFetched} = useFetchViolations(clusterName!)
+  const {data, isFetched} = useFetchViolations(cluster)
 
   const violatingUserTableColumns = useMemo(() => getViolatingUserTableColumns(), [cluster])
   const [violatingUserTableSorting, setViolatingUserTableSorting] = useState<SortingState>([])

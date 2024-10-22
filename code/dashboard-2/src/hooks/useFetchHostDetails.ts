@@ -12,13 +12,14 @@ import {
   HostFetchedData,
 } from '../types'
 
-const fetchHostDetails = async (axios: AxiosInstance, hostname: string, frequency: string) => {
-  const endpoint = `/${hostname}-${frequency}.json`
+const fetchHostDetails = async (axios: AxiosInstance, canonical: string, hostname: string, frequency: string) => {
+  const endpoint = `${canonical}/${hostname}-${frequency}.json`
   const response = await axios.get<HostFetchedData>(endpoint)
   return response.data
 }
 
 export const useFetchHostDetails = (
+  canonical: string,
   hostname: string,
   frequency: string,
   isShowData: boolean = true,
@@ -30,7 +31,7 @@ export const useFetchHostDetails = (
     {
       enabled,
       queryKey: [QueryKeys.HOSTNAME, hostname, frequency],
-      queryFn: () => fetchHostDetails(axios, hostname, frequency),
+      queryFn: () => fetchHostDetails(axios, canonical, hostname, frequency),
       select: (hostFetchedData) => {
 
         const {

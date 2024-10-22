@@ -46,7 +46,7 @@ export default function HostDetailsPage() {
   const [isShowDowntime, setIsShowDowntime] = useState<boolean>(false)
   const [isShowDataPoints, setIsShowDataPoints] = useState<boolean>(false)
 
-  const {data: hostnames} = useFetchHostnames(selectedCluster.cluster)
+  const {data: hostnames} = useFetchHostnames(selectedCluster)
 
   const hasDowntime = selectedCluster.hasDowntime
 
@@ -54,7 +54,7 @@ export default function HostDetailsPage() {
 
   const {
     data: hostDetails
-  } = useFetchHostDetails(hostname!, selectedFrequency.value, isShowData, isShowDowntime, isValidHostname)
+  } = useFetchHostDetails(selectedCluster.canonical, hostname!, selectedFrequency.value, isShowData, isShowDowntime, isValidHostname)
 
   const now = new Date()
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
@@ -67,7 +67,7 @@ export default function HostDetailsPage() {
   const {
     data: violations,
     isFetched: isFetchedViolations,
-  } = useFetchViolations(clusterName!, filter, isValidHostname)
+  } = useFetchViolations(selectedCluster, filter, isValidHostname)
 
   const violatingUserTableColumns = useMemo(() => getViolatingUserTableColumns(), [selectedCluster])
   const [violatingUserTableSorting, setViolatingUserTableSorting] = useState<SortingState>([])
@@ -97,7 +97,7 @@ export default function HostDetailsPage() {
     }
   })
 
-  const {data: deadweights, isFetched: isFetchedDeadweights} = useFetchDeadWeight(clusterName!, filter, isValidHostname)
+  const {data: deadweights, isFetched: isFetchedDeadweights} = useFetchDeadWeight(selectedCluster, filter, isValidHostname)
 
   const deadWeightJobTableColumns = useMemo(() => getDeadWeightTableColumns(), [clusterName])
   const [sorting, setSorting] = useState<SortingState>([])

@@ -33,7 +33,7 @@ export default function DeadWeightPage() {
     )
   }
 
-  const {data, isFetched} = useFetchDeadWeight(clusterName!)
+  const {data, isFetched} = useFetchDeadWeight(cluster)
 
   const deadWeightJobTableColumns = useMemo(() => getDeadWeightTableColumns(), [cluster])
   const [sorting, setSorting] = useState<SortingState>([])
