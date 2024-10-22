@@ -16,11 +16,11 @@ const fetchDashboard = async (axios: AxiosInstance, canonical: string, clusterNa
 export const useFetchDashboard = (cluster: Cluster, query: string) => {
   const axios = useAxios()
   const clusterName = cluster.cluster
-  const path = cluster.canonical
+  const canonical = cluster.canonical
   return useQuery(
     {
       queryKey: [QueryKeys.DASHBOARD_TABLE, clusterName],
-      queryFn: () => fetchDashboard(axios, path, clusterName),
+      queryFn: () => fetchDashboard(axios, canonical, clusterName),
       select: data => {
         const filter = makeFilter(query)
         const filtered = data.filter(filter)
