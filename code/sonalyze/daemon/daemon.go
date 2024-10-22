@@ -22,12 +22,15 @@
 //
 //  This is a required argument.  In the named directory there shall be:
 //
-//   - subdirectories `data` and `scripts`
-//   - for each cluster, subdirectories `data/CLUSTERNAME` and `scripts/CLUSTERNAME`
-//   - each subdirectory of `data` has the sonar data tree for the cluster
-//   - each subdirectory of `scripts` has a file `CLUSTERNAME-config.json`, which holds the cluster
-//     description (machine configuration).
-//   - optionally a file `cluster-aliases.json`, described below
+//   - subdirectories `data` and `cluster-config`
+//   - for each cluster CLUSTERNAME, a subdirectory `data/CLUSTERNAME` that has the sonar data
+//     tree for the cluster
+//   - for each cluster CLUSTERNAME, a file `cluster-config/CLUSTERNAME-config.json, which holds
+//     the cluster description (machine configuration) for the cluster
+//   - optionally a file `cluster-config/cluster-aliases.json`
+//
+//  The CLUSTERNAME is always the canonical cluster name.  Cluster names and the the json files are
+//  described in production/jobanalyzer-server/cluster-config/README.md.
 //
 // -port <port-number>
 //
@@ -74,18 +77,6 @@
 //
 //  The daemon logs everything to the syslog with the tag defined below ("logTag").  Errors
 //  encountered during startup are also logged to stderr.
-//
-// Cluster names and aliases:
-//
-//  Cluster names are the aliases of login nodes (fox.educloud.no for the UiO Fox supercomputer) or
-//  synthesized names for a group of machines in the same family (mlx.hpc.uio.no for the UiO ML
-//  nodes cluster).
-//
-//  The cluster alias file is a JSON array containing objects with "alias" and "value" fields:
-//
-//    [{"alias":"ml","value":"mlx.hpc.uio.no"}, ...]
-//
-//  so that the short name "ml" can be used to name the cluster "mlx.hpc.uio.no" in requests.
 
 package daemon
 
