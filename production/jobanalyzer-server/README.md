@@ -12,7 +12,7 @@ The jobanalyzer server has three distinct functions:
 
 - `sonalyzed`: a daemon that ingests data from clusters for the sonar data store and serves queries
   against this store - basically a database engine
-- `naicreport`: a continously and intermittently running analysis infrastructure that generates
+- `naicreport`: a cron-driven analysis infrastructure that generates
   standard reports by querying the database and maintaining its own state
 - `web`: a web server that serves static web content (HTML+JS) and generated reports from
   naicreport, and routes queries to sonalyzed
@@ -69,8 +69,8 @@ If `~/sonar/scripts` does not have a subdirectory for your cluster, you will nee
 "Adding a new cluster" below.
 
 We must create a password file in `~/sonar/secrets/sonalyzed-auth.txt`.  This is a plaintext file on
-`username:password` format, one per line.  It controls access to the analysis commands of the query
-server, `sonalyzed`.
+`username:password` format, one per line.  It controls access to the query and analysis commands of
+the query server, `sonalyzed`.
 
 We must create a password file in `~/sonar/secrets/exfil-auth.txt`.  This is a plaintext file on
 `username:password` format, one per line.  It controls access to the data ingestion commands of the
@@ -85,7 +85,7 @@ ports used for various services.  The port for `sonalyzed` must be open for remo
 ### Overriding the default directory
 
 To use a home directory for sonalyzed that is something other than `$HOME/sonar`, edit at least
-`start-sonalyzed.sh` and `jobanalyzer.cron`.
+`start-sonalyzed.sh` and all the `.cron` files.
 
 ### Setting up the web server on the sonalyzed host
 
@@ -147,7 +147,7 @@ HTTPS setup and so on) with the default port assignment for sonalyzed:
 
 ### Start the sonalyzed server
 
-Activate the cron jobs and start the data logger and the query server:
+Activate the cron job and start the data logger and the query server:
 
 ```
   cd ~/sonar
@@ -158,7 +158,7 @@ Activate the cron jobs and start the data logger and the query server:
 The data logger and query server run on ports defined in the `sonalyzed-config` file, see above.  You
 may wish to edit the MAILTO address in sonalyzed.cron.
 
-### Upgrading `sonalyze`
+### Upgrading `sonalyze` or config files
 
 One does not simply copy new executables into place.
 
@@ -166,6 +166,8 @@ One does not simply copy new executables into place.
 spun down on the analysis host by killing it with TERM.  Once it is down the executable can be
 replaced and the start script `start-sonalyzed.sh` can be run to start new server.
 
+`sonalyzed` must also be spun down for updates to `cluster-config.json`, `sonalyzed-config`, all of
+the cluster configuration files `scripts/$cluster/$cluster-config.json`, and all the password files.
 
 ## Setting up, activating and maintaining `naicreport`
 
@@ -194,7 +196,7 @@ the same for every cluster.)
 Instead of running `crontab sonalyzed.cron` run `crontab sonalyzed-and-naicreport.cron`.  Again you
 may want to change the MAILTO.
 
-### If naicreport is on its own host
+### If naicreport is under a different user or on a different host
 
 Basically this:
 
@@ -218,14 +220,20 @@ Otherwise mostly follow the instructions from earlier, note there's no `sonalyze
 Instead of running `crontab sonalyzed.cron` or `crontab sonalyzed-and-naicreport.cron` you need to
 run `crontab naicreport.cron`.  Again you may want to change the MAILTO.
 
+### Overriding the default directory
+
+To use a home directory for naicreport that is something other than `$HOME/sonar`, edit all the
+shell scripts in the scripts/ directory and all the `.cron` files - at least.
+
 ### Setting up the web server
 
-Normally, naicreport will copy its output to `/data/www/output`, let's call this `$OUTPUT`.  The
-directory `$OUTPUT` must exist and must be writable by the user that is going to run the Jobanalyzer
-server.
+Normally, naicreport will copy its output to `/data/www/reports/$cluster`, let's call this
+`$OUTPUT`.  The directory `$OUTPUT` *must* exist (one for each cluster!) and *must* be writable by
+the user that is going to run the Jobanalyzer server.
 
 ```
-  # mkdir -p /data/www/output
+  # mkdir -p /data/www/reports/mlx.hpc.uio.no
+  # ... # for more clusters
   # chown -R <naicreport-user>:<naicreport-user-group> /data/www
 ```
 
@@ -233,9 +241,9 @@ These are my additions to nginx.conf for the default `server` (see further down 
 and so on).  They just allow the server to serve the generated data:
 
 ```
-        location / {
-                root /data/www;
-        }
+	location /reports {
+		alias /data/www/reports;
+	}
 ```
 
 There's no particular reason for naicreport to run on the same host as sonalyzed, the two components
@@ -245,22 +253,31 @@ make them appear to be one host.
 
 ## Setting up the dashboard
 
-The dashboard mostly lives in the parent directory of `$OUTPUT` (previous section) and so basically:
+The dashboard mostly lives in the parent directory of `$OUTPUT` (previous section) and so basically follow
+instructions above to set up the /data/www directory, then:
 
 ```
-  # mkdir -p /data/www/output
-  # chown -R <naicreport-user>:<naicreport-user-group> /data/www
-  # ^D
   $ cd $JOBANALYZER
-  $ cp code/dashboard-2/*.{html,js,css} $DASHBOARD
+  $ cp code/dashboard-2/*.{html,js,css} /data/www
 ```
 
 with this addition for nginx.conf:
 
 ```
-        location / {
-                root /data/www;
-        }
+	location / {
+		try_files $uri $uri/ /index.html;
+		root /data/www;
+		expires modified 5m;
+	}
+
+	location /old-dashboard {
+		alias /data/www/old-dashboard;
+		expires modified 5m;
+	}
+
+	location /old-dashboard/output {
+		alias /data/www/output;
+	}
 ```
 
 
