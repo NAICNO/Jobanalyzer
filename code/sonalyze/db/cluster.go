@@ -6,12 +6,12 @@
 //
 // This command will do these things:
 //
-// - enumerate the subdirectories in $jobanalyzer_dir/data and take these to be canonical
-//   cluster names
-// - look for $jobanalyzer_dir/cluster-aliases.json and take the values therein that have
-//   mappings to names found in step 1 to be valid aliases
-// - look for $jobanalyzer_dir/scripts/<cluster>/<cluster>-config.json and take the values
-//   therein for the cluster and associate them with the values computed in steps 1 and 2.
+// - enumerate the subdirectories in $jobanalyzer_dir/data and take these to be canonical cluster
+//   names
+// - look for $jobanalyzer_dir/cluster-config/cluster-aliases.json and take the values therein that
+//   have mappings to names found in step 1 to be valid aliases
+// - look for $jobanalyzer_dir/cluster-config/<cluster>-config.json and take the values therein for
+//   the cluster and associate them with the values computed in steps 1 and 2.
 //
 // Then the cluster names, aliases and other data will be printed, current keys are `cluster`,
 // `aliases`, and `description`.  The alias list is always a string of comma-separated alias names
@@ -36,7 +36,7 @@ import (
 
 const (
 	dataDirName            = "data"
-	clusterConfigDirName   = "scripts"
+	clusterConfigDirName   = "cluster-config"
 	clusterAliasesFilename = "cluster-aliases.json"
 )
 
@@ -45,7 +45,6 @@ func MakeConfigFilePath(jobanalyzerDir, clusterName string) string {
 	return path.Join(
 		jobanalyzerDir,
 		clusterConfigDirName,
-		clusterName,
 		clusterName+"-config.json",
 	)
 }
@@ -102,7 +101,7 @@ func ReadClusterData(
 
 	// Add aliases to known clusters.  The aliases file is optional, but if something with that name
 	// is there it is an error to fail to open it.
-	aliasesFile := path.Join(jobanalyzerDir, clusterAliasesFilename)
+	aliasesFile := path.Join(jobanalyzerDir, clusterConfigDirName, clusterAliasesFilename)
 	if info, bad := os.Stat(aliasesFile); bad == nil {
 		if info.Mode()&fs.ModeType != 0 {
 			err = errors.New("Cluster alias file is not a regular file")

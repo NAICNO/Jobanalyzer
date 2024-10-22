@@ -22,10 +22,6 @@ remote accesses against sonalyzed for its data, has its own private data store, 
 reports to the web server's data directories; and the web API can proxy queries and route them to
 sonalyzed.
 
-**NOTE:** The three functions are slightly intertwined at the moment because they were initially
-developed to run on the same system and share the same cron job.  Disentangling them is an ongoing
-process.
-
 In the following, let `$JOBANALYZER` be the Jobanalyzer source code root directory.
 
 ## Building the programs
@@ -58,14 +54,13 @@ Create working directories if necessary and copy files, as follows.  The working
 
   cp code/sonalyze/sonalyze ~/sonar
 
-  cp production/jobanalyzer-server/cluster-aliases.json ~/sonar
   cp production/jobanalyzer-server/POINTER.md ~/sonar
   cp production/jobanalyzer-server/sonalyzed-config ~/sonar
   cp production/jobanalyzer-server/*.{sh,cron} ~/sonar
-  cp -r production/jobanalyzer-server/scripts ~/sonar
+  cp -r production/jobanalyzer-server/cluster-config ~/sonar
 ```
 
-If `~/sonar/scripts` does not have a subdirectory for your cluster, you will need to create one.  See
+If `~/sonar/cluster-config` does not have a configuration for your cluster, you will need to create one.  See
 "Adding a new cluster" below.
 
 We must create a password file in `~/sonar/secrets/sonalyzed-auth.txt`.  This is a plaintext file on
@@ -166,8 +161,8 @@ One does not simply copy new executables into place.
 spun down on the analysis host by killing it with TERM.  Once it is down the executable can be
 replaced and the start script `start-sonalyzed.sh` can be run to start new server.
 
-`sonalyzed` must also be spun down for updates to `cluster-config.json`, `sonalyzed-config`, all of
-the cluster configuration files `scripts/$cluster/$cluster-config.json`, and all the password files.
+`sonalyzed` must also be spun down for updates to `sonalyzed-config`, anything in `cluster-config`,
+and the password files in `secrets/`.
 
 ## Setting up, activating and maintaining `naicreport`
 
@@ -183,6 +178,7 @@ Additionally do this:
 
   cp code/naicreport/naicreport ~/sonar
   cp production/jobanalyzer-server/naicreport-config ~/sonar
+  cp -r production/jobanalyzer-server/scripts ~/sonar
 ```
 
 Now edit `~/sonar/naicreport-config` to have correct paths and server addresses.
@@ -286,18 +282,18 @@ with this addition for nginx.conf:
 Information about how to set up sonar on the the compute nodes is in
 [../sonar-nodes/README.md](../sonar-nodes/README.md).
 
-The analysis scripts to run on the Jobanalyzer server are in the subdirectory named for the cluster,
-eg, `scripts/mlx.hpc.uio.no`.  These scripts are in turn run by the cron script,
-eg [`naicreport.cron`](naicreport.cron).
+The naicreport analysis scripts to run on the Jobanalyzer server are in the subdirectory named for
+the cluster, eg, `scripts/mlx.hpc.uio.no`.  These scripts are in turn run by the cron script, eg
+[`naicreport.cron`](naicreport.cron).
 
 To add a new cluster, add a new subdirectory in `scripts/` and populate it with appropriate scripts,
 probably modifying those from a similar cluster.  Normally you'll want at least scripts to compute
 the load reports every 5 minutes, every hour, and every day, and to upload data.  But no scripts are
 actually required - cluster data may be available for interactive query only, for example.
 
-In the cluster's script directory there must be a file that describes the nodes in the cluster, its
+In the cluster-config directory there must be a file that describes the nodes in the cluster, its
 name must be `CLUSTER-config.json` where `CLUSTER` is the cluster name.  For example,
-`mlx.hpc.uio.no-config.json` for the ML nodes cluster.
+`cluster-config/mlx.hpc.uio.no-config.json` for the ML nodes cluster.
 
 The process of creating the `CLUSTER-config.json` file has been automated to some extent on systems
 that run slurm.  See `../../code/slurminfo`.  It runs `sinfo` and produces a JSON array that is
