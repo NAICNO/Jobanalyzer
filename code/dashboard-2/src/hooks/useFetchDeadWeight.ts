@@ -5,6 +5,7 @@ import useAxios from './useAxios.ts'
 import { QueryKeys } from '../Constants.ts'
 import { prepareShareableJobQueryLink } from '../util/query/QueryUtils.ts'
 import {
+  Cluster,
   DeadWeight,
   FetchedDeadWeight,
   JobQueryValues,
@@ -15,24 +16,24 @@ interface Filter {
   hostname: string | null
 }
 
-const fetchDeadWeight = async (axios: AxiosInstance, clusterName: string) => {
-  const endpoint = `/${clusterName}-deadweight-report.json`
+const fetchDeadWeight = async (axios: AxiosInstance, clusterPath: string, clusterName: string) => {
+  const endpoint = `${clusterPath}/${clusterName}-deadweight-report.json`
   const response: AxiosResponse<FetchedDeadWeight[]> = await axios.get(endpoint)
   return response.data
 }
 
-export const useFetchDeadWeight = (clusterName: string, filter: Filter | null = null, enabled: boolean = true) => {
+export const useFetchDeadWeight = (cluster: Cluster, filter: Filter | null = null, enabled: boolean = true) => {
   const axios = useAxios()
   return useQuery<FetchedDeadWeight[], Error, DeadWeight[]>(
     {
       enabled,
-      queryKey: [QueryKeys.DEAD_WEIGHT, clusterName],
-      queryFn: () => fetchDeadWeight(axios, clusterName),
+      queryKey: [QueryKeys.DEAD_WEIGHT, cluster.cluster],
+      queryFn: () => fetchDeadWeight(axios, cluster.path, cluster.cluster),
       select: data => {
         let deadWeights: DeadWeight[] = data.map((d: FetchedDeadWeight) => {
           const commonJobQueryValues = {
             nodeNames: d.hostname,
-            clusterName: clusterName,
+            clusterName: cluster.cluster,
             gpuUsage: '',
             minPeakCpuCores: null,
             minPeakResidentGb: null,

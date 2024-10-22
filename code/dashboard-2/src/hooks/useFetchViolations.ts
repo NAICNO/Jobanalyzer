@@ -4,6 +4,7 @@ import { AxiosInstance, AxiosResponse } from 'axios'
 import useAxios from './useAxios.ts'
 import { QueryKeys } from '../Constants.ts'
 import {
+  Cluster,
   FetchedViolatingJob,
   JobQueryValues,
   ViolatingJob,
@@ -16,19 +17,19 @@ interface Filter {
   hostname: string | null
 }
 
-const fetchViolations = async (axios: AxiosInstance, clusterName: string) => {
-  const endpoint = `/${clusterName}-violator-report.json`
+const fetchViolations = async (axios: AxiosInstance, clusterPath: string, clusterName: string) => {
+  const endpoint = `${clusterPath}/${clusterName}-violator-report.json`
   const response: AxiosResponse<FetchedViolatingJob[]> = await axios.get(endpoint)
   return response.data
 }
 
-export const useFetchViolations = (clusterName: string, filter: Filter | null = null, enabled: boolean = true) => {
+export const useFetchViolations = (cluster: Cluster, filter: Filter | null = null, enabled: boolean = true) => {
   const axios = useAxios()
   return useQuery(
     {
       enabled,
-      queryKey: [QueryKeys.VIOLATIONS, clusterName],
-      queryFn: () => fetchViolations(axios, clusterName),
+      queryKey: [QueryKeys.VIOLATIONS, cluster.cluster],
+      queryFn: () => fetchViolations(axios, cluster.path, cluster.cluster),
       select: (data) => {
 
         let violatingJobs: ViolatingJob[] = data.map((d) => {
@@ -38,7 +39,7 @@ export const useFetchViolations = (clusterName: string, filter: Filter | null = 
             minPeakResidentGb: null,
             minRuntime: null,
             nodeNames: d.hostname,
-            clusterName: clusterName,
+            clusterName: cluster.cluster,
             jobIds: d.id.toString(),
             usernames: d.user,
             fromDate: '',

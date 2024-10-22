@@ -2,6 +2,7 @@ import { Subcluster } from './SubCluster.ts'
 
 export interface Cluster {
   cluster: string;
+  path: string;
   subclusters: Subcluster[];
   uptime: boolean;
   violators: boolean;
