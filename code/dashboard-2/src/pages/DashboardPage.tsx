@@ -89,8 +89,13 @@ export default function DashboardPage() {
           <ChakraLink as={ReactRouterLink} to={jobQueryLink} isExternal mr="10px">
             Job query <ExternalLinkIcon mx="2px"/>
           </ChakraLink>
-          Aggregates:{' '}
-          {subclusterLinks}
+          {
+            subclusterLinks.length > 0 &&
+            <>
+              Aggregates:{' '}
+              {subclusterLinks}
+            </>
+          }
         </Text>
         <ViolatorsAndZombiesLinks cluster={selectedCluster}/>
         <NodeSelectionInput

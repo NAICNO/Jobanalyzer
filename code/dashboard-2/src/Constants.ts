@@ -1,5 +1,6 @@
-import { GrNodes, GrServers } from 'react-icons/gr'
+import { GrNodes } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
+import { LuBookOpen, LuGraduationCap, LuShip } from 'react-icons/lu'
 import * as yup from 'yup'
 
 import {
@@ -93,7 +94,21 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     path: '/dashboard/saga',
     matches: '/saga',
     text: 'Saga',
-    icon: GrServers
+    icon: LuBookOpen
+  },
+  {
+    type: 'link',
+    path: '/dashboard/fram',
+    matches: '/fram',
+    text: 'Fram',
+    icon: LuShip
+  },
+  {
+    type: 'link',
+    path: '/dashboard/betzy',
+    matches: '/betzy',
+    text: 'Betzy',
+    icon: LuGraduationCap
   },
 ]
 
@@ -150,17 +165,45 @@ export const CLUSTER_INFO: Record<string, Cluster> = {
   'saga': {
     cluster: 'saga',
     canonical: 'saga.sigma2.no',
-    subclusters: [{name: 'login', nodes: 'login*'}],
+    subclusters: [],
     uptime: false,
     violators: false,
     deadweight: false,
-    defaultQuery: 'login*',
+    defaultQuery: 'c*-1',
     name: 'Saga',
     hasDowntime: false,
     description: 'Sigma2 \'Saga\' supercomputer',
     prefix: 'saga-',
     policy: '(To be determined)',
-  }
+  },
+  'fram': {
+    cluster: 'fram',
+    canonical: 'fram.sigma2.no',
+    subclusters: [],
+    uptime: false,
+    violators: false,
+    deadweight: false,
+    defaultQuery: 'c*-1',
+    name: 'Fram',
+    hasDowntime: false,
+    description: 'Sigma2 \'Fram\' supercomputer',
+    prefix: 'fram-',
+    policy: '(To be determined)',
+  },
+  'betzy': {
+    cluster: 'betzy',
+    canonical: 'betzy.sigma2.no',
+    subclusters: [],
+    uptime: false,
+    violators: false,
+    deadweight: false,
+    defaultQuery: 'b11*',
+    name: 'Betzy',
+    hasDowntime: false,
+    description: 'Sigma2 \'Betzy\' supercomputer',
+    prefix: 'betzy-',
+    policy: '(To be determined)',
+  },
 }
 
 export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTableColumnHeader } = {
