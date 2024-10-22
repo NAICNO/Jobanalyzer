@@ -116,7 +116,7 @@ export const CELL_BACKGROUND_COLORS = {
 export const CLUSTER_INFO: Record<string, Cluster> = {
   'ml': {
     cluster: 'ml',
-    path: 'mlx.hpc.uio.no',
+    canonical: 'mlx.hpc.uio.no',
     subclusters: [{name: 'nvidia', nodes: 'ml[1-3,6-9]'}],
     uptime: true,
     violators: true,
@@ -130,7 +130,7 @@ export const CLUSTER_INFO: Record<string, Cluster> = {
   },
   'fox': {
     cluster: 'fox',
-    path: 'fox.educloud.no',
+    canonical: 'fox.educloud.no',
     subclusters: [
       {name: 'cpu', nodes: 'c*'},
       {name: 'gpu', nodes: 'gpu*'},
@@ -149,7 +149,7 @@ export const CLUSTER_INFO: Record<string, Cluster> = {
   },
   'saga': {
     cluster: 'saga',
-    path: 'saga.sigma2.no',
+    canonical: 'saga.sigma2.no',
     subclusters: [{name: 'login', nodes: 'login*'}],
     uptime: false,
     violators: false,

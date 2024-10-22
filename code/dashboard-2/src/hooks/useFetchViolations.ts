@@ -17,8 +17,8 @@ interface Filter {
   hostname: string | null
 }
 
-const fetchViolations = async (axios: AxiosInstance, clusterPath: string, clusterName: string) => {
-  const endpoint = `${clusterPath}/${clusterName}-violator-report.json`
+const fetchViolations = async (axios: AxiosInstance, canonical: string, clusterName: string) => {
+  const endpoint = `${canonical}/${clusterName}-violator-report.json`
   const response: AxiosResponse<FetchedViolatingJob[]> = await axios.get(endpoint)
   return response.data
 }
@@ -29,7 +29,7 @@ export const useFetchViolations = (cluster: Cluster, filter: Filter | null = nul
     {
       enabled,
       queryKey: [QueryKeys.VIOLATIONS, cluster.cluster],
-      queryFn: () => fetchViolations(axios, cluster.path, cluster.cluster),
+      queryFn: () => fetchViolations(axios, cluster.canonical, cluster.cluster),
       select: (data) => {
 
         let violatingJobs: ViolatingJob[] = data.map((d) => {

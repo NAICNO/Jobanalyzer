@@ -54,7 +54,7 @@ export default function HostDetailsPage() {
 
   const {
     data: hostDetails
-  } = useFetchHostDetails(selectedCluster.path, hostname!, selectedFrequency.value, isShowData, isShowDowntime, isValidHostname)
+  } = useFetchHostDetails(selectedCluster.canonical, hostname!, selectedFrequency.value, isShowData, isShowDowntime, isValidHostname)
 
   const now = new Date()
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)

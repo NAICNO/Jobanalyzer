@@ -7,8 +7,8 @@ import { makeFilter } from '../util/query/QueryUtils.ts'
 import { sortDashboardTableRows } from '../util/TableUtils.ts'
 import { Cluster, DashboardTableItem } from '../types'
 
-const fetchDashboard = async (axios: AxiosInstance, clusterPath: string, clusterName: string) => {
-  const endpoint = `${clusterPath}/${clusterName}-at-a-glance.json`
+const fetchDashboard = async (axios: AxiosInstance, canonical: string, clusterName: string) => {
+  const endpoint = `${canonical}/${clusterName}-at-a-glance.json`
   const response = await axios.get(endpoint)
   return response.data
 }
@@ -16,7 +16,7 @@ const fetchDashboard = async (axios: AxiosInstance, clusterPath: string, cluster
 export const useFetchDashboard = (cluster: Cluster, query: string) => {
   const axios = useAxios()
   const clusterName = cluster.cluster
-  const path = cluster.path
+  const path = cluster.canonical
   return useQuery(
     {
       queryKey: [QueryKeys.DASHBOARD_TABLE, clusterName],

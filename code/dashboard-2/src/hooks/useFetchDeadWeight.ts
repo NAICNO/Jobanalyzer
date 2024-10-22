@@ -16,8 +16,8 @@ interface Filter {
   hostname: string | null
 }
 
-const fetchDeadWeight = async (axios: AxiosInstance, clusterPath: string, clusterName: string) => {
-  const endpoint = `${clusterPath}/${clusterName}-deadweight-report.json`
+const fetchDeadWeight = async (axios: AxiosInstance, canonical: string, clusterName: string) => {
+  const endpoint = `${canonical}/${clusterName}-deadweight-report.json`
   const response: AxiosResponse<FetchedDeadWeight[]> = await axios.get(endpoint)
   return response.data
 }
@@ -28,7 +28,7 @@ export const useFetchDeadWeight = (cluster: Cluster, filter: Filter | null = nul
     {
       enabled,
       queryKey: [QueryKeys.DEAD_WEIGHT, cluster.cluster],
-      queryFn: () => fetchDeadWeight(axios, cluster.path, cluster.cluster),
+      queryFn: () => fetchDeadWeight(axios, cluster.canonical, cluster.cluster),
       select: data => {
         let deadWeights: DeadWeight[] = data.map((d: FetchedDeadWeight) => {
           const commonJobQueryValues = {

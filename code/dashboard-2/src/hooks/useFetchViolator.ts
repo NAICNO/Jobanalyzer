@@ -5,8 +5,8 @@ import useAxios from './useAxios.ts'
 import { POLICIES, QueryKeys } from '../Constants.ts'
 import { Cluster, FetchedViolatingJob } from '../types'
 
-const fetchViolator = async (axios: AxiosInstance, clusterPath: string, clusterName: string) => {
-  const endpoint = `${clusterPath}/${clusterName}-violator-report.json`
+const fetchViolator = async (axios: AxiosInstance, canonical: string, clusterName: string) => {
+  const endpoint = `${canonical}/${clusterName}-violator-report.json`
   const response: AxiosResponse<FetchedViolatingJob[]> = await axios.get(endpoint)
   return response.data
 }
@@ -16,7 +16,7 @@ export const useFetchViolator = (cluster: Cluster, violator: string) => {
   return useQuery(
     {
       queryKey: [QueryKeys.VIOLATOR, cluster.cluster, violator],
-      queryFn: () => fetchViolator(axios, cluster.path, cluster.cluster),
+      queryFn: () => fetchViolator(axios, cluster.canonical, cluster.cluster),
       select: (data) => {
 
         const jobsOfUser = data.filter(job => job.user === violator)
