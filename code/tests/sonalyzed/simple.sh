@@ -17,12 +17,11 @@ rm -rf $rootdir
 
 # Set up a test jobanalyzer directory structure
 
-mkdir -p $rootdir
+mkdir -p $rootdir $rootdir/cluster-config $rootdir/data/cluster{1,2}.naic.com
 cp $SONALYZE $rootdir
-cp cluster-aliases.json $rootdir
-mkdir -p $rootdir/{data,scripts}/cluster{1,2}.naic.com
-cp cluster1.naic.com-config.json $rootdir/scripts/cluster1.naic.com
-cp cluster2.naic.com-config.json $rootdir/scripts/cluster2.naic.com
+cp cluster-aliases.json $rootdir/cluster-config
+cp cluster1.naic.com-config.json $rootdir/cluster-config/cluster1.naic.com-config.json
+cp cluster2.naic.com-config.json $rootdir/cluster-config/cluster2.naic.com-config.json
 
 # Run the server in the background against that directory
 
