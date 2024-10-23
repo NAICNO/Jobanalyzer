@@ -26,9 +26,8 @@ In the following, let `$JOBANALYZER` be the Jobanalyzer source code root directo
 
 ## Building programs and scripts
 
-On some systems, you may first need to `module load` Go 1.21.10 or later (and for some older code in
-attic/, Rust 1.65 or later, but it's OK to not build these old programs), or otherwise obtain or
-install those tools.  Older versions of Go 1.21 may work but the go.mod files must be updated.
+On some systems, you may first need to `module load` Go 1.21.10 or later, or otherwise obtain or
+install that toolchain.  Older versions of Go 1.21 may work but the go.mod files must be updated.
 
 ```
   cd $JOBANALYZER
@@ -37,8 +36,7 @@ install those tools.  Older versions of Go 1.21 may work but the go.mod files mu
   make build
 ```
 
-**IMPORTANT:** Run `make build` after the tests, as the test builds may be created with unusual
-options.
+**IMPORTANT:** Run `make build` last, as the test builds may be created with unusual options.
 
 ## Setting up, activating and maintaining `sonalyzed`
 
