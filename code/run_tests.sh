@@ -64,10 +64,13 @@ echo "======================================================================="
 echo "======================================================================="
 echo " CONFIG FILES TEST"
 echo "======================================================================="
-( cd jsoncheck ; ./jsoncheck ../../production/jobanalyzer-server/scripts/mlx.hpc.uio.no/mlx.hpc.uio.no-config.json )
-( cd jsoncheck ; ./jsoncheck ../../production/jobanalyzer-server/scripts/fox.educloud.no/fox.educloud.no-config.json )
-( cd jsoncheck ; ./jsoncheck ../../production/jobanalyzer-server/scripts/saga.sigma2.no/saga.sigma2.no-config.json )
-( cd jsoncheck ; ./jsoncheck ../../production/jobanalyzer-server/cluster-aliases.json )
+( cd jsoncheck
+  dir=../../production/jobanalyzer-server/cluster-config
+  for f in $dir/*-config.json $dir/cluster-aliases.json; do
+      echo $f
+      ./jsoncheck $f
+  done
+)
 
 echo "======================================================================="
 echo "======================================================================="
