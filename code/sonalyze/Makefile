@@ -1,4 +1,3 @@
-.SUFFIXES: .go
+SUBDIRS=command common db sonarlog
 
-sonalyze: *.go */*.go
-	go build
+include ../go-rules.mk

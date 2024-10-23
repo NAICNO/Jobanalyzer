@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Before running this, go to ../../code and run build.sh
+# Before running this, go to ../../code and run `make build`
 #
 # This is currently meant to run on naic-report with direct access to the data stores (multiple
 # stores, one for production and one for experimental slurm data).  But it should be easy enough to

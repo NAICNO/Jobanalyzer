@@ -30,7 +30,7 @@ I Jobanalyzer (du må ha Go 1.20 eller nyere, samt helst Rust):
 
 ```
   $ cd code
-  $ ./build.sh
+  $ make build
   $ sonalyze/sonalyze help
   $ sonard/sonard -h
 ```
