@@ -5,9 +5,9 @@
 # Usage:
 #   run_tests.sh [pattern]
 #
-# The way to run this is to first build all the executables (perhaps with the ../run_tests.sh
-# script, which actually runs this script) then run this script in its directory.  It will find *.sh
-# in specific subdirectories, cd to those directories, and then run those scripts with prefix and
+# The way to run this is to first build all the executables then run this script in its directory.
+# (Just running `make regress` in the parent directory will do that.)  This script will find *.sh in
+# specific subdirectories, cd to those directories, and then run those scripts with prefix and
 # suffix scripts loaded along with them, see below.  Each script runs one or more tests and can
 # count on running in its directory.
 #

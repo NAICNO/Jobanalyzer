@@ -1,9 +1,11 @@
 # What's here?
 
-### Files
+### Make
 
-* `build.sh` - build all programs in release mode
-* `run_tests.sh` - build programs in various configurations and run test cases
+Run `make build` (here or above) to make everything, `make clean` to clean it, `make test` to run
+unit tests and linting.
+
+Run `make regress` to run various more complicated tests and regression tests.
 
 ### Subdirectories
 
