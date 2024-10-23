@@ -88,7 +88,7 @@ func main() {
 		os.Exit(1)
 	}
 	if *px < 1 {
-		fmt.Fprintf(os.Stderr, "%s: Pixels per square must be at least 1: %d\n", *px)
+		fmt.Fprintf(os.Stderr, "%s: Pixels per square must be at least 1: %d\n", os.Args[0], *px)
 		os.Exit(1)
 	}
 

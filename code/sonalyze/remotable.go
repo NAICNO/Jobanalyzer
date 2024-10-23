@@ -126,11 +126,11 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 		if rCmd.VerboseFlag() {
 			outs := newStdout.String()
 			if outs != "" {
-				fmt.Fprint(stdout, "Output from failed (%s) subprocess: %s", err, outs)
+				fmt.Fprintf(stdout, "Output from failed (%s) subprocess: %s", err, outs)
 			}
 			errs := newStderr.String()
 			if errs != "" {
-				fmt.Fprint(stdout, "Errors from failed (%s) subprocess: %s", err, errs)
+				fmt.Fprintf(stdout, "Errors from failed (%s) subprocess: %s", err, errs)
 			}
 		}
 		// Print this unredacted on the assumption that the remote sonalyzed/sonalyze don't
