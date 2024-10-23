@@ -129,10 +129,15 @@ func buildRecordFilters(
 	} else if allUsers {
 		// Everyone, so do nothing
 	} else {
+		// LOGNAME is Posix but may be limited to a user being "logged in"; USER is BSD and a bit
+		// more general supposedly.  We prefer the former but will settle for the latter, in
+		// particular, Github actions has only USER.
 		if name := os.Getenv("LOGNAME"); name != "" {
 			includeUsers[StringToUstr(name)] = true
+		} else if name := os.Getenv("USER"); name != "" {
+			includeUsers[StringToUstr(name)] = true
 		} else {
-			return nil, nil, fmt.Errorf("Not able to determine user, none given and $LOGNAME is empty")
+			return nil, nil, fmt.Errorf("Not able to determine user, none given and $LOGNAME and $USER are empty")
 		}
 	}
 
