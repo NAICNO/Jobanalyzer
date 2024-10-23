@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"time"
 
 	"go-utils/gpuset"
-	"go-utils/hostglob"
-	"go-utils/maps"
+	umaps "go-utils/maps"
 	"go-utils/sonalyze"
 
 	. "sonalyze/command"
@@ -390,6 +390,17 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 	},
 	"host": {
 		func(d *jobSummary, c jobCtx) string {
+			// TODO: It's not clear any more why len(hosts) would ever be other than 1, and why this
+			// processing is needed at all.  This could be very old code that is no longer relevant.
+			// The Go code just copies the Rust code here.
+			//
+			// Names are assumed to be compressed as the set of jobs is always the output of some
+			// merge process that will compress when appropriate.  (If they are not compressed for
+			// reasons having to do with how the merge was done, and we don't compress them here,
+			// then there may be substantial redundancy in the output: "c1-10.fox, c1-11.fox", etc,
+			// instead of the desirable "c1-[10,11].fox", but that should not currently be an issue
+			// for `jobs`.)  Therefore there is no compression here.  But even the uniq'ing, sorting
+			// and joining may be redundant.
 			hosts := make(map[string]bool)
 			for _, s := range d.job {
 				var name string
@@ -400,7 +411,9 @@ var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
 				}
 				hosts[name] = true
 			}
-			return strings.Join(hostglob.CompressHostnames(maps.Keys(hosts)), ", ")
+			keys := umaps.Keys(hosts)
+			slices.Sort(keys)
+			return strings.Join(keys, ", ")
 		},
 		"List of the host name(s) running the job (first elements of FQDNs, compressed)",
 	},
