@@ -307,7 +307,7 @@ func collectUsersAndJobs(
 	var rawData []*sonalyzeJobsData
 	err := runAndUnmarshal(
 		sonalyzePath,
-		[]string{"jobs", "--user", "-", "--fmt=json,host,user,classification,end"},
+		[]string{"jobs", "-user", "-", "-merge-none", "-fmt=json,host,user,classification,end"},
 		progOpts,
 		&rawData,
 	)
@@ -402,8 +402,8 @@ func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStat
 		sonalyzePath,
 		[]string{
 			"uptime",
-			"--interval", fmt.Sprint(UPTIME_MINS),
-			"--fmt=json,host,device,state",
+			"-interval", fmt.Sprint(UPTIME_MINS),
+			"-fmt=json,host,device,state",
 		},
 		progOpts,
 		&rawData)
@@ -475,7 +475,7 @@ func collectLoadAverages(
 	recentData, err := collectLoadAveragesOnce(
 		sonalyzePath,
 		progOpts,
-		"--half-hourly")
+		"-half-hourly")
 	if err != nil {
 		return nil, err
 	}
@@ -486,7 +486,7 @@ func collectLoadAverages(
 	longerData, err := collectLoadAveragesOnce(
 		sonalyzePath,
 		progOpts,
-		"--half-daily")
+		"-half-daily")
 	if err != nil {
 		return nil, err
 	}
@@ -568,7 +568,7 @@ func collectLoadAveragesOnce(
 		[]string{
 			"load",
 			bucketArg,
-			"--fmt=json,host,rcpu,rmem,rres,rgpu,rgpumem"},
+			"-fmt=json,host,rcpu,rmem,rres,rgpu,rgpumem"},
 		progOpts,
 		&rawData)
 	if err != nil {

@@ -124,8 +124,9 @@ func (jc *JobsCommand) Perform(
 // This function collects the data per job and returns a vector of (aggregate, records) pairs where
 // the aggregate describes the job in aggregate and the records is a synthesized stream of sample
 // records for the job, based on all the input streams for the job.  The manner of the synthesis
-// depends on arguments to the program: with --batch we merge across all hosts; otherwise the config
-// file can specify the hosts to merge across; otherwise we do not merge.
+// depends on arguments to the program: with --merge-all we merge across all hosts; with
+// --merge-none we do not merge; otherwise the config file can specify the hosts to merge across;
+// otherwise if there is no config we do not merge.
 
 func (jc *JobsCommand) aggregateAndFilterJobs(
 	cfg *config.ClusterConfig,
@@ -133,12 +134,12 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	bounds sonarlog.Timebounds,
 ) []*jobSummary {
 	var anyMergeableNodes bool
-	if cfg != nil {
+	if !jc.MergeNone && cfg != nil {
 		anyMergeableNodes = cfg.HasCrossNodeJobs()
 	}
 
 	var jobs sonarlog.SampleStreams
-	if jc.Batch {
+	if jc.MergeAll {
 		jobs, bounds = sonarlog.MergeByJob(streams, bounds)
 	} else if anyMergeableNodes {
 		jobs, bounds = mergeAcrossSomeNodes(cfg, streams, bounds)
@@ -178,8 +179,8 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 }
 
 // Look to the config to find nodes that have CrossNodeJobs set, and merge their streams as if by
-// --batch; the remaining streams are merged as if by !--batch, and the two sets of merged jobs are
-// combined into one set.
+// --merge-all; the remaining streams are merged as if by --merge-none, and the two sets of merged
+// jobs are combined into one set.
 
 func mergeAcrossSomeNodes(
 	cfg *config.ClusterConfig,
