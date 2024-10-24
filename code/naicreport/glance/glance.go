@@ -42,6 +42,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -113,6 +114,25 @@ func Report(progname string, args []string) error {
 		return err
 	}
 
+	// "Recent" hosts that we will care about.  The output from some of the other commands must be
+	// filtered by this.
+	var rawHostData []struct {
+		Hostname string `json:"host"`
+	}
+	err = runAndUnmarshal(
+		sonalyzePath,
+		[]string{"node", "-from", "2w", "-newest", "-fmt=json,host"},
+		&optionsPkg{remoteOpts, &util.DateFilterOptions{}}, // date filter in the other args
+		&rawHostData,
+	)
+	if err != nil {
+		return err
+	}
+	currentHosts := make(map[string]bool)
+	for _, h := range rawHostData {
+		currentHosts[h.Hostname] = true
+	}
+
 	// It's possible that the code in this module would be a little less verbose if there were a
 	// centralized database mapping host -> glanceRecord that is just passed around for everyone to
 	// use.  But it's not obvious the code would be as easy to understand.
@@ -122,7 +142,7 @@ func Report(progname string, args []string) error {
 	if err != nil {
 		return err
 	}
-	sdbh, err := collectStatusData(sonalyzePath, logOpts)
+	sdbh, err := collectStatusData(sonalyzePath, currentHosts, logOpts)
 	if err != nil {
 		return err
 	}
@@ -150,6 +170,10 @@ func Report(progname string, args []string) error {
 	if err != nil {
 		return err
 	}
+	rawData = slices.DeleteFunc(rawData, func (r ConfigRecordRepr) bool {
+		return !currentHosts[r.Hostname]
+	})
+
 	config := make(map[string]ConfigRecord)
 	for _, c := range rawData {
 		cards, err := strconv.Atoi(c.GpuCards)
@@ -387,7 +411,11 @@ type systemStatusByHost struct {
 	gpu_down bool
 }
 
-func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStatusByHost, error) {
+func collectStatusData(
+	sonalyzePath string,
+	currentHosts map[string]bool,
+	progOpts *optionsPkg,
+) ([]*systemStatusByHost, error) {
 
 	// First run sonalyze to collect information about system status
 
@@ -411,6 +439,10 @@ func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStat
 		return nil, err
 	}
 
+	rawData = slices.DeleteFunc(rawData, func(s *sonalyzeUptimeData) bool {
+		return !currentHosts[s.Host]
+	})
+
 	// Then process those data to count users and jobs.
 	//
 	// A system or gpu is down "now" if it is currently down so we really only care about the last
@@ -424,11 +456,6 @@ func collectStatusData(sonalyzePath string, progOpts *optionsPkg) ([]*systemStat
 	//    - if the device is "gpu" then the cpu is up but the gpu is down
 	//    - otherwise the device is "host" and they are both down
 
-	if verbose {
-		for _, r := range rawData {
-			fmt.Fprintln(os.Stderr, r)
-		}
-	}
 	hosts := make(map[string]*systemStatusByHost)
 	for i := len(rawData) - 1; i >= 0; i-- {
 		d := rawData[i]
