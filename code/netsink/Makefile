@@ -1,2 +1,2 @@
-TARGET=jsoncheck
+TARGET=netsink
 include ../go-rules.mk
