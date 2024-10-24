@@ -41,7 +41,8 @@
 //   cross_node_jobs - bool, optional, expressing that jobs on this node can be merged with
 //                     jobs on other nodes in the same cluster where the flag is also set,
 //                     because the job numbers come from the same cluster-wide source
-//                     (typically slurm).  Also see the --batch option.
+//                     (typically slurm).  Also see the --merge-all and --merge-none options
+//                     to `sonalyze jobs`.
 //   cpu_cores - integer, the number of hyperthreads
 //   mem_gb - integer, the amount of main memory in gigabytes
 //   gpu_cards - integer, the number of gpu cards on the node

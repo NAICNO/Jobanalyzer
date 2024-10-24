@@ -199,10 +199,16 @@ filters.
 These are only available with the `jobs` command.  All filters are optional.  Jobs must pass all
 specified filters.
 
-`-b`, `--batch`
+`--merge-all`, `--batch`
 
   Aggregate data across hosts (this would normally be appropriate for systems with a batch queue,
-  such as Fox).
+  such as Fox).  Normally this flag comes from the config file; this is an override.
+
+`--merge-none`
+
+  Never aggregate data across hosts (this would normally be appropriate for systems without a batch
+  queue, such as the UiO ML nodes).  Normally this flag comes from the config file; this is an
+  override.
 
 `--min-cpu-avg=<pct>`, `--max-cpu-avg=<pct>`
 
@@ -392,9 +398,11 @@ with `-array` and `-het`.
 
 `--breakdown=<keywords>`
 
+  NOT CURRENTLY IMPLEMENTED.
+
   For a job, also print a breakdown according to the `<keywords>`.  The keywords are `host` and
   `command` and can be present in either order.  Suppose jobs are aggregated across hosts (with
-  `--batch`) and that the jobs may run as multiple processes with different names.  Adding
+  `--merge-all`) and that the jobs may run as multiple processes with different names.  Adding
   `--breakdown=host,command` will show the summary for the job, but then break it down by host, and
   for each host, break it down by command, showing a summary line per host (across all the commands
   on that host) and then a line for each command.  This yields insight into how the different

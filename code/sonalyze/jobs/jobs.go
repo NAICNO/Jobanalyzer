@@ -240,7 +240,8 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	Completed     bool
 	Running       bool
 	Zombie        bool
-	Batch         bool
+	MergeAll      bool
+	MergeNone     bool
 	MinRuntimeSec int64
 
 	// Print args
@@ -282,8 +283,12 @@ func (jc *JobsCommand) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&jc.Completed, "completed", false, "Select only jobs that have run to completion")
 	fs.BoolVar(&jc.Running, "running", false, "Select only jobs that are still running")
 	fs.BoolVar(&jc.Zombie, "zombie", false, "Select only zombie jobs (usually these are still running)")
-	fs.BoolVar(&jc.Batch, "batch", false,
+	fs.BoolVar(&jc.MergeAll, "batch", false, "Old name for -merge-all")
+	fs.BoolVar(&jc.MergeAll, "merge-all", false,
 		"Aggregate data across all hosts (appropriate for batch systems, but usually specified in the\n"+
+			"config file, not here")
+	fs.BoolVar(&jc.MergeNone, "merge-none", false,
+		"Never aggregate data across hosts (appropriate for non-batch systems, but usually specified in the\n"+
 			"config file, not here")
 	fs.StringVar(&jc.minRuntimeStr, "min-runtime", "",
 		"Select only jobs with at least this much runtime, format `WwDdHhMm`, all parts\n"+
@@ -311,7 +316,8 @@ func (jc *JobsCommand) ReifyForRemote(x *Reifier) error {
 	x.Bool("completed", jc.Completed)
 	x.Bool("running", jc.Running)
 	x.Bool("zombie", jc.Zombie)
-	x.Bool("batch", jc.Batch)
+	x.Bool("merge-none", jc.MergeNone)
+	x.Bool("merge-all", jc.MergeAll)
 	x.String("min-runtime", jc.minRuntimeStr)
 	x.Uint("numjobs", jc.NumJobs)
 
@@ -319,18 +325,22 @@ func (jc *JobsCommand) ReifyForRemote(x *Reifier) error {
 }
 
 func (jc *JobsCommand) Validate() error {
-	e1 := errors.Join(
+	var e1, e2, e3 error
+	e1 = errors.Join(
 		jc.SharedArgs.Validate(),
 		ValidateFormatArgs(
 			&jc.FormatArgs, jobsDefaultFields, jobsFormatters, jobsAliases, DefaultFixed),
 	)
 
-	var e3 error
+	if jc.MergeAll && jc.MergeNone {
+		e2 = errors.New("Can't both -merge-all and -merge-none")
+	}
+
 	if jc.minRuntimeStr != "" {
 		jc.MinRuntimeSec, e3 = DurationToSeconds("-min-runtime", jc.minRuntimeStr)
 	}
 
-	return errors.Join(e1, e3)
+	return errors.Join(e1, e2, e3)
 }
 
 func (jc *JobsCommand) DefaultRecordFilters() (
