@@ -270,8 +270,8 @@ with this addition for nginx.conf:
 		expires modified 5m;
 	}
 
-	location /old-dashboard/output {
-		alias /data/www/output;
+	location /old-dashboard/reports {
+		alias /data/www/reports;
 	}
 ```
 
