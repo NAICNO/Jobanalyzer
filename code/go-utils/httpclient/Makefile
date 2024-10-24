@@ -1,1 +1,1 @@
-include ../../go-rules.mk
+include ../go-utils-rules.mk
