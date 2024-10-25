@@ -25,7 +25,7 @@ import (
 	"regexp"
 )
 
-type IniFile []IniSection
+type IniFile map[string]*IniSection
 
 type IniSection struct {
 	Name string
@@ -42,46 +42,47 @@ func (ini IniSection) String() string {
 
 var (
 	commentOrBlankLine = regexp.MustCompile(`^\s*(#.*)?$`)
-	ident = `[-a-zA-Z_$][-a-zA-Z0-9_$]*`
-	headerLine = regexp.MustCompile(`^\[(` + ident + `)\]\s*$`)
-	sectionStmtLine = regexp.MustCompile(`^\s*(` + ident + `)\s*=(.*)$`)
+	ident              = `[-a-zA-Z_$][-a-zA-Z0-9_$]*`
+	headerLine         = regexp.MustCompile(`^\[(` + ident + `)\]\s*$`)
+	sectionStmtLine    = regexp.MustCompile(`^\s*(` + ident + `)\s*=(.*)$`)
 )
 
 // This will error out on anything malformed or on duplicated section headers, the error message
 // will contain line number and text.
 
 func ParseIni(input io.Reader) (ini IniFile, err error) {
+	ini = make(map[string]*IniSection)
 	lineNo := 0
 	scanner := bufio.NewScanner(input)
-	sections := make(map[string]bool)
+	var currentSection *IniSection
 	for scanner.Scan() {
 		l := scanner.Text()
-		lineNo ++
+		lineNo++
 		if commentOrBlankLine.MatchString(l) {
 			continue
 		}
 		if m := headerLine.FindStringSubmatch(l); m != nil {
 			name := m[1]
-			if _, found := sections[name]; found {
+			if _, found := ini[name]; found {
 				err = fmt.Errorf("Line %d: Duplicated section name %s.\n%s", lineNo, name, l)
 				return
 			}
-			ini = append(ini, IniSection{Name: name, Vars: make(map[string]string)})
-			sections[name] = true
+			currentSection = &IniSection{Name: name, Vars: make(map[string]string)}
+			ini[name] = currentSection
 			continue
 		}
-		if len(ini) == 0 {
+		if currentSection == nil {
 			err = fmt.Errorf("Line %d: Missing section header\n%s", lineNo, l)
 			return
 		}
 		if m := sectionStmtLine.FindStringSubmatch(l); m != nil {
 			name := m[1]
 			value := m[2]
-			if _, found := ini[len(ini)-1].Vars[name]; found {
+			if _, found := currentSection.Vars[name]; found {
 				err = fmt.Errorf("Line %d: Duplicated variable name %s.\n%s", lineNo, name, l)
 				return
 			}
-			ini[len(ini)-1].Vars[name] = value
+			currentSection.Vars[name] = value
 			continue
 		}
 		err = fmt.Errorf("Line %d: Malformed content.\n%s", lineNo, l)

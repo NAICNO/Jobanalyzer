@@ -521,6 +521,26 @@ List all the processes in the given job for the last 24 hours, broken down at ea
 sonalyze profile -j 12345
 ```
 
+## INI FILES
+
+The file `$HOME/.sonalyze` can contain defaults for some arguments.  The file is a line-oriented
+sequence of sections starting with a header and containing definitions, environment variables are
+expanded.  Comment lines are allowed.  A typical file:
+
+```
+# Standard setup
+
+[data-source]
+remote=https://naic-monitor.uio.no
+auth-file=$HOME/.ssh/sonalyzed-auth.txt
+```
+
+Currently the only section is `[data-source]` and valid keys are `remote`, `auth-file`, `cluster`,
+`data-dir`, `from`, and `to`.
+
+In the future it seems likely that sections could be added to provide defaults for
+e.g. `[record-filter]` and for individual verbs, e.g. `[jobs]`.
+
 ## LOG FILES
 
 The log files under the log root directory -- ie when log file names are not provided on the command

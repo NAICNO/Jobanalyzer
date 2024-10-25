@@ -206,6 +206,33 @@ func (s *SourceArgs) SetRestArguments(args []string) {
 }
 
 func (s *SourceArgs) Validate() error {
+	switch {
+	case len(s.LogFiles) > 0 || s.DataDir != "":
+		// no action
+	case s.Remote != "" || s.Cluster != "" || s.AuthFile != "":
+		ApplyDefault(&s.Remote, "data-source", "remote")
+		ApplyDefault(&s.AuthFile, "data-source", "auth-file")
+		ApplyDefault(&s.Cluster, "data-source", "cluster")
+	default:
+		// There are no remoting args and no data dir args and no logfiles, so apply the ones we
+		// have but error out if we have defaults for both.
+		if (HasDefault("data-source", "remote") ||
+			HasDefault("data-source", "auth-file") ||
+			HasDefault("data-source", "cluster")) &&
+			HasDefault("data-source", "data-dir") {
+			return errors.New("No data source, but defaults for both remoting and data directory")
+		}
+		if ApplyDefault(&s.DataDir, "data-source", "data-dir") {
+			// no action
+		} else {
+			ApplyDefault(&s.Remote, "data-source", "remote")
+			ApplyDefault(&s.AuthFile, "data-source", "auth-file")
+			ApplyDefault(&s.Cluster, "data-source", "cluster")
+		}
+	}
+	ApplyDefault(&s.fromDateStr, "data-source", "from")
+	ApplyDefault(&s.toDateStr, "data-source", "to")
+
 	err := s.RemotingArgs.Validate()
 	if err != nil {
 		return err
