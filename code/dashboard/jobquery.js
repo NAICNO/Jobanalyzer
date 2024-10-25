@@ -272,7 +272,7 @@ function selectJobs() {
 
 var profilingHooks = false
 
-function addProfilingHooks(name) {
+function addProfilingHooks() {
     if (!profilingHooks) {
         // Add event handlers so that when somebody changes the profile settings, all the URLs in the
         // table are rewritten.  This is pretty gross in principle but works OK.
