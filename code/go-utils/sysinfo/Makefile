@@ -1,11 +1,11 @@
-.PHONY: default build clean test
+.PHONY: default build fmt clean test
 
 default:
 
 build:
 
-clean:
-	go clean
+fmt clean:
+	go $(MAKECMDGOALS)
 
 test:
 	if [[ $$(uname) != Darwin ]]; then go test ; fi

@@ -70,11 +70,11 @@ const (
 
 	// 90 minutes is an OK window if we expect to be running this every hour.
 	defaultWindow = 90
-	defaultSpan = ""
+	defaultSpan   = ""
 )
 
 var (
-	span = flag.String("span", "", "[From-to) time span yyyy-mm-dd,yyyy-mm-dd")
+	span   = flag.String("span", "", "[From-to) time span yyyy-mm-dd,yyyy-mm-dd")
 	window = flag.Uint("window", defaultWindow, "Window (in minutes) for the sacct query")
 )
 

@@ -4,13 +4,13 @@
 #
 # SUBDIRS is a list of all direct subdirectories with Go code, it can be empty
 
-.PHONY: default build clean test regress
+.PHONY: default build fmt clean test regress
 
 default build:
 
 clean:
 	go clean
 
-test:
-	go test
-	for d in $(SUBDIRS); do (cd $$d ; go test ) ; done
+fmt test:
+	go $(MAKECMDGOALS)
+	for d in $(SUBDIRS); do (cd $$d ; go $(MAKECMDGOALS) ) ; done

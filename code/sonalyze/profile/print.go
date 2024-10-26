@@ -278,12 +278,12 @@ func checkFields(fields []string, scaleCpuGpu bool) (formatter func(*profDatum) 
 	return
 }
 
-var htmlCaptions = map[string]string {
-	"cpu": "Y axis: Number of CPU cores (1.0 = 1 core at 100%)",
-	"mem": "Y axis: Virtual primary memory in GB",
-	"rss": "Y axis: Resident primary memory in GB",
-	"res": "Y axis: Resident primary memory in GB",
-	"gpu": "Y axis: Number of GPU cards in use (1.0 = 1 card at 100%)",
+var htmlCaptions = map[string]string{
+	"cpu":    "Y axis: Number of CPU cores (1.0 = 1 core at 100%)",
+	"mem":    "Y axis: Virtual primary memory in GB",
+	"rss":    "Y axis: Resident primary memory in GB",
+	"res":    "Y axis: Resident primary memory in GB",
+	"gpu":    "Y axis: Number of GPU cards in use (1.0 = 1 card at 100%)",
 	"gpumem": "Y axis: Real GPU memory in GB",
 }
 

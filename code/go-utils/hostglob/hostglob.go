@@ -399,7 +399,7 @@ func (hg *HostGlobber) IsEmpty() bool {
 
 func (hg *HostGlobber) String() string {
 	return fmt.Sprint(
-		slices.Map(hg.matchers, func (re *regexp.Regexp) string {
+		slices.Map(hg.matchers, func(re *regexp.Regexp) string {
 			return re.String()
 		}),
 	)

@@ -43,7 +43,7 @@ type LoadCommand struct /* implements SampleAnalysisCommand */ {
 	Compact bool
 
 	// Synthesized and other
-	bucketing   bucketTy
+	bucketing bucketTy
 }
 
 var _ SampleAnalysisCommand = (*LoadCommand)(nil)

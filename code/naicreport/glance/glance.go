@@ -170,7 +170,7 @@ func Report(progname string, args []string) error {
 	if err != nil {
 		return err
 	}
-	rawData = slices.DeleteFunc(rawData, func (r ConfigRecordRepr) bool {
+	rawData = slices.DeleteFunc(rawData, func(r ConfigRecordRepr) bool {
 		return !currentHosts[r.Hostname]
 	})
 
