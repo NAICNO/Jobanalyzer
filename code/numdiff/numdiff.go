@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	absDifference = 2
+	absDifference   = 2
 	ratioDifference = 0.01
 )
 
@@ -103,7 +103,7 @@ func split(s string) []string {
 	ss := make([]string, 0)
 	i := 0
 	if *comma {
-		for lim, x := len(s), true ; i < lim ; x = !x {
+		for lim, x := len(s), true; i < lim; x = !x {
 			start := i
 			if i < lim && (s[i] == ',') == x {
 				i++
@@ -113,7 +113,7 @@ func split(s string) []string {
 			}
 		}
 	} else {
-		for lim, x := len(s), true ; i < lim ; x = !x {
+		for lim, x := len(s), true; i < lim; x = !x {
 			start := i
 			for i < lim && (s[i] == ' ' || s[i] == '\t') == x {
 				i++

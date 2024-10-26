@@ -21,24 +21,24 @@ import (
 	"os/exec"
 	"path"
 	"strings"
-	"time"
 	"syscall"
+	"time"
 
 	"go-utils/process"
 	"go-utils/status"
 )
 
 const (
-	defMinCpu = 30
+	defMinCpu   = 30
 	defInterval = 60
 	minInterval = 1
 )
 
 var (
-	interval = flag.Uint("i", defInterval, "Interval in `seconds` at which to run sonar")
-	minCpu = flag.Uint("m", defMinCpu, "Minimum CPU time consumption in `seconds` for a job before sonar records it")
+	interval  = flag.Uint("i", defInterval, "Interval in `seconds` at which to run sonar")
+	minCpu    = flag.Uint("m", defMinCpu, "Minimum CPU time consumption in `seconds` for a job before sonar records it")
 	sonarName = flag.String("s", "", "Sonar executable `filename`")
-	verbose = flag.Bool("v", false, "Print informational messages")
+	verbose   = flag.Bool("v", false, "Print informational messages")
 )
 
 func main() {

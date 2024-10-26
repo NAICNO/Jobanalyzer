@@ -27,7 +27,7 @@ func TestFilterMap(t *testing.T) {
 	s := []int{1, 2, 3, 4, 5}
 	q := FilterMap(
 		s,
-		func (x int) bool { return (x & 1) == 1 },
+		func(x int) bool { return (x & 1) == 1 },
 		func(x int) float64 { return -float64(x) / 2 })
 	r := []float64{-0.5, -1.5, -2.5}
 	if !reflect.DeepEqual(q, r) {

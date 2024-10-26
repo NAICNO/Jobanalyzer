@@ -20,7 +20,7 @@ var port = flag.Int("p", 8088, "Listen on `port`")
 func main() {
 	status.Start("jobanalyzer/netsink")
 	flag.Parse()
-	http.HandleFunc("/netsink", func (w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/netsink", func(w http.ResponseWriter, r *http.Request) {
 		payload := make([]byte, r.ContentLength)
 		_, err := io.ReadFull(r.Body, payload)
 		if err != nil {
@@ -36,5 +36,3 @@ func main() {
 	defer s.Stop()
 	process.WaitForSignal(syscall.SIGHUP, syscall.SIGTERM)
 }
-
-

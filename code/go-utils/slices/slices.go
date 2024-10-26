@@ -22,7 +22,7 @@ func Filter[S ~[]V, V any](xs S, f func(V) bool) S {
 	return ys
 }
 
-func FilterMap[S ~[]V, V, W any](xs S, filter func (V) bool, mapper func(V) W) []W {
+func FilterMap[S ~[]V, V, W any](xs S, filter func(V) bool, mapper func(V) W) []W {
 	ys := make([]W, 0, len(xs))
 	for _, v := range xs {
 		if filter(v) {
