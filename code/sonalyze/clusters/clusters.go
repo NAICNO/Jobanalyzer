@@ -18,6 +18,7 @@ import (
 	"go-utils/options"
 
 	. "sonalyze/command"
+	. "sonalyze/common"
 	"sonalyze/db"
 )
 
@@ -52,6 +53,11 @@ func (cc *ClusterCommand) ReifyForRemote(x *Reifier) error {
 
 func (cc *ClusterCommand) Validate() error {
 	var e1, e2 error
+
+	if cc.jobanalyzerDir == "" {
+		ApplyDefault(&cc.Remote, "data-source", "remote")
+		ApplyDefault(&cc.AuthFile, "data-source", "auth-file")
+	}
 
 	e1 = errors.Join(
 		cc.DevArgs.Validate(),

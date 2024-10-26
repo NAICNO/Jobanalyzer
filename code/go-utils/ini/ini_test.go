@@ -24,14 +24,14 @@ z=z
 	if len(x) != 4 {
 		t.Fatalf("Expected length 2: %v", x)
 	}
-	if x[0].Name != "abra" ||
-		x[1].Name != "zappa" ||
-		x[2].Name != "zuppa" ||
-		x[3].Name != "cadabra" {
+	if x["abra"].Name != "abra" ||
+		x["zappa"].Name != "zappa" ||
+		x["zuppa"].Name != "zuppa" ||
+		x["cadabra"].Name != "cadabra" {
 		t.Fatalf("Names are wrong: %v", x)
 	}
 
-	m := x[0].Vars
+	m := x["abra"].Vars
 	if len(m) != 2 {
 		t.Fatalf("abra is wrong: %v", x)
 	}
@@ -42,11 +42,11 @@ z=z
 		t.Fatalf("y is wrong: %v", x)
 	}
 
-	if len(x[1].Vars) > 0 {
+	if len(x["zappa"].Vars) > 0 {
 		t.Fatalf("zappa is wrong: %v", x)
 	}
 
-	m = x[2].Vars
+	m = x["zuppa"].Vars
 	if len(m) != 1 {
 		t.Fatalf("zuppa is wrong: %v", x)
 	}
@@ -54,7 +54,7 @@ z=z
 		t.Fatalf("z is wrong: %v", x)
 	}
 
-	if len(x[3].Vars) > 0 {
+	if len(x["cadabra"].Vars) > 0 {
 		t.Fatalf("cadabra is wrong: %v", x)
 	}
 

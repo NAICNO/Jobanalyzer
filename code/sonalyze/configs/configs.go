@@ -27,6 +27,7 @@ import (
 	"go-utils/hostglob"
 
 	. "sonalyze/command"
+	. "sonalyze/common"
 	"sonalyze/db"
 )
 
@@ -68,6 +69,12 @@ func (cc *ConfigCommand) ReifyForRemote(x *Reifier) error {
 }
 
 func (cc *ConfigCommand) Validate() error {
+	if cc.ConfigFilename == "" {
+		ApplyDefault(&cc.Remote, "data-source", "remote")
+		ApplyDefault(&cc.AuthFile, "data-source", "auth-file")
+		ApplyDefault(&cc.Cluster, "data-source", "cluster")
+	}
+
 	return errors.Join(
 		cc.DevArgs.Validate(),
 		cc.HostArgs.Validate(),
