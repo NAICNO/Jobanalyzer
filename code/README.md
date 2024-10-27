@@ -3,7 +3,7 @@
 ### Make
 
 Run `make build` (here or above) to make everything, `make clean` to clean it, `make test` to run
-unit tests and linting.
+unit tests and linting, `make fmt` to format formattable things.
 
 Run `make regress` to run various more complicated tests and regression tests.
 
@@ -19,19 +19,15 @@ Run `make regress` to run various more complicated tests and regression tests.
 
 #### Utility programs, tests, and other
 
-* `dashtest/` - Test code for the dashboard
 * `heatmap/` - Go source code for a utility that parses text data and creates a simple 2D heat map of it
 * `jsoncheck/` - Go source code for a simple utility that syntax checks JSON data
 * `make-cluster-config/` - Go source code for a utility that collects sysinfo data into cluster config files
 * `netsink/` - Go source code for a program that receives random input from a port and logs it
 * `numdiff/` - Go source code for a program that does approximate number-aware file comparison
+* `sacctd/` - Go source code for a core program that runs Slurm's `sacct` on a cluster and massages the output for exfiltration
 * `slurminfo/` - Go source code for a utility that runs `sinfo` and constructs a cluster config file
 * `sonard/` - Go source code for a utility that runs Sonar in the background with custom settings
-* `tests/` - Test cases for everything
-
-#### Work in progress
-
-* `sacctd/` - Go source code for a core program that runs Slurm's `sacct` on a cluster and massages the output for exfiltration
+* `tests/` - Regression test cases for all the Go components
 
 #### Attic - obsolete but not deleted
 
