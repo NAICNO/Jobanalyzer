@@ -1,14 +1,17 @@
 package profile
 
 import (
+	"cmp"
 	"errors"
 	"io"
 	"math"
+	"slices"
 	"sort"
 
 	"go-utils/config"
 	"go-utils/hostglob"
 	"go-utils/maps"
+
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
@@ -63,10 +66,20 @@ func (pc *ProfileCommand) Perform(
 	// `processes` has the event streams for the processes (or group of rolled-up processes).
 	//
 	// We want these sorted in the order in which they start being shown, so that there is a natural
-	// feel to the list of processes for each timestamp.  Sorting ascending by first timestamp will
-	// accomplish that.
+	// feel to the list of processes for each timestamp.  Sorting ascending by first timestamp, then
+	// by command name and finally by PID will accomplish that as well as it is possible.  (There
+	// are still going to be cases where two runs might print different data: see processId().)
 	processes := maps.Values(streams)
-	sort.Stable(sonarlog.TimeSortableSampleStreams(processes))
+	slices.SortStableFunc(processes, func(a, b *sonarlog.SampleStream) int {
+		c := cmp.Compare((*a)[0].S.Timestamp, (*b)[0].S.Timestamp)
+		if c == 0 {
+			c = cmp.Compare((*a)[0].S.Cmd.String(), (*b)[0].S.Cmd.String())
+			if c == 0 {
+				c = cmp.Compare((*a)[0].S.Pid, (*b)[0].S.Pid)
+			}
+		}
+		return c
+	})
 
 	userName := (*processes[0])[0].S.User.String()
 
