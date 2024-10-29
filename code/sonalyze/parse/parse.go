@@ -5,15 +5,15 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"reflect"
 	"sort"
-	"time"
+	"strings"
 
 	"go-utils/config"
 	"go-utils/hostglob"
 	"go-utils/maps"
 	uslices "go-utils/slices"
 	. "sonalyze/command"
-	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
 )
@@ -139,8 +139,8 @@ func (pc *ParseCommand) Perform(
 				pc.PrintFields,
 				parseFormatters,
 				pc.PrintOpts,
-				*stream,
-				parseCtx(pc.PrintOpts.NoDefaults),
+				uslices.Map(*stream, func(x sonarlog.Sample) any { return x }),
+				ComputePrintMods(pc.PrintOpts),
 			)
 		}
 	} else {
@@ -149,8 +149,8 @@ func (pc *ParseCommand) Perform(
 			pc.PrintFields,
 			parseFormatters,
 			pc.PrintOpts,
-			samples,
-			parseCtx(pc.PrintOpts.NoDefaults),
+			uslices.Map(samples, func(x sonarlog.Sample) any { return x }),
+			ComputePrintMods(pc.PrintOpts),
 		)
 	}
 	return nil
@@ -166,10 +166,24 @@ parse
   is 'csv'
 `
 
-const parseDefaultFields = "job,user,cmd"
+const v0ParseDefaultFields = "job,user,cmd"
+const v1ParseDefaultFields = "Job,User,Cmd"
+const parseDefaultFields = v0ParseDefaultFields
+
+const v0ParseAllFields = "version,localtime,host,cores,memtotal,user,pid,job,cmd,cpu_pct,mem_gb," +
+	"res_gb,gpus,gpu_pct,gpumem_pct,gpumem_gb,gpu_status,cputime_sec,rolledup,cpu_util_pct"
+const v1ParseAllFields = "Version,Timestamp,Host,Cores,MemtotalKB,User,Pid,Ppid,Job,Cmd,CpuPct," +
+	"CpuKB,RssAnonKB,Gpus,GpuPct,GpuMemPct,GpuKB,GpuFail,CpuTimeSec,Rolledup,CpuUtilPct"
+const parseAllFields = v0ParseAllFields
 
 // MT: Constant after initialization; immutable
 var parseAliases = map[string][]string{
+	"default":   strings.Split(parseDefaultFields, ","),
+	"v0default": strings.Split(v0ParseDefaultFields, ","),
+	"v1default": strings.Split(v1ParseDefaultFields, ","),
+	"all":       strings.Split(parseAllFields, ","),
+	"v0all":     strings.Split(v0ParseAllFields, ","),
+	"v1all":     strings.Split(v1ParseAllFields, ","),
 	// TODO: IMPROVEME: Roundtripping is actually version-dependent, but this set of fields is
 	// compatible with the Rust version.
 	"roundtrip": []string{
@@ -191,215 +205,52 @@ var parseAliases = map[string][]string{
 		"cputime_sec",
 		"rolledup",
 	},
-	"all": []string{
-		"version",
-		"localtime",
-		"host",
-		"cores",
-		"memtotal",
-		"user",
-		"pid",
-		"job",
-		"cmd",
-		"cpu_pct",
-		"mem_gb",
-		"res_gb",
-		"gpus",
-		"gpu_pct",
-		"gpumem_pct",
-		"gpumem_gb",
-		"gpu_status",
-		"cputime_sec",
-		"rolledup",
-		"cpu_util_pct",
-	},
 }
 
-type parseCtx bool
+type SFS = SimpleFormatSpec
+type AFS = SimpleFormatSpecWithAttr
+type ZFA = SynthesizedFormatSpecWithAttr
 
-// TODO: IMPROVEME: The defaulted fields here follow the Rust code.  We'll keep it this way until we
-// switch over.  Then we can maybe default more fields.
-// MT: Constant after initialization; immutable
-var parseFormatters = map[string]Formatter[sonarlog.Sample, parseCtx]{
-	"version": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return d.Version.String()
-		},
-		"Semver string (MAJOR.MINOR.BUGFIX)",
+// TODO: IMPROVEME: The defaulted fields here follow the Rust code.  Now that it's trivial to do so,
+// we should consider adding more.
+//
+// TODO: IMPROVEME: The use of utc for "localtime" is a bug that comes from the Rust code.
+
+var parseFormatters = ReflectFormattersFromMap(
+	reflect.TypeOf((*sonarlog.Sample)(nil)).Elem(),
+	map[string]any{
+		"Version":    SFS{"Semver string (MAJOR.MINOR.BUGFIX)", "version"},
+		"Timestamp":  AFS{"Timestamp (yyyy-mm-dd hh:mm)", "localtime", FmtDateTimeValue},
+		"time":       ZFA{"Timestamp (ISO date with seconds)", "Timestamp", FmtIsoDateTimeValue},
+		"Host":       SFS{"Host name (FQDN)", "host"},
+		"Cores":      SFS{"Total number of cores (including hyperthreads)", "cores"},
+		"MemtotalKB": SFS{"Installed main memory", ""},
+		"memtotal":   ZFA{"Installed main memory (GB)", "MemtotalKB", FmtDivideBy1M},
+		"User":       SFS{"Username of process owner", "user"},
+		"Pid":        AFS{"Process ID", "pid", FmtDefaultable},
+		"Ppid":       AFS{"Process parent ID", "ppid", FmtDefaultable},
+		"Job":        SFS{"Job ID", "job"},
+		"Cmd":        SFS{"Command name", "cmd"},
+		"CpuPct":     SFS{"cpu% reading (CONSULT DOCUMENTATION)", "cpu_pct"},
+		"CpuKB":      SFS{"Virtual memory reading", "cpukib"},
+		"mem_gb":     ZFA{"Virtual memory reading", "CpuKB", FmtDivideBy1M},
+		"RssAnonKB":  SFS{"RssAnon reading", ""},
+		"res_gb":     ZFA{"RssAnon reading", "RssAnonKB", FmtDivideBy1M},
+		"Gpus":       AFS{"GPU set (`none`,`unknown`,list)", "gpus", FmtDefaultable},
+		"GpuPct":     AFS{"GPU utilization reading", "gpu_pct", FmtDefaultable},
+		"GpuMemPct":  AFS{"GPU memory percentage reading", "gpumem_pct", FmtDefaultable},
+		"GpuKB":      AFS{"GPU memory utilization reading", "gpukib", FmtDefaultable},
+		"gpumem_gb": ZFA{"GPU memory utilization reading", "GpuKB",
+			FmtDivideBy1M | FmtDefaultable},
+		"GpuFail": AFS{"GPU status flag (0=ok, 1=error state)", "gpu_status", FmtDefaultable},
+		"CpuTimeSec": AFS{"CPU time since last reading (seconds, CONSULT DOCUMENTATION)",
+			"cputime_sec", FmtDefaultable},
+		"Rolledup": AFS{"Number of rolled-up processes, minus 1", "rolledup", FmtDefaultable},
+		"Flags":    SFS{"Bit vector of flags, UTSL", ""},
+		"CpuUtilPct": AFS{"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)",
+			"cpu_util_pct", FmtDefaultable},
 	},
-	"localtime": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			// TODO: IMPROVEME: The use of utc here is a bug that comes from the Rust code.
-			return FormatYyyyMmDdHhMmUtc(d.Timestamp)
-		},
-		"Timestamp (yyyy-mm-dd hh:mm)",
-	},
-	"time": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return time.Unix(d.Timestamp, 0).UTC().Format(time.RFC3339)
-		},
-		"Timestamp (ISO date with seconds)",
-	},
-	"host": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return d.Host.String()
-		},
-		"Host name (FQDN)",
-	},
-	"cores": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.Cores)
-		},
-		"Total number of cores (including hyperthreads)",
-	},
-	"memtotal": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.MemtotalKib / (1024 * 1024))
-		},
-		"Installed main memory (GiB)",
-	},
-	"user": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return d.User.String()
-		},
-		"Username of process owner",
-	},
-	"pid": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.Pid == 0 {
-				return "*skip*"
-			}
-			return fmt.Sprint(d.Pid)
-		},
-		"Process ID",
-	},
-	"ppid": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.Ppid == 0 {
-				return "*skip*"
-			}
-			return fmt.Sprint(d.Ppid)
-		},
-		"Process parent ID",
-	},
-	"job": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.Job)
-		},
-		"Job ID",
-	},
-	"cmd": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return d.Cmd.String()
-		},
-		"Command name",
-	},
-	"cpu_pct": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.CpuPct)
-		},
-		"cpu% reading (CONSULT DOCUMENTATION)",
-	},
-	"mem_gb": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.CpuKib / (1024 * 1024))
-		},
-		"Virtual memory reading (GiB)",
-	},
-	"res_gb": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.RssAnonKib / (1024 * 1024))
-		},
-		"RssAnon reading (GiB)",
-	},
-	"cpukib": {
-		func(d sonarlog.Sample, _ parseCtx) string {
-			return fmt.Sprint(d.CpuKib)
-		},
-		"Virtual memory reading (KiB)",
-	},
-	"gpus": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.Gpus.IsEmpty() {
-				return "*skip*"
-			}
-			return d.Gpus.String()
-		},
-		"GPU set (`none`,`unknown`,list)",
-	},
-	"gpu_pct": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.GpuPct == 0 {
-				return "*skip*"
-			}
-			return fmt.Sprint(d.GpuPct)
-		},
-		"GPU utilization reading",
-	},
-	"gpumem_pct": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.GpuMemPct == 0 {
-				return "*skip*"
-			}
-			return fmt.Sprint(d.GpuMemPct)
-		},
-		"GPU memory percentage reading",
-	},
-	"gpumem_gb": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.GpuKib == 0 {
-				return "*skip*"
-			}
-			return fmt.Sprint(d.GpuKib / (1024 * 1024))
-		},
-		"GPU memory utilization reading (GiB)",
-	},
-	"gpukib": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.GpuKib == 0 {
-				return "*skip*"
-			}
-			return fmt.Sprint(d.GpuKib)
-		},
-		"GPU memory utilization reading (KiB)",
-	},
-	"gpu_status": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.GpuFail == 0 {
-				return "*skip*"
-			}
-			return fmt.Sprint(d.GpuFail)
-		},
-		"GPU status flag (0=ok, 1=error state)",
-	},
-	"cputime_sec": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.CpuTimeSec == 0 {
-				return "*skip*"
-			}
-			return fmt.Sprint(d.CpuTimeSec)
-		},
-		"CPU time since last reading (seconds, CONSULT DOCUMENTATION)",
-	},
-	"rolledup": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.Rolledup == 0 {
-				return "*skip*"
-			}
-			return fmt.Sprint(d.Rolledup)
-		},
-		"Number of rolled-up processes, minus 1",
-	},
-	"cpu_util_pct": {
-		func(d sonarlog.Sample, nodefaults parseCtx) string {
-			if bool(nodefaults) && d.CpuUtilPct == 0 {
-				return "*skip*"
-			}
-			return fmt.Sprint(d.CpuUtilPct)
-		},
-		"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)",
-	},
-}
+)
 
 func init() {
 	// These are needed for true roundtripping but they can't be defined as aliases because the

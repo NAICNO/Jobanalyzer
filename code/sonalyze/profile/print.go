@@ -258,10 +258,10 @@ func (pc *ProfileCommand) collectFixed(
 				data = append(data, &fixedLine{
 					Timestamp:     DateTimeValueOrBlank(timestamp),
 					CpuUtilPct:    int(math.Round(float64(entry.cpuUtilPct))),
-					VirtualMemGB:  int(math.Round(float64(entry.cpuKib) / (1024 * 1024))),
-					ResidentMemGB: int(math.Round(float64(entry.rssAnonKib) / (1024 * 1024))),
+					VirtualMemGB:  int(math.Round(float64(entry.cpuKB) / (1024 * 1024))),
+					ResidentMemGB: int(math.Round(float64(entry.rssAnonKB) / (1024 * 1024))),
 					Gpu:           int(math.Round(float64(entry.gpuPct))),
-					GpuMemGB:      int(math.Round(float64(entry.gpuKib) / (1024 * 1024))),
+					GpuMemGB:      int(math.Round(float64(entry.gpuKB) / (1024 * 1024))),
 					Command:       entry.s.Cmd,
 					NumProcs:      IntOrEmpty(numprocs),
 				})
@@ -329,11 +329,11 @@ func formatCpuUtilPctScaled(s *profDatum) string {
 }
 
 func formatMem(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.cpuKib) / (1024 * 1024)))
+	return fmt.Sprint(math.Round(float64(s.cpuKB) / (1024 * 1024)))
 }
 
 func formatRes(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.rssAnonKib) / (1024 * 1024)))
+	return fmt.Sprint(math.Round(float64(s.rssAnonKB) / (1024 * 1024)))
 }
 
 func formatGpuPct(s *profDatum) string {
@@ -345,7 +345,7 @@ func formatGpuPctScaled(s *profDatum) string {
 }
 
 func formatGpuMem(s *profDatum) string {
-	return fmt.Sprint(math.Round(float64(s.gpuKib) / (1024 * 1024)))
+	return fmt.Sprint(math.Round(float64(s.gpuKB) / (1024 * 1024)))
 }
 
 var htmlCaptions = map[string]string{
@@ -451,15 +451,15 @@ func formatJson(
 			}
 			var cpuGB, gpuGB uint64
 			if !noMemory {
-				cpuGB = entry.cpuKib / (1024 * 1024)
-				gpuGB = entry.gpuKib / (1024 * 1024)
+				cpuGB = entry.cpuKB / (1024 * 1024)
+				gpuGB = entry.gpuKB / (1024 * 1024)
 			}
 			points = append(points, jsonPoint{
 				Command:    entry.s.Cmd.String(),
 				Pid:        entry.s.Pid, // Hm
 				CpuUtilPct: int(math.Round(float64(entry.cpuUtilPct))),
 				CpuGB:      cpuGB,
-				RssAnonGB:  entry.rssAnonKib / (1024 * 1024),
+				RssAnonGB:  entry.rssAnonKB / (1024 * 1024),
 				GpuPct:     int(math.Round(float64(entry.gpuPct))),
 				GpuMemGB:   gpuGB,
 				Nproc:      int(entry.s.Rolledup) + 1,

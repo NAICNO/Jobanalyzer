@@ -591,7 +591,7 @@ func sumRecords(
 	selected []Sample,
 ) Sample {
 	var cpuPct, gpuPct, gpuMemPct, cpuUtilPct float32
-	var cpuKib, rssAnonKib, gpuKib, cpuTimeSec uint64
+	var cpuKB, rssAnonKB, gpuKB, cpuTimeSec uint64
 	var rolledup uint32
 	var gpuFail uint8
 	var gpus = gpuset.EmptyGpuSet()
@@ -600,9 +600,9 @@ func sumRecords(
 		gpuPct += s.GpuPct
 		gpuMemPct += s.GpuMemPct
 		cpuUtilPct += s.CpuUtilPct
-		cpuKib += s.CpuKib
-		rssAnonKib += s.RssAnonKib
-		gpuKib += s.GpuKib
+		cpuKB += s.CpuKB
+		rssAnonKB += s.RssAnonKB
+		gpuKB += s.GpuKB
 		cpuTimeSec += s.CpuTimeSec
 		rolledup += s.Rolledup
 		gpuFail = MergeGpuFail(gpuFail, s.GpuFail)
@@ -623,12 +623,12 @@ func sumRecords(
 			Job:        jobId,
 			Cmd:        command,
 			CpuPct:     cpuPct,
-			CpuKib:     cpuKib,
-			RssAnonKib: rssAnonKib,
+			CpuKB:      cpuKB,
+			RssAnonKB:  rssAnonKB,
 			Gpus:       gpus,
 			GpuPct:     gpuPct,
 			GpuMemPct:  gpuMemPct,
-			GpuKib:     gpuKib,
+			GpuKB:      gpuKB,
 			GpuFail:    gpuFail,
 			CpuTimeSec: cpuTimeSec,
 			Rolledup:   rolledup,
@@ -683,11 +683,11 @@ func foldSamples(samples SampleStream, truncTime func(int64) int64) SampleStream
 		nf32 := float32(lim - first)
 		nu64 := uint64(lim - first)
 		r.CpuPct /= nf32
-		r.CpuKib /= nu64
-		r.RssAnonKib /= nu64
+		r.CpuKB /= nu64
+		r.RssAnonKB /= nu64
 		r.GpuPct /= nf32
 		r.GpuMemPct /= nf32
-		r.GpuKib /= nu64
+		r.GpuKB /= nu64
 		r.CpuTimeSec /= nu64
 		r.CpuUtilPct /= nf32
 		result = append(result, r)
