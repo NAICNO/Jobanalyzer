@@ -78,19 +78,3 @@ func (sss HostSortableSampleStreams) Swap(i, j int) {
 func (sss HostSortableSampleStreams) Less(i, j int) bool {
 	return (*sss[i])[0].S.Host.String() < (*sss[j])[0].S.Host.String()
 }
-
-// Sort SampleStreams by time
-
-type TimeSortableSampleStreams SampleStreams
-
-func (sss TimeSortableSampleStreams) Len() int {
-	return len(sss)
-}
-
-func (sss TimeSortableSampleStreams) Swap(i, j int) {
-	sss[i], sss[j] = sss[j], sss[i]
-}
-
-func (sss TimeSortableSampleStreams) Less(i, j int) bool {
-	return (*sss[i])[0].S.Timestamp < (*sss[j])[0].S.Timestamp
-}
