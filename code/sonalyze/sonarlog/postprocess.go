@@ -125,9 +125,9 @@ func createInputStreams(
 
 			key := InputStreamKey{e.Host, streamId(e), e.Cmd}
 			if stream, found := streams[key]; found {
-				*stream = append(*stream, Sample{S: e})
+				*stream = append(*stream, Sample{Sample: e})
 			} else {
-				streams[key] = &SampleStream{Sample{S: e}}
+				streams[key] = &SampleStream{Sample{Sample: e}}
 			}
 		}
 	}
@@ -147,7 +147,7 @@ func createInputStreams(
 		*stream = slices.CompactFunc(
 			*stream,
 			func(a, b Sample) bool {
-				return a.S.Timestamp == b.S.Timestamp
+				return a.Timestamp == b.Timestamp
 			},
 		)
 	}
@@ -178,18 +178,18 @@ func ComputePerSampleFields(streams InputStreamSet) {
 	for _, stream := range streams {
 		// By construction, every stream is non-empty.
 		es := *stream
-		es[0].CpuUtilPct = es[0].S.CpuPct
-		major, minor, _ := parseVersion(es[0].S.Version)
+		es[0].CpuUtilPct = es[0].CpuPct
+		major, minor, _ := parseVersion(es[0].Version)
 		if major == 0 && minor <= 6 {
 			for i := 1; i < len(es); i++ {
-				es[i].CpuUtilPct = es[i].S.CpuPct
+				es[i].CpuUtilPct = es[i].CpuPct
 			}
 		} else {
 			dst := 1
 			src := 1
 			for ; src < len(es); src++ {
-				dt := float64(es[src].S.Timestamp - es[src-1].S.Timestamp)
-				dc := float64(int64(es[src].S.CpuTimeSec) - int64(es[src-1].S.CpuTimeSec))
+				dt := float64(es[src].Timestamp - es[src-1].Timestamp)
+				dc := float64(int64(es[src].CpuTimeSec) - int64(es[src-1].CpuTimeSec))
 				// It can happen that dc < 0, see https://github.com/NAICNO/Jobanalyzer/issues/63.
 				es[src].CpuUtilPct = float32((dc / dt) * 100)
 				if es[src].CpuUtilPct >= 0 {

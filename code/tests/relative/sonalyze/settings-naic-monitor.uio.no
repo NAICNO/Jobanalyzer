@@ -1,0 +1,14 @@
+# OLD_SONALYZE will often be ~/sonar/sonalyze
+export OLD_SONALYZE=~/tmp/sonalyze
+export OLD_NAME=old
+export NEW_SONALYZE=$(pwd)/../../../sonalyze/sonalyze
+export NEW_NAME=new
+export NUMDIFF=$(pwd)/../../../numdiff/numdiff
+
+# Program arguments
+export JOBANALYZER_DIR=~/sonar
+export DATA_PATH=~/sonar/data/mlx.hpc.uio.no
+export CONFIG=~/sonar/cluster-config/mlx.hpc.uio.no-config.json
+
+export SACCT_DATA_PATH=~/sonar/data/fox.educloud.no
+export SACCT_CONFIG=~/sonar/cluster-config/fox.educloud.no-config.json

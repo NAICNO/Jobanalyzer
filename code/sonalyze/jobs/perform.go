@@ -219,9 +219,9 @@ func (jc *JobsCommand) aggregateJob(
 	job sonarlog.SampleStream,
 	bounds sonarlog.Timebounds,
 ) jobAggregate {
-	first := job[0].S.Timestamp
-	last := job[len(job)-1].S.Timestamp
-	host := job[0].S.Host
+	first := job[0].Timestamp
+	last := job[len(job)-1].Timestamp
+	host := job[0].Host
 	duration := last - first
 	needZombie := jc.Zombie
 	gpus := gpuset.EmptyGpuSet()
@@ -245,21 +245,21 @@ func (jc *JobsCommand) aggregateJob(
 	const kib2gib = 1.0 / (1024 * 1024)
 
 	for _, s := range job {
-		gpus = gpuset.UnionGpuSets(gpus, s.S.Gpus)
-		gpuFail = sonarlog.MergeGpuFail(gpuFail, s.S.GpuFail)
+		gpus = gpuset.UnionGpuSets(gpus, s.Gpus)
+		gpuFail = sonarlog.MergeGpuFail(gpuFail, s.GpuFail)
 		cpuPctAvg += float64(s.CpuUtilPct)
 		cpuPctPeak = math.Max(cpuPctPeak, float64(s.CpuUtilPct))
-		gpuPctAvg += float64(s.S.GpuPct)
-		gpuPctPeak = math.Max(gpuPctPeak, float64(s.S.GpuPct))
-		cpuGibAvg += float64(s.S.CpuKib) * kib2gib
-		cpuGibPeak = math.Max(cpuGibPeak, float64(s.S.CpuKib)*kib2gib)
-		rssAnonGibAvg += float64(s.S.RssAnonKib) * kib2gib
-		rssAnonGibPeak = math.Max(rssAnonGibPeak, float64(s.S.RssAnonKib)*kib2gib)
-		gpuGibAvg += float64(s.S.GpuKib) * kib2gib
-		gpuGibPeak = math.Max(gpuGibPeak, float64(s.S.GpuKib)*kib2gib)
+		gpuPctAvg += float64(s.GpuPct)
+		gpuPctPeak = math.Max(gpuPctPeak, float64(s.GpuPct))
+		cpuGibAvg += float64(s.CpuKib) * kib2gib
+		cpuGibPeak = math.Max(cpuGibPeak, float64(s.CpuKib)*kib2gib)
+		rssAnonGibAvg += float64(s.RssAnonKib) * kib2gib
+		rssAnonGibPeak = math.Max(rssAnonGibPeak, float64(s.RssAnonKib)*kib2gib)
+		gpuGibAvg += float64(s.GpuKib) * kib2gib
+		gpuGibPeak = math.Max(gpuGibPeak, float64(s.GpuKib)*kib2gib)
 
 		if needZombie && !isZombie {
-			cmd := s.S.Cmd.String()
+			cmd := s.Cmd.String()
 			isZombie = strings.Contains(cmd, "<defunct>") || strings.HasPrefix(cmd, "_zombie_")
 		}
 	}

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"go-utils/maps"
+	umaps "go-utils/maps"
 )
 
 type FormatOptions struct {
@@ -34,9 +34,9 @@ func (fo *FormatOptions) IsDefaultFormat() bool {
 // strings found in `spec`, plus also "help" if fmtOpt=="help".  Expand aliases (though not
 // recursively: aliases must map to fundamental names).
 
-func ParseFormatSpec[Data, Ctx any](
+func ParseFormatSpec[T any](
 	defaults, fmtOpt string,
-	formatters map[string]Formatter[Data, Ctx],
+	formatters map[string]T,
 	aliases map[string][]string,
 ) ([]string, map[string]bool, error) {
 	spec := fmtOpt
@@ -484,7 +484,7 @@ func PrintFormatHelp(out io.Writer, h *FormatHelp) {
 		}
 		if len(h.Aliases) > 0 {
 			fmt.Fprintln(out, "\nAliases:")
-			aliases := maps.Keys(h.Aliases)
+			aliases := umaps.Keys(h.Aliases)
 			sort.Sort(sort.StringSlice(aliases))
 			for _, k := range aliases {
 				// Do not sort the names in the expansion because the order matters

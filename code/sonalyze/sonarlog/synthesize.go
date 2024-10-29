@@ -47,7 +47,7 @@ func MergeByHostAndJob(streams InputStreamSet) SampleStreams {
 	// Partition into jobs with ID and jobs without, and group the former by host and job and
 	// collect information about each bag.
 	for key, stream := range streams {
-		id := (*stream)[0].S.Job
+		id := (*stream)[0].Job
 		if id == 0 {
 			if bag, found := zero[key.Host]; found {
 				*bag = append(*bag, stream)
@@ -95,7 +95,7 @@ func MergeByHostAndJob(streams InputStreamSet) SampleStreams {
 func mergedUserName(streams SampleStreams) Ustr {
 	nameset := make(map[Ustr]bool)
 	for _, s := range streams {
-		nameset[(*s)[0].S.User] = true
+		nameset[(*s)[0].User] = true
 	}
 	names := maps.Keys(nameset)
 	UstrSortAscending(names)
@@ -131,7 +131,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 
 	// Distribute the streams into `zero` or some box in `collections`
 	for k, v := range streams {
-		id := (*v)[0].S.Job
+		id := (*v)[0].Job
 		if id == 0 {
 			zero = append(zero, v)
 		} else if jobData, ok := collections[id]; ok {
@@ -152,7 +152,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 
 	// Initialize the set of new bounds with the zero jobs
 	for _, z := range zero {
-		hostname := (*z)[0].S.Host
+		hostname := (*z)[0].Host
 		if _, found := newBounds[hostname]; !found {
 			probe, found := bounds[hostname]
 			if !found {
@@ -240,7 +240,7 @@ func MergeAcrossHostsByTime(streams SampleStreams) SampleStreams {
 		return streams
 	}
 	names := slices.Map(streams, func(s *SampleStream) string {
-		return (*s)[0].S.Host.String()
+		return (*s)[0].Host.String()
 	})
 	hostname := StringToUstr(strings.Join(hostglob.CompressHostnames(names), ","))
 	tmp := mergeStreams(
@@ -429,8 +429,8 @@ func mergeStreams(
 			}
 			// stream[i] has a value, select this stream if we have no stream or if the value is
 			// smaller than the one at the head of the smallest stream.
-			if minTime > (*streams[i])[indices[i]].S.Timestamp {
-				minTime = (*streams[i])[indices[i]].S.Timestamp
+			if minTime > (*streams[i])[indices[i]].Timestamp {
+				minTime = (*streams[i])[indices[i]].Timestamp
 			}
 		}
 
@@ -462,7 +462,7 @@ func mergeStreams(
 
 				// ix < lim
 
-				if s[ix].S.Timestamp >= limTime {
+				if s[ix].Timestamp >= limTime {
 					// Highly likely - the stream starts in the future.
 					continue
 				}
@@ -470,7 +470,7 @@ func mergeStreams(
 				// ix < lim
 				// s[ix].timestamp < lim_time
 
-				if s[ix].S.Timestamp == minTime {
+				if s[ix].Timestamp == minTime {
 					// Fairly likely in normal input - sample time is equal to the min_time.  This
 					// would be subsumed by the following test using >= for > but the equality test
 					// is faster.
@@ -483,7 +483,7 @@ func mergeStreams(
 				// s[ix].timestamp < lim_time
 				// s[ix].timestamp != min_time
 
-				if s[ix].S.Timestamp > minTime {
+				if s[ix].Timestamp > minTime {
 					// Unlikely in normal input - sample time is in in the time window but not equal
 					// to min_time.
 					selected = append(selected, s[ix])
@@ -494,7 +494,7 @@ func mergeStreams(
 				// ix < lim
 				// s[ix].timestamp < min_time
 
-				if ix > 0 && s[ix-1].S.Timestamp >= nearPast {
+				if ix > 0 && s[ix-1].Timestamp >= nearPast {
 					// Unlikely in normal input - Previous exists and is not last and is in the near
 					// past (redundant test for t < lim_time removed).  The condition is tricky.
 					// ix>0 guarantees that there is a past record at ix - 1, while ix<lim says that
@@ -512,7 +512,7 @@ func mergeStreams(
 				// s[ix-1].timestamp < near_past
 
 				// This is duplicated within the ix==lim nest below, in a different form.
-				if ix > 0 && s[ix-1].S.Timestamp >= deepPast {
+				if ix > 0 && s[ix-1].Timestamp >= deepPast {
 					// Previous exists (and is last) and is not in the deep past, pick it up
 					selected = append(selected, s[ix-1])
 					continue
@@ -533,7 +533,7 @@ func mergeStreams(
 				// ix == lim
 				// ix > 0 because lim > 0
 
-				if s[ix-1].S.Timestamp < deepPast {
+				if s[ix-1].Timestamp < deepPast {
 					// Previous is in the deep past and no current - stream is done.
 					indices[i] = StreamEnded
 					continue
@@ -544,7 +544,7 @@ func mergeStreams(
 				// s[ix-1].timestamp >= deep_past
 
 				// This case is a duplicate from the ix<lim nest above, in a different form.
-				if s[ix-1].S.Timestamp < minTime {
+				if s[ix-1].Timestamp < minTime {
 					selected = append(selected, s[ix-1])
 					continue
 				}
@@ -596,17 +596,17 @@ func sumRecords(
 	var gpuFail uint8
 	var gpus = gpuset.EmptyGpuSet()
 	for _, s := range selected {
-		cpuPct += s.S.CpuPct
-		gpuPct += s.S.GpuPct
-		gpuMemPct += s.S.GpuMemPct
+		cpuPct += s.CpuPct
+		gpuPct += s.GpuPct
+		gpuMemPct += s.GpuMemPct
 		cpuUtilPct += s.CpuUtilPct
-		cpuKib += s.S.CpuKib
-		rssAnonKib += s.S.RssAnonKib
-		gpuKib += s.S.GpuKib
-		cpuTimeSec += s.S.CpuTimeSec
-		rolledup += s.S.Rolledup
-		gpuFail = MergeGpuFail(gpuFail, s.S.GpuFail)
-		gpus = gpuset.UnionGpuSets(gpus, s.S.Gpus)
+		cpuKib += s.CpuKib
+		rssAnonKib += s.RssAnonKib
+		gpuKib += s.GpuKib
+		cpuTimeSec += s.CpuTimeSec
+		rolledup += s.Rolledup
+		gpuFail = MergeGpuFail(gpuFail, s.GpuFail)
+		gpus = gpuset.UnionGpuSets(gpus, s.Gpus)
 	}
 	// The invariant is that rolledup is the number of *other* processes rolled up into this one.
 	// So we add one for each in the list + the others rolled into each of those, and subtract one
@@ -615,7 +615,7 @@ func sumRecords(
 
 	// Synthesize the record.
 	return Sample{
-		S: &db.Sample{
+		Sample: &db.Sample{
 			Version:    version,
 			Timestamp:  timestamp,
 			Host:       hostname,
@@ -665,16 +665,16 @@ func foldSamples(samples SampleStream, truncTime func(int64) int64) SampleStream
 	for i < len(samples) {
 		first := i
 		s0 := samples[i]
-		t0 := truncTime(s0.S.Timestamp)
+		t0 := truncTime(s0.Timestamp)
 		i++
-		for i < len(samples) && truncTime(samples[i].S.Timestamp) == t0 {
+		for i < len(samples) && truncTime(samples[i].Timestamp) == t0 {
 			i++
 		}
 		lim := i
 		r := sumRecords(
 			v000,
 			t0,
-			s0.S.Host,
+			s0.Host,
 			merged,
 			0,
 			merged,
@@ -682,13 +682,13 @@ func foldSamples(samples SampleStream, truncTime func(int64) int64) SampleStream
 		)
 		nf32 := float32(lim - first)
 		nu64 := uint64(lim - first)
-		r.S.CpuPct /= nf32
-		r.S.CpuKib /= nu64
-		r.S.RssAnonKib /= nu64
-		r.S.GpuPct /= nf32
-		r.S.GpuMemPct /= nf32
-		r.S.GpuKib /= nu64
-		r.S.CpuTimeSec /= nu64
+		r.CpuPct /= nf32
+		r.CpuKib /= nu64
+		r.RssAnonKib /= nu64
+		r.GpuPct /= nf32
+		r.GpuMemPct /= nf32
+		r.GpuKib /= nu64
+		r.CpuTimeSec /= nu64
 		r.CpuUtilPct /= nf32
 		result = append(result, r)
 	}
