@@ -152,7 +152,10 @@ var clustersFormatters = map[string]Formatter[*clustersSummary, clustersCtx]{
 	},
 	"aliases": {
 		func(i *clustersSummary, _ clustersCtx) string {
-			return strings.Join(i.Aliases, ",")
+			// Print aliases in deterministic order
+			aliases := slices.Clone(i.Aliases)
+			slices.Sort(aliases)
+			return strings.Join(aliases, ",")
 		},
 		"Aliases of cluster",
 	},

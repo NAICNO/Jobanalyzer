@@ -13,14 +13,11 @@
 // - look for $jobanalyzer_dir/cluster-config/<cluster>-config.json and take the values therein for
 //   the cluster and associate them with the values computed in steps 1 and 2.
 //
-// Then the cluster names, aliases and other data will be printed, current keys are `cluster`,
-// `aliases`, and `description`.  The alias list is always a string of comma-separated alias names
-// (even for JSON format).  Some clusters may have no aliases or description.
-//
 // Note that any aliases in the `<cluster>-config.json` files are ignored for the time being, they
 // are also unused by all other code.
 //
-// The cluster table is cached; only explicit invalidation will flush it.
+// The cluster table is cached; only explicit invalidation will flush it.  The cluster data must be
+// treated as completely read-only.
 
 package db
 
@@ -64,10 +61,12 @@ var (
 	clusterAliases *alias.Aliases
 )
 
+// This data structure must be treated as completely read-only, including the Aliases slice.
+
 type ClusterEntry struct {
 	Name        string
 	Description string
-	Aliases     []string
+	Aliases     []string		// Not sorted
 }
 
 // The cluster table is returned as a pair: a shared immutable map from cluster name to cluster
