@@ -345,6 +345,16 @@ func mergeStreams(
 	jobId uint32,
 	streams SampleStreams,
 ) *SampleStream {
+	return oldMergeStreams(hostname, command, username, jobId, streams)
+}
+
+func oldMergeStreams(
+	hostname Ustr,
+	command Ustr,
+	username Ustr,
+	jobId uint32,
+	streams SampleStreams,
+) *SampleStream {
 	// Generated records
 	records := make(SampleStream, 0)
 
@@ -574,6 +584,76 @@ func mergeStreams(
 	return &records
 }
 
+// Let h is a heap of streams, none of which have expired.
+//
+// Let c be a sorted list of candidate streams, not in h.  Initially c is empty.
+//
+// Loop while h is not empty:
+//   let x be the smallest stream in h, remove it
+//   let limTime be ...
+//   while h is not empty and min(h) < limTime
+//       remove min(h) and insert into c
+//   for v in c
+//       process v in the normal way, note some v may be in the future now
+//       if v i exhausted, remove it from c
+
+// some assumptions we are allowed to make:
+//  - streams are pretty dense - there are no gaps, mostly, in a stream
+//  - streams are pretty uniform - the time difference between two adjacent events in a stream
+//    is the same as the difference between any other two adjacent events in the same or in
+//    a different stream, even on a different node on the same cluster
+
+// Heap of this (without rocking the boat too much)
+//   stream
+//   current index in stream
+
+// ix and lim are sort of redundant because we could represent this just as s, where we reslice the
+// stream to update the index.  In oldMergeStreams, this would break into three cases: len(s) > 0, len(s) == 0,
+// and s == nil, more or less, though we would not want to have empty streams in the array at all.
+//
+// Not so!  Sometimes we need to look into the past, too.
+//
+// the priority is s[s.ix].Timestamp
+/*
+type S struct {
+	s []Sample
+	ix int
+}
+
+func newMergeStreams(
+	hostname Ustr,
+	command Ustr,
+	username Ustr,
+	jobId uint32,
+	streams SampleStreams,
+) *SampleStream {
+	// Generated records
+	records := make(SampleStream, 0)
+
+	v000 := StringToUstr("0.0.0")
+
+	indices := make([]int, len(streams))
+
+	const StreamEnded = math.MaxInt
+
+	selected := make([]Sample, 0, len(streams))
+
+	live := 0
+
+	sentinelTime := farFuture
+	for !heap_empty {
+		minTime := smallestElement.Timestamp
+		limTime := minTime + 10
+		nearPast := minTime - 30
+		deepPast := minTime - 60
+
+		workingstorage = workingstorage[0:0]
+		for !heap_empty && smallestElement.Timestamp < limTime {
+			workingstorage = append(workingstorage, smallestelement)
+		}
+	}
+}
+*/
 func MergeGpuFail(a, b uint8) uint8 {
 	if a > 0 || b > 0 {
 		return 1
