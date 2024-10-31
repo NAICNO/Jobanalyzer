@@ -277,11 +277,25 @@ func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func()
 
 // TODO: Possibly top and sacct can be handled together, they are instances of AnalysisCommand
 
+var commandProfCounter int
+
 func (_ *standardCommandLineHandler) HandleCommand(
 	anyCmd Command,
 	stdin io.Reader,
 	stdout, stderr io.Writer,
 ) error {
+	if daemon.ProfileCommands {
+		f, err := os.Create(fmt.Sprintf("prof%d", commandProfCounter))
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+		commandProfCounter++
+
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	switch cmd := anyCmd.(type) {
 	case SampleAnalysisCommand:
 		return application.LocalOperation(cmd, stdin, stdout, stderr)

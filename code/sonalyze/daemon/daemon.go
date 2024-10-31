@@ -121,6 +121,8 @@ type DaemonCommand struct {
 	cacheSize         int64
 }
 
+var ProfileCommands bool
+
 func New(cmdlineHandler CommandLineHandler) *DaemonCommand {
 	dc := new(DaemonCommand)
 	dc.cmdlineHandler = cmdlineHandler
@@ -138,6 +140,7 @@ func (dc *DaemonCommand) Add(fs *flag.FlagSet) {
 	fs.StringVar(&dc.jobanalyzerDir, "jobanalyzer-path", "", "Alias for -jobanalyzer-dir")
 	fs.StringVar(&dc.getAuthFile, "password-file", "", "Alias for -analysis-auth")
 	fs.StringVar(&dc.cache, "cache", "", "Enable data caching with this size (nM for megs, nG for gigs)")
+	fs.BoolVar(&ProfileCommands, "profile-commands", false, "Profile individual commands in 'profN' files (debugging)")
 }
 
 func (dc *DaemonCommand) Summary() []string {
