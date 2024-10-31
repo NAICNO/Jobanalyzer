@@ -19,4 +19,4 @@ clean:
 
 fmt test:
 	go $(MAKECMDGOALS)
-	for d in $(SUBDIRS); do (cd $$d ; go $(MAKECMDGOALS) ) ; done
+	set -e ; for d in $(SUBDIRS); do ( set -e ; cd $$d ; go $(MAKECMDGOALS) ) ; done
