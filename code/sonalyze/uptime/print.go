@@ -55,7 +55,7 @@ func (uc *UptimeCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 const uptimeHelp = `
-print
+uptime
   Compute the status of hosts and GPUs across time.  Default output format
   is 'fixed'.
 `

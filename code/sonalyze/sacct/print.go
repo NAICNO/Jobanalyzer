@@ -100,7 +100,7 @@ func (sc *SacctCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 const sacctHelp = `
-parse
+sacct
   Aggregate SLURM sacct data into data about jobs and present them.
 `
 

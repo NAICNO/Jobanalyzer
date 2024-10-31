@@ -221,7 +221,7 @@ func (nc *NodeCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 const nodesHelp = `
-nodes
+node
   Extract information about individual nodes on the cluster from sysinfo and present
   them in primitive form.  Output records are sorted by node name.  The default
   format is 'fixed'.
