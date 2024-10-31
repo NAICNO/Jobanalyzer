@@ -66,7 +66,7 @@ var (
 type ClusterEntry struct {
 	Name        string
 	Description string
-	Aliases     []string		// Not sorted
+	Aliases     []string // Not sorted
 }
 
 // The cluster table is returned as a pair: a shared immutable map from cluster name to cluster
