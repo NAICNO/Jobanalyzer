@@ -50,18 +50,18 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 
 	// Note "daemon" is not a command here
 	http.HandleFunc("/add", httpAddHandler(dc))
-	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))
-	http.HandleFunc("/config", httpGetHandler(dc, "config"))
-	http.HandleFunc("/node", httpGetHandler(dc, "node"))
-	http.HandleFunc("/jobs", httpGetHandler(dc, "jobs"))
-	http.HandleFunc("/load", httpGetHandler(dc, "load"))
-	http.HandleFunc("/uptime", httpGetHandler(dc, "uptime"))
-	http.HandleFunc("/profile", httpGetHandler(dc, "profile"))
-	http.HandleFunc("/parse", httpGetHandler(dc, "sample"))
-	http.HandleFunc("/sample", httpGetHandler(dc, "sample"))
-	http.HandleFunc("/report", httpGetHandler(dc, "report"))
-	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata"))
-	http.HandleFunc("/sacct", httpGetHandler(dc, "sacct"))
+	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster", false))
+	http.HandleFunc("/config", httpGetHandler(dc, "config", false))
+	http.HandleFunc("/node", httpGetHandler(dc, "node", false))
+	http.HandleFunc("/jobs", httpGetHandler(dc, "jobs", true))
+	http.HandleFunc("/load", httpGetHandler(dc, "load", true))
+	http.HandleFunc("/uptime", httpGetHandler(dc, "uptime", true))
+	http.HandleFunc("/profile", httpGetHandler(dc, "profile", true))
+	http.HandleFunc("/parse", httpGetHandler(dc, "sample", true))
+	http.HandleFunc("/sample", httpGetHandler(dc, "sample", true))
+	http.HandleFunc("/report", httpGetHandler(dc, "report", false))
+	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata", true))
+	http.HandleFunc("/sacct", httpGetHandler(dc, "sacct", true))
 	// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
 	// upload infra already running on the clusters.  We'd like to get rid of them eventually.
 	http.HandleFunc("/sonar-freecsv", httpPostHandler(dc, "sample", "text/csv"))
@@ -98,6 +98,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 func httpGetHandler(
 	dc *DaemonCommand,
 	command string,
+	launderUser bool,
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, _, clusterName, ok :=
@@ -129,6 +130,7 @@ func httpGetHandler(
 			)
 		}
 
+		userLaundered := false
 		for name, vs := range r.URL.Query() {
 			if name == "cluster" {
 				continue
@@ -153,10 +155,24 @@ func httpGetHandler(
 				if v == MagicBoolean {
 					v = "true"
 				}
+
+				if launderUser && (name == "user" || name == "u") {
+					// FIXME
+				}
+
 				// Go requires "=" between parameter and name for boolean params, but allows it for
 				// every type, so do it uniformly.
 				arguments = append(arguments, "--"+name+"="+v)
 			}
+		}
+
+		if launderUser && !userLaundered {
+			// FIXME
+			//
+			// Here's an interesting problem: the default for -u is not always "-", but sometimes
+			// "me".  For a superuser (whose cluster mapping is "-") we should however keep the "me"
+			// for those commands.  The DefaultRecordFilters() for the command has this information,
+			// which may depend on other arguments, and hence it's hidden deep in runSonalyze.
 		}
 
 		// Everyone except `cluster` and `report` gets a config, which they will need for caching
