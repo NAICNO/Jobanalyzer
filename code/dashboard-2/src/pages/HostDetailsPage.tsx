@@ -5,13 +5,14 @@ import {
   Divider,
   Heading,
   HStack,
+  Link as ChakraLink,
   Select,
   SlideFade,
   Spacer,
   Text,
   VStack
 } from '@chakra-ui/react'
-import { Navigate, useParams } from 'react-router-dom'
+import { Link as ReactRouterLink, Navigate, useParams } from 'react-router-dom'
 import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from '@tanstack/react-table'
 
 import { EMPTY_ARRAY, FETCH_FREQUENCIES } from '../Constants.ts'
@@ -113,6 +114,8 @@ export default function HostDetailsPage() {
     }
   })
 
+  const jobQueryLink = `/jobquery?cluster=${clusterName}&host=${hostname}`
+
   return (
     <>
       <PageTitle title={`${hostDetails?.system.hostname} Details`}/>
@@ -125,6 +128,9 @@ export default function HostDetailsPage() {
         </HStack>
         <Text> Description :{'\t'}{hostDetails?.system.description}
         </Text>
+        <ChakraLink as={ReactRouterLink} to={jobQueryLink}>
+          Job Query for this host
+        </ChakraLink>
 
         <Divider/>
 
