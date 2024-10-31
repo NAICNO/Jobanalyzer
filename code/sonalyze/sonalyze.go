@@ -237,6 +237,14 @@ func (_ *standardCommandLineHandler) ParseArgs(verb string, args []string, cmd C
 		}
 	}
 
+	// Skip validation if the command will provide formatting help and formatting help has been
+	// requested.  This is a bit of a hack to avoid Validate() erroring out before help is printed,
+	// but it is correct on the assumption that the caller will re-acquire the help message, print
+	// it, and exit.
+	if fhCmd, ok := cmd.(FormatHelpAPI); ok && fhCmd.MaybeFormatHelp() != nil {
+		return nil
+	}
+
 	err = cmd.Validate()
 	if err != nil {
 		return fmt.Errorf("Bad arguments, try -h\n%w\n", err)

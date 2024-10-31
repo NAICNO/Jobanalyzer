@@ -123,7 +123,7 @@ func (cc *ClusterCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 const clustersHelp = `
-nodes
+cluster
   Extract information about individual clusters in the data store.
   Output records are sorted by cluster name.  The default format is 'fixed'.
 `

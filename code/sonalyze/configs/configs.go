@@ -140,7 +140,7 @@ func (cc *ConfigCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 const configsHelp = `
-configs
+config
   Extract information about individual nodes on the cluster from config data and
   present them in primitive form.  Output records are sorted by node name.  The
   default format is 'fixed'.

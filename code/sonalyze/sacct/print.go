@@ -100,7 +100,7 @@ func (sc *SacctCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 const sacctHelp = `
-parse
+sacct
   Aggregate SLURM sacct data into data about jobs and present them.
 `
 
@@ -110,7 +110,7 @@ const sacctDefaultFields = v0SacctDefaultFields
 
 // MT: Constant after initialization; immutable
 var sacctAliases = map[string][]string{
-	"default": strings.Split(sacctDefaultFields, ","),
+	"default":   strings.Split(sacctDefaultFields, ","),
 	"v0default": strings.Split(v0SacctDefaultFields, ","),
 	"v1default": strings.Split(v1SacctDefaultFields, ","),
 }
