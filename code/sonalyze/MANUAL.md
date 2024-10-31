@@ -532,7 +532,7 @@ expanded.  Comment lines are allowed.  A typical file:
 
 [data-source]
 remote=https://naic-monitor.uio.no
-auth-file=$HOME/.ssh/sonalyzed-auth.txt
+auth-file=$HOME/.ssh/sonalyzed-auth.netrc
 ```
 
 Currently the only section is `[data-source]` and valid keys are `remote`, `auth-file`, `cluster`,
@@ -764,16 +764,21 @@ argument to name the cluster for which we want data:
 ```
 $ sonalyze jobs --remote http://some.host.no:8087 \
                 --cluster ml \
-                --auth-file some-file.txt \
+                --auth-file some-file.netrc \
                 -f 20w \
                 -u - \
                 --some-gpu \
                 --host ml8
 ```
 
-The auth-file holds the identity information of yourself as a `username:password` pair (this is
-crude but implements HTTP "basic" authentication), keep this file secret.  In this case, the server
+The auth-file holds the identity information of yourself, keep this file secret.  In this case, the server
 must have been told about this identity.  See the server manual for how to set that up.
+
+The auth file can either have a `username:password` pair or (much better) be on the .netrc format.
+It must have a single line of text.  The netrc format is `machine <machine> login <username>
+password <password>`.  The advantage of this is that the file can be passed to curl, while a
+username:password combination has to be passed on the command line and may be visible to other
+users.  The username:password facility will probably be removed eventually.
 
 In the case of remote access, the server supplies the `--data-path` and `--config-file` arguments
 based on the `--cluster` argument, so the former must be omitted from the local command invocation.

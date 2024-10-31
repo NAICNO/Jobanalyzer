@@ -3,12 +3,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
@@ -34,6 +36,8 @@ const (
 	remoteTimeoutSec = 3600
 )
 
+var netrc = regexp.MustCompile(`^machine\s+\S+\s+login\s+\S+\s+password\s+\S+\s*$`)
+
 func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout, stderr io.Writer) error {
 	r := NewReifier()
 	err := rCmd.ReifyForRemote(&r)
@@ -43,16 +47,33 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 
 	args := rCmd.RemotingFlags()
 	var username, password string
+	var netrcFile string			// "" if not netrc
 	if args.AuthFile != "" {
-		bs, err := os.ReadFile(args.AuthFile)
+		f, err := os.Open(args.AuthFile)
 		if err != nil {
 			// Note, file name is redacted
+			return errors.New("Failed to open auth file")
+		}
+		defer f.Close()
+		scanner := bufio.NewScanner(f)
+		lines := make([]string, 0)
+		for scanner.Scan() {
+			lines = append(lines, scanner.Text())
+		}
+		if err = scanner.Err(); err != nil {
 			return errors.New("Failed to read auth file")
 		}
-		var ok bool
-		username, password, ok = strings.Cut(strings.TrimSpace(string(bs)), ":")
-		if !ok {
-			return errors.New("Invalid auth file syntax")
+		if len(lines) != 1 {
+			return errors.New("Auth file must have exactly one line")
+		}
+		if netrc.MatchString(lines[0]) {
+			netrcFile = args.AuthFile
+		} else {
+			var ok bool
+			username, password, ok = strings.Cut(strings.TrimSpace(lines[0]), ":")
+			if !ok {
+				return errors.New("Invalid auth file syntax")
+			}
 		}
 	}
 
@@ -68,7 +89,9 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	// name.  (But the underlying problem is that we're using curl and not making the request
 	// directly.)
 
-	if username != "" {
+	if netrcFile != "" {
+		curlArgs = append(curlArgs, "--netrc-file", netrcFile)
+	} else if username != "" {
 		curlArgs = append(curlArgs, "-u", fmt.Sprintf("%s:%s", username, password))
 	}
 
