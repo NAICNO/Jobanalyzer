@@ -93,6 +93,9 @@ We need to ensure that every query for which it makes sense carries "-user".  Wh
 these?  In principle it is every query based on Sonar sample data or Slurm sacct data, since these
 carry user information.  That excludes only `cluster`, `config`, and `node`.
 
+(On second thought, not sure that one file per cluster is a great idea.  But this is one of those
+things that *really should be a proper database* anyway.  User permissions are not append-only
+like the rest of our data, we want transactions etc.)
 
 ## Upload (`add`, etc) authentication and authorization
 

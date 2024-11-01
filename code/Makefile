@@ -6,7 +6,7 @@
 # which must be added below.  Not every directory has regression tests.
 
 SUBDIRS=sonalyze naicreport sonard sacctd slurminfo make-cluster-config jsoncheck netsink numdiff \
-	heatmap go-utils tests dashboard
+	heatmap users go-utils tests dashboard
 
 .PHONY: default build fmt clean test regress $(SUBDIRS)
 
