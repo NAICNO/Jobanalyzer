@@ -6,6 +6,9 @@
 sacctd, and other monitoring components.  Use it to add data and to query, aggregate, and export
 data.
 
+There's a quick introduction to how everything hangs together in `doc/HOWTO.md` at the top level of
+the repo.
+
 ### Data model at a glance
 
 Notionally there are these tables:

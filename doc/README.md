@@ -2,6 +2,7 @@
 
 ## What's here?
 
+* `HOWTO.md` - simple getting-started instructions
 * `DESIGN.md` - architecture and implementation overview
 * `OLDER-USE-CASES.md` - original use cases
 * `REQUIREMENTS.md` - cleaned-up requirements and use cases
