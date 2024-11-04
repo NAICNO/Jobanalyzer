@@ -56,7 +56,7 @@ var relativeFields = map[string]bool{
 
 func (lc *LoadCommand) printRequiresConfig() bool {
 	for _, f := range lc.PrintFields {
-		if relativeFields[f] {
+		if relativeFields[f.Name] {
 			return true
 		}
 	}
@@ -78,7 +78,7 @@ func (lc *LoadCommand) printStreams(
 	// host name, print the host above each run of records for a host.
 	explicitHost := false
 	for _, f := range lc.PrintFields {
-		if f == "host" || f == "Hostname" {
+		if f.Name == "host" || f.Name == "Hostname" {
 			explicitHost = true
 			break
 		}
@@ -132,9 +132,13 @@ func (lc *LoadCommand) printStreams(
 			// Invariant: there's always at least one record
 			records = records[len(records)-1:]
 		}
-		FormatData(out, lc.PrintFields, loadFormatters, lc.PrintOpts,
+		FormatData(
+			out,
+			lc.PrintFields,
+			loadFormatters,
+			lc.PrintOpts,
 			uslices.Map(records, func(x *ReportRecord) any { return x }),
-			ComputePrintMods(lc.PrintOpts))
+		)
 
 		if lc.PrintOpts.Json {
 			fmt.Fprint(out, "}")
@@ -171,7 +175,7 @@ var loadAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var loadFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromTags(
+var loadFormatters = DefineTableFromTags(
 	// TODO: Go 1.22, reflect.TypeFor[ReportRecord]
 	reflect.TypeOf((*ReportRecord)(nil)).Elem(),
 	nil,

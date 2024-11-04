@@ -175,7 +175,6 @@ func (nc *NodeCommand) Nodes(_ io.Reader, stdout, stderr io.Writer) error {
 		nodesFormatters,
 		nc.PrintOpts,
 		uslices.Map(records, func(x *config.NodeConfigRecord) any { return x }),
-		ComputePrintMods(nc.PrintOpts),
 	)
 
 	return nil
@@ -241,7 +240,7 @@ var nodesAliases = map[string][]string{
 type SFS = SimpleFormatSpec
 
 // MT: Constant after initialization; immutable
-var nodesFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromMap(
+var nodesFormatters = DefineTableFromMap(
 	// TODO: Go 1.22, reflect.TypeFor[config.NodeConfigRecord]
 	reflect.TypeOf((*config.NodeConfigRecord)(nil)).Elem(),
 	map[string]any{

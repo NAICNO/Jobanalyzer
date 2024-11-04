@@ -1,17 +1,14 @@
 package jobs
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"math"
+	_ "reflect"
 	"slices"
-	"sort"
-	"strings"
-	"time"
 
-	"go-utils/gpuset"
-	umaps "go-utils/maps"
-	"go-utils/sonalyze"
+	uslices "go-utils/slices"
 
 	. "sonalyze/command"
 	. "sonalyze/common"
@@ -19,7 +16,7 @@ import (
 
 func (jc *JobsCommand) printRequiresConfig() bool {
 	for _, f := range jc.PrintFields {
-		switch f {
+		switch f.Name {
 		case "rcpu-avg", "rcpu-peak", "rmem-avg", "rmem-peak", "rgpu-avg", "rgpu-peak",
 			"rgpumem-avg", "rgpumem-peak", "rres-avg", "rres-peak":
 			return true
@@ -28,26 +25,15 @@ func (jc *JobsCommand) printRequiresConfig() bool {
 	return false
 }
 
-type sortableSummaries []*jobSummary
-
-func (ss sortableSummaries) Len() int {
-	return len(ss)
-}
-
-func (ss sortableSummaries) Swap(i, j int) {
-	ss[i], ss[j] = ss[j], ss[i]
-}
-
-func (ss sortableSummaries) Less(i, j int) bool {
-	if ss[i].aggregate.first == ss[j].aggregate.first {
-		return ss[i].job[0].Job < ss[j].job[0].Job
-	}
-	return ss[i].aggregate.first < ss[j].aggregate.first
-}
-
 func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary) error {
 	// Sort ascending by lowest beginning timestamp, and if those are equal, by job number.
-	sort.Stable(sortableSummaries(summaries))
+	slices.SortStableFunc(summaries, func(a, b *jobSummary) int {
+		c := cmp.Compare(a.Start, b.Start)
+		if c == 0 {
+			c = cmp.Compare(a.JobId, b.JobId)
+		}
+		return c
+	})
 
 	// Select a number of jobs per user, if applicable.  This means working from the bottom up
 	// in the vector and marking the numJobs first per user.
@@ -62,9 +48,9 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 			c := counts[u] + 1
 			counts[u] = c
 			if c > jc.NumJobs {
-				if summaries[i].aggregate.selected {
+				if summaries[i].selected {
 					numRemoved++
-					summaries[i].aggregate.selected = false
+					summaries[i].selected = false
 				}
 			}
 		}
@@ -77,7 +63,7 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 	// Pick the summaries that have been selected
 	dst := 0
 	for src := 0; src < len(summaries); src++ {
-		if summaries[src].aggregate.selected {
+		if summaries[src].selected {
 			summaries[dst] = summaries[src]
 			dst++
 		}
@@ -89,11 +75,7 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 		jc.PrintFields,
 		jobsFormatters,
 		jc.PrintOpts,
-		summaries,
-		jobCtx(jobCtx{
-			now:         time.Now().UTC().Unix(),
-			fixedFormat: jc.PrintOpts.Fixed,
-		}),
+		uslices.Map(summaries, func(x *jobSummary) any { return x }),
 	)
 	return nil
 }
@@ -109,15 +91,12 @@ jobs
   format is 'fixed'.
 `
 
-type jobCtx struct {
-	now         int64
-	fixedFormat bool
-}
-
 const jobsDefaultFields = "std,cpu,mem,gpu,gpumem,cmd"
 
 // MT: Constant after initialization; immutable
 var jobsAliases = map[string][]string{
+	"default": []string{"jobm", "user", "duration", "host", "cpu", "mem", "gpu", "gpumem", "cmd"},
+	"all":     []string{"jobm", "job", "user", "duration", "duration/sec", "start", "start/sec", "end", "end/sec", "cpu-avg", "cpu-peak", "rcpu-avg", "rcpu-peak", "mem-avg", "mem-peak", "rmem-avg", "rmem-peak", "res-avg", "res-peak", "rres-avg", "rres-peak", "gpu-avg", "gpu-peak", "rgpu-avg", "rgpu-peak", "sgpu-avg", "sgpu-peak", "gpumem-avg", "gpumem-peak", "rgpumem-avg", "rgpumem-peak", "sgpumem-avg", "sgpumem-peak", "gpus", "gpufail", "cmd", "host", "now", "now/sec", "classification", "cputime/sec", "cputime", "gputime/sec", "gputime"},
 	"std":     []string{"jobm", "user", "duration", "host"},
 	"cpu":     []string{"cpu-avg", "cpu-peak"},
 	"rcpu":    []string{"rcpu-avg", "rcpu-peak"},
@@ -133,365 +112,274 @@ var jobsAliases = map[string][]string{
 	"sgpumem": []string{"sgpumem-avg", "sgpumem-peak"},
 }
 
+// TODO:
+//  - indexed field access: key: XFA{desc, realname, indexval, attr} is exactly like synthesized ZFA
+//    realname is an array or slice, indexval is an int index, key is the display name, there should be
+//    only one realname[index] entry per key
+//  - does the field need to be "Computed" and not "computed"?
+
+type SFS = SimpleFormatSpec
+type XFA = SynthesizedIndexedFormatSpecWithAttr
+
+/*
+var newJobsFormatters = DefineTableFromMap(
+	reflect.TypeOf((*jobSummary)(nil)).Elem(),
+	map[string]any{
+		"JobAndMark":         SFS{"Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window", "jobm"},
+		"JobId":              SFS{"Job ID", "job"},
+		"User":               SFS{"Name of user running the job", "user"},
+		"Duration":           SFS{"Duration in minutes of job: time of last observation minus time of first", "duration"},
+		"Start":              SFS{"Time of first observation", "start"},
+		"End":                SFS{"Time of last observation", "end"},
+		"CpuAvgPct":          XFA{"Average CPU utilization in percent (100% = 1 core)", "computed", kCpuPctAvg, "cpu-avg", FmtCeil},
+		"CpuPeakPct":         XFA{"Peak CPU utilization in percent (100% = 1 core)", "computed", kCpuPctPeak, "cpu-peak", FmtCeil},
+		"RelativeCpuAvgPct":  XFA{"Average relative CPU utilization in percent (100% = all cores)", "computed", kRcpuPctAvg, "rcpu-avg", FmtCeil},
+		"RelativeCpuPeakPct": XFA{"Peak relative CPU utilization in percent (100% = all cores)", "computed", kRcpuPctPeak, "rcpu-peak", FmtCeil},
+		"MemAvgGB":           XFA{"Average main virtual memory utilization in GB", "computed", kCpuGBAvg, "mem-avg", FmtCeil},
+		"MemPeakGB":          XFA{"Peak main virtual memory utilization in GB", "computed", kCpuGBPeak, "mem-peak", FmtCeil},
+		//"RelativeMemAvgPct": XFA{},
+		//"RelativeMemPeakPct": XFA{},
+		// ... FIXME ...
+		"Gpus":           SFS{"GPU device numbers used by the job, 'none' if none or 'unknown' in error states", "gpus"},
+		"GpuFail":        SFS{"Flag indicating GPU status (0=Ok, not 0=failing)", "gpufail"},
+		"Cmd":            SFS{"The commands invoking the processes of the job", "cmd"},
+		"Host":           SFS{"List of the host name(s) running the job (first elements of FQDNs, compressed)", "host"},
+		"Now":            SFS{"The current time", "now"},
+		"Classification": SFS{"Bit vector of live-at-start (2) and live-at-end (1) flags", "classification"},
+		"CpuTime":        SFS{"Total CPU time of the job across all cores", "cputime"},
+		"GpuTime":        SFS{"Total GPU time of the job across all cores", "gputime"},
+	},
+)
+*/
+
 // MT: Constant after initialization; immutable
-var jobsFormatters = map[string]Formatter[*jobSummary, jobCtx]{
+var jobsFormatters = map[string]Formatter{
 	"jobm": {
-		func(d *jobSummary, _ jobCtx) string {
-			mark := ""
-			c := d.aggregate.computedFlags
-			switch {
-			case c&(kIsLiveAtStart|kIsLiveAtEnd) == (kIsLiveAtStart | kIsLiveAtEnd):
-				mark = "!"
-			case c&kIsLiveAtStart != 0:
-				mark = "<"
-			case c&kIsLiveAtEnd != 0:
-				mark = ">"
-			}
-			return fmt.Sprint(d.job[0].Job, mark)
+		func(d any, _ PrintMods) string {
+			return d.(*jobSummary).JobAndMark
 		},
 		"Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window",
 	},
 	"job": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(d.job[0].Job)
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(d.(*jobSummary).JobId)
 		},
 		"Job ID",
 	},
 	"user": {
-		func(d *jobSummary, _ jobCtx) string {
-			return d.job[0].User.String()
+		func(d any, _ PrintMods) string {
+			return d.(*jobSummary).User.String()
 		},
 		"Name of user running the job",
 	},
 	"duration": {
-		func(d *jobSummary, _ jobCtx) string {
-			mins := int64(math.Round(d.aggregate.computed[kDuration] / 60))
-			minutes := mins % 60
-			hours := (mins / 60) % 24
-			days := mins / (60 * 24)
-			return fmt.Sprintf("%dd%2dh%2dm", days, hours, minutes)
+		func(d any, ctx PrintMods) string {
+			return FormatDurationValue(int64(d.(*jobSummary).Duration), ctx)
 		},
-		"Duration in minutes of job: time of last observation minus time of first (DdHhMm)",
-	},
-	"duration/sec": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(int64(d.aggregate.computed[kDuration]))
-		},
-		"Duration in seconds of job: time of last observation minus time of first",
+		"Duration of job: time of last observation minus time of first",
 	},
 	"start": {
-		func(d *jobSummary, _ jobCtx) string {
-			return FormatYyyyMmDdHhMmUtc(d.aggregate.first)
+		func(d any, ctx PrintMods) string {
+			return FormatDateTimeValue(int64(d.(*jobSummary).Start), ctx)
 		},
-		"Time of first observation (yyyy-dd-mm hh:mm)",
-	},
-	"start/sec": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(d.aggregate.first)
-		},
-		"Time of first observation (Unix timestamp)",
+		"Time of first observation",
 	},
 	"end": {
-		func(d *jobSummary, _ jobCtx) string {
-			return FormatYyyyMmDdHhMmUtc(d.aggregate.last)
+		func(d any, ctx PrintMods) string {
+			return FormatDateTimeValue(int64(d.(*jobSummary).End), ctx)
 		},
-		"Time of last observation (yyyy-dd-mm hh:mm)",
-	},
-	"end/sec": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(d.aggregate.last)
-		},
-		"Time of last observation (Unix timestamp)",
+		"Time of last observation",
 	},
 	"cpu-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kCpuPctAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kCpuPctAvg])))
 		},
 		"Average CPU utilization in percent (100% = 1 core)",
 	},
 	"cpu-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kCpuPctPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kCpuPctPeak])))
 		},
 		"Peak CPU utilization in percent (100% = 1 core)",
 	},
 	"rcpu-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRcpuPctAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRcpuPctAvg])))
 		},
 		"Average relative CPU utilization in percent (100% = all cores)",
 	},
 	"rcpu-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRcpuPctPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRcpuPctPeak])))
 		},
 		"Peak relative CPU utilization in percent (100% = all cores)",
 	},
 	"mem-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kCpuGBAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kCpuGBAvg])))
 		},
 		"Average main virtual memory utilization in GiB",
 	},
 	"mem-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kCpuGBPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kCpuGBPeak])))
 		},
 		"Peak main virtual memory utilization in GiB",
 	},
 	"rmem-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRcpuGBAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRcpuGBAvg])))
 		},
 		"Average relative main virtual memory utilization in percent (100% = system RAM)",
 	},
 	"rmem-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRcpuGBPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRcpuGBPeak])))
 		},
 		"Peak relative main virtual memory utilization in percent (100% = system RAM)",
 	},
 	"res-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRssAnonGBAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRssAnonGBAvg])))
 		},
 		"Average main resident memory utilization in GiB",
 	},
 	"res-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRssAnonGBPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRssAnonGBPeak])))
 		},
 		"Peak main resident memory utilization in GiB",
 	},
 	"rres-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRrssAnonGBAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRrssAnonGBAvg])))
 		},
 		"Average relative main resident memory utilization in percent (100% = all RAM)",
 	},
 	"rres-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRrssAnonGBPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRrssAnonGBPeak])))
 		},
 		"Peak relative main resident memory utilization in percent (100% = all RAM)",
 	},
 	"gpu-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kGpuPctAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kGpuPctAvg])))
 		},
 		"Average GPU utilization in percent (100% = 1 card)",
 	},
 	"gpu-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kGpuPctPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kGpuPctPeak])))
 		},
 		"Peak GPU utilization in percent (100% = 1 card)",
 	},
 	"rgpu-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRgpuPctAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRgpuPctAvg])))
 		},
 		"Average relative GPU utilization in percent (100% = all cards)",
 	},
 	"rgpu-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRgpuPctPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRgpuPctPeak])))
 		},
 		"Peak relative GPU utilization in percent (100% = all cards)",
 	},
 	"sgpu-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kSgpuPctAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kSgpuPctAvg])))
 		},
 		"Average relative GPU utilization in percent (100% = all cards used by job)",
 	},
 	"sgpu-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kSgpuPctPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kSgpuPctPeak])))
 		},
 		"Peak relative GPU utilization in percent (100% = all cards used by job)",
 	},
 	"gpumem-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kGpuGBAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kGpuGBAvg])))
 		},
 		"Average resident GPU memory utilization in GiB",
 	},
 	"gpumem-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kGpuGBPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kGpuGBPeak])))
 		},
 		"Peak resident GPU memory utilization in GiB",
 	},
 	"rgpumem-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRgpuGBAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRgpuGBAvg])))
 		},
 		"Average relative GPU resident memory utilization in percent (100% = all GPU RAM)",
 	},
 	"rgpumem-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kRgpuGBPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRgpuGBPeak])))
 		},
 		"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)",
 	},
 	"sgpumem-avg": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kSgpuGBAvg])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kSgpuGBAvg])))
 		},
 		"Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
 	},
 	"sgpumem-peak": {
-		func(d *jobSummary, _ jobCtx) string {
-			return fmt.Sprint(uint64(math.Ceil(d.aggregate.computed[kSgpuGBPeak])))
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kSgpuGBPeak])))
 		},
 		"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
 	},
 	"gpus": {
-		func(d *jobSummary, _ jobCtx) string {
-			gpus := gpuset.EmptyGpuSet()
-			for _, j := range d.job {
-				gpus = gpuset.UnionGpuSets(gpus, j.Gpus)
-			}
-			return gpus.String()
+		func(d any, _ PrintMods) string {
+			return d.(*jobSummary).Gpus.String()
 		},
 		"GPU device numbers used by the job, 'none' if none or 'unknown' in error states",
 	},
 	"gpufail": {
-		func(d *jobSummary, _ jobCtx) string {
-			if (d.aggregate.computedFlags & kGpuFail) != 0 {
-				return "1"
-			}
-			return "0"
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(d.(*jobSummary).GpuFail)
 		},
 		"Flag indicating GPU status (0=Ok, 1=Failing)",
 	},
 	"cmd": {
-		func(d *jobSummary, _ jobCtx) string {
-			names := make(map[Ustr]bool)
-			name := ""
-			for _, sample := range d.job {
-				if _, found := names[sample.Cmd]; found {
-					continue
-				}
-				if name != "" {
-					name += ", "
-				}
-				name += sample.Cmd.String()
-				names[sample.Cmd] = true
-			}
-			return name
+		func(d any, _ PrintMods) string {
+			return d.(*jobSummary).Cmd
 		},
 		"The commands invoking the processes of the job",
 	},
 	"host": {
-		func(d *jobSummary, c jobCtx) string {
-			// TODO: It's not clear any more why len(hosts) would ever be other than 1, and why this
-			// processing is needed at all.  This could be very old code that is no longer relevant.
-			// The Go code just copies the Rust code here.
-			//
-			// Names are assumed to be compressed as the set of jobs is always the output of some
-			// merge process that will compress when appropriate.  (If they are not compressed for
-			// reasons having to do with how the merge was done, and we don't compress them here,
-			// then there may be substantial redundancy in the output: "c1-10.fox, c1-11.fox", etc,
-			// instead of the desirable "c1-[10,11].fox", but that should not currently be an issue
-			// for `jobs`.)  Therefore there is no compression here.  But even the uniq'ing, sorting
-			// and joining may be redundant.
-			hosts := make(map[string]bool)
-			for _, s := range d.job {
-				var name string
-				if c.fixedFormat {
-					name, _, _ = strings.Cut(s.Host.String(), ".")
-				} else {
-					name = s.Host.String()
-				}
-				hosts[name] = true
-			}
-			keys := umaps.Keys(hosts)
-			slices.Sort(keys)
-			return strings.Join(keys, ", ")
+		func(d any, _ PrintMods) string {
+			return d.(*jobSummary).Host
 		},
 		"List of the host name(s) running the job (first elements of FQDNs, compressed)",
 	},
 	"now": {
-		func(_ *jobSummary, c jobCtx) string {
-			return FormatYyyyMmDdHhMmUtc(c.now)
+		func(d any, ctx PrintMods) string {
+			return FormatDateTimeValue(int64(d.(*jobSummary).Now), ctx)
 		},
-		"The current time (yyyy-mm-dd hh:mm)",
-	},
-	"now/sec": {
-		func(_ *jobSummary, c jobCtx) string {
-			return fmt.Sprint(c.now)
-		},
-		"The current time (Unix timestamp)",
+		"The current time",
 	},
 	"classification": {
-		func(d *jobSummary, _ jobCtx) string {
-			n := 0
-			if (d.aggregate.computedFlags & kIsLiveAtStart) != 0 {
-				n |= sonalyze.LIVE_AT_START
-			}
-			if (d.aggregate.computedFlags & kIsLiveAtEnd) != 0 {
-				n |= sonalyze.LIVE_AT_END
-			}
-			return fmt.Sprint(n)
+		func(d any, _ PrintMods) string {
+			return fmt.Sprint(d.(*jobSummary).Classification)
 		},
 		"Bit vector of live-at-start (2) and live-at-end (1) flags",
 	},
-	"cputime/sec": {
-		func(d *jobSummary, _ jobCtx) string {
-			// The unit for average cpu utilization is core-seconds per second, we multiply this by
-			// duration (whose units is second) to get total core-seconds for the job.  Finally scale by
-			// 100 because the cpu_avg numbers are expressed in integer percentage point.
-			//
-			// Note, this `duration` may be incompatible from the Rust version, as we have second resolution.
-			duration := d.aggregate.computed[kDuration]
-			cputimeSec := int64(math.Round(d.aggregate.computed[kCpuPctAvg] * duration / 100))
-			return fmt.Sprint(cputimeSec)
-		},
-		"Total CPU time of the job across all cores (seconds)",
-	},
 	"cputime": {
-		func(d *jobSummary, _ jobCtx) string {
-			// As above, but formatted and rounded differently.
-			duration := d.aggregate.computed[kDuration]
-			cputimeSec := int64(math.Round(d.aggregate.computed[kCpuPctAvg] * duration / 100))
-			if cputimeSec%60 >= 30 {
-				cputimeSec += 30
-			}
-			minutes := (cputimeSec / 60) % 60
-			hours := (cputimeSec / (60 * 60)) % 24
-			days := cputimeSec / (60 * 60 * 24)
-			return fmt.Sprintf("%2dd%2dh%2dm", days, hours, minutes)
+		func(d any, ctx PrintMods) string {
+			return FormatDurationValue(int64(d.(*jobSummary).CpuTime), ctx)
 		},
-		"Total CPU time of the job across all cores (DdHhMm)",
-	},
-	"gputime/sec": {
-		func(d *jobSummary, _ jobCtx) string {
-			// The unit for average gpu utilization is card-seconds per second, we multiply this by
-			// duration (whose units is second) to get total card-seconds for the job.  Finally scale by
-			// 100 because the gpu_avg numbers are expressed in integer percentage point.
-			//
-			// Note, this `duration` may be incompatible from the Rust version, as we have second resolution.
-			duration := d.aggregate.computed[kDuration]
-			gputimeSec := int64(math.Round(d.aggregate.computed[kGpuPctAvg] * duration / 100))
-			return fmt.Sprint(gputimeSec)
-		},
-		"Total GPU time of the job across all cards (seconds)",
+		"Total CPU time of the job across all cores",
 	},
 	"gputime": {
-		func(d *jobSummary, _ jobCtx) string {
-			// As above, but formatted and rounded differently.
-			duration := d.aggregate.computed[kDuration]
-			gputimeSec := int64(math.Round(d.aggregate.computed[kGpuPctAvg] * duration / 100))
-			if gputimeSec%60 >= 30 {
-				gputimeSec += 30
-			}
-			minutes := (gputimeSec / 60) % 60
-			hours := (gputimeSec / (60 * 60)) % 24
-			days := gputimeSec / (60 * 60 * 24)
-			return fmt.Sprintf("%2dd%2dh%2dm", days, hours, minutes)
+		func(d any, ctx PrintMods) string {
+			return FormatDurationValue(int64(d.(*jobSummary).GpuTime), ctx)
 		},
-		"Total GPU time of the job across all cards (DdHhMm)",
+		"Total GPU time of the job across all cards",
 	},
 }

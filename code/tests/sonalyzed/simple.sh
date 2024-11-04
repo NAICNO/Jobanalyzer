@@ -65,6 +65,6 @@ cmp cluster2-sysinfo.json $rootdir/data/cluster2.naic.com/2024/03/31/sysinfo-c2.
 
 output=$(curl --silent --fail-with-body -G -u john:jj \
               "http://localhost:$testport/jobs?cluster=cluster1.naic.com&job=2712710&from=2023-09-01&fmt=noheader,csv,std,cpu,mem")
-CHECK "jobs_1" "2712710!,hermanno,0d 0h20m,c1.cluster1.naic.com,3,7,14,14" "$output"
+CHECK "jobs_1" "2712710!,hermanno,0d0h20m,c1.cluster1.naic.com,3,7,14,14" "$output"
 
 rm -rf $rootdir

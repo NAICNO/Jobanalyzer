@@ -107,7 +107,6 @@ func (cc *ClusterCommand) Clusters(_ io.Reader, stdout, stderr io.Writer) error 
 		clustersFormatters,
 		cc.PrintOpts,
 		printable,
-		ComputePrintMods(cc.PrintOpts),
 	)
 
 	return nil
@@ -142,7 +141,7 @@ var clustersAliases = map[string][]string{
 type SFS = SimpleFormatSpec
 
 // MT: Constant after initialization; immutable
-var clustersFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromMap(
+var clustersFormatters = DefineTableFromMap(
 	// TODO: Go 1.22, reflect.TypeFor[db.ClusterEntry]
 	reflect.TypeOf((*db.ClusterEntry)(nil)).Elem(),
 	map[string]any{

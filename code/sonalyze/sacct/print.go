@@ -90,9 +90,13 @@ func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSumma
 			ArrayIndex:          r.main.ArrayIndex,
 		}
 	}
-	FormatData(stdout, sc.PrintFields, sacctFormatters, sc.PrintOpts,
+	FormatData(
+		stdout,
+		sc.PrintFields,
+		sacctFormatters,
+		sc.PrintOpts,
 		uslices.Map(toPrint, func(x *SacctRegular) any { return x }),
-		ComputePrintMods(sc.PrintOpts))
+	)
 }
 
 func (sc *SacctCommand) MaybeFormatHelp() *FormatHelp {
@@ -116,7 +120,7 @@ var sacctAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var sacctFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromTags(
+var sacctFormatters = DefineTableFromTags(
 	// TODO: Go 1.22, reflect.TypeFor[SacctRegular]
 	reflect.TypeOf((*SacctRegular)(nil)).Elem(),
 	nil,

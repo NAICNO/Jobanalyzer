@@ -8,10 +8,108 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	umaps "go-utils/maps"
+
+	. "sonalyze/common"
 )
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Print modifiers.
+//
+// See comment block below.
+
+type PrintMods = int
+
+const (
+	// These apply per-field according to modifiers
+	// TODO: These are currently unimplemented.
+	PrintModSec = (1 << iota) // timestamps are printed as seconds since epoch
+	PrintModIso               // timestamps are printed as Iso timestamps
+
+	// These are for the output format and are applied to all fields
+	PrintModFixed      // fixed format
+	PrintModJson       // JSON format
+	PrintModCsv        // CSV format
+	PrintModCsvNamed   // CSVNamed format
+	PrintModAwk        // AWK format
+	PrintModNoDefaults // Set (for any format) if option is set
+)
+
+func ComputePrintMods(opts *FormatOptions) PrintMods {
+	var x PrintMods
+	switch {
+	case opts.Csv:
+		if opts.Named {
+			x = PrintModCsvNamed
+		} else {
+			x = PrintModCsv
+		}
+	case opts.Json:
+		x = PrintModJson
+	case opts.Awk:
+		x = PrintModAwk
+	case opts.Fixed:
+		x = PrintModFixed
+	}
+	if opts.NoDefaults && (opts.Csv || opts.Json) {
+		x |= PrintModNoDefaults
+	}
+	return x
+}
+
+func FormatDurationValue(secs int64, ctx PrintMods) string {
+	if (ctx & PrintModSec) != 0 {
+		return fmt.Sprint(secs)
+	}
+	return FormatDurationDHM(secs, ctx)
+}
+
+func FormatDateTimeValue(timestamp int64, ctx PrintMods) string {
+	// Note, it is part of the API that PrintModSec takes precedence over PrintModIso (this
+	// simplifies various other paths).
+	if (ctx & PrintModSec) != 0 {
+		return fmt.Sprint(timestamp)
+	}
+	if (ctx & PrintModIso) != 0 {
+		return time.Unix(timestamp, 0).UTC().Format(time.RFC3339)
+	}
+	return FormatYyyyMmDdHhMmUtc(timestamp)
+}
+
+// The DurationValue had two different formats in older code: %2dd%2dh%2dm and %dd%2dh%2dm.  The
+// embedded spaces made things line up properly in fixed-format outputs of jobs, and most scripts
+// would likely use "duration/sec" etc instead, but the variability in the leading space is weird
+// and probably an accident (the "duration" field of the jobs report is the oldest one and did not
+// have leading space).  Additionally, in older code there was a difference in rounding behavior in
+// different printers (some would round, some would truncate).
+//
+// The fact that the output format does not correspond to a "duration" option format (which does not
+// allow spaces) is also a annoying.
+//
+// Here, we settle on the following interpretation and hope it won't break anything.  For fixed
+// output, always use %2dd%2dh%2dm.  For other outputs, always use %dd%dh%dm.  Also, round to the
+// nearerest minute, rounding up on ties.
+
+func FormatDurationDHM(durationSec int64, ctx PrintMods) string {
+	if durationSec%60 >= 30 {
+		durationSec += 30
+	}
+	minutes := (durationSec / 60) % 60
+	hours := (durationSec / (60 * 60)) % 24
+	days := durationSec / (60 * 60 * 24)
+	if (ctx & PrintModFixed) != 0 {
+		return fmt.Sprintf("%2dd%2dh%2dm", days, hours, minutes)
+	}
+	return fmt.Sprintf("%dd%dh%dm", days, hours, minutes)
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Formatting specs
 
 type FormatOptions struct {
 	Tag        string // if not ""
@@ -34,36 +132,97 @@ func (fo *FormatOptions) IsDefaultFormat() bool {
 // strings found in `spec`, plus also "help" if fmtOpt=="help".  Expand aliases (though not
 // recursively: aliases must map to fundamental names).
 
-func ParseFormatSpec[T any](
+type FieldSpec struct {
+	Name   string
+	Mod    PrintMods // /sec, /iso etc
+	Header string    // name + modifier for backward compat
+}
+
+const (
+	// Cheap way of preventing alias infinite expansion errors and all sorts of expansion DoS
+	// attacks.  200 is probably fine: As of now, the max number of unique fields in the `jobs`
+	// output is less than 50.  One could imagine various contorted but valid output specs needing
+	// more than 200 by repeating fields in various ways but let's not worry.
+	maxFields = 200
+)
+
+func ParseFormatSpec(
 	defaults, fmtOpt string,
-	formatters map[string]T,
+	formatters map[string]Formatter,
 	aliases map[string][]string,
-) ([]string, map[string]bool, error) {
+) (fields []FieldSpec, others map[string]bool, err error) {
+	fields = make([]FieldSpec, 0)
+	others = make(map[string]bool)
 	spec := fmtOpt
 	if fmtOpt == "" || fmtOpt == "help" {
 		spec = defaults
 	}
-	others := make(map[string]bool)
-	fields := make([]string, 0)
 	if fmtOpt == "help" {
 		others["help"] = true
 	}
-	for _, kwd := range strings.Split(spec, ",") {
-		if _, found := formatters[kwd]; found {
-			fields = append(fields, kwd)
-		} else if expansion, found := aliases[kwd]; found {
-			for _, alias := range expansion {
-				if _, found := formatters[alias]; found {
-					fields = append(fields, alias)
-				} else {
-					others[alias] = true
-				}
-			}
-		} else {
-			others[kwd] = true
-		}
+	for _, fieldName := range strings.Split(spec, ",") {
+		fields, _ = addField(fieldName, fields, others, formatters, aliases)
 	}
 	return fields, others, nil
+}
+
+func addField(
+	fieldName string,
+	fields []FieldSpec,
+	others map[string]bool,
+	formatters map[string]Formatter,
+	aliases map[string][]string,
+) ([]FieldSpec, bool) {
+	if newFields, found := recordField(fieldName, "", 0, fields, others, formatters, aliases); found {
+		return newFields, true
+	}
+	if before, after, found := strings.Cut(fieldName, "/"); found {
+		var m PrintMods
+		switch after {
+		case "sec":
+			m = PrintModSec
+		case "iso":
+			m = PrintModIso
+		}
+		if m != 0 {
+			if newFields, found := recordField(before, "/"+after, m, fields, others, formatters, aliases); found {
+				return newFields, true
+			}
+		}
+	}
+	others[fieldName] = true
+	return fields, false
+}
+
+func recordField(
+	kwd, mod string,
+	m PrintMods,
+	fields []FieldSpec,
+	others map[string]bool,
+	formatters map[string]Formatter,
+	aliases map[string][]string,
+) ([]FieldSpec, bool) {
+	anyAdded := false
+	if _, found := formatters[kwd]; found {
+		if len(fields) >= maxFields {
+			// true ensures rapid unwinding
+			return fields, true
+		}
+		fields = append(fields, FieldSpec{Name: kwd, Mod: m, Header: kwd + mod})
+		anyAdded = true
+	}
+	if expansion, found := aliases[kwd]; found {
+		for _, alias := range expansion {
+			var added bool
+			if len(fields) >= maxFields {
+				// true ensures rapid unwinding
+				return fields, true
+			}
+			fields, added = addField(alias, fields, others, formatters, aliases)
+			anyAdded = anyAdded || added
+		}
+	}
+	return fields, anyAdded
 }
 
 // Parse the non-field-name attributes as a set of formatting options.
@@ -126,14 +285,15 @@ func StandardFormatOptions(others map[string]bool, def DefaultFormat) *FormatOpt
 
 // FormatData defaults to fixed formatting.
 
-func FormatData[Datum, Ctx any](
+func FormatData(
 	out io.Writer,
-	fields []string,
-	formatters map[string]Formatter[Datum, Ctx],
+	fields []FieldSpec,
+	formatters map[string]Formatter,
 	opts *FormatOptions,
-	data []Datum,
-	ctx Ctx,
+	data []any,
 ) {
+	ctx := ComputePrintMods(opts)
+
 	// TODO: OPTIMIZEME: Instead of creating this huge matrix up-front and serializing field
 	// formatting and output formatting, it might be better to set up some kind of
 	// generator-formatter pipeline.  Allocation volume would be the same but we'd lower peak memory
@@ -147,13 +307,17 @@ func FormatData[Datum, Ctx any](
 	}
 
 	// Produce the formatted field values for all fields.
-	fmt := make([]func(Datum, Ctx) string, len(fields))
-	for c, kwd := range fields {
-		fmt[c] = formatters[kwd].Fmt
+	type F struct {
+		fmt func(any, PrintMods) string
+		mod PrintMods
+	}
+	fmt := make([]F, len(fields))
+	for c, f := range fields {
+		fmt[c] = F{formatters[f.Name].Fmt, f.Mod}
 	}
 	for r, x := range data {
 		for c := range fields {
-			cols[c][r] = fmt[c](x, ctx)
+			cols[c][r] = fmt[c].fmt(x, ctx|fmt[c].mod)
 		}
 	}
 
@@ -170,7 +334,7 @@ func FormatData[Datum, Ctx any](
 
 // The expectation here is that this is fairly low volume and that it's not worth it to try to
 // optimize it to avoid allocations.
-func formatFixed(unbufOut io.Writer, fields []string, opts *FormatOptions, cols [][]string) {
+func formatFixed(unbufOut io.Writer, fields []FieldSpec, opts *FormatOptions, cols [][]string) {
 	out := Buffered(unbufOut)
 	defer out.Flush()
 
@@ -186,7 +350,7 @@ func formatFixed(unbufOut io.Writer, fields []string, opts *FormatOptions, cols 
 
 	if opts.Header {
 		for col := 0; col < len(fields); col++ {
-			widths[col] = max(widths[col], utf8.RuneCountInString(fields[col]))
+			widths[col] = max(widths[col], utf8.RuneCountInString(fields[col].Header))
 		}
 		if tagCol >= 0 {
 			widths[tagCol] = max(widths[tagCol], len("tag"))
@@ -208,7 +372,7 @@ func formatFixed(unbufOut io.Writer, fields []string, opts *FormatOptions, cols 
 	if opts.Header {
 		s.Reset()
 		for col := 0; col < len(fields); col++ {
-			writeStringPadded(&s, widths[col], fields[col])
+			writeStringPadded(&s, widths[col], fields[col].Header)
 		}
 		if tagCol >= 0 {
 			writeStringPadded(&s, widths[tagCol], "tag")
@@ -245,7 +409,7 @@ func writeStringPadded(s *strings.Builder, width int, str string) {
 	s.WriteString(spaces[:needed])
 }
 
-func formatCsv(out io.Writer, fields []string, opts *FormatOptions, cols [][]string) {
+func formatCsv(out io.Writer, fields []FieldSpec, opts *FormatOptions, cols [][]string) {
 	w := csv.NewWriter(out)
 	defer w.Flush()
 
@@ -256,7 +420,9 @@ func formatCsv(out io.Writer, fields []string, opts *FormatOptions, cols [][]str
 	outFields := make([]string, numFields)
 
 	if opts.Header {
-		copy(outFields[:len(fields)], fields)
+		for i := 0; i < len(fields); i++ {
+			outFields[i] = fields[i].Header
+		}
 		if opts.Tag != "" {
 			outFields[numFields-1] = opts.Tag
 		}
@@ -270,7 +436,7 @@ func formatCsv(out io.Writer, fields []string, opts *FormatOptions, cols [][]str
 			if opts.NoDefaults && val == "*skip*" {
 				// Do nothing
 			} else if opts.Named {
-				outFields[outIx] = fields[col] + "=" + val
+				outFields[outIx] = fields[col].Header + "=" + val
 				outIx++
 			} else {
 				outFields[outIx] = val
@@ -291,13 +457,13 @@ func formatCsv(out io.Writer, fields []string, opts *FormatOptions, cols [][]str
 }
 
 // There's no natural fit for the JSON encoder here, so just do it manually.
-func formatJson(unbufOut io.Writer, fields []string, opts *FormatOptions, cols [][]string) {
+func formatJson(unbufOut io.Writer, fields []FieldSpec, opts *FormatOptions, cols [][]string) {
 	out := Buffered(unbufOut)
 	defer out.Flush()
 
 	quotedFields := make([]string, len(fields))
 	for i := range fields {
-		quotedFields[i] = "\"" + QuoteJson(fields[i]) + "\""
+		quotedFields[i] = "\"" + QuoteJson(fields[i].Header) + "\""
 	}
 	quotedTag := ""
 	if opts.Tag != "" {
@@ -362,7 +528,7 @@ func QuoteJson(s string) string {
 // awk output: fields are space-separated and spaces are not allowed within fields, they
 // are replaced by `_`.  For good perf we count on ReplaceAll returning the input string if
 // there are no replacements (current Go libraries do this correctly).
-func formatAwk(unbufOut io.Writer, fields []string, opts *FormatOptions, cols [][]string) {
+func formatAwk(unbufOut io.Writer, fields []FieldSpec, opts *FormatOptions, cols [][]string) {
 	out := Buffered(unbufOut)
 	defer out.Flush()
 
@@ -442,15 +608,15 @@ type FormatHelp struct {
 	Defaults string
 }
 
-type Formatter[Data, Ctx any] struct {
-	Fmt  func(data Data, ctx Ctx) string
+type Formatter struct {
+	Fmt  func(data any, ctx PrintMods) string
 	Help string
 }
 
-func StandardFormatHelp[Data, Ctx any](
+func StandardFormatHelp(
 	fmt string,
 	helpText string,
-	formatters map[string]Formatter[Data, Ctx],
+	formatters map[string]Formatter,
 	aliases map[string][]string,
 	defaultFields string,
 ) *FormatHelp {

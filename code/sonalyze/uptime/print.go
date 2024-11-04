@@ -41,7 +41,6 @@ func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) {
 		uptimeFormatters,
 		uc.PrintOpts,
 		uslices.Map(reports, func(x *UptimeLine) any { return x }),
-		ComputePrintMods(uc.PrintOpts),
 	)
 }
 
@@ -69,7 +68,7 @@ var uptimeAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var uptimeFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromTags(
+var uptimeFormatters = DefineTableFromTags(
 	// TODO: Go 1.22, reflect.TypeFor[UptimeLine]
 	reflect.TypeOf((*UptimeLine)(nil)).Elem(),
 	nil,

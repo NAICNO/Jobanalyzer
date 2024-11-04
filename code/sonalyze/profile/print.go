@@ -75,10 +75,24 @@ func (pc *ProfileCommand) printProfile(
 		// Add the "nproc" / "NumProcs" field if it is required and the fields are still the
 		// defaults.  This is pretty dumb (but compatible with the Rust code); it gets even dumber
 		// with two versions of the default fields string.
-		if strings.Join(pc.PrintFields, ",") == v0ProfileDefaultFields {
-			pc.PrintFields = strings.Split(v0ProfileDefaultFieldsWithNproc, ",")
-		} else if strings.Join(pc.PrintFields, ",") == v1ProfileDefaultFields {
-			pc.PrintFields = strings.Split(v1ProfileDefaultFieldsWithNproc, ",")
+		currFields := strings.Join(
+			uslices.Map(
+				pc.PrintFields,
+				func(fs FieldSpec) string { return fs.Name },
+			),
+			",",
+		)
+		var newFields string
+		if currFields == v0ProfileDefaultFields {
+			newFields = v0ProfileDefaultFieldsWithNproc
+		} else if currFields == v1ProfileDefaultFields {
+			newFields = v1ProfileDefaultFieldsWithNproc
+		}
+		if newFields != "" {
+			pc.PrintFields = uslices.Map(
+				strings.Split(newFields, ","),
+				func(name string) FieldSpec { return FieldSpec{Name: name} },
+			)
 		}
 	}
 
@@ -97,16 +111,19 @@ func (pc *ProfileCommand) printProfile(
 		if err != nil {
 			return err
 		}
-		quant := pc.PrintFields[0]
+		quant := pc.PrintFields[0].Name
 		formatHtml(out, jobId, quant, host, user, int(pc.Bucket), labels, rows)
 	} else if pc.PrintOpts.Fixed {
 		data, err := pc.collectFixed(m, processes)
 		if err != nil {
 			return err
 		}
-		FormatData(out, pc.PrintFields, profileFormatters, pc.PrintOpts,
+		FormatData(
+			out,
+			pc.PrintFields,
+			profileFormatters,
+			pc.PrintOpts,
 			uslices.Map(data, func(x *fixedLine) any { return x }),
-			ComputePrintMods(pc.PrintOpts),
 		)
 	} else if pc.PrintOpts.Json {
 		formatJson(out, m, processes, pc.testNoMemory)
@@ -278,10 +295,13 @@ func (pc *ProfileCommand) collectFixed(
 // not formatting anyway, so should be applied earlier, and we should probably derive some table of
 // values to be printed.
 
-func lookupSingleFormatter(fields []string, scaleCpuGpu bool) (formatter func(*profDatum) string, err error) {
+func lookupSingleFormatter(
+	fields []FieldSpec,
+	scaleCpuGpu bool,
+) (formatter func(*profDatum) string, err error) {
 	n := 0
 	for _, f := range fields {
-		switch f {
+		switch f.Name {
 		case "cpu", "CpuUtilPct":
 			if scaleCpuGpu {
 				formatter = formatCpuUtilPctScaled
@@ -306,7 +326,7 @@ func lookupSingleFormatter(fields []string, scaleCpuGpu bool) (formatter func(*p
 			formatter = formatGpuMem
 			n++
 		default:
-			err = fmt.Errorf("Not a known field: %s", f)
+			err = fmt.Errorf("Not a known field: %s", f.Name)
 			return
 		}
 	}
@@ -493,7 +513,7 @@ profile
 `
 
 const v0ProfileDefaultFields = "time,cpu,mem,gpu,gpumem,cmd"
-const v1ProfileDefaultFields = "Timestamp,CpuUtilPct,ResidentMemGB,Gpu,GpuMemGB,Command"
+const v1ProfileDefaultFields = "Timestamp,CpuUtilPct,VirtualMemGB,Gpu,GpuMemGB,Command"
 const profileDefaultFields = v0ProfileDefaultFields
 
 const v0ProfileDefaultFieldsWithNproc = "time,cpu,mem,gpu,gpumem,nproc,cmd"
@@ -509,7 +529,7 @@ var profileAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var profileFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromTags(
+var profileFormatters = DefineTableFromTags(
 	// TODO: Go 1.22, reflect.TypeFor[fixedLine]
 	reflect.TypeOf((*fixedLine)(nil)).Elem(),
 	nil,
