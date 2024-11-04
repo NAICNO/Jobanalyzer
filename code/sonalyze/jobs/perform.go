@@ -16,31 +16,31 @@ import (
 
 // Computed float64 fields in jobAggregate.computed
 const (
-	kCpuPctAvg       = iota // Average CPU utilization, 1 core == 100%
-	kCpuPctPeak             // Peak CPU utilization ditto
-	kRcpuPctAvg             // Average CPU utilization, all cores == 100%
-	kRcpuPctPeak            // Peak CPU utilization ditto
-	kCpuGibAvg              // Average main memory utilization, GiB
-	kCpuGibPeak             // Peak memory utilization ditto
-	kRcpuGibAvg             // Average main memory utilization, all memory = 100%
-	kRcpuGibPeak            // Peak memory utilization ditto
-	kRssAnonGibAvg          // Average resident main memory utilization, GiB
-	kRssAnonGibPeak         // Peak memory utilization ditto
-	kRrssAnonGibAvg         // Average resident main memory utilization, all memory = 100%
-	kRrssAnonGibPeak        // Peak memory utilization ditto
-	kGpuPctAvg              // Average GPU utilization, 1 card == 100%
-	kGpuPctPeak             // Peak GPU utilization ditto
-	kRgpuPctAvg             // Average GPU utilization, all cards == 100%
-	kRgpuPctPeak            // Peak GPU utilization ditto
-	kGpuGibAvg              // Average GPU memory utilization, GiB
-	kGpuGibPeak             // Peak memory utilization ditto
-	kRgpuGibAvg             // Average GPU memory utilization, all cards == 100%
-	kRgpuGibPeak            // Peak GPU memory utilization ditto
-	kSgpuPctAvg             // Average GPU utilization, all cards used by job == 100%
-	kSgpuPctPeak            // Peak GPU utilization, all cards used by job == 100%
-	kSgpuGibAvg             // Average GPU memory utilization, all cards used by job == 100%
-	kSgpuGibPeak            // Peak GPU memory utilization ditto
-	kDuration               // Duration of job in seconds (wall clock, not CPU)
+	kCpuPctAvg      = iota // Average CPU utilization, 1 core == 100%
+	kCpuPctPeak            // Peak CPU utilization ditto
+	kRcpuPctAvg            // Average CPU utilization, all cores == 100%
+	kRcpuPctPeak           // Peak CPU utilization ditto
+	kCpuGBAvg              // Average main memory utilization, GiB
+	kCpuGBPeak             // Peak memory utilization ditto
+	kRcpuGBAvg             // Average main memory utilization, all memory = 100%
+	kRcpuGBPeak            // Peak memory utilization ditto
+	kRssAnonGBAvg          // Average resident main memory utilization, GiB
+	kRssAnonGBPeak         // Peak memory utilization ditto
+	kRrssAnonGBAvg         // Average resident main memory utilization, all memory = 100%
+	kRrssAnonGBPeak        // Peak memory utilization ditto
+	kGpuPctAvg             // Average GPU utilization, 1 card == 100%
+	kGpuPctPeak            // Peak GPU utilization ditto
+	kRgpuPctAvg            // Average GPU utilization, all cards == 100%
+	kRgpuPctPeak           // Peak GPU utilization ditto
+	kGpuGBAvg              // Average GPU memory utilization, GiB
+	kGpuGBPeak             // Peak memory utilization ditto
+	kRgpuGBAvg             // Average GPU memory utilization, all cards == 100%
+	kRgpuGBPeak            // Peak GPU memory utilization ditto
+	kSgpuPctAvg            // Average GPU utilization, all cards used by job == 100%
+	kSgpuPctPeak           // Peak GPU utilization, all cards used by job == 100%
+	kSgpuGBAvg             // Average GPU memory utilization, all cards used by job == 100%
+	kSgpuGBPeak            // Peak GPU memory utilization ditto
+	kDuration              // Duration of job in seconds (wall clock, not CPU)
 	numF64Fields
 )
 
@@ -67,10 +67,10 @@ type jobSummary struct {
 //
 // The float fields of this are *not* rounded in any way.
 //
-// GPU memory: If a system config is present and conf.GpuMemPct is true then kGpuGib* are derived
-// from the recorded percentage figure, otherwise kRgpuGib* are derived from the recorded absolute
+// GPU memory: If a system config is present and conf.GpuMemPct is true then kGpuGB* are derived
+// from the recorded percentage figure, otherwise kRgpuGB* are derived from the recorded absolute
 // figures.  If a system config is not present then all fields will represent the recorded values
-// (kRgpuKib * the recorded percentages).
+// (kRgpuKB * the recorded percentages).
 type jobAggregate struct {
 	first         int64 // Earliest time seen for the job, seconds since epoch
 	last          int64 // Latest time ditto
@@ -226,23 +226,23 @@ func (jc *JobsCommand) aggregateJob(
 	needZombie := jc.Zombie
 	gpus := gpuset.EmptyGpuSet()
 	var (
-		gpuFail                         uint8
-		cpuPctAvg, cpuPctPeak           float64
-		rCpuPctAvg, rCpuPctPeak         float64
-		cpuGibAvg, cpuGibPeak           float64
-		rCpuGibAvg, rCpuGibPeak         float64
-		gpuPctAvg, gpuPctPeak           float64
-		rGpuPctAvg, rGpuPctPeak         float64
-		sGpuPctAvg, sGpuPctPeak         float64
-		rssAnonGibAvg, rssAnonGibPeak   float64
-		rRssAnonGibAvg, rRssAnonGibPeak float64
-		gpuGibAvg, gpuGibPeak           float64
-		rGpuGibAvg, rGpuGibPeak         float64
-		sGpuGibAvg, sGpuGibPeak         float64
-		flags                           int
-		isZombie                        bool
+		gpuFail                       uint8
+		cpuPctAvg, cpuPctPeak         float64
+		rCpuPctAvg, rCpuPctPeak       float64
+		cpuGBAvg, cpuGBPeak           float64
+		rCpuGBAvg, rCpuGBPeak         float64
+		gpuPctAvg, gpuPctPeak         float64
+		rGpuPctAvg, rGpuPctPeak       float64
+		sGpuPctAvg, sGpuPctPeak       float64
+		rssAnonGBAvg, rssAnonGBPeak   float64
+		rRssAnonGBAvg, rRssAnonGBPeak float64
+		gpuGBAvg, gpuGBPeak           float64
+		rGpuGBAvg, rGpuGBPeak         float64
+		sGpuGBAvg, sGpuGBPeak         float64
+		flags                         int
+		isZombie                      bool
 	)
-	const kib2gib = 1.0 / (1024 * 1024)
+	const kb2gb = 1.0 / (1024 * 1024)
 
 	for _, s := range job {
 		gpus = gpuset.UnionGpuSets(gpus, s.Gpus)
@@ -251,12 +251,12 @@ func (jc *JobsCommand) aggregateJob(
 		cpuPctPeak = math.Max(cpuPctPeak, float64(s.CpuUtilPct))
 		gpuPctAvg += float64(s.GpuPct)
 		gpuPctPeak = math.Max(gpuPctPeak, float64(s.GpuPct))
-		cpuGibAvg += float64(s.CpuKib) * kib2gib
-		cpuGibPeak = math.Max(cpuGibPeak, float64(s.CpuKib)*kib2gib)
-		rssAnonGibAvg += float64(s.RssAnonKib) * kib2gib
-		rssAnonGibPeak = math.Max(rssAnonGibPeak, float64(s.RssAnonKib)*kib2gib)
-		gpuGibAvg += float64(s.GpuKib) * kib2gib
-		gpuGibPeak = math.Max(gpuGibPeak, float64(s.GpuKib)*kib2gib)
+		cpuGBAvg += float64(s.CpuKB) * kb2gb
+		cpuGBPeak = math.Max(cpuGBPeak, float64(s.CpuKB)*kb2gb)
+		rssAnonGBAvg += float64(s.RssAnonKB) * kb2gb
+		rssAnonGBPeak = math.Max(rssAnonGBPeak, float64(s.RssAnonKB)*kb2gb)
+		gpuGBAvg += float64(s.GpuKB) * kb2gb
+		gpuGBPeak = math.Max(gpuGBPeak, float64(s.GpuKB)*kb2gb)
 
 		if needZombie && !isZombie {
 			cmd := s.Cmd.String()
@@ -273,10 +273,10 @@ func (jc *JobsCommand) aggregateJob(
 				rCpuPctPeak = cpuPctPeak / cores
 			}
 			if memory := float64(sys.MemGB); memory > 0 {
-				rCpuGibAvg = (cpuGibAvg * 100) / memory
-				rCpuGibPeak = (cpuGibPeak * 100) / memory
-				rRssAnonGibAvg = (rssAnonGibAvg * 100) / memory
-				rRssAnonGibPeak = (rssAnonGibPeak * 100) / memory
+				rCpuGBAvg = (cpuGBAvg * 100) / memory
+				rCpuGBPeak = (cpuGBPeak * 100) / memory
+				rRssAnonGBAvg = (rssAnonGBAvg * 100) / memory
+				rRssAnonGBPeak = (rssAnonGBPeak * 100) / memory
 			}
 			if gpuCards := float64(sys.GpuCards); gpuCards > 0 {
 				rGpuPctAvg = gpuPctAvg / gpuCards
@@ -285,8 +285,8 @@ func (jc *JobsCommand) aggregateJob(
 			if gpuMemory := float64(sys.GpuMemGB); gpuMemory > 0 {
 				// As we have a config, logclean will have computed proper GPU memory values for the
 				// job, so we need not look to sys.GpuMemPct here.
-				rGpuGibAvg = (gpuGibAvg * 100) / gpuMemory
-				rGpuGibPeak = (gpuGibPeak * 100) / gpuMemory
+				rGpuGBAvg = (gpuGBAvg * 100) / gpuMemory
+				rGpuGBPeak = (gpuGBPeak * 100) / gpuMemory
 			}
 			if usesGpu {
 				nCards := float64(gpus.Size())
@@ -294,9 +294,9 @@ func (jc *JobsCommand) aggregateJob(
 				sGpuPctPeak = gpuPctPeak / nCards
 				if gpuCards := float64(sys.GpuCards); gpuCards > 0 {
 					if gpuMemory := float64(sys.GpuMemGB); gpuMemory > 0 {
-						jobGpuGib := nCards * (gpuMemory / gpuCards)
-						sGpuGibAvg = (gpuGibAvg * 100) / jobGpuGib
-						sGpuGibPeak = (gpuGibPeak * 100) / jobGpuGib
+						jobGpuGB := nCards * (gpuMemory / gpuCards)
+						sGpuGBAvg = (gpuGBAvg * 100) / jobGpuGB
+						sGpuGBPeak = (gpuGBPeak * 100) / jobGpuGB
 					}
 				}
 			}
@@ -340,15 +340,15 @@ func (jc *JobsCommand) aggregateJob(
 	a.computed[kRcpuPctAvg] = rCpuPctAvg / n
 	a.computed[kRcpuPctPeak] = rCpuPctPeak
 
-	a.computed[kCpuGibAvg] = cpuGibAvg / n
-	a.computed[kCpuGibPeak] = cpuGibPeak
-	a.computed[kRcpuGibAvg] = rCpuGibAvg / n
-	a.computed[kRcpuGibPeak] = rCpuGibPeak
+	a.computed[kCpuGBAvg] = cpuGBAvg / n
+	a.computed[kCpuGBPeak] = cpuGBPeak
+	a.computed[kRcpuGBAvg] = rCpuGBAvg / n
+	a.computed[kRcpuGBPeak] = rCpuGBPeak
 
-	a.computed[kRssAnonGibAvg] = rssAnonGibAvg / n
-	a.computed[kRssAnonGibPeak] = rssAnonGibPeak
-	a.computed[kRrssAnonGibAvg] = rRssAnonGibAvg / n
-	a.computed[kRrssAnonGibPeak] = rRssAnonGibPeak
+	a.computed[kRssAnonGBAvg] = rssAnonGBAvg / n
+	a.computed[kRssAnonGBPeak] = rssAnonGBPeak
+	a.computed[kRrssAnonGBAvg] = rRssAnonGBAvg / n
+	a.computed[kRrssAnonGBPeak] = rRssAnonGBPeak
 
 	a.computed[kGpuPctAvg] = gpuPctAvg / n
 	a.computed[kGpuPctPeak] = gpuPctPeak
@@ -357,12 +357,12 @@ func (jc *JobsCommand) aggregateJob(
 	a.computed[kSgpuPctAvg] = sGpuPctAvg / n
 	a.computed[kSgpuPctPeak] = sGpuPctPeak
 
-	a.computed[kGpuGibAvg] = gpuGibAvg / n
-	a.computed[kGpuGibPeak] = gpuGibPeak
-	a.computed[kRgpuGibAvg] = rGpuGibAvg / n
-	a.computed[kRgpuGibPeak] = rGpuGibPeak
-	a.computed[kSgpuGibAvg] = sGpuGibAvg / n
-	a.computed[kSgpuGibPeak] = sGpuGibPeak
+	a.computed[kGpuGBAvg] = gpuGBAvg / n
+	a.computed[kGpuGBPeak] = gpuGBPeak
+	a.computed[kRgpuGBAvg] = rGpuGBAvg / n
+	a.computed[kRgpuGBPeak] = rGpuGBPeak
+	a.computed[kSgpuGBAvg] = sGpuGBAvg / n
+	a.computed[kSgpuGBPeak] = sGpuGBPeak
 
 	a.computed[kDuration] = float64(duration)
 

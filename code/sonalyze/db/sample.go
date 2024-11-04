@@ -48,7 +48,7 @@ const (
 //    than 24 bits, most memory sizes need more than 32 bits (4GB) but maybe not more than 40 (1TB),
 //    Job and Process IDs are probably 24 bits or so, and Rolledup is unlikely to be more than 16
 //    bits.  GpuFail and Flags are single bits at present.
-//  - Indeed, MemtotalKib and Cores are considered obsolete and could just be removed - will only
+//  - Indeed, MemtotalKB and Cores are considered obsolete and could just be removed - will only
 //    affect the output of `parse`.
 //
 // It seems likely that if we applied all of these we could save another 30 bytes.
@@ -69,28 +69,28 @@ const (
 // Some of these optimizations will complicate the use of the data, obviously.
 
 type Sample struct {
-	Timestamp   int64
-	MemtotalKib uint64
-	CpuKib      uint64
-	RssAnonKib  uint64
-	GpuKib      uint64
-	CpuTimeSec  uint64
-	Version     Ustr
-	Cluster     Ustr
-	Host        Ustr
-	Cores       uint32
-	User        Ustr
-	Job         uint32
-	Pid         uint32
-	Ppid        uint32
-	Cmd         Ustr
-	CpuPct      float32
-	Gpus        gpuset.GpuSet
-	GpuPct      float32
-	GpuMemPct   float32
-	Rolledup    uint32
-	GpuFail     uint8
-	Flags       uint8
+	Timestamp  int64
+	MemtotalKB uint64
+	CpuKB      uint64
+	RssAnonKB  uint64
+	GpuKB      uint64
+	CpuTimeSec uint64
+	Version    Ustr
+	Cluster    Ustr
+	Host       Ustr
+	Cores      uint32
+	User       Ustr
+	Job        uint32
+	Pid        uint32
+	Ppid       uint32
+	Cmd        Ustr
+	CpuPct     float32
+	Gpus       gpuset.GpuSet
+	GpuPct     float32
+	GpuMemPct  float32
+	Rolledup   uint32
+	GpuFail    uint8
+	Flags      uint8
 }
 
 // The LoadDatum represents the `load` field from a record.  The data array is owned by its datum
@@ -146,20 +146,20 @@ LineLoop:
 			timestamp        int64   = math.MaxInt64
 			hostname                 = UstrEmpty
 			numCores         uint32  = math.MaxUint32
-			memTotalKib      uint64  = math.MaxUint64
+			memTotalKB       uint64  = math.MaxUint64
 			user                     = UstrEmpty
 			pid              uint32  = math.MaxUint32
 			ppid             uint32  = math.MaxUint32
 			jobId            uint32  = math.MaxUint32
 			command                  = UstrEmpty
 			cpuPct           float32 = math.MaxFloat32
-			cpuKib           uint64  = math.MaxUint64
-			rssAnonKib       uint64  = math.MaxUint64
+			cpuKB            uint64  = math.MaxUint64
+			rssAnonKB        uint64  = math.MaxUint64
 			gpus                     = gpuset.EmptyGpuSet()
 			haveGpus                 = false
 			gpuPct           float32 = math.MaxFloat32
 			gpuMemPct        float32 = math.MaxFloat32
-			gpuKib           uint64  = math.MaxUint64
+			gpuKB            uint64  = math.MaxUint64
 			gpuFail          uint8   = math.MaxUint8
 			cpuTimeSec       uint64  = math.MaxUint64
 			rolledup         uint32  = math.MaxUint32
@@ -284,7 +284,7 @@ LineLoop:
 						tokenizer.ScanEol()
 						continue LineLoop
 					}
-					cpuKib = tmp
+					cpuKB = tmp
 				default:
 					// Ignore any remaining fields - they are not in most untagged data.
 				}
@@ -338,7 +338,7 @@ LineLoop:
 								}
 							case 'k':
 								if val, ok := match(tokenizer, start, lim, eqloc, "cpukib"); ok {
-									cpuKib, err = parseUint(val)
+									cpuKB, err = parseUint(val)
 									matched = true
 								}
 							case 't':
@@ -368,7 +368,7 @@ LineLoop:
 							}
 						case 'k':
 							if val, ok := match(tokenizer, start, lim, eqloc, "gpukib"); ok {
-								gpuKib, err = parseUint(val)
+								gpuKB, err = parseUint(val)
 								matched = true
 							}
 						case 'm':
@@ -405,7 +405,7 @@ LineLoop:
 					}
 				case 'm':
 					if val, ok := match(tokenizer, start, lim, eqloc, "memtotalkib"); ok {
-						memTotalKib, err = parseUint(val)
+						memTotalKB, err = parseUint(val)
 						matched = true
 					}
 				case 'p':
@@ -422,7 +422,7 @@ LineLoop:
 					}
 				case 'r':
 					if val, ok := match(tokenizer, start, lim, eqloc, "rssanonkib"); ok {
-						rssAnonKib, err = parseUint(val)
+						rssAnonKB, err = parseUint(val)
 						matched = true
 					} else if val, ok := match(tokenizer, start, lim, eqloc, "rolledup"); ok {
 						var tmp uint64
@@ -537,8 +537,8 @@ LineLoop:
 		if numCores == math.MaxUint32 {
 			numCores = 0
 		}
-		if memTotalKib == math.MaxUint64 {
-			memTotalKib = 0
+		if memTotalKB == math.MaxUint64 {
+			memTotalKB = 0
 		}
 		if jobId == math.MaxUint32 {
 			jobId = 0
@@ -552,11 +552,11 @@ LineLoop:
 		if cpuPct == math.MaxFloat32 {
 			cpuPct = 0
 		}
-		if cpuKib == math.MaxUint64 {
-			cpuKib = 0
+		if cpuKB == math.MaxUint64 {
+			cpuKB = 0
 		}
-		if rssAnonKib == math.MaxUint64 {
-			rssAnonKib = 0
+		if rssAnonKB == math.MaxUint64 {
+			rssAnonKB = 0
 		}
 		if !haveGpus {
 			gpus = gpuset.EmptyGpuSet()
@@ -567,8 +567,8 @@ LineLoop:
 		if gpuMemPct == math.MaxFloat32 {
 			gpuMemPct = 0
 		}
-		if gpuKib == math.MaxUint64 {
-			gpuKib = 0
+		if gpuKB == math.MaxUint64 {
+			gpuKB = 0
 		}
 		if gpuFail == math.MaxUint8 {
 			gpuFail = 0
@@ -585,27 +585,27 @@ LineLoop:
 			flags |= FlagHeartbeat
 		}
 		samples = append(samples, &Sample{
-			Version:     version,
-			Timestamp:   timestamp,
-			Host:        hostname,
-			Cores:       numCores,
-			MemtotalKib: memTotalKib,
-			User:        user,
-			Pid:         pid,
-			Ppid:        ppid,
-			Job:         jobId,
-			Cmd:         command,
-			CpuPct:      cpuPct,
-			CpuKib:      cpuKib,
-			RssAnonKib:  rssAnonKib,
-			Gpus:        gpus,
-			GpuPct:      gpuPct,
-			GpuMemPct:   gpuMemPct,
-			GpuKib:      gpuKib,
-			GpuFail:     gpuFail,
-			CpuTimeSec:  cpuTimeSec,
-			Rolledup:    rolledup,
-			Flags:       flags,
+			Version:    version,
+			Timestamp:  timestamp,
+			Host:       hostname,
+			Cores:      numCores,
+			MemtotalKB: memTotalKB,
+			User:       user,
+			Pid:        pid,
+			Ppid:       ppid,
+			Job:        jobId,
+			Cmd:        command,
+			CpuPct:     cpuPct,
+			CpuKB:      cpuKB,
+			RssAnonKB:  rssAnonKB,
+			Gpus:       gpus,
+			GpuPct:     gpuPct,
+			GpuMemPct:  gpuMemPct,
+			GpuKB:      gpuKB,
+			GpuFail:    gpuFail,
+			CpuTimeSec: cpuTimeSec,
+			Rolledup:   rolledup,
+			Flags:      flags,
 		})
 		if load != nil {
 			loadData = append(loadData, &LoadDatum{

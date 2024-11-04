@@ -54,8 +54,8 @@ func TestRectifyGpuMem(t *testing.T) {
 		for _, s := range samples {
 			if s.Job == 1249151 {
 				found++
-				if s.GpuKib != expect {
-					t.Errorf("GpuKib %v expected %v (%v %v)", s.GpuKib, expect, s.GpuPct, s.GpuMemPct)
+				if s.GpuKB != expect {
+					t.Errorf("GpuKB %v expected %v (%v %v)", s.GpuKB, expect, s.GpuPct, s.GpuMemPct)
 				}
 			}
 		}

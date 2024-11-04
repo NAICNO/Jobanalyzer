@@ -68,12 +68,12 @@ func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.S
 		return xs
 	}
 
-	cardsizeKib := float64(conf.GpuMemGB) * 1024 * 1024 / float64(conf.GpuCards)
+	cardsizeKB := float64(conf.GpuMemGB) * 1024 * 1024 / float64(conf.GpuCards)
 	for _, x := range xs {
 		if conf.GpuMemPct {
-			x.GpuKib = uint64(float64(x.GpuMemPct) / 100 * cardsizeKib)
+			x.GpuKB = uint64(float64(x.GpuMemPct) / 100 * cardsizeKB)
 		} else {
-			x.GpuMemPct = float32(float64(x.GpuKib) / cardsizeKib * 100)
+			x.GpuMemPct = float32(float64(x.GpuKB) / cardsizeKB * 100)
 		}
 	}
 

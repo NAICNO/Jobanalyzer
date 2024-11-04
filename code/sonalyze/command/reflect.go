@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"go-utils/gpuset"
+
 	. "sonalyze/common"
 )
 
@@ -78,6 +80,9 @@ var (
 	dummyUstrMax30Value UstrMax30
 	ustrMax30Ty         = reflect.TypeOf(dummyUstrMax30Value)
 
+	dummyGpuSetValue gpuset.GpuSet
+	gpuSetTy         = reflect.TypeOf(dummyGpuSetValue)
+
 	// See the Example for reflect.TypeOf in the Go documentation.
 	stringerTy = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 )
@@ -126,7 +131,7 @@ func ComputePrintMods(opts *FormatOptions) PrintMods {
 	case opts.Fixed:
 		x = PrintModFixed
 	}
-	if opts.NoDefaults {
+	if opts.NoDefaults && (opts.Csv || opts.Json) {
 		x |= PrintModNoDefaults
 	}
 	return x
@@ -155,7 +160,7 @@ func ReflectFormattersFromTags(
 	reflectStructFormatters(
 		structTy,
 		formatters,
-		func(fld reflect.StructField) (ok bool, name, desc string, aliases []string) {
+		func(fld reflect.StructField) (ok bool, name, desc string, aliases []string, attrs int) {
 			name = fld.Name
 			if isExcluded[name] {
 				return
@@ -173,6 +178,7 @@ func ReflectFormattersFromTags(
 			ok = true
 			return
 		},
+		nil,
 	)
 	return
 }
@@ -187,13 +193,48 @@ func ReflectFormattersFromTags(
 //
 // The field values must be one of the *FormatSpec types below.
 //
-// ComputedFormatSpec is used for synthesized fields: fields not in the data array.  It's good
-// hygiene for them to be passed together with actual fields so that there are no duplicates in the
-// name space.
+// SimpleFormatSpecWithAttr uses an attribute to specify a simple formatting rule, that in the case
+// of ReflectFormattersFromTags can be expressed through a type.
+//
+// SynthesizedFormatSpecWithAttr uses an attribute to specify a simple formatting rule for a
+// synthesized output field.
+//
+// (Unused and maybe unneeded) ComputedFormatSpec is used for synthesized fields: fields not in the data array.
 
 type SimpleFormatSpec struct {
 	Desc    string
 	Aliases string
+}
+
+// `FmtDefaultable` indicates that the field has a default value to skip if nodefaults is set.
+// Numbers, Ustr, string, and GpuSet are defaultable.
+//
+// For Fmt<Typename> see typename at top of file
+
+const (
+	FmtDefaultable      = (1 << iota)
+	FmtDateTimeValue    // type must be int64
+	FmtIsoDateTimeValue // type must be int64
+	FmtDivideBy1M       // type must be integer
+	// There could be more, just as there are various types to express the same thing
+)
+
+type SimpleFormatSpecWithAttr struct {
+	Desc    string
+	Aliases string
+	Attr    int
+}
+
+type SynthesizedFormatSpecWithAttr struct {
+	Desc     string
+	RealName string
+	Attr     int
+}
+
+type ComputedFormatSpec struct {
+	RealName string // field name this is derived from
+	Desc     string
+	Fmt      func(d any) string // d will be a pointer value
 }
 
 func ReflectFormattersFromMap(
@@ -201,10 +242,35 @@ func ReflectFormattersFromMap(
 	fields map[string]any,
 ) (formatters map[string]Formatter[any, PrintMods]) {
 	formatters = make(map[string]Formatter[any, PrintMods])
+
+	// `synthesizable` is a map from a real field name to one synthesized/computed spec that targets
+	// that real field name.
+	type SynthSpec struct {
+		SynthesizedName string
+		spec            any
+	}
+	synthesizable := make(map[string]SynthSpec)
+	for k, v := range fields {
+		var realname string
+		switch s := v.(type) {
+		case SynthesizedFormatSpecWithAttr:
+			realname = s.RealName
+		case ComputedFormatSpec:
+			realname = s.RealName
+		default:
+			continue
+		}
+		if _, found := synthesizable[realname]; found {
+			// We can lift this restriction if we have to
+			panic(fmt.Sprintf("Multiple synthesized fields targeting '%s'", realname))
+		}
+		synthesizable[realname] = SynthSpec{k, v}
+	}
+
 	reflectStructFormatters(
 		structTy,
 		formatters,
-		func(fld reflect.StructField) (ok bool, name, desc string, aliases []string) {
+		func(fld reflect.StructField) (ok bool, name, desc string, aliases []string, attrs int) {
 			name = fld.Name
 			if spec, found := fields[name]; found {
 				switch s := spec.(type) {
@@ -212,6 +278,31 @@ func ReflectFormattersFromMap(
 					desc = s.Desc
 					aliases = strings.Split(s.Aliases, ",")
 					ok = true
+				case SimpleFormatSpecWithAttr:
+					desc = s.Desc
+					aliases = strings.Split(s.Aliases, ",")
+					attrs = s.Attr
+					ok = true
+				case SynthesizedFormatSpecWithAttr:
+					panic(fmt.Sprintf("Struct field '%s' has synthesized spec", name))
+				case ComputedFormatSpec:
+					panic(fmt.Sprintf("Struct field '%s' has computed spec", name))
+				default:
+					panic("Invalid FormatSpec")
+				}
+			}
+			return
+		},
+		func(fld reflect.StructField) (ok bool, name, desc string, attrs int) {
+			if spec, found := synthesizable[fld.Name]; found {
+				switch info := spec.spec.(type) {
+				case SynthesizedFormatSpecWithAttr:
+					name = spec.SynthesizedName
+					desc = info.Desc
+					attrs = info.Attr
+					ok = true
+				case ComputedFormatSpec:
+					panic("NYI")
 				default:
 					panic("Invalid FormatSpec")
 				}
@@ -225,7 +316,8 @@ func ReflectFormattersFromMap(
 func reflectStructFormatters(
 	structTy reflect.Type,
 	formatters map[string]Formatter[any, PrintMods],
-	admissible func(fld reflect.StructField) (ok bool, name, desc string, aliases []string),
+	admissible func(fld reflect.StructField) (ok bool, name, desc string, aliases []string, attrs int),
+	synthesizable func(fld reflect.StructField) (ok bool, name, desc string, attrs int),
 ) {
 	if structTy.Kind() != reflect.Struct {
 		panic("Struct type required")
@@ -251,7 +343,7 @@ func reflectStructFormatters(
 				continue
 			}
 			subFormatters := make(map[string]Formatter[any, PrintMods])
-			reflectStructFormatters(fldTy, subFormatters, admissible)
+			reflectStructFormatters(fldTy, subFormatters, admissible, synthesizable)
 			for name, fmt := range subFormatters {
 				// TODO: once we move to Go 1.22: no temp binding
 				theFmt := fmt.Fmt
@@ -272,26 +364,43 @@ func reflectStructFormatters(
 				formatters[name] = f
 			}
 		} else {
-			if ok, name, desc, aliases := admissible(fld); ok {
+			if ok, name, desc, aliases, attrs := admissible(fld); ok {
 				f := Formatter[any, PrintMods]{
 					Help: desc,
-					Fmt:  reflectTypeFormatter(ix, fld.Type),
+					Fmt:  reflectTypeFormatter(ix, attrs, fld.Type),
 				}
 				formatters[name] = f
 				for _, a := range aliases {
 					formatters[a] = f
 				}
 			}
+
+			if synthesizable != nil {
+				if ok, name, desc, attrs := synthesizable(fld); ok {
+					// synthesizable(fld) returns info for a synthesized field that addresses fld.name.
+					//
+					// TODO: In principle there could be multiple synthesizable fields per fld, for now
+					// we'll require synthesizable (or earlier code) to panic if that case occurs.
+					f := Formatter[any, PrintMods]{
+						Help: desc,
+						Fmt:  reflectTypeFormatter(ix, attrs, fld.Type),
+					}
+					formatters[name] = f
+				}
+			}
 		}
 	}
 }
 
-func reflectTypeFormatter(ix int, ty reflect.Type) func(any, PrintMods) string {
+func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMods) string {
 	switch {
 	case ty == dateTimeValueTy || ty == dateTimeValueOrBlankTy:
 		// Time formatters that must respect flags.
 		return func(d any, ctx PrintMods) string {
 			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
+				return "*skip*"
+			}
 			switch {
 			case val == 0 && ty == dateTimeValueOrBlankTy:
 				return "                "
@@ -303,10 +412,23 @@ func reflectTypeFormatter(ix int, ty reflect.Type) func(any, PrintMods) string {
 				return FormatYyyyMmDdHhMmUtc(val)
 			}
 		}
+	case ty == gpuSetTy:
+		return func(d any, ctx PrintMods) string {
+			// GpuSet is uint32
+			val := Ustr(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
+			set := gpuset.GpuSet(val)
+			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && set.IsEmpty() {
+				return "*skip*"
+			}
+			return set.String()
+		}
 	case ty == ustrMax30Ty:
 		return func(d any, ctx PrintMods) string {
 			// Ustr is uint32
 			val := Ustr(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
+			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == UstrEmpty {
+				return "*skip*"
+			}
 			s := val.String()
 			if (ctx & PrintModFixed) != 0 {
 				// TODO: really the rune length, no?
@@ -323,9 +445,12 @@ func reflectTypeFormatter(ix int, ty reflect.Type) func(any, PrintMods) string {
 		// none of that kind right now.
 		switch ty.Elem().Kind() {
 		case reflect.String:
-			return func(d any, _ PrintMods) string {
+			return func(d any, ctx PrintMods) string {
 				vals := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
 				lim := vals.Len()
+				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && lim == 0 {
+					return "*skip*"
+				}
 				ss := make([]string, lim)
 				for j := 0; j < lim; j++ {
 					ss[j] = vals.Index(j).String()
@@ -338,40 +463,86 @@ func reflectTypeFormatter(ix int, ty reflect.Type) func(any, PrintMods) string {
 		}
 	case ty.Implements(stringerTy):
 		// If it implements fmt.Stringer then use it
-		return func(d any, _ PrintMods) string {
+		return func(d any, ctx PrintMods) string {
 			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
-			return val.MethodByName("String").Call(nil)[0].String()
+			s := val.MethodByName("String").Call(nil)[0].String()
+			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && s == "" {
+				return "*skip*"
+			}
+			return s
 		}
 	default:
 		// Everything else is a basic type that is handled according to kind.
 		switch ty.Kind() {
 		case reflect.Bool:
-			return func(d any, _ PrintMods) string {
+			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Bool()
+				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && !val {
+					return "*skip*"
+				}
 				// These are backwards compatible values.
 				if val {
 					return "yes"
 				}
 				return "no"
 			}
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			return func(d any, _ PrintMods) string {
+		case reflect.Int64:
+			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
+					return "*skip*"
+				}
+				if (attrs & FmtDateTimeValue) != 0 {
+					return FormatYyyyMmDdHhMmUtc(val)
+				}
+				if (attrs & FmtIsoDateTimeValue) != 0 {
+					return time.Unix(val, 0).UTC().Format(time.RFC3339)
+				}
+				if (attrs & FmtDivideBy1M) != 0 {
+					val /= 1024 * 1024
+				}
+				return strconv.FormatInt(val, 10)
+			}
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
+			return func(d any, ctx PrintMods) string {
+				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
+					return "*skip*"
+				}
+				if (attrs & FmtDivideBy1M) != 0 {
+					val /= 1024 * 1024
+				}
 				return strconv.FormatInt(val, 10)
 			}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return func(d any, _ PrintMods) string {
+			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
+				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
+					return "*skip*"
+				}
+				if (attrs & FmtDivideBy1M) != 0 {
+					val /= 1024 * 1024
+				}
 				return strconv.FormatUint(val, 10)
 			}
 		case reflect.Float32, reflect.Float64:
-			return func(d any, _ PrintMods) string {
+			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Float()
-				return strconv.FormatFloat(val, 'g', -1, 64)
+				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
+					return "*skip*"
+				}
+				prec := 64
+				if ty.Kind() == reflect.Float32 {
+					prec = 32
+				}
+				return strconv.FormatFloat(val, 'g', -1, prec)
 			}
 		case reflect.String:
-			return func(d any, _ PrintMods) string {
+			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).String()
+				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == "" {
+					return "*skip*"
+				}
 				return val
 			}
 		default:

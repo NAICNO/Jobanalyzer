@@ -47,7 +47,7 @@ func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 
 	args := rCmd.RemotingFlags()
 	var username, password string
-	var netrcFile string			// "" if not netrc
+	var netrcFile string // "" if not netrc
 	if args.AuthFile != "" {
 		f, err := os.Open(args.AuthFile)
 		if err != nil {

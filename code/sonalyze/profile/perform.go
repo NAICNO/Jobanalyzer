@@ -150,16 +150,16 @@ func (pc *ProfileCommand) Perform(
 			for _, cn := range colNames {
 				var count int
 				var cpuUtilPct, gpuPct float32
-				var cpuKib, gpuKib, rssAnonKib uint64
+				var cpuKB, gpuKB, rssAnonKB uint64
 				var base *db.Sample
 				for _, rn := range myrowNames {
 					if probe := m.get(rn, cn); probe != nil {
 						count++
 						cpuUtilPct += probe.cpuUtilPct
 						gpuPct += probe.gpuPct
-						cpuKib += probe.cpuKib
-						gpuKib += probe.gpuKib
-						rssAnonKib += probe.rssAnonKib
+						cpuKB += probe.cpuKB
+						gpuKB += probe.gpuKB
+						rssAnonKB += probe.rssAnonKB
 						base = probe.s
 					}
 				}
@@ -167,9 +167,9 @@ func (pc *ProfileCommand) Perform(
 					avg := &profDatum{
 						cpuUtilPct: cpuUtilPct / float32(count),
 						gpuPct:     gpuPct / float32(count),
-						cpuKib:     cpuKib / uint64(count),
-						gpuKib:     gpuKib / uint64(count),
-						rssAnonKib: rssAnonKib / uint64(count),
+						cpuKB:      cpuKB / uint64(count),
+						gpuKB:      gpuKB / uint64(count),
+						rssAnonKB:  rssAnonKB / uint64(count),
 						s:          base,
 					}
 					m2.set(newTime, cn, avg)
@@ -242,9 +242,9 @@ type profIndex struct {
 type profDatum struct {
 	cpuUtilPct float32
 	gpuPct     float32
-	cpuKib     uint64
-	gpuKib     uint64
-	rssAnonKib uint64
+	cpuKB      uint64
+	gpuKB      uint64
+	rssAnonKB  uint64
 	s          *db.Sample
 }
 
@@ -252,19 +252,19 @@ func newProfDatum(r sonarlog.Sample, max float64) *profDatum {
 	var v profDatum
 	v.cpuUtilPct = r.CpuUtilPct
 	v.gpuPct = r.GpuPct
-	v.cpuKib = r.CpuKib
-	v.gpuKib = r.GpuKib
-	v.rssAnonKib = r.RssAnonKib
+	v.cpuKB = r.CpuKB
+	v.gpuKB = r.GpuKB
+	v.rssAnonKB = r.RssAnonKB
 	v.s = r.Sample
 
 	if max != 0 {
 		// Clamping is a hack but it works.
 		// We print memory in GiB so -max should be expressed in GiB, but we use KiB internally.  Scale here.
 		v.cpuUtilPct = clampMaxF32(v.cpuUtilPct, float32(max))
-		v.cpuKib = clampMaxU64(v.cpuKib, uint64(max*1024*1024))
-		v.rssAnonKib = clampMaxU64(v.rssAnonKib, uint64(max*1024*1024))
+		v.cpuKB = clampMaxU64(v.cpuKB, uint64(max*1024*1024))
+		v.rssAnonKB = clampMaxU64(v.rssAnonKB, uint64(max*1024*1024))
 		v.gpuPct = clampMaxF32(v.gpuPct, float32(max))
-		v.gpuKib = clampMaxU64(v.gpuKib, uint64(max*1024*1024))
+		v.gpuKB = clampMaxU64(v.gpuKB, uint64(max*1024*1024))
 	}
 
 	return &v

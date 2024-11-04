@@ -178,9 +178,9 @@ func generateReport(
 			}
 			if sys.MemGB > 0 {
 				relativeVirtualMem =
-					int(math.Round(float64(d.CpuKib) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
+					int(math.Round(float64(d.CpuKB) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
 				relativeResidentMem =
-					int(math.Round(float64(d.RssAnonKib) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
+					int(math.Round(float64(d.RssAnonKB) / (1024 * 1024) / float64(sys.MemGB) * 100.0))
 			}
 			if sys.GpuCards > 0 {
 				// GpuPct is already scaled by 100 so don't do it again
@@ -188,7 +188,7 @@ func generateReport(
 			}
 			if sys.GpuMemGB > 0 {
 				relativeGpuMem =
-					int(math.Round(float64(d.GpuKib) / (1024 * 1024) / float64(sys.GpuMemGB) * 100))
+					int(math.Round(float64(d.GpuKB) / (1024 * 1024) / float64(sys.GpuMemGB) * 100))
 			}
 		}
 		result = append(result, &ReportRecord{
@@ -198,13 +198,13 @@ func generateReport(
 			Time:                TimeValue(d.Timestamp),
 			Cpu:                 int(d.CpuUtilPct),
 			RelativeCpu:         relativeCpu,
-			VirtualGB:           int(d.CpuKib / (1024 * 1024)),
+			VirtualGB:           int(d.CpuKB / (1024 * 1024)),
 			RelativeVirtualMem:  relativeVirtualMem,
-			ResidentGB:          int(d.RssAnonKib / (1024 * 1024)),
+			ResidentGB:          int(d.RssAnonKB / (1024 * 1024)),
 			RelativeResidentMem: relativeResidentMem,
 			Gpu:                 int(d.GpuPct),
 			RelativeGpu:         relativeGpu,
-			GpuGB:               int(d.GpuKib / (1024 * 1024)),
+			GpuGB:               int(d.GpuKB / (1024 * 1024)),
 			RelativeGpuMem:      relativeGpuMem,
 			Gpus:                d.Gpus,
 			Hostname:            d.Host,
