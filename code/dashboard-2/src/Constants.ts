@@ -519,7 +519,7 @@ export const DEAD_WEIGHT_COLUMN: { [K in keyof DeadWeightTableItem]: DeadWeightT
     title: 'Command',
     sortable: true,
     renderFn: CommandListCell,
-    minSize: 600,
+    minSize: 450,
   },
   'started-on-or-before': {
     key: 'started-on-or-before',

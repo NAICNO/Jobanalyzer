@@ -274,7 +274,23 @@
   resolved "https://registry.yarnpkg.com/@chakra-ui/icons/-/icons-2.2.4.tgz#fc3f59a7e377d6e4efdbe8ee0a3aec7f29a4ab32"
   integrity sha512-l5QdBgwrAg3Sc2BRqtNkJpfuLw/pWRDwwT58J6c4PqQT6wzXxyNa8Q0PForu1ltB5qEiFb1kxr/F/HO1EwNa6g==
 
-"@chakra-ui/react@^2.10.2", "@chakra-ui/react@^2.8.2":
+"@chakra-ui/react@^2.8.0":
+  version "2.10.3"
+  resolved "https://registry.yarnpkg.com/@chakra-ui/react/-/react-2.10.3.tgz#8595658890a9558de7eec1a854cb959fc6352e29"
+  integrity sha512-oWmGGzzKWBfoB3hrrQxWwFirlxJXGdk3v4SLnLPPYRy9IMibmQM5rAUJ/NxZum1mrYGP5lo7DHcIWDfV2A3ubw==
+  dependencies:
+    "@chakra-ui/hooks" "2.4.2"
+    "@chakra-ui/styled-system" "2.12.0"
+    "@chakra-ui/theme" "3.4.6"
+    "@chakra-ui/utils" "2.2.2"
+    "@popperjs/core" "^2.11.8"
+    "@zag-js/focus-visible" "^0.31.1"
+    aria-hidden "^1.2.3"
+    react-fast-compare "3.2.2"
+    react-focus-lock "^2.9.6"
+    react-remove-scroll "^2.5.7"
+
+"@chakra-ui/react@^2.8.2":
   version "2.10.2"
   resolved "https://registry.yarnpkg.com/@chakra-ui/react/-/react-2.10.2.tgz#9fc718ab809d8a8003a8c688b2b6fda44f63741a"
   integrity sha512-TfIHTqTlxTHYJZBtpiR5EZasPUrLYKJxdbHkdOJb5G1OQ+2c5kKl5XA7c2pMtsEptzb7KxAAIB62t3hxdfWp1w==
@@ -294,6 +310,14 @@
   version "2.11.2"
   resolved "https://registry.yarnpkg.com/@chakra-ui/styled-system/-/styled-system-2.11.2.tgz#2c0da4653b6b8b6a75ab7362d4d5ca208324747a"
   integrity sha512-y++z2Uop+hjfZX9mbH88F1ikazPv32asD2er56zMJBemUAzweXnHTpiCQbluEDSUDhqmghVZAdb+5L4XLbsRxA==
+  dependencies:
+    "@chakra-ui/utils" "2.2.2"
+    csstype "^3.1.2"
+
+"@chakra-ui/styled-system@2.12.0":
+  version "2.12.0"
+  resolved "https://registry.yarnpkg.com/@chakra-ui/styled-system/-/styled-system-2.12.0.tgz#72ad933bf11abd37c43086a3cb710e683a08ebc2"
+  integrity sha512-zoqLw1I2y4GlZ0LDoyw8o0JjoDOW6u0IwFPAoHuw0UMbP8glHUGvwEL1STug/i/GzBKw83yoF6ae41HIQvhMww==
   dependencies:
     "@chakra-ui/utils" "2.2.2"
     csstype "^3.1.2"
@@ -754,13 +778,13 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@naicno/web-components@0.0.4":
-  version "0.0.4"
-  resolved "https://npm.pkg.github.com/download/@naicno/web-components/0.0.4/d93fc5cd35cc115190cac6b308cc47d42e30c388#d93fc5cd35cc115190cac6b308cc47d42e30c388"
-  integrity sha512-/IqwpHIunLEvvT19mLm/aJTPqdEmPekXlV7+C6OhosxZM7GhMQZWslt7C8r46JEno12lN8x1CfAYcNbYxfxAMw==
+"@naicno/web-components@0.0.6":
+  version "0.0.6"
+  resolved "https://npm.pkg.github.com/download/@naicno/web-components/0.0.6/672122fcce88aff7258ac6c0853435b16a90be40#672122fcce88aff7258ac6c0853435b16a90be40"
+  integrity sha512-ACL6CiYQ5hiplyUjxD33djNowrKiO0b3PrAGTsr2sRbqGcRqU5FWqrMd44/hg37z/l/sbWTl63NkNhAjijT4kw==
   dependencies:
     "@chakra-ui/icons" "^2.2.4"
-    "@chakra-ui/react" "^2.10.2"
+    "@chakra-ui/react" "^2.8.0"
     "@emotion/react" "^11.13.3"
     "@emotion/styled" "^11.13.0"
     "@fontsource/ibm-plex-sans" "^5.1.0"
