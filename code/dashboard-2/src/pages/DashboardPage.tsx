@@ -1,13 +1,11 @@
 import { ReactNode, useMemo, useRef, useState } from 'react'
 import { Navigate, useParams, Link as ReactRouterLink, useSearchParams } from 'react-router-dom'
 import {
-  Container,
   Heading,
   VStack,
   Text,
   Link as ChakraLink,
   useDisclosure,
-  SlideFade,
 } from '@chakra-ui/react'
 import { ExternalLinkIcon } from '@chakra-ui/icons'
 import {
@@ -42,7 +40,7 @@ export default function DashboardPage() {
 
   const query = searchParams.get('query') || defaultQuery
 
-  const {data, isFetched} = useFetchDashboard(selectedCluster, query)
+  const {data} = useFetchDashboard(selectedCluster, query)
 
   const [sorting, setSorting] = useState<SortingState>([])
 
@@ -104,9 +102,7 @@ export default function DashboardPage() {
           onClickHelp={onOpenHelpSidebar}
           focusRef={focusRef}
         />
-        <SlideFade in={isFetched}>
-          <DashboardTable table={table} cluster={selectedCluster}/>
-        </SlideFade>
+        <DashboardTable table={table} cluster={selectedCluster}/>
       </VStack>
       <NodeSelectionHelpDrawer isOpen={isOpenHelpSidebar} onClose={onClose} finalFocusRef={focusRef}/>
     </>
