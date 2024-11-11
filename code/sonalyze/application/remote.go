@@ -1,6 +1,6 @@
-// Handle remotable data analysis commands
+// Application logic for analysis of remote data.
 
-package main
+package application
 
 import (
 	"bufio"
@@ -38,7 +38,7 @@ const (
 
 var netrc = regexp.MustCompile(`^machine\s+\S+\s+login\s+\S+\s+password\s+\S+\s*$`)
 
-func remoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout, stderr io.Writer) error {
+func RemoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout, stderr io.Writer) error {
 	r := NewReifier()
 	err := rCmd.ReifyForRemote(&r)
 	if err != nil {

@@ -1,6 +1,13 @@
-Sonalyze is an aggregation and query front-end for Sonar data.  Its job is to make sense of the
-Sonar data in various ways, perform selections on the data, and present results in useful form (both
-human-readable and machine-readable).  By and large, other components in the ecosystem should always
-go via Sonalyze to access Sonar data.
+# Sonalyze
 
-See MANUAL.md for more information.
+Sonalyze is an aggregation and query front-end for monitoring data (including
+[Sonar](https://github.com/NordicHPC/Sonar) data, hence the name).  Its job is to make sense of the
+data in various ways, perform selections on the data, and present results in useful form (both
+human-readable and machine-readable).  By and large, other components in the ecosystem should always
+go via Sonalyze to access the monitoring data.
+
+See MANUAL.md for more user information (and ../../doc/HOWTO.md for a gentle introduction).
+
+See TECHNICAL.md for various internal notes: authentication and authorization, REST API, and things
+of lesser interest.
+

@@ -25,6 +25,7 @@ import (
 
 	"go-utils/status"
 	"sonalyze/add"
+	"sonalyze/application"
 	"sonalyze/clusters"
 	. "sonalyze/command"
 	. "sonalyze/common"
@@ -51,7 +52,9 @@ import (
 
 const SonalyzeVersion = "0.6.0"
 
-// See end of file for documentation.
+// See end of file for documentation / implementation, and command/command.go for documentation of
+// the CommandLineHandler interface.
+//
 // MT: Constant after initialization; immutable (no fields)
 var stdhandler = standardCommandLineHandler{}
 
@@ -161,7 +164,7 @@ func sonalyze() error {
 		}
 
 		if cmd, ok := anyCmd.(RemotableCommand); ok && cmd.RemotingFlags().Remoting {
-			return remoteOperation(cmd, verb, os.Stdin, os.Stdout, out)
+			return application.RemoteOperation(cmd, verb, os.Stdin, os.Stdout, out)
 		}
 
 		// We are running against a local cluster store.
@@ -221,7 +224,12 @@ func (_ *standardCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd C
 	return
 }
 
-func (_ *standardCommandLineHandler) ParseArgs(verb string, args []string, cmd Command, fs *flag.FlagSet) error {
+func (_ *standardCommandLineHandler) ParseArgs(
+	verb string,
+	args []string,
+	cmd Command,
+	fs *flag.FlagSet,
+) error {
 	cmd.Add(fs)
 	err := fs.Parse(args)
 	if err != nil {
@@ -269,10 +277,14 @@ func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func()
 
 // TODO: Possibly top and sacct can be handled together, they are instances of AnalysisCommand
 
-func (_ *standardCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Reader, stdout, stderr io.Writer) error {
+func (_ *standardCommandLineHandler) HandleCommand(
+	anyCmd Command,
+	stdin io.Reader,
+	stdout, stderr io.Writer,
+) error {
 	switch cmd := anyCmd.(type) {
 	case SampleAnalysisCommand:
-		return localAnalysis(cmd, stdin, stdout, stderr)
+		return application.LocalOperation(cmd, stdin, stdout, stderr)
 	case *add.AddCommand:
 		return cmd.AddData(stdin, stdout, stderr)
 	case *clusters.ClusterCommand:
@@ -305,7 +317,12 @@ func (_ *daemonCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd Com
 	return stdhandler.ParseVerb(cmdName, maybeVerb)
 }
 
-func (_ *daemonCommandLineHandler) ParseArgs(verb string, args []string, cmd Command, fs *flag.FlagSet) error {
+func (_ *daemonCommandLineHandler) ParseArgs(
+	verb string,
+	args []string,
+	cmd Command,
+	fs *flag.FlagSet,
+) error {
 	err := stdhandler.ParseArgs(verb, args, cmd, fs)
 	if err != nil {
 		return err
@@ -320,7 +337,11 @@ func (_ *daemonCommandLineHandler) StartCPUProfile(string) (func(), error) {
 	panic("Should not happen")
 }
 
-func (_ *daemonCommandLineHandler) HandleCommand(anyCmd Command, stdin io.Reader, stdout, stderr io.Writer) error {
+func (_ *daemonCommandLineHandler) HandleCommand(
+	anyCmd Command,
+	stdin io.Reader,
+	stdout, stderr io.Writer,
+) error {
 	if _, ok := anyCmd.(*daemon.DaemonCommand); ok {
 		panic("Should not happen")
 	}

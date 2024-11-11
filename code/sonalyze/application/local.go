@@ -1,6 +1,6 @@
-// Handle local and remote data analysis commands
+// Application logic for analysis of local data.
 
-package main
+package application
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ import (
 	"sonalyze/sonarlog"
 )
 
-func localAnalysis(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
+func LocalOperation(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
 	args := cmd.SharedFlags()
 
 	cfg, err := db.MaybeGetConfig(cmd.ConfigFile())
