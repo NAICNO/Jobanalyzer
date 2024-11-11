@@ -1,9 +1,10 @@
 package uptime
 
 import (
+	"cmp"
 	"io"
 	"reflect"
-	"sort"
+	"slices"
 	"strings"
 
 	uslices "go-utils/slices"
@@ -12,7 +13,28 @@ import (
 )
 
 func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) {
-	sort.Sort(sortableReports(reports))
+	slices.SortFunc(reports, func(a, b *UptimeLine) int {
+		c := cmp.Compare(a.Hostname, b.Hostname)
+		if c == 0 {
+			c = cmp.Compare(a.Start, b.Start)
+			if c == 0 {
+				if a.Device != b.Device {
+					if a.Device == "host" {
+						c = -1
+					} else {
+						c = 1
+					}
+				}
+				if c == 0 {
+					c = cmp.Compare(a.End, b.End)
+					if c == 0 {
+						c = cmp.Compare(a.State, b.State)
+					}
+				}
+			}
+		}
+		return c
+	})
 	FormatData(
 		out,
 		uc.PrintFields,
@@ -23,35 +45,9 @@ func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) {
 	)
 }
 
-type sortableReports []*UptimeLine
-
-func (sr sortableReports) Len() int {
-	return len(sr)
-}
-
-func (sr sortableReports) Swap(i, j int) {
-	sr[i], sr[j] = sr[j], sr[i]
-}
-
-func (sr sortableReports) Less(i, j int) bool {
-	// Sort the reports by hostname, start time, device type, end time, and state
-	if sr[i].Hostname == sr[j].Hostname {
-		if sr[i].Start == sr[j].Start {
-			if sr[i].Device == sr[j].Device {
-				if sr[i].End == sr[j].End {
-					return sr[i].State < sr[j].State
-				}
-				return sr[i].End < sr[j].End
-			}
-			return sr[i].Device == "host"
-		}
-		return sr[i].Start < sr[j].Start
-	}
-	return sr[i].Hostname < sr[j].Hostname
-}
-
 func (uc *UptimeCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(uc.Fmt, uptimeHelp, uptimeFormatters, uptimeAliases, uptimeDefaultFields)
+	return StandardFormatHelp(
+		uc.Fmt, uptimeHelp, uptimeFormatters, uptimeAliases, uptimeDefaultFields)
 }
 
 const uptimeHelp = `

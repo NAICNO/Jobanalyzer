@@ -1,0 +1,28 @@
+{
+    "name": "cluster1",
+    "description": "Cluster 1",
+    "aliases": ["x1", "x2"],
+    "nodes": [
+        {
+	    "hostname":"n1",
+	    "description": "2x14 Intel Xeon Gold 5120 (hyperthreaded), 128GB, 4x NVIDIA RTX 2080 Ti @ 11GB",
+	    "cpu_cores": 56,
+	    "mem_gb": 128,
+	    "gpu_cards": 4,
+	    "gpumem_gb": 44
+        },
+        {
+            "timestamp":"2024-10-31T12:00:00Z",
+	    "hostname":"n2",
+	    "description": "1x14 Intel Xeon Gold 5120 (hyperthreaded), 256GB, 2x NVIDIA RTX 2080 Ti @ 11GB",
+	    "cpu_cores": 28,
+	    "mem_gb": 256,
+            "cross_node_jobs": true,
+	    "gpu_cards": 2,
+	    "gpumem_gb": 22
+        }
+    ]
+}
+
+
+

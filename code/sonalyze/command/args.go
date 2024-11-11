@@ -173,21 +173,21 @@ type SourceArgs struct {
 	ToDate   time.Time
 	LogFiles []string
 
-	fromDateStr string
-	toDateStr   string
+	FromDateStr string
+	ToDateStr   string
 }
 
 func (s *SourceArgs) Add(fs *flag.FlagSet) {
 	s.DataDirArgs.Add(fs)
 	s.RemotingArgs.Add(fs)
-	fs.StringVar(&s.fromDateStr, "from", "",
+	fs.StringVar(&s.FromDateStr, "from", "",
 		"Select records by this `time` and later.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
 			"signifying N days or weeks ago [default: 1d, ie 1 day ago]")
-	fs.StringVar(&s.fromDateStr, "f", "", "Short for -from `time`")
-	fs.StringVar(&s.toDateStr, "to", "",
+	fs.StringVar(&s.FromDateStr, "f", "", "Short for -from `time`")
+	fs.StringVar(&s.ToDateStr, "to", "",
 		"Select records by this `time` and earlier.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
 			"signifying N days or weeks ago [default: now]")
-	fs.StringVar(&s.toDateStr, "t", "", "Short for -to `time`")
+	fs.StringVar(&s.ToDateStr, "t", "", "Short for -to `time`")
 }
 
 func (s *SourceArgs) ReifyForRemote(x *Reifier) error {
@@ -196,8 +196,8 @@ func (s *SourceArgs) ReifyForRemote(x *Reifier) error {
 	// Validate() has already checked that DataDir, LogFiles, Remote, Cluster, and AuthFile are
 	// consistent for remote or local execution; none of those except Cluster is forwarded.
 	x.String("cluster", s.Cluster)
-	x.String("from", s.fromDateStr)
-	x.String("to", s.toDateStr)
+	x.String("from", s.FromDateStr)
+	x.String("to", s.ToDateStr)
 	return nil
 }
 
@@ -230,8 +230,8 @@ func (s *SourceArgs) Validate() error {
 			ApplyDefault(&s.Cluster, "data-source", "cluster")
 		}
 	}
-	ApplyDefault(&s.fromDateStr, "data-source", "from")
-	ApplyDefault(&s.toDateStr, "data-source", "to")
+	ApplyDefault(&s.FromDateStr, "data-source", "from")
+	ApplyDefault(&s.ToDateStr, "data-source", "to")
 
 	err := s.RemotingArgs.Validate()
 	if err != nil {
@@ -269,11 +269,11 @@ func (s *SourceArgs) Validate() error {
 	// command line.
 
 	now := time.Now().UTC()
-	if s.fromDateStr != "" {
+	if s.FromDateStr != "" {
 		var err error
-		s.FromDate, err = ParseRelativeDateUtc(now, s.fromDateStr, false)
+		s.FromDate, err = ParseRelativeDateUtc(now, s.FromDateStr, false)
 		if err != nil {
-			return fmt.Errorf("Invalid -from argument %s", s.fromDateStr)
+			return fmt.Errorf("Invalid -from argument %s", s.FromDateStr)
 		}
 		s.HaveFrom = true
 	} else {
@@ -281,11 +281,11 @@ func (s *SourceArgs) Validate() error {
 		s.HaveFrom = len(s.LogFiles) == 0
 	}
 
-	if s.toDateStr != "" {
+	if s.ToDateStr != "" {
 		var err error
-		s.ToDate, err = ParseRelativeDateUtc(now, s.toDateStr, true)
+		s.ToDate, err = ParseRelativeDateUtc(now, s.ToDateStr, true)
 		if err != nil {
-			return fmt.Errorf("Invalid -to argument %s", s.toDateStr)
+			return fmt.Errorf("Invalid -to argument %s", s.ToDateStr)
 		}
 		s.HaveTo = true
 	} else {
