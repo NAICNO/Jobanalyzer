@@ -2,7 +2,7 @@
 // suitable for transmission to jobanalyzer.
 //
 // Usage:
-//  sacctd [-window n] [-span n,m]
+//  sacctd [-window n] [-span n,m] [input-file]
 //
 // where
 //  -window minutes
@@ -13,6 +13,10 @@
 //
 //  -span yyyy-mm-dd,yyyy-mm-dd
 //    From-to dates; `from` is inclusive, `to` is exclusive.  Precludes -window
+//
+//  input-file
+//    For testing: If present, read input from this instead of running sacct.  Ignores -window
+//    and -span (beyond requiring them to be valid or absent).
 //
 // Notes for users:
 //
@@ -156,30 +160,43 @@ func main() {
 		to = "now"
 	}
 
-	cmd := exec.Command(
-		"sacct",
-		"-aP",
-		"-s",
-		strings.Join(states, ","),
-		"--noheader",
-		"-o",
-		strings.Join(fieldNames, ","),
-		"-S",
-		from,
-		"-E",
-		to,
-	)
-	var out strings.Builder
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		log.Fatal(err)
+	var sacct_output string
+	if len(flag.Args()) > 0 {
+		if len(flag.Args()) > 1 {
+			log.Fatalf("At most one input file")
+		}
+		bytes, err := os.ReadFile(flag.Args()[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+		sacct_output = string(bytes)
+	} else {
+		cmd := exec.Command(
+			"sacct",
+			"-aP",
+			"-s",
+			strings.Join(states, ","),
+			"--noheader",
+			"-o",
+			strings.Join(fieldNames, ","),
+			"-S",
+			from,
+			"-E",
+			to,
+		)
+		var out strings.Builder
+		cmd.Stdout = &out
+		err := cmd.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
+		sacct_output = out.String()
 	}
 
 	w := csv.NewWriter(os.Stdout)
 	defer w.Flush()
 
-	scan := bufio.NewScanner(strings.NewReader(out.String()))
+	scan := bufio.NewScanner(strings.NewReader(sacct_output))
 	versionField := "v=" + version
 	for scan.Scan() {
 		fields := strings.Split(scan.Text(), "|")
