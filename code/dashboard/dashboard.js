@@ -95,9 +95,13 @@ function setupLinks() {
 
     if (info.violators) {
         document.getElementById("violators_link").href=`violators.html?cluster=${CURRENT_CLUSTER}`
+    } else {
+        document.getElementById("violators_link").remove()
     }
     if (info.deadweight) {
         document.getElementById("deadweight_link").href=`deadweight.html?cluster=${CURRENT_CLUSTER}`
+    } else {
+        document.getElementById("deadweight_link").remove()
     }
     document.getElementById("jobquery_link").href=`jobquery.html?cluster=${CURRENT_CLUSTER}`
 
@@ -198,7 +202,11 @@ function annotate_rows(rows) {
 
     document.getElementById("recent_defn").textContent = sanetime(recent_minutes)
     document.getElementById("longer_defn").textContent = sanetime(longer_minutes)
-    document.getElementById("long_defn").textContent = sanetime(long_minutes)
+    if (info.violators || info.deadweight) {
+        document.getElementById("long_defn").textContent = sanetime(long_minutes)
+    } else {
+        document.getElementById("long_defn").remove()
+    }
 }
 
 function sanetime(mins) {
