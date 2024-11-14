@@ -11,6 +11,11 @@ var policyNames = {
 function render() {
     rewriteTitle()
 
+    let info = cluster_info(CURRENT_CLUSTER)
+    if (!info.volators) {
+        return
+    }
+
     let params = new URLSearchParams(document.location.search)
     // There must be a user parameter
     let user = params.get("user")

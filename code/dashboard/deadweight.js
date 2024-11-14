@@ -1,5 +1,9 @@
 function render() {
     rewriteTitle()
+    let info = cluster_info(CURRENT_CLUSTER)
+    if (!info.deadweight) {
+        return
+    }
     var fields = [{name: "Host", tag: "hostname"},
 		  {name: "User", tag: "user"},
 		  {name: "Job",  tag: "id"},
