@@ -19,4 +19,4 @@ $naicreport_dir/naicreport deadweight -state-dir $state_dir -from 4w > $report_d
 if [[ -s $report_dir/fox-deadweight-report.txt ]]; then
     $naicreport_mail -s "Fox deadweight report" "$fox_deadweight_recipient" < $report_dir/fox-deadweight-report.txt
 fi
-$naicreport_dir/naicreport deadweight -state-dir $state_dir -from 4w -json > $report_dir/fox-deadweight-report.json
+#$naicreport_dir/naicreport deadweight -state-dir $state_dir -from 4w -json > $report_dir/fox-deadweight-report.json
