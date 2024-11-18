@@ -1,13 +1,19 @@
 package jobs
 
 import (
+	"fmt"
 	"io"
 	"math"
+	"slices"
 	"strings"
+	"time"
 
 	"go-utils/config"
 	"go-utils/gpuset"
 	"go-utils/hostglob"
+	umaps "go-utils/maps"
+	"go-utils/sonalyze"
+
 	. "sonalyze/command"
 	. "sonalyze/common"
 	"sonalyze/db"
@@ -58,8 +64,20 @@ const (
 
 // Package for results from aggregation.
 type jobSummary struct {
-	aggregate jobAggregate
-	job       sonarlog.SampleStream
+	jobAggregate
+	JobId          uint32
+	User           Ustr
+	JobAndMark     string
+	Now            DateTimeValue
+	Duration       DurationValue
+	Start          DateTimeValue // Earliest time seen for the job, seconds since epoch
+	End            DateTimeValue // Latest time ditto
+	CpuTime        DurationValue
+	GpuTime        DurationValue
+	Classification int // Bit vector of flags
+	job            sonarlog.SampleStream
+	computedFlags  int
+	selected       bool // Initially true, used to deselect the record before printing
 }
 
 // Aggregate figures for a job.  For some cross-job data like user and host, go to the sample stream
@@ -72,11 +90,12 @@ type jobSummary struct {
 // figures.  If a system config is not present then all fields will represent the recorded values
 // (kRgpuKB * the recorded percentages).
 type jobAggregate struct {
-	first         int64 // Earliest time seen for the job, seconds since epoch
-	last          int64 // Latest time ditto
-	selected      bool  // Initially true, used to deselect the record before printing
-	computedFlags int
-	computed      [numF64Fields]float64
+	GpuFail  int
+	Gpus     gpuset.GpuSet
+	computed [numF64Fields]float64
+	IsZombie bool
+	Cmd      string
+	Host     string
 }
 
 func (jc *JobsCommand) NeedsBounds() bool {
@@ -133,6 +152,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 ) []*jobSummary {
+	var now = time.Now().UTC().Unix()
 	var anyMergeableNodes bool
 	if !jc.MergeNone && cfg != nil {
 		anyMergeableNodes = cfg.HasCrossNodeJobs()
@@ -158,14 +178,92 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
 	}
 	discarded := 0
+	var needCmd, needHost, needJobAndMark bool
+	for _, f := range jc.PrintFields {
+		switch f.Name {
+		case "cmd", "Cmd":
+			needCmd = true
+		case "host", "Host":
+			needHost = true
+		case "jobm", "JobsAndMark":
+			needJobAndMark = true
+		}
+	}
 	for _, job := range jobs {
 		if uint(len(*job)) >= minSamples {
-			aggregate := &jobSummary{
-				aggregate: jc.aggregateJob(cfg, *job, bounds),
-				job:       *job,
+			host := (*job)[0].Host
+			jobId := (*job)[0].Job
+			user := (*job)[0].User
+			first := (*job)[0].Timestamp
+			last := (*job)[len(*job)-1].Timestamp
+			duration := last - first
+			aggregate := jc.aggregateJob(cfg, host, *job, needCmd, needHost, jc.Zombie)
+			aggregate.computed[kDuration] = float64(duration)
+			usesGpu := !aggregate.Gpus.IsEmpty()
+			flags := 0
+			if usesGpu {
+				flags |= kUsesGpu
+			} else {
+				flags |= kDoesNotUseGpu
 			}
-			if filter == nil || filter.apply(aggregate) {
-				summaries = append(summaries, aggregate)
+			if aggregate.GpuFail != 0 {
+				flags |= kGpuFail
+			}
+			bound, haveBound := bounds[host]
+			if !haveBound {
+				panic("Expected to find bound")
+			}
+			if first == bound.Earliest {
+				flags |= kIsLiveAtStart
+			} else {
+				flags |= kIsNotLiveAtStart
+			}
+			if last == bound.Latest {
+				flags |= kIsLiveAtEnd
+			} else {
+				flags |= kIsNotLiveAtEnd
+			}
+			if aggregate.IsZombie {
+				flags |= kIsZombie
+			}
+			jobAndMark := ""
+			if needJobAndMark {
+				mark := ""
+				switch {
+				case flags&(kIsLiveAtStart|kIsLiveAtEnd) == (kIsLiveAtStart | kIsLiveAtEnd):
+					mark = "!"
+				case flags&kIsLiveAtStart != 0:
+					mark = "<"
+				case flags&kIsLiveAtEnd != 0:
+					mark = ">"
+				}
+				jobAndMark = fmt.Sprint(jobId, mark)
+			}
+			classification := 0
+			if (flags & kIsLiveAtStart) != 0 {
+				classification |= sonalyze.LIVE_AT_START
+			}
+			if (flags & kIsLiveAtEnd) != 0 {
+				classification |= sonalyze.LIVE_AT_END
+			}
+			summary := &jobSummary{
+				jobAggregate:   aggregate,
+				JobId:          jobId,
+				JobAndMark:     jobAndMark,
+				User:           user,
+				CpuTime:        DurationValue(math.Round(aggregate.computed[kCpuPctAvg] * float64(duration) / 100)),
+				GpuTime:        DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(kDuration) / 100)),
+				Duration:       DurationValue(duration),
+				Now:            DateTimeValue(now),
+				Start:          DateTimeValue(first),
+				End:            DateTimeValue(last),
+				selected:       true,
+				Classification: classification,
+				job:            *job,
+				computedFlags:  flags,
+			}
+			if filter == nil || filter.apply(summary) {
+				summaries = append(summaries, summary)
 			}
 		} else {
 			discarded++
@@ -211,19 +309,15 @@ func mergeAcrossSomeNodes(
 }
 
 // Given a list of log entries for a job, sorted ascending by timestamp and with no duplicated
-// timestamps, and the earliest and latest timestamps from all records read, return a JobAggregate
-// for the job.
+// timestamps, return a JobAggregate for the job, with values that are computed from all log
+// entries.
 
 func (jc *JobsCommand) aggregateJob(
 	cfg *config.ClusterConfig,
+	host Ustr,
 	job sonarlog.SampleStream,
-	bounds sonarlog.Timebounds,
+	needCmd, needHost, needZombie bool,
 ) jobAggregate {
-	first := job[0].Timestamp
-	last := job[len(job)-1].Timestamp
-	host := job[0].Host
-	duration := last - first
-	needZombie := jc.Zombie
 	gpus := gpuset.EmptyGpuSet()
 	var (
 		gpuFail                       uint8
@@ -239,7 +333,6 @@ func (jc *JobsCommand) aggregateJob(
 		gpuGBAvg, gpuGBPeak           float64
 		rGpuGBAvg, rGpuGBPeak         float64
 		sGpuGBAvg, sGpuGBPeak         float64
-		flags                         int
 		isZombie                      bool
 	)
 	const kb2gb = 1.0 / (1024 * 1024)
@@ -303,37 +396,55 @@ func (jc *JobsCommand) aggregateJob(
 		}
 	}
 
-	if usesGpu {
-		flags |= kUsesGpu
-	} else {
-		flags |= kDoesNotUseGpu
+	cmd := ""
+	if needCmd {
+		names := make(map[Ustr]bool)
+		for _, sample := range job {
+			if _, found := names[sample.Cmd]; found {
+				continue
+			}
+			if cmd != "" {
+				cmd += ", "
+			}
+			cmd += sample.Cmd.String()
+			names[sample.Cmd] = true
+		}
 	}
-	if gpuFail != 0 {
-		flags |= kGpuFail
-	}
-	bound, haveBound := bounds[host]
-	if !haveBound {
-		panic("Expected to find bound")
-	}
-	if first == bound.Earliest {
-		flags |= kIsLiveAtStart
-	} else {
-		flags |= kIsNotLiveAtStart
-	}
-	if last == bound.Latest {
-		flags |= kIsLiveAtEnd
-	} else {
-		flags |= kIsNotLiveAtEnd
-	}
-	if isZombie {
-		flags |= kIsZombie
+
+	hostnames := ""
+	if needHost {
+		// TODO: It's not clear any more why len(hosts) would ever be other than 1, and why this
+		// processing is needed at all.  This could be very old code that is no longer relevant.
+		// The Go code just copies the Rust code here.
+		//
+		// Names are assumed to be compressed as the set of jobs is always the output of some
+		// merge process that will compress when appropriate.  (If they are not compressed for
+		// reasons having to do with how the merge was done, and we don't compress them here,
+		// then there may be substantial redundancy in the output: "c1-10.fox, c1-11.fox", etc,
+		// instead of the desirable "c1-[10,11].fox", but that should not currently be an issue
+		// for `jobs`.)  Therefore there is no compression here.  But even the uniq'ing, sorting
+		// and joining may be redundant.
+		hosts := make(map[string]bool)
+		for _, s := range job {
+			var name string
+			if jc.PrintOpts.Fixed {
+				name, _, _ = strings.Cut(s.Host.String(), ".")
+			} else {
+				name = s.Host.String()
+			}
+			hosts[name] = true
+		}
+		keys := umaps.Keys(hosts)
+		slices.Sort(keys)
+		hostnames = strings.Join(keys, ", ")
 	}
 	n := float64(len(job))
 	a := jobAggregate{
-		first:         first,
-		last:          last,
-		selected:      true,
-		computedFlags: flags,
+		Gpus:     gpus,
+		GpuFail:  int(gpuFail),
+		Cmd:      cmd,
+		Host:     hostnames,
+		IsZombie: isZombie,
 	}
 	a.computed[kCpuPctAvg] = cpuPctAvg / n
 	a.computed[kCpuPctPeak] = cpuPctPeak
@@ -364,8 +475,6 @@ func (jc *JobsCommand) aggregateJob(
 	a.computed[kSgpuGBAvg] = sGpuGBAvg / n
 	a.computed[kSgpuGBPeak] = sGpuGBPeak
 
-	a.computed[kDuration] = float64(duration)
-
 	return a
 }
 
@@ -392,16 +501,16 @@ type aggregationFilter struct {
 
 func (f *aggregationFilter) apply(s *jobSummary) bool {
 	for _, v := range f.minFilters {
-		if s.aggregate.computed[v.ix] < v.limit {
+		if s.computed[v.ix] < v.limit {
 			return false
 		}
 	}
 	for _, v := range f.maxFilters {
-		if s.aggregate.computed[v.ix] > v.limit {
+		if s.computed[v.ix] > v.limit {
 			return false
 		}
 	}
-	return (f.flags & s.aggregate.computedFlags) == f.flags
+	return (f.flags & s.computedFlags) == f.flags
 }
 
 func (jc *JobsCommand) buildAggregationFilter(

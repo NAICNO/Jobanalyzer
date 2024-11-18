@@ -498,7 +498,7 @@ type FormatArgs struct {
 	Fmt string
 
 	// Synthesized and other
-	PrintFields []string
+	PrintFields []FieldSpec
 	PrintOpts   *FormatOptions
 }
 
@@ -512,10 +512,10 @@ func (fa *FormatArgs) ReifyForRemote(x *Reifier) error {
 	return nil
 }
 
-func ValidateFormatArgs[Data, Ctx any](
+func ValidateFormatArgs(
 	fa *FormatArgs,
 	defaultFields string,
-	formatters map[string]Formatter[Data, Ctx],
+	formatters map[string]Formatter,
 	aliases map[string][]string,
 	def DefaultFormat,
 ) error {

@@ -162,9 +162,13 @@ func (mdc *MetadataCommand) Perform(
 			})
 		}
 		sort.Sort(HostTimeSortableItems(items))
-		FormatData(out, mdc.PrintFields, metadataFormatters, mdc.PrintOpts,
+		FormatData(
+			out,
+			mdc.PrintFields,
+			metadataFormatters,
+			mdc.PrintOpts,
 			uslices.Map(items, func(x *metadataItem) any { return x }),
-			ComputePrintMods(mdc.PrintOpts))
+		)
 	}
 
 	return nil
@@ -193,7 +197,7 @@ var metadataAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var metadataFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromTags(
+var metadataFormatters = DefineTableFromTags(
 	// TODO: Go 1.22, reflect.TypeFor[metadataItem]
 	reflect.TypeOf((*metadataItem)(nil)).Elem(),
 	nil,

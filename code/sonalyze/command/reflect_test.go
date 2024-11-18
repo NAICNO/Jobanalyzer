@@ -23,7 +23,7 @@ type U1 struct {
 
 func TestFormatting1(t *testing.T) {
 	v1 := S1{x: 10, T1: &T1{y: 20, U1: &U1{z: 30}}}
-	fs := ReflectFormattersFromTags(reflect.TypeOf(v1), nil)
+	fs := DefineTableFromTags(reflect.TypeOf(v1), nil)
 	ss := uslices.Map([]string{"x", "y", "z"}, func(s string) string {
 		return fs[s].Fmt(&v1, PrintMods(0))
 	})
@@ -54,7 +54,7 @@ type U2 struct {
 
 func TestFormatting2(t *testing.T) {
 	v1 := S2{x: 10, T2: T2{y: 20, U2: U2{z: 30}}}
-	fs := ReflectFormattersFromTags(reflect.TypeOf(v1), nil)
+	fs := DefineTableFromTags(reflect.TypeOf(v1), nil)
 	ss := uslices.Map([]string{"x", "y", "z"}, func(s string) string {
 		return fs[s].Fmt(&v1, PrintMods(0))
 	})
@@ -67,7 +67,7 @@ type SFS = SimpleFormatSpec
 
 func TestFormatting3(t *testing.T) {
 	v1 := S2{x: 10, T2: T2{y: 20, U2: U2{z: 30}}}
-	fs := ReflectFormattersFromMap(
+	fs := DefineTableFromMap(
 		// TODO: Go 1.22, reflect.TypeFor[S2]
 		reflect.TypeOf((*S2)(nil)).Elem(),
 		map[string]any{

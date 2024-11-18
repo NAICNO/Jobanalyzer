@@ -140,7 +140,6 @@ func (pc *ParseCommand) Perform(
 				parseFormatters,
 				pc.PrintOpts,
 				uslices.Map(*stream, func(x sonarlog.Sample) any { return x }),
-				ComputePrintMods(pc.PrintOpts),
 			)
 		}
 	} else {
@@ -150,7 +149,6 @@ func (pc *ParseCommand) Perform(
 			parseFormatters,
 			pc.PrintOpts,
 			uslices.Map(samples, func(x sonarlog.Sample) any { return x }),
-			ComputePrintMods(pc.PrintOpts),
 		)
 	}
 	return nil
@@ -216,7 +214,7 @@ type ZFA = SynthesizedFormatSpecWithAttr
 //
 // TODO: IMPROVEME: The use of utc for "localtime" is a bug that comes from the Rust code.
 
-var parseFormatters = ReflectFormattersFromMap(
+var parseFormatters = DefineTableFromMap(
 	reflect.TypeOf((*sonarlog.Sample)(nil)).Elem(),
 	map[string]any{
 		"Version":    SFS{"Semver string (MAJOR.MINOR.BUGFIX)", "version"},
@@ -240,15 +238,12 @@ var parseFormatters = ReflectFormattersFromMap(
 		"GpuPct":     AFS{"GPU utilization reading", "gpu_pct", FmtDefaultable},
 		"GpuMemPct":  AFS{"GPU memory percentage reading", "gpumem_pct", FmtDefaultable},
 		"GpuKB":      AFS{"GPU memory utilization reading", "gpukib", FmtDefaultable},
-		"gpumem_gb": ZFA{"GPU memory utilization reading", "GpuKB",
-			FmtDivideBy1M | FmtDefaultable},
-		"GpuFail": AFS{"GPU status flag (0=ok, 1=error state)", "gpu_status", FmtDefaultable},
-		"CpuTimeSec": AFS{"CPU time since last reading (seconds, CONSULT DOCUMENTATION)",
-			"cputime_sec", FmtDefaultable},
-		"Rolledup": AFS{"Number of rolled-up processes, minus 1", "rolledup", FmtDefaultable},
-		"Flags":    SFS{"Bit vector of flags, UTSL", ""},
-		"CpuUtilPct": AFS{"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)",
-			"cpu_util_pct", FmtDefaultable},
+		"gpumem_gb":  ZFA{"GPU memory utilization reading", "GpuKB", FmtDivideBy1M | FmtDefaultable},
+		"GpuFail":    AFS{"GPU status flag (0=ok, 1=error state)", "gpu_status", FmtDefaultable},
+		"CpuTimeSec": AFS{"CPU time since last reading (seconds, CONSULT DOCUMENTATION)", "cputime_sec", FmtDefaultable},
+		"Rolledup":   AFS{"Number of rolled-up processes, minus 1", "rolledup", FmtDefaultable},
+		"Flags":      SFS{"Bit vector of flags, UTSL", ""},
+		"CpuUtilPct": AFS{"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)", "cpu_util_pct", FmtDefaultable},
 	},
 )
 

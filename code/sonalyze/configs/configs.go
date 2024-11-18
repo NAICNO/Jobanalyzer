@@ -124,7 +124,6 @@ func (cc *ConfigCommand) Configs(_ io.Reader, stdout, _ io.Writer) error {
 		configsFormatters,
 		cc.PrintOpts,
 		uslices.Map(records, func(x *config.NodeConfigRecord) any { return x }),
-		ComputePrintMods(cc.PrintOpts),
 	)
 
 	return nil
@@ -162,7 +161,7 @@ var configsAliases = map[string][]string{
 type SFS = SimpleFormatSpec
 
 // MT: Constant after initialization; immutable
-var configsFormatters map[string]Formatter[any, PrintMods] = ReflectFormattersFromMap(
+var configsFormatters = DefineTableFromMap(
 	// TODO: Go 1.22, reflect.TypeFor[config.NodeConfigRecord]
 	reflect.TypeOf((*config.NodeConfigRecord)(nil)).Elem(),
 	map[string]any{

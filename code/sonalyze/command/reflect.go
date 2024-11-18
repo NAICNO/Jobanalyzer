@@ -1,10 +1,10 @@
 // Generate formatters from an annotated structure types using reflection.
 //
-// ReflectFormattersFromTags generates formatters from the tagged fields on a structure type,
-// excluding any field names in an optional blocklist.
+// DefineTableFromTags generates formatters from the tagged fields on a structure type, excluding
+// any field names in an optional blocklist.
 //
-// ReflectFormattersFromMap generates formatters from the fields on a structure type if they
-// appear in an allowlist.
+// DefineTableFromMap generates formatters from the fields on a structure type if they appear in an
+// allowlist.
 //
 // Both will descend into embedded fields.
 //
@@ -14,6 +14,7 @@ package command
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"slices"
 	"strconv"
@@ -25,20 +26,17 @@ import (
 	. "sonalyze/common"
 )
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//
 // Annotation types
 //
-// These types hold an int64 unix timestamp and indicate a particular kind of formatting.
-//
-// TODO: DateTimeValue and DateTimeValueOrBlank will eventually honor /iso and /sec modifiers.
-// TODO: Possibly IsoDateTimeOrUnknown should honor /sec at least.
+// These types hold an int64 unix timestamp or second count and indicate a particular kind of
+// formatting.
 
 type DateTimeValue int64        // yyyy-mm-dd hh:mm
 type DateTimeValueOrBlank int64 // yyyy-mm-dd hh:mm or 16 blanks
 type IsoDateTimeOrUnknown int64 // yyyy-mm-ddThh:mmZhh:mm
 type DateValue int64            // yyyy-mm-dd
 type TimeValue int64            // hh:mm
+type DurationValue int64        // _d_h_m for d(ays) h(ours) m(inutes), rounded to minute, round up on ties
 
 func (val DateValue) String() string {
 	return time.Unix(int64(val), 0).UTC().Format("2006-01-02")
@@ -46,13 +44,6 @@ func (val DateValue) String() string {
 
 func (val TimeValue) String() string {
 	return time.Unix(int64(val), 0).UTC().Format("15:04")
-}
-
-func (val IsoDateTimeOrUnknown) String() string {
-	if val == 0 {
-		return "Unknown"
-	}
-	return time.Unix(int64(val), 0).UTC().Format(time.RFC3339)
 }
 
 // More of the same
@@ -77,6 +68,12 @@ var (
 	dummyDateTimeValueOrBlank DateTimeValueOrBlank
 	dateTimeValueOrBlankTy    = reflect.TypeOf(dummyDateTimeValueOrBlank)
 
+	dummyIsoDateTimeOrUnknown IsoDateTimeOrUnknown
+	isoDateTimeOrUnknownTy    = reflect.TypeOf(dummyIsoDateTimeOrUnknown)
+
+	dummyDurationValue DurationValue
+	durationValueTy    = reflect.TypeOf(dummyDurationValue)
+
 	dummyUstrMax30Value UstrMax30
 	ustrMax30Ty         = reflect.TypeOf(dummyUstrMax30Value)
 
@@ -87,58 +84,8 @@ var (
 	stringerTy = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 )
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Print modifiers.
-//
-// See comment block below.
-
-type PrintMods = int
-
-const (
-	// These apply per-field according to modifiers
-	// TODO: These are currently unimplemented.
-	PrintModSec = (1 << iota) // timestamps are printed as seconds since epoch
-	PrintModIso               // timestamps are printed as Iso timestamps
-
-	// These are for the output format and are applied to all fields
-	PrintModFixed      // fixed format
-	PrintModJson       // JSON format
-	PrintModCsv        // CSV format
-	PrintModCsvNamed   // CSVNamed format
-	PrintModAwk        // AWK format
-	PrintModNoDefaults // Set (for any format) if option is set
-)
-
-// This is a temporary solution.  Currently the callers of FormatData must pass this when they use
-// reflected formatters, but once all modules have reflected formatters this will instead be
-// computed by FormatData.  At that point, the callers of FormatData will no longer pass their last
-// argument.
-
-func ComputePrintMods(opts *FormatOptions) PrintMods {
-	var x PrintMods
-	switch {
-	case opts.Csv:
-		if opts.Named {
-			x = PrintModCsvNamed
-		} else {
-			x = PrintModCsv
-		}
-	case opts.Json:
-		x = PrintModJson
-	case opts.Awk:
-		x = PrintModAwk
-	case opts.Fixed:
-		x = PrintModFixed
-	}
-	if opts.NoDefaults && (opts.Csv || opts.Json) {
-		x |= PrintModNoDefaults
-	}
-	return x
-}
-
-// Given a struct type, ReflectFormattersFromTags constructs a map from field names to a formatter
-// for each field.  Fields are excluded if they appear in isExcluded or have no `desc` annotation.
+// Given a struct type, DefineTableFromTags constructs a map from field names to a formatter for
+// each field.  Fields are excluded if they appear in isExcluded or have no `desc` annotation.
 //
 // A field may have an `alias` annotation in addition to its name.  The alias is treated just as the
 // name.  Aliases are a consequence of older code using "convenient" names for fields while we want
@@ -150,13 +97,13 @@ func ComputePrintMods(opts *FormatOptions) PrintMods {
 // There must be no duplicates in the union of field names and aliases, or in the set of aliases.
 //
 // The formtting function's ctx is a bit flag vector, the flags can vary with the field b/c
-// formatting specifiers like "/sec".  This is not yet well developed but will work OK.
+// formatting specifiers like "/sec" and "/iso".
 
-func ReflectFormattersFromTags(
+func DefineTableFromTags(
 	structTy reflect.Type,
 	isExcluded map[string]bool,
-) (formatters map[string]Formatter[any, PrintMods]) {
-	formatters = make(map[string]Formatter[any, PrintMods])
+) (formatters map[string]Formatter) {
+	formatters = make(map[string]Formatter)
 	reflectStructFormatters(
 		structTy,
 		formatters,
@@ -183,23 +130,24 @@ func ReflectFormattersFromTags(
 	return
 }
 
-// ReflectFormattersFromMap is like ReflectFormattersFromTags, but instead of being passed a
-// blocklist, it is being passed an allowlist, along with formatting information for the fields on
-// that list.  This is useful when we want to decouple the specification of formatting from the
-// structure definition, as when there are multiple formatters for the same data but they extract
-// different fields and with different formatting rules, or when we simply do not want to specify
-// any formatting rules in the structure definition because the structure definition is in a package
-// different from the printing.
+// DefineTableFromMap is like DefineTableFromTags, but instead of being passed a blocklist, it is
+// being passed an allowlist, along with formatting information for the fields on that list.  This
+// is useful when we want to decouple the specification of formatting from the structure definition,
+// as when there are multiple formatters for the same data but they extract different fields and
+// with different formatting rules, or when we simply do not want to specify any formatting rules in
+// the structure definition because the structure definition is in a package different from the
+// printing.
 //
 // The field values must be one of the *FormatSpec types below.
 //
 // SimpleFormatSpecWithAttr uses an attribute to specify a simple formatting rule, that in the case
-// of ReflectFormattersFromTags can be expressed through a type.
+// of DefineTableFromTags can be expressed through a type.
 //
 // SynthesizedFormatSpecWithAttr uses an attribute to specify a simple formatting rule for a
-// synthesized output field.
+// synthesized output field computed from a real field.
 //
-// (Unused and maybe unneeded) ComputedFormatSpec is used for synthesized fields: fields not in the data array.
+// SynthesizedIndexedFormatSpecWithAttr uses an attribute to specify a simple formatting rule for a
+// synthesized output field computed from an element of a real array field.
 
 type SimpleFormatSpec struct {
 	Desc    string
@@ -209,14 +157,18 @@ type SimpleFormatSpec struct {
 // `FmtDefaultable` indicates that the field has a default value to skip if nodefaults is set.
 // Numbers, Ustr, string, and GpuSet are defaultable.
 //
-// For Fmt<Typename> see typename at top of file
+// `FmtCeil` and `FmtDivideBy1M` apply simple numeric transformations.  (There could be more.)
+//
+// For `Fmt<Typename>` see Typename at top of file - these attributes request that values be
+// formatted as for those types.
 
 const (
 	FmtDefaultable      = (1 << iota)
+	FmtCeil             // type must be floating, take ceil, print as integer
+	FmtDivideBy1M       // type must be integer, integer divide by 1024*1024
 	FmtDateTimeValue    // type must be int64
 	FmtIsoDateTimeValue // type must be int64
-	FmtDivideBy1M       // type must be integer
-	// There could be more, just as there are various types to express the same thing
+	FmtDurationValue    // type must be int64
 )
 
 type SimpleFormatSpecWithAttr struct {
@@ -228,22 +180,25 @@ type SimpleFormatSpecWithAttr struct {
 type SynthesizedFormatSpecWithAttr struct {
 	Desc     string
 	RealName string
+	// TODO: Should have aliases probably
+	Attr int
+}
+
+type SynthesizedIndexedFormatSpecWithAttr struct {
+	Desc     string
+	RealName string // array or slice
+	Index    int
+	Aliases  string
 	Attr     int
 }
 
-type ComputedFormatSpec struct {
-	RealName string // field name this is derived from
-	Desc     string
-	Fmt      func(d any) string // d will be a pointer value
-}
-
-func ReflectFormattersFromMap(
+func DefineTableFromMap(
 	structTy reflect.Type,
 	fields map[string]any,
-) (formatters map[string]Formatter[any, PrintMods]) {
-	formatters = make(map[string]Formatter[any, PrintMods])
+) (formatters map[string]Formatter) {
+	formatters = make(map[string]Formatter)
 
-	// `synthesizable` is a map from a real field name to one synthesized/computed spec that targets
+	// `synthesizable` is a map from a real field name to one synthesized spec that targets
 	// that real field name.
 	type SynthSpec struct {
 		SynthesizedName string
@@ -255,7 +210,7 @@ func ReflectFormattersFromMap(
 		switch s := v.(type) {
 		case SynthesizedFormatSpecWithAttr:
 			realname = s.RealName
-		case ComputedFormatSpec:
+		case SynthesizedIndexedFormatSpecWithAttr:
 			realname = s.RealName
 		default:
 			continue
@@ -285,8 +240,8 @@ func ReflectFormattersFromMap(
 					ok = true
 				case SynthesizedFormatSpecWithAttr:
 					panic(fmt.Sprintf("Struct field '%s' has synthesized spec", name))
-				case ComputedFormatSpec:
-					panic(fmt.Sprintf("Struct field '%s' has computed spec", name))
+				case SynthesizedIndexedFormatSpecWithAttr:
+					panic(fmt.Sprintf("Struct field '%s' has synthesized indexed spec", name))
 				default:
 					panic("Invalid FormatSpec")
 				}
@@ -301,7 +256,7 @@ func ReflectFormattersFromMap(
 					desc = info.Desc
 					attrs = info.Attr
 					ok = true
-				case ComputedFormatSpec:
+				case SynthesizedIndexedFormatSpecWithAttr:
 					panic("NYI")
 				default:
 					panic("Invalid FormatSpec")
@@ -315,7 +270,7 @@ func ReflectFormattersFromMap(
 
 func reflectStructFormatters(
 	structTy reflect.Type,
-	formatters map[string]Formatter[any, PrintMods],
+	formatters map[string]Formatter,
 	admissible func(fld reflect.StructField) (ok bool, name, desc string, aliases []string, attrs int),
 	synthesizable func(fld reflect.StructField) (ok bool, name, desc string, attrs int),
 ) {
@@ -342,12 +297,12 @@ func reflectStructFormatters(
 			} else {
 				continue
 			}
-			subFormatters := make(map[string]Formatter[any, PrintMods])
+			subFormatters := make(map[string]Formatter)
 			reflectStructFormatters(fldTy, subFormatters, admissible, synthesizable)
 			for name, fmt := range subFormatters {
 				// TODO: once we move to Go 1.22: no temp binding
 				theFmt := fmt.Fmt
-				f := Formatter[any, PrintMods]{
+				f := Formatter{
 					Help: fmt.Help,
 				}
 				if mustTakeAddress {
@@ -365,7 +320,7 @@ func reflectStructFormatters(
 			}
 		} else {
 			if ok, name, desc, aliases, attrs := admissible(fld); ok {
-				f := Formatter[any, PrintMods]{
+				f := Formatter{
 					Help: desc,
 					Fmt:  reflectTypeFormatter(ix, attrs, fld.Type),
 				}
@@ -381,7 +336,7 @@ func reflectStructFormatters(
 					//
 					// TODO: In principle there could be multiple synthesizable fields per fld, for now
 					// we'll require synthesizable (or earlier code) to panic if that case occurs.
-					f := Formatter[any, PrintMods]{
+					f := Formatter{
 						Help: desc,
 						Fmt:  reflectTypeFormatter(ix, attrs, fld.Type),
 					}
@@ -395,22 +350,31 @@ func reflectStructFormatters(
 func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMods) string {
 	switch {
 	case ty == dateTimeValueTy || ty == dateTimeValueOrBlankTy:
-		// Time formatters that must respect flags.
 		return func(d any, ctx PrintMods) string {
 			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
 			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
 				return "*skip*"
 			}
-			switch {
-			case val == 0 && ty == dateTimeValueOrBlankTy:
+			if val == 0 && ty == dateTimeValueOrBlankTy {
 				return "                "
-			case (ctx & PrintModSec) != 0:
-				return strconv.FormatInt(val, 10)
-			case (ctx & PrintModIso) != 0:
-				return time.Unix(val, 0).UTC().Format(time.RFC3339)
-			default:
-				return FormatYyyyMmDdHhMmUtc(val)
 			}
+			return FormatDateTimeValue(val, ctx)
+		}
+	case ty == isoDateTimeOrUnknownTy:
+		return func(d any, ctx PrintMods) string {
+			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+			if val == 0 {
+				return "Unknown"
+			}
+			return FormatDateTimeValue(int64(val), ctx|PrintModIso)
+		}
+	case ty == durationValueTy:
+		return func(d any, ctx PrintMods) string {
+			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
+			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
+				return "*skip*"
+			}
+			return FormatDurationValue(val, ctx)
 		}
 	case ty == gpuSetTy:
 		return func(d any, ctx PrintMods) string {
@@ -493,10 +457,13 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 					return "*skip*"
 				}
 				if (attrs & FmtDateTimeValue) != 0 {
-					return FormatYyyyMmDdHhMmUtc(val)
+					return FormatDateTimeValue(val, ctx)
 				}
 				if (attrs & FmtIsoDateTimeValue) != 0 {
-					return time.Unix(val, 0).UTC().Format(time.RFC3339)
+					return FormatDateTimeValue(val, ctx|PrintModIso)
+				}
+				if (attrs & FmtDurationValue) != 0 {
+					return FormatDurationValue(val, ctx)
 				}
 				if (attrs & FmtDivideBy1M) != 0 {
 					val /= 1024 * 1024
@@ -528,6 +495,9 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 		case reflect.Float32, reflect.Float64:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Float()
+				if (attrs & FmtCeil) != 0 {
+					val = math.Ceil(val)
+				}
 				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
 					return "*skip*"
 				}
