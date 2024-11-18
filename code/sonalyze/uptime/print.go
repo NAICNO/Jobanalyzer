@@ -68,8 +68,4 @@ var uptimeAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var uptimeFormatters = DefineTableFromTags(
-	// TODO: Go 1.22, reflect.TypeFor[UptimeLine]
-	reflect.TypeOf((*UptimeLine)(nil)).Elem(),
-	nil,
-)
+var uptimeFormatters = DefineTableFromTags(reflect.TypeFor[UptimeLine](), nil)

@@ -61,27 +61,13 @@ func (val IntOrEmpty) String() string {
 // Type representations of some of those, for when we need the types.
 
 var (
-	// TODO: When we can adopt Go 1.22: valTy := reflect.TypeFor[TypeName]()
-	dummyDateTimeValue DateTimeValue
-	dateTimeValueTy    = reflect.TypeOf(dummyDateTimeValue)
-
-	dummyDateTimeValueOrBlank DateTimeValueOrBlank
-	dateTimeValueOrBlankTy    = reflect.TypeOf(dummyDateTimeValueOrBlank)
-
-	dummyIsoDateTimeOrUnknown IsoDateTimeOrUnknown
-	isoDateTimeOrUnknownTy    = reflect.TypeOf(dummyIsoDateTimeOrUnknown)
-
-	dummyDurationValue DurationValue
-	durationValueTy    = reflect.TypeOf(dummyDurationValue)
-
-	dummyUstrMax30Value UstrMax30
-	ustrMax30Ty         = reflect.TypeOf(dummyUstrMax30Value)
-
-	dummyGpuSetValue gpuset.GpuSet
-	gpuSetTy         = reflect.TypeOf(dummyGpuSetValue)
-
-	// See the Example for reflect.TypeOf in the Go documentation.
-	stringerTy = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+	dateTimeValueTy        = reflect.TypeFor[DateTimeValue]()
+	dateTimeValueOrBlankTy = reflect.TypeFor[DateTimeValueOrBlank]()
+	isoDateTimeOrUnknownTy = reflect.TypeFor[IsoDateTimeOrUnknown]()
+	durationValueTy        = reflect.TypeFor[DurationValue]()
+	ustrMax30Ty            = reflect.TypeFor[UstrMax30]()
+	gpuSetTy               = reflect.TypeFor[gpuset.GpuSet]()
+	stringerTy             = reflect.TypeFor[fmt.Stringer]()
 )
 
 // Given a struct type, DefineTableFromTags constructs a map from field names to a formatter for
@@ -278,9 +264,7 @@ func reflectStructFormatters(
 		panic("Struct type required")
 	}
 	for i, lim := 0, structTy.NumField(); i < lim; i++ {
-		// TODO: once we move to Go 1.22: no temp binding
-		ix := i
-		fld := structTy.Field(ix)
+		fld := structTy.Field(i)
 		if fld.Anonymous {
 			// Trace through embedded field.  The formatting function will receive the outer
 			// structure (or pointer to it), but the formatter generator code operates on the inner
@@ -300,20 +284,18 @@ func reflectStructFormatters(
 			subFormatters := make(map[string]Formatter)
 			reflectStructFormatters(fldTy, subFormatters, admissible, synthesizable)
 			for name, fmt := range subFormatters {
-				// TODO: once we move to Go 1.22: no temp binding
-				theFmt := fmt.Fmt
 				f := Formatter{
 					Help: fmt.Help,
 				}
 				if mustTakeAddress {
 					f.Fmt = func(d any, mods PrintMods) string {
-						val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Addr()
-						return theFmt(val.Interface(), mods)
+						val := reflect.Indirect(reflect.ValueOf(d)).Field(i).Addr()
+						return fmt.Fmt(val.Interface(), mods)
 					}
 				} else {
 					f.Fmt = func(d any, mods PrintMods) string {
-						val := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
-						return theFmt(val.Interface(), mods)
+						val := reflect.Indirect(reflect.ValueOf(d)).Field(i)
+						return fmt.Fmt(val.Interface(), mods)
 					}
 				}
 				formatters[name] = f
@@ -322,7 +304,7 @@ func reflectStructFormatters(
 			if ok, name, desc, aliases, attrs := admissible(fld); ok {
 				f := Formatter{
 					Help: desc,
-					Fmt:  reflectTypeFormatter(ix, attrs, fld.Type),
+					Fmt:  reflectTypeFormatter(i, attrs, fld.Type),
 				}
 				formatters[name] = f
 				for _, a := range aliases {
@@ -338,7 +320,7 @@ func reflectStructFormatters(
 					// we'll require synthesizable (or earlier code) to panic if that case occurs.
 					f := Formatter{
 						Help: desc,
-						Fmt:  reflectTypeFormatter(ix, attrs, fld.Type),
+						Fmt:  reflectTypeFormatter(i, attrs, fld.Type),
 					}
 					formatters[name] = f
 				}

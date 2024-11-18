@@ -120,8 +120,4 @@ var sacctAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var sacctFormatters = DefineTableFromTags(
-	// TODO: Go 1.22, reflect.TypeFor[SacctRegular]
-	reflect.TypeOf((*SacctRegular)(nil)).Elem(),
-	nil,
-)
+var sacctFormatters = DefineTableFromTags(reflect.TypeFor[SacctRegular](), nil)

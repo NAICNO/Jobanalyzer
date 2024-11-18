@@ -529,11 +529,7 @@ var profileAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var profileFormatters = DefineTableFromTags(
-	// TODO: Go 1.22, reflect.TypeFor[fixedLine]
-	reflect.TypeOf((*fixedLine)(nil)).Elem(),
-	nil,
-)
+var profileFormatters = DefineTableFromTags(reflect.TypeFor[fixedLine](), nil)
 
 func formatTime(t int64) string {
 	return FormatYyyyMmDdHhMmUtc(t)

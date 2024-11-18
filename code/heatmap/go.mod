@@ -1,3 +1,3 @@
 module heatmap
 
-go 1.21.11
+go 1.22.1
