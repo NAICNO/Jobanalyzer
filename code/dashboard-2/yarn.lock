@@ -778,10 +778,10 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@naicno/web-components@0.0.7":
-  version "0.0.7"
-  resolved "https://npm.pkg.github.com/download/@naicno/web-components/0.0.7/216aae3a10f4b6ca3b440c3ea91c11af89f2ed33#216aae3a10f4b6ca3b440c3ea91c11af89f2ed33"
-  integrity sha512-FmqQid0r3buXO3UBDXdA55Gu/HOfOjuNqP6BxPmAJBhLUGZRokaEiCBgpAveblf2wDrxs7P6vT91RB6vdkyx+A==
+"@naicno/web-components@0.0.10":
+  version "0.0.10"
+  resolved "https://npm.pkg.github.com/download/@naicno/web-components/0.0.10/f17268944a4b41433bf23efc0dc7b62482da2445#f17268944a4b41433bf23efc0dc7b62482da2445"
+  integrity sha512-UCMNteqC1WRol6NDaJcV+vffy9wl852JnLGJoInZeKZGPiOlOxmOn01Axx4clBvjo5Q7MqAqT8axU2h5+zvpsw==
   dependencies:
     "@chakra-ui/icons" "^2.2.4"
     "@chakra-ui/react" "^2.8.0"
