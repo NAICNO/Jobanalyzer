@@ -175,8 +175,4 @@ var loadAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var loadFormatters = DefineTableFromTags(
-	// TODO: Go 1.22, reflect.TypeFor[ReportRecord]
-	reflect.TypeOf((*ReportRecord)(nil)).Elem(),
-	nil,
-)
+var loadFormatters = DefineTableFromTags(reflect.TypeFor[ReportRecord](), nil)

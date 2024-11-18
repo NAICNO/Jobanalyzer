@@ -68,8 +68,7 @@ type SFS = SimpleFormatSpec
 func TestFormatting3(t *testing.T) {
 	v1 := S2{x: 10, T2: T2{y: 20, U2: U2{z: 30}}}
 	fs := DefineTableFromMap(
-		// TODO: Go 1.22, reflect.TypeFor[S2]
-		reflect.TypeOf((*S2)(nil)).Elem(),
+		reflect.TypeFor[S2](),
 		map[string]any{
 			"x": SFS{"x field", "xx"},
 			"y": SFS{"y field", "yy"},

@@ -197,8 +197,4 @@ var metadataAliases = map[string][]string{
 }
 
 // MT: Constant after initialization; immutable
-var metadataFormatters = DefineTableFromTags(
-	// TODO: Go 1.22, reflect.TypeFor[metadataItem]
-	reflect.TypeOf((*metadataItem)(nil)).Elem(),
-	nil,
-)
+var metadataFormatters = DefineTableFromTags(reflect.TypeFor[metadataItem](), nil)

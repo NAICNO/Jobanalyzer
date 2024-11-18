@@ -1,12 +1,13 @@
 package parse
 
 import (
+	"cmp"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"reflect"
-	"sort"
+	"slices"
 	"strings"
 
 	"go-utils/config"
@@ -131,7 +132,19 @@ func (pc *ParseCommand) Perform(
 
 	if mergedSamples != nil {
 		// All elements that are part of the InputStreamKey must be part of the sort key here.
-		sort.Stable(sonarlog.HostTimeJobCmdSortableSampleStreams(mergedSamples))
+		slices.SortStableFunc(mergedSamples, func(a, b *sonarlog.SampleStream) int {
+			c := cmp.Compare((*a)[0].Host.String(), (*b)[0].Host.String())
+			if c == 0 {
+				c = cmp.Compare((*a)[0].Timestamp, (*b)[0].Timestamp)
+				if c == 0 {
+					c = cmp.Compare((*a)[0].Job, (*b)[0].Job)
+					if c == 0 {
+						c = cmp.Compare((*a)[0].Cmd.String(), (*b)[0].Cmd.String())
+					}
+				}
+			}
+			return c
+		})
 		for _, stream := range mergedSamples {
 			fmt.Fprintln(out, "*")
 			FormatData(

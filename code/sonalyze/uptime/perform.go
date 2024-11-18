@@ -41,13 +41,15 @@
 package uptime
 
 import (
+	"cmp"
 	"io"
-	"sort"
+	"slices"
 
 	"go-utils/config"
 	"go-utils/hostglob"
 	"go-utils/maps"
-	"go-utils/slices"
+	uslices "go-utils/slices"
+
 	. "sonalyze/command"
 	. "sonalyze/common"
 	"sonalyze/db"
@@ -96,7 +98,7 @@ func (uc *UptimeCommand) Perform(
 	hostGlobber *hostglob.HostGlobber,
 	_ *db.SampleFilter,
 ) error {
-	samples := slices.CatenateP(maps.Values(streams))
+	samples := uslices.CatenateP(maps.Values(streams))
 	if uc.Verbose {
 		Log.Infof("%d streams", len(streams))
 		Log.Infof("%d records after hack", len(samples))
@@ -117,7 +119,12 @@ func (uc *UptimeCommand) computeReports(
 	reports := make([]*UptimeLine, 0)
 	fromIncl, toIncl := uc.InterpretFromToWithBounds(bounds)
 
-	sort.Stable(sonarlog.HostTimeSortableSampleStream(samples))
+	slices.SortStableFunc(samples, func(a, b sonarlog.Sample) int {
+		if a.Host != b.Host {
+			return cmp.Compare(a.Host.String(), b.Host.String())
+		}
+		return cmp.Compare(a.Timestamp, b.Timestamp)
+	})
 
 	uc.computeAlwaysDown(&reports, samples, cfg, hostGlobber, fromIncl, toIncl)
 

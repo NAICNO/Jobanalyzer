@@ -3,14 +3,15 @@
 package sonarlog
 
 import (
+	"cmp"
 	"errors"
 	"maps"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
 	"go-utils/config"
+
 	. "sonalyze/common"
 	"sonalyze/db"
 )
@@ -136,7 +137,9 @@ func createInputStreams(
 	// same data file are kept in order, in corner cases (esp around roundtripping with `parse`)
 	// it's surprising if they are not in order.
 	for _, stream := range streams {
-		sort.Stable(TimeSortableSampleStream(*stream))
+		slices.SortStableFunc(*stream, func (a, b Sample) int {
+			return cmp.Compare(a.Timestamp, b.Timestamp)
+		})
 	}
 
 	// Remove duplicate timestamps.  These may appear due to system effects, notably, sonar log

@@ -142,8 +142,7 @@ type SFS = SimpleFormatSpec
 
 // MT: Constant after initialization; immutable
 var clustersFormatters = DefineTableFromMap(
-	// TODO: Go 1.22, reflect.TypeFor[db.ClusterEntry]
-	reflect.TypeOf((*db.ClusterEntry)(nil)).Elem(),
+	reflect.TypeFor[db.ClusterEntry](),
 	map[string]any{
 		"Name":        SFS{"Cluster name", "cluster"},
 		"Description": SFS{"Human-consumable cluster summary", "desc"},

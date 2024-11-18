@@ -162,8 +162,7 @@ type SFS = SimpleFormatSpec
 
 // MT: Constant after initialization; immutable
 var configsFormatters = DefineTableFromMap(
-	// TODO: Go 1.22, reflect.TypeFor[config.NodeConfigRecord]
-	reflect.TypeOf((*config.NodeConfigRecord)(nil)).Elem(),
+	reflect.TypeFor[config.NodeConfigRecord](),
 	map[string]any{
 		"Timestamp":     SFS{"Full ISO timestamp of when the reading was taken", "timestamp"},
 		"Hostname":      SFS{"Name that host is known by on the cluster", "host"},
