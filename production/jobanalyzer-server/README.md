@@ -26,8 +26,8 @@ In the following, let `$JOBANALYZER` be the Jobanalyzer source code root directo
 
 ## Building programs and scripts
 
-On some systems, you may first need to `module load` Go 1.21.10 or later, or otherwise obtain or
-install that toolchain.  Older versions of Go 1.21 may work but the go.mod files must be updated.
+On some systems, you may first need to `module load` Go 1.22.1 or later, or otherwise obtain or
+install that toolchain.
 
 ```
   cd $JOBANALYZER

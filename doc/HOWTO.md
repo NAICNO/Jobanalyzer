@@ -34,7 +34,7 @@ help` to get an overview of the options for the command in question.
 
 ## Command line access
 
-Clone the repo, then `make build`at the top level should be sufficient.  (You need Go 1.21.10 or
+Clone the repo, then `make build`at the top level should be sufficient.  (You need Go 1.22.1 or
 newer, this is not a problem on most systems, certainly not most personal systems.)  You now want to
 run `code/sonalyze/sonalyze`.
 
