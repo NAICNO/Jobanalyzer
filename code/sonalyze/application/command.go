@@ -14,6 +14,7 @@ import (
 	"sonalyze/cmd/nodes"
 	"sonalyze/cmd/parse"
 	"sonalyze/cmd/profile"
+	"sonalyze/cmd/report"
 	"sonalyze/cmd/sacct"
 	"sonalyze/cmd/top"
 	"sonalyze/cmd/uptime"
@@ -28,6 +29,7 @@ func CommandHelp(out io.Writer) {
 	fmt.Fprintf(out, "  metadata - parse data, print stats and metadata\n")
 	fmt.Fprintf(out, "  node     - print node information extracted from sysinfo table\n")
 	fmt.Fprintf(out, "  profile  - print the profile of a particular job\n")
+	fmt.Fprintf(out, "  report   - print a precomputed report\n")
 	fmt.Fprintf(out, "  sacct    - print information extracted from Slurm sacct data\n")
 	fmt.Fprintf(out, "  sample   - print sonar sample information (aka `parse`)\n")
 	fmt.Fprintf(out, "  top      - print per-cpu load information across time\n")
@@ -53,6 +55,8 @@ func ConstructCommand(verb string) (command cmd.Command, actualVerb string) {
 	case "meta", "metadata":
 		command = new(metadata.MetadataCommand)
 		verb = "metadata"
+	case "report":
+		command = new(report.ReportCommand)
 	case "sample", "parse":
 		command = new(parse.ParseCommand)
 		verb = "sample"
