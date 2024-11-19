@@ -12,10 +12,10 @@ import (
 	"go-utils/hostglob"
 	"go-utils/maps"
 	"go-utils/slices"
+	"sonalyze/cmd/profile"
 	. "sonalyze/command"
 	. "sonalyze/common"
 	"sonalyze/db"
-	"sonalyze/profile"
 	"sonalyze/sonarlog"
 )
 
