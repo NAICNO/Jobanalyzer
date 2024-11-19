@@ -8,6 +8,7 @@ import (
 	"go-utils/hostglob"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
+	. "sonalyze/table"
 )
 
 type FormatHelpAPI interface {

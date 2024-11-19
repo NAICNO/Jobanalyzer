@@ -137,7 +137,7 @@ func createInputStreams(
 	// same data file are kept in order, in corner cases (esp around roundtripping with `parse`)
 	// it's surprising if they are not in order.
 	for _, stream := range streams {
-		slices.SortStableFunc(*stream, func (a, b Sample) int {
+		slices.SortStableFunc(*stream, func(a, b Sample) int {
 			return cmp.Compare(a.Timestamp, b.Timestamp)
 		})
 	}

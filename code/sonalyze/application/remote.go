@@ -14,13 +14,13 @@ import (
 	"strings"
 	"time"
 
-	"sonalyze/add"
-	"sonalyze/clusters"
+	"sonalyze/cmd/add"
+	"sonalyze/cmd/clusters"
+	"sonalyze/cmd/configs"
+	"sonalyze/cmd/nodes"
+	"sonalyze/cmd/sacct"
 	. "sonalyze/command"
 	. "sonalyze/common"
-	"sonalyze/configs"
-	"sonalyze/nodes"
-	"sonalyze/sacct"
 )
 
 const (

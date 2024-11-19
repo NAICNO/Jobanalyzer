@@ -136,7 +136,3 @@ func AddDay(t int64) int64 {
 func AddWeek(t int64) int64 {
 	return t + 7*24*60*60
 }
-
-func FormatYyyyMmDdHhMmUtc(t int64) string {
-	return time.Unix(t, 0).UTC().Format("2006-01-02 15:04")
-}
