@@ -90,7 +90,7 @@ import (
 	"go-utils/alias"
 	"go-utils/auth"
 	"go-utils/options"
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	"sonalyze/db"
 )
 

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"flag"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/table"
 )
 
@@ -71,7 +71,7 @@ func (lc *LoadCommand) Add(fs *flag.FlagSet) {
 		"After bucketing, do not print anything for time slots that are empty")
 }
 
-func (lc *LoadCommand) ReifyForRemote(x *Reifier) error {
+func (lc *LoadCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
 		lc.SharedArgs.ReifyForRemote(x),
 		lc.FormatArgs.ReifyForRemote(x),

@@ -1,4 +1,4 @@
-package command
+package cmd
 
 import (
 	"errors"
@@ -7,7 +7,6 @@ import (
 	"math"
 	"os"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -39,7 +38,7 @@ func (d *DevArgs) Add(fs *flag.FlagSet) {
 	}
 }
 
-func (d *DevArgs) ReifyForRemote(x *Reifier) error {
+func (d *DevArgs) ReifyForRemote(x *ArgReifier) error {
 	if d.CpuProfile != "" {
 		return errors.New("-cpuprofile not allowed with remote execution")
 	}
@@ -191,7 +190,7 @@ func (s *SourceArgs) Add(fs *flag.FlagSet) {
 	fs.StringVar(&s.ToDateStr, "t", "", "Short for -to `time`")
 }
 
-func (s *SourceArgs) ReifyForRemote(x *Reifier) error {
+func (s *SourceArgs) ReifyForRemote(x *ArgReifier) error {
 	// RemotingArgs don't have ReifyForRemote
 
 	// Validate() has already checked that DataDir, LogFiles, Remote, Cluster, and AuthFile are
@@ -339,7 +338,7 @@ func (h *HostArgs) Add(fs *flag.FlagSet) {
 		"Select records for this `host` (repeatable) [default: all]")
 }
 
-func (h *HostArgs) ReifyForRemote(x *Reifier) error {
+func (h *HostArgs) ReifyForRemote(x *ArgReifier) error {
 	x.RepeatableString("host", h.Host)
 	return nil
 }
@@ -379,7 +378,7 @@ func (r *RecordFilterArgs) Add(fs *flag.FlagSet) {
 		"Exclude jobs where the `job` ID equals this ID (repeatable) [default: none]")
 }
 
-func (r *RecordFilterArgs) ReifyForRemote(x *Reifier) error {
+func (r *RecordFilterArgs) ReifyForRemote(x *ArgReifier) error {
 	e := r.HostArgs.ReifyForRemote(x)
 	x.RepeatableString("user", r.User)
 	x.RepeatableString("exclude-user", r.ExcludeUser)
@@ -423,7 +422,7 @@ func (cfa *ConfigFileArgs) Add(fs *flag.FlagSet) {
 			"want to print or use system-relative values [default: none]")
 }
 
-func (cfa *ConfigFileArgs) ReifyForRemote(x *Reifier) error {
+func (cfa *ConfigFileArgs) ReifyForRemote(x *ArgReifier) error {
 	if cfa.ConfigFilename != "" {
 		return errors.New("-config-file can't be specified remotely")
 	}
@@ -468,7 +467,7 @@ func (s *SharedArgs) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&s.Verbose, "verbose", false, "Print verbose diagnostics to stderr")
 }
 
-func (s *SharedArgs) ReifyForRemote(x *Reifier) error {
+func (s *SharedArgs) ReifyForRemote(x *ArgReifier) error {
 	// We don't forward s.Verbose, it's mostly useful locally, and ideally sonalyzed should redact
 	// it on the remote end to avoid revealing internal data (it does not, and indeed would require
 	// the argument to be named "verbose" to work).
@@ -508,7 +507,7 @@ func (fa *FormatArgs) Add(fs *flag.FlagSet) {
 		"Select `field,...` and format for the output [default: try -fmt=help]")
 }
 
-func (fa *FormatArgs) ReifyForRemote(x *Reifier) error {
+func (fa *FormatArgs) ReifyForRemote(x *ArgReifier) error {
 	x.String("fmt", fa.Fmt)
 	return nil
 }
@@ -625,35 +624,4 @@ func NewRepeatableString(xs *[]string) *RepeatableString {
 			return s, nil
 		},
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Duration parsing.  The format is WwDdHhMm for weeks/days/hours/minutes, all parts are optional
-// and the default value is zero.  We return seconds because that's what everyone wants.
-
-var durationRe = regexp.MustCompile(`^(?:(\d+)w)?(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?$`)
-
-func DurationToSeconds(option, s string) (int64, error) {
-	if matches := durationRe.FindStringSubmatch(s); matches != nil {
-		var weeks, days, hours, minutes int64
-		var x1, x2, x3, x4 error
-		if matches[1] != "" {
-			weeks, x1 = strconv.ParseInt(matches[1], 10, 64)
-		}
-		if matches[2] != "" {
-			days, x2 = strconv.ParseInt(matches[2], 10, 64)
-		}
-		if matches[3] != "" {
-			hours, x3 = strconv.ParseInt(matches[3], 10, 64)
-		}
-		if matches[4] != "" {
-			minutes, x4 = strconv.ParseInt(matches[4], 10, 64)
-		}
-		if x1 != nil || x2 != nil || x3 != nil || x4 != nil {
-			return 0, fmt.Errorf("Invalid %s specifier, try -h", option)
-		}
-		return (((weeks*7+days)*24+hours)*60 + minutes) * 60, nil
-	}
-	return 0, fmt.Errorf("Invalid %s specifier, try -h", option)
 }

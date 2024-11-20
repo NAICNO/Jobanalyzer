@@ -10,7 +10,7 @@ import (
 	"errors"
 	"flag"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/table"
 )
 
@@ -42,7 +42,7 @@ func (uc *UptimeCommand) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&uc.OnlyDown, "only-down", false, "Show only times when systems are down")
 }
 
-func (uc *UptimeCommand) ReifyForRemote(x *Reifier) error {
+func (uc *UptimeCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
 		uc.SharedArgs.ReifyForRemote(x),
 		uc.FormatArgs.ReifyForRemote(x),

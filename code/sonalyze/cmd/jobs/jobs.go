@@ -6,7 +6,8 @@ import (
 	"errors"
 	"flag"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
+	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
@@ -301,7 +302,7 @@ func (jc *JobsCommand) Add(fs *flag.FlagSet) {
 	fs.UintVar(&jc.NumJobs, "n", 0, "Short for -numjobs n")
 }
 
-func (jc *JobsCommand) ReifyForRemote(x *Reifier) error {
+func (jc *JobsCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
 		jc.SharedArgs.ReifyForRemote(x),
 		jc.FormatArgs.ReifyForRemote(x),

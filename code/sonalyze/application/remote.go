@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
+	. "sonalyze/cmd"
 	"sonalyze/cmd/add"
 	"sonalyze/cmd/clusters"
 	"sonalyze/cmd/configs"
 	"sonalyze/cmd/nodes"
 	"sonalyze/cmd/sacct"
-	. "sonalyze/command"
 	. "sonalyze/common"
 )
 
@@ -39,7 +39,7 @@ const (
 var netrc = regexp.MustCompile(`^machine\s+\S+\s+login\s+\S+\s+password\s+\S+\s*$`)
 
 func RemoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout, stderr io.Writer) error {
-	r := NewReifier()
+	r := NewArgReifier()
 	err := rCmd.ReifyForRemote(&r)
 	if err != nil {
 		return err

@@ -14,7 +14,7 @@ import (
 	umaps "go-utils/maps"
 	"go-utils/sonalyze"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
