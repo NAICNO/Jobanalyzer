@@ -4,7 +4,7 @@
 // Uniformly, repeatable strings that could be comma-separated on input are exploded as separate
 // arguments here, to keep it simple.
 //
-// See ../REST.md for a definition of the protocol.
+// See the "REST protocol" section of ../TECHNICAL.md for a definition of the protocol.
 
 package cmd
 
