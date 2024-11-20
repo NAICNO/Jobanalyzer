@@ -1,4 +1,15 @@
 // See ../TECHNICAL.md for a definition of the protocol.
+//
+// When adding a new command to the daemon, several points in this file have to be updated:
+//
+// - a new handler has to be installed in RunDaemon()
+// - any special argument construction has to be created in httpGetHandler() (several places) or
+//   httpPostHandler()
+// - any local-only arguments that should never be forwarded need to be added to the blacklist
+//   in argOk()
+//
+// In addition, due to the structure of the URL syntax, a new command point may need to be added to
+// the HTTP server's configuration file.
 
 package daemon
 
@@ -23,6 +34,9 @@ import (
 	"sonalyze/db"
 )
 
+// Note, this should *NOT* be called Perform(), so that we can be sure we're not confusing a
+// DaemonCommand with a SimpleCommand.
+
 func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	logger, err := syslog.Dial("", "", syslog.LOG_INFO|syslog.LOG_USER, logTag)
 	if err != nil {
@@ -45,6 +59,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	http.HandleFunc("/profile", httpGetHandler(dc, "profile"))
 	http.HandleFunc("/parse", httpGetHandler(dc, "sample"))
 	http.HandleFunc("/sample", httpGetHandler(dc, "sample"))
+	http.HandleFunc("/report", httpGetHandler(dc, "report"))
 	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata"))
 	http.HandleFunc("/sacct", httpGetHandler(dc, "sacct"))
 	// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
@@ -98,6 +113,12 @@ func httpGetHandler(
 		switch command {
 		case "cluster":
 			arguments = append(arguments, "--jobanalyzer-dir", dc.jobanalyzerDir)
+		case "report":
+			arguments = append(
+				arguments,
+				"--report-dir",
+				db.MakeReportDirPath(dc.jobanalyzerDir, clusterName),
+			)
 		case "config":
 			// Nothing, we add the config-file below
 		default:
@@ -138,8 +159,9 @@ func httpGetHandler(
 			}
 		}
 
-		// Everyone except `cluster` gets a config, which they will need for caching things properly.
-		if command != "cluster" {
+		// Everyone except `cluster` and `report` gets a config, which they will need for caching
+		// things properly.
+		if command != "cluster" && command != "report" {
 			arguments = append(
 				arguments,
 				"--config-file",
@@ -417,6 +439,9 @@ func argOk(command, arg string) bool {
 		return false
 	case "config-file":
 		// ConfigFileArgs
+		return false
+	case "report-dir":
+		// ReportCommand
 		return false
 	case "verbose", "v":
 		// VerboseArgs
