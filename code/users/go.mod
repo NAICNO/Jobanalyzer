@@ -1,6 +1,6 @@
 module users
 
-go 1.22.7
+go 1.22.1
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
