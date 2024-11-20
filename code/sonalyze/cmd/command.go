@@ -1,4 +1,4 @@
-package command
+package cmd
 
 import (
 	"flag"
@@ -8,13 +8,13 @@ import (
 	"go-utils/hostglob"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
-	. "sonalyze/table"
+	"sonalyze/table"
 )
 
 type FormatHelpAPI interface {
 	// If the command accepts a -fmt argument and the value of that argument is "help", return a
 	// non-nil object here with formatter help.
-	MaybeFormatHelp() *FormatHelp
+	MaybeFormatHelp() *table.FormatHelp
 }
 
 type SetRestArgumentsAPI interface {
@@ -48,7 +48,7 @@ type RemotableCommand interface {
 	Command
 
 	// Reify all arguments including shared arguments for remote execution, with checking
-	ReifyForRemote(x *Reifier) error
+	ReifyForRemote(x *ArgReifier) error
 
 	RemotingFlags() *RemotingArgsNoCluster
 }

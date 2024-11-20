@@ -25,6 +25,7 @@ import (
 
 	"go-utils/status"
 	"sonalyze/application"
+	"sonalyze/cmd"
 	"sonalyze/cmd/add"
 	"sonalyze/cmd/clusters"
 	"sonalyze/cmd/configs"
@@ -38,7 +39,6 @@ import (
 	"sonalyze/cmd/sacct"
 	"sonalyze/cmd/top"
 	"sonalyze/cmd/uptime"
-	. "sonalyze/command"
 	. "sonalyze/common"
 	"sonalyze/db"
 	. "sonalyze/table"
@@ -117,7 +117,7 @@ func sonalyze() error {
 		fs := flag.NewFlagSet(cmdName, flag.ExitOnError)
 		fs.Usage = func() {
 			restargs := ""
-			if _, ok := anyCmd.(SetRestArgumentsAPI); ok {
+			if _, ok := anyCmd.(cmd.SetRestArgumentsAPI); ok {
 				restargs = " [-- logfile ...]"
 			}
 			fmt.Fprintf(
@@ -149,7 +149,7 @@ func sonalyze() error {
 			Log.LowerLevelTo(status.LogLevelInfo)
 		}
 
-		if fhCmd, ok := anyCmd.(FormatHelpAPI); ok {
+		if fhCmd, ok := anyCmd.(cmd.FormatHelpAPI); ok {
 			if h := fhCmd.MaybeFormatHelp(); h != nil {
 				PrintFormatHelp(out, h)
 				os.Exit(0)
@@ -164,7 +164,7 @@ func sonalyze() error {
 			defer stop()
 		}
 
-		if cmd, ok := anyCmd.(RemotableCommand); ok && cmd.RemotingFlags().Remoting {
+		if cmd, ok := anyCmd.(cmd.RemotableCommand); ok && cmd.RemotingFlags().Remoting {
 			return application.RemoteOperation(cmd, verb, os.Stdin, os.Stdout, out)
 		}
 
@@ -188,36 +188,38 @@ func sonalyze() error {
 type standardCommandLineHandler struct {
 }
 
-func (_ *standardCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd Command, verb string) {
+func (_ *standardCommandLineHandler) ParseVerb(
+	cmdName, maybeVerb string,
+) (command cmd.Command, verb string) {
 	switch maybeVerb {
 	case "add":
-		cmd = new(add.AddCommand)
+		command = new(add.AddCommand)
 	case "cluster":
-		cmd = new(clusters.ClusterCommand)
+		command = new(clusters.ClusterCommand)
 	case "config":
-		cmd = new(configs.ConfigCommand)
+		command = new(configs.ConfigCommand)
 	case "daemon":
-		cmd = daemon.New(&daemonCommandLineHandler{})
+		command = daemon.New(&daemonCommandLineHandler{})
 	case "node":
-		cmd = new(nodes.NodeCommand)
+		command = new(nodes.NodeCommand)
 	case "jobs":
-		cmd = new(jobs.JobsCommand)
+		command = new(jobs.JobsCommand)
 	case "load":
-		cmd = new(load.LoadCommand)
+		command = new(load.LoadCommand)
 	case "meta", "metadata":
-		cmd = new(metadata.MetadataCommand)
+		command = new(metadata.MetadataCommand)
 		maybeVerb = "metadata"
 	case "sample", "parse":
-		cmd = new(parse.ParseCommand)
+		command = new(parse.ParseCommand)
 		maybeVerb = "sample"
 	case "profile":
-		cmd = new(profile.ProfileCommand)
+		command = new(profile.ProfileCommand)
 	case "sacct":
-		cmd = new(sacct.SacctCommand)
+		command = new(sacct.SacctCommand)
 	case "top":
-		cmd = new(top.TopCommand)
+		command = new(top.TopCommand)
 	case "uptime":
-		cmd = new(uptime.UptimeCommand)
+		command = new(uptime.UptimeCommand)
 	default:
 		return
 	}
@@ -228,10 +230,10 @@ func (_ *standardCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd C
 func (_ *standardCommandLineHandler) ParseArgs(
 	verb string,
 	args []string,
-	cmd Command,
+	command cmd.Command,
 	fs *flag.FlagSet,
 ) error {
-	cmd.Add(fs)
+	command.Add(fs)
 	err := fs.Parse(args)
 	if err != nil {
 		return err
@@ -239,7 +241,7 @@ func (_ *standardCommandLineHandler) ParseArgs(
 
 	rest := fs.Args()
 	if len(rest) > 0 {
-		if lfCmd, ok := cmd.(SetRestArgumentsAPI); ok {
+		if lfCmd, ok := command.(cmd.SetRestArgumentsAPI); ok {
 			lfCmd.SetRestArguments(rest)
 		} else {
 			return fmt.Errorf("Rest arguments not accepted by `%s`.\n", verb)
@@ -250,11 +252,11 @@ func (_ *standardCommandLineHandler) ParseArgs(
 	// requested.  This is a bit of a hack to avoid Validate() erroring out before help is printed,
 	// but it is correct on the assumption that the caller will re-acquire the help message, print
 	// it, and exit.
-	if fhCmd, ok := cmd.(FormatHelpAPI); ok && fhCmd.MaybeFormatHelp() != nil {
+	if fhCmd, ok := command.(cmd.FormatHelpAPI); ok && fhCmd.MaybeFormatHelp() != nil {
 		return nil
 	}
 
-	err = cmd.Validate()
+	err = command.Validate()
 	if err != nil {
 		return fmt.Errorf("Bad arguments, try -h\n%w\n", err)
 	}
@@ -279,27 +281,27 @@ func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func()
 // TODO: Possibly top and sacct can be handled together, they are instances of AnalysisCommand
 
 func (_ *standardCommandLineHandler) HandleCommand(
-	anyCmd Command,
+	anyCmd cmd.Command,
 	stdin io.Reader,
 	stdout, stderr io.Writer,
 ) error {
-	switch cmd := anyCmd.(type) {
-	case SampleAnalysisCommand:
-		return application.LocalOperation(cmd, stdin, stdout, stderr)
+	switch command := anyCmd.(type) {
+	case cmd.SampleAnalysisCommand:
+		return application.LocalOperation(command, stdin, stdout, stderr)
 	case *add.AddCommand:
-		return cmd.AddData(stdin, stdout, stderr)
+		return command.AddData(stdin, stdout, stderr)
 	case *clusters.ClusterCommand:
-		return cmd.Clusters(stdin, stdout, stderr)
+		return command.Clusters(stdin, stdout, stderr)
 	case *configs.ConfigCommand:
-		return cmd.Configs(stdin, stdout, stderr)
+		return command.Configs(stdin, stdout, stderr)
 	case *nodes.NodeCommand:
-		return cmd.Nodes(stdin, stdout, stderr)
+		return command.Nodes(stdin, stdout, stderr)
 	case *top.TopCommand:
-		return cmd.Top(stdin, stdout, stderr)
+		return command.Top(stdin, stdout, stderr)
 	case *sacct.SacctCommand:
-		return cmd.Sacct(stdin, stdout, stderr)
+		return command.Sacct(stdin, stdout, stderr)
 	case *daemon.DaemonCommand:
-		return cmd.RunDaemon(stdin, stdout, stderr)
+		return command.RunDaemon(stdin, stdout, stderr)
 	default:
 		return errors.New("NYI command")
 	}
@@ -311,7 +313,9 @@ func (_ *standardCommandLineHandler) HandleCommand(
 type daemonCommandLineHandler struct {
 }
 
-func (_ *daemonCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd Command, verb string) {
+func (_ *daemonCommandLineHandler) ParseVerb(
+	cmdName, maybeVerb string,
+) (command cmd.Command, verb string) {
 	if maybeVerb == "daemon" {
 		return
 	}
@@ -321,14 +325,14 @@ func (_ *daemonCommandLineHandler) ParseVerb(cmdName, maybeVerb string) (cmd Com
 func (_ *daemonCommandLineHandler) ParseArgs(
 	verb string,
 	args []string,
-	cmd Command,
+	command cmd.Command,
 	fs *flag.FlagSet,
 ) error {
-	err := stdhandler.ParseArgs(verb, args, cmd, fs)
+	err := stdhandler.ParseArgs(verb, args, command, fs)
 	if err != nil {
 		return err
 	}
-	if cmd.CpuProfileFile() != "" {
+	if command.CpuProfileFile() != "" {
 		return fmt.Errorf("The -cpuprofile cannot be run remotely")
 	}
 	return nil
@@ -339,7 +343,7 @@ func (_ *daemonCommandLineHandler) StartCPUProfile(string) (func(), error) {
 }
 
 func (_ *daemonCommandLineHandler) HandleCommand(
-	anyCmd Command,
+	anyCmd cmd.Command,
 	stdin io.Reader,
 	stdout, stderr io.Writer,
 ) error {

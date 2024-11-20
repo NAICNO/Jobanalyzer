@@ -27,7 +27,7 @@ import (
 	"go-utils/hostglob"
 	uslices "go-utils/slices"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
 	. "sonalyze/table"
@@ -57,7 +57,7 @@ func (cc *ConfigCommand) Add(fs *flag.FlagSet) {
 	cc.FormatArgs.Add(fs)
 }
 
-func (cc *ConfigCommand) ReifyForRemote(x *Reifier) error {
+func (cc *ConfigCommand) ReifyForRemote(x *ArgReifier) error {
 	// This is normally done by SourceArgs
 	x.String("cluster", cc.RemotingArgs.Cluster)
 

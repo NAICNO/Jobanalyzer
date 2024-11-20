@@ -1,4 +1,4 @@
-// The reifier is used to build a command line for remote execution from parsed and checked
+// The ArgReifier is used to build a command line for remote execution from parsed and checked
 // arguments.
 //
 // Uniformly, repeatable strings that could be comma-separated on input are exploded as separate
@@ -6,19 +6,19 @@
 //
 // See ../REST.md for a definition of the protocol.
 
-package command
+package cmd
 
 import (
 	"fmt"
 	"net/url"
 )
 
-type Reifier struct {
+type ArgReifier struct {
 	options string
 }
 
-func NewReifier() Reifier {
-	return Reifier{""}
+func NewArgReifier() ArgReifier {
+	return ArgReifier{""}
 }
 
 // MagicBoolean is the old "true" value that was used for flag options in query strings.  We'll
@@ -35,7 +35,7 @@ func NewReifier() Reifier {
 
 const MagicBoolean = "xxxxxtruexxxxx"
 
-func (r *Reifier) addString(name, val string) {
+func (r *ArgReifier) addString(name, val string) {
 	if r.options != "" {
 		r.options += "&"
 	}
@@ -44,46 +44,46 @@ func (r *Reifier) addString(name, val string) {
 	r.options += url.QueryEscape(val)
 }
 
-func (r *Reifier) Bool(n string, v bool) {
+func (r *ArgReifier) Bool(n string, v bool) {
 	if v {
 		r.addString(n, "true")
 	}
 }
 
-func (r *Reifier) Uint(n string, v uint) {
+func (r *ArgReifier) Uint(n string, v uint) {
 	if v != 0 {
 		r.addString(n, fmt.Sprint(v))
 	}
 }
 
-func (r *Reifier) Float64(n string, v float64) {
+func (r *ArgReifier) Float64(n string, v float64) {
 	if v != 0 {
 		r.addString(n, fmt.Sprint(v))
 	}
 }
 
-func (r *Reifier) UintUnchecked(n string, v uint) {
+func (r *ArgReifier) UintUnchecked(n string, v uint) {
 	r.addString(n, fmt.Sprint(v))
 }
 
-func (r *Reifier) String(n, v string) {
+func (r *ArgReifier) String(n, v string) {
 	if v != "" {
 		r.addString(n, v)
 	}
 }
 
-func (r *Reifier) RepeatableString(n string, vs []string) {
+func (r *ArgReifier) RepeatableString(n string, vs []string) {
 	for _, v := range vs {
 		r.String(n, v)
 	}
 }
 
-func (r *Reifier) RepeatableUint32(n string, vs []uint32) {
+func (r *ArgReifier) RepeatableUint32(n string, vs []uint32) {
 	for _, v := range vs {
 		r.Uint(n, uint(v))
 	}
 }
 
-func (r *Reifier) EncodedArguments() string {
+func (r *ArgReifier) EncodedArguments() string {
 	return r.options
 }

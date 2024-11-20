@@ -1,4 +1,4 @@
-// See ../REST.md for a definition of the protocol.
+// See ../TECHNICAL.md for a definition of the protocol.
 
 package daemon
 
@@ -18,7 +18,7 @@ import (
 	"go-utils/auth"
 	"go-utils/httpsrv"
 	"go-utils/process"
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
 )

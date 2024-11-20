@@ -29,7 +29,7 @@ import (
 	"strings"
 
 	"go-utils/config"
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
@@ -103,7 +103,7 @@ func (ac *AddCommand) Validate() error {
 	return errors.Join(e1, e2, e3, e4, e5, e6)
 }
 
-func (ac *AddCommand) ReifyForRemote(x *Reifier) error {
+func (ac *AddCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := ac.DevArgs.ReifyForRemote(x)
 	// VerboseArgs, DataDirArgs, and RemotingArgs aren't used in remoting and all error checking has
 	// already been performed.

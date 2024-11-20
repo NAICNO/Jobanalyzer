@@ -19,7 +19,7 @@ import (
 	"go-utils/options"
 	uslices "go-utils/slices"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
 	. "sonalyze/table"
@@ -47,7 +47,7 @@ func (cc *ClusterCommand) Add(fs *flag.FlagSet) {
 	fs.StringVar(&cc.jobanalyzerDir, "jobanalyzer-dir", "", "Jobanalyzer root `directory`")
 }
 
-func (cc *ClusterCommand) ReifyForRemote(x *Reifier) error {
+func (cc *ClusterCommand) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		cc.DevArgs.ReifyForRemote(x),
 		cc.FormatArgs.ReifyForRemote(x),

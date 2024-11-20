@@ -14,7 +14,7 @@ import (
 	"go-utils/hostglob"
 	uslices "go-utils/slices"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
@@ -54,7 +54,7 @@ func (mdc *MetadataCommand) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&mdc.Bounds, "bounds", false, "Show host with earliest/latest timestamp")
 }
 
-func (mdc *MetadataCommand) ReifyForRemote(x *Reifier) error {
+func (mdc *MetadataCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
 		mdc.SharedArgs.ReifyForRemote(x),
 		mdc.FormatArgs.ReifyForRemote(x),

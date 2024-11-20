@@ -26,7 +26,7 @@ import (
 	umaps "go-utils/maps"
 	uslices "go-utils/slices"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
 	. "sonalyze/table"
@@ -58,7 +58,7 @@ func (nc *NodeCommand) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&nc.Newest, "newest", false, "Print newest record per host only")
 }
 
-func (nc *NodeCommand) ReifyForRemote(x *Reifier) error {
+func (nc *NodeCommand) ReifyForRemote(x *ArgReifier) error {
 	// As per normal, do not forward VerboseArgs.
 	x.Bool("newest", nc.Newest)
 	return errors.Join(

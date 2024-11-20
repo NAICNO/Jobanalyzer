@@ -14,7 +14,7 @@ import (
 	"go-utils/hostglob"
 	"go-utils/maps"
 	uslices "go-utils/slices"
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
@@ -48,7 +48,7 @@ func (pc *ParseCommand) Add(fs *flag.FlagSet) {
 		"Clean the job but perform no merging")
 }
 
-func (pc *ParseCommand) ReifyForRemote(x *Reifier) error {
+func (pc *ParseCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
 		pc.SharedArgs.ReifyForRemote(x),
 		pc.FormatArgs.ReifyForRemote(x),

@@ -7,7 +7,7 @@ import (
 
 	"go-utils/config"
 	"go-utils/hostglob"
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"

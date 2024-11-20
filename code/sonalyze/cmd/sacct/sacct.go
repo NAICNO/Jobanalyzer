@@ -5,7 +5,8 @@ import (
 	"flag"
 	"math"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
+	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
@@ -100,7 +101,7 @@ func (sc *SacctCommand) Add(fs *flag.FlagSet) {
 		"Select jobs with primary job ID `job1,...`")
 }
 
-func (sc *SacctCommand) ReifyForRemote(x *Reifier) error {
+func (sc *SacctCommand) ReifyForRemote(x *ArgReifier) error {
 	x.RepeatableString("state", sc.State)
 	x.RepeatableString("user", sc.User)
 	x.RepeatableString("account", sc.Account)

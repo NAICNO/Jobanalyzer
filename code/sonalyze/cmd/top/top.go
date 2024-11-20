@@ -37,7 +37,7 @@ import (
 	"go-utils/hostglob"
 	umaps "go-utils/maps"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
@@ -79,7 +79,7 @@ func (tc *TopCommand) Validate() error {
 	return errors.Join(e1, e2, e3, e4, e5)
 }
 
-func (tc *TopCommand) ReifyForRemote(x *Reifier) error {
+func (tc *TopCommand) ReifyForRemote(x *ArgReifier) error {
 	// tc.Verbose is not reified, as for SharedArgs.
 	return errors.Join(
 		tc.DevArgs.ReifyForRemote(x),

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"flag"
 
-	. "sonalyze/command"
+	. "sonalyze/cmd"
 	. "sonalyze/table"
 )
 
@@ -37,7 +37,7 @@ func (pc *ProfileCommand) Add(fs *flag.FlagSet) {
 	fs.UintVar(&pc.Bucket, "bucket", 0, "Bucket these many consecutive elements (helps reduce noise)")
 }
 
-func (pc *ProfileCommand) ReifyForRemote(x *Reifier) error {
+func (pc *ProfileCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
 		pc.SharedArgs.ReifyForRemote(x),
 		pc.FormatArgs.ReifyForRemote(x),
