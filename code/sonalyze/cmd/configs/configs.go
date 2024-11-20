@@ -92,7 +92,7 @@ func (cc *ConfigCommand) Validate() error {
 //
 // Analysis
 
-func (cc *ConfigCommand) Configs(_ io.Reader, stdout, _ io.Writer) error {
+func (cc *ConfigCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
 	includeHosts, err := hostglob.NewGlobber(true, cc.HostArgs.Host)
 	if err != nil {
 		return err

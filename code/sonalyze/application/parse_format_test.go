@@ -1,18 +1,18 @@
-package parse
+package application
 
 import (
 	"strings"
 	"testing"
 
-	"sonalyze/application"
+	"sonalyze/cmd/parse"
 )
 
 // Basic unit test that all field names are working in the printer.  The input record has all the
 // fields with nonzero values.
-func TestOldFieldNames(t *testing.T) {
+func TestParseOldFieldNames(t *testing.T) {
 	fields := "localtime,host,cores,memtotal,user,pid,job,cmd,cpu_pct,mem_gb,res_gb," +
 		"gpus,gpu_pct,gpumem_pct,gpumem_gb,gpu_status,cputime_sec,rolledup,version"
-	lines := strings.Split(mockit(t, fields), "\n")
+	lines := strings.Split(mockitParse(t, fields), "\n")
 
 	if lines[0] != fields {
 		t.Fatalf("Header: Got %s wanted %s", lines[0], fields)
@@ -29,10 +29,10 @@ func TestOldFieldNames(t *testing.T) {
 	}
 }
 
-func TestNewFieldNames(t *testing.T) {
+func TestParseNewFieldNames(t *testing.T) {
 	fields := "Timestamp,Host,Cores,MemtotalKB,User,Pid,Ppid,Job,Cmd,CpuPct,CpuKB,RssAnonKB," +
 		"Gpus,GpuPct,GpuMemPct,GpuKB,GpuFail,CpuTimeSec,Rolledup,Flags,Version"
-	lines := strings.Split(mockit(t, fields), "\n")
+	lines := strings.Split(mockitParse(t, fields), "\n")
 
 	if lines[0] != fields {
 		t.Fatalf("Header: Got %s wanted %s", lines[0], fields)
@@ -48,16 +48,16 @@ func TestNewFieldNames(t *testing.T) {
 	}
 }
 
-func mockit(t *testing.T, fields string) string {
-	var pc ParseCommand
-	pc.SourceArgs.LogFiles = []string{"testdata/test.csv"}
+func mockitParse(t *testing.T, fields string) string {
+	var pc parse.ParseCommand
+	pc.SourceArgs.LogFiles = []string{"testdata/parse_format_test/test.csv"}
 	pc.FormatArgs.Fmt = "csvnamed,header," + fields
 	err := pc.Validate()
 	if err != nil {
 		t.Fatal(err)
 	}
 	var stdout, stderr strings.Builder
-	err = application.LocalOperation(&pc, nil, &stdout, &stderr)
+	err = LocalOperation(&pc, nil, &stdout, &stderr)
 	if err != nil {
 		t.Fatal(err)
 	}

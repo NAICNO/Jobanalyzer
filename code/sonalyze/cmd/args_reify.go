@@ -26,9 +26,9 @@ func NewArgReifier() ArgReifier {
 //
 // This value existed because Rust's `clap` library insisted that boolean flags should not carry
 // parameter values (--some-gpu=true is illegal), and so the command line builder in
-// ../daemon/perform.go could not simply append received values to the command line.  But filtering
-// out the value "true" uniformly or assuming that empty string meant a true value would be risky.
-// And filtering by type would require maintaining name -> type mappings.
+// daemon/perform.go could not simply append received values to the command line.  But filtering out
+// the value "true" uniformly or assuming that empty string meant a true value would be risky.  And
+// filtering by type would require maintaining name -> type mappings.
 //
 // With Sonalyze rewritten in Go, this hack is no longer necessary but backward compatibility
 // requires us to continue to parse this value.

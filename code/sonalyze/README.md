@@ -11,3 +11,13 @@ See MANUAL.md for more user information (and ../../doc/HOWTO.md for a gentle int
 See TECHNICAL.md for various internal notes: authentication and authorization, REST API, and things
 of lesser interest.
 
+## Subdirectories and files
+
+* `application/` - main application logic, can be shared with other applications
+* `cmd/` - all the application verbs except `daemon`
+* `common/` - shared utility code
+* `daemon/` - logic for the daemon
+* `db/` - storage manager
+* `sonalyze.go` - command-line interface for sonalyze + daemon management
+* `sonarlog/` - logic to make sense of Sonar data
+* `table/` - logic to define the "tables" produced by all the commands, through reflection

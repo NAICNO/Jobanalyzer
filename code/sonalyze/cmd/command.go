@@ -66,6 +66,16 @@ type AnalysisCommand interface {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
+// Represents a simple command that handles its own logic completely
+
+type SimpleCommand interface {
+	Command
+
+	Perform(in io.Reader, stdout, stderr io.Writer) error
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Represents a sonalyze "sonar sample" analysis command: jobs, load, parse, etc
 
 type SampleAnalysisCommand interface {

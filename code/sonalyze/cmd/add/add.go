@@ -114,7 +114,7 @@ func (ac *AddCommand) ReifyForRemote(x *ArgReifier) error {
 	return e1
 }
 
-func (ac *AddCommand) AddData(stdin io.Reader, _, _ io.Writer) error {
+func (ac *AddCommand) Perform(stdin io.Reader, _, _ io.Writer) error {
 	data, err := io.ReadAll(stdin)
 	if err != nil {
 		return err

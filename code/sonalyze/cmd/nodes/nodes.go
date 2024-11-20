@@ -42,6 +42,8 @@ type NodeCommand struct {
 	Newest bool
 }
 
+var _ = (SimpleCommand)((*NodeCommand)(nil))
+
 func (nc *NodeCommand) Summary() []string {
 	return []string{
 		"Extract information about nodes in the cluster",
@@ -86,7 +88,7 @@ func (nc *NodeCommand) Validate() error {
 //
 // Processing
 
-func (nc *NodeCommand) Nodes(_ io.Reader, stdout, stderr io.Writer) error {
+func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	var theLog db.SysinfoCluster
 	var err error
 
