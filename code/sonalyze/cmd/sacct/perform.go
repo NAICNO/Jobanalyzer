@@ -20,7 +20,7 @@ type sacctSummary struct {
 	usedCpu      uint64
 }
 
-func (sc *SacctCommand) Sacct(_ io.Reader, stdout, stderr io.Writer) error {
+func (sc *SacctCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	var theLog db.SacctCluster
 	var err error
 

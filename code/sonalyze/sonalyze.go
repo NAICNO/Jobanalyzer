@@ -26,20 +26,8 @@ import (
 	"go-utils/status"
 	"sonalyze/application"
 	"sonalyze/cmd"
-	"sonalyze/cmd/add"
-	"sonalyze/cmd/clusters"
-	"sonalyze/cmd/configs"
-	"sonalyze/cmd/daemon"
-	"sonalyze/cmd/jobs"
-	"sonalyze/cmd/load"
-	"sonalyze/cmd/metadata"
-	"sonalyze/cmd/nodes"
-	"sonalyze/cmd/parse"
-	"sonalyze/cmd/profile"
-	"sonalyze/cmd/sacct"
-	"sonalyze/cmd/top"
-	"sonalyze/cmd/uptime"
 	. "sonalyze/common"
+	"sonalyze/daemon"
 	"sonalyze/db"
 	. "sonalyze/table"
 )
@@ -83,21 +71,8 @@ func sonalyze() error {
 	case "help", "-h":
 		fmt.Fprintf(out, "Usage: %s command [options] [-- logfile ...]\n", cmdName)
 		fmt.Fprintf(out, "Commands:\n")
-		fmt.Fprintf(out, "  add      - add data to the database\n")
-		fmt.Fprintf(out, "  cluster  - print cluster information\n")
-		fmt.Fprintf(out, "  config   - print node information extracted from cluster config\n")
 		fmt.Fprintf(out, "  daemon   - spin up a server daemon to process requests\n")
-		fmt.Fprintf(out, "  jobs     - summarize and filter jobs\n")
-		fmt.Fprintf(out, "  load     - print system load across time\n")
-		fmt.Fprintf(out, "  metadata - parse data, print stats and metadata\n")
-		fmt.Fprintf(out, "  node     - print node information extracted from sysinfo table\n")
-		fmt.Fprintf(out, "  profile  - print the profile of a particular job\n")
-		fmt.Fprintf(out, "  sacct    - print information extracted from Slurm sacct data\n")
-		fmt.Fprintf(out, "  sample   - print sonar sample information (aka `parse`)\n")
-		fmt.Fprintf(out, "  top      - print per-cpu load information across time\n")
-		fmt.Fprintf(out, "  uptime   - print aggregated information about system uptime\n")
-		fmt.Fprintf(out, "  version  - print information about the program\n")
-		fmt.Fprintf(out, "  help     - print this message\n")
+		application.CommandHelp(out)
 		fmt.Fprintf(out, "Each command accepts -h to further explain options.\n")
 		os.Exit(0)
 
@@ -192,36 +167,10 @@ func (_ *standardCommandLineHandler) ParseVerb(
 	cmdName, maybeVerb string,
 ) (command cmd.Command, verb string) {
 	switch maybeVerb {
-	case "add":
-		command = new(add.AddCommand)
-	case "cluster":
-		command = new(clusters.ClusterCommand)
-	case "config":
-		command = new(configs.ConfigCommand)
 	case "daemon":
 		command = daemon.New(&daemonCommandLineHandler{})
-	case "node":
-		command = new(nodes.NodeCommand)
-	case "jobs":
-		command = new(jobs.JobsCommand)
-	case "load":
-		command = new(load.LoadCommand)
-	case "meta", "metadata":
-		command = new(metadata.MetadataCommand)
-		maybeVerb = "metadata"
-	case "sample", "parse":
-		command = new(parse.ParseCommand)
-		maybeVerb = "sample"
-	case "profile":
-		command = new(profile.ProfileCommand)
-	case "sacct":
-		command = new(sacct.SacctCommand)
-	case "top":
-		command = new(top.TopCommand)
-	case "uptime":
-		command = new(uptime.UptimeCommand)
 	default:
-		return
+		command, maybeVerb = application.ConstructCommand(maybeVerb)
 	}
 	verb = maybeVerb
 	return
@@ -278,30 +227,18 @@ func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func()
 	return func() { pprof.StopCPUProfile() }, nil
 }
 
-// TODO: Possibly top and sacct can be handled together, they are instances of AnalysisCommand
-
 func (_ *standardCommandLineHandler) HandleCommand(
 	anyCmd cmd.Command,
 	stdin io.Reader,
 	stdout, stderr io.Writer,
 ) error {
 	switch command := anyCmd.(type) {
-	case cmd.SampleAnalysisCommand:
-		return application.LocalOperation(command, stdin, stdout, stderr)
-	case *add.AddCommand:
-		return command.AddData(stdin, stdout, stderr)
-	case *clusters.ClusterCommand:
-		return command.Clusters(stdin, stdout, stderr)
-	case *configs.ConfigCommand:
-		return command.Configs(stdin, stdout, stderr)
-	case *nodes.NodeCommand:
-		return command.Nodes(stdin, stdout, stderr)
-	case *top.TopCommand:
-		return command.Top(stdin, stdout, stderr)
-	case *sacct.SacctCommand:
-		return command.Sacct(stdin, stdout, stderr)
 	case *daemon.DaemonCommand:
 		return command.RunDaemon(stdin, stdout, stderr)
+	case cmd.SampleAnalysisCommand:
+		return application.LocalOperation(command, stdin, stdout, stderr)
+	case cmd.SimpleCommand:
+		return command.Perform(stdin, stdout, stderr)
 	default:
 		return errors.New("NYI command")
 	}

@@ -30,7 +30,7 @@ type ClusterCommand struct {
 	RemotingArgsNoCluster
 	VerboseArgs
 	FormatArgs
-	jobanalyzerDir string
+	JobanalyzerDir string
 }
 
 func (cc *ClusterCommand) Summary() []string {
@@ -44,7 +44,7 @@ func (cc *ClusterCommand) Add(fs *flag.FlagSet) {
 	cc.RemotingArgsNoCluster.Add(fs)
 	cc.VerboseArgs.Add(fs)
 	cc.FormatArgs.Add(fs)
-	fs.StringVar(&cc.jobanalyzerDir, "jobanalyzer-dir", "", "Jobanalyzer root `directory`")
+	fs.StringVar(&cc.JobanalyzerDir, "jobanalyzer-dir", "", "Jobanalyzer root `directory`")
 }
 
 func (cc *ClusterCommand) ReifyForRemote(x *ArgReifier) error {
@@ -57,7 +57,7 @@ func (cc *ClusterCommand) ReifyForRemote(x *ArgReifier) error {
 func (cc *ClusterCommand) Validate() error {
 	var e1, e2 error
 
-	if cc.jobanalyzerDir == "" {
+	if cc.JobanalyzerDir == "" {
 		ApplyDefault(&cc.Remote, "data-source", "remote")
 		ApplyDefault(&cc.AuthFile, "data-source", "auth-file")
 	}
@@ -76,11 +76,11 @@ func (cc *ClusterCommand) Validate() error {
 	)
 
 	if cc.RemotingFlags().Remoting {
-		if cc.jobanalyzerDir != "" {
+		if cc.JobanalyzerDir != "" {
 			e2 = errors.New("-jobanalyzer-dir not valid for remote execution")
 		}
 	} else {
-		cc.jobanalyzerDir, e2 = options.RequireDirectory(cc.jobanalyzerDir, "-jobanalyzer-dir")
+		cc.JobanalyzerDir, e2 = options.RequireDirectory(cc.JobanalyzerDir, "-jobanalyzer-dir")
 	}
 
 	return errors.Join(e1, e2)
@@ -90,8 +90,8 @@ func (cc *ClusterCommand) Validate() error {
 //
 // Analysis
 
-func (cc *ClusterCommand) Clusters(_ io.Reader, stdout, stderr io.Writer) error {
-	clusters, _, err := db.ReadClusterData(cc.jobanalyzerDir)
+func (cc *ClusterCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
+	clusters, _, err := db.ReadClusterData(cc.JobanalyzerDir)
 	if err != nil {
 		return err
 	}

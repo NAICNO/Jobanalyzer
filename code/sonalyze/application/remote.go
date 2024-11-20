@@ -16,10 +16,6 @@ import (
 
 	. "sonalyze/cmd"
 	"sonalyze/cmd/add"
-	"sonalyze/cmd/clusters"
-	"sonalyze/cmd/configs"
-	"sonalyze/cmd/nodes"
-	"sonalyze/cmd/sacct"
 	. "sonalyze/common"
 )
 
@@ -96,16 +92,6 @@ func RemoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	}
 
 	switch cmd := rCmd.(type) {
-	case SampleAnalysisCommand:
-		curlArgs = append(curlArgs, "--get")
-	case *sacct.SacctCommand:
-		curlArgs = append(curlArgs, "--get")
-	case *nodes.NodeCommand:
-		curlArgs = append(curlArgs, "--get")
-	case *configs.ConfigCommand:
-		curlArgs = append(curlArgs, "--get")
-	case *clusters.ClusterCommand:
-		curlArgs = append(curlArgs, "--get")
 	case *add.AddCommand:
 		// This turns into a POST with data coming from the standard DataSource
 		var contentType string
@@ -122,6 +108,10 @@ func RemoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 			"--data-binary", "@-",
 			"-H", "Content-Type: "+contentType,
 		)
+	case SampleAnalysisCommand:
+		curlArgs = append(curlArgs, "--get")
+	case SimpleCommand:
+		curlArgs = append(curlArgs, "--get")
 	default:
 		panic("Unimplemented")
 	}
