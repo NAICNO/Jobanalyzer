@@ -57,6 +57,11 @@ the data have to be computed when they are requested:
 * The `profile` operation prints information about the behavior of a single job across time
 * The `top` operation prints information about CPU allocation
 
+There is a weird command to serve protected but pregenerated content:
+
+* The `report` operation extracts an authorization-proteced report by name from the server's internal
+  report directory, this is for use by the dashboard and not something to worry about
+
 Finally there are some debugging operations:
 
 * The `metadata` operation prints meta-information about the `sample` table

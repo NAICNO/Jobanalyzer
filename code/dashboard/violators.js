@@ -1,5 +1,24 @@
-// Subroutines to render policy violators in various ways.  Note this file is not specific to
-// violators.html, it is also used by machine-detail.{html,js}.
+// Subroutines to render policy violators in various ways.
+
+let CURRENT_HOST = ""
+
+function violators_onload() {
+    let params = new URLSearchParams(document.location.search)
+    CURRENT_HOST = params.get("host")
+    if (!CURRENT_HOST) {
+        CURRENT_HOST = ""
+    }
+    rewriteTitle(CURRENT_HOST)
+    let info = cluster_info(CURRENT_CLUSTER)
+    let hostFilter = null
+    if (CURRENT_HOST != "") {
+        hostFilter = function (d) { return d["hostname"] == CURRENT_HOST }
+    }
+    if (info.violators) {
+	render_violators_by_time("report_by_time", hostFilter)
+	render_violators_by_user("report_by_user", hostFilter)
+    }
+}
 
 // dash-shared.js must be loaded before this
 
@@ -16,7 +35,7 @@ function render_violators_by_time(elt_id, filter) {
 		  {name: "Virt% avg", tag:"rmem-avg"},
 		  {name: "Virt% peak", tag:"rmem-peak"},
 		 ]
-    render_table_from_file(
+    render_table_from_report(
 	tag_file("violator-report.json"),
 	fields,
 	document.getElementById(elt_id),
@@ -32,7 +51,7 @@ function render_violators_by_user(elt_id, filter, filter_by_host) {
 		  {name: "Last seen", tag:"latest"},
 		 ]
     let [tbl, tbody] = make_table(fields, document.getElementById(elt_id))
-    fetch_data_from_file(tag_file("violator-report.json")).
+    fetch_data_from_report(tag_file("violator-report.json")).
 	then(function (data) {
 	    data = filter ? data.filter(filter) : data;
 	    data = violators_user_view(data)

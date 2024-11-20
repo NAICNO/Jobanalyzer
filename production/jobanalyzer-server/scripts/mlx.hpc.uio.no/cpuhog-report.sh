@@ -19,4 +19,4 @@ $naicreport_dir/naicreport ml-cpuhog -state-dir $state_dir -from 4w > $report_di
 if [[ -s $report_dir/ml-violator-report.txt ]]; then
     $naicreport_mail -s "ML violator report" "$ml_violator_recipient" < $report_dir/ml-violator-report.txt
 fi
-#$naicreport_dir/naicreport ml-cpuhog -state-dir $state_dir -from 4w -json > $report_dir/ml-violator-report.json
+$naicreport_dir/naicreport ml-cpuhog -state-dir $state_dir -from 4w -json > $report_dir/ml-violator-report.json

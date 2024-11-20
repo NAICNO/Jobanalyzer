@@ -137,6 +137,9 @@ HTTPS setup and so on) with the default port assignment for sonalyzed:
         location /sacct {
                 proxy_pass http://localhost:1559;
         }
+        location /report {
+                proxy_pass http://localhost:1559;
+        }
 ```
 
 ### Start the sonalyzed server
