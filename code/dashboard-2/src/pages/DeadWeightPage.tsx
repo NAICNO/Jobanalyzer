@@ -23,7 +23,7 @@ import { useFetchDeadWeight } from '../hooks/useFetchDeadWeight.ts'
 
 
 export default function DeadWeightPage() {
-  const {clusterName} = useParams<string>()
+  const {clusterName, hostname} = useParams<string>()
 
   const cluster = findCluster(clusterName)
 
@@ -33,7 +33,12 @@ export default function DeadWeightPage() {
     )
   }
 
-  const {data, isFetched} = useFetchDeadWeight(cluster)
+  const filter = {
+    afterDate: null,
+    hostname: hostname || null
+  }
+
+  const {data, isFetched} = useFetchDeadWeight(cluster, filter)
 
   const deadWeightJobTableColumns = useMemo(() => getDeadWeightTableColumns(), [cluster])
   const [sorting, setSorting] = useState<SortingState>([])
@@ -49,13 +54,15 @@ export default function DeadWeightPage() {
     }
   })
 
+  const pageTitle = `${cluster.name} Deadweight${hostname ? ` - ${hostname}` : ''}`
+
   return (
     <>
-      <PageTitle title={`${cluster.name} Deadweight`}/>
+      <PageTitle title={pageTitle}/>
       <VStack alignItems={'start'}>
         <HStack mb={3}>
           <NavigateBackButton/>
-          <Heading ml={2} size={{base: 'md', md: 'lg'}}>{cluster.name} dead weight</Heading>
+          <Heading ml={2} size={{base: 'md', md: 'lg'}}>{pageTitle}</Heading>
         </HStack>
         <Text mb={3}>
           The following processes and jobs are zombies or defuncts or

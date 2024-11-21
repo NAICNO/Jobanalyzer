@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AxiosInstance, AxiosResponse } from 'axios'
 
 import useAxios from './useAxios.ts'
-import { QueryKeys } from '../Constants.ts'
+import { QUERY_API_ENDPOINT, QueryKeys } from '../Constants.ts'
 import {
   Cluster,
   FetchedViolatingJob,
@@ -17,19 +17,19 @@ interface Filter {
   hostname: string | null
 }
 
-const fetchViolations = async (axios: AxiosInstance, canonical: string, clusterName: string) => {
-  const endpoint = `${canonical}/${clusterName}-violator-report.json`
+const fetchViolations = async (axios: AxiosInstance, clusterName: string) => {
+  const endpoint = `/report?cluster=${clusterName}&report-name=${clusterName}-violator-report.json`
   const response: AxiosResponse<FetchedViolatingJob[]> = await axios.get(endpoint)
   return response.data
 }
 
 export const useFetchViolations = (cluster: Cluster, filter: Filter | null = null, enabled: boolean = true) => {
-  const axios = useAxios()
+  const axios = useAxios(QUERY_API_ENDPOINT)
   return useQuery(
     {
       enabled,
       queryKey: [QueryKeys.VIOLATIONS, cluster.cluster],
-      queryFn: () => fetchViolations(axios, cluster.canonical, cluster.cluster),
+      queryFn: () => fetchViolations(axios, cluster.cluster),
       select: (data) => {
 
         let violatingJobs: ViolatingJob[] = data.map((d) => {

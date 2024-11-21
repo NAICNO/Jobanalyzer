@@ -47,7 +47,7 @@ export const PAGE_TITLE_SUFFIX = ' | ' + APP_NAME
 // URLs and API Endpoints to be moved to .env files once dev and prod environments are set up
 export const APP_URL = 'https://naic-monitor.uio.no'
 export const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
-export const JOB_QUERY_API_ENDPOINT = import.meta.env.VITE_JOB_QUERY_API_ENDPOINT
+export const QUERY_API_ENDPOINT = import.meta.env.VITE_QUERY_API_ENDPOINT
 
 // The representation of "true" is a hack, but it's determined by the server, so live with it.
 export const TRUE_VAL = 'xxxxxtruexxxxx'
@@ -134,8 +134,8 @@ export const CLUSTER_INFO: Record<string, Cluster> = {
     canonical: 'mlx.hpc.uio.no',
     subclusters: [{name: 'nvidia', nodes: 'ml[1-3,6-9]'}],
     uptime: true,
-    violators: false,
-    deadweight: false,
+    violators: true,
+    deadweight: true,
     defaultQuery: '*',
     hasDowntime: true,
     name: 'ML nodes',
@@ -154,7 +154,7 @@ export const CLUSTER_INFO: Record<string, Cluster> = {
     ],
     uptime: true,
     violators: false,
-    deadweight: false,
+    deadweight: true,
     defaultQuery: 'login* or int*',
     name: 'Fox',
     hasDowntime: true,

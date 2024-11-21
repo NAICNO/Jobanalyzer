@@ -1,34 +1,26 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
-  Box,
+  Box, Button, ButtonGroup,
   Checkbox,
   Divider,
   Heading,
   HStack,
-  Link as ChakraLink,
   Select,
-  SlideFade,
   Spacer,
   Text,
   VStack
 } from '@chakra-ui/react'
 import { Link as ReactRouterLink, Navigate, useParams } from 'react-router-dom'
-import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from '@tanstack/react-table'
 
-import { EMPTY_ARRAY, FETCH_FREQUENCIES } from '../Constants.ts'
+import { FETCH_FREQUENCIES } from '../Constants.ts'
 import { useFetchHostnames } from '../hooks/useFetchHosts.ts'
 import { useFetchHostDetails } from '../hooks/useFetchHostDetails.ts'
-import { useFetchViolations } from '../hooks/useFetchViolations.ts'
-import { useFetchDeadWeight } from '../hooks/useFetchDeadWeight.ts'
 import { findCluster } from '../util'
-import {
-  getDeadWeightTableColumns,
-  getViolatingJobTableColumns,
-  getViolatingUserTableColumns
-} from '../util/TableUtils.ts'
 import { NavigateBackButton, PageTitle } from '../components'
-import { ViolatingUserTable, ViolatingJobTable, DeadWeightTable } from '../components/table'
 import { MachineDetailsChart } from '../components/chart/MachineDetailsChart'
+import { IoSearchOutline } from 'react-icons/io5'
+import { GiShamblingZombie } from 'react-icons/gi'
+import { PiGavel } from 'react-icons/pi'
 
 
 export default function HostDetailsPage() {
@@ -57,64 +49,9 @@ export default function HostDetailsPage() {
     data: hostDetails
   } = useFetchHostDetails(selectedCluster.canonical, hostname!, selectedFrequency.value, isShowData, isShowDowntime, isValidHostname)
 
-  const now = new Date()
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-
-  const filter = {
-    afterDate: thirtyDaysAgo,
-    hostname: hostname,
-  }
-
-  const {
-    data: violations,
-    isFetched: isFetchedViolations,
-  } = useFetchViolations(selectedCluster, filter, isValidHostname)
-
-  const violatingUserTableColumns = useMemo(() => getViolatingUserTableColumns(), [selectedCluster])
-  const [violatingUserTableSorting, setViolatingUserTableSorting] = useState<SortingState>([])
-
-  const violatingUserTable = useReactTable({
-    columns: violatingUserTableColumns,
-    data: violations?.byUser || EMPTY_ARRAY,
-    getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setViolatingUserTableSorting,
-    getSortedRowModel: getSortedRowModel(),
-    state: {
-      sorting: violatingUserTableSorting,
-    }
-  })
-
-  const violatingJobTableColumns = useMemo(() => getViolatingJobTableColumns(), [selectedCluster])
-  const [violatingJobTableSorting, setViolatingJobTableSorting] = useState<SortingState>([])
-
-  const violatingJobTable = useReactTable({
-    columns: violatingJobTableColumns,
-    data: violations?.byJob || EMPTY_ARRAY,
-    getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setViolatingJobTableSorting,
-    getSortedRowModel: getSortedRowModel(),
-    state: {
-      sorting: violatingJobTableSorting,
-    }
-  })
-
-  const {data: deadweights, isFetched: isFetchedDeadweights} = useFetchDeadWeight(selectedCluster, filter, isValidHostname)
-
-  const deadWeightJobTableColumns = useMemo(() => getDeadWeightTableColumns(), [clusterName])
-  const [sorting, setSorting] = useState<SortingState>([])
-
-  const deadWeightTable = useReactTable({
-    columns: deadWeightJobTableColumns,
-    data: deadweights || EMPTY_ARRAY,
-    getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    state: {
-      sorting: sorting,
-    }
-  })
-
   const jobQueryLink = `/jobquery?cluster=${clusterName}&host=${hostname}`
+  const violatorsLink = `/${clusterName}/${hostname}/violators`
+  const deadWeightLink = `/${clusterName}/${hostname}/deadweight`
 
   return (
     <>
@@ -128,10 +65,22 @@ export default function HostDetailsPage() {
         </HStack>
         <Text> Description :{'\t'}{hostDetails?.system.description}
         </Text>
-        <ChakraLink as={ReactRouterLink} to={jobQueryLink}>
-          Job Query for this host
-        </ChakraLink>
 
+        <ButtonGroup size={'sm'} spacing="2" variant={'outline'}>
+          <Button as={ReactRouterLink} to={jobQueryLink} leftIcon={<IoSearchOutline/>}>
+            Job Query
+          </Button>
+          {selectedCluster.violators &&
+            <Button as={ReactRouterLink} to={violatorsLink} leftIcon={<PiGavel/>}>
+              View Violators
+            </Button>
+          }
+          {selectedCluster.deadweight &&
+            <Button as={ReactRouterLink} to={deadWeightLink} leftIcon={<GiShamblingZombie/>}>
+              View Zombies
+            </Button>
+          }
+        </ButtonGroup>
         <Divider/>
 
         <Heading as="h4" size="lg" my="0px">Machine Load</Heading>
@@ -195,48 +144,6 @@ export default function HostDetailsPage() {
           measurement is the sum of the sizes of the jobs&apos; private memories.
         </Text>
 
-        {selectedCluster.violators &&
-          <>
-            <Heading as="h4" size="lg" mt="20px">
-              Violators last 30 days
-            </Heading>
-
-            <Text>
-              The following jobs have violated usage policy and are probably not appropriate to run on this cluster. The
-              list
-              is recomputed at noon and midnight and goes back four weeks.
-            </Text>
-
-            <Heading as="h4" size="md">By user</Heading>
-
-            <SlideFade in={isFetchedViolations}>
-              <ViolatingUserTable table={violatingUserTable}/>
-            </SlideFade>
-            <Heading as="h4" size="md" mt="20px">
-              By job and time
-            </Heading>
-            <SlideFade in={isFetchedViolations}>
-              <ViolatingJobTable table={violatingJobTable}/>
-            </SlideFade>
-          </>
-        }
-
-        {selectedCluster.deadweight &&
-          <>
-            <Heading as="h4" size="lg" mt="20px">
-              Deadweight processes last 30 days
-            </Heading>
-            <Text>
-              The following processes and jobs are zombies or defuncts or
-              otherwise dead and may be bogging down the system. The list is
-              recomputed at noon and midnight and goes back four weeks.
-            </Text>
-
-            <SlideFade in={isFetchedDeadweights}>
-              <DeadWeightTable table={deadWeightTable}/>
-            </SlideFade>
-          </>
-        }
       </VStack>
     </>
   )
