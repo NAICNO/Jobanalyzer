@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -559,9 +560,14 @@ type FormatHelp struct {
 	Defaults string
 }
 
+// AliasOf is nonempty for a field with its own formatter that is an alias of a canonical field and
+// whose name is used as the field name, not the canonical field name.  The value is the name of the
+// canonical field.
+
 type Formatter struct {
-	Fmt  func(data any, ctx PrintMods) string
-	Help string
+	Fmt     func(data any, ctx PrintMods) string
+	Help    string
+	AliasOf string
 }
 
 func StandardFormatHelp(
@@ -574,15 +580,20 @@ func StandardFormatHelp(
 	if fmt == "help" {
 		fields := make([]string, 0, len(formatters))
 		helps := make(map[string]string, len(formatters))
+		newAliases := maps.Clone(aliases)
 		for k, v := range formatters {
-			fields = append(fields, k)
-			helps[k] = v.Help
+			if v.AliasOf != "" {
+				newAliases[k] = []string{v.AliasOf}
+			} else {
+				fields = append(fields, k)
+				helps[k] = v.Help
+			}
 		}
 		return &FormatHelp{
 			Text:     helpText,
 			Fields:   fields,
 			Helps:    helps,
-			Aliases:  aliases,
+			Aliases:  newAliases,
 			Defaults: defaultFields,
 		}
 	}
@@ -608,8 +619,36 @@ func PrintFormatHelp(out io.Writer, h *FormatHelp) {
 				fmt.Fprintf(out, "  %s --> %s\n", k, strings.Join(h.Aliases[k], ","))
 			}
 		}
-		fmt.Fprintf(out, "\nDefaults:\n  %s\n", h.Defaults)
-		fmt.Fprintf(out, "\nControl:\n  csv\n  csvnamed  \n  fixed\n  json\n  header\n"+
-			"  nodefaults\n  noheader\n  tag:<tagvalue>\n")
+		fmt.Fprintf(
+			out, `
+Defaults:
+  %s
+
+Control:
+  awk         space-separated fields with no spaces
+  csv         csv, values only
+  csvnamed    csv, with field tags eg duration=37
+  fixed       fixed-format
+  json        json
+  header      print a header line where sensible
+  nodefaults  do not print fields that have default (zero/blank) values
+  noheader    do not print a header line
+  tag:<value> print a column called "tag" last with <value> in every row
+
+Modifiers:
+  Timestamps are normally printed on the form "YYYY-MM-DD HH:MM" but can be
+  be modified by /sec and /iso to print seconds since epoch and RFC3339 dates:
+
+    Timestamp/sec -> 1732112701
+    Timestamp/iso -> 2024-11-20T14:25:01Z
+
+  Durations are normally printed on the form _d_h_m (days, hours, and minutes)
+  but can be modified by /sec to print second counts:
+
+    duration/sec  -> 12345
+
+`,
+			h.Defaults,
+		)
 	}
 }

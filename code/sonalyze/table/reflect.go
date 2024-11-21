@@ -64,7 +64,10 @@ func DefineTableFromTags(
 			if isExcluded[name] {
 				return
 			}
-			aliases = strings.Split(fld.Tag.Get("alias"), ",")
+			aliasStr := fld.Tag.Get("alias")
+			if aliasStr != "" {
+				aliases = strings.Split(aliasStr, ",")
+			}
 			for _, a := range aliases {
 				if isExcluded[a] {
 					return
@@ -183,11 +186,15 @@ func DefineTableFromMap(
 				switch s := spec.(type) {
 				case SimpleFormatSpec:
 					desc = s.Desc
-					aliases = strings.Split(s.Aliases, ",")
+					if s.Aliases != "" {
+						aliases = strings.Split(s.Aliases, ",")
+					}
 					ok = true
 				case SimpleFormatSpecWithAttr:
 					desc = s.Desc
-					aliases = strings.Split(s.Aliases, ",")
+					if s.Aliases != "" {
+						aliases = strings.Split(s.Aliases, ",")
+					}
 					attrs = s.Attr
 					ok = true
 				case SynthesizedFormatSpecWithAttr:
@@ -251,7 +258,8 @@ func reflectStructFormatters(
 			reflectStructFormatters(fldTy, subFormatters, admissible, synthesizable)
 			for name, fmt := range subFormatters {
 				f := Formatter{
-					Help: fmt.Help,
+					Help:    fmt.Help,
+					AliasOf: fmt.AliasOf,
 				}
 				if mustTakeAddress {
 					f.Fmt = func(d any, mods PrintMods) string {
@@ -273,11 +281,14 @@ func reflectStructFormatters(
 					Fmt:  reflectTypeFormatter(i, attrs, fld.Type),
 				}
 				formatters[name] = f
-				for _, a := range aliases {
-					formatters[a] = f
+				if len(aliases) > 0 {
+					fa := f
+					fa.AliasOf = name
+					for _, a := range aliases {
+						formatters[a] = fa
+					}
 				}
 			}
-
 			if synthesizable != nil {
 				if ok, name, desc, attrs := synthesizable(fld); ok {
 					// synthesizable(fld) returns info for a synthesized field that addresses fld.name.

@@ -32,8 +32,8 @@ type ReportCommand struct {
 	DevArgs
 	RemotingArgs
 	VerboseArgs
-	ReportDir string
-	ReportName string			// This must be a plain filename
+	ReportDir  string
+	ReportName string // This must be a plain filename
 }
 
 var _ = (SimpleCommand)((*ReportCommand)(nil))
