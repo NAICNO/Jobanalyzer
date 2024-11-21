@@ -34,7 +34,7 @@ function render() {
 		  {name: "Virt% avg", tag:"rmem-avg"},
 		  {name: "Command", tag:"cmd", width: -1},
 		 ]
-    fetch_data_from_file(tag_file("violator-report.json")).
+    fetch_data_from_report(tag_file("violator-report.json")).
 	then(function (data) {
 	    let violatedPolicies = {}
 	    // Fixup old data and collect some metadata

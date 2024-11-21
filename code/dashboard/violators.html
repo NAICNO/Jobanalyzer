@@ -5,16 +5,6 @@
     <script src="config.js"></script>
     <script src="dash-shared.js"></script>
     <script src="violators.js"></script>
-    <script>
-      function violators_onload() {
-	  rewriteTitle()
-	  let info = cluster_info(CURRENT_CLUSTER)
-	  if (info.violators) {
-	      render_violators_by_time("report_by_time")
-	      render_violators_by_user("report_by_user")
-	  }
-      }
-    </script>
   </head>
 
   <body onload="violators_onload()">

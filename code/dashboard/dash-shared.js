@@ -11,6 +11,15 @@ function compute_filename(fn) {
     }
 }
 
+function compute_report_query(fn) {
+    if (globalThis["TESTDATA"]) {
+        return "test-data/" + fn;
+    }
+    let cluster = encodeURIComponent(CURRENT_CLUSTER)
+    let report = encodeURIComponent(fn)
+    return `/report?cluster=${cluster}&report-name=${report}`
+}
+
 // We use CURRENT_CLUSTER to hold the tag of the cluster we're currently operating on.  All pages
 // are relative to one specific cluster.
 
@@ -43,6 +52,13 @@ function tag_file(fn) {
 
 function fetch_data_from_file(f) {
     return fetch(compute_filename(f)).
+        then((response) => response.json())
+}
+
+// Returns a promise that fetches a report (which may be password protected) and unwraps JSON data.
+
+function fetch_data_from_report(f) {
+    return fetch(compute_report_query(f)).
         then((response) => response.json())
 }
 
@@ -277,6 +293,12 @@ function make_table(fields, parent) {
 function render_table_from_file(file, fields, parent, cmp, filter) {
     let [tbl, tbody] = make_table(fields, parent)
     return fetch_data_from_file(file).
+        then(data => render_table_from_data(data, fields, tbody, cmp, filter))
+}
+
+function render_table_from_report(file, fields, parent, cmp, filter) {
+    let [tbl, tbody] = make_table(fields, parent)
+    return fetch_data_from_report(file).
         then(data => render_table_from_data(data, fields, tbody, cmp, filter))
 }
 
