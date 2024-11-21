@@ -30,10 +30,6 @@ $naicreport_dir/naicreport at-a-glance \
 		      -tag "$tag" \
 		      > $report_dir/$abbrev-at-a-glance.json
 
-# $naicreport_dir/naicreport hostnames \
-# 		      -report-dir $report_dir \
-# 		      > $report_dir/$abbrev-hostnames.json
-
 $naicreport_dir/naicreport hostnames \
 		      -sonalyze $naicreport_dir/sonalyze \
                       $data_source \
