@@ -580,7 +580,7 @@ func (rs *RepeatableCommaSeparated[T]) String() string {
 }
 
 func (rs *RepeatableCommaSeparated[T]) Set(s string) error {
-	ys := strings.Split(s, ",")
+	ys := strings.Split(s, ",") // OK: "" is ruled out below
 	ws := make([]T, 0, len(ys))
 	for _, y := range ys {
 		if y == "" {

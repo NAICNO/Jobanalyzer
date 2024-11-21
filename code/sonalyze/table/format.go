@@ -112,8 +112,10 @@ func ParseFormatSpec(
 	if fmtOpt == "help" {
 		others["help"] = true
 	}
-	for _, fieldName := range strings.Split(spec, ",") {
-		fields, _ = addField(fieldName, fields, others, formatters, aliases)
+	if spec != "" {
+		for _, fieldName := range strings.Split(spec, ",") {
+			fields, _ = addField(fieldName, fields, others, formatters, aliases)
+		}
 	}
 	return fields, others, nil
 }
