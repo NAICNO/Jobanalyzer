@@ -41,7 +41,7 @@ export default function ViolatorPage() {
     )
   }
 
-  const {data: allJobsOfUser, isFetched} = useFetchViolator(clusterName!, violator)
+  const {data: allJobsOfUser, isFetched} = useFetchViolator(cluster, violator)
 
   const violatingJobTableColumns = useMemo(() => getUserViolatingJobTableColumns(), [cluster])
   const [violatingJobTableSorting, setViolatingJobTableSorting] = useState<SortingState>([])

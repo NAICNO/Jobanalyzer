@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AxiosInstance } from 'axios'
 
 import useAxios from './useAxios.ts'
-import { JOB_QUERY_API_ENDPOINT, QueryKeys } from '../Constants.ts'
+import { QUERY_API_ENDPOINT, QueryKeys } from '../Constants.ts'
 import {
   FetchedJobQueryResultItem,
   JobQueryJobId,
@@ -22,7 +22,7 @@ const fetchJobQuery = async (axios: AxiosInstance, jobQueryValues: JobQueryValue
 }
 
 export const useFetchJobQuery = (jobQueryValues: JobQueryValues, fields: string[]) => {
-  const axios = useAxios(JOB_QUERY_API_ENDPOINT)
+  const axios = useAxios(QUERY_API_ENDPOINT)
   return useQuery<FetchedJobQueryResultItem[], Error, JobQueryResultsTableItem[]>(
     {
       enabled: false,

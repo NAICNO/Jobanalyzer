@@ -16,7 +16,7 @@ import { ViolatingUserTable, ViolatingJobTable } from '../components/table'
 import { NavigateBackButton, PageTitle } from '../components'
 
 export default function ViolatorsPage() {
-  const {clusterName} = useParams<string>()
+  const {clusterName, hostname} = useParams<string>()
 
   const cluster = findCluster(clusterName)
 
@@ -26,7 +26,12 @@ export default function ViolatorsPage() {
     )
   }
 
-  const {data, isFetched} = useFetchViolations(cluster)
+  const filter = {
+    afterDate: null,
+    hostname: hostname || null
+  }
+
+  const {data, isFetched} = useFetchViolations(cluster, filter)
 
   const violatingUserTableColumns = useMemo(() => getViolatingUserTableColumns(), [cluster])
   const [violatingUserTableSorting, setViolatingUserTableSorting] = useState<SortingState>([])
@@ -56,13 +61,15 @@ export default function ViolatorsPage() {
     }
   })
 
+  const pageTitle = `${cluster.name} Policy Violators${hostname ? ` - ${hostname}` : ''}`
+
   return (
     <>
-      <PageTitle title={`${cluster.name} Policy Violators`}/>
+      <PageTitle title={pageTitle}/>
       <VStack alignItems={'start'}>
         <HStack mb="10px">
           <NavigateBackButton/>
-          <Heading ml={2} size={{base: 'md', md: 'lg'}}>{cluster.name} policy violators</Heading>
+          <Heading ml={2} size={{base: 'md', md: 'lg'}}>{pageTitle}</Heading>
         </HStack>
         <Text>The following users and jobs have been running significantly outside of policy and are probably
           not appropriate to run on this cluster. The list is recomputed at noon and midnight

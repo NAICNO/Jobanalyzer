@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AxiosInstance, AxiosResponse } from 'axios'
 
 import useAxios from './useAxios.ts'
-import { QueryKeys } from '../Constants.ts'
+import { QUERY_API_ENDPOINT, QueryKeys } from '../Constants.ts'
 import { prepareShareableJobQueryLink } from '../util/query/QueryUtils.ts'
 import {
   Cluster,
@@ -16,19 +16,19 @@ interface Filter {
   hostname: string | null
 }
 
-const fetchDeadWeight = async (axios: AxiosInstance, canonical: string, clusterName: string) => {
-  const endpoint = `${canonical}/${clusterName}-deadweight-report.json`
+const fetchDeadWeight = async (axios: AxiosInstance, clusterName: string) => {
+  const endpoint = `/report?cluster=${clusterName}&report-name=${clusterName}-deadweight-report.json`
   const response: AxiosResponse<FetchedDeadWeight[]> = await axios.get(endpoint)
   return response.data
 }
 
 export const useFetchDeadWeight = (cluster: Cluster, filter: Filter | null = null, enabled: boolean = true) => {
-  const axios = useAxios()
+  const axios = useAxios(QUERY_API_ENDPOINT)
   return useQuery<FetchedDeadWeight[], Error, DeadWeight[]>(
     {
       enabled,
       queryKey: [QueryKeys.DEAD_WEIGHT, cluster.cluster],
-      queryFn: () => fetchDeadWeight(axios, cluster.canonical, cluster.cluster),
+      queryFn: () => fetchDeadWeight(axios, cluster.cluster),
       select: data => {
         let deadWeights: DeadWeight[] = data.map((d: FetchedDeadWeight) => {
           const commonJobQueryValues = {
