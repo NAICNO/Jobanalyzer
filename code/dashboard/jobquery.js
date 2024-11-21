@@ -303,6 +303,8 @@ function recomputeURLs() {
 var profnames = ["cpu", "res", "gpu", "gpumem"]
 
 function makeProfileURL(cluster, from, to, row) {
+    // Bug 449
+    //
     // About adding "host" here always:
     //
     // On clusters where all the nodes uniformly run eg slurm and the job IDs are system-wide, the
