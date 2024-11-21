@@ -2,11 +2,6 @@
 //
 // The output is a json array of strings, lexicographically sorted.
 //
-// NOTE: Clients should no longer use the output from this, but instead go directly to sonalyze and
-// run eg `sonalyze node -remote ... -cluster ... -auth-file ... -from 14d -newest -fmt csv,host` to
-// get an unsorted list of host names, one per line (or ask for JSON and get the "host" field from
-// each object of the resulting array).
-//
 // End-user options:
 //
 //  -remote url
