@@ -75,7 +75,7 @@ func (rc *ReportCommand) Validate() error {
 	// combination of fs.ValidPath + filepath.Localize is just as good and more permissive, it would
 	// allow for files in subdirectories of the report directory too.
 	if !filenameRe.MatchString(rc.ReportName) || !filepath.IsLocal(rc.ReportName) {
-		return errors.New("Illegal report file name")
+		return errors.New("Illegal file name for -report-name")
 	}
 
 	if rc.ReportDir == "" {

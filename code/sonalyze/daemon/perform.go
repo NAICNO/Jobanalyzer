@@ -40,7 +40,7 @@ import (
 func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	logger, err := syslog.Dial("", "", syslog.LOG_INFO|syslog.LOG_USER, logTag)
 	if err != nil {
-		return fmt.Errorf("FATAL ERROR: Failing to open logger: %w", err)
+		return fmt.Errorf("FATAL ERROR: Failing to open logger: %v", err)
 	}
 	Log.SetUnderlying(logger)
 

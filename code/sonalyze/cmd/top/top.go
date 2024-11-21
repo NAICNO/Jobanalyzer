@@ -112,7 +112,7 @@ func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 		theLog, err = db.OpenPersistentCluster(tc.DataDir, cfg)
 	}
 	if err != nil {
-		return fmt.Errorf("Failed to open log store\n%w", err)
+		return fmt.Errorf("Failed to open log store: %v", err)
 	}
 
 	streams, _, read, dropped, err :=
@@ -124,7 +124,7 @@ func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 			tc.Verbose,
 		)
 	if err != nil {
-		return fmt.Errorf("Failed to read log records\n%w", err)
+		return fmt.Errorf("Failed to read log records: %v", err)
 	}
 	if tc.Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)

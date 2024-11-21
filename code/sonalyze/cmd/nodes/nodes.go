@@ -113,7 +113,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		theLog, err = db.OpenPersistentCluster(nc.DataDir, cfg)
 	}
 	if err != nil {
-		return fmt.Errorf("Failed to open log store\n%w", err)
+		return fmt.Errorf("Failed to open log store: %v", err)
 	}
 
 	// Read and filter the raw sysinfo data.
@@ -125,7 +125,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		nc.Verbose,
 	)
 	if err != nil {
-		return fmt.Errorf("Failed to read log records\n%w", err)
+		return fmt.Errorf("Failed to read log records: %v", err)
 	}
 	records := uslices.Catenate(recordBlobs)
 	if nc.Verbose {
@@ -135,7 +135,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 
 	hostGlobber, recordFilter, err := nc.buildRecordFilter(nc.Verbose)
 	if err != nil {
-		return fmt.Errorf("Failed to create record filter\n%w", err)
+		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
 
 	records = slices.DeleteFunc(records, func(s *config.NodeConfigRecord) bool {

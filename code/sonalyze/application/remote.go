@@ -135,25 +135,33 @@ func RemoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	}
 
 	err = command.Run()
+
+	// If there is a processing error on the remote end then the server will respond with a 400 code
+	// and the text that would otherwise go to stderr, see runSonalyze() in daemon/perform.go.  That
+	// translates as a non-nil error with code 22 here, and the error message is on our local
+	// stdout.
+	//
+	// However if there is a problem with contacting the host or other curl failure, then the exit
+	// code is king and stderr may have some text.
+	//
+	// Curl has an elaborate set of exit codes, we could be more precise here but for most remote
+	// cases the user would just look them up.
+
 	if err != nil {
-		if rCmd.VerboseFlag() {
-			outs := newStdout.String()
-			if outs != "" {
-				fmt.Fprintf(stdout, "Output from failed (%s) subprocess: %s", err, outs)
-			}
-			errs := newStderr.String()
-			if errs != "" {
-				fmt.Fprintf(stdout, "Errors from failed (%s) subprocess: %s", err, errs)
+		if xe, ok := err.(*exec.ExitError); ok {
+			switch xe.ExitCode() {
+			case 22:
+				return fmt.Errorf("Remote: %s", newStdout.String())
+			case 5, 6, 7:
+				return fmt.Errorf("Failed to resolve remote host (or proxy).  Exit code %v, stderr=%s",
+					xe.ExitCode(), string(xe.Stderr))
+			default:
+				return fmt.Errorf("Curl problem: exit code %v, stderr=%s", xe.ExitCode(), string(xe.Stderr))
 			}
 		}
-		// Print this unredacted on the assumption that the remote sonalyzed/sonalyze don't
-		// reveal anything they shouldn't.
-		return err
+		return fmt.Errorf("Could not start curl: %v", err)
 	}
-	errs := newStderr.String()
-	if errs != "" {
-		return errors.New(errs)
-	}
+
 	// print, not println, or we end up adding a blank line that confuses consumers
 	fmt.Fprint(stdout, newStdout.String())
 	return nil

@@ -254,7 +254,7 @@ func (lf *LogFile) flushSyncLocked() (err error) {
 		//
 		// Could also be too many open files, in which case we really want to close all open
 		// files and retry.
-		err = fmt.Errorf("Failed to open/create file (%v)", err)
+		err = fmt.Errorf("Failed to open/create file: %v", err)
 		return
 	}
 	defer f.Close()

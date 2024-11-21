@@ -37,7 +37,7 @@ func (uc *UptimeCommand) Add(fs *flag.FlagSet) {
 	uc.FormatArgs.Add(fs)
 
 	fs.UintVar(&uc.Interval, "interval", 0,
-		"The maximum sampling `interval` in minutes (before any randomization) seen in the data")
+		"The maximum sampling `interval` in minutes (before any randomization) seen in the data (required)")
 	fs.BoolVar(&uc.OnlyUp, "only-up", false, "Show only times when systems are up")
 	fs.BoolVar(&uc.OnlyDown, "only-down", false, "Show only times when systems are down")
 }

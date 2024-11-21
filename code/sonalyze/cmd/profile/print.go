@@ -326,12 +326,12 @@ func lookupSingleFormatter(
 			formatter = formatGpuMem
 			n++
 		default:
-			err = fmt.Errorf("Not a known field: %s", f.Name)
+			err = fmt.Errorf("Not a printable field for this output format: %s", f.Name)
 			return
 		}
 	}
 	if n != 1 {
-		err = errors.New("formatted output needs exactly one valid field")
+		err = errors.New("Formatted output needs exactly one valid field")
 	}
 	return
 }

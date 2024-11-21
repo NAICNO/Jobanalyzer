@@ -35,7 +35,7 @@ func (sc *SacctCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		theLog, err = db.OpenPersistentCluster(sc.DataDir, cfg)
 	}
 	if err != nil {
-		return fmt.Errorf("Failed to open log store\n%w", err)
+		return fmt.Errorf("Failed to open log store: %v", err)
 	}
 
 	// Read the raw sacct data.
@@ -46,7 +46,7 @@ func (sc *SacctCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		sc.Verbose,
 	)
 	if err != nil {
-		return fmt.Errorf("Failed to read log records\n%w", err)
+		return fmt.Errorf("Failed to read log records: %v", err)
 	}
 	// TODO: The catenation is expedient, we should be looping over the nested set (or in the
 	// future, using an iterator).
