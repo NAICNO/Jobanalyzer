@@ -155,13 +155,13 @@ func (dc *DaemonCommand) Validate() error {
 	if dc.getAuthFile != "" {
 		dc.getAuthenticator, e4 = auth.ReadPasswords(dc.getAuthFile)
 		if e4 != nil {
-			e4 = fmt.Errorf("Failed to read analysis authentication file %w", e4)
+			e4 = fmt.Errorf("Failed to read analysis authentication file: %v", e4)
 		}
 	}
 	if dc.postAuthFile != "" {
 		dc.postAuthenticator, e5 = auth.ReadPasswords(dc.postAuthFile)
 		if e5 != nil {
-			return fmt.Errorf("Failed to read upload authentication file %w", e5)
+			return fmt.Errorf("Failed to read upload authentication file: %v", e5)
 		}
 	}
 	_, dc.aliasResolver, e6 = db.ReadClusterData(dc.jobanalyzerDir)

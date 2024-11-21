@@ -3,6 +3,7 @@
 package application
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -19,17 +20,17 @@ import (
 	"sonalyze/sonarlog"
 )
 
-func LocalOperation(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
-	args := cmd.SharedFlags()
+func LocalOperation(command SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
+	args := command.SharedFlags()
 
-	cfg, err := db.MaybeGetConfig(cmd.ConfigFile())
+	cfg, err := db.MaybeGetConfig(command.ConfigFile())
 	if err != nil {
 		return err
 	}
 
-	hostGlobber, recordFilter, err := buildRecordFilters(cmd, cfg, args.Verbose)
+	hostGlobber, recordFilter, err := buildRecordFilters(command, cfg, args.Verbose)
 	if err != nil {
-		return fmt.Errorf("Failed to create record filter\n%w", err)
+		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
 
 	var theLog db.SampleCluster
@@ -39,7 +40,7 @@ func LocalOperation(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wr
 		theLog, err = db.OpenPersistentCluster(args.DataDir, cfg)
 	}
 	if err != nil {
-		return fmt.Errorf("Failed to open log store\n%w", err)
+		return fmt.Errorf("Failed to open log store: %v", err)
 	}
 
 	streams, bounds, read, dropped, err :=
@@ -49,11 +50,11 @@ func LocalOperation(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wr
 			args.ToDate,
 			hostGlobber,
 			recordFilter,
-			cmd.NeedsBounds(),
+			command.NeedsBounds(),
 			args.Verbose,
 		)
 	if err != nil {
-		return fmt.Errorf("Failed to read log records\n%w", err)
+		return fmt.Errorf("Failed to read log records: %v", err)
 	}
 	if args.Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
@@ -61,27 +62,21 @@ func LocalOperation(cmd SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Wr
 	}
 
 	sonarlog.ComputePerSampleFields(streams)
-	err = cmd.Perform(stdout, cfg, theLog, streams, bounds, hostGlobber, recordFilter)
-
-	if err != nil {
-		return fmt.Errorf("Failed to perform operation\n%w", err)
-	}
-
-	return nil
+	return command.Perform(stdout, cfg, theLog, streams, bounds, hostGlobber, recordFilter)
 }
 
 func buildRecordFilters(
-	cmd SampleAnalysisCommand,
+	command SampleAnalysisCommand,
 	cfg *config.ClusterConfig,
 	verbose bool,
 ) (*hostglob.HostGlobber, *db.SampleFilter, error) {
-	args := cmd.SharedFlags()
+	args := command.SharedFlags()
 
 	// Temporary limitation.
 
-	if _, ok := cmd.(*profile.ProfileCommand); ok {
+	if _, ok := command.(*profile.ProfileCommand); ok {
 		if len(args.RecordFilterArgs.Job) != 1 || len(args.RecordFilterArgs.ExcludeJob) != 0 {
-			return nil, nil, fmt.Errorf("Exactly one specific job number is required by `profile`")
+			return nil, nil, errors.New("Exactly one specific job number is required by `profile`")
 		}
 	}
 
@@ -108,7 +103,7 @@ func buildRecordFilters(
 
 	// Command-specific defaults for the record filters.
 
-	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat := cmd.DefaultRecordFilters()
+	allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat := command.DefaultRecordFilters()
 
 	// Included users, empty means "all"
 
@@ -137,7 +132,7 @@ func buildRecordFilters(
 		} else if name := os.Getenv("USER"); name != "" {
 			includeUsers[StringToUstr(name)] = true
 		} else {
-			return nil, nil, fmt.Errorf("Not able to determine user, none given and $LOGNAME and $USER are empty")
+			return nil, nil, errors.New("Not able to determine user, none given and $LOGNAME and $USER are empty")
 		}
 	}
 

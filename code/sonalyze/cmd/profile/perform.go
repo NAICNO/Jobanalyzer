@@ -3,6 +3,7 @@ package profile
 import (
 	"cmp"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"slices"
@@ -33,7 +34,7 @@ func (pc *ProfileCommand) Perform(
 	jobId := pc.Job[0]
 
 	if len(streams) == 0 {
-		return errors.New("No processes")
+		return fmt.Errorf("No processes matching job ID(s): %v", pc.Job)
 	}
 
 	// Simplify: Assert that the input has only a single host.

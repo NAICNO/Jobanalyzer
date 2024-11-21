@@ -141,7 +141,7 @@ func (lc *LoadCommand) Validate() error {
 
 	var e4 error
 	if lc.All && lc.Last {
-		e4 = errors.New("Incoherent printing options")
+		e4 = errors.New("Incoherent printing options: both -all and -last")
 	}
 	if !lc.All && !lc.Last {
 		lc.All = true

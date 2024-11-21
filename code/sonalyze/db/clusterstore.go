@@ -480,7 +480,7 @@ func readRecordsFromFiles[T any](
 
 	if bad != "" {
 		recordBlobs = nil
-		err = fmt.Errorf("Failed to process one or more files:\n%s", bad)
+		err = fmt.Errorf("Failed to process one or more files: %s", bad)
 		return
 	}
 

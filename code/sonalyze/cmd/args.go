@@ -148,7 +148,7 @@ func (ra *RemotingArgs) Add(fs *flag.FlagSet) {
 func (ra *RemotingArgs) Validate() error {
 	if ra.Remote != "" || ra.Cluster != "" {
 		if ra.Remote == "" || ra.Cluster == "" {
-			return fmt.Errorf("-remote and -cluster must be used together")
+			return errors.New("-remote and -cluster must be used together")
 		}
 		ra.Remoting = true
 	}
@@ -243,10 +243,10 @@ func (s *SourceArgs) Validate() error {
 		// calling Validate(), it would confuse the matter - just disallow explicit values.  (This
 		// is a small abstraction leak.)
 		if s.DataDir != "" {
-			return fmt.Errorf("-data-dir may not be used with -remote or -cluster")
+			return errors.New("-data-dir may not be used with -remote or -cluster")
 		}
 		if len(s.LogFiles) > 0 {
-			return fmt.Errorf("-- logfile ... may not be used with -remote or -cluster")
+			return errors.New("-- logfile ... may not be used with -remote or -cluster")
 		}
 	} else {
 		// Compute and clean the dataDir and clean any logfiles.  If we have neither logfiles nor
@@ -260,7 +260,7 @@ func (s *SourceArgs) Validate() error {
 				s.LogFiles[i] = path.Clean(s.LogFiles[i])
 			}
 		} else if s.DataDir == "" {
-			return fmt.Errorf("Required -data-dir or -- logfile ...")
+			return errors.New("Required -data-dir or -- logfile ...")
 		}
 	}
 
@@ -523,7 +523,7 @@ func ValidateFormatArgs(
 	var others map[string]bool
 	fa.PrintFields, others, err = ParseFormatSpec(defaultFields, fa.Fmt, formatters, aliases)
 	if err == nil && len(fa.PrintFields) == 0 {
-		err = errors.New("No output fields were selected in format string")
+		err = errors.New("No valid output fields were selected in format string")
 	}
 	fa.PrintOpts = StandardFormatOptions(others, def)
 	return err
@@ -584,7 +584,7 @@ func (rs *RepeatableCommaSeparated[T]) Set(s string) error {
 	ws := make([]T, 0, len(ys))
 	for _, y := range ys {
 		if y == "" {
-			return errors.New("Empty string")
+			return errors.New("Empty string is an invalid argument")
 		}
 		n, err := rs.fromString(y)
 		if err != nil {

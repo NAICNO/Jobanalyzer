@@ -50,7 +50,7 @@ var stdhandler = standardCommandLineHandler{}
 func main() {
 	err := sonalyze()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintf(os.Stderr, "Sonalyze failed: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -85,7 +85,7 @@ func sonalyze() error {
 	default:
 		anyCmd, verb := stdhandler.ParseVerb(cmdName, maybeVerb)
 		if anyCmd == nil {
-			fmt.Fprintf(out, "Required operation missing, try `sonalyze help`\n")
+			fmt.Fprintf(out, "Unknown operation: %s\nTry `sonalyze help`\n", maybeVerb)
 			os.Exit(2)
 		}
 
@@ -114,7 +114,7 @@ func sonalyze() error {
 
 		err := stdhandler.ParseArgs(verb, args, anyCmd, fs)
 		if err != nil {
-			fmt.Fprint(out, err.Error())
+			fmt.Fprintf(out, "Bad arguments: %v\nTry `sonalyze %s -h`\n", err, maybeVerb)
 			os.Exit(2)
 		}
 
@@ -193,7 +193,7 @@ func (_ *standardCommandLineHandler) ParseArgs(
 		if lfCmd, ok := command.(cmd.SetRestArgumentsAPI); ok {
 			lfCmd.SetRestArguments(rest)
 		} else {
-			return fmt.Errorf("Rest arguments not accepted by `%s`.\n", verb)
+			return fmt.Errorf("Rest arguments not accepted by `%s`", verb)
 		}
 	}
 
@@ -205,12 +205,7 @@ func (_ *standardCommandLineHandler) ParseArgs(
 		return nil
 	}
 
-	err = command.Validate()
-	if err != nil {
-		return fmt.Errorf("Bad arguments, try -h\n%w\n", err)
-	}
-
-	return nil
+	return command.Validate()
 }
 
 func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func(), error) {
@@ -220,7 +215,7 @@ func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func()
 
 	f, err := os.Create(profileFile)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create profile\n%w", err)
+		return nil, fmt.Errorf("Failed to create profile: %v", err)
 	}
 
 	pprof.StartCPUProfile(f)
@@ -270,7 +265,7 @@ func (_ *daemonCommandLineHandler) ParseArgs(
 		return err
 	}
 	if command.CpuProfileFile() != "" {
-		return fmt.Errorf("The -cpuprofile cannot be run remotely")
+		return errors.New("The -cpuprofile cannot be run remotely")
 	}
 	return nil
 }

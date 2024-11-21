@@ -70,7 +70,7 @@ func (pc *ProfileCommand) Validate() error {
 		profileAliases,
 	)
 	if e4 == nil && len(pc.PrintFields) == 0 && !others["json"] {
-		e4 = errors.New("No output fields were selected in format string")
+		e4 = errors.New("No valid output fields were selected in format string")
 	}
 
 	// Options for profile are restrictive, and a little wonky because html is handled on the side,
@@ -86,7 +86,7 @@ func (pc *ProfileCommand) Validate() error {
 
 	var e5 error
 	if pc.htmlOutput && !pc.PrintOpts.IsDefaultFormat() {
-		e5 = errors.New("Multiple formats requested")
+		e5 = errors.New("Multiple output formats requested")
 	}
 
 	// The printing code uses custom logic for everything but Fixed layout, and the custom logic
