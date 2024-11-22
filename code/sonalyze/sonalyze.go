@@ -16,11 +16,15 @@
 package main
 
 import (
+	"bufio"
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"runtime/pprof"
+	"regexp"
+	"strings"
 
 	"go-utils/status"
 	"sonalyze/application"
@@ -69,11 +73,16 @@ func sonalyze() error {
 
 	switch maybeVerb {
 	case "help", "-h":
-		fmt.Fprintf(out, "Usage: %s command [options] [-- logfile ...]\n", cmdName)
+		if len(args) > 0 && topicalHelp(out, args[0]) {
+			os.Exit(0)
+		}
+		fmt.Fprintf(out, "Usage: %s command [options] [-- logfile ...]\n\n", cmdName)
 		fmt.Fprintf(out, "Commands:\n")
 		fmt.Fprintf(out, "  daemon   - spin up a server daemon to process requests\n")
 		application.CommandHelp(out)
-		fmt.Fprintf(out, "Each command accepts -h to further explain options.\n")
+		fmt.Fprintf(out, "Each command accepts -h to further explain options.\n\n")
+		fmt.Fprintf(out, "For help on some other topics, try `sonalyze help <topic>`:\n")
+		topicalHelpTopics(out)
 		os.Exit(0)
 
 	case "version":
@@ -132,6 +141,57 @@ func sonalyze() error {
 		return stdhandler.HandleCommand(anyCmd, os.Stdin, os.Stdout, out)
 	}
 	panic("Unreachable")
+}
+
+//go:embed help.txt
+var help string
+
+type helpText struct {
+	kwd string
+	header string
+	text string
+}
+
+var helpTopicRe = regexp.MustCompile(`^#\s+(\S+)\s+-\s*(.*)$`)
+
+func topicalText() []helpText {
+	topics := make([]helpText, 0)
+	scanner := bufio.NewScanner(strings.NewReader(help))
+	var current helpText
+	for scanner.Scan() {
+		s := scanner.Text()
+		if m := helpTopicRe.FindStringSubmatch(s); m != nil {
+			if current.kwd != "" {
+				topics = append(topics, current)
+			}
+			current.kwd = m[1]
+			current.header = m[2]
+			current.text = ""
+		} else if current.kwd != "" {
+			current.text += "\n  " + s
+		}
+	}
+	if current.kwd != "" {
+		topics = append(topics, current)
+	}
+	return topics
+}
+
+func topicalHelp(out io.Writer, what string) bool {
+	for _, k := range topicalText() {
+		if k.kwd == what {
+			fmt.Fprintf(out, "%s:", k.header)
+			fmt.Fprintln(out, k.text)
+			return true
+		}
+	}
+	return false
+}
+
+func topicalHelpTopics(out io.Writer) {
+	for _, k := range topicalText() {
+		fmt.Fprintf(out, "  %s - %s\n", k.kwd, k.header)
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

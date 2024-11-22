@@ -81,6 +81,7 @@
 package daemon
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"strconv"
@@ -140,11 +141,11 @@ func (dc *DaemonCommand) Add(fs *CLI) {
 	fs.StringVar(&dc.cache, "cache", "", "Enable data caching with this size (nM for megs, nG for gigs)")
 }
 
-func (dc *DaemonCommand) Summary() []string {
-	return []string{
-		"Run sonalyze as an HTTP server that responds to GET and POST for data",
-		"extraction and update.  See manual for more information.",
-	}
+//go:embed summary.txt
+var summary string
+
+func (dc *DaemonCommand) Summary() string {
+	return summary
 }
 
 func (dc *DaemonCommand) Validate() error {

@@ -1,8 +1,7 @@
-// Compute jobs aggregates from a set of log entries.
-
 package jobs
 
 import (
+	_ "embed"
 	"errors"
 
 	. "sonalyze/cmd"
@@ -254,11 +253,11 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 
 var _ SampleAnalysisCommand = (*JobsCommand)(nil)
 
-func (_ *JobsCommand) Summary() []string {
-	return []string{
-		"Select jobs by various criteria and present aggregate information",
-		"about them.",
-	}
+//go:embed summary.txt
+var summary string
+
+func (_ *JobsCommand) Summary() string {
+	return summary
 }
 
 func (jc *JobsCommand) lookupUint(s string) uint {

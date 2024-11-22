@@ -1,6 +1,7 @@
 package sacct
 
 import (
+	_ "embed"
 	"errors"
 	"math"
 
@@ -55,10 +56,11 @@ type SacctCommand struct /* implements AnalysisCommand */ {
 
 var _ = AnalysisCommand((*SacctCommand)(nil))
 
-func (_ *SacctCommand) Summary() []string {
-	return []string{
-		"Extract information from sacct data independent of sample data",
-	}
+//go:embed summary.txt
+var summary string
+
+func (_ *SacctCommand) Summary() string {
+	return summary
 }
 
 func (sc *SacctCommand) Add(fs *CLI) {

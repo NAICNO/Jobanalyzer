@@ -1,3 +1,5 @@
+// An elaborated flag.FlagSet object in which options can be grouped sensibly in the help text.
+
 package cmd
 
 import (
@@ -62,9 +64,7 @@ func NewCLI(verb string, command Command, name string, exitOnError bool) *CLI {
 			verb,
 			restargs,
 		)
-		for _, s := range command.Summary() {
-			fmt.Fprintln(out, "  ", s)
-		}
+		fmt.Fprint(out, command.Summary())
 		defaults := cli.getSortedDefaults(restargs != "")
 		for _, g := range defaults {
 			fmt.Fprintf(out, "\n%s options:\n\n", g.group)
@@ -139,12 +139,11 @@ func (cli *CLI) getSortedDefaults(restArgs bool) []defaultGroup {
 	}
 	defaults := umaps.Values(defaultsMap)
 	slices.SortFunc(defaults, func(a, b defaultGroup) int {
-		aPri := priority[a.group]
-		bPri := priority[b.group]
-		if aPri == bPri {
-			return cmp.Compare(a.group, b.group)
+		c := cmp.Compare(priority[a.group], priority[b.group])
+		if c == 0 {
+			c = cmp.Compare(a.group, b.group)
 		}
-		return aPri - bPri
+		return c
 	})
 	return defaults
 }

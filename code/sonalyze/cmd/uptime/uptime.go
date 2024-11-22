@@ -7,6 +7,7 @@
 package uptime
 
 import (
+	_ "embed"
 	"errors"
 
 	. "sonalyze/cmd"
@@ -24,11 +25,11 @@ type UptimeCommand struct /* implements SampleAnalysisCommand */ {
 
 var _ SampleAnalysisCommand = (*UptimeCommand)(nil)
 
-func (_ *UptimeCommand) Summary() []string {
-	return []string{
-		"Compute and print information about uptime and downtime of nodes",
-		"and components.",
-	}
+//go:embed summary.txt
+var summary string
+
+func (_ *UptimeCommand) Summary() string {
+	return summary
 }
 
 func (uc *UptimeCommand) Add(fs *CLI) {

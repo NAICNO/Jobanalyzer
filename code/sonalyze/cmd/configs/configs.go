@@ -1,7 +1,4 @@
-// The "configs" table exposes the config file for a cluster, but only the per-node information.
-// The per-cluster information in the config file is exposed by the "clusters" verb.
-//
-// The "configs" API is therefore very similar to the "nodes" API.  However:
+// The "configs" API is very similar to the "nodes" API.  However:
 //
 // - The configs API relies only on the config file, it accepts no data store or file list
 // - The command line API:
@@ -16,6 +13,7 @@ package configs
 
 import (
 	"cmp"
+	_ "embed"
 	"errors"
 	"io"
 	"reflect"
@@ -41,10 +39,11 @@ type ConfigCommand struct {
 	FormatArgs
 }
 
-func (cc *ConfigCommand) Summary() []string {
-	return []string{
-		"Extract information about nodes in the cluster configuration",
-	}
+//go:embed summary.txt
+var summary string
+
+func (cc *ConfigCommand) Summary() string {
+	return summary
 }
 
 func (cc *ConfigCommand) Add(fs *CLI) {

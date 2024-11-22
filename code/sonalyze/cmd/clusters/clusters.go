@@ -1,13 +1,8 @@
-// The output of this verb is a list of clusters with any available metadata.
-//
-// * For `-remote` there must not be a `-cluster` option
-// * When running locally there must be `-jobanalyzer-dir` as for `daemon`
-// * `-data-dir` and `-config-file` are illegal, as are all filtering options
-
 package clusters
 
 import (
 	"cmp"
+	_ "embed"
 	"errors"
 	"io"
 	"reflect"
@@ -32,10 +27,11 @@ type ClusterCommand struct {
 	JobanalyzerDir string
 }
 
-func (cc *ClusterCommand) Summary() []string {
-	return []string{
-		"Extract information about clusters in the data store",
-	}
+//go:embed summary.txt
+var summary string
+
+func (cc *ClusterCommand) Summary() string {
+	return summary
 }
 
 func (cc *ClusterCommand) Add(fs *CLI) {

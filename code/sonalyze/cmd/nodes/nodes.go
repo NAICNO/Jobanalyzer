@@ -11,6 +11,7 @@ package nodes
 
 import (
 	"cmp"
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -43,10 +44,11 @@ type NodeCommand struct {
 
 var _ = (SimpleCommand)((*NodeCommand)(nil))
 
-func (nc *NodeCommand) Summary() []string {
-	return []string{
-		"Extract information about nodes in the cluster",
-	}
+//go:embed summary.txt
+var summary string
+
+func (nc *NodeCommand) Summary() string {
+	return summary
 }
 
 func (nc *NodeCommand) Add(fs *CLI) {
