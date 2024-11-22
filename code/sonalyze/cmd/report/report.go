@@ -17,7 +17,6 @@ package report
 
 import (
 	"errors"
-	"flag"
 	"io"
 	"os"
 	"path"
@@ -44,12 +43,16 @@ func (rc *ReportCommand) Summary() []string {
 	}
 }
 
-func (rc *ReportCommand) Add(fs *flag.FlagSet) {
+func (rc *ReportCommand) Add(fs *CLI) {
 	rc.DevArgs.Add(fs)
 	rc.RemotingArgs.Add(fs)
 	rc.VerboseArgs.Add(fs)
+
+	fs.Group("local-data-source")
 	fs.StringVar(
 		&rc.ReportDir, "report-dir", "", "`directory-name` containing reports (precludes -remote)")
+
+	fs.Group("application-control")
 	fs.StringVar(&rc.ReportName, "report-name", "", "`filename` of the report to extract")
 }
 

@@ -17,7 +17,6 @@ package configs
 import (
 	"cmp"
 	"errors"
-	"flag"
 	"io"
 	"reflect"
 	"slices"
@@ -48,7 +47,7 @@ func (cc *ConfigCommand) Summary() []string {
 	}
 }
 
-func (cc *ConfigCommand) Add(fs *flag.FlagSet) {
+func (cc *ConfigCommand) Add(fs *CLI) {
 	cc.DevArgs.Add(fs)
 	cc.RemotingArgs.Add(fs)
 	cc.HostArgs.Add(fs)

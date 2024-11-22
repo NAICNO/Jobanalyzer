@@ -16,7 +16,6 @@ package daemon
 import (
 	"bytes"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"log/syslog"
@@ -368,7 +367,7 @@ func runSonalyze(
 		errResponse(w, 400, fmt.Errorf("Bad verb in daemon-dispatched command: %s", verb), "", dc.Verbose)
 		return
 	}
-	fs := flag.NewFlagSet(cmdName, flag.ContinueOnError)
+	fs := NewCLI(verb, anyCmd, cmdName, false)
 	err := dc.cmdlineHandler.ParseArgs(verb, arguments, anyCmd, fs)
 	if err != nil {
 		errResponse(w, 400, err, "", dc.Verbose)

@@ -29,7 +29,6 @@ package top
 import (
 	"bufio"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"slices"
@@ -61,7 +60,7 @@ func (tc *TopCommand) Summary() []string {
 	}
 }
 
-func (tc *TopCommand) Add(fs *flag.FlagSet) {
+func (tc *TopCommand) Add(fs *CLI) {
 	tc.DevArgs.Add(fs)
 	tc.SourceArgs.Add(fs)
 	tc.HostArgs.Add(fs)

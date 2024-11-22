@@ -82,7 +82,6 @@ package daemon
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"strconv"
 	"strings"
@@ -127,9 +126,10 @@ func New(cmdlineHandler CommandLineHandler) *DaemonCommand {
 	return dc
 }
 
-func (dc *DaemonCommand) Add(fs *flag.FlagSet) {
+func (dc *DaemonCommand) Add(fs *CLI) {
 	dc.DevArgs.Add(fs)
 	dc.VerboseArgs.Add(fs)
+	fs.Group("daemon-configuration")
 	fs.StringVar(&dc.jobanalyzerDir, "jobanalyzer-dir", "", "Jobanalyzer root `directory` (required)")
 	fs.UintVar(&dc.port, "port", defaultListenPort, "Listen for connections on `port`")
 	fs.StringVar(&dc.getAuthFile, "analysis-auth", "", "Authentication info `filename` for analysis access")

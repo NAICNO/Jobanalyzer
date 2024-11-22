@@ -17,7 +17,6 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -38,8 +37,9 @@ import (
 // v0.4.0 - added 'top' verb
 // v0.5.0 - added 'sacct' verb and 'add -slurm-sacct', and a number of bug fixes
 // v0.6.0 - added 'cluster', 'config', and 'node' verbs, rename/alias 'parse' as 'sample'
+// v0.7.0 - major internal cleanup and restructuring, very minor tweaks to a few output formats
 
-const SonalyzeVersion = "0.6.0"
+const SonalyzeVersion = "0.7.0"
 
 // See end of file for documentation / implementation, and command/command.go for documentation of
 // the CommandLineHandler interface.
@@ -56,7 +56,7 @@ func main() {
 }
 
 func sonalyze() error {
-	out := flag.CommandLine.Output()
+	out := cmd.CLIOutput()
 
 	if len(os.Args) < 2 {
 		fmt.Fprintf(out, "Required operation missing, try `sonalyze help`\n")
@@ -89,29 +89,7 @@ func sonalyze() error {
 			os.Exit(2)
 		}
 
-		fs := flag.NewFlagSet(cmdName, flag.ExitOnError)
-		fs.Usage = func() {
-			restargs := ""
-			if _, ok := anyCmd.(cmd.SetRestArgumentsAPI); ok {
-				restargs = " [-- logfile ...]"
-			}
-			fmt.Fprintf(
-				out,
-				"Usage: %s %s [options]%s\n\n",
-				cmdName,
-				maybeVerb,
-				restargs,
-			)
-			for _, s := range anyCmd.Summary() {
-				fmt.Fprintln(out, "  ", s)
-			}
-			fmt.Fprint(out, "\nOptions:\n\n")
-			fs.PrintDefaults()
-			if restargs != "" {
-				fmt.Fprintf(out, "  logfile ...\n    \tInput data files\n")
-			}
-		}
-
+		fs := cmd.NewCLI(maybeVerb, anyCmd, cmdName, true)
 		err := stdhandler.ParseArgs(verb, args, anyCmd, fs)
 		if err != nil {
 			fmt.Fprintf(out, "Bad arguments: %v\nTry `sonalyze %s -h`\n", err, maybeVerb)
@@ -180,7 +158,7 @@ func (_ *standardCommandLineHandler) ParseArgs(
 	verb string,
 	args []string,
 	command cmd.Command,
-	fs *flag.FlagSet,
+	fs *cmd.CLI,
 ) error {
 	command.Add(fs)
 	err := fs.Parse(args)
@@ -258,7 +236,7 @@ func (_ *daemonCommandLineHandler) ParseArgs(
 	verb string,
 	args []string,
 	command cmd.Command,
-	fs *flag.FlagSet,
+	fs *cmd.CLI,
 ) error {
 	err := stdhandler.ParseArgs(verb, args, command, fs)
 	if err != nil {

@@ -4,7 +4,6 @@ package jobs
 
 import (
 	"errors"
-	"flag"
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
@@ -269,11 +268,11 @@ func (jc *JobsCommand) lookupUint(s string) uint {
 	panic("Unknown parameter key " + s)
 }
 
-func (jc *JobsCommand) Add(fs *flag.FlagSet) {
+func (jc *JobsCommand) Add(fs *CLI) {
 	jc.SharedArgs.Add(fs)
 	jc.FormatArgs.Add(fs)
 
-	// Filter args
+	fs.Group("job-filter")
 	jc.Uints = make(map[string]*uint)
 	for _, v := range uintArgs {
 		box := new(uint)
@@ -285,18 +284,20 @@ func (jc *JobsCommand) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&jc.Completed, "completed", false, "Select only jobs that have run to completion")
 	fs.BoolVar(&jc.Running, "running", false, "Select only jobs that are still running")
 	fs.BoolVar(&jc.Zombie, "zombie", false, "Select only zombie jobs (usually these are still running)")
-	fs.BoolVar(&jc.MergeAll, "batch", false, "Old name for -merge-all")
+	fs.StringVar(&jc.minRuntimeStr, "min-runtime", "",
+		"Select only jobs with at least this much runtime, format `WwDdHhMm`, all parts\n"+
+			"optional [default: 0m]")
+
+	fs.Group("aggregation")
 	fs.BoolVar(&jc.MergeAll, "merge-all", false,
 		"Aggregate data across all hosts (appropriate for batch systems, but usually specified in the\n"+
 			"config file, not here")
 	fs.BoolVar(&jc.MergeNone, "merge-none", false,
 		"Never aggregate data across hosts (appropriate for non-batch systems, but usually specified in the\n"+
 			"config file, not here")
-	fs.StringVar(&jc.minRuntimeStr, "min-runtime", "",
-		"Select only jobs with at least this much runtime, format `WwDdHhMm`, all parts\n"+
-			"optional [default: 0m]")
+	fs.BoolVar(&jc.MergeAll, "batch", false, "Old name for -merge-all")
 
-	// Print args
+	fs.Group("printing")
 	fs.UintVar(&jc.NumJobs, "numjobs", 0,
 		"Print at most these many most recent jobs per user [default: all]")
 	fs.UintVar(&jc.NumJobs, "n", 0, "Short for -numjobs n")

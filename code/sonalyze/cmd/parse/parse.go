@@ -3,7 +3,6 @@ package parse
 import (
 	"cmp"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"reflect"
@@ -37,9 +36,11 @@ func (_ *ParseCommand) Summary() []string {
 	}
 }
 
-func (pc *ParseCommand) Add(fs *flag.FlagSet) {
+func (pc *ParseCommand) Add(fs *CLI) {
 	pc.SharedArgs.Add(fs)
 	pc.FormatArgs.Add(fs)
+
+	fs.Group("aggregation")
 	fs.BoolVar(&pc.MergeByHostAndJob, "merge-by-host-and-job", false,
 		"Merge streams that have the same host and job ID")
 	fs.BoolVar(&pc.MergeByJob, "merge-by-job", false,

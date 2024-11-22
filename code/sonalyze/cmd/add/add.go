@@ -23,7 +23,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"strings"
@@ -57,12 +56,13 @@ func (ac *AddCommand) Summary() []string {
 	return addHelp
 }
 
-func (ac *AddCommand) Add(fs *flag.FlagSet) {
+func (ac *AddCommand) Add(fs *CLI) {
 	ac.DevArgs.Add(fs)
 	ac.VerboseArgs.Add(fs)
 	ac.DataDirArgs.Add(fs)
 	ac.RemotingArgs.Add(fs)
 	ac.ConfigFileArgs.Add(fs)
+	fs.Group("data-target")
 	fs.BoolVar(&ac.Sample, "sample", false,
 		"Insert sonar sample data from stdin (zero or more records)")
 	fs.BoolVar(&ac.Sysinfo, "sysinfo", false,
