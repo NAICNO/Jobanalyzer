@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime/pprof"
 	"regexp"
+	"runtime/pprof"
 	"strings"
 
 	"go-utils/status"
@@ -147,9 +147,9 @@ func sonalyze() error {
 var help string
 
 type helpText struct {
-	kwd string
+	kwd    string
 	header string
-	text string
+	text   string
 }
 
 var helpTopicRe = regexp.MustCompile(`^#\s+(\S+)\s+-\s*(.*)$`)

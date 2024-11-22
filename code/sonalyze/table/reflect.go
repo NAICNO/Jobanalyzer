@@ -100,9 +100,6 @@ func DefineTableFromTags(
 //
 // SynthesizedFormatSpecWithAttr uses an attribute to specify a simple formatting rule for a
 // synthesized output field computed from a real field.
-//
-// SynthesizedIndexedFormatSpecWithAttr uses an attribute to specify a simple formatting rule for a
-// synthesized output field computed from an element of a real array field.
 
 type SimpleFormatSpec struct {
 	Desc    string
@@ -139,14 +136,6 @@ type SynthesizedFormatSpecWithAttr struct {
 	Attr int
 }
 
-type SynthesizedIndexedFormatSpecWithAttr struct {
-	Desc     string
-	RealName string // array or slice
-	Index    int
-	Aliases  string
-	Attr     int
-}
-
 func DefineTableFromMap(
 	structTy reflect.Type,
 	fields map[string]any,
@@ -164,8 +153,6 @@ func DefineTableFromMap(
 		var realname string
 		switch s := v.(type) {
 		case SynthesizedFormatSpecWithAttr:
-			realname = s.RealName
-		case SynthesizedIndexedFormatSpecWithAttr:
 			realname = s.RealName
 		default:
 			continue
@@ -199,8 +186,6 @@ func DefineTableFromMap(
 					ok = true
 				case SynthesizedFormatSpecWithAttr:
 					panic(fmt.Sprintf("Struct field '%s' has synthesized spec", name))
-				case SynthesizedIndexedFormatSpecWithAttr:
-					panic(fmt.Sprintf("Struct field '%s' has synthesized indexed spec", name))
 				default:
 					panic("Invalid FormatSpec")
 				}
@@ -215,8 +200,6 @@ func DefineTableFromMap(
 					desc = info.Desc
 					attrs = info.Attr
 					ok = true
-				case SynthesizedIndexedFormatSpecWithAttr:
-					panic("NYI")
 				default:
 					panic("Invalid FormatSpec")
 				}
