@@ -9,7 +9,6 @@ package clusters
 import (
 	"cmp"
 	"errors"
-	"flag"
 	"io"
 	"reflect"
 	"slices"
@@ -39,11 +38,12 @@ func (cc *ClusterCommand) Summary() []string {
 	}
 }
 
-func (cc *ClusterCommand) Add(fs *flag.FlagSet) {
+func (cc *ClusterCommand) Add(fs *CLI) {
 	cc.DevArgs.Add(fs)
 	cc.RemotingArgsNoCluster.Add(fs)
 	cc.VerboseArgs.Add(fs)
 	cc.FormatArgs.Add(fs)
+	fs.Group("local-data-source")
 	fs.StringVar(&cc.JobanalyzerDir, "jobanalyzer-dir", "", "Jobanalyzer root `directory`")
 }
 

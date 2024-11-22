@@ -12,7 +12,6 @@ package nodes
 import (
 	"cmp"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"math"
@@ -50,13 +49,15 @@ func (nc *NodeCommand) Summary() []string {
 	}
 }
 
-func (nc *NodeCommand) Add(fs *flag.FlagSet) {
+func (nc *NodeCommand) Add(fs *CLI) {
 	nc.DevArgs.Add(fs)
 	nc.SourceArgs.Add(fs)
 	nc.HostArgs.Add(fs)
 	nc.VerboseArgs.Add(fs)
 	nc.ConfigFileArgs.Add(fs)
 	nc.FormatArgs.Add(fs)
+
+	fs.Group("printing")
 	fs.BoolVar(&nc.Newest, "newest", false, "Print newest record per host only")
 }
 

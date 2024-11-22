@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -31,8 +30,9 @@ func (d *DevArgs) CpuProfileFile() string {
 	return d.CpuProfile
 }
 
-func (d *DevArgs) Add(fs *flag.FlagSet) {
+func (d *DevArgs) Add(fs *CLI) {
 	if devArgs {
+		fs.Group("development")
 		fs.StringVar(&d.CpuProfile, "cpuprofile", "",
 			"(Development) write cpu profile to `filename`")
 	}
@@ -57,7 +57,8 @@ type VerboseArgs struct {
 	Verbose bool
 }
 
-func (va *VerboseArgs) Add(fs *flag.FlagSet) {
+func (va *VerboseArgs) Add(fs *CLI) {
+	fs.Group("development")
 	fs.BoolVar(&va.Verbose, "v", false, "Print verbose diagnostics to stderr")
 	// The Rust version allows both -v and --verbose
 	fs.BoolVar(&va.Verbose, "verbose", false, "Print verbose diagnostics to stderr")
@@ -79,7 +80,8 @@ type DataDirArgs struct {
 	DataDir string
 }
 
-func (dd *DataDirArgs) Add(fs *flag.FlagSet) {
+func (dd *DataDirArgs) Add(fs *CLI) {
+	fs.Group("local-data-source")
 	fs.StringVar(&dd.DataDir, "data-dir", "",
 		"Select the root `directory` for log files [default: $SONAR_ROOT or $HOME/sonar/data]")
 	fs.StringVar(&dd.DataDir, "data-path", "", "Alias for -data-dir `directory`")
@@ -116,7 +118,8 @@ type RemotingArgsNoCluster struct {
 	Remoting bool
 }
 
-func (ra *RemotingArgsNoCluster) Add(fs *flag.FlagSet) {
+func (ra *RemotingArgsNoCluster) Add(fs *CLI) {
+	fs.Group("remote-data-source")
 	fs.StringVar(&ra.Remote, "remote", "",
 		"Select a remote `url` to serve the query [default: none].")
 	fs.StringVar(&ra.AuthFile, "auth-file", "",
@@ -139,8 +142,9 @@ type RemotingArgs struct {
 	Cluster string
 }
 
-func (ra *RemotingArgs) Add(fs *flag.FlagSet) {
+func (ra *RemotingArgs) Add(fs *CLI) {
 	ra.RemotingArgsNoCluster.Add(fs)
+	fs.Group("remote-data-source")
 	fs.StringVar(&ra.Cluster, "cluster", "",
 		"Select the cluster `name` for which we want data [default: none].  For use with -remote.")
 }
@@ -177,9 +181,10 @@ type SourceArgs struct {
 	ToDateStr   string
 }
 
-func (s *SourceArgs) Add(fs *flag.FlagSet) {
+func (s *SourceArgs) Add(fs *CLI) {
 	s.DataDirArgs.Add(fs)
 	s.RemotingArgs.Add(fs)
+	fs.Group("record-filter")
 	fs.StringVar(&s.FromDateStr, "from", "",
 		"Select records by this `time` and later.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
 			"signifying N days or weeks ago [default: 1d, ie 1 day ago]")
@@ -333,7 +338,8 @@ type HostArgs struct {
 	Host []string
 }
 
-func (h *HostArgs) Add(fs *flag.FlagSet) {
+func (h *HostArgs) Add(fs *CLI) {
+	fs.Group("record-filter")
 	fs.Var(NewRepeatableStringNoCommas(&h.Host), "host",
 		"Select records for this `host` (repeatable) [default: all]")
 }
@@ -358,8 +364,9 @@ type RecordFilterArgs struct {
 	ExcludeJob        []uint32
 }
 
-func (r *RecordFilterArgs) Add(fs *flag.FlagSet) {
+func (r *RecordFilterArgs) Add(fs *CLI) {
 	r.HostArgs.Add(fs)
+	fs.Group("record-filter")
 	fs.Var(NewRepeatableString(&r.User), "user",
 		"Select records for this `user`, \"-\" for all (repeatable) [default: command dependent]")
 	fs.Var(NewRepeatableString(&r.User), "u", "Short for -user `user`")
@@ -416,7 +423,8 @@ type ConfigFileArgs struct {
 	ConfigFilename string
 }
 
-func (cfa *ConfigFileArgs) Add(fs *flag.FlagSet) {
+func (cfa *ConfigFileArgs) Add(fs *CLI) {
+	fs.Group("local-data-source")
 	fs.StringVar(&cfa.ConfigFilename, "config-file", "",
 		"A `filename` for a file holding JSON data with system information, for when we\n"+
 			"want to print or use system-relative values [default: none]")
@@ -457,14 +465,12 @@ func (sa *SharedArgs) SharedFlags() *SharedArgs {
 	return sa
 }
 
-func (s *SharedArgs) Add(fs *flag.FlagSet) {
+func (s *SharedArgs) Add(fs *CLI) {
 	s.DevArgs.Add(fs)
 	s.SourceArgs.Add(fs)
 	s.RecordFilterArgs.Add(fs)
 	s.ConfigFileArgs.Add(fs)
-	fs.BoolVar(&s.Verbose, "v", false, "Print verbose diagnostics to stderr")
-	// The Rust version allows both -v and --verbose
-	fs.BoolVar(&s.Verbose, "verbose", false, "Print verbose diagnostics to stderr")
+	s.VerboseArgs.Add(fs)
 }
 
 func (s *SharedArgs) ReifyForRemote(x *ArgReifier) error {
@@ -502,7 +508,8 @@ type FormatArgs struct {
 	PrintOpts   *FormatOptions
 }
 
-func (fa *FormatArgs) Add(fs *flag.FlagSet) {
+func (fa *FormatArgs) Add(fs *CLI) {
+	fs.Group("printing")
 	fs.StringVar(&fa.Fmt, "fmt", "",
 		"Select `field,...` and format for the output [default: try -fmt=help]")
 }

@@ -2,7 +2,6 @@ package profile
 
 import (
 	"errors"
-	"flag"
 
 	. "sonalyze/cmd"
 	. "sonalyze/table"
@@ -29,11 +28,14 @@ func (_ *ProfileCommand) Summary() []string {
 	}
 }
 
-func (pc *ProfileCommand) Add(fs *flag.FlagSet) {
+func (pc *ProfileCommand) Add(fs *CLI) {
 	pc.SharedArgs.Add(fs)
 	pc.FormatArgs.Add(fs)
 
+	fs.Group("printing")
 	fs.Float64Var(&pc.Max, "max", 0, "Clamp values to this (helps deal with noise) (memory in GiB)")
+
+	fs.Group("aggregation")
 	fs.UintVar(&pc.Bucket, "bucket", 0, "Bucket these many consecutive elements (helps reduce noise)")
 }
 

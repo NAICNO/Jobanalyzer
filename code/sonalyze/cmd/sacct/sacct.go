@@ -2,7 +2,6 @@ package sacct
 
 import (
 	"errors"
-	"flag"
 	"math"
 
 	. "sonalyze/cmd"
@@ -62,13 +61,15 @@ func (_ *SacctCommand) Summary() []string {
 	}
 }
 
-func (sc *SacctCommand) Add(fs *flag.FlagSet) {
+func (sc *SacctCommand) Add(fs *CLI) {
 	sc.DevArgs.Add(fs)
 	sc.SourceArgs.Add(fs)
 	sc.HostArgs.Add(fs)
 	sc.VerboseArgs.Add(fs)
 	sc.ConfigFileArgs.Add(fs)
 	sc.FormatArgs.Add(fs)
+
+	fs.Group("job-filter")
 	fs.StringVar(&sc.minRuntimeStr, "min-runtime", "",
 		"Select jobs with elapsed time at least this, format `WwDdHhMm`, all parts\n"+
 			"optional [default: 0m]")

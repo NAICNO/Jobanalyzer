@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"flag"
 	"io"
 
 	"go-utils/config"
@@ -10,6 +9,10 @@ import (
 	"sonalyze/sonarlog"
 	"sonalyze/table"
 )
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Interfaces that the various commands can implement to respond to various situations.
 
 type FormatHelpAPI interface {
 	// If the command accepts a -fmt argument and the value of that argument is "help", return a
@@ -35,7 +38,7 @@ type Command interface {
 	Summary() []string
 
 	// Add all arguments including shared arguments
-	Add(fs *flag.FlagSet)
+	Add(fs *CLI)
 
 	// Validate all arguments including shared arguments
 	Validate() error
@@ -124,7 +127,7 @@ type CommandLineHandler interface {
 
 	// Given a verb and command returned from ParseVerb, and a list of arguments and an empty but
 	// otherwise initialized flag set, set up argument parsing, perform it, and validate the result.
-	ParseArgs(verb string, args []string, cmd Command, fs *flag.FlagSet) error
+	ParseArgs(verb string, args []string, cmd Command, fs *CLI) error
 
 	// The `profileFile` should be the cpu profile file name in the DevArgs structure.  If not
 	// empty, this will start the profiler and return a stop function to be deferred until the end

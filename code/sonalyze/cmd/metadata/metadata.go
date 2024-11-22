@@ -2,7 +2,6 @@ package metadata
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"reflect"
@@ -41,14 +40,17 @@ func (_ *MetadataCommand) Summary() []string {
 	}
 }
 
-func (mdc *MetadataCommand) Add(fs *flag.FlagSet) {
+func (mdc *MetadataCommand) Add(fs *CLI) {
 	mdc.SharedArgs.Add(fs)
 	mdc.FormatArgs.Add(fs)
 
+	fs.Group("aggregation")
 	fs.BoolVar(&mdc.MergeByHostAndJob, "merge-by-host-and-job", false,
 		"Merge streams that have the same host and job ID")
 	fs.BoolVar(&mdc.MergeByJob, "merge-by-job", false,
 		"Merge streams that have the same job ID, across hosts")
+
+	fs.Group("operation-selection")
 	fs.BoolVar(&mdc.Files, "files", false, "List selected files")
 	fs.BoolVar(&mdc.Times, "times", false, "Show parsed from/to timestamps")
 	fs.BoolVar(&mdc.Bounds, "bounds", false, "Show host with earliest/latest timestamp")

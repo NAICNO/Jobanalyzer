@@ -4,7 +4,6 @@ package load
 
 import (
 	"errors"
-	"flag"
 
 	. "sonalyze/cmd"
 	. "sonalyze/table"
@@ -52,10 +51,11 @@ func (_ *LoadCommand) Summary() []string {
 	}
 }
 
-func (lc *LoadCommand) Add(fs *flag.FlagSet) {
+func (lc *LoadCommand) Add(fs *CLI) {
 	lc.SharedArgs.Add(fs)
 	lc.FormatArgs.Add(fs)
 
+	fs.Group("aggregation")
 	fs.BoolVar(&lc.Hourly, "hourly", false, "Bucket and average records hourly [default]")
 	fs.BoolVar(&lc.HalfHourly, "half-hourly", false, "Bucket and average records half-hourly")
 	fs.BoolVar(&lc.Daily, "daily", false, "Bucket and average records daily")
@@ -64,6 +64,7 @@ func (lc *LoadCommand) Add(fs *flag.FlagSet) {
 	fs.BoolVar(&lc.None, "none", false, "Do not bucket and average records")
 	fs.BoolVar(&lc.Group, "group", false, "Sum bucketed/averaged data across all the selected hosts")
 
+	fs.Group("printing")
 	fs.BoolVar(&lc.All, "all", false,
 		"Print records for all times (after bucketing), cf --last [default]")
 	fs.BoolVar(&lc.Last, "last", false, "Print records for the last time instant (after bucketing)")

@@ -8,7 +8,6 @@ package uptime
 
 import (
 	"errors"
-	"flag"
 
 	. "sonalyze/cmd"
 	. "sonalyze/table"
@@ -32,12 +31,15 @@ func (_ *UptimeCommand) Summary() []string {
 	}
 }
 
-func (uc *UptimeCommand) Add(fs *flag.FlagSet) {
+func (uc *UptimeCommand) Add(fs *CLI) {
 	uc.SharedArgs.Add(fs)
 	uc.FormatArgs.Add(fs)
 
+	fs.Group("application-control")
 	fs.UintVar(&uc.Interval, "interval", 0,
 		"The maximum sampling `interval` in minutes (before any randomization) seen in the data (required)")
+
+	fs.Group("printing")
 	fs.BoolVar(&uc.OnlyUp, "only-up", false, "Show only times when systems are up")
 	fs.BoolVar(&uc.OnlyDown, "only-down", false, "Show only times when systems are down")
 }
