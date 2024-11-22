@@ -24,17 +24,17 @@ type CLI struct {
 var (
 	// All known options *must* be here but there can be repeated sort values
 	priority = map[string]int{
-		"application-control": 1,
+		"application-control":  1,
 		"daemon-configuration": 1,
-		"data-target": 1,
-		"operation-selection": 1,
-		"aggregation": 2,
-		"job-filter": 3,
-		"printing": 4,
-		"record-filter": 5,
-		"remote-data-source": 6,
-		"local-data-source": 7,
-		"development": 8,
+		"data-target":          1,
+		"operation-selection":  1,
+		"aggregation":          2,
+		"job-filter":           3,
+		"printing":             4,
+		"record-filter":        5,
+		"remote-data-source":   6,
+		"local-data-source":    7,
+		"development":          8,
 	}
 )
 
@@ -48,7 +48,7 @@ func NewCLI(verb string, command Command, name string, exitOnError bool) *CLI {
 		fsFlag = flag.ExitOnError
 	}
 	cli := &CLI{
-		FlagSet: flag.NewFlagSet(name, fsFlag),
+		FlagSet:        flag.NewFlagSet(name, fsFlag),
 		groupForOption: make(map[string]string),
 	}
 	out := CLIOutput()
@@ -124,7 +124,7 @@ func (cli *CLI) tag(option string) {
 
 type defaultGroup struct {
 	group string
-	text []string
+	text  []string
 }
 
 func (cli *CLI) getSortedDefaults(restArgs bool) []defaultGroup {
@@ -199,4 +199,3 @@ func (cli *CLI) extendGroup(
 
 // Brittle!  Wants a test case!
 var optRe = regexp.MustCompile(`^  -(\S+)`)
-

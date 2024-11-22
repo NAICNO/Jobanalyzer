@@ -572,6 +572,15 @@ type Formatter struct {
 	AliasOf string
 }
 
+func DefAlias(formatters map[string]Formatter, canonical, alias string) {
+	f, found := formatters[canonical]
+	if !found {
+		panic(fmt.Sprintf("Formatter not found: %s", canonical))
+	}
+	f.AliasOf = canonical
+	formatters[alias] = f
+}
+
 func StandardFormatHelp(
 	fmt string,
 	helpText string,
@@ -626,28 +635,7 @@ func PrintFormatHelp(out io.Writer, h *FormatHelp) {
 Defaults:
   %s
 
-Control:
-  awk         space-separated fields with no spaces
-  csv         csv, values only
-  csvnamed    csv, with field tags eg duration=37
-  fixed       fixed-format
-  json        json
-  header      print a header line where sensible
-  nodefaults  do not print fields that have default (zero/blank) values
-  noheader    do not print a header line
-  tag:<value> print a column called "tag" last with <value> in every row
-
-Modifiers:
-  Timestamps are normally printed on the form "YYYY-MM-DD HH:MM" but can be
-  be modified by /sec and /iso to print seconds since epoch and RFC3339 dates:
-
-    Timestamp/sec -> 1732112701
-    Timestamp/iso -> 2024-11-20T14:25:01Z
-
-  Durations are normally printed on the form _d_h_m (days, hours, and minutes)
-  but can be modified by /sec to print second counts:
-
-    duration/sec  -> 12345
+For control operations and data field modifiers, try 'sonalyze help printing'.
 
 `,
 			h.Defaults,

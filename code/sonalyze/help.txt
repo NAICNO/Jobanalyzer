@@ -1,8 +1,10 @@
--- NOTE, this is the built-in help text for sonalyze.  Each section starts
--- with the text `# keyword - explanation`, followed by arbitrary text.
--- keywords must be unique in the file.  This preamble is ignored.  This
--- file is not meant as a user manual, see MANUAL.md instead or use the
--- command-line help system: `sonalyze help`.
+-- NOTE, this is the built-in help text for sonalyze.  This file is not
+-- meant as a user manual, see MANUAL.md instead or use the command-line
+-- help system: `sonalyze help`.
+--
+-- Each topic starts with the text `# keyword - explanation`, followed by
+-- arbitrary text.  Keywords must be unique in the file.  This preamble is
+-- ignored.
 
 # overview - What is this thing?
 
@@ -120,7 +122,7 @@ records to print.
 ## Print formatting
 
 Sonalyze has a rich formatting system for the data.  Without options, most
-commands print in a human-readable fixed-column format.  For data that is
+commands print in a human-readable fixed-column format.  For data that are
 going to be processed subsequently, it is possible to select other formats:
 CSV, CSV with name tags, AWK (space-separated), JSON, and (in some cases)
 HTML with embedded JavaScript.
@@ -137,7 +139,43 @@ start and end time, and cpu and resident memory usage:
 
   -fmt csvnamed,noheader,nodefault,job,user,start/iso,end/iso,cpu,res
 
-## Printing help, field names, etc
+Summary of control options:
+
+  awk         space-separated fields with no spaces
+  csv         csv, values only
+  csvnamed    csv, with field tags eg duration=37
+  fixed       fixed-format
+  json        json
+  header      print a header line where sensible
+  nodefaults  do not print fields that have default (zero/blank) values
+  noheader    do not print a header line
+  tag:<value> print a column called "tag" last with <value> in every row
+
+Summary of print modifiers:
+
+  Timestamps are normally printed on the form "YYYY-MM-DD HH:MM" but can be
+  be modified by /sec and /iso to print seconds since epoch and RFC3339 dates:
+
+    Timestamp/sec -> 1732112701
+    Timestamp/iso -> 2024-11-20T14:25:01Z
+
+  Durations are normally printed on the form _d_h_m (days, hours, and minutes)
+  but can be modified by /sec to print second counts:
+
+    duration/sec  -> 12345
+
+## Available field names
 
 By running a command with `-fmt help`, extensive help is provided on all
-aspects of printing for the command.
+aspects of printing for the specific command.
+
+# time - How time is represented
+
+While timestamps are recorded in localtime at the cluster and are held in
+that localtime in the Jobanalyzer database, timestamps are converted to UTC
+when read from the database and all Jobanalyzer operations assume UTC time
+and all printing happens in UTC.
+
+As noted under `printing`, timestamps are normally printed on a form that
+does not include time zone information (ie, that the timezone is UTC).
+This can be confusing to consumers.  You have been warned.
