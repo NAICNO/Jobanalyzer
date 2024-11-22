@@ -1,0 +1,16 @@
+EXPERIMENTAL: Print per-cpu load across time for one or more nodes.
+
+The fixed output format is like this:
+
+NodeName
+   Time ...oO..O...o...o...
+   Time ...oO..O...O...o...
+   Time ...oO..O.......O...
+   ...
+
+where the characters represent CPUs in order and there is a mark indicating
+how busy the cpu was during the previous time interval.  The mark is "."
+for "not busy" (< 10% utilization), "o" for somewhat busy (< 25%), and "O"
+for busy.
+
+The output is sorted by node name, then by time.

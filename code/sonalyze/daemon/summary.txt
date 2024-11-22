@@ -1,0 +1,2 @@
+Run sonalyze as an HTTP server that responds to GET and POST for data
+extraction and update.  See manual for more information.

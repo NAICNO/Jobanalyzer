@@ -1,6 +1,7 @@
 package profile
 
 import (
+	_ "embed"
 	"errors"
 
 	. "sonalyze/cmd"
@@ -22,10 +23,11 @@ type ProfileCommand struct /* implements SampleAnalysisCommand */ {
 
 var _ SampleAnalysisCommand = (*ProfileCommand)(nil)
 
-func (_ *ProfileCommand) Summary() []string {
-	return []string{
-		"Print profile information for one aspect of a particular job.",
-	}
+//go:embed summary.txt
+var summary string
+
+func (_ *ProfileCommand) Summary() string {
+	return summary
 }
 
 func (pc *ProfileCommand) Add(fs *CLI) {

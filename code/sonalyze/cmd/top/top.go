@@ -1,18 +1,8 @@
 // Produce a per-node timeline of core busyness.
 //
-// The fixed output format is like this:
+// See summary.txt for info.
 //
-// NodeName
-//   Time ...oO..O...o...o...
-//   Time ...oO..O...O...o...
-//   Time ...oO..O.......O...
-//   ...
-//
-// where the characters represent CPUs in order and there is a mark indicating how busy the cpu was
-// during the previous time interval.  The mark is "." for "not busy" (< 10% utilization), "o" for
-// somewhat busy (< 25%), and "O" for busy.
-//
-// The output is sorted by node name, then by time.
+// TODO:
 //
 // CSV, awk, json not implemented but coming.  In this case it will be a record with
 // nodename,time,string where the string is as above.
@@ -28,6 +18,7 @@ package top
 
 import (
 	"bufio"
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -54,10 +45,11 @@ type TopCommand struct /* implements AnalysisCommand */ {
 
 var _ = AnalysisCommand((*TopCommand)(nil))
 
-func (tc *TopCommand) Summary() []string {
-	return []string{
-		"Print per-cpu load across time for one or more nodes",
-	}
+//go:embed summary.txt
+var summary string
+
+func (tc *TopCommand) Summary() string {
+	return summary
 }
 
 func (tc *TopCommand) Add(fs *CLI) {

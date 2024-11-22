@@ -34,8 +34,8 @@ type Command interface {
 	// Return the name of the cpu profile file, if requested
 	CpuProfileFile() string
 
-	// Documentation, one line per string
-	Summary() []string
+	// Documentation, with formatting and line breaks
+	Summary() string
 
 	// Add all arguments including shared arguments
 	Add(fs *CLI)

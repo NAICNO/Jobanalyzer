@@ -1,25 +1,9 @@
-// The "add" command adds information to the database.  It reads its input from a provided stream.
-// This command is remotable.
-//
-// Major operations:
-//
-//  add -sample
-//    Add sonar sample data.  The default format is "free csv", ie csv with name=value field syntax
-//    and no fixed colums.  There are no alternate formats at this time.
-//
-//  add -sysinfo
-//    Add sonar sysinfo data.  The default format is JSON.  There are no alternate formats at this
-//    time.
-//
-//  add -slurm-sacct
-//    Add sacct data.  The default formt is "free csv", ie csv with name=value field syntax
-//    and no fixed colums.  There are no alternate formats at this time.
-
 package add
 
 import (
 	"bufio"
 	"bytes"
+	_ "embed"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -34,13 +18,6 @@ import (
 	"sonalyze/sonarlog"
 )
 
-// MT: Constant after initialization; immutable
-var addHelp = []string{
-	"Add new data to the database.  Data are read from stdin, the type and",
-	"format are implied by operations -sample, -sysinfo, or -slurm-sacct, one",
-	"of which must be specified.",
-}
-
 type AddCommand struct /* implements RemotableCommand */ {
 	DevArgs
 	VerboseArgs
@@ -52,8 +29,11 @@ type AddCommand struct /* implements RemotableCommand */ {
 	SlurmSacct bool
 }
 
-func (ac *AddCommand) Summary() []string {
-	return addHelp
+//go:embed summary.txt
+var summary string
+
+func (ac *AddCommand) Summary() string {
+	return summary
 }
 
 func (ac *AddCommand) Add(fs *CLI) {
@@ -62,6 +42,7 @@ func (ac *AddCommand) Add(fs *CLI) {
 	ac.DataDirArgs.Add(fs)
 	ac.RemotingArgs.Add(fs)
 	ac.ConfigFileArgs.Add(fs)
+
 	fs.Group("data-target")
 	fs.BoolVar(&ac.Sample, "sample", false,
 		"Insert sonar sample data from stdin (zero or more records)")

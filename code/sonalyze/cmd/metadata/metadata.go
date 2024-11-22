@@ -1,6 +1,7 @@
 package metadata
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -32,12 +33,11 @@ type MetadataCommand struct /* implements SampleAnalysisCommand */ {
 
 var _ SampleAnalysisCommand = (*MetadataCommand)(nil)
 
-func (_ *MetadataCommand) Summary() []string {
-	return []string{
-		"Display metadata about the sample streams in the database.",
-		"One or more of -files, -times and -bounds must be selected to produce",
-		"output.",
-	}
+//go:embed summary.txt
+var summary string
+
+func (_ *MetadataCommand) Summary() string {
+	return summary
 }
 
 func (mdc *MetadataCommand) Add(fs *CLI) {
@@ -51,9 +51,10 @@ func (mdc *MetadataCommand) Add(fs *CLI) {
 		"Merge streams that have the same job ID, across hosts")
 
 	fs.Group("operation-selection")
-	fs.BoolVar(&mdc.Files, "files", false, "List selected files")
-	fs.BoolVar(&mdc.Times, "times", false, "Show parsed from/to timestamps")
-	fs.BoolVar(&mdc.Bounds, "bounds", false, "Show host with earliest/latest timestamp")
+	fs.BoolVar(&mdc.Files, "files", false, "List files selected by the record filter")
+	fs.BoolVar(&mdc.Times, "times", false, "Parse the -from and -to timestamps")
+	fs.BoolVar(&mdc.Bounds, "bounds", false,
+		"List each host with its earliest/latest record timestamp")
 }
 
 func (mdc *MetadataCommand) ReifyForRemote(x *ArgReifier) error {

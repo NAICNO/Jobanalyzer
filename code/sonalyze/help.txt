@@ -1,0 +1,143 @@
+-- NOTE, this is the built-in help text for sonalyze.  Each section starts
+-- with the text `# keyword - explanation`, followed by arbitrary text.
+-- keywords must be unique in the file.  This preamble is ignored.  This
+-- file is not meant as a user manual, see MANUAL.md instead or use the
+-- command-line help system: `sonalyze help`.
+
+# overview - What is this thing?
+
+`sonalyze` is the database manager and query interface for time series data
+coming from sonar, sacctd, and other monitoring components.  Monitoring
+components use it to add data; normal users use it to query, aggregate, and
+export data.
+
+There are some fundamental data extraction operations (cluster, config,
+node, sacct, sample) and then many built-in query operations on those data
+to aggregate them (jobs, load, metadata, profile, top, uptime, ...).
+
+All of these operations have various options that control them.  Command
+syntax allows for both `-option=value` and `-option value` (also with `--`),
+but not a single-letter option together with its value a la `-f1w`.
+
+The program operates by phases:
+
+* reading any system configuration files
+* selecting and ingesting input records
+* aggregating data across the input records
+* filtering the aggregated data with the aggregation filters
+* printing the aggregated data with the output filters
+
+See `data-sources`, `filtering`, and `printing` for more about those topics.
+
+# data-sources - Where data come from
+
+## Remote access
+
+Typically the data source is remote: an aggregation and query server.
+In this case, use the option `-remote SERVER-URL` to specify the
+source.
+
+The server will typically require authentication for access.  A
+netrc-style file containing the user's credentials can be specified
+with `-auth-file FILENAME`.  In brief, the netrc file will have the
+format
+
+  machine SERVER-NAME login USERNAME password PASSWORD
+
+where the uppercase fields are replaced by your values.  For example,
+if my server is `naic-monitor.uio.no` and my username is `bob` and my
+password is `verysecret`, then the file will be
+
+  machine naic-monitor.uio.no login bob password verysecret
+
+Finally, most commands operate only on the data for a single cluster.
+The cluster is specified with `-cluster CLUSTERNAME`, where the name
+can be the full name (betzy.sigma2.no) or its nickname (betzy).
+
+## Local access
+
+For special use cases such as local use of sonar on a VM, sonalyze can
+be run against a local data store.
+
+Most commands accept a `-data-dir` argument that specifies where the
+data for the cluster are located.
+
+A few commands instead require a `-jobanalyzer-dir` argument that
+specifies a directory that is the root directory for Jobanalyzer; this
+has a special format, with subdirectories for config data, secrets,
+reports, and other things.  Mostly this is pertinent for those running
+jobanalyzer as a server.
+
+# filtering - How data are selected
+
+Filtering happens in three phases: on the record level, on the aggregated
+datum level (eg on the level of jobs), and before printing.
+
+Record filtering options are shared between the operations.  Aggregation
+and output options are per-operation, see the help for each individual
+command.
+
+## Record filtering
+
+Input to sonalyze is a time-ordered list of records.  Record filtering
+filters these in isolation.  The records that remain after record filtering
+is the input to further aggregation.  Records can be filtered by individual
+fields: the timestamp, the user (if the data have a user), etc.
+
+Record filtering is currently somewhat ad-hoc, in that it grew out of
+specific use cases, thus not all fields are available for filtering.  (Over
+time we expect to clean this up.)
+
+## Aggregation control
+
+A number of operations have switches to control how aggregation is
+performed.
+
+For example, the `load` command has options for how to bucket data when
+computing a system load profile: while the default bucketing is hourly, it
+is possible to ask for daily bucketing (and other intervals), which makes
+more sense for longer-time profiling.
+
+## Aggregation filtering
+
+For query operations, the table of results after aggregation can be
+filtered further.
+
+For example, for the `jobs` command it is possible to filter for jobs that
+used some GPU or used no GPU, or that have run to completion (or not).
+
+# printing - How data are selected and formatted for printing
+
+Before printing, a final selection can be made of the aggregated and
+filtered outputs, and then specific formats can be requested.
+
+## Print filtering
+
+A few commands implement specific print filters.  Frequently these select
+the last or newest record in a set, or the number of (last or newest)
+records to print.
+
+## Print formatting
+
+Sonalyze has a rich formatting system for the data.  Without options, most
+commands print in a human-readable fixed-column format.  For data that is
+going to be processed subsequently, it is possible to select other formats:
+CSV, CSV with name tags, AWK (space-separated), JSON, and (in some cases)
+HTML with embedded JavaScript.
+
+Fields can be selected, and the printing of headers can be controlled.  The
+formats of some data types can also be controlled in various ways:
+timestamps are printed as `YYYY-MM-DD HH:MM` by default but can be printed
+in seconds-since-epoch or in ISO format by adding a modifier.
+
+All of this is controlled by the `-fmt` switch.  Here's one that selects
+tagged CSV output, no header, and that no fields with default values be
+printed, and which requests iso format dates, with job number, user name,
+start and end time, and cpu and resident memory usage:
+
+  -fmt csvnamed,noheader,nodefault,job,user,start/iso,end/iso,cpu,res
+
+## Printing help, field names, etc
+
+By running a command with `-fmt help`, extensive help is provided on all
+aspects of printing for the command.

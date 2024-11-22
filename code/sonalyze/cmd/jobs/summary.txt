@@ -1,0 +1,17 @@
+Display jobs jobs aggregated from process samples.
+
+A "job" is aggregated from sample streams from one or more processes on one
+or more nodes of a cluster.  On some clusters, jobs have clearly defined job
+numbers (provided by a batch system such as Slurm), while on other clusters,
+the job numbers are inferred from the process tree.
+
+As jobs are built from samples, the job data can be noisy and may sometimes
+not represent true behavior.  This is especially true for short jobs.
+
+Note also:
+
+  - A job can be selected by job number, but a time window must be selected
+    that contains the job or the job will not be found
+
+  - By default, only the jobs for the current user's user name are selected,
+    specify "-user -" to see all users

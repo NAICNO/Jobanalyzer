@@ -1,0 +1,14 @@
+Add new data to the database.
+
+Data are read from stdin, the type and format are implied by operations
+-sample, -sysinfo, or -slurm-sacct, one of which must be specified:
+
+  `add -sample` adds `sonar ps` data.  The format must be "free CSV", ie CSV
+  with name=value field syntax and no fixed colums.
+
+  `add -sysinfo` adds `sonar sysinfo` data.  The format must be JSON.
+
+  `add -slurm-sacct` adds `sonar slurm` data.  The format must be free CSV.
+
+Mostly this command is only run by the daemon; manual use is for
+experiments and bugfixes.

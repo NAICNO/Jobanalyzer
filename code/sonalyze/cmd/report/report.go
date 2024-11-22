@@ -1,21 +1,7 @@
-// `sonalyze report` will serve a static file from the report directory for the cluster, with access
-// controls.  Eventually the access control here will continue to require superuser privileges, as
-// there are no per-user reports.
-//
-// The option -report-name selects a file by full name in the data directory.  (The file name
-// extension will determine the mime type in the remote case).  Normally these will be csv, txt or
-// json files.  Any file in that directory is fair game, even the txt files.  Subdirectories are
-// excluded for now.
-//
-// When running locally, we use -report-dir which should point to a directory that has the report
-// files.  -cluster is not allowed.
-//
-// When running remotely, we will use -cluster to select the cluster, and the daemon code will
-// compute the data directory using standard db abstractions.
-
 package report
 
 import (
+	_ "embed"
 	"errors"
 	"io"
 	"os"
@@ -37,10 +23,11 @@ type ReportCommand struct {
 
 var _ = (SimpleCommand)((*ReportCommand)(nil))
 
-func (rc *ReportCommand) Summary() []string {
-	return []string{
-		"Extract pre-rendered reports",
-	}
+//go:embed summary.txt
+var summary string
+
+func (rc *ReportCommand) Summary() string {
+	return summary
 }
 
 func (rc *ReportCommand) Add(fs *CLI) {

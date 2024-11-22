@@ -2,6 +2,7 @@ package parse
 
 import (
 	"cmp"
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -30,10 +31,11 @@ type ParseCommand struct /* implements SampleAnalysisCommand */ {
 
 var _ SampleAnalysisCommand = (*ParseCommand)(nil)
 
-func (_ *ParseCommand) Summary() []string {
-	return []string{
-		"Export sample data in various formats, after optional preprocessing.",
-	}
+//go:embed summary.txt
+var summary string
+
+func (_ *ParseCommand) Summary() string {
+	return summary
 }
 
 func (pc *ParseCommand) Add(fs *CLI) {
