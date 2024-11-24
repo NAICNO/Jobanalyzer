@@ -43,25 +43,11 @@ func (val IntOrEmpty) String() string {
 	return strconv.FormatInt(int64(val), 10)
 }
 
-// Formatters that take a context value
-
 func FormatDurationValue(secs int64, ctx PrintMods) string {
 	if (ctx & PrintModSec) != 0 {
 		return fmt.Sprint(secs)
 	}
 	return FormatDurationDHM(secs, ctx)
-}
-
-func FormatDateTimeValue(timestamp int64, ctx PrintMods) string {
-	// Note, it is part of the API that PrintModSec takes precedence over PrintModIso (this
-	// simplifies various other paths).
-	if (ctx & PrintModSec) != 0 {
-		return fmt.Sprint(timestamp)
-	}
-	if (ctx & PrintModIso) != 0 {
-		return FormatIsoUtc(timestamp)
-	}
-	return FormatYyyyMmDdHhMmUtc(timestamp)
 }
 
 // The DurationValue had two different formats in older code: %2dd%2dh%2dm and %dd%2dh%2dm.  The
@@ -89,6 +75,18 @@ func FormatDurationDHM(durationSec int64, ctx PrintMods) string {
 		return fmt.Sprintf("%2dd%2dh%2dm", days, hours, minutes)
 	}
 	return fmt.Sprintf("%dd%dh%dm", days, hours, minutes)
+}
+
+func FormatDateTimeValue(timestamp int64, ctx PrintMods) string {
+	// Note, it is part of the API that PrintModSec takes precedence over PrintModIso (this
+	// simplifies various other paths).
+	if (ctx & PrintModSec) != 0 {
+		return fmt.Sprint(timestamp)
+	}
+	if (ctx & PrintModIso) != 0 {
+		return FormatIsoUtc(timestamp)
+	}
+	return FormatYyyyMmDdHhMmUtc(timestamp)
 }
 
 func FormatYyyyMmDdHhMmUtc(t int64) string {

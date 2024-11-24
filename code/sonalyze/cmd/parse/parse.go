@@ -226,9 +226,6 @@ type SFS = SimpleFormatSpec
 type AFS = SimpleFormatSpecWithAttr
 type ZFA = SynthesizedFormatSpecWithAttr
 
-// TODO: IMPROVEME: The defaulted fields here follow the Rust code.  Now that it's trivial to do so,
-// we should consider adding more.
-//
 // TODO: IMPROVEME: The use of utc for "localtime" is a bug that comes from the Rust code.
 
 var parseFormatters = DefineTableFromMap(
@@ -242,8 +239,8 @@ var parseFormatters = DefineTableFromMap(
 		"MemtotalKB": SFS{"Installed main memory", ""},
 		"memtotal":   ZFA{"Installed main memory (GB)", "MemtotalKB", FmtDivideBy1M},
 		"User":       SFS{"Username of process owner", "user"},
-		"Pid":        AFS{"Process ID", "pid", FmtDefaultable},
-		"Ppid":       AFS{"Process parent ID", "ppid", FmtDefaultable},
+		"Pid":        SFS{"Process ID", "pid"},
+		"Ppid":       SFS{"Process parent ID", "ppid"},
 		"Job":        SFS{"Job ID", "job"},
 		"Cmd":        SFS{"Command name", "cmd"},
 		"CpuPct":     SFS{"cpu% reading (CONSULT DOCUMENTATION)", "cpu_pct"},
@@ -251,16 +248,16 @@ var parseFormatters = DefineTableFromMap(
 		"mem_gb":     ZFA{"Virtual memory reading", "CpuKB", FmtDivideBy1M},
 		"RssAnonKB":  SFS{"RssAnon reading", ""},
 		"res_gb":     ZFA{"RssAnon reading", "RssAnonKB", FmtDivideBy1M},
-		"Gpus":       AFS{"GPU set (`none`,`unknown`,list)", "gpus", FmtDefaultable},
-		"GpuPct":     AFS{"GPU utilization reading", "gpu_pct", FmtDefaultable},
-		"GpuMemPct":  AFS{"GPU memory percentage reading", "gpumem_pct", FmtDefaultable},
-		"GpuKB":      AFS{"GPU memory utilization reading", "gpukib", FmtDefaultable},
-		"gpumem_gb":  ZFA{"GPU memory utilization reading", "GpuKB", FmtDivideBy1M | FmtDefaultable},
-		"GpuFail":    AFS{"GPU status flag (0=ok, 1=error state)", "gpu_status", FmtDefaultable},
-		"CpuTimeSec": AFS{"CPU time since last reading (seconds, CONSULT DOCUMENTATION)", "cputime_sec", FmtDefaultable},
-		"Rolledup":   AFS{"Number of rolled-up processes, minus 1", "rolledup", FmtDefaultable},
+		"Gpus":       SFS{"GPU set (`none`,`unknown`,list)", "gpus"},
+		"GpuPct":     SFS{"GPU utilization reading", "gpu_pct"},
+		"GpuMemPct":  SFS{"GPU memory percentage reading", "gpumem_pct"},
+		"GpuKB":      SFS{"GPU memory utilization reading", "gpukib"},
+		"gpumem_gb":  ZFA{"GPU memory utilization reading", "GpuKB", FmtDivideBy1M},
+		"GpuFail":    SFS{"GPU status flag (0=ok, 1=error state)", "gpu_status"},
+		"CpuTimeSec": SFS{"CPU time since last reading (seconds, CONSULT DOCUMENTATION)", "cputime_sec"},
+		"Rolledup":   SFS{"Number of rolled-up processes, minus 1", "rolledup"},
 		"Flags":      SFS{"Bit vector of flags, UTSL", ""},
-		"CpuUtilPct": AFS{"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)", "cpu_util_pct", FmtDefaultable},
+		"CpuUtilPct": SFS{"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)", "cpu_util_pct"},
 	},
 )
 
