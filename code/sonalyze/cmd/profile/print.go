@@ -71,29 +71,22 @@ func (pc *ProfileCommand) printProfile(
 	m *profData,
 	processes sonarlog.SampleStreams,
 ) error {
-	if hasRolledup {
-		// Add the "nproc" / "NumProcs" field if it is required and the fields are still the
-		// defaults.  This is pretty dumb (but compatible with the Rust code); it gets even dumber
-		// with two versions of the default fields string.
-		currFields := strings.Join(
-			uslices.Map(
-				pc.PrintFields,
-				func(fs FieldSpec) string { return fs.Name },
-			),
-			",",
+	// Add the "nproc" / "NumProcs" field if it is required (we can't do it until rollup has
+	// happened) and the fields are still the defaults.  This is not quite compatible with older
+	// sonalyze: here we have default fields only if no fields were specified (defaults were
+	// applied), while in older code a field list identical to the default would be taken as having
+	// default fields too.  The new logic is better.
+	//
+	// Anyway, this hack depends on nothing interesting having happened to pc.Fmt or pc.PrintFields
+	// after the initial parsing.
+	hasDefaultFields := pc.Fmt == ""
+	if hasRolledup && hasDefaultFields {
+		pc.PrintFields, _, _ = ParseFormatSpec(
+			profileDefaultFieldsWithNproc,
+			"",
+			profileFormatters,
+			profileAliases,
 		)
-		var newFields string
-		if currFields == v0ProfileDefaultFields {
-			newFields = v0ProfileDefaultFieldsWithNproc
-		} else if currFields == v1ProfileDefaultFields {
-			newFields = v1ProfileDefaultFieldsWithNproc
-		}
-		if newFields != "" {
-			pc.PrintFields = uslices.Map(
-				strings.Split(newFields, ","),
-				func(name string) FieldSpec { return FieldSpec{Name: name} },
-			)
-		}
 	}
 
 	if pc.PrintOpts.Csv || pc.PrintOpts.Awk {

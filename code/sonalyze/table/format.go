@@ -492,11 +492,9 @@ func formatAwk(unbufOut io.Writer, fields []FieldSpec, opts *FormatOptions, cols
 		sep := ""
 		for col := range fields {
 			val := cols[col][row]
-			if !(opts.NoDefaults && val == "*skip*") {
-				line.WriteString(sep)
-				line.WriteString(strings.ReplaceAll(val, " ", "_"))
-				sep = " "
-			}
+			line.WriteString(sep)
+			line.WriteString(strings.ReplaceAll(val, " ", "_"))
+			sep = " "
 		}
 		if opts.Tag != "" {
 			line.WriteString(sep)

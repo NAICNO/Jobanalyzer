@@ -8,8 +8,6 @@
 // allowlist.
 //
 // Both will descend into embedded fields.
-//
-// TODO: At the moment they do not handle circular structures, but they could (and should).
 
 package table
 
@@ -39,12 +37,9 @@ var (
 // Given a struct type, DefineTableFromTags constructs a map from field names to a formatter for
 // each field.  Fields are excluded if they appear in isExcluded or have no `desc` annotation.
 //
-// A field may have an `alias` annotation in addition to its name.  The alias is treated just as the
-// name.  Aliases are a consequence of older code using "convenient" names for fields while we want
-// to move to a world where fields are named in a transparent and uniform way.  Clients can ask for
-// the real name or the alias.  Default lists in client code can refer to whatever fields they want.
-// The `alias` annotation is a comma-separated list of alias names.  Fields are excluded if any of
-// their aliases appear in isExcluded.
+// A field may have an `alias` annotation in addition to its name.  The `alias` annotation is a
+// comma-separated list of alias names.  Fields are excluded if any of their aliases appear in
+// isExcluded.
 //
 // There must be no duplicates in the union of field names and aliases, or in the set of aliases.
 //
@@ -95,8 +90,8 @@ func DefineTableFromTags(
 //
 // The field values must be one of the *FormatSpec types below.
 //
-// SimpleFormatSpecWithAttr uses an attribute to specify a simple formatting rule, that in the case
-// of DefineTableFromTags can be expressed through a type.
+// SimpleFormatSpecWithAttr uses an attribute to specify a simple formatting rule that in the case
+// of DefineTableFromTags would be expressed through a type.
 //
 // SynthesizedFormatSpecWithAttr uses an attribute to specify a simple formatting rule for a
 // synthesized output field computed from a real field.
@@ -106,21 +101,17 @@ type SimpleFormatSpec struct {
 	Aliases string
 }
 
-// `FmtDefaultable` indicates that the field has a default value to skip if nodefaults is set.
-// Numbers, Ustr, string, and GpuSet are defaultable.
-//
 // `FmtCeil` and `FmtDivideBy1M` apply simple numeric transformations.  (There could be more.)
 //
-// For `Fmt<Typename>` see Typename at top of file - these attributes request that values be
-// formatted as for those types.
+// For `Fmt<Typename>` see Typename in data.go - these attributes request that values be formatted
+// as for those types.
 
 const (
-	FmtDefaultable      = (1 << iota)
-	FmtCeil             // type must be floating, take ceil, print as integer
-	FmtDivideBy1M       // type must be integer, integer divide by 1024*1024
-	FmtDateTimeValue    // type must be int64
-	FmtIsoDateTimeValue // type must be int64
-	FmtDurationValue    // type must be int64
+	FmtCeil             = (1 << iota) // type must be floating, take ceil, print as integer
+	FmtDivideBy1M                     // type must be integer, integer divide by 1024*1024
+	FmtDateTimeValue                  // type must be int64
+	FmtIsoDateTimeValue               // type must be int64
+	FmtDurationValue                  // type must be int64
 )
 
 type SimpleFormatSpecWithAttr struct {
@@ -132,8 +123,7 @@ type SimpleFormatSpecWithAttr struct {
 type SynthesizedFormatSpecWithAttr struct {
 	Desc     string
 	RealName string
-	// TODO: Should have aliases probably
-	Attr int
+	Attr     int
 }
 
 func DefineTableFromMap(
@@ -294,7 +284,7 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 	case ty == dateTimeValueTy || ty == dateTimeValueOrBlankTy:
 		return func(d any, ctx PrintMods) string {
 			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
+			if (ctx&PrintModNoDefaults) != 0 && val == 0 {
 				return "*skip*"
 			}
 			if val == 0 && ty == dateTimeValueOrBlankTy {
@@ -313,7 +303,7 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 	case ty == durationValueTy:
 		return func(d any, ctx PrintMods) string {
 			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
+			if (ctx&PrintModNoDefaults) != 0 && val == 0 {
 				return "*skip*"
 			}
 			return FormatDurationValue(val, ctx)
@@ -323,7 +313,7 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 			// GpuSet is uint32
 			val := Ustr(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
 			set := gpuset.GpuSet(val)
-			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && set.IsEmpty() {
+			if (ctx&PrintModNoDefaults) != 0 && set.IsEmpty() {
 				return "*skip*"
 			}
 			return set.String()
@@ -332,7 +322,7 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 		return func(d any, ctx PrintMods) string {
 			// Ustr is uint32
 			val := Ustr(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
-			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == UstrEmpty {
+			if (ctx&PrintModNoDefaults) != 0 && val == UstrEmpty {
 				return "*skip*"
 			}
 			s := val.String()
@@ -354,7 +344,7 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 			return func(d any, ctx PrintMods) string {
 				vals := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
 				lim := vals.Len()
-				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && lim == 0 {
+				if (ctx&PrintModNoDefaults) != 0 && lim == 0 {
 					return "*skip*"
 				}
 				ss := make([]string, lim)
@@ -365,14 +355,14 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 				return strings.Join(ss, ",")
 			}
 		default:
-			panic("NYI")
+			panic("NYI - non-string slice")
 		}
 	case ty.Implements(stringerTy):
 		// If it implements fmt.Stringer then use it
 		return func(d any, ctx PrintMods) string {
 			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
 			s := val.MethodByName("String").Call(nil)[0].String()
-			if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && s == "" {
+			if (ctx&PrintModNoDefaults) != 0 && s == "" {
 				return "*skip*"
 			}
 			return s
@@ -383,7 +373,7 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 		case reflect.Bool:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Bool()
-				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && !val {
+				if (ctx&PrintModNoDefaults) != 0 && !val {
 					return "*skip*"
 				}
 				// These are backwards compatible values.
@@ -395,7 +385,12 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 		case reflect.Int64:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
+				// Scale before default-checking.  This will scale date values too, but that's
+				// considered a user error.
+				if (attrs & FmtDivideBy1M) != 0 {
+					val /= 1024 * 1024
+				}
+				if (ctx&PrintModNoDefaults) != 0 && val == 0 {
 					return "*skip*"
 				}
 				if (attrs & FmtDateTimeValue) != 0 {
@@ -407,30 +402,29 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 				if (attrs & FmtDurationValue) != 0 {
 					return FormatDurationValue(val, ctx)
 				}
-				if (attrs & FmtDivideBy1M) != 0 {
-					val /= 1024 * 1024
-				}
 				return strconv.FormatInt(val, 10)
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
-					return "*skip*"
-				}
+				// Scale before default-checking.
 				if (attrs & FmtDivideBy1M) != 0 {
 					val /= 1024 * 1024
+				}
+				if (ctx&PrintModNoDefaults) != 0 && val == 0 {
+					return "*skip*"
 				}
 				return strconv.FormatInt(val, 10)
 			}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
-				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
-					return "*skip*"
-				}
+				// Scale before default-checking.
 				if (attrs & FmtDivideBy1M) != 0 {
 					val /= 1024 * 1024
+				}
+				if (ctx&PrintModNoDefaults) != 0 && val == 0 {
+					return "*skip*"
 				}
 				return strconv.FormatUint(val, 10)
 			}
@@ -440,7 +434,7 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 				if (attrs & FmtCeil) != 0 {
 					val = math.Ceil(val)
 				}
-				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == 0 {
+				if (ctx&PrintModNoDefaults) != 0 && val == 0 {
 					return "*skip*"
 				}
 				prec := 64
@@ -452,7 +446,7 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 		case reflect.String:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).String()
-				if (attrs&FmtDefaultable) != 0 && (ctx&PrintModNoDefaults) != 0 && val == "" {
+				if (ctx&PrintModNoDefaults) != 0 && val == "" {
 					return "*skip*"
 				}
 				return val
