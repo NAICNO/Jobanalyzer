@@ -187,8 +187,8 @@ func recordField(
 // the formatter (see the parse command for an example of the latter).
 //
 // Header is set if the format (after defaulting) is "fixed" and no "noheader" attribute is present,
-// or if the format is "csv" and there is a "header" attribute.  It will never be set for "json" and
-// "awk".
+// or if the format is "csv" or "awk" and there is a "header" attribute.  It will never be set for
+// "json".
 
 type DefaultFormat int
 
@@ -222,8 +222,8 @@ func StandardFormatOptions(others map[string]bool, def DefaultFormat) *FormatOpt
 			break
 		}
 	}
-	// json and awk get no header, even if one is requested
-	header := (fixed && !others["noheader"]) || (csv && others["header"])
+	// json gets no header, even if one is requested
+	header := (fixed && !others["noheader"]) || ((csv || awk) && others["header"])
 
 	return &FormatOptions{
 		Csv:        csv,
@@ -526,6 +526,9 @@ func FormatRawRowmajorAwk(unbufOut io.Writer, header []string, matrix [][]string
 		sep := ""
 		for _, val := range r {
 			line.WriteString(sep)
+			if val == "" {
+				val = "."
+			}
 			line.WriteString(strings.ReplaceAll(val, " ", "_"))
 			sep = " "
 		}

@@ -127,10 +127,12 @@ going to be processed subsequently, it is possible to select other formats:
 CSV, CSV with name tags, AWK (space-separated), JSON, and (in some cases)
 HTML with embedded JavaScript.
 
-Fields can be selected, and the printing of headers can be controlled.  The
-formats of some data types can also be controlled in various ways:
-timestamps are printed as `YYYY-MM-DD HH:MM` by default but can be printed
-in seconds-since-epoch or in ISO format by adding a modifier.
+Fields can be selected, and the printing of headers can be controlled:
+whether headers are on by default depends on the output format and the
+specific command.  The formats of some data types can also be controlled in
+various ways: timestamps are printed as `YYYY-MM-DD HH:MM` by default but
+can be printed in seconds-since-epoch or in ISO format by adding a
+modifier.
 
 All of this is controlled by the `-fmt` switch.  Here's one that selects
 tagged CSV output, no header, and that no fields with default values be
@@ -146,7 +148,7 @@ Summary of control options:
   csvnamed    csv, with field tags eg duration=37
   fixed       fixed-format
   json        json
-  header      print a header line where sensible
+  header      print a header line (not for json)
   nodefaults  do not print fields that have default (zero/blank) values
   noheader    do not print a header line
   tag:<value> print a column called "tag" last with <value> in every row
