@@ -19,5 +19,6 @@ of lesser interest.
 * `daemon/` - logic for the daemon
 * `db/` - storage manager
 * `sonalyze.go` - command-line interface for sonalyze + daemon management
-* `sonarlog/` - logic to make sense of Sonar data
+* `sonarlog/` - logic to make sense of and query Sonar data
+* `slurmlog/` - logic to make sense of and query Slurm data
 * `table/` - logic to define the "tables" produced by all the commands, through reflection

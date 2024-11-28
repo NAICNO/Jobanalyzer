@@ -53,41 +53,41 @@ func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSumma
 		if r.requestedCpu > 0 {
 			relativeCpu = int(math.Round(100 * float64(r.usedCpu) / float64(r.requestedCpu)))
 		}
-		if r.main.ReqMem > 0 {
-			relativeResidentMem = int(math.Round(100 * float64(r.maxrss) / float64(r.main.ReqMem)))
+		if r.Main.ReqMem > 0 {
+			relativeResidentMem = int(math.Round(100 * float64(r.maxrss) / float64(r.Main.ReqMem)))
 		}
-		if r.main.Start > 0 {
-			waitTime = r.main.Start - r.main.Submit
+		if r.Main.Start > 0 {
+			waitTime = r.Main.Start - r.Main.Submit
 		}
 		toPrint[i] = &SacctRegular{
-			Start:               IsoDateTimeOrUnknown(r.main.Start),
-			End:                 IsoDateTimeOrUnknown(r.main.End),
-			Submit:              IsoDateTimeOrUnknown(r.main.Submit),
+			Start:               IsoDateTimeOrUnknown(r.Main.Start),
+			End:                 IsoDateTimeOrUnknown(r.Main.End),
+			Submit:              IsoDateTimeOrUnknown(r.Main.Submit),
 			RequestedCPU:        r.requestedCpu,
 			UsedCPU:             r.usedCpu,
 			RelativeCPU:         relativeCpu,
 			RelativeResidentMem: relativeResidentMem,
-			User:                r.main.User,
-			JobName:             UstrMax30(r.main.JobName),
-			State:               r.main.State,
-			Account:             r.main.Account,
-			Reservation:         r.main.Reservation,
-			Layout:              r.main.Layout,
-			NodeList:            r.main.NodeList,
-			JobID:               r.main.JobID,
+			User:                r.Main.User,
+			JobName:             UstrMax30(r.Main.JobName),
+			State:               r.Main.State,
+			Account:             r.Main.Account,
+			Reservation:         r.Main.Reservation,
+			Layout:              r.Main.Layout,
+			NodeList:            r.Main.NodeList,
+			JobID:               r.Main.JobID,
 			MaxRSS:              r.maxrss,
-			ReqMem:              r.main.ReqMem,
-			ReqCPUS:             r.main.ReqCPUS,
-			ReqNodes:            r.main.ReqNodes,
-			Elapsed:             r.main.ElapsedRaw,
-			Suspended:           r.main.Suspended,
-			Timelimit:           r.main.TimelimitRaw,
-			ExitCode:            r.main.ExitCode,
+			ReqMem:              r.Main.ReqMem,
+			ReqCPUS:             r.Main.ReqCPUS,
+			ReqNodes:            r.Main.ReqNodes,
+			Elapsed:             r.Main.ElapsedRaw,
+			Suspended:           r.Main.Suspended,
+			Timelimit:           r.Main.TimelimitRaw,
+			ExitCode:            r.Main.ExitCode,
 			Wait:                waitTime,
-			Partition:           r.main.Partition,
-			ReqGPUS:             r.main.ReqGPUS,
-			ArrayJobID:          r.main.ArrayJobID,
-			ArrayIndex:          r.main.ArrayIndex,
+			Partition:           r.Main.Partition,
+			ReqGPUS:             r.Main.ReqGPUS,
+			ArrayJobID:          r.Main.ArrayJobID,
+			ArrayIndex:          r.Main.ArrayIndex,
 		}
 	}
 	FormatData(

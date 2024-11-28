@@ -240,6 +240,11 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	Completed     bool
 	Running       bool
 	Zombie        bool
+	Partition     []string
+	Account       []string
+	Reservation   []string
+	State         []string
+	GpuType       []string
 	MergeAll      bool
 	MergeNone     bool
 	MinRuntimeSec int64
@@ -283,6 +288,16 @@ func (jc *JobsCommand) Add(fs *CLI) {
 	fs.BoolVar(&jc.Completed, "completed", false, "Select only jobs that have run to completion")
 	fs.BoolVar(&jc.Running, "running", false, "Select only jobs that are still running")
 	fs.BoolVar(&jc.Zombie, "zombie", false, "Select only zombie jobs (usually these are still running)")
+	fs.Var(NewRepeatableString(&jc.Partition), "partition",
+		"Select only jobs where the `Partition` equals this string (repeatable) [default: all]")
+	fs.Var(NewRepeatableString(&jc.Account), "account",
+		"Select only jobs where the `Account` equals this string (repeatable) [default: all]")
+	fs.Var(NewRepeatableString(&jc.Reservation), "reservation",
+		"Select only jobs where the `Reservation` equals this string (repeatable) [default: all]")
+	fs.Var(NewRepeatableString(&jc.State), "state",
+		"Select only jobs where the `State` equals this string (repeatable) [default: all]")
+	fs.Var(NewRepeatableString(&jc.GpuType), "gpu-type",
+		"Select only jobs where the `RequestedGpus` has this prefix (repeatable) [default: all]")
 	fs.StringVar(&jc.minRuntimeStr, "min-runtime", "",
 		"Select only jobs with at least this much runtime, format `WwDdHhMm`, all parts\n"+
 			"optional [default: 0m]")
@@ -318,6 +333,11 @@ func (jc *JobsCommand) ReifyForRemote(x *ArgReifier) error {
 	x.Bool("completed", jc.Completed)
 	x.Bool("running", jc.Running)
 	x.Bool("zombie", jc.Zombie)
+	x.RepeatableString("partition", jc.Partition)
+	x.RepeatableString("reservation", jc.Reservation)
+	x.RepeatableString("account", jc.Account)
+	x.RepeatableString("state", jc.State)
+	x.RepeatableString("gpu-type", jc.GpuType)
 	x.Bool("merge-none", jc.MergeNone)
 	x.Bool("merge-all", jc.MergeAll)
 	x.String("min-runtime", jc.minRuntimeStr)
