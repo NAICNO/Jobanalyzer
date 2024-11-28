@@ -107,6 +107,9 @@ Create the user if necessary:
   # <edit /etc/security/access.conf and add "+ : sonar-runner : cron" before any deny-all lines>
 ```
 
+On systems with AMD GPUs it is necessary to also add sonar-runner to group `video` to grant the
+necessary permissions to run `rocm-smi`.
+
 Then set everything up:
 ```
   # sudo -u sonar-runner /bin/bash
