@@ -2,10 +2,8 @@ package jobs
 
 import (
 	"cmp"
-	"fmt"
 	"io"
 	"math"
-	_ "reflect"
 	"slices"
 	"strings"
 
@@ -15,11 +13,47 @@ import (
 	. "sonalyze/table"
 )
 
+// TODO: Several commands have the constraint that certain fields require a config, and aliases
+// continue to be a headache too.  It's dumb to have multiple tables.  Possibly better to add the
+// constraint to the field definition and let shared logic take care of it.
+//
+// (In practice there is always a config for remote commands so this is a hazard only for local
+// uses.)
+
+var relativeFields = map[string]bool{
+	"RelativeCpuAvgPct":             true,
+	"rcpu-avg":                      true,
+	"RelativeCpuPeakPct":            true,
+	"rcpu-peak":                     true,
+	"RelativeMemAvgPct":             true,
+	"rmem-avg":                      true,
+	"RelativeMemPeakPct":            true,
+	"rmem-peak":                     true,
+	"RelativeResidentMemAvgPct":     true,
+	"rres-avg":                      true,
+	"RelativeResidentMemPeakPct":    true,
+	"rres-peak":                     true,
+	"RelativeGpuAvgPct":             true,
+	"rgpu-avg":                      true,
+	"RelativeGpuPeakPct":            true,
+	"rgpu-peak":                     true,
+	"RelativeGpuMemAvgPct":          true,
+	"rgpumem-avg":                   true,
+	"RelativeGpuMemPeakPct":         true,
+	"rgpumem-peak":                  true,
+	"OccupiedRelativeGpuAvgPct":     true,
+	"sgpu-avg":                      true,
+	"OccupiedRelativeGpuPeakPct":    true,
+	"sgpu-peak":                     true,
+	"OccupiedRelativeGpuMemAvgPct":  true,
+	"sgpumem-avg":                   true,
+	"OccupiedRelativeGpuMemPeakPct": true,
+	"sgpumem-peak":                  true,
+}
+
 func (jc *JobsCommand) printRequiresConfig() bool {
 	for _, f := range jc.PrintFields {
-		switch f.Name {
-		case "rcpu-avg", "rcpu-peak", "rmem-avg", "rmem-peak", "rgpu-avg", "rgpu-peak",
-			"rgpumem-avg", "rgpumem-peak", "rres-avg", "rres-peak":
+		if relativeFields[f.Name] {
 			return true
 		}
 	}
@@ -102,20 +136,20 @@ const jobsDefaultFields = v0JobsDefaultFields
 // MT: Constant after initialization; immutable
 var jobsFormatters = map[string]Formatter{
 	"JobAndMark": {
-		Fmt: func(d any, _ PrintMods) string {
-			return d.(*jobSummary).JobAndMark
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatString(d.(*jobSummary).JobAndMark, ctx)
 		},
 		Help: "Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window",
 	},
 	"Job": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(d.(*jobSummary).JobId)
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(d.(*jobSummary).JobId), ctx)
 		},
 		Help: "Job ID",
 	},
 	"User": {
-		Fmt: func(d any, _ PrintMods) string {
-			return d.(*jobSummary).User.String()
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatString(d.(*jobSummary).User.String(), ctx)
 		},
 		Help: "Name of user running the job",
 	},
@@ -138,170 +172,170 @@ var jobsFormatters = map[string]Formatter{
 		Help: "Time of last observation",
 	},
 	"CpuAvgPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kCpuPctAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kCpuPctAvg])), ctx)
 		},
 		Help: "Average CPU utilization in percent (100% = 1 core)",
 	},
 	"CpuPeakPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kCpuPctPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kCpuPctPeak])), ctx)
 		},
 		Help: "Peak CPU utilization in percent (100% = 1 core)",
 	},
 	"RelativeCpuAvgPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRcpuPctAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRcpuPctAvg])), ctx)
 		},
 		Help: "Average relative CPU utilization in percent (100% = all cores)",
 	},
 	"RelativeCpuPeakPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRcpuPctPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRcpuPctPeak])), ctx)
 		},
 		Help: "Peak relative CPU utilization in percent (100% = all cores)",
 	},
 	"MemAvgGB": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kCpuGBAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kCpuGBAvg])), ctx)
 		},
 		Help: "Average main virtual memory utilization in GB",
 	},
 	"MemPeakGB": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kCpuGBPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kCpuGBPeak])), ctx)
 		},
 		Help: "Peak main virtual memory utilization in GB",
 	},
 	"RelativeMemAvgPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRcpuGBAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRcpuGBAvg])), ctx)
 		},
 		Help: "Average relative main virtual memory utilization in percent (100% = system RAM)",
 	},
 	"RelativeMemPeakPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRcpuGBPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(uint64(math.Ceil(d.(*jobSummary).computed[kRcpuGBPeak])), ctx)
 		},
 		Help: "Peak relative main virtual memory utilization in percent (100% = system RAM)",
 	},
 	"ResidentMemAvgGB": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRssAnonGBAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRssAnonGBAvg])), ctx)
 		},
 		Help: "Average main resident memory utilization in GB",
 	},
 	"ResidentMemPeakGB": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRssAnonGBPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(uint64(math.Ceil(d.(*jobSummary).computed[kRssAnonGBPeak])), ctx)
 		},
 		Help: "Peak main resident memory utilization in GB",
 	},
 	"RelativeResidentMemAvgPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRrssAnonGBAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRrssAnonGBAvg])), ctx)
 		},
 		Help: "Average relative main resident memory utilization in percent (100% = all RAM)",
 	},
 	"RelativeResidentMemPeakPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRrssAnonGBPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRrssAnonGBPeak])), ctx)
 		},
 		Help: "Peak relative main resident memory utilization in percent (100% = all RAM)",
 	},
 	"GpuAvgPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kGpuPctAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kGpuPctAvg])), ctx)
 		},
 		Help: "Average GPU utilization in percent (100% = 1 card)",
 	},
 	"GpuPeakPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kGpuPctPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kGpuPctPeak])), ctx)
 		},
 		Help: "Peak GPU utilization in percent (100% = 1 card)",
 	},
 	"RelativeGpuAvgPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRgpuPctAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRgpuPctAvg])), ctx)
 		},
 		Help: "Average relative GPU utilization in percent (100% = all cards)",
 	},
 	"RelativeGpuPeakPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRgpuPctPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRgpuPctPeak])), ctx)
 		},
 		Help: "Peak relative GPU utilization in percent (100% = all cards)",
 	},
 	"OccupiedRelativeGpuAvgPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kSgpuPctAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kSgpuPctAvg])), ctx)
 		},
 		Help: "Average relative GPU utilization in percent (100% = all cards used by job)",
 	},
 	"OccupiedRelativeGpuPeakPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kSgpuPctPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kSgpuPctPeak])), ctx)
 		},
 		Help: "Peak relative GPU utilization in percent (100% = all cards used by job)",
 	},
 	"GpuMemAvgGB": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kGpuGBAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kGpuGBAvg])), ctx)
 		},
 		Help: "Average resident GPU memory utilization in GB",
 	},
 	"GpuMemPeakGB": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kGpuGBPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kGpuGBPeak])), ctx)
 		},
 		Help: "Peak resident GPU memory utilization in GB",
 	},
 	"RelativeGpuMemAvgPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRgpuGBAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRgpuGBAvg])), ctx)
 		},
 		Help: "Average relative GPU resident memory utilization in percent (100% = all GPU RAM)",
 	},
 	"RelativeGpuMemPeakPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kRgpuGBPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRgpuGBPeak])), ctx)
 		},
 		Help: "Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)",
 	},
 	"OccupiedRelativeGpuMemAvgPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kSgpuGBAvg])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kSgpuGBAvg])), ctx)
 		},
 		Help: "Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
 	},
 	"OccupiedRelativeGpuMemPeakPct": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(uint64(math.Ceil(d.(*jobSummary).computed[kSgpuGBPeak])))
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kSgpuGBPeak])), ctx)
 		},
 		Help: "Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
 	},
 	"Gpus": {
-		Fmt: func(d any, _ PrintMods) string {
-			return d.(*jobSummary).Gpus.String()
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatGpuSet(d.(*jobSummary).Gpus, ctx)
 		},
 		Help: "GPU device numbers used by the job, 'none' if none or 'unknown' in error states",
 	},
 	"GpuFail": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(d.(*jobSummary).GpuFail)
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(d.(*jobSummary).GpuFail), ctx)
 		},
 		Help: "Flag indicating GPU status (0=Ok, 1=Failing)",
 	},
 	"Cmd": {
-		Fmt: func(d any, _ PrintMods) string {
-			return d.(*jobSummary).Cmd
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatString(d.(*jobSummary).Cmd, ctx)
 		},
 		Help: "The commands invoking the processes of the job",
 	},
 	"Host": {
-		Fmt: func(d any, _ PrintMods) string {
-			return d.(*jobSummary).Host
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatString(d.(*jobSummary).Host, ctx)
 		},
 		Help: "List of the host name(s) running the job (first elements of FQDNs, compressed)",
 	},
@@ -312,8 +346,8 @@ var jobsFormatters = map[string]Formatter{
 		Help: "The current time",
 	},
 	"Classification": {
-		Fmt: func(d any, _ PrintMods) string {
-			return fmt.Sprint(d.(*jobSummary).Classification)
+		Fmt: func(d any, ctx PrintMods) string {
+			return FormatInt64(int64(d.(*jobSummary).Classification), ctx)
 		},
 		Help: "Bit vector of live-at-start (2) and live-at-end (1) flags",
 	},

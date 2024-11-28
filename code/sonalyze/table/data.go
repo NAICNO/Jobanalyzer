@@ -1,4 +1,5 @@
-// Annotation types and formatters for them.
+// Annotation types and formatters for them, mostly taking a print context argument and returning
+// *skip* when appropriate.
 
 package table
 
@@ -7,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"go-utils/gpuset"
 	. "sonalyze/common"
 )
 
@@ -43,11 +45,47 @@ func (val IntOrEmpty) String() string {
 	return strconv.FormatInt(int64(val), 10)
 }
 
-func FormatDurationValue(secs int64, ctx PrintMods) string {
-	if (ctx & PrintModSec) != 0 {
-		return fmt.Sprint(secs)
+func FormatInt64[T int64 | uint64](val T, ctx PrintMods) string {
+	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
+		return "*skip*"
 	}
-	return FormatDurationDHM(secs, ctx)
+	return fmt.Sprint(val)
+}
+
+func FormatFloat(val float64, isFloat32 bool, ctx PrintMods) string {
+	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
+		return "*skip*"
+	}
+	prec := 64
+	if isFloat32 {
+		prec = 32
+	}
+	return strconv.FormatFloat(val, 'g', -1, prec)
+}
+
+func FormatString(val string, ctx PrintMods) string {
+	if (ctx&PrintModNoDefaults) != 0 && val == "" {
+		return "*skip*"
+	}
+	return val
+}
+
+func FormatGpuSet(val gpuset.GpuSet, ctx PrintMods) string {
+	if (ctx&PrintModNoDefaults) != 0 && val.IsEmpty() {
+		return "*skip*"
+	}
+	return val.String()
+}
+
+func FormatBool(val bool, ctx PrintMods) string {
+	if (ctx&PrintModNoDefaults) != 0 && !val {
+		return "*skip*"
+	}
+	// These are backwards compatible values.
+	if val {
+		return "yes"
+	}
+	return "no"
 }
 
 // The DurationValue had two different formats in older code: %2dd%2dh%2dm and %dd%2dh%2dm.  The
@@ -64,13 +102,23 @@ func FormatDurationValue(secs int64, ctx PrintMods) string {
 // output, always use %2dd%2dh%2dm.  For other outputs, always use %dd%dh%dm.  Also, always round to
 // the nearerest minute, rounding up on ties.
 
-func FormatDurationDHM(durationSec int64, ctx PrintMods) string {
-	if durationSec%60 >= 30 {
-		durationSec += 30
+func FormatDurationValue(secs int64, ctx PrintMods) string {
+	if (ctx & PrintModSec) != 0 {
+		if (ctx&PrintModNoDefaults) != 0 && secs == 0 {
+			return "*skip*"
+		}
+		return fmt.Sprint(secs)
 	}
-	minutes := (durationSec / 60) % 60
-	hours := (durationSec / (60 * 60)) % 24
-	days := durationSec / (60 * 60 * 24)
+
+	if secs%60 >= 30 {
+		secs += 30
+	}
+	minutes := (secs / 60) % 60
+	hours := (secs / (60 * 60)) % 24
+	days := secs / (60 * 60 * 24)
+	if (ctx&PrintModNoDefaults) != 0 && minutes == 0 && hours == 0 && days == 0 {
+		return "*skip*"
+	}
 	if (ctx & PrintModFixed) != 0 {
 		return fmt.Sprintf("%2dd%2dh%2dm", days, hours, minutes)
 	}
@@ -78,6 +126,9 @@ func FormatDurationDHM(durationSec int64, ctx PrintMods) string {
 }
 
 func FormatDateTimeValue(timestamp int64, ctx PrintMods) string {
+	if (ctx&PrintModNoDefaults) != 0 && timestamp == 0 {
+		return "*skip*"
+	}
 	// Note, it is part of the API that PrintModSec takes precedence over PrintModIso (this
 	// simplifies various other paths).
 	if (ctx & PrintModSec) != 0 {
