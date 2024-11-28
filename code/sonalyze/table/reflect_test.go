@@ -123,7 +123,8 @@ func TestReflectDateTimeValueOrBlank(t *testing.T) {
 	if s := s1f(s1{0}, 0); s != "                " {
 		t.Fatalf("DateTimeValueOrBlank %s", s)
 	}
-	if s := s1f(s1{0}, PrintModNoDefaults); s != "*skip*" {
+	// The entire point of this type is that a default value is not skipped
+	if s := s1f(s1{0}, PrintModNoDefaults); s != "                " {
 		t.Fatalf("DateTimeValueOrBlank %s", s)
 	}
 }
@@ -325,7 +326,7 @@ func testReflectIntish[T int | int8 | int16 | int32 | int64 | uint | uint8 | uin
 		t.Fatalf("intish %s", s)
 	}
 	if s := sf(st{0}, PrintModNoDefaults); s != "*skip*" {
-		t.Fatalf("intish %s", s)
+		t.Fatalf("intish %s %#v", s, st{0})
 	}
 
 	// Scaled.

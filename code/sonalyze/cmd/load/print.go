@@ -41,6 +41,8 @@ type LoadReport struct {
 	records  []*ReportRecord
 }
 
+// TODO: See comment in jobs/print.go about this.
+
 var relativeFields = map[string]bool{
 	"RelativeCpu":         true,
 	"rcpu":                true,

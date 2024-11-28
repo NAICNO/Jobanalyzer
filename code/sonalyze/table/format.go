@@ -265,13 +265,13 @@ func FormatData(
 		fmt func(any, PrintMods) string
 		mod PrintMods
 	}
-	fmt := make([]F, len(fields))
+	fmts := make([]F, len(fields))
 	for c, f := range fields {
-		fmt[c] = F{formatters[f.Name].Fmt, f.Mod}
+		fmts[c] = F{formatters[f.Name].Fmt, f.Mod}
 	}
 	for r, x := range data {
 		for c := range fields {
-			cols[c][r] = fmt[c].fmt(x, ctx|fmt[c].mod)
+			cols[c][r] = fmts[c].fmt(x, ctx|fmts[c].mod)
 		}
 	}
 
@@ -388,7 +388,12 @@ func formatCsv(out io.Writer, fields []FieldSpec, opts *FormatOptions, cols [][]
 		for col := 0; col < len(fields); col++ {
 			val := cols[col][row]
 			if opts.NoDefaults && val == "*skip*" {
-				// Do nothing
+				// For csvnamed, we have field tags and skipped fields are not represented at all.
+				// For csv, we must print empty fields, because all rows should be the same length.
+				if !opts.Named {
+					outFields[outIx] = ""
+					outIx++
+				}
 			} else if opts.Named {
 				outFields[outIx] = fields[col].Header + "=" + val
 				outIx++

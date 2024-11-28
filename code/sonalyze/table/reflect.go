@@ -16,7 +16,6 @@ import (
 	"math"
 	"reflect"
 	"slices"
-	"strconv"
 	"strings"
 
 	"go-utils/gpuset"
@@ -284,9 +283,6 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 	case ty == dateTimeValueTy || ty == dateTimeValueOrBlankTy:
 		return func(d any, ctx PrintMods) string {
 			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-			if (ctx&PrintModNoDefaults) != 0 && val == 0 {
-				return "*skip*"
-			}
 			if val == 0 && ty == dateTimeValueOrBlankTy {
 				return "                "
 			}
@@ -303,20 +299,13 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 	case ty == durationValueTy:
 		return func(d any, ctx PrintMods) string {
 			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-			if (ctx&PrintModNoDefaults) != 0 && val == 0 {
-				return "*skip*"
-			}
 			return FormatDurationValue(val, ctx)
 		}
 	case ty == gpuSetTy:
 		return func(d any, ctx PrintMods) string {
 			// GpuSet is uint32
 			val := Ustr(reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint())
-			set := gpuset.GpuSet(val)
-			if (ctx&PrintModNoDefaults) != 0 && set.IsEmpty() {
-				return "*skip*"
-			}
-			return set.String()
+			return FormatGpuSet(gpuset.GpuSet(val), ctx)
 		}
 	case ty == ustrMax30Ty:
 		return func(d any, ctx PrintMods) string {
@@ -362,10 +351,7 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 		return func(d any, ctx PrintMods) string {
 			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix)
 			s := val.MethodByName("String").Call(nil)[0].String()
-			if (ctx&PrintModNoDefaults) != 0 && s == "" {
-				return "*skip*"
-			}
-			return s
+			return FormatString(s, ctx)
 		}
 	default:
 		// Everything else is a basic type that is handled according to kind.
@@ -373,25 +359,14 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 		case reflect.Bool:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Bool()
-				if (ctx&PrintModNoDefaults) != 0 && !val {
-					return "*skip*"
-				}
-				// These are backwards compatible values.
-				if val {
-					return "yes"
-				}
-				return "no"
+				return FormatBool(val, ctx)
 			}
 		case reflect.Int64:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-				// Scale before default-checking.  This will scale date values too, but that's
-				// considered a user error.
+				// This will scale date values too, but that's considered a user error.
 				if (attrs & FmtDivideBy1M) != 0 {
 					val /= 1024 * 1024
-				}
-				if (ctx&PrintModNoDefaults) != 0 && val == 0 {
-					return "*skip*"
 				}
 				if (attrs & FmtDateTimeValue) != 0 {
 					return FormatDateTimeValue(val, ctx)
@@ -402,31 +377,23 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 				if (attrs & FmtDurationValue) != 0 {
 					return FormatDurationValue(val, ctx)
 				}
-				return strconv.FormatInt(val, 10)
+				return FormatInt64(val, ctx)
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-				// Scale before default-checking.
 				if (attrs & FmtDivideBy1M) != 0 {
 					val /= 1024 * 1024
 				}
-				if (ctx&PrintModNoDefaults) != 0 && val == 0 {
-					return "*skip*"
-				}
-				return strconv.FormatInt(val, 10)
+				return FormatInt64(val, ctx)
 			}
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Uint()
-				// Scale before default-checking.
 				if (attrs & FmtDivideBy1M) != 0 {
 					val /= 1024 * 1024
 				}
-				if (ctx&PrintModNoDefaults) != 0 && val == 0 {
-					return "*skip*"
-				}
-				return strconv.FormatUint(val, 10)
+				return FormatInt64(val, ctx)
 			}
 		case reflect.Float32, reflect.Float64:
 			return func(d any, ctx PrintMods) string {
@@ -434,22 +401,12 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 				if (attrs & FmtCeil) != 0 {
 					val = math.Ceil(val)
 				}
-				if (ctx&PrintModNoDefaults) != 0 && val == 0 {
-					return "*skip*"
-				}
-				prec := 64
-				if ty.Kind() == reflect.Float32 {
-					prec = 32
-				}
-				return strconv.FormatFloat(val, 'g', -1, prec)
+				return FormatFloat(val, ty.Kind() == reflect.Float32, ctx)
 			}
 		case reflect.String:
 			return func(d any, ctx PrintMods) string {
 				val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).String()
-				if (ctx&PrintModNoDefaults) != 0 && val == "" {
-					return "*skip*"
-				}
-				return val
+				return FormatString(val, ctx)
 			}
 		default:
 			panic(fmt.Sprintf("Unhandled type kind %d", ty.Kind()))

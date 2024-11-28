@@ -1,8 +1,12 @@
+// Test the low-level data formatters including *skip* logic
+
 package table
 
 import (
 	"fmt"
 	"testing"
+
+	"go-utils/gpuset"
 )
 
 const (
@@ -34,6 +38,9 @@ func TestDataFormatting(t *testing.T) {
 	if s := FormatDurationValue(dur, PrintModSec); s != fmt.Sprint(dur) {
 		t.Fatalf("Duration %s", s)
 	}
+	if s := FormatDurationValue(0, PrintModNoDefaults); s != "*skip*" {
+		t.Fatalf("Duration %s", s)
+	}
 
 	if s := FormatDateTimeValue(now, 0); s != "2024-11-25 07:02" {
 		t.Fatalf("DateTimeValue %s", s)
@@ -44,6 +51,59 @@ func TestDataFormatting(t *testing.T) {
 	if s := FormatDateTimeValue(now, PrintModIso); s != "2024-11-25T07:02:53Z" {
 		t.Fatalf("DateTimeValue %s", s)
 	}
+	if s := FormatDateTimeValue(0, PrintModNoDefaults); s != "*skip*" {
+		t.Fatalf("DateTimeValue %s", s)
+	}
 
-	// For the other types, the formatters are all embedded in the reflection code.
+	if s := FormatInt64(int64(123456), 0); s != "123456" {
+		t.Fatalf("Int64 %s", s)
+	}
+	if s := FormatInt64(int64(-123456), PrintModNoDefaults); s != "-123456" {
+		t.Fatalf("Int64 %s", s)
+	}
+	if s := FormatInt64(int64(0), PrintModNoDefaults); s != "*skip*" {
+		t.Fatalf("Int64 %s", s)
+	}
+
+	if s := FormatFloat(1234.5, false, 0); s != "1234.5" {
+		t.Fatalf("Float %s", s)
+	}
+	if s := FormatFloat(0, false, PrintModNoDefaults); s != "*skip*" {
+		t.Fatalf("Float %s", s)
+	}
+
+	if s := FormatString("hi", 0); s != "hi" {
+		t.Fatalf("String %s", s)
+	}
+	if s := FormatString("", 0); s != "" {
+		t.Fatalf("String %s", s)
+	}
+	if s := FormatString("", PrintModNoDefaults); s != "*skip*" {
+		t.Fatalf("String %s", s)
+	}
+
+	if s := FormatBool(true, 0); s != "yes" {
+		t.Fatalf("Bool %s", s)
+	}
+	if s := FormatBool(false, 0); s != "no" {
+		t.Fatalf("Bool %s", s)
+	}
+	if s := FormatBool(false, PrintModNoDefaults); s != "*skip*" {
+		t.Fatalf("Bool %s", s)
+	}
+
+	set, _ := gpuset.NewGpuSet("1,3")
+	if s := FormatGpuSet(set, 0); s != "1,3" {
+		t.Fatalf("GpuSet %s", s)
+	}
+	set, _ = gpuset.NewGpuSet("unknown")
+	if s := FormatGpuSet(set, 0); s != "unknown" {
+		t.Fatalf("GpuSet %s", s)
+	}
+	if s := FormatGpuSet(gpuset.EmptyGpuSet(), 0); s != "none" {
+		t.Fatalf("GpuSet %s", s)
+	}
+	if s := FormatGpuSet(gpuset.EmptyGpuSet(), PrintModNoDefaults); s != "*skip*" {
+		t.Fatalf("GpuSet %s", s)
+	}
 }
