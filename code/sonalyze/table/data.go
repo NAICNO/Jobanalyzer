@@ -52,6 +52,13 @@ func FormatInt64[T int64 | uint64](val T, ctx PrintMods) string {
 	return fmt.Sprint(val)
 }
 
+func FormatInt(val int, ctx PrintMods) string {
+	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
+		return "*skip*"
+	}
+	return fmt.Sprint(val)
+}
+
 func FormatFloat(val float64, isFloat32 bool, ctx PrintMods) string {
 	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
 		return "*skip*"

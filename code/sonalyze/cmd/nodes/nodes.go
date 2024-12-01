@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -243,19 +242,18 @@ var nodesAliases = map[string][]string{
 	"v1default": strings.Split(v1NodesDefaultFields, ","),
 }
 
-type SFS = SimpleFormatSpec
+//go:generate sonalyze-table -o node-table.go nodes.go
 
-// MT: Constant after initialization; immutable
-var nodesFormatters = DefineTableFromMap(
-	reflect.TypeFor[config.NodeConfigRecord](),
-	map[string]any{
-		"Timestamp":   SFS{"Full ISO timestamp of when the reading was taken", "timestamp"},
-		"Hostname":    SFS{"Name that host is known by on the cluster", "host"},
-		"Description": SFS{"End-user description, not parseable", "desc"},
-		"CpuCores":    SFS{"Total number of cores x threads", "cores"},
-		"MemGB":       SFS{"GB of installed main RAM", "mem"},
-		"GpuCards":    SFS{"Number of installed cards", "gpus"},
-		"GpuMemGB":    SFS{"Total GPU memory across all cards", "gpumem"},
-		"GpuMemPct":   SFS{"True if GPUs report accurate memory usage in percent", "gpumempct"},
-	},
-)
+//PACKAGE nodes
+//IMPORT "go-utils/config"
+
+//TABLE nodes config.NodeConfigRecord
+//
+// Timestamp   string desc:"Full ISO timestamp of when the reading was taken" alias:"timestamp"
+// Hostname    string desc:"Name that host is known by on the cluster" alias:"host"
+// Description string desc:"End-user description, not parseable" alias:"desc"
+// CpuCores    int    desc:"Total number of cores x threads" alias:"cores"
+// MemGB       int    desc:"GB of installed main RAM" alias:"mem"
+// GpuCards    int    desc:"Number of installed cards" alias:"gpus"
+// GpuMemGB    int    desc:"Total GPU memory across all cards" alias:"gpumem"
+// GpuMemPct   bool   desc:"True if GPUs report accurate memory usage in percent" alias:"gpumempct"
