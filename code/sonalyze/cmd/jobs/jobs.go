@@ -258,13 +258,6 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 
 var _ SampleAnalysisCommand = (*JobsCommand)(nil)
 
-//go:embed summary.txt
-var summary string
-
-func (_ *JobsCommand) Summary() string {
-	return summary
-}
-
 func (jc *JobsCommand) lookupUint(s string) uint {
 	if v, ok := jc.Uints[s]; ok {
 		return *v

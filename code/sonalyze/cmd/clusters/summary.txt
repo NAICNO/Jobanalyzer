@@ -1,6 +1,0 @@
-Display information about the clusters and overall cluster configuration.
-
-As this operates on the store and not on cluster data in the store, there is
-no -cluster argument for remote runs.
-
-For per-node data, use "config" and/or "node".

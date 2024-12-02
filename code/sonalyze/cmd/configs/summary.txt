@@ -1,7 +1,0 @@
-Display information about nodes in a cluster configuration.
-
-The node configuration is time-dependent and is computed from data reported
-by the node and additional background information.
-
-For overall cluster data, use "cluster".  Also see "node" for closely
-related data.

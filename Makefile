@@ -1,10 +1,10 @@
 SUBDIRS=code production
 
-.PHONY: default build fmt clean test regress $(SUBDIRS)
+.PHONY: default build fmt generate clean test regress $(SUBDIRS)
 
 default:
 
-build fmt clean test regress: $(SUBDIRS)
+build fmt generate clean test regress: $(SUBDIRS)
 
 $(SUBDIRS):
 	( cd $@ ; $(MAKE) $(MAKECMDGOALS) )

@@ -29,7 +29,7 @@ func (lc *LoadCommand) Perform(
 ) error {
 	fromIncl, toIncl := lc.InterpretFromToWithBounds(bounds)
 
-	if lc.printRequiresConfig() {
+	if NeedsConfig(loadFormatters, lc.PrintFields) {
 		var err error
 		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
 		if err != nil {

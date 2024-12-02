@@ -1,8 +1,0 @@
-Compute aggregate load for hosts and groups of hosts.
-
-The aggregation can be performed across various timeframes and will be
-based on available sample data.
-
-As not all processes' samples are stored (processes typically have to
-be "significant"), the true load can be underreported somewhat, but
-probably not by very much.

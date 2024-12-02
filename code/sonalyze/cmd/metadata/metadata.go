@@ -1,24 +1,66 @@
 package metadata
 
 import (
-	_ "embed"
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
-	"reflect"
-	"sort"
-	"strings"
+	"slices"
 	"time"
 
 	"go-utils/config"
 	"go-utils/hostglob"
-	uslices "go-utils/slices"
 
 	. "sonalyze/cmd"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
+
+//go:generate ../../../generate-table/generate-table -o metadata-table.go metadata.go
+
+/*TABLE metadata
+
+package metadata
+
+import (
+	. "sonalyze/table"
+)
+
+%%
+
+FIELDS *metadataItem
+
+ Hostname string        alias:"host"     desc:"Name that host is known by on the cluster"
+ Earliest DateTimeValue alias:"earliest" desc:"Timestamp of earliest sample for host"
+ Latest   DateTimeValue alias:"latest"   desc:"Timestamp of latest sample for host"
+
+GENERATE metadataItem
+
+SUMMARY MetadataCommand
+
+Display metadata about the sample streams in the database.
+
+One or more of -files, -times and -bounds must be selected to produce
+output.
+
+Mostly this command is useful for debugging, but -bounds can be used to
+detect whether a node is up more cheaply than the "uptime" operation.
+
+HELP MetadataCommand
+
+  Compute time bounds and file names for the run.
+
+ALIASES
+
+  default  host,earliest,latest
+  Default  Hostname,Earliest,Latest
+  all      default
+  All      Default
+
+DEFAULTS default
+
+ELBAT*/
 
 type MetadataCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
@@ -32,13 +74,6 @@ type MetadataCommand struct /* implements SampleAnalysisCommand */ {
 }
 
 var _ SampleAnalysisCommand = (*MetadataCommand)(nil)
-
-//go:embed summary.txt
-var summary string
-
-func (_ *MetadataCommand) Summary() string {
-	return summary
-}
 
 func (mdc *MetadataCommand) Add(fs *CLI) {
 	mdc.SharedArgs.Add(fs)
@@ -95,29 +130,6 @@ func (mdc *MetadataCommand) DefaultRecordFilters() (
 	return
 }
 
-type metadataItem struct {
-	Hostname string        `alias:"host"     desc:"Name that host is known by on the cluster"`
-	Earliest DateTimeValue `alias:"earliest" desc:"Timestamp of earliest sample for host"`
-	Latest   DateTimeValue `alias:"latest"   desc:"Timestamp of latest sample for host"`
-}
-
-type HostTimeSortableItems []*metadataItem
-
-func (xs HostTimeSortableItems) Len() int {
-	return len(xs)
-}
-
-func (xs HostTimeSortableItems) Less(i, j int) bool {
-	if xs[i].Hostname == xs[j].Hostname {
-		return xs[i].Earliest < xs[j].Earliest
-	}
-	return xs[i].Hostname < xs[j].Hostname
-}
-
-func (xs HostTimeSortableItems) Swap(i, j int) {
-	xs[i], xs[j] = xs[j], xs[i]
-}
-
 func (mdc *MetadataCommand) NeedsBounds() bool {
 	return mdc.Bounds
 }
@@ -155,8 +167,6 @@ func (mdc *MetadataCommand) Perform(
 		if mdc.MergeByJob {
 			_, bounds = sonarlog.MergeByJob(streams, bounds)
 		}
-
-		// Print the bounds.
 		items := make([]*metadataItem, 0)
 		for k, v := range bounds {
 			items = append(items, &metadataItem{
@@ -165,40 +175,15 @@ func (mdc *MetadataCommand) Perform(
 				Latest:   DateTimeValue(v.Latest),
 			})
 		}
-		sort.Sort(HostTimeSortableItems(items))
-		FormatData(
-			out,
-			mdc.PrintFields,
-			metadataFormatters,
-			mdc.PrintOpts,
-			uslices.Map(items, func(x *metadataItem) any { return x }),
-		)
+		slices.SortFunc(items, func(a, b *metadataItem) int {
+			c := cmp.Compare(a.Hostname, b.Hostname)
+			if c == 0 {
+				c = cmp.Compare(a.Earliest, b.Earliest)
+			}
+			return c
+		})
+		FormatData(out, mdc.PrintFields, metadataFormatters, mdc.PrintOpts, items)
 	}
 
 	return nil
 }
-
-func (mdc *MetadataCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(
-		mdc.Fmt, metadataHelp, metadataFormatters, metadataAliases, metadataDefaultFields)
-}
-
-const metadataHelp = `
-metadata
-  Compute time bounds and file names for the run.
-`
-
-const v0MetadataDefaultFields = "host,earliest,latest"
-const v1MetadataDefaultFields = "Hostname,Earliest,Latest"
-const metadataDefaultFields = v0MetadataDefaultFields
-
-// MT: Constant after initialization; immutable
-var metadataAliases = map[string][]string{
-	"all":       []string{"host", "earliest", "latest"},
-	"default":   strings.Split(metadataDefaultFields, ","),
-	"v0default": strings.Split(v0MetadataDefaultFields, ","),
-	"v1default": strings.Split(v1MetadataDefaultFields, ","),
-}
-
-// MT: Constant after initialization; immutable
-var metadataFormatters = DefineTableFromTags(reflect.TypeFor[metadataItem](), nil)

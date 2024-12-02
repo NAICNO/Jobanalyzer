@@ -3,7 +3,6 @@
 package load
 
 import (
-	_ "embed"
 	"errors"
 
 	. "sonalyze/cmd"
@@ -44,13 +43,6 @@ type LoadCommand struct /* implements SampleAnalysisCommand */ {
 }
 
 var _ SampleAnalysisCommand = (*LoadCommand)(nil)
-
-//go:embed summary.txt
-var summary string
-
-func (_ *LoadCommand) Summary() string {
-	return summary
-}
 
 func (lc *LoadCommand) Add(fs *CLI) {
 	lc.SharedArgs.Add(fs)

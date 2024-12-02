@@ -3,6 +3,7 @@ package report
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -26,8 +27,8 @@ var _ = (SimpleCommand)((*ReportCommand)(nil))
 //go:embed summary.txt
 var summary string
 
-func (rc *ReportCommand) Summary() string {
-	return summary
+func (rc *ReportCommand) Summary(out io.Writer) {
+	fmt.Fprint(out, summary)
 }
 
 func (rc *ReportCommand) Add(fs *CLI) {

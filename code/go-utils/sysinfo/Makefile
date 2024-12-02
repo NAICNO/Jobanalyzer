@@ -1,10 +1,10 @@
-.PHONY: default build fmt clean test
+.PHONY: default build fmt generate clean test
 
 default:
 
 build:
 
-fmt clean:
+fmt generate clean:
 	go $(MAKECMDGOALS)
 
 test:

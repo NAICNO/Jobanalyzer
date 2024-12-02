@@ -1,7 +1,0 @@
-Display metadata about the sample streams in the database.
-
-One or more of -files, -times and -bounds must be selected to produce
-output.
-
-Mostly this command is useful for debugging, but -bounds can be used to
-detect whether a node is up more cheaply than the "uptime" operation.

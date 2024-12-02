@@ -1,6 +1,6 @@
-.PHONY: default build fmt clean test regress
+.PHONY: default build fmt generate clean test regress
 
-default build fmt clean test:
+default build fmt generate clean test:
 
 regress:
 	./run_tests.sh

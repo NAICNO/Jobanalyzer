@@ -35,7 +35,7 @@ type Command interface {
 	CpuProfileFile() string
 
 	// Documentation, with formatting and line breaks
-	Summary() string
+	Summary(out io.Writer)
 
 	// Add all arguments including shared arguments
 	Add(fs *CLI)

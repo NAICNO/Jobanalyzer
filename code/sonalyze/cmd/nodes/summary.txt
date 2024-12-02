@@ -1,8 +1,0 @@
-Display self-reported information about nodes in a cluster.
-
-For overall cluster data, use "cluster".  Also see "config" for
-closely related data.
-
-The node configuration is time-dependent and is reported by the node
-periodically, it will usually only change if the node is upgraded or
-components are inserted/removed.

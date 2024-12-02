@@ -64,7 +64,7 @@ func NewCLI(verb string, command Command, name string, exitOnError bool) *CLI {
 			verb,
 			restargs,
 		)
-		fmt.Fprint(out, command.Summary())
+		command.Summary(out)
 		defaults := cli.getSortedDefaults(restargs != "")
 		for _, g := range defaults {
 			fmt.Fprintf(out, "\n%s options:\n\n", g.group)
@@ -94,6 +94,11 @@ func (cli *CLI) BoolVar(v *bool, name string, def bool, usage string) {
 func (cli *CLI) UintVar(v *uint, name string, def uint, usage string) {
 	cli.tag(name)
 	cli.FlagSet.UintVar(v, name, def, usage)
+}
+
+func (cli *CLI) IntVar(v *int, name string, def int, usage string) {
+	cli.tag(name)
+	cli.FlagSet.IntVar(v, name, def, usage)
 }
 
 func (cli *CLI) Float64Var(v *float64, name string, def float64, usage string) {

@@ -1,8 +1,0 @@
-Export sample data in various formats, after optional preprocessing.
-
-This facility is mostly for debugging and experimentation, as the data
-volume is typically significant and the data are not necessarily
-postprocessed in a way useful to the consumer.
-
-The -merge and -clean options perform some postprocessing, but you need to
-know what you're looking at to find these useful.

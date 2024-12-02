@@ -84,6 +84,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 
@@ -144,8 +145,8 @@ func (dc *DaemonCommand) Add(fs *CLI) {
 //go:embed summary.txt
 var summary string
 
-func (dc *DaemonCommand) Summary() string {
-	return summary
+func (dc *DaemonCommand) Summary(out io.Writer) {
+	fmt.Fprint(out, summary)
 }
 
 func (dc *DaemonCommand) Validate() error {
