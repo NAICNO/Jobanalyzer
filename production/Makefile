@@ -1,7 +1,7 @@
-.PHONY: default build fmt clean test regress \
+.PHONY: default build fmt generate clean test regress \
 	sonar-nodes jobanalyzer-server
 
-default fmt:
+default generate fmt:
 
 build clean test regress: sonar-nodes jobanalyzer-server
 

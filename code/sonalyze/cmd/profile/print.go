@@ -53,12 +53,8 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"reflect"
 	"strings"
 
-	uslices "go-utils/slices"
-
-	. "sonalyze/common"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
@@ -116,7 +112,7 @@ func (pc *ProfileCommand) printProfile(
 			pc.PrintFields,
 			profileFormatters,
 			pc.PrintOpts,
-			uslices.Map(data, func(x *fixedLine) any { return x }),
+			data,
 		)
 	} else if pc.PrintOpts.Json {
 		formatJson(out, m, processes, pc.testNoMemory)
@@ -227,19 +223,50 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 // The output is time-sorted but timestamps may be duplicated.  The first profileLine at a timestamp
 // has a non-zero time value, the rest are zero.
 
-// TODO: Should the derivation of these data be lifted to perform.go?
-// TODO: Merge with JSON-formatting logic somehow?
+// TODO: Should the derivation of fixedLine data be lifted to perform.go?
+// TODO: Merge fixed formatting with JSON-formatting logic somehow?
 
-type fixedLine struct {
-	Timestamp     DateTimeValueOrBlank `alias:"time" desc:"Time of the start of the profiling bucket"`
-	CpuUtilPct    int                  `alias:"cpu"  desc:"CPU utilization in percent, 100% = 1 core (except for HTML)"`
-	VirtualMemGB  int                  `alias:"mem"  desc:"Main virtual memory usage in GiB"`
-	ResidentMemGB int                  `alias:"res"  desc:"Main resident memory usage in GiB"`
-	Gpu           int                  `alias:"gpu"  desc:"GPU utilization in percent, 100% = 1 card (except for HTML)"`
-	GpuMemGB      int                  `alias:"gpumem" desc:"GPU resident memory usage in GiB (across all cards)"`
-	Command       Ustr                 `alias:"cmd"  desc:"Name of executable starting the process"`
-	NumProcs      IntOrEmpty           `alias:"nproc" desc:"Number of rolled-up processes, blank for zero"`
-}
+//go:generate ../../../generate-table/generate-table -o profile-table.go print.go
+
+/*TABLE profile
+
+package profile
+
+import (
+	. "sonalyze/common"
+	. "sonalyze/table"
+)
+
+%%
+
+FIELDS *fixedLine
+
+ Timestamp     DateTimeValueOrBlank alias:"time"    desc:"Time of the start of the profiling bucket"
+ CpuUtilPct    int                  alias:"cpu"     desc:"CPU utilization in percent, 100% = 1 core (except for HTML)"
+ VirtualMemGB  int                  alias:"mem"     desc:"Main virtual memory usage in GiB"
+ ResidentMemGB int                  alias:"res,rss" desc:"Main resident memory usage in GiB"
+ Gpu           int                  alias:"gpu"     desc:"GPU utilization in percent, 100% = 1 card (except for HTML)"
+ GpuMemGB      int                  alias:"gpumem"  desc:"GPU resident memory usage in GiB (across all cards)"
+ Command       Ustr                 alias:"cmd"     desc:"Name of executable starting the process"
+ NumProcs      IntOrEmpty           alias:"nproc"   desc:"Number of rolled-up processes, blank for zero"
+
+GENERATE fixedLine
+
+HELP ProfileCommand
+
+  Compute aggregate job behavior across processes by time step, for some job
+  attributes.  Default output format is 'fixed'.
+
+ALIASES
+
+  default time,cpu,mem,gpu,gpumem,cmd
+  Default Timestamp,CpuUtilPct,VirtualMemGB,Gpu,GpuMemGB,Command
+
+DEFAULTS default
+
+ELBAT*/
+
+const profileDefaultFieldsWithNproc = "time,cpu,mem,gpu,gpumem,nproc,cmd"
 
 func (pc *ProfileCommand) collectFixed(
 	m *profData,
@@ -491,38 +518,6 @@ func formatJson(
 		panic("JSON encoding")
 	}
 }
-
-func (pc *ProfileCommand) MaybeFormatHelp() *FormatHelp {
-	// This is wrong if some of the data have rolled-up fields because in that case the default
-	// fields includes the nproc field; so be it.  We're not going to wait until after reading the
-	// data to respond to --fmt=help, and this corner case is not worth fixing with more complexity.
-	return StandardFormatHelp(pc.Fmt, profileHelp, profileFormatters, profileAliases, profileDefaultFields)
-}
-
-const profileHelp = `
-profile
-  Compute aggregate job behavior across processes by time step, for some job
-  attributes.  Default output format is 'fixed'.
-`
-
-const v0ProfileDefaultFields = "time,cpu,mem,gpu,gpumem,cmd"
-const v1ProfileDefaultFields = "Timestamp,CpuUtilPct,VirtualMemGB,Gpu,GpuMemGB,Command"
-const profileDefaultFields = v0ProfileDefaultFields
-
-const v0ProfileDefaultFieldsWithNproc = "time,cpu,mem,gpu,gpumem,nproc,cmd"
-const v1ProfileDefaultFieldsWithNproc = "Timestamp,CpuUtilPct,VirtualMemGB,Gpu,GpuMemGB,NumProcs,Command"
-const profileDefaultFieldsWithNproc = v0ProfileDefaultFieldsWithNproc
-
-// MT: Constant after initialization; immutable
-var profileAliases = map[string][]string{
-	"default":   strings.Split(profileDefaultFields, ","),
-	"v0default": strings.Split(v0ProfileDefaultFields, ","),
-	"v1default": strings.Split(v1ProfileDefaultFields, ","),
-	"rss":       []string{"res"},
-}
-
-// MT: Constant after initialization; immutable
-var profileFormatters = DefineTableFromTags(reflect.TypeFor[fixedLine](), nil)
 
 func formatTime(t int64) string {
 	return FormatYyyyMmDdHhMmUtc(t)

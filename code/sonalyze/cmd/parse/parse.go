@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"reflect"
 	"slices"
-	"strings"
 
 	"go-utils/config"
 	"go-utils/hostglob"
@@ -19,6 +17,73 @@ import (
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
+
+//go:generate ../../../generate-table/generate-table -o parse-table.go parse.go
+
+/*TABLE parse
+
+package parse
+
+import (
+	"go-utils/gpuset"
+	"sonalyze/sonarlog"
+    . "sonalyze/common"
+	. "sonalyze/table"
+)
+
+type GpuSet = gpuset.GpuSet
+type float = float32
+
+%%
+
+FIELDS sonarlog.Sample
+
+ # TODO: IMPROVEME: The use of utc for "localtime" is a bug that comes from the Rust code.
+
+ Version    Ustr             desc:"Semver string (MAJOR.MINOR.BUGFIX)" alias:"version,v"
+ Timestamp  DateTimeValue    desc:"Timestamp (yyyy-mm-dd hh:mm)" alias:"localtime"
+ time       IsoDateTimeValue desc:"Timestamp (ISO date with seconds)" field:"Timestamp"
+ Host       Ustr             desc:"Host name (FQDN)" alias:"host"
+ Cores      int              desc:"Total number of cores (including hyperthreads)" alias:"cores"
+ MemtotalKB int              desc:"Installed main memory"
+ memtotal   IntDiv1M         desc:"Installed main memory (GB)" field:"MemtotalKB"
+ User       Ustr             desc:"Username of process owner" alias:"user"
+ Pid        int              desc:"Process ID" alias:"pid"
+ Ppid       int              desc:"Process parent ID" alias:"ppid"
+ Job        int              desc:"Job ID" alias:"job"
+ Cmd        Ustr             desc:"Command name" alias:"cmd"
+ CpuPct     float            desc:"cpu% reading (CONSULT DOCUMENTATION)" alias:"cpu_pct,cpu%"
+ CpuKB      int              desc:"Virtual memory reading" alias:"cpukib"
+ mem_gb     IntDiv1M         desc:"Virtual memory reading" field:"CpuKB"
+ RssAnonKB  int              desc:"RssAnon reading"
+ res_gb     IntDiv1M         desc:"RssAnon reading" field:"RssAnonKB"
+ Gpus       GpuSet           desc:"GPU set (`none`,`unknown`,list)" alias:"gpus"
+ GpuPct     float            desc:"GPU utilization reading" alias:"gpu_pct,gpu%"
+ GpuMemPct  float            desc:"GPU memory percentage reading" alias:"gpumem_pct,gpumem%"
+ GpuKB      int              desc:"GPU memory utilization reading" alias:"gpukib"
+ gpumem_gb  IntDiv1M         desc:"GPU memory utilization reading" field:"GpuKB"
+ GpuFail    int              desc:"GPU status flag (0=ok, 1=error state)" alias:"gpu_status,gpufail"
+ CpuTimeSec int              desc:"CPU time since last reading (seconds, CONSULT DOCUMENTATION)" alias:"cputime_sec"
+ Rolledup   int              desc:"Number of rolled-up processes, minus 1" alias:"rolledup"
+ Flags      int              desc:"Bit vector of flags, UTSL"
+ CpuUtilPct float            desc:"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)" alias:"cpu_util_pct"
+
+HELP ParseCommand
+
+  Read raw Sonar data and present it in whole or part.  Default output format
+  is 'csv'.
+
+ALIASES
+
+  default   job,user,cmd
+  Default   Job,User,Cmd
+  all       version,localtime,host,cores,memtotal,user,pid,job,cmd,cpu_pct,mem_gb,res_gb,gpus,gpu_pct,gpumem_pct,gpumem_gb,gpu_status,cputime_sec,rolledup,cpu_util_pct
+  All       Version,Timestamp,Host,Cores,MemtotalKB,User,Pid,Ppid,Job,Cmd,CpuPct,CpuKB,RssAnonKB,Gpus,GpuPct,GpuMemPct,GpuKB,GpuFail,CpuTimeSec,Rolledup,CpuUtilPct
+  roundtrip v,time,host,cores,user,job,pid,cmd,cpu%,cpukib,gpus,gpu%,gpumem%,gpukib,gpufail,cputime_sec,rolledup
+
+DEFAULTS default
+
+ELBAT*/
 
 type ParseCommand struct /* implements SampleAnalysisCommand */ {
 	SharedArgs
@@ -156,7 +221,7 @@ func (pc *ParseCommand) Perform(
 				pc.PrintFields,
 				parseFormatters,
 				pc.PrintOpts,
-				uslices.Map(*stream, func(x sonarlog.Sample) any { return x }),
+				*stream,
 			)
 		}
 	} else {
@@ -165,109 +230,8 @@ func (pc *ParseCommand) Perform(
 			pc.PrintFields,
 			parseFormatters,
 			pc.PrintOpts,
-			uslices.Map(samples, func(x sonarlog.Sample) any { return x }),
+			samples,
 		)
 	}
 	return nil
-}
-
-func (pc *ParseCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(pc.Fmt, parseHelp, parseFormatters, parseAliases, parseDefaultFields)
-}
-
-const parseHelp = `
-parse
-  Read raw Sonar data and present it in whole or part.  Default output format
-  is 'csv'
-`
-
-const v0ParseDefaultFields = "job,user,cmd"
-const v1ParseDefaultFields = "Job,User,Cmd"
-const parseDefaultFields = v0ParseDefaultFields
-
-const v0ParseAllFields = "version,localtime,host,cores,memtotal,user,pid,job,cmd,cpu_pct,mem_gb," +
-	"res_gb,gpus,gpu_pct,gpumem_pct,gpumem_gb,gpu_status,cputime_sec,rolledup,cpu_util_pct"
-const v1ParseAllFields = "Version,Timestamp,Host,Cores,MemtotalKB,User,Pid,Ppid,Job,Cmd,CpuPct," +
-	"CpuKB,RssAnonKB,Gpus,GpuPct,GpuMemPct,GpuKB,GpuFail,CpuTimeSec,Rolledup,CpuUtilPct"
-const parseAllFields = v0ParseAllFields
-
-// MT: Constant after initialization; immutable
-var parseAliases = map[string][]string{
-	"default":   strings.Split(parseDefaultFields, ","),
-	"v0default": strings.Split(v0ParseDefaultFields, ","),
-	"v1default": strings.Split(v1ParseDefaultFields, ","),
-	"all":       strings.Split(parseAllFields, ","),
-	"v0all":     strings.Split(v0ParseAllFields, ","),
-	"v1all":     strings.Split(v1ParseAllFields, ","),
-	// TODO: IMPROVEME: Roundtripping is actually version-dependent, but this set of fields is
-	// compatible with the Rust version.
-	"roundtrip": []string{
-		"v",
-		"time",
-		"host",
-		"cores",
-		"user",
-		"job",
-		"pid",
-		"cmd",
-		"cpu%",
-		"cpukib",
-		"gpus",
-		"gpu%",
-		"gpumem%",
-		"gpukib",
-		"gpufail",
-		"cputime_sec",
-		"rolledup",
-	},
-}
-
-type SFS = SimpleFormatSpec
-type AFS = SimpleFormatSpecWithAttr
-type ZFA = SynthesizedFormatSpecWithAttr
-
-// TODO: IMPROVEME: The use of utc for "localtime" is a bug that comes from the Rust code.
-
-var parseFormatters = DefineTableFromMap(
-	reflect.TypeOf((*sonarlog.Sample)(nil)).Elem(),
-	map[string]any{
-		"Version":    SFS{"Semver string (MAJOR.MINOR.BUGFIX)", "version"},
-		"Timestamp":  AFS{"Timestamp (yyyy-mm-dd hh:mm)", "localtime", FmtDateTimeValue},
-		"time":       ZFA{"Timestamp (ISO date with seconds)", "Timestamp", FmtIsoDateTimeValue},
-		"Host":       SFS{"Host name (FQDN)", "host"},
-		"Cores":      SFS{"Total number of cores (including hyperthreads)", "cores"},
-		"MemtotalKB": SFS{"Installed main memory", ""},
-		"memtotal":   ZFA{"Installed main memory (GB)", "MemtotalKB", FmtDivideBy1M},
-		"User":       SFS{"Username of process owner", "user"},
-		"Pid":        SFS{"Process ID", "pid"},
-		"Ppid":       SFS{"Process parent ID", "ppid"},
-		"Job":        SFS{"Job ID", "job"},
-		"Cmd":        SFS{"Command name", "cmd"},
-		"CpuPct":     SFS{"cpu% reading (CONSULT DOCUMENTATION)", "cpu_pct"},
-		"CpuKB":      SFS{"Virtual memory reading", "cpukib"},
-		"mem_gb":     ZFA{"Virtual memory reading", "CpuKB", FmtDivideBy1M},
-		"RssAnonKB":  SFS{"RssAnon reading", ""},
-		"res_gb":     ZFA{"RssAnon reading", "RssAnonKB", FmtDivideBy1M},
-		"Gpus":       SFS{"GPU set (`none`,`unknown`,list)", "gpus"},
-		"GpuPct":     SFS{"GPU utilization reading", "gpu_pct"},
-		"GpuMemPct":  SFS{"GPU memory percentage reading", "gpumem_pct"},
-		"GpuKB":      SFS{"GPU memory utilization reading", "gpukib"},
-		"gpumem_gb":  ZFA{"GPU memory utilization reading", "GpuKB", FmtDivideBy1M},
-		"GpuFail":    SFS{"GPU status flag (0=ok, 1=error state)", "gpu_status"},
-		"CpuTimeSec": SFS{"CPU time since last reading (seconds, CONSULT DOCUMENTATION)", "cputime_sec"},
-		"Rolledup":   SFS{"Number of rolled-up processes, minus 1", "rolledup"},
-		"Flags":      SFS{"Bit vector of flags, UTSL", ""},
-		"CpuUtilPct": SFS{"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)", "cpu_util_pct"},
-	},
-)
-
-func init() {
-	// These are needed for true roundtripping but they can't be defined as aliases because the
-	// field names would be the underlying names, which is not what we want.  This way it's
-	// compatible with the Rust code.
-	parseFormatters["v"] = parseFormatters["version"]
-	parseFormatters["cpu%"] = parseFormatters["cpu_pct"]
-	parseFormatters["gpu%"] = parseFormatters["gpu_pct"]
-	parseFormatters["gpumem%"] = parseFormatters["gpumem_pct"]
-	parseFormatters["gpufail"] = parseFormatters["gpu_status"]
 }

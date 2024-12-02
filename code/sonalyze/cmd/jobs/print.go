@@ -3,62 +3,167 @@ package jobs
 import (
 	"cmp"
 	"io"
-	"math"
 	"slices"
-	"strings"
-
-	uslices "go-utils/slices"
 
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-// TODO: Several commands have the constraint that certain fields require a config, and aliases
-// continue to be a headache too.  It's dumb to have multiple tables.  Possibly better to add the
-// constraint to the field definition and let shared logic take care of it.
-//
-// (In practice there is always a config for remote commands so this is a hazard only for local
-// uses.)
+// TODO general
+//  - generate type description automatically in Help strings
+//  - run relative tests, clean up
 
-var relativeFields = map[string]bool{
-	"RelativeCpuAvgPct":             true,
-	"rcpu-avg":                      true,
-	"RelativeCpuPeakPct":            true,
-	"rcpu-peak":                     true,
-	"RelativeMemAvgPct":             true,
-	"rmem-avg":                      true,
-	"RelativeMemPeakPct":            true,
-	"rmem-peak":                     true,
-	"RelativeResidentMemAvgPct":     true,
-	"rres-avg":                      true,
-	"RelativeResidentMemPeakPct":    true,
-	"rres-peak":                     true,
-	"RelativeGpuAvgPct":             true,
-	"rgpu-avg":                      true,
-	"RelativeGpuPeakPct":            true,
-	"rgpu-peak":                     true,
-	"RelativeGpuMemAvgPct":          true,
-	"rgpumem-avg":                   true,
-	"RelativeGpuMemPeakPct":         true,
-	"rgpumem-peak":                  true,
-	"OccupiedRelativeGpuAvgPct":     true,
-	"sgpu-avg":                      true,
-	"OccupiedRelativeGpuPeakPct":    true,
-	"sgpu-peak":                     true,
-	"OccupiedRelativeGpuMemAvgPct":  true,
-	"sgpumem-avg":                   true,
-	"OccupiedRelativeGpuMemPeakPct": true,
-	"sgpumem-peak":                  true,
-}
+//go:generate ../../../generate-table/generate-table -o jobs-table.go print.go
 
-func (jc *JobsCommand) printRequiresConfig() bool {
-	for _, f := range jc.PrintFields {
-		if relativeFields[f.Name] {
-			return true
-		}
-	}
-	return false
-}
+/*TABLE jobs
+
+package jobs
+
+import (
+  "go-utils/gpuset"
+    . "sonalyze/common"
+	. "sonalyze/table"
+)
+
+type GpuSet = gpuset.GpuSet
+
+%%
+
+FIELDS *jobSummary
+
+  JobAndMark         string        desc:"Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window" alias:"jobm"
+  Job                int           desc:"Job ID" alias:"job" field:"JobId"
+  User               Ustr          desc:"Name of user running the job" alias:"user"
+  Duration           DurationValue desc:"Duration of job: time of last observation minus time of first" alias:"duration"
+  Start              DateTimeValue desc:"Time of first observation" alias:"start"
+  End                DateTimeValue desc:"Time of last observation" alias:"end"
+  CpuAvgPct          IntCeil       desc:"Average CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctAvg]" alias:"cpu-avg"
+  RelativeCpuAvgPct  IntCeil       desc:"Average relative CPU utilization in percent (100% = all cores)" field:"computed[kRcpuPctAvg]" alias:"cpu-peak"
+  CpuPeakPct         IntCeil       desc:"Peak CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctPeak]" alias:"rcpu-avg"
+  RelativeCpuPeakPct IntCeil       desc:"Peak relative CPU utilization in percent (100% = all cores)" field:"computed[kRcpuPctPeak]" alias:"rcpu-peak"
+  MemAvgGB           IntCeil       desc:"Average main virtual memory utilization in GB" field:"computed[kCpuGBAvg]" alias:"mem-avg"
+  MemPeakGB          IntCeil       desc:"Peak main virtual memory utilization in GB" field:"computed[kCpuGBPeak]" alias:"mem-peak"
+  RelativeMemAvgPct  IntCeil       desc:"Average relative main virtual memory utilization in percent (100% = system RAM)" \
+                                   field:"computed[kRcpuGBAvg]" alias:"rmem-avg"
+  RelativeMemPeakPct IntCeil       desc:"Peak relative main virtual memory utilization in percent (100% = system RAM)" \
+                                   field:"computed[kRcpuGBPeak]" alias:"rmem-peak"
+  ResidentMemAvgGB   IntCeil       desc:"Average main resident memory utilization in GB" field:"computed[kRssAnonGBAvg]" alias:"res-avg"
+  ResidentMemPeakGB  IntCeil       desc:"Peak main resident memory utilization in GB" field:"computed[kRssAnonGBPeak]" alias:"res-peak"
+  RelativeResidentMemAvgPct \
+                     IntCeil       desc:"Average relative main resident memory utilization in percent (100% = all RAM)" \
+                                   field:"computed[kRrssAnonGBAvg]" alias:"rres-avg"
+  RelativeResidentMemPeakPct \
+                     IntCeil       desc:"Peak relative main resident memory utilization in percent (100% = all RAM)" \
+                                   field:"computed[kRrssAnonGBPeak]" alias:"rres-peak"
+  GpuAvgPct          IntCeil       desc:"Average GPU utilization in percent (100% = 1 card)" field:"computed[kGpuPctAvg]" alias:"gpu-avg"
+  GpuPeakPct         IntCeil       desc:"Peak GPU utilization in percent (100% = 1 card)" field:"computed[kGpuPctPeak]" alias:"gpu-peak"
+  RelativeGpuAvgPct  IntCeil       desc:"Average relative GPU utilization in percent (100% = all cards)" field:"computed[kRgpuPctAvg]" alias:"rgpu-avg"
+  RelativeGpuPeakPct IntCeil       desc:"Peak relative GPU utilization in percent (100% = all cards)" field:"computed[kRgpuPctPeak]" alias:"rgpu-peak"
+  OccupiedRelativeGpuAvgPct \
+                     IntCeil       desc:"Average relative GPU utilization in percent (100% = all cards used by job)" \
+                                   field:"computed[kSgpuPctAvg]" alias:"sgpu-avg"
+  OccupiedRelativeGpuPeakPct \
+                     IntCeil       desc:"Peak relative GPU utilization in percent (100% = all cards used by job)" \
+                                   field:"computed[kSgpuPctPeak]" alias:"sgpu-peak"
+  GpuMemAvgGB        IntCeil       desc:"Average resident GPU memory utilization in GB" field:"computed[kGpuGBAvg]" alias:"gpumem-avg"
+  GpuMemPeakGB       IntCeil       desc:"Peak resident GPU memory utilization in GB" field:"computed[kGpuGBPeak]" alias:"gpumem-peak"
+  RelativeGpuMemAvgPct \
+                     IntCeil       desc:"Average relative GPU resident memory utilization in percent (100% = all GPU RAM)" \
+                                   field:"computed[kRgpuGBAvg]" alias:"rgpumem-avg"
+  RelativeGpuMemPeakPct \
+                     IntCeil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)" \
+                                   field:"computed[kRgpuGBPeak]" alias:"rgpumem-peak"
+  OccupiedRelativeGpuMemAvgPct \
+                     IntCeil       desc:"Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
+                                   field:"computed[kSgpuGBAvg]" alias:"sgpumem-avg"
+  OccupiedRelativeGpuMemPeakPct \
+                     IntCeil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
+                                   field:"computed[kSgpuGBPeak]" alias:"sgpumem-peak"
+  Gpus               GpuSet        desc:"GPU device numbers used by the job, 'none' if none or 'unknown' in error states" alias:"gpus"
+  GpuFail            int           desc:"Flag indicating GPU status (0=Ok, 1=Failing)" alias:"gpufail"
+  Cmd                string        desc:"The commands invoking the processes of the job" alias:"cmd"
+  Host               string        desc:"List of the host name(s) running the job (first elements of FQDNs, compressed)" alias:"host"
+  Now                DateTimeValue desc:"The current time" alias:"now"
+  Classification     int           desc:"Bit vector of live-at-start (2) and live-at-end (1) flags" alias:"classification"
+  CpuTime            DurationValue desc:"Total CPU time of the job across all cores" alias:"cputime"
+  GpuTime            DurationValue desc:"Total GPU time of the job across all cards" alias:"gputime"
+
+  # NOTE!  The slurm fields (via *sacctInfo) are checked for in perform.go.  We can add more slurm
+  # fields here but if so they must also be added there.
+
+  Submit             DateTimeValue desc:"Submit time of job (Slurm)" indirect:"sacctInfo"
+  JobName            string        desc:"Name of job (Slurm)" indirect:"sacctInfo"
+  State              string        desc:"Completion state of job (Slurm)" indirect:"sacctInfo"
+  Account            string        desc:"Name of job's account (Slurm)" indirect:"sacctInfo"
+  Layout             string        desc:"Layout spec of job (Slurm)" indirect:"sacctInfo"
+  Reservation        string        desc:"Name of job's reservation (Slurm)" indirect:"sacctInfo"
+  Partition          string        desc:"Partition of job (Slurm)" indirect:"sacctInfo"
+  RequestedGpus      string        desc:"Names of requested GPUs (Slurm AllocTRES)" indirect:"sacctInfo" field:"ReqGPUS"
+  DiskReadAvgGB      int           desc:"Average disk read activity in GB/s (Slurm AveDiskRead)" indirect:"sacctInfo" field:"AveDiskRead"
+  DiskWriteAvgGB     int           desc:"Average disk write activity in GB/s (Slurm AveDiskWrite)" indirect:"sacctInfo" field:"AveDiskWrite"
+  RequestedCpus      int           desc:"Number of requested CPUs (Slurm)" indirect:"sacctInfo" field:"ReqCPUS"
+  RequestedMemGB     int           desc:"Requested memory (Slurm)" indirect:"sacctInfo" field:"ReqMem"
+  RequestedNodes     int           desc:"Number of requested nodes (Slurm)" indirect:"sacctInfo" field:"ReqNodes"
+  TimeLimit          DurationValue desc:"Elapsed time limit (Slurm)" indirect:"sacctInfo" field:"TimelimitRaw"
+  ExitCode           int           desc:"Exit code of job (Slurm)" indirect:"sacctInfo"
+
+HELP JobsCommand
+
+  Aggregate process data into data about "jobs" and present them.  Output
+  records are sorted in order of increasing start time of the job. The default
+  format is 'fixed'.
+
+ALIASES
+
+  all         jobm,job,user,duration,duration/sec,start,start/sec,end,end/sec,cpu-avg,cpu-peak,rcpu-avg,\
+              rcpu-peak,mem-avg,mem-peak,rmem-avg,rmem-peak,res-avg,res-peak,rres-avg,rres-peak,gpu-avg,\
+              gpu-peak,rgpu-avg,rgpu-peak,sgpu-avg,sgpu-peak,gpumem-avg,gpumem-peak,rgpumem-avg,rgpumem-peak,\
+              sgpumem-avg,sgpumem-peak,gpus,gpufail,cmd,host,now,now/sec,classification,cputime/sec,cputime,\
+              gputime/sec,gputime
+  std         jobm,user,duration,host
+  cpu         cpu-avg,cpu-peak
+  rcpu        rcpu-avg,rcpu-peak
+  mem         mem-avg,mem-peak
+  rmem        rmem-avg,rmem-peak
+  res         res-avg,res-peak
+  rres        rres-avg,rres-peak
+  gpu         gpu-avg,gpu-peak
+  rgpu        rgpu-avg,rgpu-peak
+  sgpu        sgpu-avg,sgpu-peak
+  gpumem      gpumem-avg,gpumem-peak
+  rgpumem     rgpumem-avg,rgpumem-peak
+  sgpumem     sgpumem-avg,sgpumem-peak
+  All         JobAndMark,Job,User,Duration,Duration/sec,Start,Start/sec,End,End/sec,CpuAvgPct,CpuPeakPct,\
+              RelativeCpuAvgPct,RelativeCpuPeakPct,MemAvgGB,MemPeakGB,RelativeMemAvgPct,RelativeMemPeakPct,\
+              ResidentMemAvgGB,ResidentMemPeakGB,RelativeResidentMemAvgPct,RelativeResidentMemPeakPct,\
+              GpuAvgPct,GpuPeakPct,RelativeGpuAvgPct,RelativeGpuPeakPct,OccupiedRelativeGpuAvgPct,\
+              OccupiedRelativeGpuPeakPct,GpuMemAvgGB,GpuMemPeakGB,RelativeGpuMemAvgPct,\
+              RelativeGpuMemPeakPct,OccupiedRelativeGpuMemAvgPct,OccupiedRelativeGpuMemPeakPct,Gpus,GpuFail,\
+              Cmd,Host,Now,Now/sec,Classification,CpuTime/sec,CpuTime,GpuTime/sec,GpuTime
+  Std         JobAndMark,User,Duration,Host
+  Cpu         CpuAvgPct,CpuPeakPct
+  RelativeCpu RelativeCpuAvgPct,RelativeCpuPeakPct
+  Mem         MemAvgGB,MemPeakGB
+  RelativeMem RelativeMemAvgPct,RelativeMemPeakPct
+  ResidentMem ResidentMemAvgGB,ResidentMemPeakGB
+  RelativeResidentMem \
+              RelativeResidentMemAvgPct,RelativeResidentMemPeakPct
+  Gpu         GpuAvgPct,GpuPeakPct
+  RelativeGpu RelativeGpuAvgPct,RelativeGpuPeakPct
+  OccupiedRelativeGpu \
+              OccupiedRelativeGpuAvgPct,OccupiedRelativeGpuPeakPct
+  GpuMem      GpuMemAvgPct,GpuMemPeakPct
+  RelativeGpuMem \
+              RelativeGpuMemAvgPct,RelativeGpuMemPeakPct
+  OccupiedRelativeGpuMem \
+              OccupiedRelativeGpuMemAvgPct,OccupiedRelativeGpuMemPeakPct
+
+  default     std,cpu,mem,gpu,gpumem,cmd
+  Default     Std,Cpu,Mem,Gpu,GpuMem,Cmd
+
+DEFAULTS default
+
+ELBAT*/
 
 func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary) error {
 	// Sort ascending by lowest beginning timestamp, and if those are equal, by job number.
@@ -95,517 +200,14 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 		Log.Infof("Number of jobs after output filtering: %d", len(summaries)-numRemoved)
 	}
 
-	// Pick the summaries that have been selected
-	dst := 0
-	for src := 0; src < len(summaries); src++ {
-		if summaries[src].selected {
-			summaries[dst] = summaries[src]
-			dst++
-		}
-	}
-	summaries = summaries[:dst]
-
+	summaries = slices.DeleteFunc(summaries, func(s *jobSummary) bool { return !s.selected })
 	FormatData(
 		out,
 		jc.PrintFields,
 		jobsFormatters,
 		jc.PrintOpts,
-		uslices.Map(summaries, func(x *jobSummary) any { return x }),
+		summaries,
 	)
+
 	return nil
-}
-
-func (jc *JobsCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(jc.Fmt, jobsHelp, jobsFormatters, jobsAliases, jobsDefaultFields)
-}
-
-const jobsHelp = `
-jobs
-  Aggregate process data into data about "jobs" and present them.  Output
-  records are sorted in order of increasing start time of the job. The default
-  format is 'fixed'.
-`
-
-const v0JobsDefaultFields = "std,cpu,mem,gpu,gpumem,cmd"
-const v1JobsDefaultFields = "Std,Cpu,Mem,Gpu,GpuMem,Cmd"
-const jobsDefaultFields = v0JobsDefaultFields
-
-// Instead of struggling with how to represent formatters for the indexed accesses, just define
-// the formatters directly, and handle aliases below.
-
-// MT: Constant after initialization; immutable
-var jobsFormatters = map[string]Formatter{
-	"JobAndMark": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatString(d.(*jobSummary).JobAndMark, ctx)
-		},
-		Help: "Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window",
-	},
-	"Job": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(d.(*jobSummary).JobId), ctx)
-		},
-		Help: "Job ID",
-	},
-	"User": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatString(d.(*jobSummary).User.String(), ctx)
-		},
-		Help: "Name of user running the job",
-	},
-	"Duration": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatDurationValue(int64(d.(*jobSummary).Duration), ctx)
-		},
-		Help: "Duration of job: time of last observation minus time of first",
-	},
-	"Start": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatDateTimeValue(int64(d.(*jobSummary).Start), ctx)
-		},
-		Help: "Time of first observation",
-	},
-	"End": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatDateTimeValue(int64(d.(*jobSummary).End), ctx)
-		},
-		Help: "Time of last observation",
-	},
-	"CpuAvgPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kCpuPctAvg])), ctx)
-		},
-		Help: "Average CPU utilization in percent (100% = 1 core)",
-	},
-	"CpuPeakPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kCpuPctPeak])), ctx)
-		},
-		Help: "Peak CPU utilization in percent (100% = 1 core)",
-	},
-	"RelativeCpuAvgPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRcpuPctAvg])), ctx)
-		},
-		Help: "Average relative CPU utilization in percent (100% = all cores)",
-	},
-	"RelativeCpuPeakPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRcpuPctPeak])), ctx)
-		},
-		Help: "Peak relative CPU utilization in percent (100% = all cores)",
-	},
-	"MemAvgGB": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kCpuGBAvg])), ctx)
-		},
-		Help: "Average main virtual memory utilization in GB",
-	},
-	"MemPeakGB": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kCpuGBPeak])), ctx)
-		},
-		Help: "Peak main virtual memory utilization in GB",
-	},
-	"RelativeMemAvgPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRcpuGBAvg])), ctx)
-		},
-		Help: "Average relative main virtual memory utilization in percent (100% = system RAM)",
-	},
-	"RelativeMemPeakPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(uint64(math.Ceil(d.(*jobSummary).computed[kRcpuGBPeak])), ctx)
-		},
-		Help: "Peak relative main virtual memory utilization in percent (100% = system RAM)",
-	},
-	"ResidentMemAvgGB": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRssAnonGBAvg])), ctx)
-		},
-		Help: "Average main resident memory utilization in GB",
-	},
-	"ResidentMemPeakGB": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(uint64(math.Ceil(d.(*jobSummary).computed[kRssAnonGBPeak])), ctx)
-		},
-		Help: "Peak main resident memory utilization in GB",
-	},
-	"RelativeResidentMemAvgPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRrssAnonGBAvg])), ctx)
-		},
-		Help: "Average relative main resident memory utilization in percent (100% = all RAM)",
-	},
-	"RelativeResidentMemPeakPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRrssAnonGBPeak])), ctx)
-		},
-		Help: "Peak relative main resident memory utilization in percent (100% = all RAM)",
-	},
-	"GpuAvgPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kGpuPctAvg])), ctx)
-		},
-		Help: "Average GPU utilization in percent (100% = 1 card)",
-	},
-	"GpuPeakPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kGpuPctPeak])), ctx)
-		},
-		Help: "Peak GPU utilization in percent (100% = 1 card)",
-	},
-	"RelativeGpuAvgPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRgpuPctAvg])), ctx)
-		},
-		Help: "Average relative GPU utilization in percent (100% = all cards)",
-	},
-	"RelativeGpuPeakPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRgpuPctPeak])), ctx)
-		},
-		Help: "Peak relative GPU utilization in percent (100% = all cards)",
-	},
-	"OccupiedRelativeGpuAvgPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kSgpuPctAvg])), ctx)
-		},
-		Help: "Average relative GPU utilization in percent (100% = all cards used by job)",
-	},
-	"OccupiedRelativeGpuPeakPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kSgpuPctPeak])), ctx)
-		},
-		Help: "Peak relative GPU utilization in percent (100% = all cards used by job)",
-	},
-	"GpuMemAvgGB": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kGpuGBAvg])), ctx)
-		},
-		Help: "Average resident GPU memory utilization in GB",
-	},
-	"GpuMemPeakGB": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kGpuGBPeak])), ctx)
-		},
-		Help: "Peak resident GPU memory utilization in GB",
-	},
-	"RelativeGpuMemAvgPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRgpuGBAvg])), ctx)
-		},
-		Help: "Average relative GPU resident memory utilization in percent (100% = all GPU RAM)",
-	},
-	"RelativeGpuMemPeakPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kRgpuGBPeak])), ctx)
-		},
-		Help: "Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)",
-	},
-	"OccupiedRelativeGpuMemAvgPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kSgpuGBAvg])), ctx)
-		},
-		Help: "Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
-	},
-	"OccupiedRelativeGpuMemPeakPct": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(math.Ceil(d.(*jobSummary).computed[kSgpuGBPeak])), ctx)
-		},
-		Help: "Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
-	},
-	"Gpus": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatGpuSet(d.(*jobSummary).Gpus, ctx)
-		},
-		Help: "GPU device numbers used by the job, 'none' if none or 'unknown' in error states",
-	},
-	"GpuFail": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(d.(*jobSummary).GpuFail), ctx)
-		},
-		Help: "Flag indicating GPU status (0=Ok, 1=Failing)",
-	},
-	"Cmd": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatString(d.(*jobSummary).Cmd, ctx)
-		},
-		Help: "The commands invoking the processes of the job",
-	},
-	"Host": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatString(d.(*jobSummary).Host, ctx)
-		},
-		Help: "List of the host name(s) running the job (first elements of FQDNs, compressed)",
-	},
-	"Now": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatDateTimeValue(int64(d.(*jobSummary).Now), ctx)
-		},
-		Help: "The current time",
-	},
-	"Classification": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatInt64(int64(d.(*jobSummary).Classification), ctx)
-		},
-		Help: "Bit vector of live-at-start (2) and live-at-end (1) flags",
-	},
-	"CpuTime": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatDurationValue(int64(d.(*jobSummary).CpuTime), ctx)
-		},
-		Help: "Total CPU time of the job across all cores",
-	},
-	"GpuTime": {
-		Fmt: func(d any, ctx PrintMods) string {
-			return FormatDurationValue(int64(d.(*jobSummary).GpuTime), ctx)
-		},
-		Help: "Total GPU time of the job across all cards",
-	},
-	// Slurm fields.  Note the sacctInfo field may be nil.  It shouldn't usually be nil b/c if any
-	// of these fields are printed it should have been populated, but the lookup can fail for
-	// legitimate reasons.
-	//
-	// But then what do we return?
-	//
-	// Note these names are checked for in perform.go!  We can add more fields here but if so must
-	// also add them there.
-	"Submit": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatDateTimeValue(p.sacctInfo.Submit, ctx)
-			}
-			return "?"
-		},
-		Help: "Submit time of job (Slurm)",
-	},
-	"JobName": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatString(p.sacctInfo.JobName.String(), ctx)
-			}
-			return "?"
-		},
-		Help: "Name of job (Slurm)",
-	},
-	"State": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatString(p.sacctInfo.State.String(), ctx)
-			}
-			return "?"
-		},
-		Help: "Completion state of job (Slurm)",
-	},
-	"Account": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatString(p.sacctInfo.Account.String(), ctx)
-			}
-			return "?"
-		},
-		Help: "Name of job's account (Slurm)",
-	},
-	"Layout": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatString(p.sacctInfo.Layout.String(), ctx)
-			}
-			return "?"
-		},
-		Help: "Layout spec of job (Slurm)",
-	},
-	"Reservation": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatString(p.sacctInfo.Reservation.String(), ctx)
-			}
-			return "?"
-		},
-		Help: "Name of job's reservation (Slurm)",
-	},
-	"Partition": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatString(p.sacctInfo.Partition.String(), ctx)
-			}
-			return "?"
-		},
-		Help: "Partition of job (Slurm)",
-	},
-	"RequestedGpus": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatString(p.sacctInfo.ReqGPUS.String(), ctx)
-			}
-			return "?"
-		},
-		Help: "Names of requested GPUs (Slurm AllocTRES)",
-	},
-	"DiskReadAvgGB": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatInt64(uint64(p.sacctInfo.AveDiskRead), ctx)
-			}
-			return "?"
-		},
-		// FIXME: Not sure about the doc here
-		Help: "Average disk read activity in GB/s (Slurm AveDiskRead)",
-	},
-	"DiskWriteAvgGB": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatInt64(uint64(p.sacctInfo.AveDiskWrite), ctx)
-			}
-			return "?"
-		},
-		// FIXME: Not sure about the doc here
-		Help: "Average disk write activity in GB/s (Slurm AveDiskWrite)",
-	},
-	"RequestedCpus": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatInt64(uint64(p.sacctInfo.ReqCPUS), ctx)
-			}
-			return "?"
-		},
-		Help: "Number of requested CPUs (Slurm)",
-	},
-	"RequestedMemGB": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatInt64(uint64(p.sacctInfo.ReqMem), ctx)
-			}
-			return "?"
-		},
-		Help: "Requested memory (Slurm)",
-	},
-	"RequestedNodes": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatInt64(uint64(p.sacctInfo.ReqNodes), ctx)
-			}
-			return "?"
-		},
-		Help: "Number of requested nodes (Slurm)",
-	},
-	"TimeLimit": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatDurationValue(int64(p.sacctInfo.TimelimitRaw), ctx)
-			}
-			return "?"
-		},
-		Help: "Elapsed time limit (Slurm)",
-	},
-	"ExitCode": {
-		Fmt: func(d any, ctx PrintMods) string {
-			if p := d.(*jobSummary); p.sacctInfo != nil {
-				return FormatInt64(uint64(p.sacctInfo.ExitCode), ctx)
-			}
-			return "?"
-		},
-		Help: "Exit code of job (Slurm)",
-	},
-}
-
-func init() {
-	// Define aliases for the traditional names
-	DefAlias(jobsFormatters, "JobAndMark", "jobm")
-	DefAlias(jobsFormatters, "Job", "job")
-	DefAlias(jobsFormatters, "User", "user")
-	DefAlias(jobsFormatters, "Duration", "duration")
-	DefAlias(jobsFormatters, "Start", "start")
-	DefAlias(jobsFormatters, "End", "end")
-	DefAlias(jobsFormatters, "CpuAvgPct", "cpu-avg")
-	DefAlias(jobsFormatters, "CpuPeakPct", "cpu-peak")
-	DefAlias(jobsFormatters, "RelativeCpuAvgPct", "rcpu-avg")
-	DefAlias(jobsFormatters, "RelativeCpuPeakPct", "rcpu-peak")
-	DefAlias(jobsFormatters, "MemAvgGB", "mem-avg")
-	DefAlias(jobsFormatters, "MemPeakGB", "mem-peak")
-	DefAlias(jobsFormatters, "RelativeMemAvgPct", "rmem-avg")
-	DefAlias(jobsFormatters, "RelativeMemPeakPct", "rmem-peak")
-	DefAlias(jobsFormatters, "ResidentMemAvgGB", "res-avg")
-	DefAlias(jobsFormatters, "ResidentMemPeakGB", "res-peak")
-	DefAlias(jobsFormatters, "RelativeResidentMemAvgPct", "rres-avg")
-	DefAlias(jobsFormatters, "RelativeResidentMemPeakPct", "rres-peak")
-	DefAlias(jobsFormatters, "GpuAvgPct", "gpu-avg")
-	DefAlias(jobsFormatters, "GpuPeakPct", "gpu-peak")
-	DefAlias(jobsFormatters, "RelativeGpuAvgPct", "rgpu-avg")
-	DefAlias(jobsFormatters, "RelativeGpuPeakPct", "rgpu-peak")
-	DefAlias(jobsFormatters, "OccupiedRelativeGpuAvgPct", "sgpu-avg")
-	DefAlias(jobsFormatters, "OccupiedRelativeGpuPeakPct", "sgpu-peak")
-	DefAlias(jobsFormatters, "GpuMemAvgGB", "gpumem-avg")
-	DefAlias(jobsFormatters, "GpuMemPeakGB", "gpumem-peak")
-	DefAlias(jobsFormatters, "RelativeGpuMemAvgPct", "rgpumem-avg")
-	DefAlias(jobsFormatters, "RelativeGpuMemPeakPct", "rgpumem-peak")
-	DefAlias(jobsFormatters, "OccupiedRelativeGpuMemAvgPct", "sgpumem-avg")
-	DefAlias(jobsFormatters, "OccupiedRelativeGpuMemPeakPct", "sgpumem-peak")
-	DefAlias(jobsFormatters, "Gpus", "gpus")
-	DefAlias(jobsFormatters, "GpuFail", "gpufail")
-	DefAlias(jobsFormatters, "Cmd", "cmd")
-	DefAlias(jobsFormatters, "Host", "host")
-	DefAlias(jobsFormatters, "Now", "now")
-	DefAlias(jobsFormatters, "Classification", "classification")
-	DefAlias(jobsFormatters, "CpuTime", "cputime")
-	DefAlias(jobsFormatters, "GpuTime", "gputime")
-}
-
-// Probably add fields to `all` and `All`
-
-// MT: Constant after initialization; immutable
-var jobsAliases = map[string][]string{
-	// Traditional names
-	"default": strings.Split(v0JobsDefaultFields, ","),
-	"all": []string{
-		"jobm", "job", "user", "duration", "duration/sec", "start", "start/sec", "end", "end/sec",
-		"cpu-avg", "cpu-peak", "rcpu-avg", "rcpu-peak", "mem-avg", "mem-peak", "rmem-avg",
-		"rmem-peak", "res-avg", "res-peak", "rres-avg", "rres-peak", "gpu-avg", "gpu-peak",
-		"rgpu-avg", "rgpu-peak", "sgpu-avg", "sgpu-peak", "gpumem-avg", "gpumem-peak",
-		"rgpumem-avg", "rgpumem-peak", "sgpumem-avg", "sgpumem-peak", "gpus", "gpufail",
-		"cmd", "host", "now", "now/sec", "classification", "cputime/sec", "cputime",
-		"gputime/sec", "gputime",
-	},
-	"std":     []string{"jobm", "user", "duration", "host"},
-	"cpu":     []string{"cpu-avg", "cpu-peak"},
-	"rcpu":    []string{"rcpu-avg", "rcpu-peak"},
-	"mem":     []string{"mem-avg", "mem-peak"},
-	"rmem":    []string{"rmem-avg", "rmem-peak"},
-	"res":     []string{"res-avg", "res-peak"},
-	"rres":    []string{"rres-avg", "rres-peak"},
-	"gpu":     []string{"gpu-avg", "gpu-peak"},
-	"rgpu":    []string{"rgpu-avg", "rgpu-peak"},
-	"sgpu":    []string{"sgpu-avg", "sgpu-peak"},
-	"gpumem":  []string{"gpumem-avg", "gpumem-peak"},
-	"rgpumem": []string{"rgpumem-avg", "rgpumem-peak"},
-	"sgpumem": []string{"sgpumem-avg", "sgpumem-peak"},
-
-	// New names
-	"Default": strings.Split(v1JobsDefaultFields, ","),
-	"All": []string{
-		"JobAndMark", "Job", "User", "Duration", "Duration/sec", "Start", "Start/sec", "End",
-		"End/sec", "CpuAvgPct", "CpuPeakPct", "RelativeCpuAvgPct", "RelativeCpuPeakPct", "MemAvgGB",
-		"MemPeakGB", "RelativeMemAvgPct", "RelativeMemPeakPct", "ResidentMemAvgGB",
-		"ResidentMemPeakGB", "RelativeResidentMemAvgPct", "RelativeResidentMemPeakPct",
-		"GpuAvgPct", "GpuPeakPct", "RelativeGpuAvgPct", "RelativeGpuPeakPct",
-		"OccupiedRelativeGpuAvgPct", "OccupiedRelativeGpuPeakPct", "GpuMemAvgGB",
-		"GpuMemPeakGB", "RelativeGpuMemAvgPct", "RelativeGpuMemPeakPct",
-		"OccupiedRelativeGpuMemAvgPct", "OccupiedRelativeGpuMemPeakPct", "Gpus", "GpuFail",
-		"Cmd", "Host", "Now", "Now/sec", "Classification", "CpuTime/sec", "CpuTime",
-		"GpuTime/sec", "GpuTime",
-	},
-	"Std":                    []string{"JobAndMark", "User", "Duration", "Host"},
-	"Cpu":                    []string{"CpuAvgPct", "CpuPeakPct"},
-	"RelativeCpu":            []string{"RelativeCpuAvgPct", "RelativeCpuPeakPct"},
-	"Mem":                    []string{"MemAvgGB", "MemPeakGB"},
-	"RelativeMem":            []string{"RelativeMemAvgPct", "RelativeMemPeakPct"},
-	"ResidentMem":            []string{"ResidentMemAvgGB", "ResidentMemPeakGB"},
-	"RelativeResidentMem":    []string{"RelativeResidentMemAvgPct", "RelativeResidentMemPeakPct"},
-	"Gpu":                    []string{"GpuAvgPct", "GpuPeakPct"},
-	"RelativeGpu":            []string{"RelativeGpuAvgPct", "RelativeGpuPeakPct"},
-	"OccupiedRelativeGpu":    []string{"OccupiedRelativeGpuAvgPct", "OccupiedRelativeGpuPeakPct"},
-	"GpuMem":                 []string{"GpuMemAvgPct", "GpuMemPeakPct"},
-	"RelativeGpuMem":         []string{"RelativeGpuMemAvgPct", "RelativeGpuMemPeakPct"},
-	"OccupiedRelativeGpuMem": []string{"OccupiedRelativeGpuMemAvgPct", "OccupiedRelativeGpuMemPeakPct"},
 }

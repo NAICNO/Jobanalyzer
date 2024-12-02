@@ -123,7 +123,7 @@ func (jc *JobsCommand) Perform(
 		Log.Infof("Samples retained after filtering: %d", numSamples)
 	}
 
-	if jc.printRequiresConfig() {
+	if NeedsConfig(jobsFormatters, jc.PrintFields) {
 		var err error
 		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
 		if err != nil {
