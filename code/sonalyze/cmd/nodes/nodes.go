@@ -257,3 +257,32 @@ var nodesAliases = map[string][]string{
 // GpuCards    int    desc:"Number of installed cards" alias:"gpus"
 // GpuMemGB    int    desc:"Total GPU memory across all cards" alias:"gpumem"
 // GpuMemPct   bool   desc:"True if GPUs report accurate memory usage in percent" alias:"gpumempct"
+
+// This should be generated from the above, like formatters
+//
+// Probably we can make to with fewer functions cf x86 fp instructions
+
+var nodesQuery = map[string]QueryField[config.NodeConfigRecord] {
+	"MemGB": {
+		Convert: CvtToInt,
+		FilterEqual: func(d *config.NodeConfigRecord, v any) bool {
+			return d.MemGB == v.(int)
+		},
+		FilterLess: func(d *config.NodeConfigRecord, v any) bool {
+			return d.MemGB < v.(int)
+		},
+		FilterLessOrEqual: func(d *config.NodeConfigRecord, v any) bool {
+			return d.MemGB <= v.(int)
+		},
+		FilterGreater: func(d *config.NodeConfigRecord, v any) bool {
+			return d.MemGB > v.(int)
+		},
+		FilterGreaterOrEqual: func(d *config.NodeConfigRecord, v any) bool {
+			return d.MemGB >= v.(int)
+		},
+	},
+}
+
+func CvtToInt(s string) (any, error) {
+	panic("NYI")
+}
