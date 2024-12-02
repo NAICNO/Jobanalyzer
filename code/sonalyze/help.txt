@@ -153,16 +153,18 @@ Summary of control options:
   noheader    do not print a header line
   tag:<value> print a column called "tag" last with <value> in every row
 
-Summary of print modifiers:
+Summary of print modifiers and formats:
 
-  Timestamps are normally printed on the form "YYYY-MM-DD HH:MM" but can be
-  be modified by /sec and /iso to print seconds since epoch and RFC3339 dates:
+  Timestamps (of type DateTimeValue) are normally printed on the form
+  "YYYY-MM-DD HH:MM" but can be be modified by /sec and /iso to print
+  seconds since epoch and RFC3339 dates:
 
     Timestamp/sec -> 1732112701
     Timestamp/iso -> 2024-11-20T14:25:01Z
 
-  Durations are normally printed on the form _d_h_m (days, hours, and minutes)
-  but can be modified by /sec to print second counts:
+  Durations (of type DurationValue) are normally printed on the form _d_h_m
+  (days, hours, and minutes) but can be modified by /sec to print second
+  counts:
 
     duration/sec  -> 12345
 
@@ -171,6 +173,10 @@ Summary of print modifiers:
 
     JobName       -> supercalifragilisticexpialidocious
     JobName/m30   -> supercalifragilisticexpialidoc
+
+  Dates (of type DateValue) are printed as "YYYY-MM-DD".
+
+  Times (of type TimeValue) are printed as "HH:MM".
 
 ## Available field names
 

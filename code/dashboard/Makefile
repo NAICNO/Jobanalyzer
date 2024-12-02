@@ -1,6 +1,6 @@
-.PHONY: default build fmt clean test
+.PHONY: default build fmt generate clean test
 
-default build fmt clean:
+default build fmt generate clean:
 
 test:
 	./run_tests.sh

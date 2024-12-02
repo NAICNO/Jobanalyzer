@@ -17,9 +17,9 @@ for fmt in fixed csv csvnamed awk; do
 done
 
 for fmt in fixed csv awk; do
-    echo "Format old: $fmt,v1default"
+    echo "Format old: $fmt,Default"
     $OLD_SONALYZE parse -data-dir "$DATA_PATH" -config-file "$CONFIG" -f 2d -t 1d -fmt $fmt,noheader,job,user,cmd | sort > old-output.txt
-    $NEW_SONALYZE parse -data-dir "$DATA_PATH" -config-file "$CONFIG" -f 2d -t 1d -fmt $fmt,noheader,v1default | sort > new-output.txt
+    $NEW_SONALYZE parse -data-dir "$DATA_PATH" -config-file "$CONFIG" -f 2d -t 1d -fmt $fmt,noheader,Default | sort > new-output.txt
     diff -b old-output.txt new-output.txt
     rm -f old-output.txt new-output.txt
 done

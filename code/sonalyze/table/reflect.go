@@ -1,3 +1,6 @@
+// OBSOLETE, WILL BE REMOVED EVENTUALLY.  CODE SHOULD USE DECLARATIVE TABLES AND generate-table TO
+// IMPLEMENT TABLE LOGIC, NOT REFLECTION.
+//
 // Generate a table definition (currently just a map of formatters) from an annotated structure
 // types using reflection.
 //
@@ -48,8 +51,8 @@ var (
 func DefineTableFromTags(
 	structTy reflect.Type,
 	isExcluded map[string]bool,
-) (formatters map[string]Formatter) {
-	formatters = make(map[string]Formatter)
+) (formatters map[string]Formatter[any]) {
+	formatters = make(map[string]Formatter[any])
 	reflectStructFormatters(
 		structTy,
 		formatters,
@@ -128,8 +131,8 @@ type SynthesizedFormatSpecWithAttr struct {
 func DefineTableFromMap(
 	structTy reflect.Type,
 	fields map[string]any,
-) (formatters map[string]Formatter) {
-	formatters = make(map[string]Formatter)
+) (formatters map[string]Formatter[any]) {
+	formatters = make(map[string]Formatter[any])
 
 	// `synthesizable` is a map from a real field name to one synthesized spec that targets
 	// that real field name.
@@ -201,7 +204,7 @@ func DefineTableFromMap(
 
 func reflectStructFormatters(
 	structTy reflect.Type,
-	formatters map[string]Formatter,
+	formatters map[string]Formatter[any],
 	admissible func(fld reflect.StructField) (ok bool, name, desc string, aliases []string, attrs int),
 	synthesizable func(fld reflect.StructField) (ok bool, name, desc string, attrs int),
 ) {
@@ -226,10 +229,10 @@ func reflectStructFormatters(
 			} else {
 				continue
 			}
-			subFormatters := make(map[string]Formatter)
+			subFormatters := make(map[string]Formatter[any])
 			reflectStructFormatters(fldTy, subFormatters, admissible, synthesizable)
 			for name, fmt := range subFormatters {
-				f := Formatter{
+				f := Formatter[any]{
 					Help:    fmt.Help,
 					AliasOf: fmt.AliasOf,
 				}
@@ -248,7 +251,7 @@ func reflectStructFormatters(
 			}
 		} else {
 			if ok, name, desc, aliases, attrs := admissible(fld); ok {
-				f := Formatter{
+				f := Formatter[any]{
 					Help: desc,
 					Fmt:  reflectTypeFormatter(i, attrs, fld.Type),
 				}
@@ -267,7 +270,7 @@ func reflectStructFormatters(
 					//
 					// TODO: In principle there could be multiple synthesizable fields per fld, for now
 					// we'll require synthesizable (or earlier code) to panic if that case occurs.
-					f := Formatter{
+					f := Formatter[any]{
 						Help: desc,
 						Fmt:  reflectTypeFormatter(i, attrs, fld.Type),
 					}
@@ -286,7 +289,7 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 			if val == 0 && ty == dateTimeValueOrBlankTy {
 				return "                "
 			}
-			return FormatDateTimeValue(val, ctx)
+			return FormatDateTimeValue(DateTimeValue(val), ctx)
 		}
 	case ty == isoDateTimeOrUnknownTy:
 		return func(d any, ctx PrintMods) string {
@@ -294,12 +297,12 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 			if val == 0 {
 				return "Unknown"
 			}
-			return FormatDateTimeValue(int64(val), ctx|PrintModIso)
+			return FormatDateTimeValue(DateTimeValue(val), ctx|PrintModIso)
 		}
 	case ty == durationValueTy:
 		return func(d any, ctx PrintMods) string {
 			val := reflect.Indirect(reflect.ValueOf(d)).Field(ix).Int()
-			return FormatDurationValue(val, ctx)
+			return FormatDurationValue(DurationValue(val), ctx)
 		}
 	case ty == gpuSetTy:
 		return func(d any, ctx PrintMods) string {
@@ -369,13 +372,13 @@ func reflectTypeFormatter(ix int, attrs int, ty reflect.Type) func(any, PrintMod
 					val /= 1024 * 1024
 				}
 				if (attrs & FmtDateTimeValue) != 0 {
-					return FormatDateTimeValue(val, ctx)
+					return FormatDateTimeValue(DateTimeValue(val), ctx)
 				}
 				if (attrs & FmtIsoDateTimeValue) != 0 {
-					return FormatDateTimeValue(val, ctx|PrintModIso)
+					return FormatDateTimeValue(DateTimeValue(val), ctx|PrintModIso)
 				}
 				if (attrs & FmtDurationValue) != 0 {
-					return FormatDurationValue(val, ctx)
+					return FormatDurationValue(DurationValue(val), ctx)
 				}
 				return FormatInt64(val, ctx)
 			}

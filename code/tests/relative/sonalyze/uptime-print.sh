@@ -22,9 +22,9 @@ done
 
 # v0 and v1 default should print the same but the names are different so do only fixed, csv, awk
 for fmt in fixed csv awk; do
-    echo "Format old vs v1default: $fmt,v1default"
+    echo "Format old vs Default: $fmt,Default"
     $OLD_SONALYZE uptime -data-dir "$DATA_PATH" -f 20d -t 1d -config-file "$CONFIG" -interval 5 -fmt $fmt,noheader,device,host,state,start,end > old-output.txt
-    $NEW_SONALYZE uptime -data-dir "$DATA_PATH" -f 20d -t 1d -config-file "$CONFIG" -interval 5 -fmt $fmt,noheader,v1default > new-output.txt
+    $NEW_SONALYZE uptime -data-dir "$DATA_PATH" -f 20d -t 1d -config-file "$CONFIG" -interval 5 -fmt $fmt,noheader,Default > new-output.txt
     diff -b old-output.txt new-output.txt
     rm -f old-output.txt new-output.txt
 done

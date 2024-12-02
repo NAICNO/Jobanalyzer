@@ -56,30 +56,6 @@ import (
 	. "sonalyze/table"
 )
 
-// The time ranges are not clearly inclusive or exclusive, it depends on the data available.  We use
-// the inclusive end points of the total date range when we're at the ends of that range, and the
-// dates from a boundary Sample otherwise.  Adjacent reports will tend to overlap, by design, as the
-// date used for the end of one report is the same as the one for the beginning of the next.
-//
-// The start and end times are represented as strings to be compatible with the Rust code, which
-// rounds down the time to minute precision.  This matters only when there are some closely related
-// records in the data stream, which normally does not happen but can happen, and since the printing
-// code only prints times to minute precision the data would appear unsorted on output if we were to
-// use second precision internally.
-//
-// TODO: IMPROVEME: It's a bug in both the Rust code and this code that the folding of the timestamp
-// to string (and the rounding off to minute precision) happens *after* we determine the timeline.
-// In some cases, this will result in duplicate records in the output, where the data stream we
-// operated on had sub-minute precision and we constructed records according to that.  Mostly this
-// will happen when the data are somewhat wonky, but it's still wrong.
-type UptimeLine struct {
-	Device   string        `alias:"device" desc:"Device type: 'host' or 'gpu'"`
-	Hostname string        `alias:"host"   desc:"Host name for the device"`
-	State    string        `alias:"state"  desc:"Device state: 'up' or 'down'"`
-	Start    DateTimeValue `alias:"start"  desc:"Start time of 'up' or 'down' window"`
-	End      DateTimeValue `alias:"end"    desc:"End time of 'up' or 'down' window"`
-}
-
 // TODO: CLEANUP: The window is just a []sonarlog.Sample, the indices are a Rust-ism.
 type window struct {
 	start, end int // inclusive indices in `samples`

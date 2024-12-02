@@ -16,9 +16,7 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"reflect"
 	"slices"
-	"strings"
 	"time"
 
 	"go-utils/config"
@@ -31,6 +29,50 @@ import (
 	"sonalyze/db"
 	. "sonalyze/table"
 )
+
+//go:generate ../../../generate-table/generate-table -o node-table.go nodes.go
+
+/*TABLE node
+
+package nodes
+
+import (
+	"go-utils/config"
+	. "sonalyze/table"
+)
+
+%%
+
+FIELDS *config.NodeConfigRecord
+
+ # Note the CrossNodeJobs field is a config-level attribute, it does not appear in the raw sysinfo
+ # data, and so it is not included here.
+
+ Timestamp   string desc:"Full ISO timestamp of when the reading was taken" alias:"timestamp"
+ Hostname    string desc:"Name that host is known by on the cluster" alias:"host"
+ Description string desc:"End-user description, not parseable" alias:"desc"
+ CpuCores    int    desc:"Total number of cores x threads" alias:"cores"
+ MemGB       int    desc:"GB of installed main RAM" alias:"mem"
+ GpuCards    int    desc:"Number of installed cards" alias:"gpus"
+ GpuMemGB    int    desc:"Total GPU memory across all cards" alias:"gpumem"
+ GpuMemPct   bool   desc:"True if GPUs report accurate memory usage in percent" alias:"gpumempct"
+
+HELP NodeCommand
+
+  Extract information about individual nodes on the cluster from sysinfo and present
+  them in primitive form.  Output records are sorted by node name.  The default
+  format is 'fixed'.
+
+ALIASES
+
+  default  host,cores,mem,gpus,gpumem,desc
+  Default  Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,Description
+  all      timestamp,host,desc,cores,mem,gpus,gpumem,gpumempct
+  All      Timestamp,Hostname,Description,CpuCores,MemGB,GpuCards,GpuMemGB,GpuMemPct
+
+DEFAULTS default
+
+ELBAT*/
 
 type NodeCommand struct {
 	DevArgs
@@ -83,7 +125,7 @@ func (nc *NodeCommand) Validate() error {
 		nc.VerboseArgs.Validate(),
 		nc.ConfigFileArgs.Validate(),
 		ValidateFormatArgs(
-			&nc.FormatArgs, nodesDefaultFields, nodesFormatters, nodesAliases, DefaultFixed),
+			&nc.FormatArgs, nodeDefaultFields, nodeFormatters, nodeAliases, DefaultFixed),
 	)
 }
 
@@ -178,9 +220,9 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	FormatData(
 		stdout,
 		nc.PrintFields,
-		nodesFormatters,
+		nodeFormatters,
 		nc.PrintOpts,
-		uslices.Map(records, func(x *config.NodeConfigRecord) any { return x }),
+		records,
 	)
 
 	return nil
@@ -213,49 +255,3 @@ func (nc *NodeCommand) buildRecordFilter(
 
 	return includeHosts, recordFilter, nil
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Printing
-//
-// Note cross-node is a config-level attribute, it does not appear in the raw sysinfo data, and so
-// it is excluded here.
-
-func (nc *NodeCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(nc.Fmt, nodesHelp, nodesFormatters, nodesAliases, nodesDefaultFields)
-}
-
-const nodesHelp = `
-node
-  Extract information about individual nodes on the cluster from sysinfo and present
-  them in primitive form.  Output records are sorted by node name.  The default
-  format is 'fixed'.
-`
-
-const v0NodesDefaultFields = "host,cores,mem,gpus,gpumem,desc"
-const v1NodesDefaultFields = "Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,Description"
-const nodesDefaultFields = v0NodesDefaultFields
-
-// MT: Constant after initialization; immutable
-var nodesAliases = map[string][]string{
-	"default":   strings.Split(nodesDefaultFields, ","),
-	"v0default": strings.Split(v0NodesDefaultFields, ","),
-	"v1default": strings.Split(v1NodesDefaultFields, ","),
-}
-
-type SFS = SimpleFormatSpec
-
-// MT: Constant after initialization; immutable
-var nodesFormatters = DefineTableFromMap(
-	reflect.TypeFor[config.NodeConfigRecord](),
-	map[string]any{
-		"Timestamp":   SFS{"Full ISO timestamp of when the reading was taken", "timestamp"},
-		"Hostname":    SFS{"Name that host is known by on the cluster", "host"},
-		"Description": SFS{"End-user description, not parseable", "desc"},
-		"CpuCores":    SFS{"Total number of cores x threads", "cores"},
-		"MemGB":       SFS{"GB of installed main RAM", "mem"},
-		"GpuCards":    SFS{"Number of installed cards", "gpus"},
-		"GpuMemGB":    SFS{"Total GPU memory across all cards", "gpumem"},
-		"GpuMemPct":   SFS{"True if GPUs report accurate memory usage in percent", "gpumempct"},
-	},
-)

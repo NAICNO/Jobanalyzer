@@ -519,10 +519,10 @@ func (fa *FormatArgs) ReifyForRemote(x *ArgReifier) error {
 	return nil
 }
 
-func ValidateFormatArgs(
+func ValidateFormatArgs[T any](
 	fa *FormatArgs,
 	defaultFields string,
-	formatters map[string]Formatter,
+	formatters map[string]Formatter[T],
 	aliases map[string][]string,
 	def DefaultFormat,
 ) error {
@@ -534,6 +534,17 @@ func ValidateFormatArgs(
 	}
 	fa.PrintOpts = StandardFormatOptions(others, def)
 	return err
+}
+
+func NeedsConfig[T any](formatters map[string]Formatter[T], fields []FieldSpec) bool {
+	for _, f := range fields {
+		if probe, found := formatters[f.Name]; found {
+			if probe.NeedsConfig {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

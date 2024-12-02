@@ -98,9 +98,9 @@ const (
 	maxFields = 200
 )
 
-func ParseFormatSpec(
+func ParseFormatSpec[T any](
 	defaults, fmtOpt string,
-	formatters map[string]Formatter,
+	formatters map[string]Formatter[T],
 	aliases map[string][]string,
 ) (fields []FieldSpec, others map[string]bool, err error) {
 	fields = make([]FieldSpec, 0)
@@ -120,11 +120,11 @@ func ParseFormatSpec(
 	return fields, others, nil
 }
 
-func addField(
+func addField[T any](
 	fieldName string,
 	fields []FieldSpec,
 	others map[string]bool,
-	formatters map[string]Formatter,
+	formatters map[string]Formatter[T],
 	aliases map[string][]string,
 ) ([]FieldSpec, bool) {
 	if newFields, found := recordField(fieldName, "", 0, fields, others, formatters, aliases); found {
@@ -150,12 +150,12 @@ func addField(
 	return fields, false
 }
 
-func recordField(
+func recordField[T any](
 	kwd, mod string,
 	m PrintMods,
 	fields []FieldSpec,
 	others map[string]bool,
-	formatters map[string]Formatter,
+	formatters map[string]Formatter[T],
 	aliases map[string][]string,
 ) ([]FieldSpec, bool) {
 	anyAdded := false
@@ -241,12 +241,12 @@ func StandardFormatOptions(others map[string]bool, def DefaultFormat) *FormatOpt
 
 // FormatData defaults to fixed formatting.
 
-func FormatData(
+func FormatData[T any](
 	out io.Writer,
 	fields []FieldSpec,
-	formatters map[string]Formatter,
+	formatters map[string]Formatter[T],
 	opts *FormatOptions,
-	data []any,
+	data []T,
 ) {
 	ctx := ComputePrintMods(opts)
 
@@ -263,13 +263,13 @@ func FormatData(
 	}
 
 	// Produce the formatted field values for all fields.
-	type F struct {
-		fmt func(any, PrintMods) string
+	type F[T any] struct {
+		fmt func(T, PrintMods) string
 		mod PrintMods
 	}
-	fmts := make([]F, len(fields))
+	fmts := make([]F[T], len(fields))
 	for c, f := range fields {
-		fmts[c] = F{formatters[f.Name].Fmt, f.Mod}
+		fmts[c] = F[T]{formatters[f.Name].Fmt, f.Mod}
 	}
 	for r, x := range data {
 		for c := range fields {
@@ -573,14 +573,18 @@ type FormatHelp struct {
 // AliasOf is nonempty for a field with its own formatter that is an alias of a canonical field and
 // whose name is used as the field name, not the canonical field name.  The value is the name of the
 // canonical field.
+//
+// NeedsConfig is true if the field needs a config file to be printed (b/c the printed value is
+// relative to some machine capacity).
 
-type Formatter struct {
-	Fmt     func(data any, ctx PrintMods) string
-	Help    string
-	AliasOf string
+type Formatter[T any] struct {
+	Fmt         func(data T, ctx PrintMods) string
+	Help        string
+	AliasOf     string
+	NeedsConfig bool
 }
 
-func DefAlias(formatters map[string]Formatter, canonical, alias string) {
+func DefAlias[T any](formatters map[string]Formatter[T], canonical, alias string) {
 	f, found := formatters[canonical]
 	if !found {
 		panic(fmt.Sprintf("Formatter not found: %s", canonical))
@@ -589,10 +593,10 @@ func DefAlias(formatters map[string]Formatter, canonical, alias string) {
 	formatters[alias] = f
 }
 
-func StandardFormatHelp(
+func StandardFormatHelp[T any](
 	fmt string,
 	helpText string,
-	formatters map[string]Formatter,
+	formatters map[string]Formatter[T],
 	aliases map[string][]string,
 	defaultFields string,
 ) *FormatHelp {

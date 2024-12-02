@@ -20,9 +20,9 @@ done
 
 # for sacct, 'rmem' is actually resident memory not virtual memory like everywhere else, so this test is still valid
 for fmt in fixed csv awk; do
-    echo "Format old vs v1default: $fmt,v1default"
+    echo "Format old vs Default: $fmt,Default"
     $OLD_SONALYZE sacct -data-dir "$SACCT_DATA_PATH" -config-file "$SACCT_CONFIG" -f 2d -t 1d -fmt $fmt,noheader,default | sort > old-output.txt
-    $NEW_SONALYZE sacct -data-dir "$SACCT_DATA_PATH" -config-file "$SACCT_CONFIG" -f 2d -t 1d -fmt $fmt,noheader,v1default | sort > new-output.txt
+    $NEW_SONALYZE sacct -data-dir "$SACCT_DATA_PATH" -config-file "$SACCT_CONFIG" -f 2d -t 1d -fmt $fmt,noheader,Default | sort > new-output.txt
     diff -b old-output.txt new-output.txt
     rm -f old-output.txt new-output.txt
 done

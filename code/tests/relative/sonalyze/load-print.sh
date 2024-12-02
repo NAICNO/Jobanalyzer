@@ -22,9 +22,9 @@ done
 
 # v0 and v1 default should print the same but the names are different so do only fixed, csv, awk
 for fmt in fixed csv awk; do
-    echo "Format old vs v1default: $fmt,v1default"
+    echo "Format old vs Default: $fmt,Default"
     $OLD_SONALYZE load --data-path "$DATA_PATH" --from 3d --to 1d -fmt $fmt,noheader,date,time,cpu,mem,gpu,gpumem,gpumask > old-output.txt
-    $NEW_SONALYZE load --data-path "$DATA_PATH" --from 3d --to 1d -fmt $fmt,noheader,v1default > new-output.txt
+    $NEW_SONALYZE load --data-path "$DATA_PATH" --from 3d --to 1d -fmt $fmt,noheader,Default > new-output.txt
     if [[ ! $(cmp old-output.txt new-output.txt) ]]; then
         $NUMDIFF old-output.txt new-output.txt
     fi
