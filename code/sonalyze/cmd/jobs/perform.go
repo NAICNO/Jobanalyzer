@@ -17,6 +17,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/slurmlog"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
@@ -79,6 +80,7 @@ type jobSummary struct {
 	job            sonarlog.SampleStream
 	computedFlags  int
 	selected       bool // Initially true, used to deselect the record before printing
+	sacctInfo      *db.SacctInfo
 }
 
 // Aggregate figures for a job.  For some cross-job data like user and host, go to the sample stream
@@ -106,7 +108,7 @@ func (jc *JobsCommand) NeedsBounds() bool {
 func (jc *JobsCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	_ db.SampleCluster,
+	theDb db.SampleCluster,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *hostglob.HostGlobber,
@@ -129,7 +131,7 @@ func (jc *JobsCommand) Perform(
 		}
 	}
 
-	summaries := jc.aggregateAndFilterJobs(cfg, streams, bounds)
+	summaries := jc.aggregateAndFilterJobs(cfg, theDb, streams, bounds)
 	if jc.Verbose {
 		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
@@ -150,6 +152,7 @@ func (jc *JobsCommand) Perform(
 
 func (jc *JobsCommand) aggregateAndFilterJobs(
 	cfg *config.ClusterConfig,
+	theDb db.SampleCluster,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 ) []*jobSummary {
@@ -171,15 +174,19 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		Log.Infof("Jobs constructed by merging: %d", len(jobs))
 	}
 
-	filter := jc.buildAggregationFilter(cfg)
+	summaryFilter, slurmFilter := jc.buildFilters(cfg)
 
 	summaries := make([]*jobSummary, 0)
 	minSamples := jc.lookupUint("min-samples")
 	if jc.Verbose && minSamples > 1 {
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
 	}
-	discarded := 0
-	var needCmd, needHost, needJobAndMark bool
+	var (
+		needCmd        = false
+		needHost       = false
+		needJobAndMark = false
+		needSacctInfo  = slurmFilter != nil
+	)
 	for _, f := range jc.PrintFields {
 		switch f.Name {
 		case "cmd", "Cmd":
@@ -188,8 +195,16 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 			needHost = true
 		case "jobm", "JobsAndMark":
 			needJobAndMark = true
+		case "Submit", "JobName", "State", "Account", "Layout", "Reservation",
+			"Partition", "RequestedGpus", "DiskReadAvgGB", "DiskWriteAvgGB",
+			"RequestedCpus", "RequestedMemGB", "RequestedNodes", "TimeLimit",
+			"ExitCode":
+			// Our names for the Slurm sacct data fields.  Mostly these are the same as in the sacct
+			// data, but there's no shame in sticking to proper naming.
+			needSacctInfo = true
 		}
 	}
+	discarded := 0
 	for _, job := range jobs {
 		if uint(len(*job)) >= minSamples {
 			host := (*job)[0].Host
@@ -263,7 +278,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 				job:            *job,
 				computedFlags:  flags,
 			}
-			if filter == nil || filter.apply(summary) {
+			if summaryFilter == nil || summaryFilter.apply(summary) {
 				summaries = append(summaries, summary)
 			}
 		} else {
@@ -272,6 +287,110 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	}
 	if jc.Verbose {
 		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
+	}
+
+	if needSacctInfo {
+		// TODO: If we have slurm data then those data may have precise measurements for some of the
+		// fields here and we might use them instead.  If so, do so here and not in printing, to
+		// avoid messiness vis-a-vis filtering.
+
+		if slurmDb, ok := theDb.(*db.PersistentCluster); ok {
+
+			var err error
+
+			// Two things happen here:
+			//
+			// - attach slurm info to summaries we have
+			// - reduce the set of summaries we have by filtering on slurm information for those
+			//   summaries that do have slurm information
+			//
+			// Importantly, the first step cannot incorporate the second step, because it is valid
+			// for a job in the first set to not have a slurm aspect.
+			//
+			// So:
+			//
+			// - compute a set A of SlurmJobs from the job IDs alone
+			// - then another smaller set B of SlurmJobs from A with the other filters
+			// - then A \ B is the set of jobs to remove from the list of summaries
+			// - and B is the set of jobs contributing info for the remaining jobs
+
+			jobIds := make([]uint32, 0)
+			for _, summary := range summaries {
+				if summary.JobId != 0 {
+					jobIds = append(jobIds, summary.JobId)
+				}
+			}
+
+			var (
+				aJobs, bJobs []*slurmlog.SlurmJob
+				bMap         map[uint32]*slurmlog.SlurmJob
+			)
+			aJobs, err = slurmlog.Query(
+				slurmDb,
+				jc.FromDate,
+				jc.ToDate,
+				slurmlog.QueryFilter{
+					Job: jobIds,
+				},
+				jc.Verbose,
+			)
+			if err != nil {
+				if jc.Verbose {
+					Log.Warningf("Slurm data query failed: %v", err)
+				}
+				// Oh well
+				return summaries
+			}
+
+			if slurmFilter != nil {
+				var err error
+				bJobs, err = slurmlog.FilterJobs(
+					aJobs,
+					*slurmFilter,
+					jc.Verbose,
+				)
+				if err != nil {
+					if jc.Verbose {
+						Log.Warningf("Slurm data filter failed (bizarrely): %v", err)
+					}
+					bJobs = aJobs
+					// Ignore it, fall through to attach job info
+				} else {
+					bMap = make(map[uint32]*slurmlog.SlurmJob)
+					for _, j := range bJobs {
+						bMap[j.Id] = j
+					}
+					cullSet := make(map[uint32]bool)
+					for _, a := range aJobs {
+						if bMap[a.Id] == nil {
+							cullSet[a.Id] = true
+						}
+					}
+					summaries = slices.DeleteFunc(summaries, func(s *jobSummary) bool {
+						return cullSet[s.JobId]
+					})
+				}
+			} else {
+				bJobs = aJobs
+			}
+
+			if bMap == nil {
+				bMap = make(map[uint32]*slurmlog.SlurmJob)
+				for _, j := range bJobs {
+					bMap[j.Id] = j
+				}
+			}
+
+			for _, summary := range summaries {
+				if probe, found := bMap[summary.JobId]; found {
+					summary.sacctInfo = probe.Main // Hm
+				}
+			}
+		} else {
+			if jc.Verbose {
+				Log.Warningf("Needed slurm data but can't read those from transient cluster")
+			}
+		}
 	}
 
 	return summaries
@@ -514,9 +633,9 @@ func (f *aggregationFilter) apply(s *jobSummary) bool {
 	return (f.flags & s.computedFlags) == f.flags
 }
 
-func (jc *JobsCommand) buildAggregationFilter(
+func (jc *JobsCommand) buildFilters(
 	cfg *config.ClusterConfig,
-) *aggregationFilter {
+) (*aggregationFilter, *slurmlog.QueryFilter) {
 	minFilters := make([]filterVal, 0)
 	maxFilters := make([]filterVal, 0)
 
@@ -567,12 +686,26 @@ func (jc *JobsCommand) buildAggregationFilter(
 		Log.Infof("Flag-filtering (UTSL): %x", flags)
 	}
 
-	if len(minFilters) == 0 && len(maxFilters) == 0 && flags == 0 {
-		return nil
+	var summaryFilter *aggregationFilter
+	var slurmFilter *slurmlog.QueryFilter
+
+	if len(minFilters) > 0 || len(maxFilters) > 0 || flags != 0 {
+		summaryFilter = &aggregationFilter{
+			minFilters,
+			maxFilters,
+			flags,
+		}
 	}
-	return &aggregationFilter{
-		minFilters,
-		maxFilters,
-		flags,
+
+	if len(jc.Partition)+len(jc.Reservation)+len(jc.Account)+len(jc.State)+len(jc.GpuType) > 0 {
+		slurmFilter = &slurmlog.QueryFilter{
+			Account:     jc.Account,
+			Partition:   jc.Partition,
+			Reservation: jc.Reservation,
+			GpuType:     jc.GpuType,
+			State:       jc.State,
+		}
 	}
+
+	return summaryFilter, slurmFilter
 }

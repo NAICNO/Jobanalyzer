@@ -363,6 +363,151 @@ var jobsFormatters = map[string]Formatter{
 		},
 		Help: "Total GPU time of the job across all cards",
 	},
+	// Slurm fields.  Note the sacctInfo field may be nil.  It shouldn't usually be nil b/c if any
+	// of these fields are printed it should have been populated, but the lookup can fail for
+	// legitimate reasons.
+	//
+	// But then what do we return?
+	//
+	// Note these names are checked for in perform.go!  We can add more fields here but if so must
+	// also add them there.
+	"Submit": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatDateTimeValue(p.sacctInfo.Submit, ctx)
+			}
+			return "?"
+		},
+		Help: "Submit time of job (Slurm)",
+	},
+	"JobName": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatString(p.sacctInfo.JobName.String(), ctx)
+			}
+			return "?"
+		},
+		Help: "Name of job (Slurm)",
+	},
+	"State": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatString(p.sacctInfo.State.String(), ctx)
+			}
+			return "?"
+		},
+		Help: "Completion state of job (Slurm)",
+	},
+	"Account": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatString(p.sacctInfo.Account.String(), ctx)
+			}
+			return "?"
+		},
+		Help: "Name of job's account (Slurm)",
+	},
+	"Layout": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatString(p.sacctInfo.Layout.String(), ctx)
+			}
+			return "?"
+		},
+		Help: "Layout spec of job (Slurm)",
+	},
+	"Reservation": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatString(p.sacctInfo.Reservation.String(), ctx)
+			}
+			return "?"
+		},
+		Help: "Name of job's reservation (Slurm)",
+	},
+	"Partition": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatString(p.sacctInfo.Partition.String(), ctx)
+			}
+			return "?"
+		},
+		Help: "Partition of job (Slurm)",
+	},
+	"RequestedGpus": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatString(p.sacctInfo.ReqGPUS.String(), ctx)
+			}
+			return "?"
+		},
+		Help: "Names of requested GPUs (Slurm AllocTRES)",
+	},
+	"DiskReadAvgGB": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatInt64(uint64(p.sacctInfo.AveDiskRead), ctx)
+			}
+			return "?"
+		},
+		// FIXME: Not sure about the doc here
+		Help: "Average disk read activity in GB/s (Slurm AveDiskRead)",
+	},
+	"DiskWriteAvgGB": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatInt64(uint64(p.sacctInfo.AveDiskWrite), ctx)
+			}
+			return "?"
+		},
+		// FIXME: Not sure about the doc here
+		Help: "Average disk write activity in GB/s (Slurm AveDiskWrite)",
+	},
+	"RequestedCpus": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatInt64(uint64(p.sacctInfo.ReqCPUS), ctx)
+			}
+			return "?"
+		},
+		Help: "Number of requested CPUs (Slurm)",
+	},
+	"RequestedMemGB": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatInt64(uint64(p.sacctInfo.ReqMem), ctx)
+			}
+			return "?"
+		},
+		Help: "Requested memory (Slurm)",
+	},
+	"RequestedNodes": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatInt64(uint64(p.sacctInfo.ReqNodes), ctx)
+			}
+			return "?"
+		},
+		Help: "Number of requested nodes (Slurm)",
+	},
+	"TimeLimit": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatDurationValue(int64(p.sacctInfo.TimelimitRaw), ctx)
+			}
+			return "?"
+		},
+		Help: "Elapsed time limit (Slurm)",
+	},
+	"ExitCode": {
+		Fmt: func(d any, ctx PrintMods) string {
+			if p := d.(*jobSummary); p.sacctInfo != nil {
+				return FormatInt64(uint64(p.sacctInfo.ExitCode), ctx)
+			}
+			return "?"
+		},
+		Help: "Exit code of job (Slurm)",
+	},
 }
 
 func init() {
@@ -406,6 +551,8 @@ func init() {
 	DefAlias(jobsFormatters, "CpuTime", "cputime")
 	DefAlias(jobsFormatters, "GpuTime", "gputime")
 }
+
+// Probably add fields to `all` and `All`
 
 // MT: Constant after initialization; immutable
 var jobsAliases = map[string][]string{
