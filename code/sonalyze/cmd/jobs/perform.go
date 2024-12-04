@@ -17,8 +17,8 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
-	"sonalyze/sonarlog"
 	"sonalyze/slurmlog"
+	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -182,10 +182,10 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
 	}
 	var (
-		needCmd = false
-		needHost = false
+		needCmd        = false
+		needHost       = false
 		needJobAndMark = false
-		needSacctInfo = slurmFilter != nil
+		needSacctInfo  = slurmFilter != nil
 	)
 	for _, f := range jc.PrintFields {
 		switch f.Name {
@@ -323,7 +323,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 
 			var (
 				aJobs, bJobs []*slurmlog.SlurmJob
-				bMap map[uint32]*slurmlog.SlurmJob
+				bMap         map[uint32]*slurmlog.SlurmJob
 			)
 			aJobs, err = slurmlog.Query(
 				slurmDb,
@@ -697,13 +697,13 @@ func (jc *JobsCommand) buildFilters(
 		}
 	}
 
-	if len(jc.Partition) + len(jc.Reservation) + len(jc.Account) + len(jc.State) + len(jc.GpuType) > 0 {
+	if len(jc.Partition)+len(jc.Reservation)+len(jc.Account)+len(jc.State)+len(jc.GpuType) > 0 {
 		slurmFilter = &slurmlog.QueryFilter{
-			Account: jc.Account,
-			Partition: jc.Partition,
+			Account:     jc.Account,
+			Partition:   jc.Partition,
 			Reservation: jc.Reservation,
-			GpuType: jc.GpuType,
-			State: jc.State,
+			GpuType:     jc.GpuType,
+			State:       jc.State,
 		}
 	}
 

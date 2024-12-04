@@ -14,18 +14,18 @@ import (
 )
 
 type QueryFilter struct {
-	Host       []string
-	State      []string // COMPLETED, TIMEOUT etc - "or" these, except "" for all
-	User       []string
-	Account    []string
-	Partition  []string
+	Host        []string
+	State       []string // COMPLETED, TIMEOUT etc - "or" these, except "" for all
+	User        []string
+	Account     []string
+	Partition   []string
 	Reservation []string
-	GpuType     []string		// Prefixes
-	Job        []uint32
-	SomeGPU    bool
-	NoGPU      bool
-	MinRuntime int64
-	MaxRuntime int64 // 0 means "not set"
+	GpuType     []string // Prefixes
+	Job         []uint32
+	SomeGPU     bool
+	NoGPU       bool
+	MinRuntime  int64
+	MaxRuntime  int64 // 0 means "not set"
 }
 
 type SlurmJob struct {
@@ -210,31 +210,31 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter, verbose bool) er
 		byjob, toDelete, verbose,
 		"state",
 		filter.State,
-		func (j *SlurmJob) Ustr { return j.Main.State },
+		func(j *SlurmJob) Ustr { return j.Main.State },
 	)
 	filterByString(
 		byjob, toDelete, verbose,
 		"user",
 		filter.User,
-		func (j *SlurmJob) Ustr { return j.Main.User },
+		func(j *SlurmJob) Ustr { return j.Main.User },
 	)
 	filterByString(
 		byjob, toDelete, verbose,
 		"account",
 		filter.Account,
-		func (j *SlurmJob) Ustr { return j.Main.Account },
+		func(j *SlurmJob) Ustr { return j.Main.Account },
 	)
 	filterByString(
 		byjob, toDelete, verbose,
 		"partition",
 		filter.Partition,
-		func (j *SlurmJob) Ustr { return j.Main.Partition },
+		func(j *SlurmJob) Ustr { return j.Main.Partition },
 	)
 	filterByString(
 		byjob, toDelete, verbose,
 		"reservation",
 		filter.Reservation,
-		func (j *SlurmJob) Ustr { return j.Main.Reservation },
+		func(j *SlurmJob) Ustr { return j.Main.Reservation },
 	)
 
 	// For GpuType, we could build a regexp of the requested GPU types or we could just run
@@ -331,7 +331,7 @@ func filterByString(
 	verbose bool,
 	what string,
 	filters []string,
-	get func (j *SlurmJob) Ustr,
+	get func(j *SlurmJob) Ustr,
 ) {
 	if len(filters) > 0 {
 		prior := len(toDelete)
