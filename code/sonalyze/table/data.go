@@ -67,6 +67,11 @@ func FormatString(val string, ctx PrintMods) string {
 	if (ctx&PrintModNoDefaults) != 0 && val == "" {
 		return "*skip*"
 	}
+	if (ctx & PrintModMax30) != 0 {
+		if len(val) > 30 {
+			return val[:30]
+		}
+	}
 	return val
 }
 

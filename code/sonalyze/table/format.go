@@ -24,9 +24,9 @@ type PrintMods = int
 
 const (
 	// These apply per-field according to modifiers
-	// TODO: These are currently unimplemented.
 	PrintModSec = (1 << iota) // timestamps are printed as seconds since epoch
 	PrintModIso               // timestamps are printed as Iso timestamps
+	PrintModMax30
 
 	// These are for the output format and are applied to all fields
 	PrintModFixed      // fixed format
@@ -133,6 +133,8 @@ func addField(
 	if before, after, found := strings.Cut(fieldName, "/"); found {
 		var m PrintMods
 		switch after {
+		case "m30":
+			m = PrintModMax30
 		case "sec":
 			m = PrintModSec
 		case "iso":

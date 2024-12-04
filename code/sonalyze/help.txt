@@ -166,6 +166,12 @@ Summary of print modifiers:
 
     duration/sec  -> 12345
 
+  Strings are normally printed in their full length but can be limited to
+  a maximum of 30 characters by /m30:
+
+    JobName       -> supercalifragilisticexpialidocious
+    JobName/m30   -> supercalifragilisticexpialidoc
+
 ## Available field names
 
 By running a command with `-fmt help`, extensive help is provided on all
