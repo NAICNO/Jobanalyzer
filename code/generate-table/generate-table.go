@@ -70,28 +70,48 @@ func main() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Types we know about and information about them.  The formatter for type Ty is usually
-// FormatTy(Ty, PrintMods) -> string, but the name can be overridden (for now) by registering the
-// type.  Probably more attributes will appear here.
+// Types we know about and information about them.
+//
+// The formatter for type Ty is usually FormatTy(Ty, PrintMods) -> string, but the name can be
+// overridden by registering the type.
+//
+// The user-facing type name for type Ty is usually Ty but it can be overridden. BEWARE that this
+// override has implications for the applicable query operators: if a type is "string" then string
+// operators apply; if a type is "GpuSet" then some kind of set operators apply (TBD).
 
 type typeInfo struct {
 	formatter string
+	helpName  string
 }
 
 var knownTypes = map[string]typeInfo{
-	"int":      typeInfo{formatter: "FormatInt"},
-	"float":    typeInfo{formatter: "FormatFloat32"},
-	"double":   typeInfo{formatter: "FormatFloat64"},
-	"string":   typeInfo{formatter: "FormatString"},
-	"bool":     typeInfo{formatter: "FormatBool"},
-	"[]string": typeInfo{formatter: "FormatStrings"},
+	"int":                  typeInfo{formatter: "FormatInt"},
+	"float":                typeInfo{formatter: "FormatFloat32"},
+	"double":               typeInfo{formatter: "FormatFloat64"},
+	"string":               typeInfo{formatter: "FormatString"},
+	"bool":                 typeInfo{formatter: "FormatBool"},
+	"[]string":             typeInfo{formatter: "FormatStrings", helpName: "string list"},
+	"IntCeil":              typeInfo{helpName: "int"},
+	"IntDiv1M":             typeInfo{helpName: "int"},
+	"IntOrEmpty":           typeInfo{helpName: "int"},
+	"DateTimeValueOrBlank": typeInfo{helpName: "DateTimeValue"},
+	"IsoDateTimeOrUnknown": typeInfo{helpName: "IsoDateTimeValue"},
+	"Ustr":                 typeInfo{helpName: "string"},
+	"UstrMax30":            typeInfo{helpName: "string"},
 }
 
 func formatName(ty string) string {
-	if probe, found := knownTypes[ty]; found {
+	if probe := knownTypes[ty]; probe.formatter != "" {
 		return probe.formatter
 	}
 	return "Format" + ty
+}
+
+func userFacingTypeName(ty string) string {
+	if probe := knownTypes[ty]; probe.helpName != "" {
+		return probe.helpName
+	}
+	return ty
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -229,7 +249,7 @@ func fieldSection(block *tableBlock, sect *tableSection, recordType string) (fie
 		}
 		fmt.Fprintf(output, "\t\t},\n")
 		if d := attrs["desc"]; d != "" {
-			fmt.Fprintf(output, "\t\tHelp: \"%s\",\n", d)
+			fmt.Fprintf(output, "\t\tHelp: \"(%s) %s\",\n", userFacingTypeName(displayType), d)
 		}
 		if needsConfig {
 			fmt.Fprintf(output, "\t\tNeedsConfig: true,\n")

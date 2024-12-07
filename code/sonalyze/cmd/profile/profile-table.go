@@ -13,49 +13,49 @@ var profileFormatters = map[string]Formatter[*fixedLine]{
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatDateTimeValueOrBlank(DateTimeValueOrBlank(d.Timestamp), ctx)
 		},
-		Help: "Time of the start of the profiling bucket",
+		Help: "(DateTimeValue) Time of the start of the profiling bucket",
 	},
 	"CpuUtilPct": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt(int(d.CpuUtilPct), ctx)
 		},
-		Help: "CPU utilization in percent, 100% = 1 core (except for HTML)",
+		Help: "(int) CPU utilization in percent, 100% = 1 core (except for HTML)",
 	},
 	"VirtualMemGB": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt(int(d.VirtualMemGB), ctx)
 		},
-		Help: "Main virtual memory usage in GiB",
+		Help: "(int) Main virtual memory usage in GiB",
 	},
 	"ResidentMemGB": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt(int(d.ResidentMemGB), ctx)
 		},
-		Help: "Main resident memory usage in GiB",
+		Help: "(int) Main resident memory usage in GiB",
 	},
 	"Gpu": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt(int(d.Gpu), ctx)
 		},
-		Help: "GPU utilization in percent, 100% = 1 card (except for HTML)",
+		Help: "(int) GPU utilization in percent, 100% = 1 card (except for HTML)",
 	},
 	"GpuMemGB": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt(int(d.GpuMemGB), ctx)
 		},
-		Help: "GPU resident memory usage in GiB (across all cards)",
+		Help: "(int) GPU resident memory usage in GiB (across all cards)",
 	},
 	"Command": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatUstr(Ustr(d.Command), ctx)
 		},
-		Help: "Name of executable starting the process",
+		Help: "(string) Name of executable starting the process",
 	},
 	"NumProcs": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatIntOrEmpty(IntOrEmpty(d.NumProcs), ctx)
 		},
-		Help: "Number of rolled-up processes, blank for zero",
+		Help: "(int) Number of rolled-up processes, blank for zero",
 	},
 }
 

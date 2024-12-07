@@ -10,7 +10,6 @@ import (
 )
 
 // TODO general
-//  - generate type description automatically in Help strings
 //  - run relative tests, clean up
 
 //go:generate ../../../generate-table/generate-table -o jobs-table.go print.go
@@ -34,7 +33,7 @@ FIELDS *jobSummary
   JobAndMark         string        desc:"Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window" alias:"jobm"
   Job                int           desc:"Job ID" alias:"job" field:"JobId"
   User               Ustr          desc:"Name of user running the job" alias:"user"
-  Duration           DurationValue desc:"Duration of job: time of last observation minus time of first" alias:"duration"
+  Duration           DurationValue desc:"Time of last observation minus time of first" alias:"duration"
   Start              DateTimeValue desc:"Time of first observation" alias:"start"
   End                DateTimeValue desc:"Time of last observation" alias:"end"
   CpuAvgPct          IntCeil       desc:"Average CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctAvg]" alias:"cpu-avg"

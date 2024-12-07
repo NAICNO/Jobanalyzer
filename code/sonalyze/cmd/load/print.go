@@ -28,10 +28,10 @@ type GpuSet = gpuset.GpuSet
 
 FIELDS *ReportRecord
 
-	Now                 DateTimeValue alias:"now"      desc:"The current time (yyyy-mm-dd hh:mm)"
-	DateTime            DateTimeValue alias:"datetime" desc:"The starting date and time of the aggregation window (yyyy-mm-dd hh:mm)"
-	Date                DateValue     alias:"date"     desc:"The starting date of the aggregation window (yyyy-mm-dd)"
-	Time                TimeValue     alias:"time"     desc:"The startint time of the aggregation window (hh:mm)"
+	Now                 DateTimeValue alias:"now"      desc:"The current time"
+	DateTime            DateTimeValue alias:"datetime" desc:"The starting date and time of the aggregation window"
+	Date                DateValue     alias:"date"     desc:"The starting date of the aggregation window"
+	Time                TimeValue     alias:"time"     desc:"The startint time of the aggregation window"
 	Cpu                 int           alias:"cpu"      desc:"Average CPU utilization in percent in the aggregation window (100% = 1 core)"
 	RelativeCpu         int           alias:"rcpu"     desc:"Average relative CPU utilization in percent in the aggregation window (100% = all cores)"
 	VirtualGB           int           alias:"mem"      desc:"Average virtual memory utilization in GiB in the aggregation window"

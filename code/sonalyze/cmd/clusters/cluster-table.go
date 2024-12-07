@@ -13,19 +13,19 @@ var clusterFormatters = map[string]Formatter[*db.ClusterEntry]{
 		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
 			return FormatString(string(d.Name), ctx)
 		},
-		Help: "Cluster name",
+		Help: "(string) Cluster name",
 	},
 	"Description": {
 		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
 			return FormatString(string(d.Description), ctx)
 		},
-		Help: "Human-consumable cluster summary",
+		Help: "(string) Human-consumable cluster summary",
 	},
 	"Aliases": {
 		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
 			return FormatStrings([]string(d.Aliases), ctx)
 		},
-		Help: "Aliases of cluster",
+		Help: "(string list) Aliases of cluster",
 	},
 }
 

@@ -41,8 +41,8 @@ FIELDS sonarlog.Sample
  # TODO: IMPROVEME: The use of utc for "localtime" is a bug that comes from the Rust code.
 
  Version    Ustr             desc:"Semver string (MAJOR.MINOR.BUGFIX)" alias:"version,v"
- Timestamp  DateTimeValue    desc:"Timestamp (yyyy-mm-dd hh:mm)" alias:"localtime"
- time       IsoDateTimeValue desc:"Timestamp (ISO date with seconds)" field:"Timestamp"
+ Timestamp  DateTimeValue    desc:"Timestamp of record " alias:"localtime"
+ time       IsoDateTimeValue desc:"Timestamp of record" field:"Timestamp"
  Host       Ustr             desc:"Host name (FQDN)" alias:"host"
  Cores      int              desc:"Total number of cores (including hyperthreads)" alias:"cores"
  MemtotalKB int              desc:"Installed main memory"

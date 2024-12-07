@@ -13,49 +13,49 @@ var nodeFormatters = map[string]Formatter[*config.NodeConfigRecord]{
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
 			return FormatString(string(d.Timestamp), ctx)
 		},
-		Help: "Full ISO timestamp of when the reading was taken",
+		Help: "(string) Full ISO timestamp of when the reading was taken",
 	},
 	"Hostname": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
 			return FormatString(string(d.Hostname), ctx)
 		},
-		Help: "Name that host is known by on the cluster",
+		Help: "(string) Name that host is known by on the cluster",
 	},
 	"Description": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
 			return FormatString(string(d.Description), ctx)
 		},
-		Help: "End-user description, not parseable",
+		Help: "(string) End-user description, not parseable",
 	},
 	"CpuCores": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
 			return FormatInt(int(d.CpuCores), ctx)
 		},
-		Help: "Total number of cores x threads",
+		Help: "(int) Total number of cores x threads",
 	},
 	"MemGB": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
 			return FormatInt(int(d.MemGB), ctx)
 		},
-		Help: "GB of installed main RAM",
+		Help: "(int) GB of installed main RAM",
 	},
 	"GpuCards": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
 			return FormatInt(int(d.GpuCards), ctx)
 		},
-		Help: "Number of installed cards",
+		Help: "(int) Number of installed cards",
 	},
 	"GpuMemGB": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
 			return FormatInt(int(d.GpuMemGB), ctx)
 		},
-		Help: "Total GPU memory across all cards",
+		Help: "(int) Total GPU memory across all cards",
 	},
 	"GpuMemPct": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
 			return FormatBool(bool(d.GpuMemPct), ctx)
 		},
-		Help: "True if GPUs report accurate memory usage in percent",
+		Help: "(bool) True if GPUs report accurate memory usage in percent",
 	},
 }
 

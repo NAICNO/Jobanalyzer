@@ -13,171 +13,171 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatIsoDateTimeOrUnknown(IsoDateTimeOrUnknown(d.Start), ctx)
 		},
-		Help: "Start time of job, if any",
+		Help: "(IsoDateTimeValue) Start time of job, if any",
 	},
 	"End": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatIsoDateTimeOrUnknown(IsoDateTimeOrUnknown(d.End), ctx)
 		},
-		Help: "End time of job",
+		Help: "(IsoDateTimeValue) End time of job",
 	},
 	"Submit": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatIsoDateTimeOrUnknown(IsoDateTimeOrUnknown(d.Submit), ctx)
 		},
-		Help: "Submit time of job",
+		Help: "(IsoDateTimeValue) Submit time of job",
 	},
 	"RequestedCPU": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.RequestedCPU), ctx)
 		},
-		Help: "Requested CPU time (elapsed * cores * nodes)",
+		Help: "(int) Requested CPU time (elapsed * cores * nodes)",
 	},
 	"UsedCPU": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.UsedCPU), ctx)
 		},
-		Help: "Used CPU time",
+		Help: "(int) Used CPU time",
 	},
 	"RelativeCPU": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.RelativeCPU), ctx)
 		},
-		Help:        "Percent cpu utilization: UsedCPU/RequestedCPU*100",
+		Help:        "(int) Percent cpu utilization: UsedCPU/RequestedCPU*100",
 		NeedsConfig: true,
 	},
 	"RelativeResidentMem": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.RelativeResidentMem), ctx)
 		},
-		Help:        "Percent memory utilization: MaxRSS/ReqMem*100",
+		Help:        "(int) Percent memory utilization: MaxRSS/ReqMem*100",
 		NeedsConfig: true,
 	},
 	"User": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr(Ustr(d.User), ctx)
 		},
-		Help: "Job's user",
+		Help: "(string) Job's user",
 	},
 	"JobName": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstrMax30(UstrMax30(d.JobName), ctx)
 		},
-		Help: "Job name",
+		Help: "(string) Job name",
 	},
 	"State": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr(Ustr(d.State), ctx)
 		},
-		Help: "Job completion state",
+		Help: "(string) Job completion state",
 	},
 	"Account": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr(Ustr(d.Account), ctx)
 		},
-		Help: "Job's account",
+		Help: "(string) Job's account",
 	},
 	"Reservation": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr(Ustr(d.Reservation), ctx)
 		},
-		Help: "Job's reservation, if any",
+		Help: "(string) Job's reservation, if any",
 	},
 	"Layout": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr(Ustr(d.Layout), ctx)
 		},
-		Help: "Job's layout, if any",
+		Help: "(string) Job's layout, if any",
 	},
 	"NodeList": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr(Ustr(d.NodeList), ctx)
 		},
-		Help: "Job's node list",
+		Help: "(string) Job's node list",
 	},
 	"JobID": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.JobID), ctx)
 		},
-		Help: "Primary Job ID",
+		Help: "(int) Primary Job ID",
 	},
 	"MaxRSS": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.MaxRSS), ctx)
 		},
-		Help: "Max resident set size (RSS) across all steps (GB)",
+		Help: "(int) Max resident set size (RSS) across all steps (GB)",
 	},
 	"ReqMem": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.ReqMem), ctx)
 		},
-		Help: "Raw requested memory (GB)",
+		Help: "(int) Raw requested memory (GB)",
 	},
 	"ReqCPUS": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.ReqCPUS), ctx)
 		},
-		Help: "Raw requested CPU cores",
+		Help: "(int) Raw requested CPU cores",
 	},
 	"ReqGPUS": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr(Ustr(d.ReqGPUS), ctx)
 		},
-		Help: "Raw requested GPU cards",
+		Help: "(string) Raw requested GPU cards",
 	},
 	"ReqNodes": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.ReqNodes), ctx)
 		},
-		Help: "Raw requested system nodes",
+		Help: "(int) Raw requested system nodes",
 	},
 	"Elapsed": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.Elapsed), ctx)
 		},
-		Help: "Time elapsed",
+		Help: "(int) Time elapsed",
 	},
 	"Suspended": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.Suspended), ctx)
 		},
-		Help: "Time suspended",
+		Help: "(int) Time suspended",
 	},
 	"Timelimit": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.Timelimit), ctx)
 		},
-		Help: "Time limit in seconds",
+		Help: "(int) Time limit in seconds",
 	},
 	"ExitCode": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.ExitCode), ctx)
 		},
-		Help: "Exit code",
+		Help: "(int) Exit code",
 	},
 	"Wait": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.Wait), ctx)
 		},
-		Help: "Wait time of job (start - submit), in seconds",
+		Help: "(int) Wait time of job (start - submit), in seconds",
 	},
 	"Partition": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr(Ustr(d.Partition), ctx)
 		},
-		Help: "Requested partition",
+		Help: "(string) Requested partition",
 	},
 	"ArrayJobID": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.ArrayJobID), ctx)
 		},
-		Help: "ID of the overarching array job",
+		Help: "(int) ID of the overarching array job",
 	},
 	"ArrayIndex": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt(int(d.ArrayIndex), ctx)
 		},
-		Help: "Index of this job within an array job",
+		Help: "(int) Index of this job within an array job",
 	},
 }
 

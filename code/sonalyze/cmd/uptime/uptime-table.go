@@ -12,31 +12,31 @@ var uptimeFormatters = map[string]Formatter[*UptimeLine]{
 		Fmt: func(d *UptimeLine, ctx PrintMods) string {
 			return FormatString(string(d.Device), ctx)
 		},
-		Help: "Device type: 'host' or 'gpu'",
+		Help: "(string) Device type: 'host' or 'gpu'",
 	},
 	"Hostname": {
 		Fmt: func(d *UptimeLine, ctx PrintMods) string {
 			return FormatString(string(d.Hostname), ctx)
 		},
-		Help: "Host name for the device",
+		Help: "(string) Host name for the device",
 	},
 	"State": {
 		Fmt: func(d *UptimeLine, ctx PrintMods) string {
 			return FormatString(string(d.State), ctx)
 		},
-		Help: "Device state: 'up' or 'down'",
+		Help: "(string) Device state: 'up' or 'down'",
 	},
 	"Start": {
 		Fmt: func(d *UptimeLine, ctx PrintMods) string {
 			return FormatDateTimeValue(DateTimeValue(d.Start), ctx)
 		},
-		Help: "Start time of 'up' or 'down' window",
+		Help: "(DateTimeValue) Start time of 'up' or 'down' window",
 	},
 	"End": {
 		Fmt: func(d *UptimeLine, ctx PrintMods) string {
 			return FormatDateTimeValue(DateTimeValue(d.End), ctx)
 		},
-		Help: "End time of 'up' or 'down' window",
+		Help: "(DateTimeValue) End time of 'up' or 'down' window",
 	},
 }
 
