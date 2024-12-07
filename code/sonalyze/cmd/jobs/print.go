@@ -9,9 +9,6 @@ import (
 	. "sonalyze/table"
 )
 
-// TODO general
-//  - run relative tests, clean up
-
 //go:generate ../../../generate-table/generate-table -o jobs-table.go print.go
 
 /*TABLE jobs

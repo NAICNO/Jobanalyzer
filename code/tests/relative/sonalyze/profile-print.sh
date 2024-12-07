@@ -26,9 +26,9 @@ rm -f old-output.txt new-output.txt
 
 # v0 and v1 default (new names) should print the same.  It's broken that this is 'mem' and not 'res' but we're not going to rock that boat.
 # Again add nproc to avoid testing the nproc-insertion logic.
-echo "Format old vs v1default: fixed,default"
+echo "Format old vs Default: fixed,default"
 $OLD_SONALYZE profile -data-dir "$DATA_PATH" -f 20d -config-file "$CONFIG" -job $job -t 1d -fmt fixed,noheader,time,cpu,mem,gpu,gpumem,cmd,nproc > old-output.txt
-$NEW_SONALYZE profile -data-dir "$DATA_PATH" -f 20d -config-file "$CONFIG" -job $job -t 1d -fmt fixed,noheader,v1default,nproc > new-output.txt
+$NEW_SONALYZE profile -data-dir "$DATA_PATH" -f 20d -config-file "$CONFIG" -job $job -t 1d -fmt fixed,noheader,Default,nproc > new-output.txt
 diff -b old-output.txt new-output.txt
 rm -f old-output.txt new-output.txt
 
