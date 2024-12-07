@@ -60,8 +60,8 @@ HELP ConfigCommand
 
 ALIASES
 
-  default  host,cores,mem,gpus,gpumem,desc
-  Default  Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,Description
+  default  host,cores,mem,gpus,gpumem,xnode,desc
+  Default  Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,CrossNodeJobs,Description
   all      timestamp,host,desc,xnode,cores,mem,gpus,gpumem,gpumempct
   All      Timestamp,Hostname,Description,CrossNodeJobs,CpuCores,MemGB,GpuCards,GpuMemGB,GpuMemPct
 

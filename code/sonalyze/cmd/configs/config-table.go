@@ -90,8 +90,8 @@ func (c *ConfigCommand) MaybeFormatHelp() *FormatHelp {
 
 // MT: Constant after initialization; immutable
 var configAliases = map[string][]string{
-	"default": []string{"host", "cores", "mem", "gpus", "gpumem", "desc"},
-	"Default": []string{"Hostname", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "Description"},
+	"default": []string{"host", "cores", "mem", "gpus", "gpumem", "xnode", "desc"},
+	"Default": []string{"Hostname", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "CrossNodeJobs", "Description"},
 	"all":     []string{"timestamp", "host", "desc", "xnode", "cores", "mem", "gpus", "gpumem", "gpumempct"},
 	"All":     []string{"Timestamp", "Hostname", "Description", "CrossNodeJobs", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "GpuMemPct"},
 }

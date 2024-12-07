@@ -49,8 +49,8 @@ func (c *ClusterCommand) MaybeFormatHelp() *FormatHelp {
 var clusterAliases = map[string][]string{
 	"all":     []string{"cluster", "desc", "aliases"},
 	"All":     []string{"Name", "Description", "Aliases"},
-	"default": []string{"all"},
-	"Default": []string{"All"},
+	"default": []string{"cluster", "aliases", "desc"},
+	"Default": []string{"Name", "Aliases", "Description"},
 }
 
 const clusterDefaultFields = "default"

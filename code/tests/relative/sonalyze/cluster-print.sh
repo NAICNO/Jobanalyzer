@@ -21,9 +21,9 @@ done
 
 # v0 and v1 default should print the same but the names are different so do only fixed, csv, awk
 for fmt in fixed csv awk; do
-    echo "Format old vs v1default: $fmt,v1default"
+    echo "Format old vs Default: $fmt,Default"
     $OLD_SONALYZE cluster -jobanalyzer-dir "$JOBANALYZER_DIR" -fmt $fmt,noheader,default > old-output.txt
-    $NEW_SONALYZE cluster -jobanalyzer-dir "$JOBANALYZER_DIR" -fmt $fmt,noheader,v1default > new-output.txt
+    $NEW_SONALYZE cluster -jobanalyzer-dir "$JOBANALYZER_DIR" -fmt $fmt,noheader,Default > new-output.txt
     diff old-output.txt new-output.txt
     rm -f old-output.txt new-output.txt
 done

@@ -44,8 +44,8 @@ ALIASES
 
   all      cluster,desc,aliases
   All      Name,Description,Aliases
-  default  all
-  Default  All
+  default  cluster,aliases,desc
+  Default  Name,Aliases,Description
 
 DEFAULTS default
 
