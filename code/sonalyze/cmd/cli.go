@@ -30,11 +30,12 @@ var (
 		"operation-selection":  1,
 		"aggregation":          2,
 		"job-filter":           3,
-		"printing":             4,
-		"record-filter":        5,
-		"remote-data-source":   6,
-		"local-data-source":    7,
-		"development":          8,
+		"query":                4,
+		"printing":             5,
+		"record-filter":        6,
+		"remote-data-source":   7,
+		"local-data-source":    8,
+		"development":          9,
 	}
 )
 

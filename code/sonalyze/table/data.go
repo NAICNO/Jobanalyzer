@@ -6,12 +6,14 @@ package table
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"go-utils/gpuset"
+	"go-utils/hostglob"
 	. "sonalyze/common"
 )
 
@@ -264,4 +266,287 @@ func FormatHostnames(x *Hostnames, ctx PrintMods) string {
 		return x.FormatBrief()
 	}
 	return x.FormatFull()
+}
+
+// This returns error to conform to an interface but never returns non-nil error.
+func CvtString2Strings(s string) (any, error) {
+	if s == "" {
+		return make([]string, 0), nil
+	}
+	ss := strings.Split(s, ",")
+	// Sorted is required by SetCompareStrings
+	slices.Sort(ss)
+	return ss, nil
+}
+
+func CvtString2GpuSet(s string) (any, error) {
+	return gpuset.NewGpuSet(s)
+}
+
+func CvtString2Ustr(s string) (any, error) {
+	return StringToUstr(s), nil
+}
+
+func CvtString2UstrMax30(s string) (any, error) {
+	return StringToUstr(s), nil
+}
+
+func CvtString2IsoDateTimeValue(s string) (any, error) {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return int64(0), err
+	}
+	return t.Unix(), nil
+}
+
+func CvtString2IsoDateTimeOrUnknown(s string) (any, error) {
+	return CvtString2IsoDateTimeValue(s)
+}
+
+var durationRe = regexp.MustCompile(`^((\d+)[wW])?((\d+)[dD])?((\d+)[hH])?((\d+)[mM])?$`)
+
+// The value is seconds as int64
+func CvtString2DurationValue(s string) (any, error) {
+	m := durationRe.FindStringSubmatch(s)
+	if m == nil {
+		seconds, err := strconv.Atoi(s)
+		if err != nil {
+			return 0, fmt.Errorf("Bad duration %s", s)
+		}
+		return int64(seconds), nil
+	}
+	var weeks, days, hours, minutes int
+	if m[1] != "" {
+		weeks, _ = strconv.Atoi(m[2])
+	}
+	if m[3] != "" {
+		days, _ = strconv.Atoi(m[4])
+	}
+	if m[5] != "" {
+		hours, _ = strconv.Atoi(m[6])
+	}
+	if m[7] != "" {
+		minutes, _ = strconv.Atoi(m[8])
+	}
+	return (((int64(weeks)*7+int64(days))*24+int64(hours))*60 + int64(minutes)) * 60, nil
+}
+
+func CvtString2U32Duration(s string) (any, error) {
+	d, err := CvtString2DurationValue(s)
+	if err != nil {
+		return uint32(0), err
+	}
+	return uint32(d.(int64)), nil
+}
+
+func CvtString2DateTimeValue(s string) (any, error) {
+	t, err := time.Parse(time.DateTime, s)
+	if err != nil {
+		return int64(0), err
+	}
+	return t.Unix(), nil
+}
+
+func CvtString2DateTimeValueOrBlank(s string) (any, error) {
+	return CvtString2DateTimeValue(s)
+}
+
+func CvtString2DateValue(s string) (any, error) {
+	t, err := time.Parse(time.DateOnly, s)
+	if err != nil {
+		return int64(0), err
+	}
+	return t.Unix(), nil
+}
+
+func CvtString2TimeValue(s string) (any, error) {
+	t, err := time.Parse(time.TimeOnly, s)
+	if err != nil {
+		return int64(0), err
+	}
+	return t.Unix(), nil
+}
+
+func CvtString2Bool(s string) (any, error) {
+	s = strings.ToLower(s)
+	switch s {
+	case "true", "yes", "1":
+		return true, nil
+	case "false", "no", "0":
+		return false, nil
+	default:
+		return nil, fmt.Errorf("Not a boolean value: %s", s)
+	}
+}
+
+func CvtString2Int(s string) (any, error) {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return int(i), nil
+}
+
+func CvtString2Int64(s string) (any, error) {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return i, nil
+}
+
+func CvtString2Uint8(s string) (any, error) {
+	i, err := strconv.ParseUint(s, 10, 8)
+	if err != nil {
+		return nil, err
+	}
+	return uint8(i), nil
+}
+
+func CvtString2Uint32(s string) (any, error) {
+	i, err := strconv.ParseUint(s, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+	return uint32(i), nil
+}
+
+func CvtString2Uint64(s string) (any, error) {
+	i, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return i, nil
+}
+
+func CvtString2Float32(s string) (any, error) {
+	i, err := strconv.ParseFloat(s, 32)
+	if err != nil {
+		return nil, err
+	}
+	return float32(i), nil
+}
+
+func CvtString2Float64(s string) (any, error) {
+	i, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return nil, err
+	}
+	return i, nil
+}
+
+func CvtString2Hostnames(s string) (any, error) {
+	ps, err := hostglob.SplitMultiPattern(s)
+	if err != nil {
+		return nil, err
+	}
+	xs := make([]string, 0)
+	for _, p := range ps {
+		ss, err := hostglob.ExpandPattern(p)
+		if err != nil {
+			return nil, err
+		}
+		xs = append(xs, ss...)
+	}
+	return xs, nil
+}
+
+// true > false
+func CompareBool(b1, b2 bool) int {
+	if b1 == b2 {
+		return 0
+	}
+	if b1 {
+		return 1
+	}
+	return -1
+}
+
+func SetCompareGpuSets(a, b gpuset.GpuSet, op int) bool {
+	switch op {
+	case opEq:
+		return a.Equal(b)
+	case opLt:
+		return b.HasSubset(a, true)
+	case opLe:
+		return b.HasSubset(a, false)
+	case opGt:
+		return a.HasSubset(b, true)
+	case opGe:
+		return a.HasSubset(b, false)
+	default:
+		panic("Unknown op")
+	}
+}
+
+// This is special purpose. `a` comes from the data record, `b` comes from CvtString2Hostnames.
+
+func SetCompareHostnames(a, b *Hostnames, op int) bool {
+	switch op {
+	case opEq:
+		return a.Equal(b)
+	case opLt:
+		return b.HasSubset(a, true)
+	case opLe:
+		return b.HasSubset(a, false)
+	case opGt:
+		return a.HasSubset(b, true)
+	case opGe:
+		return a.HasSubset(b, false)
+	default:
+		panic("Unknown op")
+	}
+}
+
+// This is special purpose.  `a` comes from the data record, `b` comes from CvtString2Strings.
+//
+// We currently require `b` to be sorted!  We could probably impose some restrictions on `a` with
+// suitable types.  There are probably other representations that would be better anyway.
+
+func SetCompareStrings(a, b []string, op int) bool {
+	// TODO: assert b is sorted, when running in debug mode
+	slices.Sort(a)
+Again:
+	switch op {
+	case opEq:
+		if len(a) != len(b) {
+			return false
+		}
+		for k := range a {
+			if a[k] != b[k] {
+				return false
+			}
+		}
+		return true
+	case opLt, opLe:
+		bx := 0
+		bSkipped := false
+		for _, s := range a {
+			for bx < len(b) && b[bx] < s {
+				bSkipped = true
+				bx++
+			}
+			if bx == len(b) || s != b[bx] {
+				return false
+			}
+			bx++
+		}
+		if bx < len(b) {
+			bSkipped = true
+		}
+		if op == opLt {
+			return bSkipped
+		}
+		return true
+	case opGt:
+		op = opLt
+		a, b = b, a
+		goto Again
+	case opGe:
+		op = opLe
+		a, b = b, a
+		goto Again
+	default:
+		panic("Bad operation")
+	}
 }

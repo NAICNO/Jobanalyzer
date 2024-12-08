@@ -152,6 +152,11 @@ func (gc *GpuCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 		}
 	}
 
+	reports, err = ApplyQuery(gc.ParsedQuery, gpuFormatters, gpuPredicates, reports)
+	if err != nil {
+		return err
+	}
+
 	FormatData(
 		stdout,
 		gc.PrintFields,

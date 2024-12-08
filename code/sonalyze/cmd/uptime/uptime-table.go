@@ -61,6 +61,37 @@ func init() {
 	DefAlias(uptimeFormatters, "End", "end")
 }
 
+// MT: Constant after initialization; immutable
+var uptimePredicates = map[string]Predicate[*UptimeLine]{
+	"Device": Predicate[*UptimeLine]{
+		Compare: func(d *UptimeLine, v any) int {
+			return cmp.Compare((d.Device), v.(string))
+		},
+	},
+	"Hostname": Predicate[*UptimeLine]{
+		Compare: func(d *UptimeLine, v any) int {
+			return cmp.Compare((d.Hostname), v.(string))
+		},
+	},
+	"State": Predicate[*UptimeLine]{
+		Compare: func(d *UptimeLine, v any) int {
+			return cmp.Compare((d.State), v.(string))
+		},
+	},
+	"Start": Predicate[*UptimeLine]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *UptimeLine, v any) int {
+			return cmp.Compare((d.Start), v.(DateTimeValue))
+		},
+	},
+	"End": Predicate[*UptimeLine]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *UptimeLine, v any) int {
+			return cmp.Compare((d.End), v.(DateTimeValue))
+		},
+	},
+}
+
 type UptimeLine struct {
 	Device   string
 	Hostname string

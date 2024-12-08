@@ -1,8 +1,10 @@
 package load
 
 import (
+	"fmt"
 	"io"
 	"math"
+	"slices"
 	"time"
 
 	"go-utils/config"
@@ -99,6 +101,15 @@ func (lc *LoadCommand) Perform(
 		}
 	}
 
+	var queryNeg func(*ReportRecord) bool
+	if lc.ParsedQuery != nil {
+		var err error
+		queryNeg, err = CompileQueryNeg(loadFormatters, loadPredicates, lc.ParsedQuery)
+		if err != nil {
+			return fmt.Errorf("Could not compile query: %v", err)
+		}
+	}
+
 	// Generate data to be printed
 	reports := make([]LoadReport, 0)
 	for _, stream := range mergedStreams {
@@ -107,9 +118,13 @@ func (lc *LoadCommand) Perform(
 		if conf == nil && cfg != nil {
 			conf = cfg.LookupHost(hostname)
 		}
+		rs := generateReport(*stream, time.Now().Unix(), conf)
+		if queryNeg != nil {
+			rs = slices.DeleteFunc(rs, queryNeg)
+		}
 		reports = append(reports, LoadReport{
 			hostname: hostname,
-			records:  generateReport(*stream, time.Now().Unix(), conf),
+			records:  rs,
 			conf:     conf,
 		})
 	}

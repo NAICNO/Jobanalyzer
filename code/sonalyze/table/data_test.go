@@ -1,10 +1,13 @@
-// Test the primitive data formatters.
+// Test the primitive data formatters, parsers, and comparators.
 
 package table
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	"go-utils/gpuset"
 
@@ -217,4 +220,333 @@ func TestDataFormatting(t *testing.T) {
 	if s := FormatIsoDateTimeOrUnknown(0, PrintModNoDefaults); s != "Unknown" {
 		t.Fatalf("IsoDateTimeOrUnknown %s", s)
 	}
+}
+
+func TestCompareBool(t *testing.T) {
+	if CompareBool(false, false) != 0 {
+		t.Fatal("Bool")
+	}
+	if CompareBool(true, true) != 0 {
+		t.Fatal("Bool")
+	}
+	if CompareBool(false, true) != -1 {
+		t.Fatal("Bool")
+	}
+	if CompareBool(true, false) != 1 {
+		t.Fatal("Bool")
+	}
+}
+
+func TestCompareGpuSets(t *testing.T) {
+	// Just basic stuff, since the implementation defers to subset operations that are tested
+	// elsewhere.
+	as, _ := gpuset.NewGpuSet("1,2")
+	bs, _ := gpuset.NewGpuSet("1,2,3")
+	cs, _ := gpuset.NewGpuSet("2,3")
+	if !SetCompareGpuSets(as, as, opEq) {
+		t.Fatal("GpuSet")
+	}
+	if SetCompareGpuSets(as, bs, opEq) {
+		t.Fatal("GpuSet")
+	}
+	if !SetCompareGpuSets(as, bs, opLt) {
+		t.Fatal("GpuSet")
+	}
+	if !SetCompareGpuSets(as, as, opLe) {
+		t.Fatal("GpuSet")
+	}
+	if !SetCompareGpuSets(as, bs, opLe) {
+		t.Fatal("GpuSet")
+	}
+	if SetCompareGpuSets(as, cs, opLe) {
+		t.Fatal("GpuSet")
+	}
+}
+
+func TestSetCompareStrings(t *testing.T) {
+	as := []string{"a", "b", "c"}
+	bs := []string{"a", "b", "c", "d"}
+	cs := []string{"a", "b", "c", "e"}
+	if !SetCompareStrings(as, as, opEq) {
+		t.Fatal("Equal")
+	}
+	if SetCompareStrings(as, as, opLt) {
+		t.Fatal("Less")
+	}
+	if !SetCompareStrings(as, as, opLe) {
+		t.Fatal("LessOrEqual")
+	}
+	if SetCompareStrings(as, as, opGt) {
+		t.Fatal("Greater")
+	}
+	if !SetCompareStrings(as, as, opGe) {
+		t.Fatal("GreaterOrEqual")
+	}
+
+	if SetCompareStrings(as, bs, opEq) {
+		t.Fatal("Equal")
+	}
+	if !SetCompareStrings(as, bs, opLt) {
+		t.Fatal("Less")
+	}
+	if !SetCompareStrings(as, bs, opLe) {
+		t.Fatal("LessOrEqual")
+	}
+	if SetCompareStrings(as, bs, opGt) {
+		t.Fatal("Greater")
+	}
+	if SetCompareStrings(as, bs, opGe) {
+		t.Fatal("GreaterOrEqual")
+	}
+
+	if SetCompareStrings(cs, bs, opEq) {
+		t.Fatal("Equal")
+	}
+	if SetCompareStrings(cs, bs, opLt) {
+		t.Fatal("Less")
+	}
+	if SetCompareStrings(cs, bs, opLe) {
+		t.Fatal("LessOrEqual")
+	}
+	if SetCompareStrings(cs, bs, opGt) {
+		t.Fatal("Greater")
+	}
+	if SetCompareStrings(cs, bs, opGe) {
+		t.Fatal("GreaterOrEqual")
+	}
+
+	// A little harder, this uncovered a bug
+	ds := []string{"b", "d"}
+	if !SetCompareStrings(ds, bs, opLt) {
+		t.Fatal("Less")
+	}
+	if !SetCompareStrings(ds, bs, opLe) {
+		t.Fatal("Less")
+	}
+}
+
+func check(t *testing.T, err error) {
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func shouldfail(t *testing.T, err error) {
+	if err == nil {
+		t.Fatal("Expected error")
+	}
+}
+
+func same(t *testing.T, a, b any) {
+	if !reflect.DeepEqual(a, b) {
+		t.Fatal("Should be equal")
+	}
+}
+
+func TestCvt2Strings(t *testing.T) {
+	// No actual error cases here
+	xs, err := CvtString2Strings("")
+	check(t, err)
+	same(t, xs, []string{})
+	xs, err = CvtString2Strings("a")
+	check(t, err)
+	same(t, xs, []string{"a"})
+	xs, err = CvtString2Strings("a,b,c,d")
+	check(t, err)
+	same(t, xs, []string{"a", "b", "c", "d"})
+}
+
+func TestCvt2GpuSet(t *testing.T) {
+	// "" is not a valid GPU set
+	_, err := CvtString2GpuSet("")
+	shouldfail(t, err)
+
+	xs, err := CvtString2GpuSet("none")
+	check(t, err)
+	same(t, xs, gpuset.EmptyGpuSet())
+
+	xs, err = CvtString2GpuSet("unknown")
+	check(t, err)
+	same(t, xs, gpuset.UnknownGpuSet())
+
+	xs, err = CvtString2GpuSet("1,2,3")
+	check(t, err)
+	s := gpuset.EmptyGpuSet()
+	s, err = gpuset.Adjoin(s, 1, 2, 3)
+	check(t, err)
+	same(t, xs, s)
+}
+
+func TestCvt2Misc(t *testing.T) {
+	// No actual error cases for Ustr
+	x, err := CvtString2Ustr("hi there")
+	check(t, err)
+	same(t, x, StringToUstr("hi there"))
+
+	// Does *not* chop
+	x, err = CvtString2UstrMax30("supercalifragilisticexpialidocious")
+	check(t, err)
+	same(t, x, StringToUstr("supercalifragilisticexpialidocious"))
+
+	x, err = CvtString2Bool("1")
+	check(t, err)
+	same(t, x, true)
+
+	x, err = CvtString2Bool("yes")
+	check(t, err)
+	same(t, x, true)
+
+	x, err = CvtString2Bool("true")
+	check(t, err)
+	same(t, x, true)
+
+	x, err = CvtString2Bool("tRUe")
+	check(t, err)
+	same(t, x, true)
+
+	x, err = CvtString2Bool("0")
+	check(t, err)
+	same(t, x, false)
+
+	x, err = CvtString2Bool("no")
+	check(t, err)
+	same(t, x, false)
+
+	x, err = CvtString2Bool("nO")
+	check(t, err)
+	same(t, x, false)
+
+	x, err = CvtString2Bool("false")
+	check(t, err)
+	same(t, x, false)
+
+	_, err = CvtString2Bool("maybe")
+	shouldfail(t, err)
+
+	x, err = CvtString2Int("-312")
+	check(t, err)
+	same(t, x, int(-312))
+
+	_, err = CvtString2Int("hello")
+	shouldfail(t, err)
+
+	x, err = CvtString2Int64("-312")
+	check(t, err)
+	same(t, x, int64(-312))
+
+	_, err = CvtString2Int64("hello")
+	shouldfail(t, err)
+
+	x, err = CvtString2Uint8("114")
+	check(t, err)
+	same(t, x, uint8(114))
+
+	_, err = CvtString2Uint8("312")
+	shouldfail(t, err)
+
+	x, err = CvtString2Uint32("114")
+	check(t, err)
+	same(t, x, uint32(114))
+
+	_, err = CvtString2Uint32("1234567890123")
+	shouldfail(t, err)
+
+	x, err = CvtString2Uint64("114")
+	check(t, err)
+	same(t, x, uint64(114))
+
+	_, err = CvtString2Uint64("hello")
+	shouldfail(t, err)
+
+	x, err = CvtString2Float32("114.5")
+	check(t, err)
+	same(t, x, float32(114.5))
+
+	_, err = CvtString2Float32("14f")
+	shouldfail(t, err)
+
+	x, err = CvtString2Float64("114.5")
+	check(t, err)
+	same(t, x, float64(114.5))
+
+	_, err = CvtString2Float64("14.1.2")
+	shouldfail(t, err)
+}
+
+func TestCvt2DateTime(t *testing.T) {
+	s := "2025-02-18T19:13:27+01:00"
+	x, err := CvtString2IsoDateTimeValue(s)
+	check(t, err)
+	w, _ := time.Parse(time.RFC3339, s)
+	v := w.Unix()
+	same(t, x, v)
+
+	_, err = CvtString2IsoDateTimeValue(strings.Replace(s, "T", " ", 1))
+	shouldfail(t, err)
+
+	// CvtString2IsoDateTimevalueOrUnknown just calls 2IsoDateTimeValue
+
+	y := "2025-02-18 19:13:27" // implied localtime
+	x, err = CvtString2DateTimeValue(y)
+	check(t, err)
+	w, _ = time.Parse(time.DateTime, y)
+	v = w.Unix()
+	same(t, x, v)
+
+	_, err = CvtString2DateTimeValue(s)
+	shouldfail(t, err)
+
+	// CvtString2DateTimeValueOrBlank just calls 2DateTimeValue
+
+	z := "2025-02-18"
+	x, err = CvtString2DateValue(z)
+	check(t, err)
+	w, _ = time.Parse(time.DateOnly, z)
+	v = w.Unix()
+	same(t, x, v)
+
+	_, err = CvtString2DateValue(z + " ")
+	shouldfail(t, err)
+
+	u := "12:14:05"
+	x, err = CvtString2TimeValue(u)
+	check(t, err)
+	w, _ = time.Parse(time.TimeOnly, u)
+	v = w.Unix()
+	same(t, x, v)
+
+	_, err = CvtString2TimeValue("12:14")
+	shouldfail(t, err)
+}
+
+func TestCvt2DurationValue(t *testing.T) {
+	x, err := CvtString2DurationValue("1h")
+	check(t, err)
+	same(t, x, int64(3600))
+
+	x, err = CvtString2DurationValue("1h2m")
+	check(t, err)
+	same(t, x, int64(3600+120))
+
+	x, err = CvtString2DurationValue("2d")
+	check(t, err)
+	same(t, x, int64(3600*24*2))
+
+	x, err = CvtString2DurationValue("3w")
+	check(t, err)
+	same(t, x, int64(3600*24*7*3))
+
+	x, err = CvtString2DurationValue("312")
+	check(t, err)
+	same(t, x, int64(312))
+
+	_, err = CvtString2DurationValue("1d2w")
+	shouldfail(t, err)
+
+	x, err = CvtString2U32Duration("1h")
+	check(t, err)
+	same(t, x, uint32(3600))
+
+	_, err = CvtString2U32Duration("1d2w")
+	shouldfail(t, err)
 }

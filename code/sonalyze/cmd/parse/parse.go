@@ -196,6 +196,15 @@ func (pc *ParseCommand) Perform(
 		mergedSamples = sonarlog.MergeByHostAndJob(streams)
 	}
 
+	var queryNeg func(sonarlog.Sample) bool
+	if pc.ParsedQuery != nil {
+		var err error
+		queryNeg, err = CompileQueryNeg(parseFormatters, parsePredicates, pc.ParsedQuery)
+		if err != nil {
+			return fmt.Errorf("Could not compile query: %v", err)
+		}
+	}
+
 	if mergedSamples != nil {
 		// All elements that are part of the InputStreamKey must be part of the sort key here.
 		slices.SortStableFunc(mergedSamples, func(a, b *sonarlog.SampleStream) int {
@@ -212,16 +221,23 @@ func (pc *ParseCommand) Perform(
 			return c
 		})
 		for _, stream := range mergedSamples {
+			xs := *stream
+			if queryNeg != nil {
+				xs = slices.DeleteFunc(xs, queryNeg)
+			}
 			fmt.Fprintln(out, "*")
 			FormatData(
 				out,
 				pc.PrintFields,
 				parseFormatters,
 				pc.PrintOpts,
-				*stream,
+				xs,
 			)
 		}
 	} else {
+		if queryNeg != nil {
+			samples = slices.DeleteFunc(samples, queryNeg)
+		}
 		FormatData(
 			out,
 			pc.PrintFields,

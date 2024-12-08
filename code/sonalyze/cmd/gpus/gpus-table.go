@@ -89,6 +89,76 @@ var gpuFormatters = map[string]Formatter[*ReportLine]{
 	},
 }
 
+// MT: Constant after initialization; immutable
+var gpuPredicates = map[string]Predicate[*ReportLine]{
+	"Timestamp": Predicate[*ReportLine]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.Timestamp), v.(DateTimeValue))
+		},
+	},
+	"Hostname": Predicate[*ReportLine]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.Hostname), v.(Ustr))
+		},
+	},
+	"Gpu": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.Gpu), v.(int))
+		},
+	},
+	"FanPct": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.FanPct), v.(int))
+		},
+	},
+	"PerfMode": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.PerfMode), v.(int))
+		},
+	},
+	"MemUsedKB": Predicate[*ReportLine]{
+		Convert: CvtString2Int64,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.MemUsedKB), v.(int64))
+		},
+	},
+	"TempC": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.TempC), v.(int))
+		},
+	},
+	"PowerDrawW": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.PowerDrawW), v.(int))
+		},
+	},
+	"PowerLimitW": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.PowerLimitW), v.(int))
+		},
+	},
+	"CeClockMHz": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.CeClockMHz), v.(int))
+		},
+	},
+	"MemClockMHz": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare((d.MemClockMHz), v.(int))
+		},
+	},
+}
+
 func (c *GpuCommand) Summary(out io.Writer) {
 	fmt.Fprint(out, `Experimental: Print per-gpu data across time for one or more cards on one or more nodes.
 `)

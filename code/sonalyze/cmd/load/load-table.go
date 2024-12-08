@@ -143,6 +143,106 @@ func init() {
 	DefAlias(loadFormatters, "Hostname", "host")
 }
 
+// MT: Constant after initialization; immutable
+var loadPredicates = map[string]Predicate[*ReportRecord]{
+	"Now": Predicate[*ReportRecord]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.Now), v.(DateTimeValue))
+		},
+	},
+	"DateTime": Predicate[*ReportRecord]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.DateTime), v.(DateTimeValue))
+		},
+	},
+	"Date": Predicate[*ReportRecord]{
+		Convert: CvtString2DateValue,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.Date), v.(DateValue))
+		},
+	},
+	"Time": Predicate[*ReportRecord]{
+		Convert: CvtString2TimeValue,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.Time), v.(TimeValue))
+		},
+	},
+	"Cpu": Predicate[*ReportRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.Cpu), v.(int))
+		},
+	},
+	"RelativeCpu": Predicate[*ReportRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.RelativeCpu), v.(int))
+		},
+	},
+	"VirtualGB": Predicate[*ReportRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.VirtualGB), v.(int))
+		},
+	},
+	"RelativeVirtualMem": Predicate[*ReportRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.RelativeVirtualMem), v.(int))
+		},
+	},
+	"ResidentGB": Predicate[*ReportRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.ResidentGB), v.(int))
+		},
+	},
+	"RelativeResidentMem": Predicate[*ReportRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.RelativeResidentMem), v.(int))
+		},
+	},
+	"Gpu": Predicate[*ReportRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.Gpu), v.(int))
+		},
+	},
+	"RelativeGpu": Predicate[*ReportRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.RelativeGpu), v.(int))
+		},
+	},
+	"GpuGB": Predicate[*ReportRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.GpuGB), v.(int))
+		},
+	},
+	"RelativeGpuMem": Predicate[*ReportRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.RelativeGpuMem), v.(int))
+		},
+	},
+	"Gpus": Predicate[*ReportRecord]{
+		Convert: CvtString2GpuSet,
+		SetCompare: func(d *ReportRecord, v any, op int) bool {
+			return SetCompareGpuSets((d.Gpus), v.(gpuset.GpuSet), op)
+		},
+	},
+	"Hostname": Predicate[*ReportRecord]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *ReportRecord, v any) int {
+			return cmp.Compare((d.Hostname), v.(Ustr))
+		},
+	},
+}
+
 type ReportRecord struct {
 	Now                 DateTimeValue
 	DateTime            DateTimeValue

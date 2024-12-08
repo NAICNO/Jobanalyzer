@@ -470,6 +470,413 @@ func init() {
 	DefAlias(jobsFormatters, "GpuTime", "gputime")
 }
 
+// MT: Constant after initialization; immutable
+var jobsPredicates = map[string]Predicate[*jobSummary]{
+	"JobAndMark": Predicate[*jobSummary]{
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.JobAndMark), v.(string))
+		},
+	},
+	"Job": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.JobId), v.(uint32))
+		},
+	},
+	"User": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.User), v.(Ustr))
+		},
+	},
+	"Duration": Predicate[*jobSummary]{
+		Convert: CvtString2DurationValue,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.Duration), v.(DurationValue))
+		},
+	},
+	"Start": Predicate[*jobSummary]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.Start), v.(DateTimeValue))
+		},
+	},
+	"End": Predicate[*jobSummary]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.End), v.(DateTimeValue))
+		},
+	},
+	"CpuAvgPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kCpuPctAvg]), v.(F64Ceil))
+		},
+	},
+	"CpuPeakPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kCpuPctPeak]), v.(F64Ceil))
+		},
+	},
+	"RelativeCpuAvgPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRcpuPctAvg]), v.(F64Ceil))
+		},
+	},
+	"RelativeCpuPeakPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRcpuPctPeak]), v.(F64Ceil))
+		},
+	},
+	"MemAvgGB": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kCpuGBAvg]), v.(F64Ceil))
+		},
+	},
+	"MemPeakGB": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kCpuGBPeak]), v.(F64Ceil))
+		},
+	},
+	"RelativeMemAvgPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRcpuGBAvg]), v.(F64Ceil))
+		},
+	},
+	"RelativeMemPeakPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRcpuGBPeak]), v.(F64Ceil))
+		},
+	},
+	"ResidentMemAvgGB": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRssAnonGBAvg]), v.(F64Ceil))
+		},
+	},
+	"ResidentMemPeakGB": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRssAnonGBPeak]), v.(F64Ceil))
+		},
+	},
+	"RelativeResidentMemAvgPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRrssAnonGBAvg]), v.(F64Ceil))
+		},
+	},
+	"RelativeResidentMemPeakPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRrssAnonGBPeak]), v.(F64Ceil))
+		},
+	},
+	"GpuAvgPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kGpuPctAvg]), v.(F64Ceil))
+		},
+	},
+	"GpuPeakPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kGpuPctPeak]), v.(F64Ceil))
+		},
+	},
+	"RelativeGpuAvgPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRgpuPctAvg]), v.(F64Ceil))
+		},
+	},
+	"RelativeGpuPeakPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRgpuPctPeak]), v.(F64Ceil))
+		},
+	},
+	"OccupiedRelativeGpuAvgPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kSgpuPctAvg]), v.(F64Ceil))
+		},
+	},
+	"OccupiedRelativeGpuPeakPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kSgpuPctPeak]), v.(F64Ceil))
+		},
+	},
+	"GpuMemAvgGB": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kGpuGBAvg]), v.(F64Ceil))
+		},
+	},
+	"GpuMemPeakGB": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kGpuGBPeak]), v.(F64Ceil))
+		},
+	},
+	"RelativeGpuMemAvgPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRgpuGBAvg]), v.(F64Ceil))
+		},
+	},
+	"RelativeGpuMemPeakPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kRgpuGBPeak]), v.(F64Ceil))
+		},
+	},
+	"OccupiedRelativeGpuMemAvgPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kSgpuGBAvg]), v.(F64Ceil))
+		},
+	},
+	"OccupiedRelativeGpuMemPeakPct": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kSgpuGBPeak]), v.(F64Ceil))
+		},
+	},
+	"Gpus": Predicate[*jobSummary]{
+		Convert: CvtString2GpuSet,
+		SetCompare: func(d *jobSummary, v any, op int) bool {
+			return SetCompareGpuSets((d.Gpus), v.(gpuset.GpuSet), op)
+		},
+	},
+	"GpuFail": Predicate[*jobSummary]{
+		Convert: CvtString2Int,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.GpuFail), v.(int))
+		},
+	},
+	"Cmd": Predicate[*jobSummary]{
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.Cmd), v.(string))
+		},
+	},
+	"Hosts": Predicate[*jobSummary]{
+		Convert: CvtString2Hostnames,
+		SetCompare: func(d *jobSummary, v any, op int) bool {
+			return SetCompareHostnames((d.Hosts), v.(*Hostnames), op)
+		},
+	},
+	"Now": Predicate[*jobSummary]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.Now), v.(DateTimeValue))
+		},
+	},
+	"Classification": Predicate[*jobSummary]{
+		Convert: CvtString2Int,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.Classification), v.(int))
+		},
+	},
+	"CpuTime": Predicate[*jobSummary]{
+		Convert: CvtString2DurationValue,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.CpuTime), v.(DurationValue))
+		},
+	},
+	"GpuTime": Predicate[*jobSummary]{
+		Convert: CvtString2DurationValue,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.GpuTime), v.(DurationValue))
+		},
+	},
+	"SomeGpu": Predicate[*jobSummary]{
+		Convert: CvtString2Bool,
+		Compare: func(d *jobSummary, v any) int {
+			return CompareBool((d.computedFlags&kUsesGpu != 0), v.(bool))
+		},
+	},
+	"NoGpu": Predicate[*jobSummary]{
+		Convert: CvtString2Bool,
+		Compare: func(d *jobSummary, v any) int {
+			return CompareBool((d.computedFlags&kDoesNotUseGpu != 0), v.(bool))
+		},
+	},
+	"Running": Predicate[*jobSummary]{
+		Convert: CvtString2Bool,
+		Compare: func(d *jobSummary, v any) int {
+			return CompareBool((d.computedFlags&kIsLiveAtEnd != 0), v.(bool))
+		},
+	},
+	"Completed": Predicate[*jobSummary]{
+		Convert: CvtString2Bool,
+		Compare: func(d *jobSummary, v any) int {
+			return CompareBool((d.computedFlags&kIsNotLiveAtEnd != 0), v.(bool))
+		},
+	},
+	"Zombie": Predicate[*jobSummary]{
+		Convert: CvtString2Bool,
+		Compare: func(d *jobSummary, v any) int {
+			return CompareBool((d.computedFlags&kIsZombie != 0), v.(bool))
+		},
+	},
+	"Primordial": Predicate[*jobSummary]{
+		Convert: CvtString2Bool,
+		Compare: func(d *jobSummary, v any) int {
+			return CompareBool((d.computedFlags&kIsLiveAtStart != 0), v.(bool))
+		},
+	},
+	"BornLater": Predicate[*jobSummary]{
+		Convert: CvtString2Bool,
+		Compare: func(d *jobSummary, v any) int {
+			return CompareBool((d.computedFlags&kIsNotLiveAtStart != 0), v.(bool))
+		},
+	},
+	"Submit": Predicate[*jobSummary]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Submit), v.(DateTimeValue))
+			}
+			return -1
+		},
+	},
+	"JobName": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.JobName), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"State": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.State), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"Account": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Account), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"Layout": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Layout), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"Reservation": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Reservation), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"Partition": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Partition), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"RequestedGpus": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ReqGPUS), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"DiskReadAvgGB": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.AveDiskRead), v.(uint32))
+			}
+			return -1
+		},
+	},
+	"DiskWriteAvgGB": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.AveDiskWrite), v.(uint32))
+			}
+			return -1
+		},
+	},
+	"RequestedCpus": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ReqCPUS), v.(uint32))
+			}
+			return -1
+		},
+	},
+	"RequestedMemGB": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ReqMem), v.(uint32))
+			}
+			return -1
+		},
+	},
+	"RequestedNodes": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ReqNodes), v.(uint32))
+			}
+			return -1
+		},
+	},
+	"TimeLimit": Predicate[*jobSummary]{
+		Convert: CvtString2U32Duration,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.TimelimitRaw), v.(U32Duration))
+			}
+			return -1
+		},
+	},
+	"ExitCode": Predicate[*jobSummary]{
+		Convert: CvtString2Uint8,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ExitCode), v.(uint8))
+			}
+			return -1
+		},
+	},
+}
+
 func (c *JobsCommand) Summary(out io.Writer) {
 	fmt.Fprint(out, `Display jobs jobs aggregated from process samples.
 
