@@ -77,6 +77,7 @@ ELBAT*/
 type NodeCommand struct {
 	DevArgs
 	SourceArgs
+	QueryArgs
 	HostArgs
 	VerboseArgs
 	ConfigFileArgs
@@ -96,6 +97,7 @@ func (nc *NodeCommand) Summary() string {
 func (nc *NodeCommand) Add(fs *CLI) {
 	nc.DevArgs.Add(fs)
 	nc.SourceArgs.Add(fs)
+	nc.QueryArgs.Add(fs)
 	nc.HostArgs.Add(fs)
 	nc.VerboseArgs.Add(fs)
 	nc.ConfigFileArgs.Add(fs)
@@ -111,6 +113,7 @@ func (nc *NodeCommand) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		nc.DevArgs.ReifyForRemote(x),
 		nc.SourceArgs.ReifyForRemote(x),
+		nc.QueryArgs.ReifyForRemote(x),
 		nc.HostArgs.ReifyForRemote(x),
 		nc.ConfigFileArgs.ReifyForRemote(x),
 		nc.FormatArgs.ReifyForRemote(x),
@@ -121,6 +124,7 @@ func (nc *NodeCommand) Validate() error {
 	return errors.Join(
 		nc.DevArgs.Validate(),
 		nc.SourceArgs.Validate(),
+		nc.QueryArgs.Validate(),
 		nc.HostArgs.Validate(),
 		nc.VerboseArgs.Validate(),
 		nc.ConfigFileArgs.Validate(),
@@ -132,17 +136,6 @@ func (nc *NodeCommand) Validate() error {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Processing
-
-var compiled func(*config.NodeConfigRecord) bool
-
-func init() {
-	var exampleAst = NewLogical("or", NewBinop("=", "CpuCores", "64"), NewBinop(">", "GpuCards", "3"))
-	c, err := CompileQuery(nodePredicates, exampleAst)
-	if err != nil {
-		panic(err)
-	}
-	compiled = c
-}
 
 func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	var theLog db.SysinfoCluster
@@ -189,7 +182,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		UstrStats(stderr, false)
 	}
 
-	hostGlobber, recordFilter, err := nc.buildRecordFilter(nc.Verbose)
+	hostGlobber, recordFilter, query, err := nc.buildRecordFilter(nc.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
@@ -206,8 +199,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		if !(t >= recordFilter.From && t <= recordFilter.To) {
 			return true
 		}
-		fmt.Printf("%v\n", compiled)
-		if compiled != nil && !compiled(s) {
+		if query != nil && !query(s) {
 			return true
 		}
 		return false
@@ -248,10 +240,10 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 
 func (nc *NodeCommand) buildRecordFilter(
 	verbose bool,
-) (*hostglob.HostGlobber, *db.SampleFilter, error) {
+) (*hostglob.HostGlobber, *db.SampleFilter, func(*config.NodeConfigRecord) bool, error) {
 	includeHosts, err := hostglob.NewGlobber(true, nc.HostArgs.Host)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	haveFrom := nc.SourceArgs.HaveFrom
@@ -271,7 +263,16 @@ func (nc *NodeCommand) buildRecordFilter(
 		To:           to,
 	}
 
-	return includeHosts, recordFilter, nil
+	var query func(*config.NodeConfigRecord) bool
+	if nc.ParsedQuery != nil {
+		c, err := CompileQuery(nodePredicates, nc.ParsedQuery)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("Could not compile query: %v", err)
+		}
+		query = c
+	}
+
+	return includeHosts, recordFilter, query, nil
 }
 
 // Here:
@@ -299,7 +300,6 @@ var nodePredicates = map[string]Predicate[*config.NodeConfigRecord]{
 	"CpuCores": Predicate[*config.NodeConfigRecord]{
 		Convert: CvtString2Int,
 		Compare: func(d *config.NodeConfigRecord, v any) int {
-			fmt.Printf("  CpuCores compare: %d %d\n", d.CpuCores, v.(int))
 			return cmp.Compare(d.CpuCores, v.(int))
 		},
 	},
@@ -312,7 +312,6 @@ var nodePredicates = map[string]Predicate[*config.NodeConfigRecord]{
 	"GpuCards": Predicate[*config.NodeConfigRecord]{
 		Convert: CvtString2Int,
 		Compare: func(d *config.NodeConfigRecord, v any) int {
-			fmt.Printf("  GpuCards compare: %d %d\n", d.GpuCards, v.(int))
 			return cmp.Compare(d.GpuCards, v.(int))
 		},
 	},
