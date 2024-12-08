@@ -417,6 +417,44 @@ func (rfa *RecordFilterArgs) DefaultUserFilters() (allUsers, skipSystemUsers, de
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
+// Query arguments
+//
+// This is tricky: the query runs on what, exactly?  On the records?  (Surely for some fields like
+// `User`.)  On the generated table rows?  (Surely for most fields, in practice.)
+//
+// The *names* are always relative to the printed table rows.  And the *input* to the query operator
+// is such a table row.  So the query can't be applied until those rows have been computed.  So in
+// that sense it really is a query on the generated table.  This makes most sense from the user's
+// point of view also.  But it may limit applicability.
+
+type QueryArgs struct {
+	QueryStmt string
+	ParsedQuery PNode
+}
+
+func (qa *QueryArgs) Add(fs *CLI) {
+	// FIXME: Don't want this in group "printing"
+	fs.Group("printing")
+	fs.StringVar(&qa.QueryStmt, "q", "", "A query expression")
+}
+
+func (qa *QueryArgs) ReifyForRemote(x *ArgReifier) error {
+	x.String("q", qa.QueryStmt)
+	return nil
+}
+
+func (qa *QueryArgs) Validate() (err error) {
+	if qa.QueryStmt != "" {
+		qa.ParsedQuery, err = ParseQuery(qa.QueryStmt)
+		if qa.ParsedQuery != nil {
+			println(qa.ParsedQuery.String())
+		}
+	}
+	return
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Config file
 
 type ConfigFileArgs struct {
