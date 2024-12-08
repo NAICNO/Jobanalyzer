@@ -257,3 +257,22 @@ func FormatIsoDateTimeOrUnknown(t IsoDateTimeOrUnknown, ctx PrintMods) string {
 	}
 	return FormatDateTimeValue(DateTimeValue(t), ctx|PrintModIso)
 }
+
+func CvtString2Bool(s string) (any, error) {
+	switch s {
+	case "true":
+		return true, nil
+	case "false":
+		return false, nil
+	default:
+		return nil, fmt.Errorf("Not a boolean value: %s", s)
+	}
+}
+
+func CvtString2Int(s string) (any, error) {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return int(i), nil
+}

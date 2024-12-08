@@ -77,6 +77,7 @@ ELBAT*/
 type NodeCommand struct {
 	DevArgs
 	SourceArgs
+	QueryArgs
 	HostArgs
 	VerboseArgs
 	ConfigFileArgs
@@ -96,6 +97,7 @@ func (nc *NodeCommand) Summary() string {
 func (nc *NodeCommand) Add(fs *CLI) {
 	nc.DevArgs.Add(fs)
 	nc.SourceArgs.Add(fs)
+	nc.QueryArgs.Add(fs)
 	nc.HostArgs.Add(fs)
 	nc.VerboseArgs.Add(fs)
 	nc.ConfigFileArgs.Add(fs)
@@ -111,6 +113,7 @@ func (nc *NodeCommand) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		nc.DevArgs.ReifyForRemote(x),
 		nc.SourceArgs.ReifyForRemote(x),
+		nc.QueryArgs.ReifyForRemote(x),
 		nc.HostArgs.ReifyForRemote(x),
 		nc.ConfigFileArgs.ReifyForRemote(x),
 		nc.FormatArgs.ReifyForRemote(x),
@@ -121,6 +124,7 @@ func (nc *NodeCommand) Validate() error {
 	return errors.Join(
 		nc.DevArgs.Validate(),
 		nc.SourceArgs.Validate(),
+		nc.QueryArgs.Validate(),
 		nc.HostArgs.Validate(),
 		nc.VerboseArgs.Validate(),
 		nc.ConfigFileArgs.Validate(),
@@ -178,7 +182,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		UstrStats(stderr, false)
 	}
 
-	hostGlobber, recordFilter, err := nc.buildRecordFilter(nc.Verbose)
+	hostGlobber, recordFilter, query, err := nc.buildRecordFilter(nc.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
@@ -192,7 +196,13 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 			return true
 		}
 		t := parsed.Unix()
-		return !(t >= recordFilter.From && t <= recordFilter.To)
+		if !(t >= recordFilter.From && t <= recordFilter.To) {
+			return true
+		}
+		if query != nil && !query(s) {
+			return true
+		}
+		return false
 	})
 
 	if nc.Newest {
@@ -230,10 +240,10 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 
 func (nc *NodeCommand) buildRecordFilter(
 	verbose bool,
-) (*hostglob.HostGlobber, *db.SampleFilter, error) {
+) (*hostglob.HostGlobber, *db.SampleFilter, func(*config.NodeConfigRecord) bool, error) {
 	includeHosts, err := hostglob.NewGlobber(true, nc.HostArgs.Host)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	haveFrom := nc.SourceArgs.HaveFrom
@@ -253,5 +263,75 @@ func (nc *NodeCommand) buildRecordFilter(
 		To:           to,
 	}
 
-	return includeHosts, recordFilter, nil
+	var query func(*config.NodeConfigRecord) bool
+	if nc.ParsedQuery != nil {
+		c, err := CompileQuery(nodePredicates, nc.ParsedQuery)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("Could not compile query: %v", err)
+		}
+		query = c
+	}
+
+	return includeHosts, recordFilter, query, nil
+}
+
+// Here:
+//
+// * If Convert is nil then type must be string and we just use the input string.
+// * Compare must not be nil, it extracts the field and then does a straight value
+//   comparison
+
+var nodePredicates = map[string]Predicate[*config.NodeConfigRecord]{
+	"Timestamp": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.Timestamp, v.(string))
+		},
+	},
+	"Hostname": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.Hostname, v.(string))
+		},
+	},
+	"Description": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.Description, v.(string))
+		},
+	},
+	"CpuCores": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.CpuCores, v.(int))
+		},
+	},
+	"MemGB": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.MemGB, v.(int))
+		},
+	},
+	"GpuCards": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.GpuCards, v.(int))
+		},
+	},
+	"GpuMemGB": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.GpuMemGB, v.(int))
+		},
+	},
+	"GpuMemPct": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Bool,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			var x, y int
+			if d.GpuMemPct {
+				x = 1
+			}
+			if v.(bool) {
+				y = 1
+			}
+			return x - y
+		},
+	},
 }
