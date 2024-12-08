@@ -133,6 +133,17 @@ func (nc *NodeCommand) Validate() error {
 //
 // Processing
 
+var compiled func(*config.NodeConfigRecord) bool
+
+func init() {
+	var exampleAst = NewLogical("or", NewBinop("=", "CpuCores", "64"), NewBinop(">", "GpuCards", "3"))
+	c, err := CompileQuery(nodePredicates, exampleAst)
+	if err != nil {
+		panic(err)
+	}
+	compiled = c
+}
+
 func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	var theLog db.SysinfoCluster
 	var err error
@@ -192,7 +203,14 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 			return true
 		}
 		t := parsed.Unix()
-		return !(t >= recordFilter.From && t <= recordFilter.To)
+		if !(t >= recordFilter.From && t <= recordFilter.To) {
+			return true
+		}
+		fmt.Printf("%v\n", compiled)
+		if compiled != nil && !compiled(s) {
+			return true
+		}
+		return false
 	})
 
 	if nc.Newest {
@@ -254,4 +272,67 @@ func (nc *NodeCommand) buildRecordFilter(
 	}
 
 	return includeHosts, recordFilter, nil
+}
+
+// Here:
+//
+// * If Convert is nil then type must be string and we just use the input string.
+// * Compare must not be nil, it extracts the field and then does a straight value
+//   comparison
+
+var nodePredicates = map[string]Predicate[*config.NodeConfigRecord]{
+	"Timestamp": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.Timestamp, v.(string))
+		},
+	},
+	"Hostname": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.Hostname, v.(string))
+		},
+	},
+	"Description": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.Description, v.(string))
+		},
+	},
+	"CpuCores": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			fmt.Printf("  CpuCores compare: %d %d\n", d.CpuCores, v.(int))
+			return cmp.Compare(d.CpuCores, v.(int))
+		},
+	},
+	"MemGB": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.MemGB, v.(int))
+		},
+	},
+	"GpuCards": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			fmt.Printf("  GpuCards compare: %d %d\n", d.GpuCards, v.(int))
+			return cmp.Compare(d.GpuCards, v.(int))
+		},
+	},
+	"GpuMemGB": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.GpuMemGB, v.(int))
+		},
+	},
+	"GpuMemPct": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Bool,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			var x, y int
+			if d.GpuMemPct {
+				x = 1
+			}
+			if v.(bool) {
+				y = 1
+			}
+			return x - y
+		},
+	},
 }
