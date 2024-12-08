@@ -1,9 +1,4 @@
 // Produce a per-node timeline of gpu data.
-//
-// See summary.txt for info.
-//
-// TODO (coming with computed queries):
-//  - selection by every field ("FanPct > 50", "PowerDrawW > 150")
 
 package gpus
 
@@ -27,11 +22,6 @@ import (
 
 package gpus
 
-import (
-	. "sonalyze/common"
-    . "sonalyze/table"
-)
-
 %%
 
 FIELDS *ReportLine
@@ -41,7 +31,7 @@ FIELDS *ReportLine
  Gpu         int           desc:"Card index on the host"
  FanPct      int           desc:"Fan speed in percent of max"
  PerfMode    int           desc:"Numeric performance mode"
- MemUsedKB   int           desc:"Amount of memory in use"
+ MemUsedKB   int64         desc:"Amount of memory in use"
  TempC       int           desc:"Card temperature in degrees C"
  PowerDrawW  int           desc:"Current power draw in Watts"
  PowerLimitW int           desc:"Current power limit in Watts"
@@ -72,6 +62,7 @@ type GpuCommand struct /* implements AnalysisCommand */ {
 	// Almost SharedArgs, but HostArgs instead of RecordFilterArgs
 	DevArgs
 	SourceArgs
+	QueryArgs
 	HostArgs
 	VerboseArgs
 	FormatArgs
@@ -85,6 +76,7 @@ var _ = AnalysisCommand((*GpuCommand)(nil))
 func (gc *GpuCommand) Add(fs *CLI) {
 	gc.DevArgs.Add(fs)
 	gc.SourceArgs.Add(fs)
+	gc.QueryArgs.Add(fs)
 	gc.HostArgs.Add(fs)
 	gc.VerboseArgs.Add(fs)
 	gc.FormatArgs.Add(fs)
@@ -97,6 +89,7 @@ func (gc *GpuCommand) Validate() error {
 	return errors.Join(
 		gc.DevArgs.Validate(),
 		gc.SourceArgs.Validate(),
+		gc.QueryArgs.Validate(),
 		gc.HostArgs.Validate(),
 		gc.VerboseArgs.Validate(),
 		gc.ConfigFileArgs.Validate(),
@@ -113,6 +106,7 @@ func (gc *GpuCommand) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		gc.DevArgs.ReifyForRemote(x),
 		gc.SourceArgs.ReifyForRemote(x),
+		gc.QueryArgs.ReifyForRemote(x),
 		gc.HostArgs.ReifyForRemote(x),
 		gc.FormatArgs.ReifyForRemote(x),
 		gc.ConfigFileArgs.ReifyForRemote(x),
@@ -177,6 +171,11 @@ func (gc *GpuCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 				}
 			}
 		}
+	}
+
+	reports, err = ApplyQuery(gc.ParsedQuery, gpuPredicates, reports)
+	if err != nil {
+		return err
 	}
 
 	FormatData(

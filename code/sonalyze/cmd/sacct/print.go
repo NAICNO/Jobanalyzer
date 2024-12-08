@@ -13,11 +13,6 @@ import (
 
 package sacct
 
-import (
-    . "sonalyze/common"
-	. "sonalyze/table"
-)
-
 %%
 
 FIELDS *SacctRegular
@@ -75,7 +70,7 @@ DEFAULTS default
 
 ELBAT*/
 
-func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSummary) {
+func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSummary) error {
 	// TODO: By and by it may be possible to lift this extra loop into the loop already being run in
 	// perform.go to compute the `regular` values, and not allocate extra values here.
 	toPrint := make([]*SacctRegular, len(regular))
@@ -122,6 +117,10 @@ func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSumma
 			ArrayIndex:          int(r.Main.ArrayIndex),
 		}
 	}
+	toPrint, err := ApplyQuery(sc.ParsedQuery, sacctPredicates, toPrint)
+	if err != nil {
+		return err
+	}
 	FormatData(
 		stdout,
 		sc.PrintFields,
@@ -129,4 +128,5 @@ func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSumma
 		sc.PrintOpts,
 		toPrint,
 	)
+	return nil
 }

@@ -3,36 +3,37 @@
 package metadata
 
 import (
+	"cmp"
+	"fmt"
+	"io"
+	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-import (
-	"fmt"
-	"io"
-)
-
 var (
+	_ = cmp.Compare(0, 0)
 	_ fmt.Formatter
 	_ = io.SeekStart
+	_ = UstrEmpty
 )
 
 // MT: Constant after initialization; immutable
 var metadataFormatters = map[string]Formatter[*metadataItem]{
 	"Hostname": {
 		Fmt: func(d *metadataItem, ctx PrintMods) string {
-			return FormatString(string(d.Hostname), ctx)
+			return FormatString(d.Hostname, ctx)
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
 	"Earliest": {
 		Fmt: func(d *metadataItem, ctx PrintMods) string {
-			return FormatDateTimeValue(DateTimeValue(d.Earliest), ctx)
+			return FormatDateTimeValue(d.Earliest, ctx)
 		},
 		Help: "(DateTimeValue) Timestamp of earliest sample for host",
 	},
 	"Latest": {
 		Fmt: func(d *metadataItem, ctx PrintMods) string {
-			return FormatDateTimeValue(DateTimeValue(d.Latest), ctx)
+			return FormatDateTimeValue(d.Latest, ctx)
 		},
 		Help: "(DateTimeValue) Timestamp of latest sample for host",
 	},
@@ -42,6 +43,27 @@ func init() {
 	DefAlias(metadataFormatters, "Hostname", "host")
 	DefAlias(metadataFormatters, "Earliest", "earliest")
 	DefAlias(metadataFormatters, "Latest", "latest")
+}
+
+// MT: Constant after initialization; immutable
+var metadataPredicates = map[string]Predicate[*metadataItem]{
+	"Hostname": Predicate[*metadataItem]{
+		Compare: func(d *metadataItem, v any) int {
+			return cmp.Compare(d.Hostname, v.(string))
+		},
+	},
+	"Earliest": Predicate[*metadataItem]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *metadataItem, v any) int {
+			return cmp.Compare(d.Earliest, v.(DateTimeValue))
+		},
+	},
+	"Latest": Predicate[*metadataItem]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *metadataItem, v any) int {
+			return cmp.Compare(d.Latest, v.(DateTimeValue))
+		},
+	},
 }
 
 type metadataItem struct {

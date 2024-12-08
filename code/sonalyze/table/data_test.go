@@ -65,13 +65,6 @@ func TestDataFormatting(t *testing.T) {
 		t.Fatalf("Int64 %s", s)
 	}
 
-	if s := FormatFloat(1234.5, false, 0); s != "1234.5" {
-		t.Fatalf("Float %s", s)
-	}
-	if s := FormatFloat(0, false, PrintModNoDefaults); s != "*skip*" {
-		t.Fatalf("Float %s", s)
-	}
-
 	if s := FormatString("hi", 0); s != "hi" {
 		t.Fatalf("String %s", s)
 	}

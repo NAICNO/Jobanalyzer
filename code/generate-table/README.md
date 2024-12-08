@@ -36,7 +36,15 @@ ELBAT*/
 
 The the prefix - the text before `%%` - is copied verbatim to the output.  It must contain a package
 directive and any imports referenced by type names in the table specification, and may not contain
-anything else.  One of the imports must be `. "sonalyze/table"`.
+anything else.  Note these imports are added by the table generator:
+
+```
+	"cmp"
+	"fmt"
+	"io"
+	. "sonalyze/common"
+	. "sonalyze/table"
+```
 
 The syntax is otherwise line-oriented.
 
@@ -66,12 +74,17 @@ The header is followed by field definitions, one per line.  Each field definitio
 ```
   <field-name> <type-name> <attr>...
 ```
-where the the type-name is the *formatting type*.  The data field may have an underlying type that
-is different from the formatting type but which must be convertible to the formatting type with a
-cast; the generated code always has a cast.
+where the the type-name combines the representation type and formatting information.  The representation
+type must match the underlying type of the data field exactly; no conversion is inserted.
 
-Formatting types are anything we want them to be; they are specific to the implementation of the
-data structures in sonalyze, and some are weird to capture existing output conventions:
+Formatting information is pretty ad-hoc and can be anything we want it to be; it is specific to the
+implementation of the data structures in sonalyze, and some are weird to capture existing output
+conventions.
+
+What is confusing here is that sometimes the representation type is (say) int64 for a timestamp and
+sometimes it is (say) DateTimeValue, also an int64 value but a distinct type.  The type-name has to
+match the representation exactly, so in the former case the table spec is typed as
+`I64DateTimeValue` and in the latter case as `DateTimeValue`.  Both imply the same formatting.
 
 * `string` - Go string value
 * `Ustr` - Sonalyze hash-consed string value

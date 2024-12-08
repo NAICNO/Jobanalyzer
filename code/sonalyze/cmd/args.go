@@ -417,6 +417,32 @@ func (rfa *RecordFilterArgs) DefaultUserFilters() (allUsers, skipSystemUsers, de
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
+// Query arguments
+
+type QueryArgs struct {
+	QueryStmt   string
+	ParsedQuery PNode
+}
+
+func (qa *QueryArgs) Add(fs *CLI) {
+	fs.Group("query")
+	fs.StringVar(&qa.QueryStmt, "q", "", "A query expression")
+}
+
+func (qa *QueryArgs) ReifyForRemote(x *ArgReifier) error {
+	x.String("q", qa.QueryStmt)
+	return nil
+}
+
+func (qa *QueryArgs) Validate() (err error) {
+	if qa.QueryStmt != "" {
+		qa.ParsedQuery, err = ParseQuery(qa.QueryStmt)
+	}
+	return
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Config file
 
 type ConfigFileArgs struct {
@@ -456,6 +482,7 @@ func (cfa *ConfigFileArgs) ConfigFile() string {
 type SharedArgs struct {
 	DevArgs
 	SourceArgs
+	QueryArgs
 	RecordFilterArgs
 	VerboseArgs
 	ConfigFileArgs
@@ -468,6 +495,7 @@ func (sa *SharedArgs) SharedFlags() *SharedArgs {
 func (s *SharedArgs) Add(fs *CLI) {
 	s.DevArgs.Add(fs)
 	s.SourceArgs.Add(fs)
+	s.QueryArgs.Add(fs)
 	s.RecordFilterArgs.Add(fs)
 	s.ConfigFileArgs.Add(fs)
 	s.VerboseArgs.Add(fs)
@@ -480,6 +508,7 @@ func (s *SharedArgs) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		s.DevArgs.ReifyForRemote(x),
 		s.SourceArgs.ReifyForRemote(x),
+		s.QueryArgs.ReifyForRemote(x),
 		s.RecordFilterArgs.ReifyForRemote(x),
 		s.ConfigFileArgs.ReifyForRemote(x),
 	)
@@ -489,6 +518,7 @@ func (s *SharedArgs) Validate() error {
 	return errors.Join(
 		s.DevArgs.Validate(),
 		s.SourceArgs.Validate(),
+		s.QueryArgs.Validate(),
 		s.RecordFilterArgs.Validate(),
 		s.VerboseArgs.Validate(),
 		s.ConfigFileArgs.Validate(),

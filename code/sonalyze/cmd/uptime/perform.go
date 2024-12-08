@@ -79,8 +79,7 @@ func (uc *UptimeCommand) Perform(
 		Log.Infof("%d streams", len(streams))
 		Log.Infof("%d records after hack", len(samples))
 	}
-	uc.printReports(out, uc.computeReports(samples, bounds, cfg, hostGlobber))
-	return nil
+	return uc.printReports(out, uc.computeReports(samples, bounds, cfg, hostGlobber))
 }
 
 // Compute up/down reports for all selected hosts within the time window.  The result will not be

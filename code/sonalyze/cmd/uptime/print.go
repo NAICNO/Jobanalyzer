@@ -33,10 +33,6 @@ import (
 
 package uptime
 
-import (
-	. "sonalyze/table"
-)
-
 %%
 
 FIELDS *UptimeLine
@@ -65,7 +61,11 @@ DEFAULTS default
 
 ELBAT*/
 
-func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) {
+func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) error {
+	reports, err := ApplyQuery(uc.ParsedQuery, uptimePredicates, reports)
+	if err != nil {
+		return err
+	}
 	slices.SortFunc(reports, func(a, b *UptimeLine) int {
 		c := cmp.Compare(a.Hostname, b.Hostname)
 		if c == 0 {
@@ -95,4 +95,5 @@ func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) {
 		uc.PrintOpts,
 		reports,
 	)
+	return nil
 }
