@@ -59,6 +59,7 @@ ELBAT*/
 type ClusterCommand struct {
 	DevArgs
 	RemotingArgsNoCluster
+	QueryArgs
 	VerboseArgs
 	FormatArgs
 	JobanalyzerDir string
@@ -67,6 +68,7 @@ type ClusterCommand struct {
 func (cc *ClusterCommand) Add(fs *CLI) {
 	cc.DevArgs.Add(fs)
 	cc.RemotingArgsNoCluster.Add(fs)
+	cc.QueryArgs.Add(fs)
 	cc.VerboseArgs.Add(fs)
 	cc.FormatArgs.Add(fs)
 	fs.Group("local-data-source")
@@ -76,6 +78,7 @@ func (cc *ClusterCommand) Add(fs *CLI) {
 func (cc *ClusterCommand) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		cc.DevArgs.ReifyForRemote(x),
+		cc.QueryArgs.ReifyForRemote(x),
 		cc.FormatArgs.ReifyForRemote(x),
 	)
 }
@@ -92,6 +95,7 @@ func (cc *ClusterCommand) Validate() error {
 		cc.DevArgs.Validate(),
 		cc.VerboseArgs.Validate(),
 		cc.RemotingArgsNoCluster.Validate(),
+		cc.QueryArgs.Validate(),
 		ValidateFormatArgs(
 			&cc.FormatArgs,
 			clusterDefaultFields,
@@ -126,6 +130,12 @@ func (cc *ClusterCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	slices.SortFunc(printable, func(a, b *db.ClusterEntry) int {
 		return cmp.Compare(a.Name, b.Name)
 	})
+
+	printable, err = ApplyQuery(
+		cc.ParsedQuery, clusterFormatters, clusterPredicates, printable)
+	if err != nil {
+		return err
+	}
 
 	FormatData(
 		stdout,

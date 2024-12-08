@@ -362,9 +362,15 @@ func (jc *JobsCommand) DefaultRecordFilters() (
 ) {
 	allUsers, skipSystemUsers, determined := jc.RecordFilterArgs.DefaultUserFilters()
 	if !determined {
-		// `--zombie` implies `--user=-` because the use case for `--zombie` is to hunt
-		// across all users.
+		// `--zombie` implies `--user=-` because the use case for `--zombie` is to hunt across all
+		// users.
 		allUsers, skipSystemUsers = jc.Zombie, false
+
+		// `-q` implies `--user=-`: it's a power user command; the User field may be used in the
+		// query.
+		if jc.QueryStmt != "" {
+			allUsers = true
+		}
 	}
 	excludeSystemCommands = true
 	excludeHeartbeat = true

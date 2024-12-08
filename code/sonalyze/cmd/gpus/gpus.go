@@ -62,6 +62,7 @@ type GpuCommand struct /* implements AnalysisCommand */ {
 	// Almost SharedArgs, but HostArgs instead of RecordFilterArgs
 	DevArgs
 	SourceArgs
+	QueryArgs
 	HostArgs
 	VerboseArgs
 	FormatArgs
@@ -75,6 +76,7 @@ var _ = AnalysisCommand((*GpuCommand)(nil))
 func (gc *GpuCommand) Add(fs *CLI) {
 	gc.DevArgs.Add(fs)
 	gc.SourceArgs.Add(fs)
+	gc.QueryArgs.Add(fs)
 	gc.HostArgs.Add(fs)
 	gc.VerboseArgs.Add(fs)
 	gc.FormatArgs.Add(fs)
@@ -87,6 +89,7 @@ func (gc *GpuCommand) Validate() error {
 	return errors.Join(
 		gc.DevArgs.Validate(),
 		gc.SourceArgs.Validate(),
+		gc.QueryArgs.Validate(),
 		gc.HostArgs.Validate(),
 		gc.VerboseArgs.Validate(),
 		gc.ConfigFileArgs.Validate(),
@@ -103,6 +106,7 @@ func (gc *GpuCommand) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		gc.DevArgs.ReifyForRemote(x),
 		gc.SourceArgs.ReifyForRemote(x),
+		gc.QueryArgs.ReifyForRemote(x),
 		gc.HostArgs.ReifyForRemote(x),
 		gc.FormatArgs.ReifyForRemote(x),
 		gc.ConfigFileArgs.ReifyForRemote(x),
@@ -167,6 +171,11 @@ func (gc *GpuCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 				}
 			}
 		}
+	}
+
+	reports, err = ApplyQuery(gc.ParsedQuery, gpuFormatters, gpuPredicates, reports)
+	if err != nil {
+		return err
 	}
 
 	FormatData(

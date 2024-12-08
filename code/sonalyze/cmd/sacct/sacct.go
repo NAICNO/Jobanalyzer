@@ -19,6 +19,7 @@ type SacctCommand struct /* implements AnalysisCommand */ {
 	// Almost SharedArgs, but HostArgs instead of RecordFilterArgs
 	DevArgs
 	SourceArgs
+	QueryArgs
 	HostArgs
 	VerboseArgs
 	ConfigFileArgs
@@ -58,6 +59,7 @@ var _ = AnalysisCommand((*SacctCommand)(nil))
 func (sc *SacctCommand) Add(fs *CLI) {
 	sc.DevArgs.Add(fs)
 	sc.SourceArgs.Add(fs)
+	sc.QueryArgs.Add(fs)
 	sc.HostArgs.Add(fs)
 	sc.VerboseArgs.Add(fs)
 	sc.ConfigFileArgs.Add(fs)
@@ -117,6 +119,7 @@ func (sc *SacctCommand) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		sc.DevArgs.ReifyForRemote(x),
 		sc.SourceArgs.ReifyForRemote(x),
+		sc.QueryArgs.ReifyForRemote(x),
 		sc.HostArgs.ReifyForRemote(x),
 		sc.ConfigFileArgs.ReifyForRemote(x),
 		sc.FormatArgs.ReifyForRemote(x),
@@ -128,6 +131,7 @@ func (sc *SacctCommand) Validate() error {
 	e1 = errors.Join(
 		sc.DevArgs.Validate(),
 		sc.SourceArgs.Validate(),
+		sc.QueryArgs.Validate(),
 		sc.HostArgs.Validate(),
 		sc.VerboseArgs.Validate(),
 		sc.ConfigFileArgs.Validate(),

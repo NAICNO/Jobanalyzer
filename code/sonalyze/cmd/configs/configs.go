@@ -77,6 +77,7 @@ ELBAT*/
 
 type ConfigCommand struct {
 	DevArgs
+	QueryArgs
 	HostArgs
 	RemotingArgs
 	VerboseArgs
@@ -87,6 +88,7 @@ type ConfigCommand struct {
 func (cc *ConfigCommand) Add(fs *CLI) {
 	cc.DevArgs.Add(fs)
 	cc.RemotingArgs.Add(fs)
+	cc.QueryArgs.Add(fs)
 	cc.HostArgs.Add(fs)
 	cc.VerboseArgs.Add(fs)
 	cc.ConfigFileArgs.Add(fs)
@@ -101,6 +103,7 @@ func (cc *ConfigCommand) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		cc.DevArgs.ReifyForRemote(x),
 		cc.ConfigFileArgs.ReifyForRemote(x),
+		cc.QueryArgs.ReifyForRemote(x),
 		cc.HostArgs.ReifyForRemote(x),
 		cc.FormatArgs.ReifyForRemote(x),
 	)
@@ -115,6 +118,7 @@ func (cc *ConfigCommand) Validate() error {
 
 	return errors.Join(
 		cc.DevArgs.Validate(),
+		cc.QueryArgs.Validate(),
 		cc.HostArgs.Validate(),
 		cc.RemotingArgs.Validate(),
 		cc.VerboseArgs.Validate(),
@@ -149,6 +153,12 @@ func (cc *ConfigCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
 		records = slices.DeleteFunc(records, func(r *config.NodeConfigRecord) bool {
 			return !includeHosts.Match(r.Hostname)
 		})
+	}
+
+	records, err = ApplyQuery(
+		cc.ParsedQuery, configFormatters, configPredicates, records)
+	if err != nil {
+		return err
 	}
 
 	slices.SortFunc(records, func(a, b *config.NodeConfigRecord) int {

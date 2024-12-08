@@ -85,34 +85,51 @@ func main() {
 // operators apply; if a type is "GpuSet" then some kind of set operators apply (TBD).
 
 type typeInfo struct {
-	helpName  string
-	formatter string
+	helpName     string
+	formatter    string
+	parser       string
+	incomparable bool
 }
 
 var knownTypes = map[string]typeInfo{
 	"[]string": typeInfo{
-		helpName:  "string list",
-		formatter: "FormatStrings",
+		helpName:     "string list",
+		formatter:    "FormatStrings",
+		parser:       "CvtString2Strings",
+		incomparable: true,
 	},
 	"F64Ceil": typeInfo{
 		helpName: "int",
+		parser:   "CvtString2Float64",
 	},
 	"U64Div1M": typeInfo{
 		helpName: "int",
+		parser:   "CvtString2Uint64",
 	},
 	"IntOrEmpty": typeInfo{
 		helpName: "int",
+		parser:   "CvtString2Int",
 	},
 	"DateTimeValueOrBlank": typeInfo{
 		helpName: "DateTimeValue",
+		parser:   "CvtString2DateTimeValue",
 	},
 	"IsoDateTimeOrUnknown": typeInfo{helpName: "IsoDateTimeValue"},
 	"Ustr":                 typeInfo{helpName: "string"},
 	"UstrMax30":            typeInfo{helpName: "string"},
 	"gpuset.GpuSet": typeInfo{
-		helpName:  "GpuSet",
-		formatter: "FormatGpuSet",
+		helpName:     "GpuSet",
+		formatter:    "FormatGpuSet",
+		parser:       "CvtString2GpuSet",
+		incomparable: true,
 	},
+}
+
+func hasComparer(ty string) bool {
+	if probe, found := knownTypes[ty]; found {
+		return !probe.incomparable
+	}
+	return true
 }
 
 func formatName(ty string) string {
@@ -120,6 +137,13 @@ func formatName(ty string) string {
 		return probe.formatter
 	}
 	return "Format" + capitalize(ty)
+}
+
+func parseName(ty string) string {
+	if probe := knownTypes[ty]; probe.parser != "" {
+		return probe.parser
+	}
+	return "CvtString2" + capitalize(ty)
 }
 
 func userFacingTypeName(ty string) string {
@@ -185,6 +209,7 @@ var (
 
 func fieldSection(tableName string, fields *parser.FieldSect) (fieldList []fieldSpec) {
 	fieldList = fieldFormatters(tableName, fields)
+	fieldPredicates(tableName, fields)
 	return
 }
 
@@ -266,6 +291,63 @@ func fieldFormatters(tableName string, fields *parser.FieldSect) (fieldList []fi
 		fmt.Fprintf(output, "}\n\n")
 	}
 	return
+}
+
+// TODO: Factor redundancies wrt fieldFormatters?
+
+func fieldPredicates(tableName string, fields *parser.FieldSect) {
+	fmt.Fprintf(output, "// MT: Constant after initialization; immutable\n")
+	fmt.Fprintf(output, "var %sPredicates = map[string]Predicate[%s]{\n", tableName, fields.Type)
+	for _, field := range fields.Fields {
+		attrs := make(map[string]string)
+		for _, attr := range field.Attrs {
+			attrs[attr.Name] = attr.Value
+		}
+
+		actualFieldName := field.Name
+		if fn, found := attrs["field"]; found {
+			actualFieldName = fn
+		}
+
+		// Here:
+		//
+		// * If Convert is nil then type must be string and we just use the input string.
+		// * Compare must not be nil, it extracts the field and then does a straight value
+		//   comparison
+		// * TODO: For nil pointers, the field always compares less than a concrete value,
+		//   this may not be ideal
+		// * TODO: Set comparison.  For []string and GpuSet, the relationals should be
+		//   set operators: < for strict subset, etc.  To select records where `2` is in
+		//   the gpuset S would simply be 'S >= 2', no special inclusion operator required.
+		//   Right now every set compare returns -1.
+
+		fmt.Fprintf(output, "\t\"%s\": Predicate[%s]{\n", field.Name, fields.Type)
+		if field.Type != "string" {
+			fmt.Fprintf(output, "\t\tConvert: %s,\n", parseName(field.Type))
+		}
+		fmt.Fprintf(output, "\t\tCompare: func(d %s, v any) int {\n", fields.Type)
+		if hasComparer(field.Type) {
+			comparator := "cmp.Compare"
+			if field.Type == "bool" {
+				comparator = "CompareBool"
+			}
+			if ptrName := attrs["indirect"]; ptrName != "" {
+				fmt.Fprintf(output, "\t\t\tif d.%s != nil {\n", ptrName)
+				fmt.Fprintf(output, "\t\t\t\treturn %s(d.%s.%s, v.(%s))\n",
+					comparator, ptrName, actualFieldName, field.Type)
+				fmt.Fprintf(output, "\t\t\t}\n")
+				fmt.Fprintf(output, "\t\t\treturn -1\n")
+			} else {
+				fmt.Fprintf(output, "\t\t\treturn %s(d.%s, v.(%s))\n",
+					comparator, actualFieldName, field.Type)
+			}
+		} else {
+			fmt.Fprintf(output, "\t\t\treturn -1\n")
+		}
+		fmt.Fprintf(output, "\t\t},\n")
+		fmt.Fprintf(output, "\t},\n")
+	}
+	fmt.Fprintf(output, "}\n\n")
 }
 
 var validAttr = map[string]bool{
