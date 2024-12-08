@@ -127,6 +127,15 @@ func NewBinop(op, field, value string) PNode {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
+// Parsing
+
+func ParseQuery(input string) (PNode, error) {
+	// FIXME
+	return NewLogical("or", NewBinop(">", "CpuCores", "64"), NewBinop(">", "GpuCards", "3")), nil
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Query generator.
 
 func CompileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T) bool, error) {
@@ -151,7 +160,6 @@ func CompileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T)
 		}
 	case PKindBinop:
 		l := q.(*binaryOp)
-		fmt.Printf("Lookup: %s\n", l.field)
 		p, found := predicates[l.field]
 		if !found {
 			return nil, fmt.Errorf("Field not found: %s", l.field)
