@@ -54,17 +54,17 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(int) Average CPU utilization in percent (100% = 1 core)",
 	},
-	"RelativeCpuAvgPct": {
-		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRcpuPctAvg]), ctx)
-		},
-		Help: "(int) Average relative CPU utilization in percent (100% = all cores)",
-	},
 	"CpuPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatIntCeil(IntCeil(d.computed[kCpuPctPeak]), ctx)
 		},
 		Help: "(int) Peak CPU utilization in percent (100% = 1 core)",
+	},
+	"RelativeCpuAvgPct": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			return FormatIntCeil(IntCeil(d.computed[kRcpuPctAvg]), ctx)
+		},
+		Help: "(int) Average relative CPU utilization in percent (100% = all cores)",
 	},
 	"RelativeCpuPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -252,7 +252,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"JobName": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatString(string(d.sacctInfo.JobName), ctx)
+				return FormatUstr(Ustr(d.sacctInfo.JobName), ctx)
 			}
 			return "?"
 		},
@@ -261,7 +261,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"State": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatString(string(d.sacctInfo.State), ctx)
+				return FormatUstr(Ustr(d.sacctInfo.State), ctx)
 			}
 			return "?"
 		},
@@ -270,7 +270,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"Account": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatString(string(d.sacctInfo.Account), ctx)
+				return FormatUstr(Ustr(d.sacctInfo.Account), ctx)
 			}
 			return "?"
 		},
@@ -279,7 +279,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"Layout": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatString(string(d.sacctInfo.Layout), ctx)
+				return FormatUstr(Ustr(d.sacctInfo.Layout), ctx)
 			}
 			return "?"
 		},
@@ -288,7 +288,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"Reservation": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatString(string(d.sacctInfo.Reservation), ctx)
+				return FormatUstr(Ustr(d.sacctInfo.Reservation), ctx)
 			}
 			return "?"
 		},
@@ -297,7 +297,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"Partition": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatString(string(d.sacctInfo.Partition), ctx)
+				return FormatUstr(Ustr(d.sacctInfo.Partition), ctx)
 			}
 			return "?"
 		},
@@ -306,7 +306,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"RequestedGpus": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatString(string(d.sacctInfo.ReqGPUS), ctx)
+				return FormatUstr(Ustr(d.sacctInfo.ReqGPUS), ctx)
 			}
 			return "?"
 		},
@@ -385,8 +385,8 @@ func init() {
 	DefAlias(jobsFormatters, "Start", "start")
 	DefAlias(jobsFormatters, "End", "end")
 	DefAlias(jobsFormatters, "CpuAvgPct", "cpu-avg")
-	DefAlias(jobsFormatters, "RelativeCpuAvgPct", "cpu-peak")
-	DefAlias(jobsFormatters, "CpuPeakPct", "rcpu-avg")
+	DefAlias(jobsFormatters, "CpuPeakPct", "cpu-peak")
+	DefAlias(jobsFormatters, "RelativeCpuAvgPct", "rcpu-avg")
 	DefAlias(jobsFormatters, "RelativeCpuPeakPct", "rcpu-peak")
 	DefAlias(jobsFormatters, "MemAvgGB", "mem-avg")
 	DefAlias(jobsFormatters, "MemPeakGB", "mem-peak")
