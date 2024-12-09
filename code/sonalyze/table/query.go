@@ -33,55 +33,35 @@ type Predicate[T any] struct {
 // Parsed queries are represented as PNode instances, all of them are tagged with a POpXx.
 
 const (
-	PKindShift = 20
-
-	PKindBinop   = 1
-	PKindLogical = 2
-	PKindUnop    = 3
-)
-
-const (
 	// The value 0 is never a valid opcode
-	POpEq    = 1 | (PKindBinop << PKindShift)
-	POpLt    = 2 | (PKindBinop << PKindShift)
-	POpLe    = 3 | (PKindBinop << PKindShift)
-	POpGt    = 4 | (PKindBinop << PKindShift)
-	POpGe    = 5 | (PKindBinop << PKindShift)
-	POpMatch = 6 | (PKindBinop << PKindShift)
-
-	POpAnd = 20 | (PKindLogical << PKindShift)
-	POpOr  = 21 | (PKindLogical << PKindShift)
-
-	POpNot = 31 | (PKindUnop << PKindShift)
+	POpEq    = iota+1
+	POpLt
+	POpLe
+	POpGt
+	POpGe
+	POpMatch
+	POpAnd
+	POpOr
+	POpNot
 )
 
-var pop2op = map[int]string{
-	POpEq:    "=",
-	POpLt:    "<",
-	POpLe:    "<=",
-	POpGt:    ">",
-	POpGe:    ">=",
-	POpMatch: "=~",
-	POpAnd:   "and",
-	POpOr:    "or",
-	POpNot:   "not",
+var pop2op = [...]string{
+	"*BAD*",
+	"=",
+	"<",
+	"<=",
+	">",
+	">=",
+	"=~",
+	"and",
+	"or",
+	"not",
 }
 
-type PNode interface {
-	Op() int
-	String() string
-}
-
-type opField struct {
-	op int
-}
-
-func (q *opField) Op() int {
-	return q.op
-}
+type PNode fmt.Stringer
 
 type unaryOp struct {
-	opField
+	op int
 	opd PNode
 }
 
@@ -89,15 +69,8 @@ func (b *unaryOp) String() string {
 	return fmt.Sprintf("(%s %s)", pop2op[b.op], b.opd)
 }
 
-func NewUnop(pop int, opd PNode) PNode {
-	return &unaryOp{
-		opField: opField{pop},
-		opd:     opd,
-	}
-}
-
 type logicalOp struct {
-	opField
+	op int
 	lhs, rhs PNode
 }
 
@@ -105,29 +78,13 @@ func (b *logicalOp) String() string {
 	return fmt.Sprintf("(%s %s %s)", pop2op[b.op], b.lhs, b.rhs)
 }
 
-func NewLogical(pop int, lhs, rhs PNode) PNode {
-	return &logicalOp{
-		opField: opField{op: pop},
-		lhs:     lhs,
-		rhs:     rhs,
-	}
-}
-
 type binaryOp struct {
-	opField
+	op int
 	field, value string
 }
 
 func (b *binaryOp) String() string {
 	return fmt.Sprintf("(%s %s %s)", pop2op[b.op], b.field, b.value)
-}
-
-func NewBinop(pop int, field, value string) PNode {
-	return &binaryOp{
-		opField: opField{pop},
-		field:   field,
-		value:   value,
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -147,9 +104,8 @@ func ParseQuery(input string) (PNode, error) {
 // Query generator.
 
 func CompileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T) bool, error) {
-	switch q.Op() >> PKindShift {
-	case PKindLogical:
-		l := q.(*logicalOp)
+	switch l := q.(type) {
+	case *logicalOp:
 		lhs, err := CompileQuery(predicates, l.lhs)
 		if err != nil {
 			return nil, err
@@ -166,8 +122,7 @@ func CompileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T)
 		default:
 			panic("Unknown op")
 		}
-	case PKindUnop:
-		l := q.(*unaryOp)
+	case *unaryOp:
 		opd, err := CompileQuery(predicates, l.opd)
 		if err != nil {
 			return nil, err
@@ -178,8 +133,11 @@ func CompileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T)
 		default:
 			panic("Unknown op")
 		}
-	case PKindBinop:
-		l := q.(*binaryOp)
+	case *binaryOp:
+		// TODO: POpMatch, this has built-in rhs conversion and probably calls a field accessor
+		// instead of a comparator.
+		//
+		// TODO: Misc stuff for set-like things (GpuSet, maybe host name sets).
 		p, found := predicates[l.field]
 		if !found {
 			return nil, fmt.Errorf("Field not found: %s", l.field)

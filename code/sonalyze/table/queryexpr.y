@@ -31,24 +31,24 @@ import (
 
 TopExpr : Expr { yylex.(*queryParser).expr = $$ } ;
 
-Expr : TNot Expr { $$ = NewUnop(POpNot, $2) }
-     | Expr TOr Expr { $$ = NewLogical(POpOr, $1, $3) }
-     | Expr TAnd Expr  { $$ = NewLogical(POpAnd, $1, $3) }
-     | TIdent TEqual String { $$ = NewBinop(POpEq, $1, $3) }
-     | TIdent TLess String { $$ = NewBinop(POpLt, $1, $3) }
-     | TIdent TLessOrEqual String { $$ = NewBinop(POpLe, $1, $3) }
-     | TIdent TGreater String { $$ = NewBinop(POpGt, $1, $3) }
-     | TIdent TGreaterOrEqual String { $$ = NewBinop(POpGe, $1, $3) }
-     | TIdent TMatch String { $$ = NewBinop(POpMatch, $1, $3) }
-     | TLeftParen Expr TRightParen { $$ = $2 }
+Expr : TNot Expr                     { $$ = &unaryOp{POpNot, $2} }
+     | Expr TOr Expr                 { $$ = &logicalOp{POpOr, $1, $3} }
+     | Expr TAnd Expr                { $$ = &logicalOp{POpAnd, $1, $3} }
+     | TIdent TEqual String          { $$ = &binaryOp{POpEq, $1, $3} }
+     | TIdent TLess String           { $$ = &binaryOp{POpLt, $1, $3} }
+     | TIdent TLessOrEqual String    { $$ = &binaryOp{POpLe, $1, $3} }
+     | TIdent TGreater String        { $$ = &binaryOp{POpGt, $1, $3} }
+     | TIdent TGreaterOrEqual String { $$ = &binaryOp{POpGe, $1, $3} }
+     | TIdent TMatch String          { $$ = &binaryOp{POpMatch, $1, $3} }
+     | TLeftParen Expr TRightParen   { $$ = $2 }
      ;
 
 // Keywords and idents can appear in the string position, to reduce the need for quoting
 String : TString { $$ = $1 }
-       | TIdent { $$ = $1 }
-       | TOr { $$ = $1 }
-       | TAnd { $$ = $1 }
-       | TNot { $$ = $1 }
+       | TIdent  { $$ = $1 }
+       | TOr     { $$ = $1 }
+       | TAnd    { $$ = $1 }
+       | TNot    { $$ = $1 }
        ;
 
 %%
@@ -71,7 +71,6 @@ func (q *queryParser) Lex(lval *yySymType) (tok int) {
 	} else {
 		tok = q.tokens[0].tok
 		lval.text = q.tokens[0].text
-		fmt.Printf("Consumed %d %s\n", tok, lval.text)
 		q.tokens = q.tokens[1:]
 	}
 	return
@@ -91,33 +90,32 @@ func (q *queryParser) Parse() (PNode, error) {
 	return q.expr, nil
 }
 
-// This lexer is noncontextual, so a bit more quoting is needed than strictly desirable.  We should add
-// some negative-lookahead assertions to the punctuation, esp to `and` and `or`, but this does not
-// completely fix anything.
+// Note, Go regexes do not have full lookahead/lookbehind.  Here \b serves to ensure that the
+// keywords are not part of a longer identifier.
 
-var tokenRe = regexp.MustCompile(`(\s+)|(<|<=|>|>=|=|and|or|not|\(|\))|([a-zA-Z][a-zA-Z0-9]*)|"([^"]*)"|'([^']*)'|/([^/]*)/|([^()\s]+)`)
+var tokenRe = regexp.MustCompile(`(\s+)|(<|<=|>|>=|=|and\b|or\b|not\b|\(|\))|([a-zA-Z][a-zA-Z0-9]*)|"([^"]*)"|'([^']*)'|/([^/]*)/|([^()\s]+)`)
 
 const (
-	spaces = 1
+	spaces      = 1
 	punctuation = 2
-	ident = 3
-	dquoted = 4
-	squoted = 5
-	slashed = 6
-	nonspace = 7
+	ident       = 3
+	dquoted     = 4
+	squoted     = 5
+	slashed     = 6
+	nonspace    = 7
 )
 
 var punct = map[string]int{
-	"<": TLess,
-	"<=": TLessOrEqual,
-	">": TGreater,
-	">=": TGreaterOrEqual,
-	"=": TEqual,
+	"<":   TLess,
+	"<=":  TLessOrEqual,
+	">":   TGreater,
+	">=":  TGreaterOrEqual,
+	"=":   TEqual,
 	"and": TAnd,
-	"or": TOr,
+	"or":  TOr,
 	"not": TNot,
-	"(": TLeftParen,
-	")": TRightParen,
+	"(":   TLeftParen,
+	")":   TRightParen,
 }
 
 func newQueryParser(input string) (*queryParser, error) {

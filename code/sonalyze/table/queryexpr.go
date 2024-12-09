@@ -80,7 +80,6 @@ func (q *queryParser) Lex(lval *yySymType) (tok int) {
 	} else {
 		tok = q.tokens[0].tok
 		lval.text = q.tokens[0].text
-		fmt.Printf("Consumed %d %s\n", tok, lval.text)
 		q.tokens = q.tokens[1:]
 	}
 	return
@@ -100,11 +99,10 @@ func (q *queryParser) Parse() (PNode, error) {
 	return q.expr, nil
 }
 
-// This lexer is noncontextual, so a bit more quoting is needed than strictly desirable.  We should add
-// some negative-lookahead assertions to the punctuation, esp to `and` and `or`, but this does not
-// completely fix anything.
+// Note, Go regexes do not have full lookahead/lookbehind.  Here \b serves to ensure that the
+// keywords are not part of a longer identifier.
 
-var tokenRe = regexp.MustCompile(`(\s+)|(<|<=|>|>=|=|and|or|not|\(|\))|([a-zA-Z][a-zA-Z0-9]*)|"([^"]*)"|'([^']*)'|/([^/]*)/|([^()\s]+)`)
+var tokenRe = regexp.MustCompile(`(\s+)|(<|<=|>|>=|=|and\b|or\b|not\b|\(|\))|([a-zA-Z][a-zA-Z0-9]*)|"([^"]*)"|'([^']*)'|/([^/]*)/|([^()\s]+)`)
 
 const (
 	spaces      = 1
@@ -581,55 +579,55 @@ yydefault:
 		yyDollar = yyS[yypt-2 : yypt+1]
 //line queryexpr.y:34
 		{
-			yyVAL.node = NewUnop(POpNot, yyDollar[2].node)
+			yyVAL.node = &unaryOp{POpNot, yyDollar[2].node}
 		}
 	case 3:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line queryexpr.y:35
 		{
-			yyVAL.node = NewLogical(POpOr, yyDollar[1].node, yyDollar[3].node)
+			yyVAL.node = &logicalOp{POpOr, yyDollar[1].node, yyDollar[3].node}
 		}
 	case 4:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line queryexpr.y:36
 		{
-			yyVAL.node = NewLogical(POpAnd, yyDollar[1].node, yyDollar[3].node)
+			yyVAL.node = &logicalOp{POpAnd, yyDollar[1].node, yyDollar[3].node}
 		}
 	case 5:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line queryexpr.y:37
 		{
-			yyVAL.node = NewBinop(POpEq, yyDollar[1].text, yyDollar[3].text)
+			yyVAL.node = &binaryOp{POpEq, yyDollar[1].text, yyDollar[3].text}
 		}
 	case 6:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line queryexpr.y:38
 		{
-			yyVAL.node = NewBinop(POpLt, yyDollar[1].text, yyDollar[3].text)
+			yyVAL.node = &binaryOp{POpLt, yyDollar[1].text, yyDollar[3].text}
 		}
 	case 7:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line queryexpr.y:39
 		{
-			yyVAL.node = NewBinop(POpLe, yyDollar[1].text, yyDollar[3].text)
+			yyVAL.node = &binaryOp{POpLe, yyDollar[1].text, yyDollar[3].text}
 		}
 	case 8:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line queryexpr.y:40
 		{
-			yyVAL.node = NewBinop(POpGt, yyDollar[1].text, yyDollar[3].text)
+			yyVAL.node = &binaryOp{POpGt, yyDollar[1].text, yyDollar[3].text}
 		}
 	case 9:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line queryexpr.y:41
 		{
-			yyVAL.node = NewBinop(POpGe, yyDollar[1].text, yyDollar[3].text)
+			yyVAL.node = &binaryOp{POpGe, yyDollar[1].text, yyDollar[3].text}
 		}
 	case 10:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line queryexpr.y:42
 		{
-			yyVAL.node = NewBinop(POpMatch, yyDollar[1].text, yyDollar[3].text)
+			yyVAL.node = &binaryOp{POpMatch, yyDollar[1].text, yyDollar[3].text}
 		}
 	case 11:
 		yyDollar = yyS[yypt-3 : yypt+1]
