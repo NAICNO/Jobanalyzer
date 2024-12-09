@@ -35,36 +35,36 @@ type Predicate[T any] struct {
 const (
 	PKindShift = 20
 
-	PKindBinop = 1
+	PKindBinop   = 1
 	PKindLogical = 2
-	PKindUnop = 3
+	PKindUnop    = 3
 )
 
 const (
 	// The value 0 is never a valid opcode
-	POpEq = 1 | (PKindBinop << PKindShift)
-	POpLt = 2 | (PKindBinop << PKindShift)
-	POpLe = 3 | (PKindBinop << PKindShift)
-	POpGt = 4 | (PKindBinop << PKindShift)
-	POpGe = 5 | (PKindBinop << PKindShift)
+	POpEq    = 1 | (PKindBinop << PKindShift)
+	POpLt    = 2 | (PKindBinop << PKindShift)
+	POpLe    = 3 | (PKindBinop << PKindShift)
+	POpGt    = 4 | (PKindBinop << PKindShift)
+	POpGe    = 5 | (PKindBinop << PKindShift)
 	POpMatch = 6 | (PKindBinop << PKindShift)
 
 	POpAnd = 20 | (PKindLogical << PKindShift)
-	POpOr = 21 | (PKindLogical << PKindShift)
+	POpOr  = 21 | (PKindLogical << PKindShift)
 
 	POpNot = 31 | (PKindUnop << PKindShift)
 )
 
 var pop2op = map[int]string{
-	POpEq: "=",
-	POpLt: "<",
-	POpLe: "<=",
-	POpGt: ">",
-	POpGe: ">=",
+	POpEq:    "=",
+	POpLt:    "<",
+	POpLe:    "<=",
+	POpGt:    ">",
+	POpGe:    ">=",
 	POpMatch: "=~",
-	POpAnd: "and",
-	POpOr: "or",
-	POpNot: "not",
+	POpAnd:   "and",
+	POpOr:    "or",
+	POpNot:   "not",
 }
 
 type PNode interface {
@@ -107,9 +107,9 @@ func (b *logicalOp) String() string {
 
 func NewLogical(pop int, lhs, rhs PNode) PNode {
 	return &logicalOp{
-		opField: opField{op:pop},
-		lhs: lhs,
-		rhs: rhs,
+		opField: opField{op: pop},
+		lhs:     lhs,
+		rhs:     rhs,
 	}
 }
 
@@ -125,11 +125,10 @@ func (b *binaryOp) String() string {
 func NewBinop(pop int, field, value string) PNode {
 	return &binaryOp{
 		opField: opField{pop},
-		field: field,
-		value: value,
+		field:   field,
+		value:   value,
 	}
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -142,7 +141,6 @@ func ParseQuery(input string) (PNode, error) {
 	}
 	return parser.Parse()
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
