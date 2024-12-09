@@ -37,6 +37,7 @@ const (
 
 	PKindBinop = 1
 	PKindLogical = 2
+	PKindUnop = 3
 )
 
 const (
@@ -50,24 +51,20 @@ const (
 
 	POpAnd = 20 | (PKindLogical << PKindShift)
 	POpOr = 21 | (PKindLogical << PKindShift)
+
+	POpNot = 31 | (PKindUnop << PKindShift)
 )
 
-var op2pop = map[string]int{
-	"and": POpAnd,
-	"or": POpOr,
-	"=": POpEq,
-	"<": POpLt,
-	"<=": POpLe,
-	">": POpGt,
-	">=": POpGe,
-}
-
-var pop2op = make(map[int]string)
-
-func init() {
-	for k, v := range op2pop {
-		pop2op[v] = k
-	}
+var pop2op = map[int]string{
+	POpEq: "=",
+	POpLt: "<",
+	POpLe: "<=",
+	POpGt: ">",
+	POpGe: ">=",
+	POpMatch: "=~",
+	POpAnd: "and",
+	POpOr: "or",
+	POpNot: "not",
 }
 
 type PNode interface {
@@ -83,6 +80,22 @@ func (q *opField) Op() int {
 	return q.op
 }
 
+type unaryOp struct {
+	opField
+	opd PNode
+}
+
+func (b *unaryOp) String() string {
+	return fmt.Sprintf("(%s %s)", pop2op[b.op], b.opd)
+}
+
+func NewUnop(pop int, opd PNode) PNode {
+	return &unaryOp{
+		opField: opField{pop},
+		opd:     opd,
+	}
+}
+
 type logicalOp struct {
 	opField
 	lhs, rhs PNode
@@ -92,11 +105,7 @@ func (b *logicalOp) String() string {
 	return fmt.Sprintf("(%s %s %s)", pop2op[b.op], b.lhs, b.rhs)
 }
 
-func NewLogical(op string, lhs, rhs PNode) PNode {
-	pop := op2pop[op]
-	if (pop >> PKindShift) != PKindLogical {
-		panic("Bad operator")
-	}
+func NewLogical(pop int, lhs, rhs PNode) PNode {
 	return &logicalOp{
 		opField: opField{op:pop},
 		lhs: lhs,
@@ -113,11 +122,7 @@ func (b *binaryOp) String() string {
 	return fmt.Sprintf("(%s %s %s)", pop2op[b.op], b.field, b.value)
 }
 
-func NewBinop(op, field, value string) PNode {
-	pop := op2pop[op]
-	if (pop >> PKindShift) != PKindBinop {
-		panic("Bad operator")
-	}
+func NewBinop(pop int, field, value string) PNode {
 	return &binaryOp{
 		opField: opField{pop},
 		field: field,
@@ -125,14 +130,19 @@ func NewBinop(op, field, value string) PNode {
 	}
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Parsing
+// Query parsing
 
 func ParseQuery(input string) (PNode, error) {
-	// FIXME
-	return NewLogical("or", NewBinop(">", "CpuCores", "64"), NewBinop(">", "GpuCards", "3")), nil
+	parser, err := newQueryParser(input)
+	if err != nil {
+		return nil, err
+	}
+	return parser.Parse()
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -150,11 +160,23 @@ func CompileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T)
 		if err != nil {
 			return nil, err
 		}
-		switch q.Op() {
+		switch l.op {
 		case POpAnd:
 			return func(d T) bool { return lhs(d) && rhs(d) }, nil
 		case POpOr:
 			return func(d T) bool { return lhs(d) || rhs(d) }, nil
+		default:
+			panic("Unknown op")
+		}
+	case PKindUnop:
+		l := q.(*unaryOp)
+		opd, err := CompileQuery(predicates, l.opd)
+		if err != nil {
+			return nil, err
+		}
+		switch l.op {
+		case POpNot:
+			return func(d T) bool { return !opd(d) }, nil
 		default:
 			panic("Unknown op")
 		}
@@ -173,7 +195,7 @@ func CompileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T)
 			value = v
 		}
 		compare := p.Compare
-		switch q.Op() {
+		switch l.op {
 		case POpEq:
 			return func(d T) bool { return compare(d, value) == 0 }, nil
 		case POpLt:

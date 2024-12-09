@@ -446,6 +446,9 @@ func (qa *QueryArgs) ReifyForRemote(x *ArgReifier) error {
 func (qa *QueryArgs) Validate() (err error) {
 	if qa.QueryStmt != "" {
 		qa.ParsedQuery, err = ParseQuery(qa.QueryStmt)
+		if qa.ParsedQuery != nil {
+			println(qa.ParsedQuery.String())
+		}
 	}
 	return
 }

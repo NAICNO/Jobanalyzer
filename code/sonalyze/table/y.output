@@ -1,0 +1,278 @@
+
+state 0
+	$accept: .TopExpr $end 
+
+	TIdent  shift 4
+	TNot  shift 3
+	TLeftParen  shift 5
+	.  error
+
+	TopExpr  goto 1
+	Expr  goto 2
+
+state 1
+	$accept:  TopExpr.$end 
+
+	$end  accept
+	.  error
+
+
+state 2
+	TopExpr:  Expr.    (1)
+	Expr:  Expr.TOr Expr 
+	Expr:  Expr.TAnd Expr 
+
+	TOr  shift 6
+	TAnd  shift 7
+	.  reduce 1 (src line 32)
+
+
+state 3
+	Expr:  TNot.Expr 
+
+	TIdent  shift 4
+	TNot  shift 3
+	TLeftParen  shift 5
+	.  error
+
+	Expr  goto 8
+
+state 4
+	Expr:  TIdent.TEqual String 
+	Expr:  TIdent.TLess String 
+	Expr:  TIdent.TLessOrEqual String 
+	Expr:  TIdent.TGreater String 
+	Expr:  TIdent.TGreaterOrEqual String 
+	Expr:  TIdent.TMatch String 
+
+	TEqual  shift 9
+	TLess  shift 10
+	TLessOrEqual  shift 11
+	TGreater  shift 12
+	TGreaterOrEqual  shift 13
+	TMatch  shift 14
+	.  error
+
+
+state 5
+	Expr:  TLeftParen.Expr TRightParen 
+
+	TIdent  shift 4
+	TNot  shift 3
+	TLeftParen  shift 5
+	.  error
+
+	Expr  goto 15
+
+state 6
+	Expr:  Expr TOr.Expr 
+
+	TIdent  shift 4
+	TNot  shift 3
+	TLeftParen  shift 5
+	.  error
+
+	Expr  goto 16
+
+state 7
+	Expr:  Expr TAnd.Expr 
+
+	TIdent  shift 4
+	TNot  shift 3
+	TLeftParen  shift 5
+	.  error
+
+	Expr  goto 17
+
+state 8
+	Expr:  TNot Expr.    (2)
+	Expr:  Expr.TOr Expr 
+	Expr:  Expr.TAnd Expr 
+
+	.  reduce 2 (src line 34)
+
+
+state 9
+	Expr:  TIdent TEqual.String 
+
+	TIdent  shift 20
+	TString  shift 19
+	TOr  shift 21
+	TAnd  shift 22
+	TNot  shift 23
+	.  error
+
+	String  goto 18
+
+state 10
+	Expr:  TIdent TLess.String 
+
+	TIdent  shift 20
+	TString  shift 19
+	TOr  shift 21
+	TAnd  shift 22
+	TNot  shift 23
+	.  error
+
+	String  goto 24
+
+state 11
+	Expr:  TIdent TLessOrEqual.String 
+
+	TIdent  shift 20
+	TString  shift 19
+	TOr  shift 21
+	TAnd  shift 22
+	TNot  shift 23
+	.  error
+
+	String  goto 25
+
+state 12
+	Expr:  TIdent TGreater.String 
+
+	TIdent  shift 20
+	TString  shift 19
+	TOr  shift 21
+	TAnd  shift 22
+	TNot  shift 23
+	.  error
+
+	String  goto 26
+
+state 13
+	Expr:  TIdent TGreaterOrEqual.String 
+
+	TIdent  shift 20
+	TString  shift 19
+	TOr  shift 21
+	TAnd  shift 22
+	TNot  shift 23
+	.  error
+
+	String  goto 27
+
+state 14
+	Expr:  TIdent TMatch.String 
+
+	TIdent  shift 20
+	TString  shift 19
+	TOr  shift 21
+	TAnd  shift 22
+	TNot  shift 23
+	.  error
+
+	String  goto 28
+
+state 15
+	Expr:  Expr.TOr Expr 
+	Expr:  Expr.TAnd Expr 
+	Expr:  TLeftParen Expr.TRightParen 
+
+	TOr  shift 6
+	TAnd  shift 7
+	TRightParen  shift 29
+	.  error
+
+
+state 16
+	Expr:  Expr.TOr Expr 
+	Expr:  Expr TOr Expr.    (3)
+	Expr:  Expr.TAnd Expr 
+
+	TAnd  shift 7
+	.  reduce 3 (src line 35)
+
+
+state 17
+	Expr:  Expr.TOr Expr 
+	Expr:  Expr.TAnd Expr 
+	Expr:  Expr TAnd Expr.    (4)
+
+	.  reduce 4 (src line 36)
+
+
+state 18
+	Expr:  TIdent TEqual String.    (5)
+
+	.  reduce 5 (src line 37)
+
+
+state 19
+	String:  TString.    (12)
+
+	.  reduce 12 (src line 47)
+
+
+state 20
+	String:  TIdent.    (13)
+
+	.  reduce 13 (src line 48)
+
+
+state 21
+	String:  TOr.    (14)
+
+	.  reduce 14 (src line 49)
+
+
+state 22
+	String:  TAnd.    (15)
+
+	.  reduce 15 (src line 50)
+
+
+state 23
+	String:  TNot.    (16)
+
+	.  reduce 16 (src line 51)
+
+
+state 24
+	Expr:  TIdent TLess String.    (6)
+
+	.  reduce 6 (src line 38)
+
+
+state 25
+	Expr:  TIdent TLessOrEqual String.    (7)
+
+	.  reduce 7 (src line 39)
+
+
+state 26
+	Expr:  TIdent TGreater String.    (8)
+
+	.  reduce 8 (src line 40)
+
+
+state 27
+	Expr:  TIdent TGreaterOrEqual String.    (9)
+
+	.  reduce 9 (src line 41)
+
+
+state 28
+	Expr:  TIdent TMatch String.    (10)
+
+	.  reduce 10 (src line 42)
+
+
+state 29
+	Expr:  TLeftParen Expr TRightParen.    (11)
+
+	.  reduce 11 (src line 43)
+
+
+16 terminals, 4 nonterminals
+17 grammar rules, 30/16000 states
+0 shift/reduce, 0 reduce/reduce conflicts reported
+53 working sets used
+memory: parser 11/240000
+27 extra closures
+57 shift entries, 1 exceptions
+12 goto entries
+0 entries saved by goto default
+Optimizer space used: output 43/240000
+43 table entries, 11 zero
+maximum spread: 16, maximum offset: 14
