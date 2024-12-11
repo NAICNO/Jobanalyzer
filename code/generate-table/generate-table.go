@@ -16,6 +16,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"generate-table/parser"
 )
 
 var (
@@ -114,93 +116,28 @@ func userFacingTypeName(ty string) string {
 	return ty
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Table structure.
-
-type tableBlock struct {
-	tableName string         // From the /*TABLE <table-name> line
-	prefix    []Line         // Every line before %%, in order
-	sections  []tableSection // Parsed sections after %%, in order
-}
-
-type tableSection struct {
-	header Line   // header line, unedited
-	body   []Line // every line after the header, unedited
-}
-
-var (
-	fieldsLine   = regexp.MustCompile(`^FIELDS\s+(\S+)\s*$`)
-	generateLine = regexp.MustCompile(`^GENERATE\s+(\S+)\s*$`)
-	helpLine     = regexp.MustCompile(`^HELP(?:\s+(\S+))?\s*$`)
-	aliasesLine  = regexp.MustCompile(`^ALIASES\s*$`)
-	defaultsLine = regexp.MustCompile(`^DEFAULTS\s+(\S+)\s*$`)
-)
-
-type fieldSpec struct {
-	name, ty string
-}
-
-func processBlock(block *tableBlock) {
+func processBlock(block *parser.TableBlock) {
 	fmt.Fprintf(output, "// DO NOT EDIT.  Generated from %s by generate-table\n\n", inputName)
-
-	for _, p := range block.prefix {
+	for _, p := range block.Prefix {
 		fmt.Fprintf(output, "%s\n", p.Text)
 	}
-
-	var fieldList []fieldSpec
-
-	si := 0
-	if sect, attr, nextSi := trySect(block.sections, si, fieldsLine); sect != nil {
-		si = nextSi
-		if attr == "" {
-			sect.header.Bad("Bogus type name for FIELDS")
-		}
-		fieldList = fieldSection(block, sect, attr)
-	} else {
-		log.Fatal("Missing required FIELDS section")
+	fieldList := fieldSection(block.TableName, block.Fields)
+	if block.Generate != nil {
+		generateSection(*block.Generate, fieldList)
 	}
-	if sect, attr, nextSi := trySect(block.sections, si, generateLine); sect != nil {
-		si = nextSi
-		if attr == "" {
-			sect.header.Bad("Bogus type name for GENERATE")
-		}
-		generateSection(block, fieldList, attr)
+	if block.Help != nil {
+		helpSection(block.TableName, block.Help)
 	}
-	if sect, attr, nextSi := trySect(block.sections, si, helpLine); sect != nil {
-		si = nextSi
-		helpSection(block, sect, attr)
+	if len(block.Aliases) != 0 {
+		aliasesSection(block.TableName, block.Aliases)
 	}
-	if sect, _, nextSi := trySect(block.sections, si, aliasesLine); sect != nil {
-		si = nextSi
-		aliasesSection(block, sect)
-	}
-	if sect, attr, nextSi := trySect(block.sections, si, defaultsLine); sect != nil {
-		si = nextSi
-		if attr == "" {
-			sect.header.Bad("Bogus alias name for DEFAULTS")
-		}
-		defaultsSection(block, sect, attr)
-	}
-
-	if si < len(block.sections) {
-		block.sections[si].header.Bad("Unknown or repeated section")
+	if block.Defaults != nil {
+		defaultsSection(block.TableName, *block.Defaults)
 	}
 }
 
-func trySect(sections []tableSection, si int, re *regexp.Regexp) (*tableSection, string, int) {
-	if si < len(sections) {
-		sect := &sections[si]
-		if m := re.FindStringSubmatch(sect.header.Text); m != nil {
-			attr := ""
-			if len(m) > 1 {
-				attr = m[1]
-			}
-			return sect, attr, si + 1
-		}
-	}
-	return nil, "", si
-}
+// Arguable whether we should be checking for valid attribute names here or in the parser, I'm
+// thinking it's better to do it here.
 
 func fieldSection(block *tableBlock, sect *tableSection, recordType string) (fieldList []fieldSpec) {
 	fieldList = make([]fieldSpec, 0)
@@ -321,33 +258,8 @@ func aliasesSection(block *tableBlock, sect *tableSection) {
 	fmt.Fprintf(output, "}\n\n")
 }
 
-func defaultsSection(block *tableBlock, sect *tableSection, defaultName string) {
-	assertEmptyBody(sect)
-	fmt.Fprintf(output, "const %sDefaultFields = \"%s\"\n\n", block.tableName, defaultName)
-}
-
-func assertEmptyBody(section *tableSection) {
-	for _, l := range section.body {
-		if !l.IsBlankOrComment() {
-			l.Bad("section body")
-		}
-	}
-}
-
-var (
-	tableContentLine = regexp.MustCompile(`^\s*(\S+)\s+(\S+)(?:\s+(.*))?`)
-	tableFieldAttr   = regexp.MustCompile(`^\s*([a-z]+):"([^"]*)"`)
-)
-
-func parseBodyLine(l Line) (fieldName, displayType string, attrs map[string]string) {
-	if m := tableContentLine.FindStringSubmatch(l.Text); m != nil {
-		fieldName = m[1]
-		displayType = m[2]
-		attrs = parseAttrs(l, m[3])
-		return
-	}
-	l.Bad("in FIELDS")
-	return
+func defaultsSection(tableName, defaultName string) {
+	fmt.Fprintf(output, "const %sDefaultFields = \"%s\"\n\n", tableName, defaultName)
 }
 
 var validAttr = map[string]bool{
@@ -356,19 +268,6 @@ var validAttr = map[string]bool{
 	"field":    true,
 	"indirect": true,
 	"config":   true,
-}
-
-func parseAttrs(context Line, s string) map[string]string {
-	attrs := make(map[string]string)
-	for s != "" {
-		m := tableFieldAttr.FindStringSubmatch(s)
-		if m == nil || !validAttr[m[1]] {
-			context.Bad("Invalid attribute staring at " + s)
-		}
-		attrs[m[1]] = m[2]
-		s = s[len(m[0]):]
-	}
-	return attrs
 }
 
 var aliasLine = regexp.MustCompile(`^\s*(\S+)\s+(\S+)\s*$`)
@@ -380,198 +279,5 @@ func parseAliases(l Line) (aliasName string, aliasDef []string) {
 		return
 	}
 	l.Bad("in ALIASES")
-	return
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Block stream, with coarse section parsing.
-
-var (
-	tablePrefix     = regexp.MustCompile(`^/\*TABLE\s+(\S+)\s*$`)
-	tableSuffix     = regexp.MustCompile(`^ELBAT\*/`)
-	prefixEndMarker = regexp.MustCompile(`^%%\s*$`)
-	sectStart       = regexp.MustCompile(`^(?:FIELDS|GENERATE|HELP|ALIASES|DEFAULTS)`)
-)
-
-func scanBlock() *tableBlock {
-	var tableName string
-	for {
-		if input.AtEof() {
-			return nil
-		}
-		if m := input.Match(tablePrefix); m != nil {
-			tableName = m[1]
-			input.Next()
-			break
-		}
-		input.Next()
-	}
-
-	prefix := make([]Line, 0)
-	for {
-		input.AssertNotEof("inside table prefix")
-		if m := input.Match(tableSuffix); m != nil {
-			input.MustGet().Bad("Missing %%%% inside table block")
-		}
-		if m := input.Match(prefixEndMarker); m != nil {
-			input.Next()
-			break
-		}
-		prefix = append(prefix, input.MustGet())
-	}
-
-	sections := make([]tableSection, 0)
-	var header Line
-	body := make([]Line, 0)
-	for {
-		input.AssertNotEof("inside table block")
-		if m := input.Match(tableSuffix); m != nil {
-			input.Next()
-			break
-		}
-		if header.Text == "" {
-			if probe, ok := input.Peek(); ok && probe.IsBlankOrComment() {
-				// blank before the first section
-				input.Next()
-				continue
-			}
-		}
-		if m := input.Match(sectStart); m != nil {
-			if header.Text != "" {
-				sections = append(sections, tableSection{header, body})
-			}
-			header = input.MustGet()
-			body = make([]Line, 0)
-			continue
-		}
-		if header.Text == "" {
-			input.MustGet().Bad("Garbage before the first section")
-		}
-		body = append(body, input.MustGet())
-	}
-	if header.Text != "" {
-		sections = append(sections, tableSection{header, body})
-	}
-
-	return &tableBlock{
-		tableName,
-		prefix,
-		sections,
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Input line stream, with lookahead and some matching.  This eats I/O errors, currently.
-
-type LineStream struct {
-	scanner *bufio.Scanner
-	valid   bool
-	curr    Line
-	eof     bool
-	lineno  int
-	file    string
-}
-
-type Line struct {
-	Lineno int
-	File   string
-	Text   string
-}
-
-func (l Line) Bad(context string) {
-	log.Fatalf("%s:%d: Illegal line (%s)\n%s", l.File, l.Lineno, context, l.Text)
-}
-
-var blankOrCommentLine = regexp.MustCompile(`^\s*(?:#.*)?$`)
-
-func (l Line) IsBlankOrComment() bool {
-	return blankOrCommentLine.MatchString(l.Text)
-}
-
-func NewLineStream(inputName string, inputStream io.Reader) *LineStream {
-	return &LineStream{
-		scanner: bufio.NewScanner(inputStream),
-		file:    inputName,
-	}
-}
-
-func (ls *LineStream) AssertNotEof(context string) {
-	if ls.AtEof() {
-		log.Fatalf("%s:%d: Unexpected EOF %s", ls.file, ls.lineno, context)
-	}
-}
-
-func (ls *LineStream) AtEof() bool {
-	if !ls.valid {
-		ls.fill()
-	}
-	return ls.eof
-}
-
-func (ls *LineStream) Match(re *regexp.Regexp) []string {
-	if l, ok := ls.Peek(); ok {
-		return re.FindStringSubmatch(l.Text)
-	}
-	return nil
-}
-
-func (ls *LineStream) Peek() (Line, bool) {
-	if !ls.valid {
-		ls.fill()
-	}
-	return ls.curr, ls.valid
-}
-
-func (ls *LineStream) Get() (l Line, found bool) {
-	if !ls.valid {
-		ls.fill()
-	}
-	l, found = ls.curr, ls.valid
-	ls.valid = false
-	return
-}
-
-func (ls *LineStream) MustGet() (l Line) {
-	if !ls.valid {
-		ls.fill()
-	}
-	if !ls.valid {
-		panic("No input line in MustGet()")
-	}
-	l = ls.curr
-	ls.valid = false
-	return
-}
-
-func (ls *LineStream) Next() {
-	if !ls.valid {
-		ls.fill()
-	}
-	ls.valid = false
-}
-
-func (ls *LineStream) fill() {
-	if ls.valid {
-		panic("Overwriting line in fill()")
-	}
-	if ls.scanner.Scan() {
-		ls.lineno++
-		lineno := ls.lineno
-		text := ls.scanner.Text()
-		for strings.HasSuffix(text, "\\") {
-			text = strings.TrimSuffix(text, "\\")
-			if !ls.scanner.Scan() {
-				log.Fatalf("%s:%d: Line continued by backslash but no next line", ls.file, ls.lineno)
-			}
-			ls.lineno++
-			text += strings.TrimLeft(ls.scanner.Text(), " \t")
-		}
-		ls.valid = true
-		ls.curr = Line{Lineno: lineno, File: ls.file, Text: text}
-		return
-	}
-	ls.eof = true
 	return
 }
