@@ -70,19 +70,11 @@ func main() {
 			record[nState] = "CANCELLED"
 		}
 
-		// CPU count and GPU names
+		// CPU count, GPU count, GPU type
 		// The AllocTRES is a comma-separated list of name=value
 		// We want cpu=n
 		// We want gres/gpu:type=m or barring that, gres/gpu=m, in the latter
 		//   case we must infer the gpu type from the sinfo
-		//
-		// The cpu data is just n
-		// The gpu data is a colon-separated list of m of the gpu type
-		// If there is not gpu then leave the gpu field blank
-		//
-		// Then we want to replace the AllocTRES field by the cpu field, and
-		// we want to extend the record with the gpu field
-
 		var gpuType, gpuCount, cpuCount string
 		for _, f := range strings.Split(record[nAlloc], ",") {
 			if m := tresRe.FindStringSubmatch(f); m != nil {
@@ -116,14 +108,9 @@ func main() {
 			gpuType = g.kind
 		}
 
+		// Replace AllocTRES by CPUS and then attach GPUS and GPUType
 		record[nAlloc] = cpuCount
-		if gpuType != "" {
-			record = append(record, gpuCount)
-			record = append(record, gpuType)
-		} else {
-			record = append(record, "0") // GPUS
-			record = append(record, "")  // GPUType
-		}
+		record = append(record, gpuCount, gpuType)
 
 		data[r] = record
 	}
@@ -131,7 +118,7 @@ func main() {
 	w := csv.NewWriter(os.Stdout)
 	defer w.Flush()
 
-	// Header
+	// Header, same fields are replaced/added as above
 	fieldNames[nAlloc] = "CPUS"
 	fieldNames = append(fieldNames, "GPUS", "GPUType")
 	w.Write(fieldNames)
