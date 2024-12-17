@@ -73,7 +73,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries, _, discarded, err := db.ParseSonarLog(f, NewUstrFacade(), true)
+	entries, _, _, discarded, err := db.ParseSonarLog(f, NewUstrFacade(), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,6 +189,10 @@ func TestParseVersion(t *testing.T) {
 	a, b, c = parseVersion(StringToUstr("x.y.z"))
 	if a != 0 || b != 0 || c != 0 {
 		t.Fatal("Incorrectly parsed version")
+	}
+	a, b, c = parseVersion(StringToUstr("1.2.3-devel"))
+	if a != 1 || b != 2 || c != 103 {
+		t.Fatal("Could not parse version")
 	}
 }
 

@@ -106,6 +106,14 @@ type LoadDatum struct {
 	Encoded   []byte
 }
 
+// The same as LoadDatum buf for the "gpuinfo" field that was introduced with Sonar 0.13.
+
+type GpuDatum struct {
+	Timestamp int64
+	Host      Ustr
+	Encoded   []byte
+}
+
 // Read a stream of Sonar data records, parse them and return them in order.  Returns the number of
 // benign errors, and non-nil error if non-benign error.
 //
@@ -119,6 +127,7 @@ func ParseSonarLog(
 ) (
 	samples []*Sample,
 	loadData []*LoadDatum,
+	gpuData []*GpuDatum,
 	softErrors int,
 	err error,
 ) {
@@ -130,6 +139,7 @@ func ParseSonarLog(
 
 	samples = make([]*Sample, 0)
 	loadData = make([]*LoadDatum, 0)
+	gpuData = make([]*GpuDatum, 0)
 	tokenizer := NewTokenizer(input)
 	v060 := ustrs.Alloc("0.6.0")
 	heartbeat := ustrs.Alloc("_heartbeat_")
@@ -164,6 +174,7 @@ LineLoop:
 			cpuTimeSec       uint64  = math.MaxUint64
 			rolledup         uint32  = math.MaxUint32
 			load             []byte
+			gpuinfo          []byte
 			format           = unknownFormat
 			untaggedPosition = 0
 		)
@@ -364,6 +375,11 @@ LineLoop:
 								var tmp uint64
 								tmp, err = parseUint(val)
 								gpuFail = uint8(tmp)
+								matched = true
+							}
+						case 'i':
+							if val, ok := match(tokenizer, start, lim, eqloc, "gpuinfo"); ok {
+								gpuinfo = slices.Clone(val)
 								matched = true
 							}
 						case 'k':
@@ -612,6 +628,13 @@ LineLoop:
 				Timestamp: timestamp,
 				Host:      hostname,
 				Encoded:   load,
+			})
+		}
+		if gpuinfo != nil {
+			gpuData = append(gpuData, &GpuDatum{
+				Timestamp: timestamp,
+				Host:      hostname,
+				Encoded:   gpuinfo,
 			})
 		}
 	}

@@ -81,6 +81,7 @@ type TransientSampleCluster struct /* implements SampleCluster */ {
 	// MT: Immutable after initialization
 	samplesMethods  ReadSyncMethods
 	loadDataMethods ReadSyncMethods
+	gpuDataMethods  ReadSyncMethods
 
 	TransientCluster
 }
@@ -92,6 +93,7 @@ func newTransientSampleCluster(
 	return &TransientSampleCluster{
 		samplesMethods:  newSampleFileMethods(cfg, sampleFileKindSample),
 		loadDataMethods: newSampleFileMethods(cfg, sampleFileKindLoadDatum),
+		gpuDataMethods:  newSampleFileMethods(cfg, sampleFileKindGpuDatum),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
 			files: processTransientFiles(fileNames),
@@ -132,6 +134,20 @@ func (tsc *TransientSampleCluster) ReadLoadData(
 	}
 
 	return readLoadDatumSlice(tsc.files, verbose, tsc.loadDataMethods)
+}
+
+func (tsc *TransientSampleCluster) ReadGpuData(
+	_, _ time.Time,
+	_ *hostglob.HostGlobber,
+	verbose bool,
+) (dataBlobs [][]*GpuDatum, dropped int, err error) {
+	tsc.Lock()
+	defer tsc.Unlock()
+	if tsc.closed {
+		return nil, 0, ClusterClosedErr
+	}
+
+	return readGpuDatumSlice(tsc.files, verbose, tsc.gpuDataMethods)
 }
 
 type TransientSacctCluster struct /* implements SacctCluster */ {

@@ -5,6 +5,7 @@ package sonarlog
 import (
 	"cmp"
 	"errors"
+	"fmt"
 	"maps"
 	"slices"
 	"strconv"
@@ -233,7 +234,13 @@ func parseVersion(v Ustr) (major, minor, bugfix int) {
 	minor = tmp
 	tmp, err = strconv.Atoi(sbugfix)
 	if err != nil {
-		return
+		if pre, found := strings.CutSuffix(sbugfix, "-devel"); found {
+			tmp, err = strconv.Atoi(pre)
+			tmp += 100
+		}
+		if err != nil {
+			return
+		}
 	}
 	bugfix = tmp
 	return
@@ -357,4 +364,97 @@ func decodeLoadData(data []byte) ([]uint64, error) {
 		vals[i] += minVal
 	}
 	return vals[1:], nil
+}
+
+func rectifyGpuData(dataBlobs [][]*db.GpuDatum) (streams GpuDataSet, bounds Timebounds, errors int) {
+	// Divide data among the hosts and decode each array
+	streams = make(GpuDataSet)
+	for _, data := range dataBlobs {
+		for _, d := range data {
+			decoded, err := decodeGpuData(d.Encoded)
+			if err != nil {
+				errors++
+				continue
+			}
+			datum := GpuDatum{
+				Time:    d.Timestamp,
+				Decoded: decoded,
+			}
+			if stream, found := streams[d.Host]; found {
+				stream.Data = append(stream.Data, datum)
+			} else {
+				stream := GpuData{
+					Host: d.Host,
+					Data: []GpuDatum{datum},
+				}
+				streams[d.Host] = &stream
+			}
+		}
+	}
+
+	// Sort each per-host list by ascending time
+	for _, v := range streams {
+		slices.SortFunc(v.Data, func(a, b GpuDatum) int {
+			return cmp.Compare(a.Time, b.Time)
+		})
+	}
+
+	// Compute bounds
+	bounds = make(Timebounds)
+	for k, v := range streams {
+		// By construction, v.Data is never empty here
+		bounds[k] = Timebound{v.Data[0].Time, v.Data[len(v.Data)-1].Time}
+	}
+
+	// Remove duplicates in each per-host list
+	for _, v := range streams {
+		v.Data = slices.CompactFunc(v.Data, func(a, b GpuDatum) bool {
+			return a.Time == b.Time
+		})
+	}
+
+	// Remove completely empty streams
+	maps.DeleteFunc(streams, func(k Ustr, v *GpuData) bool {
+		return len(v.Data) == 0
+	})
+
+	return
+}
+
+// The input is a comma-separated string of arrays, each array represented as a substring tag=x|y|...|z,
+// where the array fields contain no ",".  The tag identifies the field:
+//
+// fan%=27|28|28,perf=P8|P8|P8,musekib=1024|1024|1024,tempc=26|27|28,poww=5|2|20,powlimw=250|250|250,cez=300|300|300,memz=405|405|405
+
+func decodeGpuData(data []byte) (result []PerGpuDatum, err error) {
+	fields := strings.Split(string(data), ",")
+	for _, f := range fields {
+		tag, adata, _ := strings.Cut(f, "=")
+		data := strings.Split(adata, "|")
+		if result == nil {
+			result = make([]PerGpuDatum, len(data))
+		}
+		for i := 0; i < len(data); i++ {
+			switch tag {
+			case "fan%":
+				result[i].FanPct, _ = strconv.Atoi(data[i])
+			case "perf":
+				fmt.Sscanf(data[i], "P%d", &result[i].PerfMode)
+			case "musekib":
+				tmp, _ := strconv.Atoi(data[i])
+				result[i].MemUsedKB = int64(tmp)
+			case "tempc":
+				result[i].TempC, _ = strconv.Atoi(data[i])
+			case "poww":
+				result[i].PowerDrawW, _ = strconv.Atoi(data[i])
+			case "powlimw":
+				result[i].PowerLimitW, _ = strconv.Atoi(data[i])
+			case "cez":
+				result[i].CeClockMHz, _ = strconv.Atoi(data[i])
+			case "memz":
+				result[i].MemClockMHz, _ = strconv.Atoi(data[i])
+			}
+		}
+	}
+	return
 }

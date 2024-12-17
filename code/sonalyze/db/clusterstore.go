@@ -121,6 +121,15 @@ type SampleCluster interface {
 		hosts *hostglob.HostGlobber,
 		verbose bool,
 	) (dataBlobs [][]*LoadDatum, dropped int, err error)
+
+	// Read `ps` samples from all the files selected by SampleFilenames() and extract the gpu data.
+	// Times must be UTC.  The inner slices of the result, and the records they point to, must not
+	// be mutated in any way.
+	ReadGpuData(
+		fromDate, toDate time.Time,
+		hosts *hostglob.HostGlobber,
+		verbose bool,
+	) (dataBlobs [][]*GpuDatum, dropped int, err error)
 }
 
 // A SysinfoCluster can provide `sonar sysinfo` data: per-system hardware configuration data.
@@ -204,6 +213,10 @@ var (
 	// This is applied to a set of load data newly read from a file, before caching.
 	// MT: Constant after initialization; immutable
 	LoadDatumRectifier func([]*LoadDatum, *config.ClusterConfig) []*LoadDatum
+
+	// This is applied to a set of GPU data newly read from a file, before caching.
+	// MT: Constant after initialization; immutable
+	GpuDatumRectifier func([]*GpuDatum, *config.ClusterConfig) []*GpuDatum
 )
 
 // Open a directory and attach it to the global logstore.

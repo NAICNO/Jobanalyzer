@@ -94,3 +94,28 @@ func LoadDatumLessByTime(a, b LoadDatum) int {
 // TODO: Not sure yet whether this really needs to be a map.
 
 type LoadDataSet map[Ustr]*LoadData
+
+// Ditto for GPU data
+
+type GpuData struct {
+	Host Ustr
+	Data []GpuDatum // one per timestamp
+}
+
+type PerGpuDatum struct {
+	FanPct      int // Can go above 100
+	PerfMode    int // Typically mode is P<n>, this is <n>
+	MemUsedKB   int64
+	TempC       int
+	PowerDrawW  int
+	PowerLimitW int
+	CeClockMHz  int
+	MemClockMHz int
+}
+
+type GpuDatum struct {
+	Time    int64
+	Decoded []PerGpuDatum // one per gpu at the given time
+}
+
+type GpuDataSet map[Ustr]*GpuData

@@ -8,6 +8,7 @@ import (
 	"sonalyze/cmd/add"
 	"sonalyze/cmd/clusters"
 	"sonalyze/cmd/configs"
+	"sonalyze/cmd/gpus"
 	"sonalyze/cmd/jobs"
 	"sonalyze/cmd/load"
 	"sonalyze/cmd/metadata"
@@ -24,6 +25,7 @@ func CommandHelp(out io.Writer) {
 	fmt.Fprintf(out, "  add      - add data to the database\n")
 	fmt.Fprintf(out, "  cluster  - print cluster information\n")
 	fmt.Fprintf(out, "  config   - print node information extracted from cluster config\n")
+	fmt.Fprintf(out, "  gpu      - print system gpu data across time\n")
 	fmt.Fprintf(out, "  jobs     - summarize and filter jobs\n")
 	fmt.Fprintf(out, "  load     - print system load across time\n")
 	fmt.Fprintf(out, "  metadata - parse data, print stats and metadata\n")
@@ -48,6 +50,8 @@ func ConstructCommand(verb string) (command cmd.Command, actualVerb string) {
 		command = new(configs.ConfigCommand)
 	case "node":
 		command = new(nodes.NodeCommand)
+	case "gpu":
+		command = new(gpus.GpuCommand)
 	case "jobs":
 		command = new(jobs.JobsCommand)
 	case "load":

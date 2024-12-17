@@ -53,6 +53,7 @@ the data have to be computed when they are requested:
 
 * The `jobs` operation prints information about jobs
 * The `load` operation prints information about system load
+* The `gpu` operation prints information about gpu load (and power, and other things)
 * The `uptime` operation prints information about system and component uptime and downtime
 * The `profile` operation prints information about the behavior of a single job across time
 * The `top` operation prints information about CPU allocation

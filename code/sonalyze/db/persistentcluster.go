@@ -85,6 +85,7 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	// MT: Immutable after initialization
 	samplesMethods           ReadSyncMethods
 	loadDataMethods          ReadSyncMethods
+	gpuDataMethods           ReadSyncMethods
 	nodeConfigRecordsMethods ReadSyncMethods
 	sacctMethods             ReadSyncMethods
 
@@ -134,6 +135,7 @@ func newPersistentCluster(dataDir string, cfg *config.ClusterConfig) *Persistent
 	return &PersistentCluster{
 		samplesMethods:           newSampleFileMethods(cfg, sampleFileKindSample),
 		loadDataMethods:          newSampleFileMethods(cfg, sampleFileKindLoadDatum),
+		gpuDataMethods:           newSampleFileMethods(cfg, sampleFileKindGpuDatum),
 		nodeConfigRecordsMethods: newSysinfoFileMethods(cfg),
 		sacctMethods:             newSacctFileMethods(cfg),
 		dataDir:                  dataDir,
@@ -285,6 +287,21 @@ func (pc *PersistentCluster) ReadLoadData(
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.loadDataMethods,
 		readLoadDatumSlice,
+	)
+}
+
+func (pc *PersistentCluster) ReadGpuData(
+	fromDate, toDate time.Time,
+	hosts *hostglob.HostGlobber,
+	verbose bool,
+) (dataBlobs [][]*GpuDatum, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.gpuDataMethods,
+		readGpuDatumSlice,
 	)
 }
 
