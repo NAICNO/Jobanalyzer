@@ -61,7 +61,7 @@ func main() {
 			record[nPartition] = "accel"
 		} else if strings.Index(record[nPartition], "bigmem") != -1 {
 			record[nPartition] = "bigmem"
-		} else if record[nPartition] != "normal" && record[nPartition] != "mig" {
+		} else if record[nPartition] != "normal" && record[nPartition] != "mig" && record[nPartition] != "" {
 			record[nPartition] = "other"
 		}
 
