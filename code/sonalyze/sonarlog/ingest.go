@@ -70,3 +70,28 @@ func ReadLoadDataStreams(
 	dropped += errors
 	return
 }
+
+func ReadGpuDataStreams(
+	c db.SampleCluster,
+	fromDate, toDate time.Time,
+	hostGlobber *hostglob.HostGlobber,
+	verbose bool,
+) (
+	streams GpuDataSet,
+	bounds Timebounds,
+	read, dropped int,
+	err error,
+) {
+	// Read and establish invariants
+
+	dataBlobs, dropped, err := c.ReadGpuData(fromDate, toDate, hostGlobber, verbose)
+	if err != nil {
+		return
+	}
+	for _, data := range dataBlobs {
+		read += len(data)
+	}
+	streams, bounds, errors := rectifyGpuData(dataBlobs)
+	dropped += errors
+	return
+}

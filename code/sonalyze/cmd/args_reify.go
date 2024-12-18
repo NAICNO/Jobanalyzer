@@ -56,6 +56,10 @@ func (r *ArgReifier) Uint(n string, v uint) {
 	}
 }
 
+func (r *ArgReifier) IntUnchecked(n string, v int) {
+	r.addString(n, fmt.Sprint(v))
+}
+
 func (r *ArgReifier) Float64(n string, v float64) {
 	if v != 0 {
 		r.addString(n, fmt.Sprint(v))

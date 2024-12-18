@@ -8,10 +8,17 @@ import (
 	. "sonalyze/common"
 )
 
+type DataNeeded int
+
+const (
+	DataNeedSamples DataNeeded = iota
+	DataNeedLoadData
+	DataNeedGpuData
+)
+
 type sampleFileReadSyncMethods struct {
-	// The payload is a *SampleData always.  `wantSamples` is true if the client wants the `samples`
-	// array, false if it wants the `loadData` array.
-	wantSamples bool
+	// The payload is a *SampleData always.
+	dataNeeded DataNeeded
 
 	// The config is passed to the rectifiers, if they are not nil
 	cfg *config.ClusterConfig
@@ -22,14 +29,17 @@ type sampleFileKind int
 const (
 	sampleFileKindSample sampleFileKind = iota
 	sampleFileKindLoadDatum
+	sampleFileKindGpuDatum
 )
 
 func newSampleFileMethods(cfg *config.ClusterConfig, kind sampleFileKind) *sampleFileReadSyncMethods {
 	switch kind {
 	case sampleFileKindSample:
-		return &sampleFileReadSyncMethods{true, cfg}
+		return &sampleFileReadSyncMethods{DataNeedSamples, cfg}
 	case sampleFileKindLoadDatum:
-		return &sampleFileReadSyncMethods{false, cfg}
+		return &sampleFileReadSyncMethods{DataNeedLoadData, cfg}
+	case sampleFileKindGpuDatum:
+		return &sampleFileReadSyncMethods{DataNeedGpuData, cfg}
 	default:
 		panic("Unexpected")
 	}
@@ -38,6 +48,7 @@ func newSampleFileMethods(cfg *config.ClusterConfig, kind sampleFileKind) *sampl
 type sampleData struct {
 	samples  []*Sample
 	loadData []*LoadDatum
+	gpuData  []*GpuDatum
 }
 
 func (_ *sampleFileReadSyncMethods) IsCacheable() bool {
@@ -45,10 +56,16 @@ func (_ *sampleFileReadSyncMethods) IsCacheable() bool {
 }
 
 func (sfr *sampleFileReadSyncMethods) SelectDataFromPayload(payload any) (data any) {
-	if sfr.wantSamples {
+	switch sfr.dataNeeded {
+	case DataNeedSamples:
 		return payload.(*sampleData).samples
+	case DataNeedLoadData:
+		return payload.(*sampleData).loadData
+	case DataNeedGpuData:
+		return payload.(*sampleData).gpuData
+	default:
+		panic("Unexpected")
 	}
-	return payload.(*sampleData).loadData
 }
 
 func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
@@ -58,7 +75,8 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 ) (payload any, softErrors int, err error) {
 	var samples []*Sample
 	var loadData []*LoadDatum
-	samples, loadData, softErrors, err = ParseSonarLog(inputFile, uf, verbose)
+	var gpuData []*GpuDatum
+	samples, loadData, gpuData, softErrors, err = ParseSonarLog(inputFile, uf, verbose)
 	if err != nil {
 		return
 	}
@@ -77,7 +95,10 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	if LoadDatumRectifier != nil {
 		loadData = LoadDatumRectifier(loadData, sfr.cfg)
 	}
-	payload = &sampleData{samples, loadData}
+	if GpuDatumRectifier != nil {
+		gpuData = GpuDatumRectifier(gpuData, sfr.cfg)
+	}
+	payload = &sampleData{samples, loadData, gpuData}
 	return
 }
 
@@ -93,7 +114,7 @@ func init() {
 
 func (_ *sampleFileReadSyncMethods) CachedSizeOfPayload(payload any) int64 {
 	data := payload.(*sampleData)
-	return perSampleSize*int64(len(data.samples)) + 8*int64(len(data.loadData))
+	return perSampleSize*int64(len(data.samples)) + 8*int64(len(data.loadData)) + 8*int64(len(data.gpuData))
 }
 
 func readSampleSlice(
@@ -110,4 +131,12 @@ func readLoadDatumSlice(
 	reader ReadSyncMethods,
 ) (loadDataBlobs [][]*LoadDatum, dropped int, err error) {
 	return readRecordsFromFiles[LoadDatum](files, verbose, reader)
+}
+
+func readGpuDatumSlice(
+	files []*LogFile,
+	verbose bool,
+	reader ReadSyncMethods,
+) (gpuDataBlobs [][]*GpuDatum, dropped int, err error) {
+	return readRecordsFromFiles[GpuDatum](files, verbose, reader)
 }
