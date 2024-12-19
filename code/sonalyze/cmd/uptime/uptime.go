@@ -37,7 +37,7 @@ func (uc *UptimeCommand) Add(fs *CLI) {
 	uc.FormatArgs.Add(fs)
 
 	fs.Group("application-control")
-	fs.UintVar(&uc.Interval, "interval", 0,
+	fs.UintVar(&uc.Interval, "interval", 5,
 		"The maximum sampling `interval` in minutes (before any randomization) seen in the data (required)")
 
 	fs.Group("printing")
