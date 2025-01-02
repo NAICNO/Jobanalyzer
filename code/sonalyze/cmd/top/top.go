@@ -48,8 +48,8 @@ var _ = AnalysisCommand((*TopCommand)(nil))
 //go:embed summary.txt
 var summary string
 
-func (tc *TopCommand) Summary() string {
-	return summary
+func (tc *TopCommand) Summary(out io.Writer) {
+	fmt.Fprint(out, summary)
 }
 
 func (tc *TopCommand) Add(fs *CLI) {

@@ -32,8 +32,8 @@ type AddCommand struct /* implements RemotableCommand */ {
 //go:embed summary.txt
 var summary string
 
-func (ac *AddCommand) Summary() string {
-	return summary
+func (ac *AddCommand) Summary(out io.Writer) {
+	fmt.Fprint(out, summary)
 }
 
 func (ac *AddCommand) Add(fs *CLI) {

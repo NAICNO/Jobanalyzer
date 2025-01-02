@@ -13,22 +13,70 @@ package configs
 
 import (
 	"cmp"
-	_ "embed"
 	"errors"
 	"io"
-	"reflect"
 	"slices"
-	"strings"
 
 	"go-utils/config"
 	"go-utils/hostglob"
-	uslices "go-utils/slices"
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
 	. "sonalyze/table"
 )
+
+//go:generate ../../../generate-table/generate-table -o config-table.go configs.go
+
+/*TABLE config
+
+package configs
+
+import (
+	"go-utils/config"
+	. "sonalyze/table"
+)
+
+%%
+
+FIELDS *config.NodeConfigRecord
+
+ Timestamp     string desc:"Full ISO timestamp of when the reading was taken" alias:"timestamp"
+ Hostname      string desc:"Name that host is known by on the cluster" alias:"host"
+ Description   string desc:"End-user description, not parseable" alias:"desc"
+ CrossNodeJobs bool   desc:"True if jobs on this node can be multi-node" alias:"xnode"
+ CpuCores      int    desc:"Total number of cores x threads" alias:"cores"
+ MemGB         int    desc:"GB of installed main RAM" alias:"mem"
+ GpuCards      int    desc:"Number of installed cards" alias:"gpus"
+ GpuMemGB      int    desc:"Total GPU memory across all cards" alias:"gpumem"
+ GpuMemPct     bool   desc:"True if GPUs report accurate memory usage in percent" alias:"gpumempct"
+
+SUMMARY ConfigCommand
+
+Display information about nodes in a cluster configuration.
+
+The node configuration is time-dependent and is computed from data reported
+by the node and additional background information.
+
+For overall cluster data, use "cluster".  Also see "node" for closely
+related data.
+
+HELP ConfigCommand
+
+  Extract information about individual nodes on the cluster from config data and
+  present them in primitive form.  Output records are sorted by node name.  The
+  default format is 'fixed'.
+
+ALIASES
+
+  default  host,cores,mem,gpus,gpumem,xnode,desc
+  Default  Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,CrossNodeJobs,Description
+  all      timestamp,host,desc,xnode,cores,mem,gpus,gpumem,gpumempct
+  All      Timestamp,Hostname,Description,CrossNodeJobs,CpuCores,MemGB,GpuCards,GpuMemGB,GpuMemPct
+
+DEFAULTS default
+
+ELBAT*/
 
 type ConfigCommand struct {
 	DevArgs
@@ -37,13 +85,6 @@ type ConfigCommand struct {
 	VerboseArgs
 	ConfigFileArgs
 	FormatArgs
-}
-
-//go:embed summary.txt
-var summary string
-
-func (cc *ConfigCommand) Summary() string {
-	return summary
 }
 
 func (cc *ConfigCommand) Add(fs *CLI) {
@@ -82,7 +123,7 @@ func (cc *ConfigCommand) Validate() error {
 		cc.VerboseArgs.Validate(),
 		cc.ConfigFileArgs.Validate(),
 		ValidateFormatArgs(
-			&cc.FormatArgs, configsDefaultFields, configsFormatters, configsAliases, DefaultFixed),
+			&cc.FormatArgs, configDefaultFields, configFormatters, configAliases, DefaultFixed),
 	)
 }
 
@@ -120,57 +161,10 @@ func (cc *ConfigCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
 	FormatData(
 		stdout,
 		cc.PrintFields,
-		configsFormatters,
+		configFormatters,
 		cc.PrintOpts,
-		uslices.Map(records, func(x *config.NodeConfigRecord) any { return x }),
+		records,
 	)
 
 	return nil
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Printing
-
-func (cc *ConfigCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(
-		cc.Fmt, configsHelp, configsFormatters, configsAliases, configsDefaultFields)
-}
-
-const configsHelp = `
-config
-  Extract information about individual nodes on the cluster from config data and
-  present them in primitive form.  Output records are sorted by node name.  The
-  default format is 'fixed'.
-`
-
-const (
-	v0ConfigsDefaultFields = "host,cores,mem,gpus,gpumem,xnode,desc"
-	v1ConfigsDefaultFields = "Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,CrossNodeJobs,Description"
-	configsDefaultFields   = v0ConfigsDefaultFields
-)
-
-// MT: Constant after initialization; immutable
-var configsAliases = map[string][]string{
-	"default":   strings.Split(configsDefaultFields, ","),
-	"v0default": strings.Split(v0ConfigsDefaultFields, ","),
-	"v1default": strings.Split(v1ConfigsDefaultFields, ","),
-}
-
-type SFS = SimpleFormatSpec
-
-// MT: Constant after initialization; immutable
-var configsFormatters = DefineTableFromMap(
-	reflect.TypeFor[config.NodeConfigRecord](),
-	map[string]any{
-		"Timestamp":     SFS{"Full ISO timestamp of when the reading was taken", "timestamp"},
-		"Hostname":      SFS{"Name that host is known by on the cluster", "host"},
-		"Description":   SFS{"End-user description, not parseable", "desc"},
-		"CrossNodeJobs": SFS{"True if jobs on this node can be multi-node", "xnode"},
-		"CpuCores":      SFS{"Total number of cores x threads", "cores"},
-		"MemGB":         SFS{"GB of installed main RAM", "mem"},
-		"GpuCards":      SFS{"Number of installed cards", "gpus"},
-		"GpuMemGB":      SFS{"Total GPU memory across all cards", "gpumem"},
-		"GpuMemPct":     SFS{"True if GPUs report accurate memory usage in percent", "gpumempct"},
-	},
-)

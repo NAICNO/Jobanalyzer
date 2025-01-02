@@ -8,15 +8,11 @@
 package gpus
 
 import (
-	_ "embed"
 	"errors"
 	"fmt"
 	"io"
-	"reflect"
-	"strings"
 
 	"go-utils/hostglob"
-	uslices "go-utils/slices"
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
@@ -24,6 +20,53 @@ import (
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
+
+//go:generate ../../../generate-table/generate-table -o gpus-table.go gpus.go
+
+/*TABLE gpu
+
+package gpus
+
+import (
+	. "sonalyze/common"
+    . "sonalyze/table"
+)
+
+%%
+
+FIELDS *ReportLine
+
+ Timestamp   DateTimeValue desc:"Timestamp of when the reading was taken"
+ Hostname    Ustr          desc:"Name that host is known by on the cluster"
+ Gpu         int           desc:"Card index on the host"
+ FanPct      int           desc:"Fan speed in percent of max"
+ PerfMode    int           desc:"Numeric performance mode"
+ MemUsedKB   int           desc:"Amount of memory in use"
+ TempC       int           desc:"Card temperature in degrees C"
+ PowerDrawW  int           desc:"Current power draw in Watts"
+ PowerLimitW int           desc:"Current power limit in Watts"
+ CeClockMHz  int           desc:"Current compute element clock"
+ MemClockMHz int           desc:"Current memory clock"
+
+SUMMARY GpuCommand
+
+Experimental: Print per-gpu data across time for one or more cards on one or more nodes.
+
+HELP GpuCommand
+
+  Extract information about individual gpus on the cluster from sample data.  The default
+  format is 'fixed'.
+
+ALIASES
+
+  default   Hostname,Gpu,Timestamp,MemUsedKB,PowerDrawW
+  Default   Hostname,Gpu,Timestamp,MemUsedKB,PowerDrawW
+  All       Timestamp,Hostname,Gpu,FanPct,PerfMode,MemUsedKB,TempC,PowerDrawW,\
+            PowerLimitW,CeClockMHz,MemClockMHz
+
+DEFAULTS default
+
+ELBAT*/
 
 type GpuCommand struct /* implements AnalysisCommand */ {
 	// Almost SharedArgs, but HostArgs instead of RecordFilterArgs
@@ -38,13 +81,6 @@ type GpuCommand struct /* implements AnalysisCommand */ {
 }
 
 var _ = AnalysisCommand((*GpuCommand)(nil))
-
-//go:embed summary.txt
-var summary string
-
-func (gc *GpuCommand) Summary() string {
-	return summary
-}
 
 func (gc *GpuCommand) Add(fs *CLI) {
 	gc.DevArgs.Add(fs)
@@ -65,7 +101,7 @@ func (gc *GpuCommand) Validate() error {
 		gc.VerboseArgs.Validate(),
 		gc.ConfigFileArgs.Validate(),
 		ValidateFormatArgs(
-			&gc.FormatArgs, gpusDefaultFields, gpusFormatters, gpusAliases, DefaultFixed),
+			&gc.FormatArgs, gpuDefaultFields, gpuFormatters, gpuAliases, DefaultFixed),
 	)
 }
 
@@ -146,51 +182,10 @@ func (gc *GpuCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 	FormatData(
 		stdout,
 		gc.PrintFields,
-		gpusFormatters,
+		gpuFormatters,
 		gc.PrintOpts,
-		uslices.Map(reports, func(x *ReportLine) any { return x }),
+		reports,
 	)
 
 	return nil
 }
-
-func (gc *GpuCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(gc.Fmt, gpusHelp, gpusFormatters, gpusAliases, gpusDefaultFields)
-}
-
-type SFS = SimpleFormatSpec
-
-var (
-	gpusFormatters = DefineTableFromMap(
-		reflect.TypeFor[ReportLine](),
-		map[string]any{
-			"Timestamp":   SFS{"Timestamp of when the reading was taken", ""},
-			"Hostname":    SFS{"Name that host is known by on the cluster", ""},
-			"Gpu":         SFS{"Card index on the host",""},
-			"FanPct":      SFS{"Fan speed in percent of max",""},
-			"PerfMode":    SFS{"Numeric performance mode",""},
-			"MemUsedKB":   SFS{"Amount of memory in use",""},
-			"TempC":       SFS{"Card temperature in degrees C",""},
-			"PowerDrawW":  SFS{"Current power draw in Watts",""},
-			"PowerLimitW": SFS{"Current power limit in Watts", ""},
-			"CeClockMHz":  SFS{"Current compute element clock", ""},
-			"MemClockMHz": SFS{"Current memory clock", ""},
-		},
-	)
-
-	gpusAliases = map[string][]string{
-		"default":   []string{"Hostname","Gpu","Timestamp","MemUsedKB","PowerDrawW"},
-		"Default":   []string{"Hostname","Gpu","Timestamp","MemUsedKB","PowerDrawW"},
-		"All":       []string{
-			"Timestamp","Hostname","Gpu","FanPct","PerfMode","MemUsedKB","TempC",
-			"PowerDrawW","PowerLimitW","CeClockMHz","MemClockMHz",
-		},
-	}
-
-	gpusDefaultFields = strings.Join(gpusAliases["default"], ",")
-)
-
-const gpusHelp = `
-gpu
-  Extract information about individual gpus on the cluster from sample data.
-`

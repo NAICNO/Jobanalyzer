@@ -2,16 +2,12 @@ package clusters
 
 import (
 	"cmp"
-	_ "embed"
 	"errors"
 	"io"
-	"reflect"
 	"slices"
-	"strings"
 
 	umaps "go-utils/maps"
 	"go-utils/options"
-	uslices "go-utils/slices"
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
@@ -19,19 +15,56 @@ import (
 	. "sonalyze/table"
 )
 
+//go:generate ../../../generate-table/generate-table -o cluster-table.go clusters.go
+
+/*TABLE cluster
+
+package clusters
+
+import (
+	"sonalyze/db"
+	. "sonalyze/table"
+)
+
+%%
+
+FIELDS *db.ClusterEntry
+
+ Name        string   desc:"Cluster name" alias:"cluster"
+ Description string   desc:"Human-consumable cluster summary" alias:"desc"
+ Aliases     []string desc:"Aliases of cluster" alias:"aliases"
+
+SUMMARY ClusterCommand
+
+Display information about the clusters and overall cluster configuration.
+
+As this operates on the store and not on cluster data in the store, there is
+no -cluster argument for remote runs.
+
+For per-node data, use "config" and/or "node".
+
+HELP ClusterCommand
+
+  Extract information about individual clusters in the data store.
+  Output records are sorted by cluster name.  The default format is 'fixed'.
+
+ALIASES
+
+  all      cluster,desc,aliases
+  All      Name,Description,Aliases
+  default  cluster,aliases,desc
+  Default  Name,Aliases,Description
+
+DEFAULTS default
+
+ELBAT*/
+
 type ClusterCommand struct {
 	DevArgs
 	RemotingArgsNoCluster
 	VerboseArgs
 	FormatArgs
 	JobanalyzerDir string
-}
-
-//go:embed summary.txt
-var summary string
-
-func (cc *ClusterCommand) Summary() string {
-	return summary
 }
 
 func (cc *ClusterCommand) Add(fs *CLI) {
@@ -64,9 +97,9 @@ func (cc *ClusterCommand) Validate() error {
 		cc.RemotingArgsNoCluster.Validate(),
 		ValidateFormatArgs(
 			&cc.FormatArgs,
-			clustersDefaultFields,
-			clustersFormatters,
-			clustersAliases,
+			clusterDefaultFields,
+			clusterFormatters,
+			clusterAliases,
 			DefaultFixed,
 		),
 	)
@@ -92,57 +125,18 @@ func (cc *ClusterCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	sortable := umaps.Values(clusters)
-	slices.SortFunc(sortable, func(a, b *db.ClusterEntry) int {
+	printable := umaps.Values(clusters)
+	slices.SortFunc(printable, func(a, b *db.ClusterEntry) int {
 		return cmp.Compare(a.Name, b.Name)
 	})
-	printable := uslices.Map(sortable, func(x *db.ClusterEntry) any { return x })
 
 	FormatData(
 		stdout,
 		cc.PrintFields,
-		clustersFormatters,
+		clusterFormatters,
 		cc.PrintOpts,
 		printable,
 	)
 
 	return nil
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Printing
-
-func (cc *ClusterCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(
-		cc.Fmt, clustersHelp, clustersFormatters, clustersAliases, clustersDefaultFields)
-}
-
-const clustersHelp = `
-cluster
-  Extract information about individual clusters in the data store.
-  Output records are sorted by cluster name.  The default format is 'fixed'.
-`
-
-const v0ClustersDefaultFields = "cluster,aliases,desc"
-const v1ClustersDefaultFields = "Name,Aliases,Description"
-const clustersDefaultFields = v0ClustersDefaultFields
-
-// MT: Constant after initialization; immutable
-var clustersAliases = map[string][]string{
-	"default":   strings.Split(clustersDefaultFields, ","),
-	"v0default": strings.Split(v0ClustersDefaultFields, ","),
-	"v1default": strings.Split(v1ClustersDefaultFields, ","),
-}
-
-type SFS = SimpleFormatSpec
-
-// MT: Constant after initialization; immutable
-var clustersFormatters = DefineTableFromMap(
-	reflect.TypeFor[db.ClusterEntry](),
-	map[string]any{
-		"Name":        SFS{"Cluster name", "cluster"},
-		"Description": SFS{"Human-consumable cluster summary", "desc"},
-		"Aliases":     SFS{"Aliases of cluster", "aliases"},
-	},
-)

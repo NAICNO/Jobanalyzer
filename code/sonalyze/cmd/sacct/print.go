@@ -3,45 +3,77 @@ package sacct
 import (
 	"io"
 	"math"
-	"reflect"
-	"strings"
 
-	uslices "go-utils/slices"
-
-	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-type SacctRegular struct {
-	Start               IsoDateTimeOrUnknown `desc:"Start time of job, if any"`
-	End                 IsoDateTimeOrUnknown `desc:"End time of job"`
-	Submit              IsoDateTimeOrUnknown `desc:"Submit time of job"`
-	RequestedCPU        uint64               `desc:"Requested CPU time (elapsed * cores * nodes)"`
-	UsedCPU             uint64               `desc:"Used CPU time"`
-	RelativeCPU         int                  `alias:"rcpu" desc:"Percent cpu utilization: UsedCPU/RequestedCPU*100"`
-	RelativeResidentMem int                  `alias:"rmem" desc:"Percent memory utilization: MaxRSS/ReqMem*100"`
-	User                Ustr                 `desc:"Job's user"`
-	JobName             UstrMax30            `desc:"Job name"`
-	State               Ustr                 `desc:"Job completion state"`
-	Account             Ustr                 `desc:"Job's account"`
-	Reservation         Ustr                 `desc:"Job's reservation, if any"`
-	Layout              Ustr                 `desc:"Job's layout, if any"`
-	NodeList            Ustr                 `desc:"Job's node list"`
-	JobID               uint32               `desc:"Primary Job ID"`
-	MaxRSS              uint32               `desc:"Max resident set size (RSS) across all steps (GB)"`
-	ReqMem              uint32               `desc:"Raw requested memory (GB)"`
-	ReqCPUS             uint32               `desc:"Raw requested CPU cores"`
-	ReqGPUS             Ustr                 `desc:"Raw requested GPU cards"`
-	ReqNodes            uint32               `desc:"Raw requested system nodes"`
-	Elapsed             uint32               `desc:"Time elapsed"`
-	Suspended           uint32               `desc:"Time suspended"`
-	Timelimit           uint32               `desc:"Time limit in seconds"`
-	ExitCode            uint8                `desc:"Exit code"`
-	Wait                int64                `desc:"Wait time of job (start - submit), in seconds"`
-	Partition           Ustr                 `desc:"Requested partition"`
-	ArrayJobID          uint32               `desc:"ID of the overarching array job"`
-	ArrayIndex          uint32               `desc:"Index of this job within an array job"`
-}
+//go:generate ../../../generate-table/generate-table -o sacct-table.go print.go
+
+/*TABLE sacct
+
+package sacct
+
+import (
+    . "sonalyze/common"
+	. "sonalyze/table"
+)
+
+%%
+
+FIELDS *SacctRegular
+
+ Start               IsoDateTimeOrUnknown desc:"Start time of job, if any"
+ End                 IsoDateTimeOrUnknown desc:"End time of job"
+ Submit              IsoDateTimeOrUnknown desc:"Submit time of job"
+ RequestedCPU        int                  desc:"Requested CPU time (elapsed * cores * nodes)"
+ UsedCPU             int                  desc:"Used CPU time"
+ RelativeCPU         int                  alias:"rcpu" desc:"Percent cpu utilization: UsedCPU/RequestedCPU*100"
+ RelativeResidentMem int                  alias:"rmem" desc:"Percent memory utilization: MaxRSS/ReqMem*100"
+ User                Ustr                 desc:"Job's user"
+ JobName             UstrMax30            desc:"Job name"
+ State               Ustr                 desc:"Job completion state"
+ Account             Ustr                 desc:"Job's account"
+ Reservation         Ustr                 desc:"Job's reservation, if any"
+ Layout              Ustr                 desc:"Job's layout, if any"
+ NodeList            Ustr                 desc:"Job's node list"
+ JobID               int                  desc:"Primary Job ID"
+ MaxRSS              int                  desc:"Max resident set size (RSS) across all steps (GB)"
+ ReqMem              int                  desc:"Raw requested memory (GB)"
+ ReqCPUS             int                  desc:"Raw requested CPU cores"
+ ReqGPUS             Ustr                 desc:"Raw requested GPU cards"
+ ReqNodes            int                  desc:"Raw requested system nodes"
+ Elapsed             int                  desc:"Time elapsed"
+ Suspended           int                  desc:"Time suspended"
+ Timelimit           int                  desc:"Time limit in seconds"
+ ExitCode            int                  desc:"Exit code"
+ Wait                int                  desc:"Wait time of job (start - submit), in seconds"
+ Partition           Ustr                 desc:"Requested partition"
+ ArrayJobID          int                  desc:"ID of the overarching array job"
+ ArrayIndex          int                  desc:"Index of this job within an array job"
+
+GENERATE SacctRegular
+
+SUMMARY SacctCommand
+
+Experimental: Extract information from sacct data independent of sample data.
+
+Data are extracted by sacct for completed jobs on a cluster and stored
+in Jobanalyzer's database.  These data can be queried by "sonalyze
+sacct".  The fields are generally the same as those of the sacct
+output, and have the meaning defined by sacct.
+
+HELP SacctCommand
+
+  Aggregate SLURM sacct data into data about jobs and present them.
+
+ALIASES
+
+  default JobID,JobName,User,Account,rcpu,rmem
+  Default JobID,JobName,User,Account,RelativeCPU,RelativeResidentMem
+
+DEFAULTS default
+
+ELBAT*/
 
 func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSummary) {
 	// TODO: By and by it may be possible to lift this extra loop into the loop already being run in
@@ -63,8 +95,8 @@ func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSumma
 			Start:               IsoDateTimeOrUnknown(r.Main.Start),
 			End:                 IsoDateTimeOrUnknown(r.Main.End),
 			Submit:              IsoDateTimeOrUnknown(r.Main.Submit),
-			RequestedCPU:        r.requestedCpu,
-			UsedCPU:             r.usedCpu,
+			RequestedCPU:        int(r.requestedCpu),
+			UsedCPU:             int(r.usedCpu),
 			RelativeCPU:         relativeCpu,
 			RelativeResidentMem: relativeResidentMem,
 			User:                r.Main.User,
@@ -74,20 +106,20 @@ func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSumma
 			Reservation:         r.Main.Reservation,
 			Layout:              r.Main.Layout,
 			NodeList:            r.Main.NodeList,
-			JobID:               r.Main.JobID,
-			MaxRSS:              r.maxrss,
-			ReqMem:              r.Main.ReqMem,
-			ReqCPUS:             r.Main.ReqCPUS,
-			ReqNodes:            r.Main.ReqNodes,
-			Elapsed:             r.Main.ElapsedRaw,
-			Suspended:           r.Main.Suspended,
-			Timelimit:           r.Main.TimelimitRaw,
-			ExitCode:            r.Main.ExitCode,
-			Wait:                waitTime,
+			JobID:               int(r.Main.JobID),
+			MaxRSS:              int(r.maxrss),
+			ReqMem:              int(r.Main.ReqMem),
+			ReqCPUS:             int(r.Main.ReqCPUS),
+			ReqNodes:            int(r.Main.ReqNodes),
+			Elapsed:             int(r.Main.ElapsedRaw),
+			Suspended:           int(r.Main.Suspended),
+			Timelimit:           int(r.Main.TimelimitRaw),
+			ExitCode:            int(r.Main.ExitCode),
+			Wait:                int(waitTime),
 			Partition:           r.Main.Partition,
 			ReqGPUS:             r.Main.ReqGPUS,
-			ArrayJobID:          r.Main.ArrayJobID,
-			ArrayIndex:          r.Main.ArrayIndex,
+			ArrayJobID:          int(r.Main.ArrayJobID),
+			ArrayIndex:          int(r.Main.ArrayIndex),
 		}
 	}
 	FormatData(
@@ -95,29 +127,6 @@ func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSumma
 		sc.PrintFields,
 		sacctFormatters,
 		sc.PrintOpts,
-		uslices.Map(toPrint, func(x *SacctRegular) any { return x }),
+		toPrint,
 	)
 }
-
-func (sc *SacctCommand) MaybeFormatHelp() *FormatHelp {
-	return StandardFormatHelp(sc.Fmt, sacctHelp, sacctFormatters, sacctAliases, sacctDefaultFields)
-}
-
-const sacctHelp = `
-sacct
-  Aggregate SLURM sacct data into data about jobs and present them.
-`
-
-const v0SacctDefaultFields = "JobID,JobName,User,Account,rcpu,rmem"
-const v1SacctDefaultFields = "JobID,JobName,User,Account,RelativeCPU,RelativeResidentMem"
-const sacctDefaultFields = v0SacctDefaultFields
-
-// MT: Constant after initialization; immutable
-var sacctAliases = map[string][]string{
-	"default":   strings.Split(sacctDefaultFields, ","),
-	"v0default": strings.Split(v0SacctDefaultFields, ","),
-	"v1default": strings.Split(v1SacctDefaultFields, ","),
-}
-
-// MT: Constant after initialization; immutable
-var sacctFormatters = DefineTableFromTags(reflect.TypeFor[SacctRegular](), nil)

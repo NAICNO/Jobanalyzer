@@ -1,6 +1,0 @@
-EXPERIMENTAL: Extract information from sacct data independent of sample data.
-
-Data are extracted by sacct for completed jobs on a cluster and stored
-in Jobanalyzer's database.  These data can be queried by `sonalyze
-sacct`.  The fields are generally the same as those of the sacct
-output, and have the meaning defined by sacct.
