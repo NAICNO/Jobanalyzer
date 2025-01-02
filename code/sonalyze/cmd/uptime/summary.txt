@@ -5,7 +5,7 @@ order, hosts before devices on the host.  Periods where the node/device is
 up or down are both printed, but one can select one or the other with
 `-only-up` and `-only-down`.
 
-The `-interval` switch must be specified and should be the interval in
+The `-interval` switch (default is 5 minutes) should be the interval in
 minutes for samples on the nodes in question.
 
 A host or device is up at the start of the timeline if its first Sample is
