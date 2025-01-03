@@ -15,17 +15,17 @@ const (
 )
 
 func TestDataFormatting(t *testing.T) {
-	if s := DateValue(now).String(); s != "2024-11-25" {
+	if s := FormatDateValue(now, 0); s != "2024-11-25" {
 		t.Fatalf("DateValue %s", s)
 	}
-	if s := TimeValue(now).String(); s != "07:02" {
+	if s := FormatTimeValue(now, 0); s != "07:02" {
 		t.Fatalf("TimeValue %s", s)
 	}
 
-	if s := IntOrEmpty(7).String(); s != "7" {
+	if s := FormatIntOrEmpty(7, 0); s != "7" {
 		t.Fatalf("IntOrEmpty %s", s)
 	}
-	if s := IntOrEmpty(0).String(); s != "" {
+	if s := FormatIntOrEmpty(0, 0); s != "" {
 		t.Fatalf("IntOrEmpty %s", s)
 	}
 
