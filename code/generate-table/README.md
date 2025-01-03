@@ -81,24 +81,10 @@ Formatting information is pretty ad-hoc and can be anything we want it to be; it
 implementation of the data structures in sonalyze, and some are weird to capture existing output
 conventions.
 
-What is confusing here is that sometimes the representation type is (say) int64 for a timestamp and
-sometimes it is (say) DateTimeValue, also an int64 value but a distinct type.  The type-name has to
-match the representation exactly, so in the former case the table spec is typed as
-`I64DateTimeValue` and in the latter case as `DateTimeValue`.  Both imply the same formatting.
-
-* `string` - Go string value
-* `Ustr` - Sonalyze hash-consed string value
-* `DateTimeValue` - int64 timestamp, second count since epoch UTC
-* `DateValue` - the date part of a timestamp
-* `TimeValue` - the time part of a timestamp
-* `DurationValue` - int64 time difference, seconds
-* `IntCeil` - float64 value rounded up to integer
-* `UstrMax30` - a Ustr, but no more than 30 chars are printed in fixed-format output
-* `int` - any integer value, cast to Go `int`
-* `float` - float32
-* `double` - float64
-* `gpuset.GpuSet` - a GPU set
-* (there are more, and more can be added easily)
+Type definitions that combine representation and non-standard formatting are defined in
+`sonalyze/tables/data.go`.  A typical case is `DateTimeValue`, which is defined to be an `int64`
+(representing seconds since epoch) that is to be formatted as `yyyy-mm-dd hh:mm` and which admits
+modifiers to print it as iso time or as a second count.
 
 Attributes describe how fields are accessed, provide help and aliases, and sometimes dictate the
 generation of auxiliary data:
@@ -210,6 +196,7 @@ Table     ::= ^ "/*TABLE" Ident $
               ^ "%%" $
               Fields
               Generate?
+              Summary?
               Help?
               Aliases?
               Defaults?
@@ -222,6 +209,8 @@ Field     ::= ^ Ident TypeName Attribute* $
 Attribute ::= Ident ":" String
 
 Generate  ::= ^ "GENERATE" Ident $
+
+Summary   ::= ^ "SUMMARY" Ident? $ TextLines
 
 Help      ::= ^ "HELP" Ident? $ TextLines
 
