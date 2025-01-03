@@ -178,7 +178,7 @@ func (mdc *MetadataCommand) Perform(
 			}
 			return c
 		})
-		items, err := ApplyQuery(mdc.ParsedQuery, metadataPredicates, items)
+		items, err := ApplyQuery(mdc.ParsedQuery, metadataFormatters, metadataPredicates, items)
 		if err != nil {
 			return err
 		}

@@ -4,6 +4,7 @@ package table
 
 import (
 	"fmt"
+	"regexp"
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,33 +103,48 @@ func ParseQuery(input string) (PNode, error) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Query generator.
+//
+// The compilers take both predicates and formatters because the =~ operator needs to format the lhs
+// to be able to match it against the rhs.
 
 // The returned predicate returns true iff the test passed.
 
-func CompileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T) bool, error) {
-	return compileQuery(predicates, q)
+func CompileQuery[T any](
+	formatters map[string]Formatter[T],
+	predicates map[string]Predicate[T],
+	q PNode,
+) (func(d T) bool, error) {
+	return compileQuery(formatters, predicates, q)
 }
 
 // The returned predicate returns false iff the test passed.
 //
 // TODO: It's possible to avoid wrapping the predicate here.
 
-func CompileQueryNeg[T any](predicates map[string]Predicate[T], q PNode) (func(d T) bool, error) {
-	query, err := compileQuery(predicates, q)
+func CompileQueryNeg[T any](
+	formatters map[string]Formatter[T],
+	predicates map[string]Predicate[T],
+	q PNode,
+) (func(d T) bool, error) {
+	query, err := compileQuery(formatters, predicates, q)
 	if err != nil {
 		return nil, err
 	}
 	return func(d T) bool { return !query(d) }, nil
 }
 
-func compileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T) bool, error) {
+func compileQuery[T any](
+	formatters map[string]Formatter[T],
+	predicates map[string]Predicate[T],
+	q PNode,
+) (func(d T) bool, error) {
 	switch l := q.(type) {
 	case *logicalOp:
-		lhs, err := CompileQuery(predicates, l.lhs)
+		lhs, err := compileQuery(formatters, predicates, l.lhs)
 		if err != nil {
 			return nil, err
 		}
-		rhs, err := CompileQuery(predicates, l.rhs)
+		rhs, err := compileQuery(formatters, predicates, l.rhs)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +157,7 @@ func compileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T)
 			panic("Unknown op")
 		}
 	case *unaryOp:
-		opd, err := CompileQuery(predicates, l.opd)
+		opd, err := compileQuery(formatters, predicates, l.opd)
 		if err != nil {
 			return nil, err
 		}
@@ -152,10 +168,21 @@ func compileQuery[T any](predicates map[string]Predicate[T], q PNode) (func(d T)
 			panic("Unknown op")
 		}
 	case *binaryOp:
-		// TODO: opMatch, this has built-in rhs conversion and probably calls a field accessor
-		// instead of a comparator.
-		//
 		// TODO: Misc stuff for set-like things (GpuSet, maybe host name sets).
+
+		if l.op == opMatch {
+			format, found := formatters[l.field]
+			if !found {
+				return nil, fmt.Errorf("Field not found: %s", l.field)
+			}
+			re, err := regexp.Compile(l.value)
+			if err != nil {
+				return nil, err
+			}
+			formatter := format.Fmt
+			return func(d T) bool { return re.MatchString(formatter(d, 0)) }, nil
+		}
+
 		p, found := predicates[l.field]
 		if !found {
 			return nil, fmt.Errorf("Field not found: %s", l.field)

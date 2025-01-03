@@ -12,9 +12,14 @@ import (
 	"slices"
 )
 
-func ApplyQuery[T any](q PNode, predicates map[string]Predicate[T], records []T) ([]T, error) {
+func ApplyQuery[T any](
+	q PNode,
+	formatters map[string]Formatter[T],
+	predicates map[string]Predicate[T],
+	records []T,
+) ([]T, error) {
 	if q != nil {
-		queryNeg, err := CompileQueryNeg(predicates, q)
+		queryNeg, err := CompileQueryNeg(formatters, predicates, q)
 		if err != nil {
 			return nil, fmt.Errorf("Could not compile query: %v", err)
 		}

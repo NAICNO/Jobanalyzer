@@ -174,7 +174,7 @@ DEFAULTS default
 ELBAT*/
 
 func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary) error {
-	summaries, err := ApplyQuery(jc.ParsedQuery, jobsPredicates, summaries)
+	summaries, err := ApplyQuery(jc.ParsedQuery, jobsFormatters, jobsPredicates, summaries)
 	if err != nil {
 		return err
 	}

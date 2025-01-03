@@ -155,7 +155,8 @@ func (cc *ConfigCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
 		})
 	}
 
-	records, err = ApplyQuery(cc.ParsedQuery, configPredicates, records)
+	records, err = ApplyQuery(
+		cc.ParsedQuery, configFormatters, configPredicates, records)
 	if err != nil {
 		return err
 	}

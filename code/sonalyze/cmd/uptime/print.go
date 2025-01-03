@@ -62,7 +62,7 @@ DEFAULTS default
 ELBAT*/
 
 func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) error {
-	reports, err := ApplyQuery(uc.ParsedQuery, uptimePredicates, reports)
+	reports, err := ApplyQuery(uc.ParsedQuery, uptimeFormatters, uptimePredicates, reports)
 	if err != nil {
 		return err
 	}

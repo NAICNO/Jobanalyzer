@@ -104,7 +104,7 @@ func (lc *LoadCommand) Perform(
 	var queryNeg func(*ReportRecord) bool
 	if lc.ParsedQuery != nil {
 		var err error
-		queryNeg, err = CompileQueryNeg(loadPredicates, lc.ParsedQuery)
+		queryNeg, err = CompileQueryNeg(loadFormatters, loadPredicates, lc.ParsedQuery)
 		if err != nil {
 			return fmt.Errorf("Could not compile query: %v", err)
 		}

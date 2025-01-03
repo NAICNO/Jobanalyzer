@@ -262,7 +262,7 @@ func (nc *NodeCommand) buildRecordFilter(
 
 	var query func(*config.NodeConfigRecord) bool
 	if nc.ParsedQuery != nil {
-		c, err := CompileQuery(nodePredicates, nc.ParsedQuery)
+		c, err := CompileQuery(nodeFormatters, nodePredicates, nc.ParsedQuery)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("Could not compile query: %v", err)
 		}

@@ -199,7 +199,7 @@ func (pc *ParseCommand) Perform(
 	var queryNeg func(sonarlog.Sample) bool
 	if pc.ParsedQuery != nil {
 		var err error
-		queryNeg, err = CompileQueryNeg(parsePredicates, pc.ParsedQuery)
+		queryNeg, err = CompileQueryNeg(parseFormatters, parsePredicates, pc.ParsedQuery)
 		if err != nil {
 			return fmt.Errorf("Could not compile query: %v", err)
 		}

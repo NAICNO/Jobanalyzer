@@ -131,7 +131,8 @@ func (cc *ClusterCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		return cmp.Compare(a.Name, b.Name)
 	})
 
-	printable, err = ApplyQuery(cc.ParsedQuery, clusterPredicates, printable)
+	printable, err = ApplyQuery(
+		cc.ParsedQuery, clusterFormatters, clusterPredicates, printable)
 	if err != nil {
 		return err
 	}
