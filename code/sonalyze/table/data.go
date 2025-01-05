@@ -1,5 +1,5 @@
-// Annotation types and formatters for them, mostly taking a print context argument and returning
-// *skip* when appropriate.
+// Annotation types; formatters for them and other types, mostly taking a print context argument and
+// returning *skip* when appropriate; parsers for them and other types.
 
 package table
 
@@ -18,55 +18,41 @@ import (
 // Timestamp types.  These types hold an int64 unix-timestamp-since-epoch or second count and
 // require a particular kind of formatting.
 
-type DateTimeValue int64        // yyyy-mm-dd hh:mm
-type DateTimeValueOrBlank int64 // yyyy-mm-dd hh:mm or 16 blanks
-type IsoDateTimeValue int64
-type IsoDateTimeOrUnknown int64 // yyyy-mm-ddThh:mmZhh:mm
-type DateValue int64            // yyyy-mm-dd
-type TimeValue int64            // hh:mm
-type DurationValue int64        // _d_h_m for d(ays) h(ours) m(inutes), rounded to minute, round up on ties
+type DateTimeValue = int64        // yyyy-mm-dd hh:mm
+type DateTimeValueOrBlank = int64 // yyyy-mm-dd hh:mm or 16 blanks
+type IsoDateTimeValue = int64
+type IsoDateTimeOrUnknown = int64 // yyyy-mm-ddThh:mmZhh:mm
+type DateValue = int64            // yyyy-mm-dd
+type TimeValue = int64            // hh:mm
 
 // Other types
 
-type IntOrEmpty int // the int value, but "" if zero
-type IntDiv1M int
-type IntCeil float64
-type UstrMax30 Ustr // the string value but only max 30 first chars in fixed mode
+type DurationValue = int64 // _d_h_m for d(ays) h(ours) m(inutes), rounded to minute, round up on ties
+type U32Duration = uint32  // ditto, but different underlying type
+type F64Ceil = float64     // float64 that rounds up to integer on output
+type U64Div1M = uint64     // uint64 that is scaled by 2^20
+type IntOrEmpty = int      // the int value, but "" if zero
+type UstrMax30 = Ustr      // the string value but only max 30 first chars in fixed mode
 
-// Stringers for simple cases.  There could be more but in most cases the formatting takes a
-// formatting context and a stringer could at most pick one of them.
-
-func (val DateValue) String() string {
-	return time.Unix(int64(val), 0).UTC().Format("2006-01-02")
-}
-
-func (val TimeValue) String() string {
-	return time.Unix(int64(val), 0).UTC().Format("15:04")
-}
-
-func (val IntOrEmpty) String() string {
+func FormatIntOrEmpty(val IntOrEmpty, _ PrintMods) string {
 	if val == 0 {
 		return ""
 	}
 	return strconv.FormatInt(int64(val), 10)
 }
 
-func FormatIntOrEmpty(val IntOrEmpty, _ PrintMods) string {
-	return val.String()
-}
-
 func FormatDateValue(val DateValue, ctx PrintMods) string {
 	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
 		return "*skip*"
 	}
-	return val.String()
+	return time.Unix(int64(val), 0).UTC().Format("2006-01-02")
 }
 
 func FormatTimeValue(val TimeValue, ctx PrintMods) string {
 	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
 		return "*skip*"
 	}
-	return val.String()
+	return time.Unix(int64(val), 0).UTC().Format("15:04")
 }
 
 func FormatUstr(val Ustr, ctx PrintMods) string {
@@ -90,7 +76,28 @@ func FormatUstrMax30(val UstrMax30, ctx PrintMods) string {
 	return s
 }
 
-func FormatInt64[T int64 | uint64](val T, ctx PrintMods) string {
+func FormatInt64(val int64, ctx PrintMods) string {
+	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
+		return "*skip*"
+	}
+	return fmt.Sprint(val)
+}
+
+func FormatUint8(val uint8, ctx PrintMods) string {
+	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
+		return "*skip*"
+	}
+	return fmt.Sprint(val)
+}
+
+func FormatUint32(val uint32, ctx PrintMods) string {
+	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
+		return "*skip*"
+	}
+	return fmt.Sprint(val)
+}
+
+func FormatUint64(val uint64, ctx PrintMods) string {
 	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
 		return "*skip*"
 	}
@@ -104,7 +111,7 @@ func FormatInt(val int, ctx PrintMods) string {
 	return fmt.Sprint(val)
 }
 
-func FormatIntDiv1M(val IntDiv1M, ctx PrintMods) string {
+func FormatU64Div1M(val uint64, ctx PrintMods) string {
 	val /= 1024 * 1024
 	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
 		return "*skip*"
@@ -112,19 +119,8 @@ func FormatIntDiv1M(val IntDiv1M, ctx PrintMods) string {
 	return fmt.Sprint(val)
 }
 
-func FormatIntCeil(val IntCeil, ctx PrintMods) string {
-	return FormatInt64(int64(math.Ceil(float64(val))), ctx)
-}
-
-func FormatFloat(val float64, isFloat32 bool, ctx PrintMods) string {
-	if (ctx&PrintModNoDefaults) != 0 && val == 0 {
-		return "*skip*"
-	}
-	prec := 64
-	if isFloat32 {
-		prec = 32
-	}
-	return strconv.FormatFloat(val, 'g', -1, prec)
+func FormatF64Ceil(val float64, ctx PrintMods) string {
+	return FormatInt64(int64(math.Ceil(val)), ctx)
 }
 
 func FormatFloat32(val float32, ctx PrintMods) string {
@@ -217,6 +213,10 @@ func FormatDurationValue(secs DurationValue, ctx PrintMods) string {
 	return fmt.Sprintf("%dd%dh%dm", days, hours, minutes)
 }
 
+func FormatU32Duration(secs U32Duration, ctx PrintMods) string {
+	return FormatDurationValue(DurationValue(secs), ctx)
+}
+
 func FormatDateTimeValue(timestamp DateTimeValue, ctx PrintMods) string {
 	if (ctx&PrintModNoDefaults) != 0 && timestamp == 0 {
 		return "*skip*"
@@ -227,9 +227,9 @@ func FormatDateTimeValue(timestamp DateTimeValue, ctx PrintMods) string {
 		return fmt.Sprint(timestamp)
 	}
 	if (ctx & PrintModIso) != 0 {
-		return FormatIsoUtc(int64(timestamp))
+		return FormatIsoUtc(timestamp)
 	}
-	return FormatYyyyMmDdHhMmUtc(int64(timestamp))
+	return FormatYyyyMmDdHhMmUtc(timestamp)
 }
 
 func FormatDateTimeValueOrBlank(val DateTimeValueOrBlank, ctx PrintMods) string {
@@ -239,15 +239,11 @@ func FormatDateTimeValueOrBlank(val DateTimeValueOrBlank, ctx PrintMods) string 
 	return FormatDateTimeValue(DateTimeValue(val), ctx)
 }
 
-func FormatYyyyMmDdHhMmUtc(t int64) string {
-	return time.Unix(t, 0).UTC().Format("2006-01-02 15:04")
-}
-
-func FormatIsoUtc(t int64) string {
-	return time.Unix(t, 0).UTC().Format(time.RFC3339)
-}
-
 func FormatIsoDateTimeValue(t IsoDateTimeValue, ctx PrintMods) string {
+	return FormatDateTimeValue(DateTimeValue(t), ctx|PrintModIso)
+}
+
+func FormatI64IsoDateTimeValue(t int64, ctx PrintMods) string {
 	return FormatDateTimeValue(DateTimeValue(t), ctx|PrintModIso)
 }
 
@@ -256,4 +252,12 @@ func FormatIsoDateTimeOrUnknown(t IsoDateTimeOrUnknown, ctx PrintMods) string {
 		return "Unknown"
 	}
 	return FormatDateTimeValue(DateTimeValue(t), ctx|PrintModIso)
+}
+
+func FormatYyyyMmDdHhMmUtc(t int64) string {
+	return time.Unix(t, 0).UTC().Format("2006-01-02 15:04")
+}
+
+func FormatIsoUtc(t int64) string {
+	return time.Unix(t, 0).UTC().Format(time.RFC3339)
 }

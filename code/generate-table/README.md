@@ -36,7 +36,15 @@ ELBAT*/
 
 The the prefix - the text before `%%` - is copied verbatim to the output.  It must contain a package
 directive and any imports referenced by type names in the table specification, and may not contain
-anything else.  One of the imports must be `. "sonalyze/table"`.
+anything else.  Note these imports are added by the table generator:
+
+```
+	"cmp"
+	"fmt"
+	"io"
+	. "sonalyze/common"
+	. "sonalyze/table"
+```
 
 The syntax is otherwise line-oriented.
 
@@ -66,26 +74,17 @@ The header is followed by field definitions, one per line.  Each field definitio
 ```
   <field-name> <type-name> <attr>...
 ```
-where the the type-name is the *formatting type*.  The data field may have an underlying type that
-is different from the formatting type but which must be convertible to the formatting type with a
-cast; the generated code always has a cast.
+where the the type-name combines the representation type and formatting information.  The representation
+type must match the underlying type of the data field exactly; no conversion is inserted.
 
-Formatting types are anything we want them to be; they are specific to the implementation of the
-data structures in sonalyze, and some are weird to capture existing output conventions:
+Formatting information is pretty ad-hoc and can be anything we want it to be; it is specific to the
+implementation of the data structures in sonalyze, and some are weird to capture existing output
+conventions.
 
-* `string` - Go string value
-* `Ustr` - Sonalyze hash-consed string value
-* `DateTimeValue` - int64 timestamp, second count since epoch UTC
-* `DateValue` - the date part of a timestamp
-* `TimeValue` - the time part of a timestamp
-* `DurationValue` - int64 time difference, seconds
-* `IntCeil` - float64 value rounded up to integer
-* `UstrMax30` - a Ustr, but no more than 30 chars are printed in fixed-format output
-* `int` - any integer value, cast to Go `int`
-* `float` - float32
-* `double` - float64
-* `gpuset.GpuSet` - a GPU set
-* (there are more, and more can be added easily)
+Type definitions that combine representation and non-standard formatting are defined in
+`sonalyze/tables/data.go`.  A typical case is `DateTimeValue`, which is defined to be an `int64`
+(representing seconds since epoch) that is to be formatted as `yyyy-mm-dd hh:mm` and which admits
+modifiers to print it as iso time or as a second count.
 
 Attributes describe how fields are accessed, provide help and aliases, and sometimes dictate the
 generation of auxiliary data:
@@ -197,6 +196,7 @@ Table     ::= ^ "/*TABLE" Ident $
               ^ "%%" $
               Fields
               Generate?
+              Summary?
               Help?
               Aliases?
               Defaults?
@@ -209,6 +209,8 @@ Field     ::= ^ Ident TypeName Attribute* $
 Attribute ::= Ident ":" String
 
 Generate  ::= ^ "GENERATE" Ident $
+
+Summary   ::= ^ "SUMMARY" Ident? $ TextLines
 
 Help      ::= ^ "HELP" Ident? $ TextLines
 

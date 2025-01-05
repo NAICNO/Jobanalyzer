@@ -3,67 +3,67 @@
 package profile
 
 import (
+	"cmp"
+	"fmt"
+	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-import (
-	"fmt"
-	"io"
-)
-
 var (
+	_ = cmp.Compare(0, 0)
 	_ fmt.Formatter
 	_ = io.SeekStart
+	_ = UstrEmpty
 )
 
 // MT: Constant after initialization; immutable
 var profileFormatters = map[string]Formatter[*fixedLine]{
 	"Timestamp": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
-			return FormatDateTimeValueOrBlank(DateTimeValueOrBlank(d.Timestamp), ctx)
+			return FormatDateTimeValueOrBlank(d.Timestamp, ctx)
 		},
 		Help: "(DateTimeValue) Time of the start of the profiling bucket",
 	},
 	"CpuUtilPct": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
-			return FormatInt(int(d.CpuUtilPct), ctx)
+			return FormatInt(d.CpuUtilPct, ctx)
 		},
 		Help: "(int) CPU utilization in percent, 100% = 1 core (except for HTML)",
 	},
 	"VirtualMemGB": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
-			return FormatInt(int(d.VirtualMemGB), ctx)
+			return FormatInt(d.VirtualMemGB, ctx)
 		},
 		Help: "(int) Main virtual memory usage in GiB",
 	},
 	"ResidentMemGB": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
-			return FormatInt(int(d.ResidentMemGB), ctx)
+			return FormatInt(d.ResidentMemGB, ctx)
 		},
 		Help: "(int) Main resident memory usage in GiB",
 	},
 	"Gpu": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
-			return FormatInt(int(d.Gpu), ctx)
+			return FormatInt(d.Gpu, ctx)
 		},
 		Help: "(int) GPU utilization in percent, 100% = 1 card (except for HTML)",
 	},
 	"GpuMemGB": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
-			return FormatInt(int(d.GpuMemGB), ctx)
+			return FormatInt(d.GpuMemGB, ctx)
 		},
 		Help: "(int) GPU resident memory usage in GiB (across all cards)",
 	},
 	"Command": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.Command), ctx)
+			return FormatUstr(d.Command, ctx)
 		},
 		Help: "(string) Name of executable starting the process",
 	},
 	"NumProcs": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
-			return FormatIntOrEmpty(IntOrEmpty(d.NumProcs), ctx)
+			return FormatIntOrEmpty(d.NumProcs, ctx)
 		},
 		Help: "(int) Number of rolled-up processes, blank for zero",
 	},

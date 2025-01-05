@@ -32,10 +32,7 @@ import (
 
 package configs
 
-import (
-	"go-utils/config"
-	. "sonalyze/table"
-)
+import "go-utils/config"
 
 %%
 

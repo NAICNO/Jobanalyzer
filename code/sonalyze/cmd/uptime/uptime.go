@@ -7,10 +7,7 @@
 package uptime
 
 import (
-	_ "embed"
 	"errors"
-	"fmt"
-	"io"
 
 	. "sonalyze/cmd"
 	. "sonalyze/table"
@@ -26,13 +23,6 @@ type UptimeCommand struct /* implements SampleAnalysisCommand */ {
 }
 
 var _ SampleAnalysisCommand = (*UptimeCommand)(nil)
-
-//go:embed summary.txt
-var summary string
-
-func (_ *UptimeCommand) Summary(out io.Writer) {
-	fmt.Fprintf(out, summary)
-}
 
 func (uc *UptimeCommand) Add(fs *CLI) {
 	uc.SharedArgs.Add(fs)

@@ -85,47 +85,57 @@ func main() {
 // operators apply; if a type is "GpuSet" then some kind of set operators apply (TBD).
 
 type typeInfo struct {
-	formatter string
 	helpName  string
-	caster    string
+	formatter string
 }
 
 var knownTypes = map[string]typeInfo{
-	"int":                  typeInfo{formatter: "FormatInt"},
-	"float":                typeInfo{formatter: "FormatFloat32", caster: "float32"},
-	"double":               typeInfo{formatter: "FormatFloat64"},
-	"string":               typeInfo{formatter: "FormatString"},
-	"bool":                 typeInfo{formatter: "FormatBool"},
-	"[]string":             typeInfo{formatter: "FormatStrings", helpName: "string list"},
-	"IntCeil":              typeInfo{helpName: "int"},
-	"IntDiv1M":             typeInfo{helpName: "int"},
-	"IntOrEmpty":           typeInfo{helpName: "int"},
-	"DateTimeValueOrBlank": typeInfo{helpName: "DateTimeValue"},
+	"[]string": typeInfo{
+		helpName:  "string list",
+		formatter: "FormatStrings",
+	},
+	"F64Ceil": typeInfo{
+		helpName: "int",
+	},
+	"U64Div1M": typeInfo{
+		helpName: "int",
+	},
+	"IntOrEmpty": typeInfo{
+		helpName: "int",
+	},
+	"DateTimeValueOrBlank": typeInfo{
+		helpName: "DateTimeValue",
+	},
 	"IsoDateTimeOrUnknown": typeInfo{helpName: "IsoDateTimeValue"},
 	"Ustr":                 typeInfo{helpName: "string"},
 	"UstrMax30":            typeInfo{helpName: "string"},
-	"gpuset.GpuSet":        typeInfo{formatter: "FormatGpuSet", helpName: "GpuSet"},
+	"gpuset.GpuSet": typeInfo{
+		helpName:  "GpuSet",
+		formatter: "FormatGpuSet",
+	},
 }
 
 func formatName(ty string) string {
 	if probe := knownTypes[ty]; probe.formatter != "" {
 		return probe.formatter
 	}
-	return "Format" + ty
-}
-
-func castName(ty string) string {
-	if probe := knownTypes[ty]; probe.caster != "" {
-		return probe.caster
-	}
-	return ty
+	return "Format" + capitalize(ty)
 }
 
 func userFacingTypeName(ty string) string {
 	if probe := knownTypes[ty]; probe.helpName != "" {
 		return probe.helpName
 	}
+	// TODO: Strip suffix size information
 	return ty
+}
+
+// We know we're dealing with ASCII so this is good enough
+func capitalize(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(string(s[0])) + s[1:]
 }
 
 type fieldSpec struct {
@@ -139,12 +149,17 @@ func processBlock(block *parser.TableBlock) {
 	}
 	fmt.Fprintf(output, `
 import (
+	"cmp"
 	"fmt"
 	"io"
+	. "sonalyze/common"
+	. "sonalyze/table"
 )
 var (
+	_ = cmp.Compare(0,0)
 	_ fmt.Formatter
     _ = io.SeekStart
+	_ = UstrEmpty
 )
 `)
 	fieldList := fieldSection(block.TableName, &block.Fields)
@@ -169,6 +184,11 @@ var (
 // thinking it's better to do it here.
 
 func fieldSection(tableName string, fields *parser.FieldSect) (fieldList []fieldSpec) {
+	fieldList = fieldFormatters(tableName, fields)
+	return
+}
+
+func fieldFormatters(tableName string, fields *parser.FieldSect) (fieldList []fieldSpec) {
 	fieldList = make([]fieldSpec, 0)
 
 	type aliasDef struct {
@@ -210,15 +230,15 @@ func fieldSection(tableName string, fields *parser.FieldSect) (fieldList []field
 
 		fmt.Fprintf(output, "\t\"%s\": {\n", field.Name)
 		fmt.Fprintf(output, "\t\tFmt: func(d %s, ctx PrintMods) string {\n", fields.Type)
+		formatter := formatName(field.Type)
 		if ptrName := attrs["indirect"]; ptrName != "" {
 			fmt.Fprintf(output, "\t\t\tif d.%s != nil {\n", ptrName)
-			fmt.Fprintf(output, "\t\t\t\treturn %s(%s(d.%s.%s), ctx)\n",
-				formatName(field.Type), castName(field.Type), ptrName, actualFieldName)
+			fmt.Fprintf(
+				output, "\t\t\t\treturn %s(d.%s.%s, ctx)\n", formatter, ptrName, actualFieldName)
 			fmt.Fprintf(output, "\t\t\t}\n")
 			fmt.Fprintf(output, "\t\t\treturn \"?\"\n")
 		} else {
-			fmt.Fprintf(output, "\t\t\treturn %s(%s(d.%s), ctx)\n",
-				formatName(field.Type), castName(field.Type), actualFieldName)
+			fmt.Fprintf(output, "\t\t\treturn %s(d.%s, ctx)\n", formatter, actualFieldName)
 		}
 		fmt.Fprintf(output, "\t\t},\n")
 		if d := attrs["desc"]; d != "" {

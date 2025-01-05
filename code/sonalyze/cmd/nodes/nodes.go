@@ -3,15 +3,11 @@
 // or "no".
 //
 // If there are logfiles present in the input then we use those as a transient cluster of sysinfo.
-//
-// TODO: On big systems it would clearly be interesting to filter by various criteria, eg memory
-// size, number of cores or cards.
 
 package nodes
 
 import (
 	"cmp"
-	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -36,10 +32,7 @@ import (
 
 package nodes
 
-import (
-	"go-utils/config"
-	. "sonalyze/table"
-)
+import "go-utils/config"
 
 %%
 

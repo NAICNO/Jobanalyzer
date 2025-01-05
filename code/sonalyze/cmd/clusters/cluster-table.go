@@ -2,38 +2,40 @@
 
 package clusters
 
+import "sonalyze/db"
+
 import (
-	"sonalyze/db"
+	"cmp"
+	"fmt"
+	"io"
+	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-import (
-	"fmt"
-	"io"
-)
-
 var (
+	_ = cmp.Compare(0, 0)
 	_ fmt.Formatter
 	_ = io.SeekStart
+	_ = UstrEmpty
 )
 
 // MT: Constant after initialization; immutable
 var clusterFormatters = map[string]Formatter[*db.ClusterEntry]{
 	"Name": {
 		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
-			return FormatString(string(d.Name), ctx)
+			return FormatString(d.Name, ctx)
 		},
 		Help: "(string) Cluster name",
 	},
 	"Description": {
 		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
-			return FormatString(string(d.Description), ctx)
+			return FormatString(d.Description, ctx)
 		},
 		Help: "(string) Human-consumable cluster summary",
 	},
 	"Aliases": {
 		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
-			return FormatStrings([]string(d.Aliases), ctx)
+			return FormatStrings(d.Aliases, ctx)
 		},
 		Help: "(string list) Aliases of cluster",
 	},

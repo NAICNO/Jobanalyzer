@@ -23,10 +23,6 @@ import (
 
 package metadata
 
-import (
-	. "sonalyze/table"
-)
-
 %%
 
 FIELDS *metadataItem

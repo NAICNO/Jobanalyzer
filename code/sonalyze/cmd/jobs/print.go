@@ -15,63 +15,57 @@ import (
 
 package jobs
 
-import (
-	"go-utils/gpuset"
-	. "sonalyze/common"
-	. "sonalyze/table"
-)
-
 %%
 
 FIELDS *jobSummary
 
   JobAndMark         string        desc:"Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window" alias:"jobm"
-  Job                int           desc:"Job ID" alias:"job" field:"JobId"
+  Job                uint32        desc:"Job ID" alias:"job" field:"JobId"
   User               Ustr          desc:"Name of user running the job" alias:"user"
   Duration           DurationValue desc:"Time of last observation minus time of first" alias:"duration"
   Start              DateTimeValue desc:"Time of first observation" alias:"start"
   End                DateTimeValue desc:"Time of last observation" alias:"end"
-  CpuAvgPct          IntCeil       desc:"Average CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctAvg]" alias:"cpu-avg"
-  CpuPeakPct         IntCeil       desc:"Peak CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctPeak]" alias:"cpu-peak"
-  RelativeCpuAvgPct  IntCeil       desc:"Average relative CPU utilization in percent (100% = all cores)" field:"computed[kRcpuPctAvg]" alias:"rcpu-avg"
-  RelativeCpuPeakPct IntCeil       desc:"Peak relative CPU utilization in percent (100% = all cores)" field:"computed[kRcpuPctPeak]" alias:"rcpu-peak"
-  MemAvgGB           IntCeil       desc:"Average main virtual memory utilization in GB" field:"computed[kCpuGBAvg]" alias:"mem-avg"
-  MemPeakGB          IntCeil       desc:"Peak main virtual memory utilization in GB" field:"computed[kCpuGBPeak]" alias:"mem-peak"
-  RelativeMemAvgPct  IntCeil       desc:"Average relative main virtual memory utilization in percent (100% = system RAM)" \
+  CpuAvgPct          F64Ceil       desc:"Average CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctAvg]" alias:"cpu-avg"
+  CpuPeakPct         F64Ceil       desc:"Peak CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctPeak]" alias:"cpu-peak"
+  RelativeCpuAvgPct  F64Ceil       desc:"Average relative CPU utilization in percent (100% = all cores)" field:"computed[kRcpuPctAvg]" alias:"rcpu-avg"
+  RelativeCpuPeakPct F64Ceil       desc:"Peak relative CPU utilization in percent (100% = all cores)" field:"computed[kRcpuPctPeak]" alias:"rcpu-peak"
+  MemAvgGB           F64Ceil       desc:"Average main virtual memory utilization in GB" field:"computed[kCpuGBAvg]" alias:"mem-avg"
+  MemPeakGB          F64Ceil       desc:"Peak main virtual memory utilization in GB" field:"computed[kCpuGBPeak]" alias:"mem-peak"
+  RelativeMemAvgPct  F64Ceil       desc:"Average relative main virtual memory utilization in percent (100% = system RAM)" \
                                    field:"computed[kRcpuGBAvg]" alias:"rmem-avg"
-  RelativeMemPeakPct IntCeil       desc:"Peak relative main virtual memory utilization in percent (100% = system RAM)" \
+  RelativeMemPeakPct F64Ceil       desc:"Peak relative main virtual memory utilization in percent (100% = system RAM)" \
                                    field:"computed[kRcpuGBPeak]" alias:"rmem-peak"
-  ResidentMemAvgGB   IntCeil       desc:"Average main resident memory utilization in GB" field:"computed[kRssAnonGBAvg]" alias:"res-avg"
-  ResidentMemPeakGB  IntCeil       desc:"Peak main resident memory utilization in GB" field:"computed[kRssAnonGBPeak]" alias:"res-peak"
+  ResidentMemAvgGB   F64Ceil       desc:"Average main resident memory utilization in GB" field:"computed[kRssAnonGBAvg]" alias:"res-avg"
+  ResidentMemPeakGB  F64Ceil       desc:"Peak main resident memory utilization in GB" field:"computed[kRssAnonGBPeak]" alias:"res-peak"
   RelativeResidentMemAvgPct \
-                     IntCeil       desc:"Average relative main resident memory utilization in percent (100% = all RAM)" \
+                     F64Ceil       desc:"Average relative main resident memory utilization in percent (100% = all RAM)" \
                                    field:"computed[kRrssAnonGBAvg]" alias:"rres-avg"
   RelativeResidentMemPeakPct \
-                     IntCeil       desc:"Peak relative main resident memory utilization in percent (100% = all RAM)" \
+                     F64Ceil       desc:"Peak relative main resident memory utilization in percent (100% = all RAM)" \
                                    field:"computed[kRrssAnonGBPeak]" alias:"rres-peak"
-  GpuAvgPct          IntCeil       desc:"Average GPU utilization in percent (100% = 1 card)" field:"computed[kGpuPctAvg]" alias:"gpu-avg"
-  GpuPeakPct         IntCeil       desc:"Peak GPU utilization in percent (100% = 1 card)" field:"computed[kGpuPctPeak]" alias:"gpu-peak"
-  RelativeGpuAvgPct  IntCeil       desc:"Average relative GPU utilization in percent (100% = all cards)" field:"computed[kRgpuPctAvg]" alias:"rgpu-avg"
-  RelativeGpuPeakPct IntCeil       desc:"Peak relative GPU utilization in percent (100% = all cards)" field:"computed[kRgpuPctPeak]" alias:"rgpu-peak"
+  GpuAvgPct          F64Ceil       desc:"Average GPU utilization in percent (100% = 1 card)" field:"computed[kGpuPctAvg]" alias:"gpu-avg"
+  GpuPeakPct         F64Ceil       desc:"Peak GPU utilization in percent (100% = 1 card)" field:"computed[kGpuPctPeak]" alias:"gpu-peak"
+  RelativeGpuAvgPct  F64Ceil       desc:"Average relative GPU utilization in percent (100% = all cards)" field:"computed[kRgpuPctAvg]" alias:"rgpu-avg"
+  RelativeGpuPeakPct F64Ceil       desc:"Peak relative GPU utilization in percent (100% = all cards)" field:"computed[kRgpuPctPeak]" alias:"rgpu-peak"
   OccupiedRelativeGpuAvgPct \
-                     IntCeil       desc:"Average relative GPU utilization in percent (100% = all cards used by job)" \
+                     F64Ceil       desc:"Average relative GPU utilization in percent (100% = all cards used by job)" \
                                    field:"computed[kSgpuPctAvg]" alias:"sgpu-avg"
   OccupiedRelativeGpuPeakPct \
-                     IntCeil       desc:"Peak relative GPU utilization in percent (100% = all cards used by job)" \
+                     F64Ceil       desc:"Peak relative GPU utilization in percent (100% = all cards used by job)" \
                                    field:"computed[kSgpuPctPeak]" alias:"sgpu-peak"
-  GpuMemAvgGB        IntCeil       desc:"Average resident GPU memory utilization in GB" field:"computed[kGpuGBAvg]" alias:"gpumem-avg"
-  GpuMemPeakGB       IntCeil       desc:"Peak resident GPU memory utilization in GB" field:"computed[kGpuGBPeak]" alias:"gpumem-peak"
+  GpuMemAvgGB        F64Ceil       desc:"Average resident GPU memory utilization in GB" field:"computed[kGpuGBAvg]" alias:"gpumem-avg"
+  GpuMemPeakGB       F64Ceil       desc:"Peak resident GPU memory utilization in GB" field:"computed[kGpuGBPeak]" alias:"gpumem-peak"
   RelativeGpuMemAvgPct \
-                     IntCeil       desc:"Average relative GPU resident memory utilization in percent (100% = all GPU RAM)" \
+                     F64Ceil       desc:"Average relative GPU resident memory utilization in percent (100% = all GPU RAM)" \
                                    field:"computed[kRgpuGBAvg]" alias:"rgpumem-avg"
   RelativeGpuMemPeakPct \
-                     IntCeil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)" \
+                     F64Ceil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)" \
                                    field:"computed[kRgpuGBPeak]" alias:"rgpumem-peak"
   OccupiedRelativeGpuMemAvgPct \
-                     IntCeil       desc:"Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
+                     F64Ceil       desc:"Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
                                    field:"computed[kSgpuGBAvg]" alias:"sgpumem-avg"
   OccupiedRelativeGpuMemPeakPct \
-                     IntCeil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
+                     F64Ceil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
                                    field:"computed[kSgpuGBPeak]" alias:"sgpumem-peak"
   Gpus               gpuset.GpuSet desc:"GPU device numbers used by the job, 'none' if none or 'unknown' in error states" alias:"gpus"
   GpuFail            int           desc:"Flag indicating GPU status (0=Ok, 1=Failing)" alias:"gpufail"
@@ -93,13 +87,13 @@ FIELDS *jobSummary
   Reservation        Ustr          desc:"Name of job's reservation (Slurm)" indirect:"sacctInfo"
   Partition          Ustr          desc:"Partition of job (Slurm)" indirect:"sacctInfo"
   RequestedGpus      Ustr          desc:"Names of requested GPUs (Slurm AllocTRES)" indirect:"sacctInfo" field:"ReqGPUS"
-  DiskReadAvgGB      int           desc:"Average disk read activity in GB/s (Slurm AveDiskRead)" indirect:"sacctInfo" field:"AveDiskRead"
-  DiskWriteAvgGB     int           desc:"Average disk write activity in GB/s (Slurm AveDiskWrite)" indirect:"sacctInfo" field:"AveDiskWrite"
-  RequestedCpus      int           desc:"Number of requested CPUs (Slurm)" indirect:"sacctInfo" field:"ReqCPUS"
-  RequestedMemGB     int           desc:"Requested memory (Slurm)" indirect:"sacctInfo" field:"ReqMem"
-  RequestedNodes     int           desc:"Number of requested nodes (Slurm)" indirect:"sacctInfo" field:"ReqNodes"
-  TimeLimit          DurationValue desc:"Elapsed time limit (Slurm)" indirect:"sacctInfo" field:"TimelimitRaw"
-  ExitCode           int           desc:"Exit code of job (Slurm)" indirect:"sacctInfo"
+  DiskReadAvgGB      uint32        desc:"Average disk read activity in GB/s (Slurm AveDiskRead)" indirect:"sacctInfo" field:"AveDiskRead"
+  DiskWriteAvgGB     uint32        desc:"Average disk write activity in GB/s (Slurm AveDiskWrite)" indirect:"sacctInfo" field:"AveDiskWrite"
+  RequestedCpus      uint32        desc:"Number of requested CPUs (Slurm)" indirect:"sacctInfo" field:"ReqCPUS"
+  RequestedMemGB     uint32        desc:"Requested memory (Slurm)" indirect:"sacctInfo" field:"ReqMem"
+  RequestedNodes     uint32        desc:"Number of requested nodes (Slurm)" indirect:"sacctInfo" field:"ReqNodes"
+  TimeLimit          U32Duration   desc:"Elapsed time limit (Slurm)" indirect:"sacctInfo" field:"TimelimitRaw"
+  ExitCode           uint8         desc:"Exit code of job (Slurm)" indirect:"sacctInfo"
 
 SUMMARY JobsCommand
 

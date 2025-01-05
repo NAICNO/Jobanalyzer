@@ -23,12 +23,7 @@ import (
 
 package parse
 
-import (
-	"go-utils/gpuset"
-	"sonalyze/sonarlog"
-    . "sonalyze/common"
-	. "sonalyze/table"
-)
+import "sonalyze/sonarlog"
 
 %%
 
@@ -36,33 +31,35 @@ FIELDS sonarlog.Sample
 
  # TODO: IMPROVEME: The use of utc for "localtime" is a bug that comes from the Rust code.
 
- Version    Ustr             desc:"Semver string (MAJOR.MINOR.BUGFIX)" alias:"version,v"
- Timestamp  DateTimeValue    desc:"Timestamp of record " alias:"localtime"
- time       IsoDateTimeValue desc:"Timestamp of record" field:"Timestamp"
- Host       Ustr             desc:"Host name (FQDN)" alias:"host"
- Cores      int              desc:"Total number of cores (including hyperthreads)" alias:"cores"
- MemtotalKB int              desc:"Installed main memory"
- memtotal   IntDiv1M         desc:"Installed main memory (GB)" field:"MemtotalKB"
- User       Ustr             desc:"Username of process owner" alias:"user"
- Pid        int              desc:"Process ID" alias:"pid"
- Ppid       int              desc:"Process parent ID" alias:"ppid"
- Job        int              desc:"Job ID" alias:"job"
- Cmd        Ustr             desc:"Command name" alias:"cmd"
- CpuPct     float            desc:"cpu% reading (CONSULT DOCUMENTATION)" alias:"cpu_pct,cpu%"
- CpuKB      int              desc:"Virtual memory reading" alias:"cpukib"
- mem_gb     IntDiv1M         desc:"Virtual memory reading" field:"CpuKB"
- RssAnonKB  int              desc:"RssAnon reading"
- res_gb     IntDiv1M         desc:"RssAnon reading" field:"RssAnonKB"
- Gpus       gpuset.GpuSet    desc:"GPU set (`none`,`unknown`,list)" alias:"gpus"
- GpuPct     float            desc:"GPU utilization reading" alias:"gpu_pct,gpu%"
- GpuMemPct  float            desc:"GPU memory percentage reading" alias:"gpumem_pct,gpumem%"
- GpuKB      int              desc:"GPU memory utilization reading" alias:"gpukib"
- gpumem_gb  IntDiv1M         desc:"GPU memory utilization reading" field:"GpuKB"
- GpuFail    int              desc:"GPU status flag (0=ok, 1=error state)" alias:"gpu_status,gpufail"
- CpuTimeSec int              desc:"CPU time since last reading (seconds, CONSULT DOCUMENTATION)" alias:"cputime_sec"
- Rolledup   int              desc:"Number of rolled-up processes, minus 1" alias:"rolledup"
- Flags      int              desc:"Bit vector of flags, UTSL"
- CpuUtilPct float            desc:"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)" alias:"cpu_util_pct"
+ Version    Ustr                desc:"Semver string (MAJOR.MINOR.BUGFIX)" alias:"version,v"
+ Timestamp  DateTimeValue       desc:"Timestamp of record " alias:"localtime"
+ time       IsoDateTimeValue    desc:"Timestamp of record" field:"Timestamp"
+ Host       Ustr                desc:"Host name (FQDN)" alias:"host"
+ Cores      uint32              desc:"Total number of cores (including hyperthreads)" alias:"cores"
+ MemtotalKB uint64              desc:"Installed main memory"
+ memtotal   U64Div1M            desc:"Installed main memory (GB)" field:"MemtotalKB"
+ User       Ustr                desc:"Username of process owner" alias:"user"
+ Pid        uint32              desc:"Process ID" alias:"pid"
+ Ppid       uint32              desc:"Process parent ID" alias:"ppid"
+ Job        uint32              desc:"Job ID" alias:"job"
+ Cmd        Ustr                desc:"Command name" alias:"cmd"
+ CpuPct     float32             desc:"cpu% reading (CONSULT DOCUMENTATION)" alias:"cpu_pct,cpu%"
+ CpuKB      uint64              desc:"Virtual memory reading" alias:"cpukib"
+ mem_gb     U64Div1M            desc:"Virtual memory reading" field:"CpuKB"
+ RssAnonKB  uint64              desc:"RssAnon reading"
+ res_gb     U64Div1M            desc:"RssAnon reading" field:"RssAnonKB"
+ Gpus       gpuset.GpuSet       desc:"GPU set (`none`,`unknown`,list)" alias:"gpus"
+ GpuPct     float32             desc:"GPU utilization reading" alias:"gpu_pct,gpu%"
+ GpuMemPct  float32             desc:"GPU memory percentage reading" alias:"gpumem_pct,gpumem%"
+ GpuKB      uint64              desc:"GPU memory utilization reading" alias:"gpukib"
+ gpumem_gb  U64Div1M            desc:"GPU memory utilization reading" field:"GpuKB"
+ GpuFail    uint8               desc:"GPU status flag (0=ok, 1=error state)" alias:"gpu_status,gpufail"
+ CpuTimeSec uint64              desc:"CPU time since last reading (seconds, CONSULT DOCUMENTATION)" \
+                                alias:"cputime_sec"
+ Rolledup   uint32              desc:"Number of rolled-up processes, minus 1" alias:"rolledup"
+ Flags      uint8               desc:"Bit vector of flags, UTSL"
+ CpuUtilPct float32             desc:"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)" \
+                                alias:"cpu_util_pct"
 
 SUMMARY ParseCommand
 

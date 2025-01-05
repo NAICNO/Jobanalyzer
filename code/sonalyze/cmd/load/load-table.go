@@ -2,122 +2,123 @@
 
 package load
 
+import "go-utils/gpuset"
+
 import (
-	"go-utils/gpuset"
+	"cmp"
+	"fmt"
+	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-import (
-	"fmt"
-	"io"
-)
-
 var (
+	_ = cmp.Compare(0, 0)
 	_ fmt.Formatter
 	_ = io.SeekStart
+	_ = UstrEmpty
 )
 
 // MT: Constant after initialization; immutable
 var loadFormatters = map[string]Formatter[*ReportRecord]{
 	"Now": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatDateTimeValue(DateTimeValue(d.Now), ctx)
+			return FormatDateTimeValue(d.Now, ctx)
 		},
 		Help: "(DateTimeValue) The current time",
 	},
 	"DateTime": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatDateTimeValue(DateTimeValue(d.DateTime), ctx)
+			return FormatDateTimeValue(d.DateTime, ctx)
 		},
 		Help: "(DateTimeValue) The starting date and time of the aggregation window",
 	},
 	"Date": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatDateValue(DateValue(d.Date), ctx)
+			return FormatDateValue(d.Date, ctx)
 		},
 		Help: "(DateValue) The starting date of the aggregation window",
 	},
 	"Time": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatTimeValue(TimeValue(d.Time), ctx)
+			return FormatTimeValue(d.Time, ctx)
 		},
 		Help: "(TimeValue) The startint time of the aggregation window",
 	},
 	"Cpu": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatInt(int(d.Cpu), ctx)
+			return FormatInt(d.Cpu, ctx)
 		},
 		Help: "(int) Average CPU utilization in percent in the aggregation window (100% = 1 core)",
 	},
 	"RelativeCpu": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatInt(int(d.RelativeCpu), ctx)
+			return FormatInt(d.RelativeCpu, ctx)
 		},
 		Help:        "(int) Average relative CPU utilization in percent in the aggregation window (100% = all cores)",
 		NeedsConfig: true,
 	},
 	"VirtualGB": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatInt(int(d.VirtualGB), ctx)
+			return FormatInt(d.VirtualGB, ctx)
 		},
 		Help: "(int) Average virtual memory utilization in GiB in the aggregation window",
 	},
 	"RelativeVirtualMem": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatInt(int(d.RelativeVirtualMem), ctx)
+			return FormatInt(d.RelativeVirtualMem, ctx)
 		},
 		Help:        "(int) Relative virtual memory utilization in GiB in the aggregation window (100% = system RAM)",
 		NeedsConfig: true,
 	},
 	"ResidentGB": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatInt(int(d.ResidentGB), ctx)
+			return FormatInt(d.ResidentGB, ctx)
 		},
 		Help: "(int) Average resident memory utilization in GiB in the aggregation window",
 	},
 	"RelativeResidentMem": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatInt(int(d.RelativeResidentMem), ctx)
+			return FormatInt(d.RelativeResidentMem, ctx)
 		},
 		Help:        "(int) Relative resident memory utilization in GiB in the aggregation window (100% = system RAM)",
 		NeedsConfig: true,
 	},
 	"Gpu": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatInt(int(d.Gpu), ctx)
+			return FormatInt(d.Gpu, ctx)
 		},
 		Help: "(int) Average GPU utilization in percent in the aggregation window (100% = 1 card)",
 	},
 	"RelativeGpu": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatInt(int(d.RelativeGpu), ctx)
+			return FormatInt(d.RelativeGpu, ctx)
 		},
 		Help:        "(int) Average relative GPU utilization in percent in the aggregation window (100% = all cards)",
 		NeedsConfig: true,
 	},
 	"GpuGB": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatInt(int(d.GpuGB), ctx)
+			return FormatInt(d.GpuGB, ctx)
 		},
 		Help: "(int) Average gpu memory utilization in GiB in the aggregation window",
 	},
 	"RelativeGpuMem": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatInt(int(d.RelativeGpuMem), ctx)
+			return FormatInt(d.RelativeGpuMem, ctx)
 		},
 		Help:        "(int) Average relative gpu memory utilization in GiB in the aggregation window (100% = all GPU RAM)",
 		NeedsConfig: true,
 	},
 	"Gpus": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatGpuSet(gpuset.GpuSet(d.Gpus), ctx)
+			return FormatGpuSet(d.Gpus, ctx)
 		},
 		Help: "(GpuSet) GPU device numbers used by the job, 'none' if none or 'unknown' in error states",
 	},
 	"Hostname": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.Hostname), ctx)
+			return FormatUstr(d.Hostname, ctx)
 		},
 		Help: "(string) Combined host names of jobs active in the aggregation window",
 	},
