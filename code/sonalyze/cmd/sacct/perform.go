@@ -76,19 +76,17 @@ func (sc *SacctCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 
 	switch {
 	case sc.Array:
-		sc.sacctArrayJobs(stdout, arrays)
+		return sc.sacctArrayJobs(stdout, arrays)
 	case sc.Het:
 		panic("Het job output not implemented")
 	case sc.Regular:
-		sc.sacctRegularJobs(stdout, regular)
+		return sc.sacctRegularJobs(stdout, regular)
 	default:
 		panic("Unexpected")
 	}
-
-	return nil
 }
 
-func (sc *SacctCommand) sacctRegularJobs(stdout io.Writer, regularJobs []*slurmlog.SlurmJob) {
+func (sc *SacctCommand) sacctRegularJobs(stdout io.Writer, regularJobs []*slurmlog.SlurmJob) error {
 
 	// Compute auxiliary fields we may need during printing
 
@@ -140,10 +138,10 @@ func (sc *SacctCommand) sacctRegularJobs(stdout io.Writer, regularJobs []*slurml
 		Log.Infof("After final filtering: %d jobs.", len(regular))
 	}
 
-	sc.printRegularJobs(stdout, regular)
+	return sc.printRegularJobs(stdout, regular)
 }
 
-func (sc *SacctCommand) sacctArrayJobs(stdout io.Writer, arrays map[uint32][]*slurmlog.SlurmJob) {
+func (sc *SacctCommand) sacctArrayJobs(stdout io.Writer, arrays map[uint32][]*slurmlog.SlurmJob) error {
 	// For the array jobs it could look like we get a number of "elements" that corresponds to the
 	// number of concurrent array jobs?  But that could really be a result of incomplete input data
 	// at this point.
@@ -175,4 +173,6 @@ func (sc *SacctCommand) sacctArrayJobs(stdout io.Writer, arrays map[uint32][]*sl
 			}
 		*/
 	}
+
+	return nil
 }

@@ -3,189 +3,189 @@
 package sacct
 
 import (
+	"cmp"
+	"fmt"
+	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-import (
-	"fmt"
-	"io"
-)
-
 var (
+	_ = cmp.Compare(0, 0)
 	_ fmt.Formatter
 	_ = io.SeekStart
+	_ = UstrEmpty
 )
 
 // MT: Constant after initialization; immutable
 var sacctFormatters = map[string]Formatter[*SacctRegular]{
 	"Start": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatIsoDateTimeOrUnknown(IsoDateTimeOrUnknown(d.Start), ctx)
+			return FormatIsoDateTimeOrUnknown(d.Start, ctx)
 		},
 		Help: "(IsoDateTimeValue) Start time of job, if any",
 	},
 	"End": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatIsoDateTimeOrUnknown(IsoDateTimeOrUnknown(d.End), ctx)
+			return FormatIsoDateTimeOrUnknown(d.End, ctx)
 		},
 		Help: "(IsoDateTimeValue) End time of job",
 	},
 	"Submit": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatIsoDateTimeOrUnknown(IsoDateTimeOrUnknown(d.Submit), ctx)
+			return FormatIsoDateTimeOrUnknown(d.Submit, ctx)
 		},
 		Help: "(IsoDateTimeValue) Submit time of job",
 	},
 	"RequestedCPU": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.RequestedCPU), ctx)
+			return FormatInt(d.RequestedCPU, ctx)
 		},
 		Help: "(int) Requested CPU time (elapsed * cores * nodes)",
 	},
 	"UsedCPU": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.UsedCPU), ctx)
+			return FormatInt(d.UsedCPU, ctx)
 		},
 		Help: "(int) Used CPU time",
 	},
 	"RelativeCPU": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.RelativeCPU), ctx)
+			return FormatInt(d.RelativeCPU, ctx)
 		},
 		Help:        "(int) Percent cpu utilization: UsedCPU/RequestedCPU*100",
 		NeedsConfig: true,
 	},
 	"RelativeResidentMem": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.RelativeResidentMem), ctx)
+			return FormatInt(d.RelativeResidentMem, ctx)
 		},
 		Help:        "(int) Percent memory utilization: MaxRSS/ReqMem*100",
 		NeedsConfig: true,
 	},
 	"User": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.User), ctx)
+			return FormatUstr(d.User, ctx)
 		},
 		Help: "(string) Job's user",
 	},
 	"JobName": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatUstrMax30(UstrMax30(d.JobName), ctx)
+			return FormatUstrMax30(d.JobName, ctx)
 		},
 		Help: "(string) Job name",
 	},
 	"State": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.State), ctx)
+			return FormatUstr(d.State, ctx)
 		},
 		Help: "(string) Job completion state",
 	},
 	"Account": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.Account), ctx)
+			return FormatUstr(d.Account, ctx)
 		},
 		Help: "(string) Job's account",
 	},
 	"Reservation": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.Reservation), ctx)
+			return FormatUstr(d.Reservation, ctx)
 		},
 		Help: "(string) Job's reservation, if any",
 	},
 	"Layout": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.Layout), ctx)
+			return FormatUstr(d.Layout, ctx)
 		},
 		Help: "(string) Job's layout, if any",
 	},
 	"NodeList": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.NodeList), ctx)
+			return FormatUstr(d.NodeList, ctx)
 		},
 		Help: "(string) Job's node list",
 	},
 	"JobID": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.JobID), ctx)
+			return FormatInt(d.JobID, ctx)
 		},
 		Help: "(int) Primary Job ID",
 	},
 	"MaxRSS": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.MaxRSS), ctx)
+			return FormatInt(d.MaxRSS, ctx)
 		},
 		Help: "(int) Max resident set size (RSS) across all steps (GB)",
 	},
 	"ReqMem": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.ReqMem), ctx)
+			return FormatInt(d.ReqMem, ctx)
 		},
 		Help: "(int) Raw requested memory (GB)",
 	},
 	"ReqCPUS": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.ReqCPUS), ctx)
+			return FormatInt(d.ReqCPUS, ctx)
 		},
 		Help: "(int) Raw requested CPU cores",
 	},
 	"ReqGPUS": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.ReqGPUS), ctx)
+			return FormatUstr(d.ReqGPUS, ctx)
 		},
 		Help: "(string) Raw requested GPU cards",
 	},
 	"ReqNodes": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.ReqNodes), ctx)
+			return FormatInt(d.ReqNodes, ctx)
 		},
 		Help: "(int) Raw requested system nodes",
 	},
 	"Elapsed": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.Elapsed), ctx)
+			return FormatInt(d.Elapsed, ctx)
 		},
 		Help: "(int) Time elapsed",
 	},
 	"Suspended": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.Suspended), ctx)
+			return FormatInt(d.Suspended, ctx)
 		},
 		Help: "(int) Time suspended",
 	},
 	"Timelimit": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.Timelimit), ctx)
+			return FormatInt(d.Timelimit, ctx)
 		},
 		Help: "(int) Time limit in seconds",
 	},
 	"ExitCode": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.ExitCode), ctx)
+			return FormatInt(d.ExitCode, ctx)
 		},
 		Help: "(int) Exit code",
 	},
 	"Wait": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.Wait), ctx)
+			return FormatInt(d.Wait, ctx)
 		},
 		Help: "(int) Wait time of job (start - submit), in seconds",
 	},
 	"Partition": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.Partition), ctx)
+			return FormatUstr(d.Partition, ctx)
 		},
 		Help: "(string) Requested partition",
 	},
 	"ArrayJobID": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.ArrayJobID), ctx)
+			return FormatInt(d.ArrayJobID, ctx)
 		},
 		Help: "(int) ID of the overarching array job",
 	},
 	"ArrayIndex": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt(int(d.ArrayIndex), ctx)
+			return FormatInt(d.ArrayIndex, ctx)
 		},
 		Help: "(int) Index of this job within an array job",
 	},

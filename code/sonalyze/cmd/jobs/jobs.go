@@ -1,7 +1,6 @@
 package jobs
 
 import (
-	_ "embed"
 	"errors"
 
 	. "sonalyze/cmd"

@@ -1,9 +1,4 @@
 // Produce a per-node timeline of gpu data.
-//
-// See summary.txt for info.
-//
-// TODO (coming with computed queries):
-//  - selection by every field ("FanPct > 50", "PowerDrawW > 150")
 
 package gpus
 
@@ -27,11 +22,6 @@ import (
 
 package gpus
 
-import (
-	. "sonalyze/common"
-    . "sonalyze/table"
-)
-
 %%
 
 FIELDS *ReportLine
@@ -41,7 +31,7 @@ FIELDS *ReportLine
  Gpu         int           desc:"Card index on the host"
  FanPct      int           desc:"Fan speed in percent of max"
  PerfMode    int           desc:"Numeric performance mode"
- MemUsedKB   int           desc:"Amount of memory in use"
+ MemUsedKB   int64         desc:"Amount of memory in use"
  TempC       int           desc:"Card temperature in degrees C"
  PowerDrawW  int           desc:"Current power draw in Watts"
  PowerLimitW int           desc:"Current power limit in Watts"

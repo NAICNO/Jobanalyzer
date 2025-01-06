@@ -2,74 +2,76 @@
 
 package configs
 
+import "go-utils/config"
+
 import (
-	"go-utils/config"
+	"cmp"
+	"fmt"
+	"io"
+	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-import (
-	"fmt"
-	"io"
-)
-
 var (
+	_ = cmp.Compare(0, 0)
 	_ fmt.Formatter
 	_ = io.SeekStart
+	_ = UstrEmpty
 )
 
 // MT: Constant after initialization; immutable
 var configFormatters = map[string]Formatter[*config.NodeConfigRecord]{
 	"Timestamp": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
-			return FormatString(string(d.Timestamp), ctx)
+			return FormatString(d.Timestamp, ctx)
 		},
 		Help: "(string) Full ISO timestamp of when the reading was taken",
 	},
 	"Hostname": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
-			return FormatString(string(d.Hostname), ctx)
+			return FormatString(d.Hostname, ctx)
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
 	"Description": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
-			return FormatString(string(d.Description), ctx)
+			return FormatString(d.Description, ctx)
 		},
 		Help: "(string) End-user description, not parseable",
 	},
 	"CrossNodeJobs": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
-			return FormatBool(bool(d.CrossNodeJobs), ctx)
+			return FormatBool(d.CrossNodeJobs, ctx)
 		},
 		Help: "(bool) True if jobs on this node can be multi-node",
 	},
 	"CpuCores": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
-			return FormatInt(int(d.CpuCores), ctx)
+			return FormatInt(d.CpuCores, ctx)
 		},
 		Help: "(int) Total number of cores x threads",
 	},
 	"MemGB": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
-			return FormatInt(int(d.MemGB), ctx)
+			return FormatInt(d.MemGB, ctx)
 		},
 		Help: "(int) GB of installed main RAM",
 	},
 	"GpuCards": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
-			return FormatInt(int(d.GpuCards), ctx)
+			return FormatInt(d.GpuCards, ctx)
 		},
 		Help: "(int) Number of installed cards",
 	},
 	"GpuMemGB": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
-			return FormatInt(int(d.GpuMemGB), ctx)
+			return FormatInt(d.GpuMemGB, ctx)
 		},
 		Help: "(int) Total GPU memory across all cards",
 	},
 	"GpuMemPct": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
-			return FormatBool(bool(d.GpuMemPct), ctx)
+			return FormatBool(d.GpuMemPct, ctx)
 		},
 		Help: "(bool) True if GPUs report accurate memory usage in percent",
 	},

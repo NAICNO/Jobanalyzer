@@ -3,85 +3,85 @@
 package gpus
 
 import (
+	"cmp"
+	"fmt"
+	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-import (
-	"fmt"
-	"io"
-)
-
 var (
+	_ = cmp.Compare(0, 0)
 	_ fmt.Formatter
 	_ = io.SeekStart
+	_ = UstrEmpty
 )
 
 // MT: Constant after initialization; immutable
 var gpuFormatters = map[string]Formatter[*ReportLine]{
 	"Timestamp": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatDateTimeValue(DateTimeValue(d.Timestamp), ctx)
+			return FormatDateTimeValue(d.Timestamp, ctx)
 		},
 		Help: "(DateTimeValue) Timestamp of when the reading was taken",
 	},
 	"Hostname": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.Hostname), ctx)
+			return FormatUstr(d.Hostname, ctx)
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
 	"Gpu": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt(int(d.Gpu), ctx)
+			return FormatInt(d.Gpu, ctx)
 		},
 		Help: "(int) Card index on the host",
 	},
 	"FanPct": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt(int(d.FanPct), ctx)
+			return FormatInt(d.FanPct, ctx)
 		},
 		Help: "(int) Fan speed in percent of max",
 	},
 	"PerfMode": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt(int(d.PerfMode), ctx)
+			return FormatInt(d.PerfMode, ctx)
 		},
 		Help: "(int) Numeric performance mode",
 	},
 	"MemUsedKB": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt(int(d.MemUsedKB), ctx)
+			return FormatInt64(d.MemUsedKB, ctx)
 		},
-		Help: "(int) Amount of memory in use",
+		Help: "(int64) Amount of memory in use",
 	},
 	"TempC": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt(int(d.TempC), ctx)
+			return FormatInt(d.TempC, ctx)
 		},
 		Help: "(int) Card temperature in degrees C",
 	},
 	"PowerDrawW": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt(int(d.PowerDrawW), ctx)
+			return FormatInt(d.PowerDrawW, ctx)
 		},
 		Help: "(int) Current power draw in Watts",
 	},
 	"PowerLimitW": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt(int(d.PowerLimitW), ctx)
+			return FormatInt(d.PowerLimitW, ctx)
 		},
 		Help: "(int) Current power limit in Watts",
 	},
 	"CeClockMHz": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt(int(d.CeClockMHz), ctx)
+			return FormatInt(d.CeClockMHz, ctx)
 		},
 		Help: "(int) Current compute element clock",
 	},
 	"MemClockMHz": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt(int(d.MemClockMHz), ctx)
+			return FormatInt(d.MemClockMHz, ctx)
 		},
 		Help: "(int) Current memory clock",
 	},

@@ -232,11 +232,6 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 
 package profile
 
-import (
-	. "sonalyze/common"
-	. "sonalyze/table"
-)
-
 %%
 
 FIELDS *fixedLine

@@ -16,11 +16,7 @@ import (
 
 package load
 
-import (
-    "go-utils/gpuset"
-	. "sonalyze/common"
-	. "sonalyze/table"
-)
+import "go-utils/gpuset"
 
 %%
 

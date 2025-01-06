@@ -3,255 +3,254 @@
 package jobs
 
 import (
-	"go-utils/gpuset"
+	"cmp"
+	"fmt"
+	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-import (
-	"fmt"
-	"io"
-)
-
 var (
+	_ = cmp.Compare(0, 0)
 	_ fmt.Formatter
 	_ = io.SeekStart
+	_ = UstrEmpty
 )
 
 // MT: Constant after initialization; immutable
 var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"JobAndMark": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatString(string(d.JobAndMark), ctx)
+			return FormatString(d.JobAndMark, ctx)
 		},
 		Help: "(string) Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window",
 	},
 	"Job": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatInt(int(d.JobId), ctx)
+			return FormatUint32(d.JobId, ctx)
 		},
-		Help: "(int) Job ID",
+		Help: "(uint32) Job ID",
 	},
 	"User": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatUstr(Ustr(d.User), ctx)
+			return FormatUstr(d.User, ctx)
 		},
 		Help: "(string) Name of user running the job",
 	},
 	"Duration": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatDurationValue(DurationValue(d.Duration), ctx)
+			return FormatDurationValue(d.Duration, ctx)
 		},
 		Help: "(DurationValue) Time of last observation minus time of first",
 	},
 	"Start": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatDateTimeValue(DateTimeValue(d.Start), ctx)
+			return FormatDateTimeValue(d.Start, ctx)
 		},
 		Help: "(DateTimeValue) Time of first observation",
 	},
 	"End": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatDateTimeValue(DateTimeValue(d.End), ctx)
+			return FormatDateTimeValue(d.End, ctx)
 		},
 		Help: "(DateTimeValue) Time of last observation",
 	},
 	"CpuAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kCpuPctAvg]), ctx)
+			return FormatF64Ceil(d.computed[kCpuPctAvg], ctx)
 		},
 		Help: "(int) Average CPU utilization in percent (100% = 1 core)",
 	},
 	"CpuPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kCpuPctPeak]), ctx)
+			return FormatF64Ceil(d.computed[kCpuPctPeak], ctx)
 		},
 		Help: "(int) Peak CPU utilization in percent (100% = 1 core)",
 	},
 	"RelativeCpuAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRcpuPctAvg]), ctx)
+			return FormatF64Ceil(d.computed[kRcpuPctAvg], ctx)
 		},
 		Help: "(int) Average relative CPU utilization in percent (100% = all cores)",
 	},
 	"RelativeCpuPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRcpuPctPeak]), ctx)
+			return FormatF64Ceil(d.computed[kRcpuPctPeak], ctx)
 		},
 		Help: "(int) Peak relative CPU utilization in percent (100% = all cores)",
 	},
 	"MemAvgGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kCpuGBAvg]), ctx)
+			return FormatF64Ceil(d.computed[kCpuGBAvg], ctx)
 		},
 		Help: "(int) Average main virtual memory utilization in GB",
 	},
 	"MemPeakGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kCpuGBPeak]), ctx)
+			return FormatF64Ceil(d.computed[kCpuGBPeak], ctx)
 		},
 		Help: "(int) Peak main virtual memory utilization in GB",
 	},
 	"RelativeMemAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRcpuGBAvg]), ctx)
+			return FormatF64Ceil(d.computed[kRcpuGBAvg], ctx)
 		},
 		Help: "(int) Average relative main virtual memory utilization in percent (100% = system RAM)",
 	},
 	"RelativeMemPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRcpuGBPeak]), ctx)
+			return FormatF64Ceil(d.computed[kRcpuGBPeak], ctx)
 		},
 		Help: "(int) Peak relative main virtual memory utilization in percent (100% = system RAM)",
 	},
 	"ResidentMemAvgGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRssAnonGBAvg]), ctx)
+			return FormatF64Ceil(d.computed[kRssAnonGBAvg], ctx)
 		},
 		Help: "(int) Average main resident memory utilization in GB",
 	},
 	"ResidentMemPeakGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRssAnonGBPeak]), ctx)
+			return FormatF64Ceil(d.computed[kRssAnonGBPeak], ctx)
 		},
 		Help: "(int) Peak main resident memory utilization in GB",
 	},
 	"RelativeResidentMemAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRrssAnonGBAvg]), ctx)
+			return FormatF64Ceil(d.computed[kRrssAnonGBAvg], ctx)
 		},
 		Help: "(int) Average relative main resident memory utilization in percent (100% = all RAM)",
 	},
 	"RelativeResidentMemPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRrssAnonGBPeak]), ctx)
+			return FormatF64Ceil(d.computed[kRrssAnonGBPeak], ctx)
 		},
 		Help: "(int) Peak relative main resident memory utilization in percent (100% = all RAM)",
 	},
 	"GpuAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kGpuPctAvg]), ctx)
+			return FormatF64Ceil(d.computed[kGpuPctAvg], ctx)
 		},
 		Help: "(int) Average GPU utilization in percent (100% = 1 card)",
 	},
 	"GpuPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kGpuPctPeak]), ctx)
+			return FormatF64Ceil(d.computed[kGpuPctPeak], ctx)
 		},
 		Help: "(int) Peak GPU utilization in percent (100% = 1 card)",
 	},
 	"RelativeGpuAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRgpuPctAvg]), ctx)
+			return FormatF64Ceil(d.computed[kRgpuPctAvg], ctx)
 		},
 		Help: "(int) Average relative GPU utilization in percent (100% = all cards)",
 	},
 	"RelativeGpuPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRgpuPctPeak]), ctx)
+			return FormatF64Ceil(d.computed[kRgpuPctPeak], ctx)
 		},
 		Help: "(int) Peak relative GPU utilization in percent (100% = all cards)",
 	},
 	"OccupiedRelativeGpuAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kSgpuPctAvg]), ctx)
+			return FormatF64Ceil(d.computed[kSgpuPctAvg], ctx)
 		},
 		Help: "(int) Average relative GPU utilization in percent (100% = all cards used by job)",
 	},
 	"OccupiedRelativeGpuPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kSgpuPctPeak]), ctx)
+			return FormatF64Ceil(d.computed[kSgpuPctPeak], ctx)
 		},
 		Help: "(int) Peak relative GPU utilization in percent (100% = all cards used by job)",
 	},
 	"GpuMemAvgGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kGpuGBAvg]), ctx)
+			return FormatF64Ceil(d.computed[kGpuGBAvg], ctx)
 		},
 		Help: "(int) Average resident GPU memory utilization in GB",
 	},
 	"GpuMemPeakGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kGpuGBPeak]), ctx)
+			return FormatF64Ceil(d.computed[kGpuGBPeak], ctx)
 		},
 		Help: "(int) Peak resident GPU memory utilization in GB",
 	},
 	"RelativeGpuMemAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRgpuGBAvg]), ctx)
+			return FormatF64Ceil(d.computed[kRgpuGBAvg], ctx)
 		},
 		Help: "(int) Average relative GPU resident memory utilization in percent (100% = all GPU RAM)",
 	},
 	"RelativeGpuMemPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kRgpuGBPeak]), ctx)
+			return FormatF64Ceil(d.computed[kRgpuGBPeak], ctx)
 		},
 		Help: "(int) Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)",
 	},
 	"OccupiedRelativeGpuMemAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kSgpuGBAvg]), ctx)
+			return FormatF64Ceil(d.computed[kSgpuGBAvg], ctx)
 		},
 		Help: "(int) Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
 	},
 	"OccupiedRelativeGpuMemPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatIntCeil(IntCeil(d.computed[kSgpuGBPeak]), ctx)
+			return FormatF64Ceil(d.computed[kSgpuGBPeak], ctx)
 		},
 		Help: "(int) Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
 	},
 	"Gpus": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatGpuSet(gpuset.GpuSet(d.Gpus), ctx)
+			return FormatGpuSet(d.Gpus, ctx)
 		},
 		Help: "(GpuSet) GPU device numbers used by the job, 'none' if none or 'unknown' in error states",
 	},
 	"GpuFail": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatInt(int(d.GpuFail), ctx)
+			return FormatInt(d.GpuFail, ctx)
 		},
 		Help: "(int) Flag indicating GPU status (0=Ok, 1=Failing)",
 	},
 	"Cmd": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatString(string(d.Cmd), ctx)
+			return FormatString(d.Cmd, ctx)
 		},
 		Help: "(string) The commands invoking the processes of the job",
 	},
 	"Host": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatString(string(d.Host), ctx)
+			return FormatString(d.Host, ctx)
 		},
 		Help: "(string) List of the host name(s) running the job (first elements of FQDNs, compressed)",
 	},
 	"Now": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatDateTimeValue(DateTimeValue(d.Now), ctx)
+			return FormatDateTimeValue(d.Now, ctx)
 		},
 		Help: "(DateTimeValue) The current time",
 	},
 	"Classification": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatInt(int(d.Classification), ctx)
+			return FormatInt(d.Classification, ctx)
 		},
 		Help: "(int) Bit vector of live-at-start (2) and live-at-end (1) flags",
 	},
 	"CpuTime": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatDurationValue(DurationValue(d.CpuTime), ctx)
+			return FormatDurationValue(d.CpuTime, ctx)
 		},
 		Help: "(DurationValue) Total CPU time of the job across all cores",
 	},
 	"GpuTime": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatDurationValue(DurationValue(d.GpuTime), ctx)
+			return FormatDurationValue(d.GpuTime, ctx)
 		},
 		Help: "(DurationValue) Total GPU time of the job across all cards",
 	},
 	"Submit": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatDateTimeValue(DateTimeValue(d.sacctInfo.Submit), ctx)
+				return FormatDateTimeValue(d.sacctInfo.Submit, ctx)
 			}
 			return "?"
 		},
@@ -260,7 +259,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"JobName": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatUstr(Ustr(d.sacctInfo.JobName), ctx)
+				return FormatUstr(d.sacctInfo.JobName, ctx)
 			}
 			return "?"
 		},
@@ -269,7 +268,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"State": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatUstr(Ustr(d.sacctInfo.State), ctx)
+				return FormatUstr(d.sacctInfo.State, ctx)
 			}
 			return "?"
 		},
@@ -278,7 +277,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"Account": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatUstr(Ustr(d.sacctInfo.Account), ctx)
+				return FormatUstr(d.sacctInfo.Account, ctx)
 			}
 			return "?"
 		},
@@ -287,7 +286,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"Layout": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatUstr(Ustr(d.sacctInfo.Layout), ctx)
+				return FormatUstr(d.sacctInfo.Layout, ctx)
 			}
 			return "?"
 		},
@@ -296,7 +295,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"Reservation": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatUstr(Ustr(d.sacctInfo.Reservation), ctx)
+				return FormatUstr(d.sacctInfo.Reservation, ctx)
 			}
 			return "?"
 		},
@@ -305,7 +304,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"Partition": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatUstr(Ustr(d.sacctInfo.Partition), ctx)
+				return FormatUstr(d.sacctInfo.Partition, ctx)
 			}
 			return "?"
 		},
@@ -314,7 +313,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"RequestedGpus": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatUstr(Ustr(d.sacctInfo.ReqGPUS), ctx)
+				return FormatUstr(d.sacctInfo.ReqGPUS, ctx)
 			}
 			return "?"
 		},
@@ -323,65 +322,65 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"DiskReadAvgGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatInt(int(d.sacctInfo.AveDiskRead), ctx)
+				return FormatUint32(d.sacctInfo.AveDiskRead, ctx)
 			}
 			return "?"
 		},
-		Help: "(int) Average disk read activity in GB/s (Slurm AveDiskRead)",
+		Help: "(uint32) Average disk read activity in GB/s (Slurm AveDiskRead)",
 	},
 	"DiskWriteAvgGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatInt(int(d.sacctInfo.AveDiskWrite), ctx)
+				return FormatUint32(d.sacctInfo.AveDiskWrite, ctx)
 			}
 			return "?"
 		},
-		Help: "(int) Average disk write activity in GB/s (Slurm AveDiskWrite)",
+		Help: "(uint32) Average disk write activity in GB/s (Slurm AveDiskWrite)",
 	},
 	"RequestedCpus": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatInt(int(d.sacctInfo.ReqCPUS), ctx)
+				return FormatUint32(d.sacctInfo.ReqCPUS, ctx)
 			}
 			return "?"
 		},
-		Help: "(int) Number of requested CPUs (Slurm)",
+		Help: "(uint32) Number of requested CPUs (Slurm)",
 	},
 	"RequestedMemGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatInt(int(d.sacctInfo.ReqMem), ctx)
+				return FormatUint32(d.sacctInfo.ReqMem, ctx)
 			}
 			return "?"
 		},
-		Help: "(int) Requested memory (Slurm)",
+		Help: "(uint32) Requested memory (Slurm)",
 	},
 	"RequestedNodes": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatInt(int(d.sacctInfo.ReqNodes), ctx)
+				return FormatUint32(d.sacctInfo.ReqNodes, ctx)
 			}
 			return "?"
 		},
-		Help: "(int) Number of requested nodes (Slurm)",
+		Help: "(uint32) Number of requested nodes (Slurm)",
 	},
 	"TimeLimit": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatDurationValue(DurationValue(d.sacctInfo.TimelimitRaw), ctx)
+				return FormatU32Duration(d.sacctInfo.TimelimitRaw, ctx)
 			}
 			return "?"
 		},
-		Help: "(DurationValue) Elapsed time limit (Slurm)",
+		Help: "(U32Duration) Elapsed time limit (Slurm)",
 	},
 	"ExitCode": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if d.sacctInfo != nil {
-				return FormatInt(int(d.sacctInfo.ExitCode), ctx)
+				return FormatUint8(d.sacctInfo.ExitCode, ctx)
 			}
 			return "?"
 		},
-		Help: "(int) Exit code of job (Slurm)",
+		Help: "(uint8) Exit code of job (Slurm)",
 	},
 }
 

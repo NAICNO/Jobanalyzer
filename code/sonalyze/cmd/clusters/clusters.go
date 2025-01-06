@@ -21,10 +21,7 @@ import (
 
 package clusters
 
-import (
-	"sonalyze/db"
-	. "sonalyze/table"
-)
+import "sonalyze/db"
 
 %%
 

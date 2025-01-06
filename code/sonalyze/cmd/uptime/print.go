@@ -33,10 +33,6 @@ import (
 
 package uptime
 
-import (
-	. "sonalyze/table"
-)
-
 %%
 
 FIELDS *UptimeLine
@@ -48,6 +44,22 @@ FIELDS *UptimeLine
  End      DateTimeValue alias:"end"    desc:"End time of 'up' or 'down' window"
 
 GENERATE UptimeLine
+
+SUMMARY UptimeCommand
+
+Display information about uptime and downtime of nodes and components.
+
+The output is a timeline with uptime and downtime printed in ascending
+order, hosts before devices on the host.  Periods where the node/device is
+up or down are both printed, but one can select one or the other with
+"-only-up" and "-only-down".
+
+The "-interval" switch must be specified and should be the interval in
+minutes for samples on the nodes in question.
+
+A host or device is up at the start of the timeline if its first Sample is
+within a small factor of the interval of the "from" time, and ditto it is
+up at the end for its last Sample close to the "to" time.
 
 HELP UptimeCommand
 
@@ -65,7 +77,7 @@ DEFAULTS default
 
 ELBAT*/
 
-func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) {
+func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) error {
 	slices.SortFunc(reports, func(a, b *UptimeLine) int {
 		c := cmp.Compare(a.Hostname, b.Hostname)
 		if c == 0 {
@@ -95,4 +107,5 @@ func (uc *UptimeCommand) printReports(out io.Writer, reports []*UptimeLine) {
 		uc.PrintOpts,
 		reports,
 	)
+	return nil
 }

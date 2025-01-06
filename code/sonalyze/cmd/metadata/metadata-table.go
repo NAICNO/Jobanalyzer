@@ -3,36 +3,37 @@
 package metadata
 
 import (
+	"cmp"
+	"fmt"
+	"io"
+	. "sonalyze/common"
 	. "sonalyze/table"
 )
 
-import (
-	"fmt"
-	"io"
-)
-
 var (
+	_ = cmp.Compare(0, 0)
 	_ fmt.Formatter
 	_ = io.SeekStart
+	_ = UstrEmpty
 )
 
 // MT: Constant after initialization; immutable
 var metadataFormatters = map[string]Formatter[*metadataItem]{
 	"Hostname": {
 		Fmt: func(d *metadataItem, ctx PrintMods) string {
-			return FormatString(string(d.Hostname), ctx)
+			return FormatString(d.Hostname, ctx)
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
 	"Earliest": {
 		Fmt: func(d *metadataItem, ctx PrintMods) string {
-			return FormatDateTimeValue(DateTimeValue(d.Earliest), ctx)
+			return FormatDateTimeValue(d.Earliest, ctx)
 		},
 		Help: "(DateTimeValue) Timestamp of earliest sample for host",
 	},
 	"Latest": {
 		Fmt: func(d *metadataItem, ctx PrintMods) string {
-			return FormatDateTimeValue(DateTimeValue(d.Latest), ctx)
+			return FormatDateTimeValue(d.Latest, ctx)
 		},
 		Help: "(DateTimeValue) Timestamp of latest sample for host",
 	},
