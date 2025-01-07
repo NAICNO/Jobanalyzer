@@ -475,107 +475,6 @@ func (cfa *ConfigFileArgs) ConfigFile() string {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// Shared for analysis commands that work on sonar samples.  (Some commands don't need the config
-// file for data processing but it is required for caching data.)
-
-type SampleAnalysisArgs struct {
-	DevArgs
-	SourceArgs
-	QueryArgs
-	RecordFilterArgs
-	ConfigFileArgs
-	VerboseArgs
-}
-
-func (sa *SampleAnalysisArgs) SampleAnalysisFlags() *SampleAnalysisArgs {
-	return sa
-}
-
-func (s *SampleAnalysisArgs) Add(fs *CLI) {
-	s.DevArgs.Add(fs)
-	s.SourceArgs.Add(fs)
-	s.QueryArgs.Add(fs)
-	s.RecordFilterArgs.Add(fs)
-	s.ConfigFileArgs.Add(fs)
-	s.VerboseArgs.Add(fs)
-}
-
-func (s *SampleAnalysisArgs) ReifyForRemote(x *ArgReifier) error {
-	// We don't forward s.Verbose, it's mostly useful locally, and ideally sonalyzed should redact
-	// it on the remote end to avoid revealing internal data (it does not, and indeed would require
-	// the argument to be named "verbose" to work).
-	return errors.Join(
-		s.DevArgs.ReifyForRemote(x),
-		s.SourceArgs.ReifyForRemote(x),
-		s.QueryArgs.ReifyForRemote(x),
-		s.RecordFilterArgs.ReifyForRemote(x),
-		s.ConfigFileArgs.ReifyForRemote(x),
-	)
-}
-
-func (s *SampleAnalysisArgs) Validate() error {
-	return errors.Join(
-		s.DevArgs.Validate(),
-		s.SourceArgs.Validate(),
-		s.QueryArgs.Validate(),
-		s.RecordFilterArgs.Validate(),
-		s.ConfigFileArgs.Validate(),
-		s.VerboseArgs.Validate(),
-	)
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Shared for analysis commands that work on sonar per-host data.
-//
-// Almost SampleAnalysisArgs, but HostArgs instead of RecordFilterArgs
-
-type HostAnalysisArgs struct {
-	DevArgs
-	SourceArgs
-	QueryArgs
-	HostArgs
-	ConfigFileArgs
-	VerboseArgs
-}
-
-func (sa *HostAnalysisArgs) HostAnalysisFlags() *HostAnalysisArgs {
-	return sa
-}
-
-func (s *HostAnalysisArgs) Add(fs *CLI) {
-	s.DevArgs.Add(fs)
-	s.SourceArgs.Add(fs)
-	s.QueryArgs.Add(fs)
-	s.HostArgs.Add(fs)
-	s.ConfigFileArgs.Add(fs)
-	s.VerboseArgs.Add(fs)
-}
-
-func (s *HostAnalysisArgs) ReifyForRemote(x *ArgReifier) error {
-	// We don't forward s.Verbose, it's mostly useful locally, and ideally sonalyzed should redact
-	// it on the remote end to avoid revealing internal data (it does not, and indeed would require
-	// the argument to be named "verbose" to work).
-	return errors.Join(
-		s.DevArgs.ReifyForRemote(x),
-		s.SourceArgs.ReifyForRemote(x),
-		s.QueryArgs.ReifyForRemote(x),
-		s.HostArgs.ReifyForRemote(x),
-		s.ConfigFileArgs.ReifyForRemote(x),
-	)
-}
-
-func (s *HostAnalysisArgs) Validate() error {
-	return errors.Join(
-		s.DevArgs.Validate(),
-		s.SourceArgs.Validate(),
-		s.QueryArgs.Validate(),
-		s.HostArgs.Validate(),
-		s.ConfigFileArgs.Validate(),
-		s.VerboseArgs.Validate(),
-	)
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Format arguments - same logic for most consumers.
 
@@ -722,4 +621,105 @@ func NewRepeatableString(xs *[]string) *RepeatableString {
 			return s, nil
 		},
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Shared args for analysis commands that work on sonar samples.  (Some commands don't need the config
+// file for data processing but it is required for caching data.)
+
+type SampleAnalysisArgs struct {
+	DevArgs
+	SourceArgs
+	QueryArgs
+	RecordFilterArgs
+	ConfigFileArgs
+	VerboseArgs
+}
+
+func (sa *SampleAnalysisArgs) SampleAnalysisFlags() *SampleAnalysisArgs {
+	return sa
+}
+
+func (s *SampleAnalysisArgs) Add(fs *CLI) {
+	s.DevArgs.Add(fs)
+	s.SourceArgs.Add(fs)
+	s.QueryArgs.Add(fs)
+	s.RecordFilterArgs.Add(fs)
+	s.ConfigFileArgs.Add(fs)
+	s.VerboseArgs.Add(fs)
+}
+
+func (s *SampleAnalysisArgs) ReifyForRemote(x *ArgReifier) error {
+	// We don't forward s.Verbose, it's mostly useful locally, and ideally sonalyzed should redact
+	// it on the remote end to avoid revealing internal data.
+	return errors.Join(
+		s.DevArgs.ReifyForRemote(x),
+		s.SourceArgs.ReifyForRemote(x),
+		s.QueryArgs.ReifyForRemote(x),
+		s.RecordFilterArgs.ReifyForRemote(x),
+		s.ConfigFileArgs.ReifyForRemote(x),
+	)
+}
+
+func (s *SampleAnalysisArgs) Validate() error {
+	return errors.Join(
+		s.DevArgs.Validate(),
+		s.SourceArgs.Validate(),
+		s.QueryArgs.Validate(),
+		s.RecordFilterArgs.Validate(),
+		s.ConfigFileArgs.Validate(),
+		s.VerboseArgs.Validate(),
+	)
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Shared args for analysis commands that work on sonar per-host data.
+//
+// Almost SampleAnalysisArgs, but HostArgs instead of RecordFilterArgs
+
+type HostAnalysisArgs struct {
+	DevArgs
+	SourceArgs
+	QueryArgs
+	HostArgs
+	ConfigFileArgs
+	VerboseArgs
+}
+
+func (sa *HostAnalysisArgs) HostAnalysisFlags() *HostAnalysisArgs {
+	return sa
+}
+
+func (s *HostAnalysisArgs) Add(fs *CLI) {
+	s.DevArgs.Add(fs)
+	s.SourceArgs.Add(fs)
+	s.QueryArgs.Add(fs)
+	s.HostArgs.Add(fs)
+	s.ConfigFileArgs.Add(fs)
+	s.VerboseArgs.Add(fs)
+}
+
+func (s *HostAnalysisArgs) ReifyForRemote(x *ArgReifier) error {
+	// We don't forward s.Verbose, it's mostly useful locally, and ideally sonalyzed should redact
+	// it on the remote end to avoid revealing internal data.
+	return errors.Join(
+		s.DevArgs.ReifyForRemote(x),
+		s.SourceArgs.ReifyForRemote(x),
+		s.QueryArgs.ReifyForRemote(x),
+		s.HostArgs.ReifyForRemote(x),
+		s.ConfigFileArgs.ReifyForRemote(x),
+	)
+}
+
+func (s *HostAnalysisArgs) Validate() error {
+	return errors.Join(
+		s.DevArgs.Validate(),
+		s.SourceArgs.Validate(),
+		s.QueryArgs.Validate(),
+		s.HostArgs.Validate(),
+		s.ConfigFileArgs.Validate(),
+		s.VerboseArgs.Validate(),
+	)
 }
