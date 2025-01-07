@@ -90,7 +90,7 @@ DEFAULTS default
 ELBAT*/
 
 type ParseCommand struct /* implements SampleAnalysisCommand */ {
-	SharedArgs
+	SampleAnalysisArgs
 	FormatArgs
 
 	MergeByHostAndJob bool
@@ -101,7 +101,7 @@ type ParseCommand struct /* implements SampleAnalysisCommand */ {
 var _ SampleAnalysisCommand = (*ParseCommand)(nil)
 
 func (pc *ParseCommand) Add(fs *CLI) {
-	pc.SharedArgs.Add(fs)
+	pc.SampleAnalysisArgs.Add(fs)
 	pc.FormatArgs.Add(fs)
 
 	fs.Group("aggregation")
@@ -115,7 +115,7 @@ func (pc *ParseCommand) Add(fs *CLI) {
 
 func (pc *ParseCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
-		pc.SharedArgs.ReifyForRemote(x),
+		pc.SampleAnalysisArgs.ReifyForRemote(x),
 		pc.FormatArgs.ReifyForRemote(x),
 	)
 	x.Bool("merge-by-host-and-job", pc.MergeByHostAndJob)
@@ -126,7 +126,7 @@ func (pc *ParseCommand) ReifyForRemote(x *ArgReifier) error {
 
 func (pc *ParseCommand) Validate() error {
 	return errors.Join(
-		pc.SharedArgs.Validate(),
+		pc.SampleAnalysisArgs.Validate(),
 		ValidateFormatArgs(
 			&pc.FormatArgs, parseDefaultFields, parseFormatters, parseAliases, DefaultCsv),
 	)

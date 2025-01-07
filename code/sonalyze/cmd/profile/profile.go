@@ -8,7 +8,7 @@ import (
 )
 
 type ProfileCommand struct /* implements SampleAnalysisCommand */ {
-	SharedArgs
+	SampleAnalysisArgs
 	FormatArgs
 
 	// Filtering and aggregation
@@ -23,7 +23,7 @@ type ProfileCommand struct /* implements SampleAnalysisCommand */ {
 var _ SampleAnalysisCommand = (*ProfileCommand)(nil)
 
 func (pc *ProfileCommand) Add(fs *CLI) {
-	pc.SharedArgs.Add(fs)
+	pc.SampleAnalysisArgs.Add(fs)
 	pc.FormatArgs.Add(fs)
 
 	fs.Group("printing")
@@ -35,7 +35,7 @@ func (pc *ProfileCommand) Add(fs *CLI) {
 
 func (pc *ProfileCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
-		pc.SharedArgs.ReifyForRemote(x),
+		pc.SampleAnalysisArgs.ReifyForRemote(x),
 		pc.FormatArgs.ReifyForRemote(x),
 	)
 	x.Float64("max", pc.Max)
@@ -45,7 +45,7 @@ func (pc *ProfileCommand) ReifyForRemote(x *ArgReifier) error {
 
 func (pc *ProfileCommand) Validate() error {
 	// FormatArgs are handled specially below
-	e1 := pc.SharedArgs.Validate()
+	e1 := pc.SampleAnalysisArgs.Validate()
 
 	var e2 error
 	if pc.Max < 0 {
