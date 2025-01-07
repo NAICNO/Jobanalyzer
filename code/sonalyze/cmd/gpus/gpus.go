@@ -59,14 +59,8 @@ DEFAULTS default
 ELBAT*/
 
 type GpuCommand struct /* implements AnalysisCommand */ {
-	// Almost SharedArgs, but HostArgs instead of RecordFilterArgs
-	DevArgs
-	SourceArgs
-	QueryArgs
-	HostArgs
-	VerboseArgs
+	HostAnalysisArgs
 	FormatArgs
-	ConfigFileArgs
 
 	Gpu int
 }
@@ -74,42 +68,27 @@ type GpuCommand struct /* implements AnalysisCommand */ {
 var _ = AnalysisCommand((*GpuCommand)(nil))
 
 func (gc *GpuCommand) Add(fs *CLI) {
-	gc.DevArgs.Add(fs)
-	gc.SourceArgs.Add(fs)
-	gc.QueryArgs.Add(fs)
-	gc.HostArgs.Add(fs)
-	gc.VerboseArgs.Add(fs)
+	gc.HostAnalysisArgs.Add(fs)
 	gc.FormatArgs.Add(fs)
-	gc.ConfigFileArgs.Add(fs)
 	fs.Group("record-filter")
 	fs.IntVar(&gc.Gpu, "gpu", -1, "Select single GPU")
 }
 
 func (gc *GpuCommand) Validate() error {
 	return errors.Join(
-		gc.DevArgs.Validate(),
-		gc.SourceArgs.Validate(),
-		gc.QueryArgs.Validate(),
-		gc.HostArgs.Validate(),
-		gc.VerboseArgs.Validate(),
-		gc.ConfigFileArgs.Validate(),
+		gc.HostAnalysisArgs.Validate(),
 		ValidateFormatArgs(
 			&gc.FormatArgs, gpuDefaultFields, gpuFormatters, gpuAliases, DefaultFixed),
 	)
 }
 
 func (gc *GpuCommand) ReifyForRemote(x *ArgReifier) error {
-	// gc.Verbose is not reified, as for SharedArgs.
 	if gc.Gpu != -1 {
 		x.IntUnchecked("gpu", gc.Gpu)
 	}
 	return errors.Join(
-		gc.DevArgs.ReifyForRemote(x),
-		gc.SourceArgs.ReifyForRemote(x),
-		gc.QueryArgs.ReifyForRemote(x),
-		gc.HostArgs.ReifyForRemote(x),
+		gc.HostAnalysisArgs.ReifyForRemote(x),
 		gc.FormatArgs.ReifyForRemote(x),
-		gc.ConfigFileArgs.ReifyForRemote(x),
 	)
 }
 

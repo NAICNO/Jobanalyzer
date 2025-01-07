@@ -525,6 +525,57 @@ func (s *SampleAnalysisArgs) Validate() error {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// Shared for analysis commands that work on sonar per-host data.
+//
+// Almost SampleAnalysisArgs, but HostArgs instead of RecordFilterArgs
+
+type HostAnalysisArgs struct {
+	DevArgs
+	SourceArgs
+	QueryArgs
+	HostArgs
+	ConfigFileArgs
+	VerboseArgs
+}
+
+func (sa *HostAnalysisArgs) HostAnalysisFlags() *HostAnalysisArgs {
+	return sa
+}
+
+func (s *HostAnalysisArgs) Add(fs *CLI) {
+	s.DevArgs.Add(fs)
+	s.SourceArgs.Add(fs)
+	s.QueryArgs.Add(fs)
+	s.HostArgs.Add(fs)
+	s.ConfigFileArgs.Add(fs)
+	s.VerboseArgs.Add(fs)
+}
+
+func (s *HostAnalysisArgs) ReifyForRemote(x *ArgReifier) error {
+	// We don't forward s.Verbose, it's mostly useful locally, and ideally sonalyzed should redact
+	// it on the remote end to avoid revealing internal data (it does not, and indeed would require
+	// the argument to be named "verbose" to work).
+	return errors.Join(
+		s.DevArgs.ReifyForRemote(x),
+		s.SourceArgs.ReifyForRemote(x),
+		s.QueryArgs.ReifyForRemote(x),
+		s.HostArgs.ReifyForRemote(x),
+		s.ConfigFileArgs.ReifyForRemote(x),
+	)
+}
+
+func (s *HostAnalysisArgs) Validate() error {
+	return errors.Join(
+		s.DevArgs.Validate(),
+		s.SourceArgs.Validate(),
+		s.QueryArgs.Validate(),
+		s.HostArgs.Validate(),
+		s.ConfigFileArgs.Validate(),
+		s.VerboseArgs.Validate(),
+	)
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Format arguments - same logic for most consumers.
 
