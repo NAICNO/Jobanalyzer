@@ -20,11 +20,22 @@ import (
 // The Compare predicate takes a table row of the appropriate type, and the converted value, and
 // returns -1, 0, or 1 depending on the value of the field in relation to the argument value.
 //
-// (There will be more predicates.)
+// IsSetType is true iff the type T is a set type conforming to the SetType interface below.  In
+// this case, `Compare` should be nil, as it will not be used.
 
 type Predicate[T any] struct {
-	Convert func(d string) (any, error)
-	Compare func(d T, v any) int
+	Convert   func(d string) (any, error)
+	Compare   func(d T, v any) int
+	IsSetType bool
+}
+
+type SetType[T any] interface {
+	// true iff self == that
+	Equal(that T) bool
+
+	// true iff proper and `that` is a subset of self or !proper and `that` is a subset of
+	// self or is equal to self.
+	HasSubset(that T, proper bool) bool
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -168,8 +179,6 @@ func compileQuery[T any](
 			panic("Unknown op")
 		}
 	case *binaryOp:
-		// TODO: Misc stuff for set-like things (GpuSet, maybe host name sets).
-
 		if l.op == opMatch {
 			format, found := formatters[l.field]
 			if !found {
@@ -196,6 +205,24 @@ func compileQuery[T any](
 			value = v
 		} else {
 			value = l.value
+		}
+		if p.IsSetType {
+			// Set types T must implement SetType[T], above.  This means that eg []string is not a
+			// valid field type.
+			switch l.op {
+			case opEq:
+				return func(d T) bool { return d.Equal(value) }, nil
+			case opLt:
+				return func(d T) bool { return d.HasSubset(value, true) }
+			case opLe:
+				return func(d T) bool { return d.HasSubset(value, false) }
+			case opGt:
+				return func(d T) bool { return value.HasSubset(d, true) }
+			case opGe:
+				return func(d T) bool { return value.HasSubset(d, false) }
+			default:
+				panic("Unknown op")
+			}
 		}
 		compare := p.Compare
 		switch l.op {

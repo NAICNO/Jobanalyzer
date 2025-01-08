@@ -53,6 +53,17 @@ func NewGpuSet(s string) (GpuSet, error) {
 	return gpuData, nil
 }
 
+func (this GpuSet) Equal(that GpuSet) bool {
+	return this == that
+}
+
+func (this GpuSet) HasSubset(that GpuSet, proper bool) bool {
+	if this == unknown || that == unknown {
+		return false
+	}
+	return this & that == that && (!proper || this != that)
+}
+
 func UnionGpuSets(a, b GpuSet) GpuSet {
 	if a == unknown {
 		return a

@@ -60,10 +60,8 @@ var clusterPredicates = map[string]Predicate[*db.ClusterEntry]{
 		},
 	},
 	"Aliases": Predicate[*db.ClusterEntry]{
-		Convert: CvtString2Strings,
-		Compare: func(d *db.ClusterEntry, v any) int {
-			return -1
-		},
+		Convert:   CvtString2Strings,
+		IsSetType: true,
 	},
 }
 

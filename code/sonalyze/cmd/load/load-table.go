@@ -230,10 +230,8 @@ var loadPredicates = map[string]Predicate[*ReportRecord]{
 		},
 	},
 	"Gpus": Predicate[*ReportRecord]{
-		Convert: CvtString2GpuSet,
-		Compare: func(d *ReportRecord, v any) int {
-			return -1
-		},
+		Convert:   CvtString2GpuSet,
+		IsSetType: true,
 	},
 	"Hostname": Predicate[*ReportRecord]{
 		Convert: CvtString2Ustr,

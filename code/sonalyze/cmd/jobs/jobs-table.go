@@ -607,10 +607,8 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 		},
 	},
 	"Gpus": Predicate[*jobSummary]{
-		Convert: CvtString2GpuSet,
-		Compare: func(d *jobSummary, v any) int {
-			return -1
-		},
+		Convert:   CvtString2GpuSet,
+		IsSetType: true,
 	},
 	"GpuFail": Predicate[*jobSummary]{
 		Convert: CvtString2Int,

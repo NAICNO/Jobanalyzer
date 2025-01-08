@@ -317,10 +317,8 @@ var parsePredicates = map[string]Predicate[sonarlog.Sample]{
 		},
 	},
 	"Gpus": Predicate[sonarlog.Sample]{
-		Convert: CvtString2GpuSet,
-		Compare: func(d sonarlog.Sample, v any) int {
-			return -1
-		},
+		Convert:   CvtString2GpuSet,
+		IsSetType: true,
 	},
 	"GpuPct": Predicate[sonarlog.Sample]{
 		Convert: CvtString2Float32,

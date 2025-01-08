@@ -88,15 +88,15 @@ type typeInfo struct {
 	helpName     string
 	formatter    string
 	parser       string
-	incomparable bool
+	setType      bool
 }
 
 var knownTypes = map[string]typeInfo{
 	"[]string": typeInfo{
-		helpName:     "string list",
-		formatter:    "FormatStrings",
-		parser:       "CvtString2Strings",
-		incomparable: true,
+		helpName:  "string list",
+		formatter: "FormatStrings",
+		parser:    "CvtString2Strings",
+		setType:   true,
 	},
 	"F64Ceil": typeInfo{
 		helpName: "int",
@@ -118,18 +118,25 @@ var knownTypes = map[string]typeInfo{
 	"Ustr":                 typeInfo{helpName: "string"},
 	"UstrMax30":            typeInfo{helpName: "string"},
 	"gpuset.GpuSet": typeInfo{
-		helpName:     "GpuSet",
-		formatter:    "FormatGpuSet",
-		parser:       "CvtString2GpuSet",
-		incomparable: true,
+		helpName:  "GpuSet",
+		formatter: "FormatGpuSet",
+		parser:    "CvtString2GpuSet",
+		setType:   true,
 	},
 }
 
-func hasComparer(ty string) bool {
+func isComparable(ty string) bool {
 	if probe, found := knownTypes[ty]; found {
-		return !probe.incomparable
+		return !probe.setType
 	}
 	return true
+}
+
+func isSetType(ty string) bool {
+	if probe, found := knownTypes[ty]; found {
+		return probe.setType
+	}
+	return false
 }
 
 func formatName(ty string) string {
@@ -325,8 +332,9 @@ func fieldPredicates(tableName string, fields *parser.FieldSect) {
 		if field.Type != "string" {
 			fmt.Fprintf(output, "\t\tConvert: %s,\n", parseName(field.Type))
 		}
-		fmt.Fprintf(output, "\t\tCompare: func(d %s, v any) int {\n", fields.Type)
-		if hasComparer(field.Type) {
+		switch {
+		case isComparable(field.Type):
+			fmt.Fprintf(output, "\t\tCompare: func(d %s, v any) int {\n", fields.Type)
 			comparator := "cmp.Compare"
 			if field.Type == "bool" {
 				comparator = "CompareBool"
@@ -341,10 +349,15 @@ func fieldPredicates(tableName string, fields *parser.FieldSect) {
 				fmt.Fprintf(output, "\t\t\treturn %s(d.%s, v.(%s))\n",
 					comparator, actualFieldName, field.Type)
 			}
-		} else {
-			fmt.Fprintf(output, "\t\t\treturn -1\n")
+			fmt.Fprintf(output, "\t\t},\n")
+		case isSetType(field.Type):
+			if attrs["indirect"] != "" {
+				panic("No support for indirection to set types yet")
+			}
+			fmt.Fprintf(output, "\t\tIsSetType: true,\n")
+		default:
+			panic("Unknown case")
 		}
-		fmt.Fprintf(output, "\t\t},\n")
 		fmt.Fprintf(output, "\t},\n")
 	}
 	fmt.Fprintf(output, "}\n\n")
