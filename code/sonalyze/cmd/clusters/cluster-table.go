@@ -7,6 +7,7 @@ import "sonalyze/db"
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -17,6 +18,7 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
@@ -60,8 +62,16 @@ var clusterPredicates = map[string]Predicate[*db.ClusterEntry]{
 		},
 	},
 	"Aliases": Predicate[*db.ClusterEntry]{
-		Convert:   CvtString2Strings,
-		IsSetType: true,
+		Convert: CvtString2Strings,
+		SetCompare: func(d *db.ClusterEntry, v any, op int) bool {
+			if op == 1 {
+				return d.Aliases.Equal(v.([]string))
+			}
+			if op <= 3 {
+				return v.([]string).HasSubset(d.Aliases, op == 2)
+			}
+			return d.Aliases.HasSubset(v.([]string), op == 4)
+		},
 	},
 }
 

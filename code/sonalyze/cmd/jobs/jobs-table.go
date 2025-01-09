@@ -5,6 +5,7 @@ package jobs
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -15,6 +16,7 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
@@ -607,8 +609,16 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 		},
 	},
 	"Gpus": Predicate[*jobSummary]{
-		Convert:   CvtString2GpuSet,
-		IsSetType: true,
+		Convert: CvtString2GpuSet,
+		SetCompare: func(d *jobSummary, v any, op int) bool {
+			if op == 1 {
+				return d.Gpus.Equal(v.(gpuset.GpuSet))
+			}
+			if op <= 3 {
+				return v.(gpuset.GpuSet).HasSubset(d.Gpus, op == 2)
+			}
+			return d.Gpus.HasSubset(v.(gpuset.GpuSet), op == 4)
+		},
 	},
 	"GpuFail": Predicate[*jobSummary]{
 		Convert: CvtString2Int,

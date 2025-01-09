@@ -13,29 +13,22 @@ import (
 //
 // The table generator will generate a table of converters and predicates for every field.
 //
-// The converter converts a string value supplied as part of the query text to a value of the
-// appropriate type, but represented as an `any`.  The value will be converted once, during
-// compilation.
+// The Convert function, if not nil, converts a string value supplied as part of the query text to a
+// value of the appropriate type, but represented as an `any`.  The value will be converted once,
+// during compilation.
 //
 // The Compare predicate takes a table row of the appropriate type, and the converted value, and
 // returns -1, 0, or 1 depending on the value of the field in relation to the argument value.
 //
-// IsSetType is true iff the type T is a set type conforming to the SetType interface below.  In
-// this case, `Compare` should be nil, as it will not be used.
+// The SetCompare predicate takes a table row of the appropriate type, and the converted value, and
+// an operation from the set =, <, <=, >, >=, encoded as 1, 2, 3, 4, 5 respectively, and returns
+// true if the field and the value have the corresponding set relation (equal, proper subset,
+// improper subset, proper superset, improper superset).
 
 type Predicate[T any] struct {
-	Convert   func(d string) (any, error)
-	Compare   func(d T, v any) int
-	IsSetType bool
-}
-
-type SetType[T any] interface {
-	// true iff self == that
-	Equal(that T) bool
-
-	// true iff proper and `that` is a subset of self or !proper and `that` is a subset of
-	// self or is equal to self.
-	HasSubset(that T, proper bool) bool
+	Convert    func(d string) (any, error)
+	Compare    func(d T, v any) int
+	SetCompare func(d T, v any, op int) bool
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -45,16 +38,17 @@ type SetType[T any] interface {
 // Parsed queries are represented as PNode instances, all of them are tagged with a POpXx.
 
 const (
-	// The value 0 is never a valid opcode
-	opEq = iota + 1
-	opLt
-	opLe
-	opGt
-	opGe
-	opMatch
-	opAnd
-	opOr
-	opNot
+	// The value 0 is never a valid opcode.  The values of at least the first five must never
+	// change because code geneated by generate-table depends on them.
+	opEq    = 1 // DO NOT CHANGE
+	opLt    = 2 // DO NOT CHANGE
+	opLe    = 3 // DO NOT CHANGE
+	opGt    = 4 // DO NOT CHANGE
+	opGe    = 5 // DO NOT CHANGE
+	opMatch = 6
+	opAnd   = 7
+	opOr    = 8
+	opNot   = 9
 )
 
 var pop2op = [...]string{
@@ -206,20 +200,12 @@ func compileQuery[T any](
 		} else {
 			value = l.value
 		}
-		if p.IsSetType {
-			// Set types T must implement SetType[T], above.  This means that eg []string is not a
-			// valid field type.
-			switch l.op {
-			case opEq:
-				return func(d T) bool { return d.Equal(value) }, nil
-			case opLt:
-				return func(d T) bool { return d.HasSubset(value, true) }
-			case opLe:
-				return func(d T) bool { return d.HasSubset(value, false) }
-			case opGt:
-				return func(d T) bool { return value.HasSubset(d, true) }
-			case opGe:
-				return func(d T) bool { return value.HasSubset(d, false) }
+		if p.SetCompare != nil {
+			setCompare := p.SetCompare
+			op := l.op
+			switch op {
+			case opEq, opLt, opLe, opGt, opGe:
+				return func(d T) bool { return setCompare(d, value, op) }, nil
 			default:
 				panic("Unknown op")
 			}

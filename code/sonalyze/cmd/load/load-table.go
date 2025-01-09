@@ -2,11 +2,10 @@
 
 package load
 
-import "go-utils/gpuset"
-
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -17,6 +16,7 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
@@ -230,8 +230,16 @@ var loadPredicates = map[string]Predicate[*ReportRecord]{
 		},
 	},
 	"Gpus": Predicate[*ReportRecord]{
-		Convert:   CvtString2GpuSet,
-		IsSetType: true,
+		Convert: CvtString2GpuSet,
+		SetCompare: func(d *ReportRecord, v any, op int) bool {
+			if op == 1 {
+				return d.Gpus.Equal(v.(gpuset.GpuSet))
+			}
+			if op <= 3 {
+				return v.(gpuset.GpuSet).HasSubset(d.Gpus, op == 2)
+			}
+			return d.Gpus.HasSubset(v.(gpuset.GpuSet), op == 4)
+		},
 	},
 	"Hostname": Predicate[*ReportRecord]{
 		Convert: CvtString2Ustr,

@@ -183,6 +183,7 @@ import (
 	"cmp"
 	"fmt"
 	"io"
+    "go-utils/gpuset"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
@@ -191,6 +192,7 @@ var (
 	_ fmt.Formatter
     _ = io.SeekStart
 	_ = UstrEmpty
+    _ gpuset.GpuSet
 )
 `)
 	fieldList := fieldSection(block.TableName, &block.Fields)
@@ -354,7 +356,11 @@ func fieldPredicates(tableName string, fields *parser.FieldSect) {
 			if attrs["indirect"] != "" {
 				panic("No support for indirection to set types yet")
 			}
-			fmt.Fprintf(output, "\t\tIsSetType: true,\n")
+			fmt.Fprintf(output, "\t\tSetCompare: func(d %s, v any, op int) bool {\n", fields.Type)
+			fmt.Fprintf(output, "\t\t\tif op == 1 { return d.%s.Equal(v.(%s)) }\n", actualFieldName, field.Type)
+			fmt.Fprintf(output, "\t\t\tif op <= 3 { return v.(%s).HasSubset(d.%s, op == 2) }\n", field.Type, actualFieldName)
+			fmt.Fprintf(output, "\t\t\treturn d.%s.HasSubset(v.(%s), op == 4)\n", actualFieldName, field.Type)
+			fmt.Fprintf(output, "\t\t},\n")
 		default:
 			panic("Unknown case")
 		}
