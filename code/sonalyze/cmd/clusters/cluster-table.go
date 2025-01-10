@@ -64,13 +64,7 @@ var clusterPredicates = map[string]Predicate[*db.ClusterEntry]{
 	"Aliases": Predicate[*db.ClusterEntry]{
 		Convert: CvtString2Strings,
 		SetCompare: func(d *db.ClusterEntry, v any, op int) bool {
-			if op == 1 {
-				return d.Aliases.Equal(v.([]string))
-			}
-			if op <= 3 {
-				return v.([]string).HasSubset(d.Aliases, op == 2)
-			}
-			return d.Aliases.HasSubset(v.([]string), op == 4)
+			return SetCompareStrings(d.Aliases, v.([]string), op)
 		},
 	},
 }

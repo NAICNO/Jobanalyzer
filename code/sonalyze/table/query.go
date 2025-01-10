@@ -38,17 +38,16 @@ type Predicate[T any] struct {
 // Parsed queries are represented as PNode instances, all of them are tagged with a POpXx.
 
 const (
-	// The value 0 is never a valid opcode.  The values of at least the first five must never
-	// change because code geneated by generate-table depends on them.
-	opEq    = 1 // DO NOT CHANGE
-	opLt    = 2 // DO NOT CHANGE
-	opLe    = 3 // DO NOT CHANGE
-	opGt    = 4 // DO NOT CHANGE
-	opGe    = 5 // DO NOT CHANGE
-	opMatch = 6
-	opAnd   = 7
-	opOr    = 8
-	opNot   = 9
+	// The value 0 is never a valid opcode.
+	opEq = 1 + iota
+	opLt
+	opLe
+	opGt
+	opGe
+	opMatch
+	opAnd
+	opOr
+	opNot
 )
 
 var pop2op = [...]string{

@@ -321,13 +321,7 @@ var parsePredicates = map[string]Predicate[sonarlog.Sample]{
 	"Gpus": Predicate[sonarlog.Sample]{
 		Convert: CvtString2GpuSet,
 		SetCompare: func(d sonarlog.Sample, v any, op int) bool {
-			if op == 1 {
-				return d.Gpus.Equal(v.(gpuset.GpuSet))
-			}
-			if op <= 3 {
-				return v.(gpuset.GpuSet).HasSubset(d.Gpus, op == 2)
-			}
-			return d.Gpus.HasSubset(v.(gpuset.GpuSet), op == 4)
+			return SetCompareGpuSets(d.Gpus, v.(gpuset.GpuSet), op)
 		},
 	},
 	"GpuPct": Predicate[sonarlog.Sample]{

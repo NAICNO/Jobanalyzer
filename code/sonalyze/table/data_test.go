@@ -100,3 +100,56 @@ func TestDataFormatting(t *testing.T) {
 		t.Fatalf("GpuSet %s", s)
 	}
 }
+
+func TestSetCompareStrings(t *testing.T) {
+	as := []string{"a", "b", "c"}
+	bs := []string{"a", "b", "c", "d"}
+	cs := []string{"a", "b", "c", "e"}
+	if !SetCompareStrings(as, as, opEq) {
+		t.Fatal("Equal")
+	}
+	if SetCompareStrings(as, as, opLt) {
+		t.Fatal("Less")
+	}
+	if !SetCompareStrings(as, as, opLe) {
+		t.Fatal("LessOrEqual")
+	}
+	if SetCompareStrings(as, as, opGt) {
+		t.Fatal("Greater")
+	}
+	if !SetCompareStrings(as, as, opGe) {
+		t.Fatal("GreaterOrEqual")
+	}
+
+	if SetCompareStrings(as, bs, opEq) {
+		t.Fatal("Equal")
+	}
+	if !SetCompareStrings(as, bs, opLt) {
+		t.Fatal("Less")
+	}
+	if !SetCompareStrings(as, bs, opLe) {
+		t.Fatal("LessOrEqual")
+	}
+	if SetCompareStrings(as, bs, opGt) {
+		t.Fatal("Greater")
+	}
+	if SetCompareStrings(as, bs, opGe) {
+		t.Fatal("GreaterOrEqual")
+	}
+
+	if SetCompareStrings(cs, bs, opEq) {
+		t.Fatal("Equal")
+	}
+	if SetCompareStrings(cs, bs, opLt) {
+		t.Fatal("Less")
+	}
+	if SetCompareStrings(cs, bs, opLe) {
+		t.Fatal("LessOrEqual")
+	}
+	if SetCompareStrings(cs, bs, opGt) {
+		t.Fatal("Greater")
+	}
+	if SetCompareStrings(cs, bs, opGe) {
+		t.Fatal("GreaterOrEqual")
+	}
+}

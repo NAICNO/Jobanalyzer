@@ -85,18 +85,22 @@ func main() {
 // operators apply; if a type is "GpuSet" then some kind of set operators apply (TBD).
 
 type typeInfo struct {
-	helpName     string
-	formatter    string
-	parser       string
-	setType      bool
+	helpName    string			// default is the name as given
+	comparer    string			// setType == false: default is cmp.Compare
+	formatter   string			// default is Format<Typename>
+	parser      string			// default is CvtString2<Typename>
+	setComparer string			// if "", not a set; otherwise a function
 }
 
 var knownTypes = map[string]typeInfo{
+	"bool":     typeInfo{
+		comparer: "CompareBool",
+	},
 	"[]string": typeInfo{
-		helpName:  "string list",
-		formatter: "FormatStrings",
-		parser:    "CvtString2Strings",
-		setType:   true,
+		helpName:    "string list",
+		formatter:   "FormatStrings",
+		parser:      "CvtString2Strings",
+		setComparer: "SetCompareStrings",
 	},
 	"F64Ceil": typeInfo{
 		helpName: "int",
@@ -118,23 +122,37 @@ var knownTypes = map[string]typeInfo{
 	"Ustr":                 typeInfo{helpName: "string"},
 	"UstrMax30":            typeInfo{helpName: "string"},
 	"gpuset.GpuSet": typeInfo{
-		helpName:  "GpuSet",
-		formatter: "FormatGpuSet",
-		parser:    "CvtString2GpuSet",
-		setType:   true,
+		helpName:    "GpuSet",
+		formatter:   "FormatGpuSet",
+		parser:      "CvtString2GpuSet",
+		setComparer: "SetCompareGpuSets",
 	},
 }
 
 func isComparable(ty string) bool {
 	if probe, found := knownTypes[ty]; found {
-		return !probe.setType
+		return probe.setComparer == ""
 	}
 	return true
 }
 
+func fieldComparer(ty string) string {
+	if probe, found := knownTypes[ty]; found && probe.comparer != "" {
+		return probe.comparer
+	}
+	return "cmp.Compare"
+}
+
+func setComparer(ty string) string {
+	if probe, found := knownTypes[ty]; found && probe.setComparer != "" {
+		return probe.setComparer
+	}
+	panic("Not a set")
+}
+
 func isSetType(ty string) bool {
 	if probe, found := knownTypes[ty]; found {
-		return probe.setType
+		return probe.setComparer != ""
 	}
 	return false
 }
@@ -302,8 +320,6 @@ func fieldFormatters(tableName string, fields *parser.FieldSect) (fieldList []fi
 	return
 }
 
-// TODO: Factor redundancies wrt fieldFormatters?
-
 func fieldPredicates(tableName string, fields *parser.FieldSect) {
 	fmt.Fprintf(output, "// MT: Constant after initialization; immutable\n")
 	fmt.Fprintf(output, "var %sPredicates = map[string]Predicate[%s]{\n", tableName, fields.Type)
@@ -337,10 +353,7 @@ func fieldPredicates(tableName string, fields *parser.FieldSect) {
 		switch {
 		case isComparable(field.Type):
 			fmt.Fprintf(output, "\t\tCompare: func(d %s, v any) int {\n", fields.Type)
-			comparator := "cmp.Compare"
-			if field.Type == "bool" {
-				comparator = "CompareBool"
-			}
+			comparator := fieldComparer(field.Type)
 			if ptrName := attrs["indirect"]; ptrName != "" {
 				fmt.Fprintf(output, "\t\t\tif d.%s != nil {\n", ptrName)
 				fmt.Fprintf(output, "\t\t\t\treturn %s(d.%s.%s, v.(%s))\n",
@@ -357,9 +370,7 @@ func fieldPredicates(tableName string, fields *parser.FieldSect) {
 				panic("No support for indirection to set types yet")
 			}
 			fmt.Fprintf(output, "\t\tSetCompare: func(d %s, v any, op int) bool {\n", fields.Type)
-			fmt.Fprintf(output, "\t\t\tif op == 1 { return d.%s.Equal(v.(%s)) }\n", actualFieldName, field.Type)
-			fmt.Fprintf(output, "\t\t\tif op <= 3 { return v.(%s).HasSubset(d.%s, op == 2) }\n", field.Type, actualFieldName)
-			fmt.Fprintf(output, "\t\t\treturn d.%s.HasSubset(v.(%s), op == 4)\n", actualFieldName, field.Type)
+			fmt.Fprintf(output, "\t\t\treturn %s(d.%s, v.(%s), op)\n", setComparer(field.Type), actualFieldName, field.Type)
 			fmt.Fprintf(output, "\t\t},\n")
 		default:
 			panic("Unknown case")

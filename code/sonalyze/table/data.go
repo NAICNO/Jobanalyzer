@@ -267,7 +267,10 @@ func CvtString2Strings(s string) (any, error) {
 	if s == "" {
 		return make([]string, 0), nil
 	}
-	return strings.Split(s, ","), nil
+	ss := strings.Split(s, ",")
+	// Sorted is required by SetCompareStrings
+	slices.Sort(ss)
+	return ss, nil
 }
 
 func CvtString2GpuSet(s string) (any, error) {
@@ -435,4 +438,72 @@ func CompareBool(b1, b2 bool) int {
 		return 1
 	}
 	return -1
+}
+
+func SetCompareGpuSets(a, b gpuset.GpuSet, op int) bool {
+	switch op {
+	case opEq:
+		return a.Equal(b)
+	case opLt:
+		return b.HasSubset(a, true)
+	case opLe:
+		return b.HasSubset(a, false)
+	case opGt:
+		return a.HasSubset(b, true)
+	case opGe:
+		return a.HasSubset(b, false)
+	default:
+		panic("Unknown op")
+	}
+}
+
+// This is very special purpose.  `a` comes from the data record, `b` comes from CvtStringToStrings.
+// We currently require `b` to be sorted!  We could probably impose some restrictions on `a` with
+// suitable types.  There are probably other representations that would be better anyway.
+func SetCompareStrings(a, b []string, op int) bool {
+	// TODO: assert b is sorted, when running in debug mode
+	slices.Sort(a)
+Again:
+	switch op {
+	case opEq:
+		if len(a) != len(b) {
+			return false
+		}
+		for k := range a {
+			if a[k] != b[k] {
+				return false
+			}
+		}
+		return true
+	case opLt, opLe:
+		bx := 0
+		bSkipped := false
+		for _, s := range a {
+			for bx < len(b) && s < b[bx] {
+				bSkipped = true
+				bx++
+			}
+			if bx == len(b) || s != b[bx] {
+				return false
+			}
+			bx++
+		}
+		if bx < len(b) {
+			bSkipped = true
+		}
+		if op == opLt {
+			return bSkipped
+		}
+		return true
+	case opGt:
+		op = opLt
+		a, b = b, a
+		goto Again
+	case opGe:
+		op = opLe
+		a, b = b, a
+		goto Again
+	default:
+		panic("Bad operation")
+	}
 }
