@@ -174,6 +174,11 @@ DEFAULTS default
 ELBAT*/
 
 func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary) error {
+	summaries, err := ApplyQuery(jc.ParsedQuery, jobsFormatters, jobsPredicates, summaries)
+	if err != nil {
+		return err
+	}
+
 	// Sort ascending by lowest beginning timestamp, and if those are equal, by job number.
 	slices.SortStableFunc(summaries, func(a, b *jobSummary) int {
 		c := cmp.Compare(a.Start, b.Start)
@@ -209,6 +214,7 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 	}
 
 	summaries = slices.DeleteFunc(summaries, func(s *jobSummary) bool { return !s.selected })
+
 	FormatData(
 		out,
 		jc.PrintFields,

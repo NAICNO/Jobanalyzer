@@ -16,12 +16,7 @@ const (
 )
 
 type SacctCommand struct /* implements AnalysisCommand */ {
-	// Almost SharedArgs, but HostArgs instead of RecordFilterArgs
-	DevArgs
-	SourceArgs
-	HostArgs
-	VerboseArgs
-	ConfigFileArgs
+	HostAnalysisArgs
 	FormatArgs
 
 	// Selections
@@ -56,11 +51,7 @@ type SacctCommand struct /* implements AnalysisCommand */ {
 var _ = AnalysisCommand((*SacctCommand)(nil))
 
 func (sc *SacctCommand) Add(fs *CLI) {
-	sc.DevArgs.Add(fs)
-	sc.SourceArgs.Add(fs)
-	sc.HostArgs.Add(fs)
-	sc.VerboseArgs.Add(fs)
-	sc.ConfigFileArgs.Add(fs)
+	sc.HostAnalysisArgs.Add(fs)
 	sc.FormatArgs.Add(fs)
 
 	fs.Group("job-filter")
@@ -115,10 +106,7 @@ func (sc *SacctCommand) ReifyForRemote(x *ArgReifier) error {
 	x.Bool("array", sc.Array)
 	x.Bool("het", sc.Het)
 	return errors.Join(
-		sc.DevArgs.ReifyForRemote(x),
-		sc.SourceArgs.ReifyForRemote(x),
-		sc.HostArgs.ReifyForRemote(x),
-		sc.ConfigFileArgs.ReifyForRemote(x),
+		sc.HostAnalysisArgs.ReifyForRemote(x),
 		sc.FormatArgs.ReifyForRemote(x),
 	)
 }
@@ -126,11 +114,7 @@ func (sc *SacctCommand) ReifyForRemote(x *ArgReifier) error {
 func (sc *SacctCommand) Validate() error {
 	var e1, e7, e8, e9 error
 	e1 = errors.Join(
-		sc.DevArgs.Validate(),
-		sc.SourceArgs.Validate(),
-		sc.HostArgs.Validate(),
-		sc.VerboseArgs.Validate(),
-		sc.ConfigFileArgs.Validate(),
+		sc.HostAnalysisArgs.Validate(),
 		ValidateFormatArgs(
 			&sc.FormatArgs, sacctDefaultFields, sacctFormatters, sacctAliases, DefaultFixed),
 	)

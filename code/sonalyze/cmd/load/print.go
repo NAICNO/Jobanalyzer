@@ -16,8 +16,6 @@ import (
 
 package load
 
-import "go-utils/gpuset"
-
 %%
 
 FIELDS *ReportRecord

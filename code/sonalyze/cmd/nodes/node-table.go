@@ -7,6 +7,7 @@ import "go-utils/config"
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -17,6 +18,7 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
@@ -80,6 +82,55 @@ func init() {
 	DefAlias(nodeFormatters, "GpuCards", "gpus")
 	DefAlias(nodeFormatters, "GpuMemGB", "gpumem")
 	DefAlias(nodeFormatters, "GpuMemPct", "gpumempct")
+}
+
+// MT: Constant after initialization; immutable
+var nodePredicates = map[string]Predicate[*config.NodeConfigRecord]{
+	"Timestamp": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.Timestamp, v.(string))
+		},
+	},
+	"Hostname": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.Hostname, v.(string))
+		},
+	},
+	"Description": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.Description, v.(string))
+		},
+	},
+	"CpuCores": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.CpuCores, v.(int))
+		},
+	},
+	"MemGB": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.MemGB, v.(int))
+		},
+	},
+	"GpuCards": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.GpuCards, v.(int))
+		},
+	},
+	"GpuMemGB": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare(d.GpuMemGB, v.(int))
+		},
+	},
+	"GpuMemPct": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Bool,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return CompareBool(d.GpuMemPct, v.(bool))
+		},
+	},
 }
 
 func (c *NodeCommand) Summary(out io.Writer) {

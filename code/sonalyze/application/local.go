@@ -21,7 +21,7 @@ import (
 )
 
 func LocalOperation(command SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
-	args := command.SharedFlags()
+	args := command.SampleAnalysisFlags()
 
 	cfg, err := db.MaybeGetConfig(command.ConfigFile())
 	if err != nil {
@@ -70,7 +70,7 @@ func buildRecordFilters(
 	cfg *config.ClusterConfig,
 	verbose bool,
 ) (*hostglob.HostGlobber, *db.SampleFilter, error) {
-	args := command.SharedFlags()
+	args := command.SampleAnalysisFlags()
 
 	// Temporary limitation.
 

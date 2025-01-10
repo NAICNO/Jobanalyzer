@@ -5,6 +5,7 @@ package sacct
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -15,6 +16,7 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
@@ -194,6 +196,178 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 func init() {
 	DefAlias(sacctFormatters, "RelativeCPU", "rcpu")
 	DefAlias(sacctFormatters, "RelativeResidentMem", "rmem")
+}
+
+// MT: Constant after initialization; immutable
+var sacctPredicates = map[string]Predicate[*SacctRegular]{
+	"Start": Predicate[*SacctRegular]{
+		Convert: CvtString2IsoDateTimeOrUnknown,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.Start, v.(IsoDateTimeOrUnknown))
+		},
+	},
+	"End": Predicate[*SacctRegular]{
+		Convert: CvtString2IsoDateTimeOrUnknown,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.End, v.(IsoDateTimeOrUnknown))
+		},
+	},
+	"Submit": Predicate[*SacctRegular]{
+		Convert: CvtString2IsoDateTimeOrUnknown,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.Submit, v.(IsoDateTimeOrUnknown))
+		},
+	},
+	"RequestedCPU": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.RequestedCPU, v.(int))
+		},
+	},
+	"UsedCPU": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.UsedCPU, v.(int))
+		},
+	},
+	"RelativeCPU": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.RelativeCPU, v.(int))
+		},
+	},
+	"RelativeResidentMem": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.RelativeResidentMem, v.(int))
+		},
+	},
+	"User": Predicate[*SacctRegular]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.User, v.(Ustr))
+		},
+	},
+	"JobName": Predicate[*SacctRegular]{
+		Convert: CvtString2UstrMax30,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.JobName, v.(UstrMax30))
+		},
+	},
+	"State": Predicate[*SacctRegular]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.State, v.(Ustr))
+		},
+	},
+	"Account": Predicate[*SacctRegular]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.Account, v.(Ustr))
+		},
+	},
+	"Reservation": Predicate[*SacctRegular]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.Reservation, v.(Ustr))
+		},
+	},
+	"Layout": Predicate[*SacctRegular]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.Layout, v.(Ustr))
+		},
+	},
+	"NodeList": Predicate[*SacctRegular]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.NodeList, v.(Ustr))
+		},
+	},
+	"JobID": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.JobID, v.(int))
+		},
+	},
+	"MaxRSS": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.MaxRSS, v.(int))
+		},
+	},
+	"ReqMem": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.ReqMem, v.(int))
+		},
+	},
+	"ReqCPUS": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.ReqCPUS, v.(int))
+		},
+	},
+	"ReqGPUS": Predicate[*SacctRegular]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.ReqGPUS, v.(Ustr))
+		},
+	},
+	"ReqNodes": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.ReqNodes, v.(int))
+		},
+	},
+	"Elapsed": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.Elapsed, v.(int))
+		},
+	},
+	"Suspended": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.Suspended, v.(int))
+		},
+	},
+	"Timelimit": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.Timelimit, v.(int))
+		},
+	},
+	"ExitCode": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.ExitCode, v.(int))
+		},
+	},
+	"Wait": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.Wait, v.(int))
+		},
+	},
+	"Partition": Predicate[*SacctRegular]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.Partition, v.(Ustr))
+		},
+	},
+	"ArrayJobID": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.ArrayJobID, v.(int))
+		},
+	},
+	"ArrayIndex": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare(d.ArrayIndex, v.(int))
+		},
+	},
 }
 
 type SacctRegular struct {

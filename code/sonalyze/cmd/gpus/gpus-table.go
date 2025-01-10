@@ -5,6 +5,7 @@ package gpus
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -15,6 +16,7 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
@@ -84,6 +86,76 @@ var gpuFormatters = map[string]Formatter[*ReportLine]{
 			return FormatInt(d.MemClockMHz, ctx)
 		},
 		Help: "(int) Current memory clock",
+	},
+}
+
+// MT: Constant after initialization; immutable
+var gpuPredicates = map[string]Predicate[*ReportLine]{
+	"Timestamp": Predicate[*ReportLine]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.Timestamp, v.(DateTimeValue))
+		},
+	},
+	"Hostname": Predicate[*ReportLine]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.Hostname, v.(Ustr))
+		},
+	},
+	"Gpu": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.Gpu, v.(int))
+		},
+	},
+	"FanPct": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.FanPct, v.(int))
+		},
+	},
+	"PerfMode": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.PerfMode, v.(int))
+		},
+	},
+	"MemUsedKB": Predicate[*ReportLine]{
+		Convert: CvtString2Int64,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.MemUsedKB, v.(int64))
+		},
+	},
+	"TempC": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.TempC, v.(int))
+		},
+	},
+	"PowerDrawW": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.PowerDrawW, v.(int))
+		},
+	},
+	"PowerLimitW": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.PowerLimitW, v.(int))
+		},
+	},
+	"CeClockMHz": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.CeClockMHz, v.(int))
+		},
+	},
+	"MemClockMHz": Predicate[*ReportLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *ReportLine, v any) int {
+			return cmp.Compare(d.MemClockMHz, v.(int))
+		},
 	},
 }
 

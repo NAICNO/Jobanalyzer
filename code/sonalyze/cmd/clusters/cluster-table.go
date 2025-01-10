@@ -7,6 +7,7 @@ import "sonalyze/db"
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -17,6 +18,7 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
@@ -45,6 +47,26 @@ func init() {
 	DefAlias(clusterFormatters, "Name", "cluster")
 	DefAlias(clusterFormatters, "Description", "desc")
 	DefAlias(clusterFormatters, "Aliases", "aliases")
+}
+
+// MT: Constant after initialization; immutable
+var clusterPredicates = map[string]Predicate[*db.ClusterEntry]{
+	"Name": Predicate[*db.ClusterEntry]{
+		Compare: func(d *db.ClusterEntry, v any) int {
+			return cmp.Compare(d.Name, v.(string))
+		},
+	},
+	"Description": Predicate[*db.ClusterEntry]{
+		Compare: func(d *db.ClusterEntry, v any) int {
+			return cmp.Compare(d.Description, v.(string))
+		},
+	},
+	"Aliases": Predicate[*db.ClusterEntry]{
+		Convert: CvtString2Strings,
+		SetCompare: func(d *db.ClusterEntry, v any, op int) bool {
+			return SetCompareStrings(d.Aliases, v.([]string), op)
+		},
+	},
 }
 
 func (c *ClusterCommand) Summary(out io.Writer) {

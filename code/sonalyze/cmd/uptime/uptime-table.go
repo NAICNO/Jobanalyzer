@@ -5,6 +5,7 @@ package uptime
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -15,6 +16,7 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
@@ -57,6 +59,37 @@ func init() {
 	DefAlias(uptimeFormatters, "State", "state")
 	DefAlias(uptimeFormatters, "Start", "start")
 	DefAlias(uptimeFormatters, "End", "end")
+}
+
+// MT: Constant after initialization; immutable
+var uptimePredicates = map[string]Predicate[*UptimeLine]{
+	"Device": Predicate[*UptimeLine]{
+		Compare: func(d *UptimeLine, v any) int {
+			return cmp.Compare(d.Device, v.(string))
+		},
+	},
+	"Hostname": Predicate[*UptimeLine]{
+		Compare: func(d *UptimeLine, v any) int {
+			return cmp.Compare(d.Hostname, v.(string))
+		},
+	},
+	"State": Predicate[*UptimeLine]{
+		Compare: func(d *UptimeLine, v any) int {
+			return cmp.Compare(d.State, v.(string))
+		},
+	},
+	"Start": Predicate[*UptimeLine]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *UptimeLine, v any) int {
+			return cmp.Compare(d.Start, v.(DateTimeValue))
+		},
+	},
+	"End": Predicate[*UptimeLine]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *UptimeLine, v any) int {
+			return cmp.Compare(d.End, v.(DateTimeValue))
+		},
+	},
 }
 
 type UptimeLine struct {

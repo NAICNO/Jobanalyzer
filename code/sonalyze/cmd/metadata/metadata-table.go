@@ -5,6 +5,7 @@ package metadata
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -15,6 +16,7 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
@@ -43,6 +45,27 @@ func init() {
 	DefAlias(metadataFormatters, "Hostname", "host")
 	DefAlias(metadataFormatters, "Earliest", "earliest")
 	DefAlias(metadataFormatters, "Latest", "latest")
+}
+
+// MT: Constant after initialization; immutable
+var metadataPredicates = map[string]Predicate[*metadataItem]{
+	"Hostname": Predicate[*metadataItem]{
+		Compare: func(d *metadataItem, v any) int {
+			return cmp.Compare(d.Hostname, v.(string))
+		},
+	},
+	"Earliest": Predicate[*metadataItem]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *metadataItem, v any) int {
+			return cmp.Compare(d.Earliest, v.(DateTimeValue))
+		},
+	},
+	"Latest": Predicate[*metadataItem]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *metadataItem, v any) int {
+			return cmp.Compare(d.Latest, v.(DateTimeValue))
+		},
+	},
 }
 
 type metadataItem struct {
