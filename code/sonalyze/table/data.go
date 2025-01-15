@@ -21,7 +21,7 @@ import (
 type DateTimeValue = int64        // yyyy-mm-dd hh:mm
 type DateTimeValueOrBlank = int64 // yyyy-mm-dd hh:mm or 16 blanks
 type IsoDateTimeValue = int64
-type IsoDateTimeOrUnknown = int64 // yyyy-mm-ddThh:mmZhh:mm
+type IsoDateTimeOrUnknown = int64 // yyyy-mm-ddThh:mmZhh:mm or "Unknown"
 type DateValue = int64            // yyyy-mm-dd
 type TimeValue = int64            // hh:mm
 
@@ -233,6 +233,7 @@ func FormatDateTimeValue(timestamp DateTimeValue, ctx PrintMods) string {
 }
 
 func FormatDateTimeValueOrBlank(val DateTimeValueOrBlank, ctx PrintMods) string {
+	// I guess if we want Iso then the blank string should be one longer.
 	if val == 0 {
 		return "                "
 	}
@@ -240,10 +241,6 @@ func FormatDateTimeValueOrBlank(val DateTimeValueOrBlank, ctx PrintMods) string 
 }
 
 func FormatIsoDateTimeValue(t IsoDateTimeValue, ctx PrintMods) string {
-	return FormatDateTimeValue(DateTimeValue(t), ctx|PrintModIso)
-}
-
-func FormatI64IsoDateTimeValue(t int64, ctx PrintMods) string {
 	return FormatDateTimeValue(DateTimeValue(t), ctx|PrintModIso)
 }
 

@@ -76,6 +76,25 @@ FIELDS *jobSummary
   CpuTime            DurationValue desc:"Total CPU time of the job across all cores" alias:"cputime"
   GpuTime            DurationValue desc:"Total GPU time of the job across all cards" alias:"gputime"
 
+  # The expressions extracting bit flags happen to work for well-understood reasons, but this is
+  # brittle and works in Go only because the operator precedence is right (in C it would not work).
+  # See TODO in generate-table/README.md.
+
+  SomeGpu            bool          desc:"True iff process was seen to use some GPU" \
+                                   field:"computedFlags & kUsesGpu != 0"
+  NoGpu              bool          desc:"True iff process was seen to use no GPU" \
+                                   field:"computedFlags & kDoesNotUseGpu != 0"
+  Running            bool          desc:"True iff process appears to still be running at end of time window" \
+                                   field:"computedFlags & kIsLiveAtEnd != 0"
+  Completed          bool          desc:"True iff process appears not to be running at end of time window" \
+                                   field:"computedFlags & kIsNotLiveAtEnd != 0"
+  Zombie             bool          desc:"True iff the process looks like a zombie" \
+                                   field:"computedFlags & kIsZombie != 0"
+  Primordial         bool          desc:"True iff the process appears to have been alive at the start of the time window" \
+                                   field:"computedFlags & kIsLiveAtStart != 0"
+  BornLater          bool          desc:"True iff the process appears not to have been alive at the start of the time window" \
+                                   field:"computedFlags & kIsNotLiveAtStart != 0"
+
   # NOTE!  The slurm fields (via *sacctInfo) are checked for in perform.go.  We can add more slurm
   # fields here but if so they must also be added there.
 
@@ -147,7 +166,8 @@ ALIASES
               GpuAvgPct,GpuPeakPct,RelativeGpuAvgPct,RelativeGpuPeakPct,OccupiedRelativeGpuAvgPct,\
               OccupiedRelativeGpuPeakPct,GpuMemAvgGB,GpuMemPeakGB,RelativeGpuMemAvgPct,\
               RelativeGpuMemPeakPct,OccupiedRelativeGpuMemAvgPct,OccupiedRelativeGpuMemPeakPct,Gpus,GpuFail,\
-              Cmd,Host,Now,Now/sec,Classification,CpuTime/sec,CpuTime,GpuTime/sec,GpuTime
+              Cmd,Host,Now,Now/sec,Classification,CpuTime/sec,CpuTime,GpuTime/sec,GpuTime,\
+              SomeGpu,NoGpu,Running,Completed,Zombie,Primordial,BornLater
   Std         JobAndMark,User,Duration,Host
   Cpu         CpuAvgPct,CpuPeakPct
   RelativeCpu RelativeCpuAvgPct,RelativeCpuPeakPct

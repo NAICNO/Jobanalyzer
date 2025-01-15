@@ -85,7 +85,7 @@ type SampleAnalysisCommand interface {
 	AnalysisCommand
 
 	// Retrieve shared arguments
-	SharedFlags() *SharedArgs
+	SampleAnalysisFlags() *SampleAnalysisArgs
 
 	// Provide appropriate default settings for these flags
 	DefaultRecordFilters() (allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool)

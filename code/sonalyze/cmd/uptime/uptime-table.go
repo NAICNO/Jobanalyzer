@@ -5,6 +5,7 @@ package uptime
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -15,37 +16,38 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
 var uptimeFormatters = map[string]Formatter[*UptimeLine]{
 	"Device": {
 		Fmt: func(d *UptimeLine, ctx PrintMods) string {
-			return FormatString(d.Device, ctx)
+			return FormatString((d.Device), ctx)
 		},
 		Help: "(string) Device type: 'host' or 'gpu'",
 	},
 	"Hostname": {
 		Fmt: func(d *UptimeLine, ctx PrintMods) string {
-			return FormatString(d.Hostname, ctx)
+			return FormatString((d.Hostname), ctx)
 		},
 		Help: "(string) Host name for the device",
 	},
 	"State": {
 		Fmt: func(d *UptimeLine, ctx PrintMods) string {
-			return FormatString(d.State, ctx)
+			return FormatString((d.State), ctx)
 		},
 		Help: "(string) Device state: 'up' or 'down'",
 	},
 	"Start": {
 		Fmt: func(d *UptimeLine, ctx PrintMods) string {
-			return FormatDateTimeValue(d.Start, ctx)
+			return FormatDateTimeValue((d.Start), ctx)
 		},
 		Help: "(DateTimeValue) Start time of 'up' or 'down' window",
 	},
 	"End": {
 		Fmt: func(d *UptimeLine, ctx PrintMods) string {
-			return FormatDateTimeValue(d.End, ctx)
+			return FormatDateTimeValue((d.End), ctx)
 		},
 		Help: "(DateTimeValue) End time of 'up' or 'down' window",
 	},

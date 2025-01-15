@@ -59,7 +59,7 @@ DEFAULTS default
 ELBAT*/
 
 type MetadataCommand struct /* implements SampleAnalysisCommand */ {
-	SharedArgs
+	SampleAnalysisArgs
 	FormatArgs
 
 	MergeByHostAndJob bool // Inert, but compatible
@@ -72,7 +72,7 @@ type MetadataCommand struct /* implements SampleAnalysisCommand */ {
 var _ SampleAnalysisCommand = (*MetadataCommand)(nil)
 
 func (mdc *MetadataCommand) Add(fs *CLI) {
-	mdc.SharedArgs.Add(fs)
+	mdc.SampleAnalysisArgs.Add(fs)
 	mdc.FormatArgs.Add(fs)
 
 	fs.Group("aggregation")
@@ -90,7 +90,7 @@ func (mdc *MetadataCommand) Add(fs *CLI) {
 
 func (mdc *MetadataCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
-		mdc.SharedArgs.ReifyForRemote(x),
+		mdc.SampleAnalysisArgs.ReifyForRemote(x),
 		mdc.FormatArgs.ReifyForRemote(x),
 	)
 	x.Bool("merge-by-host-and-job", mdc.MergeByHostAndJob)
@@ -103,7 +103,7 @@ func (mdc *MetadataCommand) ReifyForRemote(x *ArgReifier) error {
 
 func (mdc *MetadataCommand) Validate() error {
 	return errors.Join(
-		mdc.SharedArgs.Validate(),
+		mdc.SampleAnalysisArgs.Validate(),
 		ValidateFormatArgs(
 			&mdc.FormatArgs,
 			metadataDefaultFields,

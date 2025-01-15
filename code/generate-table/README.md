@@ -91,7 +91,10 @@ generation of auxiliary data:
 
 * `desc`  - description for -fmt help
 * `alias` - comma-separated aliases
-* `field` - the actual field name, if different
+* `field` - the actual field name, if different; this can also be an expression that can
+   take the place of a field name syntactically, eg `fieldname[expression]` or even
+   expressions on the field value that start with the field name, eg `fieldname > 37`,
+   but not eg `(fieldname > 37)`.
 * `indirect` - the named field is a pointer, which may be nil; the field is to be
    fetched from the pointed-to structure
 * `config` - boolean `"true"` or `"false"`: field requires a config file to work,
@@ -180,11 +183,21 @@ We should check that every alias definition references fields or other aliases, 
 no circular aliases, and that no aliases are defined multiple times.  For very wide tables such as
 jobs there have been bugs where aliases point to nothing.
 
+The `field` attribute on the `Field` line (see grammar) allows for a little bit of computation but
+this is brittle; the expression in that attribute must start syntactically with the field name, and
+so anything like `(fieldname || somevar) && someothervar` would not work.  For this we want a
+`compute` attribute that has access to a free variable, call it `_object`, that holds the base
+object for the field reference, and it's the duty of the expression in that attribute to compute the
+field value in any way it sees fit: `(_object.fieldname || somevar) && someothervar`.  Thus we see
+that `field:"x"` is the same as `compute:"_object.x"` and no `field` attribute at all is the same as
+`field:"Name"` where `Name` is the table field name defined by that line.
+
 ### DONTDO
 
-While it's tempting to put all the output definitions together in some sort of struct, allowing them
-to be independently defined and defined only if present in the declaration allows the declaration to
-omit definitions and those definitions to be hand-written if need be.
+While it's tempting to put all the output definitions - formatters, predicates, summaries, help
+text, whatever - together in some sort of struct, we should not do that.  Allowing them to be
+independently created and created only if present in the spec allows the spec to omit definitions
+and those definitions to be hand-written if need be.
 
 ### Formal-ish grammar
 

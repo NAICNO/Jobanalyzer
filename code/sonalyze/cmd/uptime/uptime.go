@@ -14,7 +14,7 @@ import (
 )
 
 type UptimeCommand struct /* implements SampleAnalysisCommand */ {
-	SharedArgs
+	SampleAnalysisArgs
 	FormatArgs
 
 	Interval uint
@@ -25,7 +25,7 @@ type UptimeCommand struct /* implements SampleAnalysisCommand */ {
 var _ SampleAnalysisCommand = (*UptimeCommand)(nil)
 
 func (uc *UptimeCommand) Add(fs *CLI) {
-	uc.SharedArgs.Add(fs)
+	uc.SampleAnalysisArgs.Add(fs)
 	uc.FormatArgs.Add(fs)
 
 	fs.Group("application-control")
@@ -39,7 +39,7 @@ func (uc *UptimeCommand) Add(fs *CLI) {
 
 func (uc *UptimeCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
-		uc.SharedArgs.ReifyForRemote(x),
+		uc.SampleAnalysisArgs.ReifyForRemote(x),
 		uc.FormatArgs.ReifyForRemote(x),
 	)
 	x.Uint("interval", uc.Interval)
@@ -50,7 +50,7 @@ func (uc *UptimeCommand) ReifyForRemote(x *ArgReifier) error {
 
 func (uc *UptimeCommand) Validate() error {
 	var e1, e3, e4, e5 error
-	e1 = uc.SharedArgs.Validate()
+	e1 = uc.SampleAnalysisArgs.Validate()
 	if uc.Interval == 0 {
 		e3 = errors.New("-interval is required")
 	}

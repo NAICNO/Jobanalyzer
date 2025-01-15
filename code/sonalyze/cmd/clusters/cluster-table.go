@@ -7,6 +7,7 @@ import "sonalyze/db"
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -17,25 +18,26 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
 var clusterFormatters = map[string]Formatter[*db.ClusterEntry]{
 	"Name": {
 		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
-			return FormatString(d.Name, ctx)
+			return FormatString((d.Name), ctx)
 		},
 		Help: "(string) Cluster name",
 	},
 	"Description": {
 		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
-			return FormatString(d.Description, ctx)
+			return FormatString((d.Description), ctx)
 		},
 		Help: "(string) Human-consumable cluster summary",
 	},
 	"Aliases": {
 		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
-			return FormatStrings(d.Aliases, ctx)
+			return FormatStrings((d.Aliases), ctx)
 		},
 		Help: "(string list) Aliases of cluster",
 	},

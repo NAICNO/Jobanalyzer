@@ -21,7 +21,7 @@ const (
 )
 
 type LoadCommand struct /* implements SampleAnalysisCommand */ {
-	SharedArgs
+	SampleAnalysisArgs
 	FormatArgs
 
 	// Filtering and aggregation args
@@ -45,7 +45,7 @@ type LoadCommand struct /* implements SampleAnalysisCommand */ {
 var _ SampleAnalysisCommand = (*LoadCommand)(nil)
 
 func (lc *LoadCommand) Add(fs *CLI) {
-	lc.SharedArgs.Add(fs)
+	lc.SampleAnalysisArgs.Add(fs)
 	lc.FormatArgs.Add(fs)
 
 	fs.Group("aggregation")
@@ -67,7 +67,7 @@ func (lc *LoadCommand) Add(fs *CLI) {
 
 func (lc *LoadCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
-		lc.SharedArgs.ReifyForRemote(x),
+		lc.SampleAnalysisArgs.ReifyForRemote(x),
 		lc.FormatArgs.ReifyForRemote(x),
 	)
 
@@ -88,7 +88,7 @@ func (lc *LoadCommand) ReifyForRemote(x *ArgReifier) error {
 
 func (lc *LoadCommand) Validate() error {
 	e1 := errors.Join(
-		lc.SharedArgs.Validate(),
+		lc.SampleAnalysisArgs.Validate(),
 		ValidateFormatArgs(
 			&lc.FormatArgs, loadDefaultFields, loadFormatters, loadAliases, DefaultFixed),
 	)

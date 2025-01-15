@@ -7,6 +7,7 @@ import "sonalyze/sonarlog"
 import (
 	"cmp"
 	"fmt"
+	"go-utils/gpuset"
 	"io"
 	. "sonalyze/common"
 	. "sonalyze/table"
@@ -17,169 +18,170 @@ var (
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
+	_ gpuset.GpuSet
 )
 
 // MT: Constant after initialization; immutable
 var parseFormatters = map[string]Formatter[sonarlog.Sample]{
 	"Version": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUstr(d.Version, ctx)
+			return FormatUstr((d.Version), ctx)
 		},
 		Help: "(string) Semver string (MAJOR.MINOR.BUGFIX)",
 	},
 	"Timestamp": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatDateTimeValue(d.Timestamp, ctx)
+			return FormatDateTimeValue((d.Timestamp), ctx)
 		},
 		Help: "(DateTimeValue) Timestamp of record ",
 	},
 	"time": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatIsoDateTimeValue(d.Timestamp, ctx)
+			return FormatIsoDateTimeValue((d.Timestamp), ctx)
 		},
 		Help: "(IsoDateTimeValue) Timestamp of record",
 	},
 	"Host": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUstr(d.Host, ctx)
+			return FormatUstr((d.Host), ctx)
 		},
 		Help: "(string) Host name (FQDN)",
 	},
 	"Cores": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint32(d.Cores, ctx)
+			return FormatUint32((d.Cores), ctx)
 		},
 		Help: "(uint32) Total number of cores (including hyperthreads)",
 	},
 	"MemtotalKB": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint64(d.MemtotalKB, ctx)
+			return FormatUint64((d.MemtotalKB), ctx)
 		},
 		Help: "(uint64) Installed main memory",
 	},
 	"memtotal": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatU64Div1M(d.MemtotalKB, ctx)
+			return FormatU64Div1M((d.MemtotalKB), ctx)
 		},
 		Help: "(int) Installed main memory (GB)",
 	},
 	"User": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUstr(d.User, ctx)
+			return FormatUstr((d.User), ctx)
 		},
 		Help: "(string) Username of process owner",
 	},
 	"Pid": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint32(d.Pid, ctx)
+			return FormatUint32((d.Pid), ctx)
 		},
 		Help: "(uint32) Process ID",
 	},
 	"Ppid": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint32(d.Ppid, ctx)
+			return FormatUint32((d.Ppid), ctx)
 		},
 		Help: "(uint32) Process parent ID",
 	},
 	"Job": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint32(d.Job, ctx)
+			return FormatUint32((d.Job), ctx)
 		},
 		Help: "(uint32) Job ID",
 	},
 	"Cmd": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUstr(d.Cmd, ctx)
+			return FormatUstr((d.Cmd), ctx)
 		},
 		Help: "(string) Command name",
 	},
 	"CpuPct": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatFloat32(d.CpuPct, ctx)
+			return FormatFloat32((d.CpuPct), ctx)
 		},
 		Help: "(float32) cpu% reading (CONSULT DOCUMENTATION)",
 	},
 	"CpuKB": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint64(d.CpuKB, ctx)
+			return FormatUint64((d.CpuKB), ctx)
 		},
 		Help: "(uint64) Virtual memory reading",
 	},
 	"mem_gb": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatU64Div1M(d.CpuKB, ctx)
+			return FormatU64Div1M((d.CpuKB), ctx)
 		},
 		Help: "(int) Virtual memory reading",
 	},
 	"RssAnonKB": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint64(d.RssAnonKB, ctx)
+			return FormatUint64((d.RssAnonKB), ctx)
 		},
 		Help: "(uint64) RssAnon reading",
 	},
 	"res_gb": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatU64Div1M(d.RssAnonKB, ctx)
+			return FormatU64Div1M((d.RssAnonKB), ctx)
 		},
 		Help: "(int) RssAnon reading",
 	},
 	"Gpus": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatGpuSet(d.Gpus, ctx)
+			return FormatGpuSet((d.Gpus), ctx)
 		},
 		Help: "(GpuSet) GPU set (`none`,`unknown`,list)",
 	},
 	"GpuPct": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatFloat32(d.GpuPct, ctx)
+			return FormatFloat32((d.GpuPct), ctx)
 		},
 		Help: "(float32) GPU utilization reading",
 	},
 	"GpuMemPct": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatFloat32(d.GpuMemPct, ctx)
+			return FormatFloat32((d.GpuMemPct), ctx)
 		},
 		Help: "(float32) GPU memory percentage reading",
 	},
 	"GpuKB": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint64(d.GpuKB, ctx)
+			return FormatUint64((d.GpuKB), ctx)
 		},
 		Help: "(uint64) GPU memory utilization reading",
 	},
 	"gpumem_gb": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatU64Div1M(d.GpuKB, ctx)
+			return FormatU64Div1M((d.GpuKB), ctx)
 		},
 		Help: "(int) GPU memory utilization reading",
 	},
 	"GpuFail": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint8(d.GpuFail, ctx)
+			return FormatUint8((d.GpuFail), ctx)
 		},
 		Help: "(uint8) GPU status flag (0=ok, 1=error state)",
 	},
 	"CpuTimeSec": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint64(d.CpuTimeSec, ctx)
+			return FormatUint64((d.CpuTimeSec), ctx)
 		},
 		Help: "(uint64) CPU time since last reading (seconds, CONSULT DOCUMENTATION)",
 	},
 	"Rolledup": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint32(d.Rolledup, ctx)
+			return FormatUint32((d.Rolledup), ctx)
 		},
 		Help: "(uint32) Number of rolled-up processes, minus 1",
 	},
 	"Flags": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUint8(d.Flags, ctx)
+			return FormatUint8((d.Flags), ctx)
 		},
 		Help: "(uint8) Bit vector of flags, UTSL",
 	},
 	"CpuUtilPct": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatFloat32(d.CpuUtilPct, ctx)
+			return FormatFloat32((d.CpuUtilPct), ctx)
 		},
 		Help: "(float32) CPU utilization since last reading (percent, CONSULT DOCUMENTATION)",
 	},

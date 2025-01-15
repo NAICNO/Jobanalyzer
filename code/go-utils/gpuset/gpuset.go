@@ -28,6 +28,10 @@ func EmptyGpuSet() GpuSet {
 	return empty
 }
 
+func UnknownGpuSet() GpuSet {
+	return unknown
+}
+
 func NewGpuSet(s string) (GpuSet, error) {
 	gpuData := unknown
 	if s != "unknown" {
@@ -51,6 +55,27 @@ func NewGpuSet(s string) (GpuSet, error) {
 		}
 	}
 	return gpuData, nil
+}
+
+func (this GpuSet) Equal(that GpuSet) bool {
+	return this == that
+}
+
+func (this GpuSet) HasSubset(that GpuSet, proper bool) bool {
+	if this == unknown || that == unknown {
+		return false
+	}
+	return this & that == that && (!proper || this != that)
+}
+
+func Adjoin(s GpuSet, xs ...uint32) (GpuSet, error) {
+	for _, e := range xs {
+		if e >= 31 {
+			return unknown, fmt.Errorf("Out of range: %d", e)
+		}
+		s |= (1 << e)
+	}
+	return s, nil
 }
 
 func UnionGpuSets(a, b GpuSet) GpuSet {

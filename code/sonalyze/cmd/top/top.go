@@ -19,7 +19,6 @@ package top
 import (
 	"bufio"
 	_ "embed"
-	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -35,12 +34,7 @@ import (
 )
 
 type TopCommand struct /* implements AnalysisCommand */ {
-	// Almost SharedArgs, but HostArgs instead of RecordFilterArgs
-	DevArgs
-	SourceArgs
-	HostArgs
-	VerboseArgs
-	ConfigFileArgs
+	HostAnalysisArgs
 }
 
 var _ = AnalysisCommand((*TopCommand)(nil))
@@ -53,31 +47,15 @@ func (tc *TopCommand) Summary(out io.Writer) {
 }
 
 func (tc *TopCommand) Add(fs *CLI) {
-	tc.DevArgs.Add(fs)
-	tc.SourceArgs.Add(fs)
-	tc.HostArgs.Add(fs)
-	tc.VerboseArgs.Add(fs)
-	tc.ConfigFileArgs.Add(fs)
+	tc.HostAnalysisArgs.Add(fs)
 }
 
 func (tc *TopCommand) Validate() error {
-	var e1, e2, e3, e4, e5 error
-	e1 = tc.DevArgs.Validate()
-	e2 = tc.SourceArgs.Validate()
-	e3 = tc.HostArgs.Validate()
-	e4 = tc.VerboseArgs.Validate()
-	e5 = tc.ConfigFileArgs.Validate()
-	return errors.Join(e1, e2, e3, e4, e5)
+	return tc.HostAnalysisArgs.Validate()
 }
 
 func (tc *TopCommand) ReifyForRemote(x *ArgReifier) error {
-	// tc.Verbose is not reified, as for SharedArgs.
-	return errors.Join(
-		tc.DevArgs.ReifyForRemote(x),
-		tc.SourceArgs.ReifyForRemote(x),
-		tc.HostArgs.ReifyForRemote(x),
-		tc.ConfigFileArgs.ReifyForRemote(x),
-	)
+	return tc.HostAnalysisArgs.ReifyForRemote(x)
 }
 
 func (tc *TopCommand) MaybeFormatHelp() *FormatHelp {

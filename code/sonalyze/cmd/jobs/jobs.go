@@ -229,7 +229,7 @@ var uintArgs = []uintArg{
 }
 
 type JobsCommand struct /* implements SampleAnalysisCommand */ {
-	SharedArgs
+	SampleAnalysisArgs
 	FormatArgs
 
 	// Filter args
@@ -265,7 +265,7 @@ func (jc *JobsCommand) lookupUint(s string) uint {
 }
 
 func (jc *JobsCommand) Add(fs *CLI) {
-	jc.SharedArgs.Add(fs)
+	jc.SampleAnalysisArgs.Add(fs)
 	jc.FormatArgs.Add(fs)
 
 	fs.Group("job-filter")
@@ -311,7 +311,7 @@ func (jc *JobsCommand) Add(fs *CLI) {
 
 func (jc *JobsCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := errors.Join(
-		jc.SharedArgs.ReifyForRemote(x),
+		jc.SampleAnalysisArgs.ReifyForRemote(x),
 		jc.FormatArgs.ReifyForRemote(x),
 	)
 	for _, v := range uintArgs {
@@ -341,7 +341,7 @@ func (jc *JobsCommand) ReifyForRemote(x *ArgReifier) error {
 func (jc *JobsCommand) Validate() error {
 	var e1, e2, e3 error
 	e1 = errors.Join(
-		jc.SharedArgs.Validate(),
+		jc.SampleAnalysisArgs.Validate(),
 		ValidateFormatArgs(
 			&jc.FormatArgs, jobsDefaultFields, jobsFormatters, jobsAliases, DefaultFixed),
 	)
@@ -362,8 +362,8 @@ func (jc *JobsCommand) DefaultRecordFilters() (
 ) {
 	allUsers, skipSystemUsers, determined := jc.RecordFilterArgs.DefaultUserFilters()
 	if !determined {
-		// `--zombie` implies `--user=-` because the use case for `--zombie` is to hunt
-		// across all users.
+		// `--zombie` implies `--user=-` because the use case for `--zombie` is to hunt across all
+		// users.
 		allUsers, skipSystemUsers = jc.Zombie, false
 	}
 	excludeSystemCommands = true

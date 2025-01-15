@@ -85,14 +85,14 @@ func main() {
 // operators apply; if a type is "GpuSet" then some kind of set operators apply (TBD).
 
 type typeInfo struct {
-	helpName  string
-	formatter string
+	helpName    string			// default is the name as given
+	formatter   string			// default is Format<Typename>
 }
 
 var knownTypes = map[string]typeInfo{
 	"[]string": typeInfo{
-		helpName:  "string list",
-		formatter: "FormatStrings",
+		helpName:    "string list",
+		formatter:   "FormatStrings",
 	},
 	"F64Ceil": typeInfo{
 		helpName: "int",
@@ -110,8 +110,8 @@ var knownTypes = map[string]typeInfo{
 	"Ustr":                 typeInfo{helpName: "string"},
 	"UstrMax30":            typeInfo{helpName: "string"},
 	"gpuset.GpuSet": typeInfo{
-		helpName:  "GpuSet",
-		formatter: "FormatGpuSet",
+		helpName:    "GpuSet",
+		formatter:   "FormatGpuSet",
 	},
 }
 
@@ -152,6 +152,7 @@ import (
 	"cmp"
 	"fmt"
 	"io"
+	"go-utils/gpuset"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
@@ -160,6 +161,7 @@ var (
 	_ fmt.Formatter
     _ = io.SeekStart
 	_ = UstrEmpty
+    _ gpuset.GpuSet
 )
 `)
 	fieldList := fieldSection(block.TableName, &block.Fields)
@@ -232,13 +234,13 @@ func fieldFormatters(tableName string, fields *parser.FieldSect) (fieldList []fi
 		fmt.Fprintf(output, "\t\tFmt: func(d %s, ctx PrintMods) string {\n", fields.Type)
 		formatter := formatName(field.Type)
 		if ptrName := attrs["indirect"]; ptrName != "" {
-			fmt.Fprintf(output, "\t\t\tif d.%s != nil {\n", ptrName)
+			fmt.Fprintf(output, "\t\t\tif (d.%s) != nil {\n", ptrName)
 			fmt.Fprintf(
-				output, "\t\t\t\treturn %s(d.%s.%s, ctx)\n", formatter, ptrName, actualFieldName)
+				output, "\t\t\t\treturn %s((d.%s.%s), ctx)\n", formatter, ptrName, actualFieldName)
 			fmt.Fprintf(output, "\t\t\t}\n")
 			fmt.Fprintf(output, "\t\t\treturn \"?\"\n")
 		} else {
-			fmt.Fprintf(output, "\t\t\treturn %s(d.%s, ctx)\n", formatter, actualFieldName)
+			fmt.Fprintf(output, "\t\t\treturn %s((d.%s), ctx)\n", formatter, actualFieldName)
 		}
 		fmt.Fprintf(output, "\t\t},\n")
 		if d := attrs["desc"]; d != "" {
