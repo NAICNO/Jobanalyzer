@@ -484,7 +484,7 @@ var jobsAliases = map[string][]string{
 	"Gpu":                    []string{"GpuAvgPct", "GpuPeakPct"},
 	"RelativeGpu":            []string{"RelativeGpuAvgPct", "RelativeGpuPeakPct"},
 	"OccupiedRelativeGpu":    []string{"OccupiedRelativeGpuAvgPct", "OccupiedRelativeGpuPeakPct"},
-	"GpuMem":                 []string{"GpuMemAvgPct", "GpuMemPeakPct"},
+	"GpuMem":                 []string{"GpuMemAvgGB", "GpuMemPeakGB"},
 	"RelativeGpuMem":         []string{"RelativeGpuMemAvgPct", "RelativeGpuMemPeakPct"},
 	"OccupiedRelativeGpuMem": []string{"OccupiedRelativeGpuMemAvgPct", "OccupiedRelativeGpuMemPeakPct"},
 	"default":                []string{"std", "cpu", "mem", "gpu", "gpumem", "cmd"},

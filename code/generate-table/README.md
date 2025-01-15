@@ -176,6 +176,10 @@ they must also be added to the table.  This is flagged with a comment and is OK,
 bit might be better.  And so instead of the config / NeedsConfig attribute there may be a more
 general flags attribute on fields: flag:"slurm", flag:"config|slurm".
 
+We should check that every alias definition references fields or other aliases, and that there are
+no circular aliases, and that no aliases are defined multiple times.  For very wide tables such as
+jobs there have been bugs where aliases point to nothing.
+
 ### DONTDO
 
 While it's tempting to put all the output definitions together in some sort of struct, allowing them
