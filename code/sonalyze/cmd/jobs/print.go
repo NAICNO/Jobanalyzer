@@ -160,7 +160,7 @@ ALIASES
   RelativeGpu RelativeGpuAvgPct,RelativeGpuPeakPct
   OccupiedRelativeGpu \
               OccupiedRelativeGpuAvgPct,OccupiedRelativeGpuPeakPct
-  GpuMem      GpuMemAvgPct,GpuMemPeakPct
+  GpuMem      GpuMemAvgGB,GpuMemPeakGB
   RelativeGpuMem \
               RelativeGpuMemAvgPct,RelativeGpuMemPeakPct
   OccupiedRelativeGpuMem \

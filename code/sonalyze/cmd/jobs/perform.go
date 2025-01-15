@@ -193,7 +193,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 			needCmd = true
 		case "host", "Host":
 			needHost = true
-		case "jobm", "JobsAndMark":
+		case "jobm", "JobAndMark":
 			needJobAndMark = true
 		case "Submit", "JobName", "State", "Account", "Layout", "Reservation",
 			"Partition", "RequestedGpus", "DiskReadAvgGB", "DiskWriteAvgGB",
