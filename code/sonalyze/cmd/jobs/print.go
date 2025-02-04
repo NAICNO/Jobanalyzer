@@ -70,7 +70,7 @@ FIELDS *jobSummary
   Gpus               gpuset.GpuSet desc:"GPU device numbers used by the job, 'none' if none or 'unknown' in error states" alias:"gpus"
   GpuFail            int           desc:"Flag indicating GPU status (0=Ok, 1=Failing)" alias:"gpufail"
   Cmd                string        desc:"The commands invoking the processes of the job" alias:"cmd"
-  Host               string        desc:"List of the host name(s) running the job (first elements of FQDNs, compressed)" alias:"host"
+  Hosts              *Hostnames    desc:"List of the host name(s) running the job" alias:"host,hosts"
   Now                DateTimeValue desc:"The current time" alias:"now"
   Classification     int           desc:"Bit vector of live-at-start (2) and live-at-end (1) flags" alias:"classification"
   CpuTime            DurationValue desc:"Total CPU time of the job across all cores" alias:"cputime"
@@ -166,9 +166,9 @@ ALIASES
               GpuAvgPct,GpuPeakPct,RelativeGpuAvgPct,RelativeGpuPeakPct,OccupiedRelativeGpuAvgPct,\
               OccupiedRelativeGpuPeakPct,GpuMemAvgGB,GpuMemPeakGB,RelativeGpuMemAvgPct,\
               RelativeGpuMemPeakPct,OccupiedRelativeGpuMemAvgPct,OccupiedRelativeGpuMemPeakPct,Gpus,GpuFail,\
-              Cmd,Host,Now,Now/sec,Classification,CpuTime/sec,CpuTime,GpuTime/sec,GpuTime,\
+              Cmd,Hosts,Now,Now/sec,Classification,CpuTime/sec,CpuTime,GpuTime/sec,GpuTime,\
               SomeGpu,NoGpu,Running,Completed,Zombie,Primordial,BornLater
-  Std         JobAndMark,User,Duration,Host
+  Std         JobAndMark,User,Duration,Hosts
   Cpu         CpuAvgPct,CpuPeakPct
   RelativeCpu RelativeCpuAvgPct,RelativeCpuPeakPct
   Mem         MemAvgGB,MemPeakGB
@@ -229,6 +229,7 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 	}
 
 	summaries = slices.DeleteFunc(summaries, func(s *jobSummary) bool { return !s.selected })
+
 	FormatData(
 		out,
 		jc.PrintFields,

@@ -95,8 +95,8 @@ func (uc *UptimeCommand) computeReports(
 	fromIncl, toIncl := uc.InterpretFromToWithBounds(bounds)
 
 	slices.SortStableFunc(samples, func(a, b sonarlog.Sample) int {
-		if a.Host != b.Host {
-			return cmp.Compare(a.Host.String(), b.Host.String())
+		if a.Hostname != b.Hostname {
+			return cmp.Compare(a.Hostname.String(), b.Hostname.String())
 		}
 		return cmp.Compare(a.Timestamp, b.Timestamp)
 	})
@@ -118,7 +118,7 @@ func (uc *UptimeCommand) computeReports(
 			if !uc.OnlyUp {
 				reports = append(reports, &UptimeLine{
 					Device:   "host",
-					Hostname: hostFirst.Host.String(),
+					Hostname: hostFirst.Hostname.String(),
 					State:    "down",
 					Start:    DateTimeValue(fromIncl),
 					End:      DateTimeValue(hostFirst.Timestamp),
@@ -134,7 +134,7 @@ func (uc *UptimeCommand) computeReports(
 			if !uc.OnlyUp {
 				reports = append(reports, &UptimeLine{
 					Device:   "host",
-					Hostname: hostFirst.Host.String(),
+					Hostname: hostFirst.Hostname.String(),
 					State:    "down",
 					Start:    DateTimeValue(hostLast.Timestamp),
 					End:      DateTimeValue(toIncl),
@@ -165,7 +165,7 @@ func (uc *UptimeCommand) computeReports(
 			if !uc.OnlyDown {
 				reports = append(reports, &UptimeLine{
 					Device:   "host",
-					Hostname: hostFirst.Host.String(),
+					Hostname: hostFirst.Hostname.String(),
 					State:    "up",
 					Start:    DateTimeValue(samples[windowStart].Timestamp),
 					End:      DateTimeValue(samples[j-1].Timestamp),
@@ -188,7 +188,7 @@ func (uc *UptimeCommand) computeReports(
 			if !uc.OnlyUp {
 				reports = append(reports, &UptimeLine{
 					Device:   "host",
-					Hostname: hostFirst.Host.String(),
+					Hostname: hostFirst.Hostname.String(),
 					State:    "down",
 					Start:    DateTimeValue(prevTimestamp),
 					End:      DateTimeValue(samples[j].Timestamp),
@@ -215,7 +215,7 @@ func (uc *UptimeCommand) computeReports(
 			if !(updown == "up" && uc.OnlyDown) && !(updown == "down" && uc.OnlyUp) {
 				reports = append(reports, &UptimeLine{
 					Device:   "gpu",
-					Hostname: samples[w.start].Host.String(),
+					Hostname: samples[w.start].Hostname.String(),
 					State:    updown,
 					Start:    DateTimeValue(samples[start].Timestamp),
 					End:      DateTimeValue(samples[min(w.end, i)].Timestamp),
@@ -252,10 +252,10 @@ func (uc *UptimeCommand) computeHostWindows(
 		// Collect the window
 		hostStart := i
 		hostEnd := i
-		host := samples[hostStart].Host
+		host := samples[hostStart].Hostname
 		hostStr := host.String()
 		i++
-		for i < lim && samples[i].Host == host {
+		for i < lim && samples[i].Hostname == host {
 			if samples[i].Timestamp <= toIncl {
 				hostEnd = i
 			}
@@ -295,7 +295,7 @@ func (uc *UptimeCommand) computeAlwaysDown(
 			hs[StringToUstr(h)] = true
 		}
 		for _, sample := range samples {
-			delete(hs, sample.Host)
+			delete(hs, sample.Hostname)
 		}
 		for h := range hs {
 			if !hostGlobber.IsEmpty() && !hostGlobber.Match(h.String()) {

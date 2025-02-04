@@ -18,6 +18,7 @@ package top
 
 import (
 	"bufio"
+	"cmp"
 	_ "embed"
 	"fmt"
 	"io"
@@ -102,13 +103,7 @@ func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 
 	hostStreams := umaps.Values(streams)
 	slices.SortFunc(hostStreams, func(a, b *sonarlog.LoadData) int {
-		if a.Host.String() < b.Host.String() {
-			return -1
-		}
-		if a.Host.String() > b.Host.String() {
-			return 1
-		}
-		return 0
+		return cmp.Compare(a.Hostname.String(), b.Hostname.String())
 	})
 
 	// Ad-hoc fixed-format output for now
@@ -118,7 +113,7 @@ func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 	for _, v := range hostStreams {
 		if len(v.Data) > 0 {
 			buf.WriteString("HOST: ")
-			buf.WriteString(v.Host.String())
+			buf.WriteString(v.Hostname.String())
 			buf.WriteByte('\n')
 
 			for i := 1; i < len(v.Data); i++ {

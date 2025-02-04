@@ -65,7 +65,7 @@ func (this GpuSet) HasSubset(that GpuSet, proper bool) bool {
 	if this == unknown || that == unknown {
 		return false
 	}
-	return this & that == that && (!proper || this != that)
+	return this&that == that && (!proper || this != that)
 }
 
 func Adjoin(s GpuSet, xs ...uint32) (GpuSet, error) {

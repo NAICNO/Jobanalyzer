@@ -152,7 +152,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 
 	// Initialize the set of new bounds with the zero jobs
 	for _, z := range zero {
-		hostname := (*z)[0].Host
+		hostname := (*z)[0].Hostname
 		if _, found := newBounds[hostname]; !found {
 			probe, found := bounds[hostname]
 			if !found {
@@ -240,7 +240,7 @@ func MergeAcrossHostsByTime(streams SampleStreams) SampleStreams {
 		return streams
 	}
 	names := slices.Map(streams, func(s *SampleStream) string {
-		return (*s)[0].Host.String()
+		return (*s)[0].Hostname.String()
 	})
 	hostname := StringToUstr(strings.Join(hostglob.CompressHostnames(names), ","))
 	tmp := mergeStreams(
@@ -618,7 +618,7 @@ func sumRecords(
 		Sample: &db.Sample{
 			Version:    version,
 			Timestamp:  timestamp,
-			Host:       hostname,
+			Hostname:   hostname,
 			User:       username,
 			Job:        jobId,
 			Cmd:        command,
@@ -674,7 +674,7 @@ func foldSamples(samples SampleStream, truncTime func(int64) int64) SampleStream
 		r := sumRecords(
 			v000,
 			t0,
-			s0.Host,
+			s0.Hostname,
 			merged,
 			0,
 			merged,

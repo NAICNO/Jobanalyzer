@@ -77,7 +77,7 @@ type Sample struct {
 	CpuTimeSec uint64
 	Version    Ustr
 	Cluster    Ustr
-	Host       Ustr
+	Hostname   Ustr
 	Cores      uint32
 	User       Ustr
 	Job        uint32
@@ -102,7 +102,7 @@ type Sample struct {
 
 type LoadDatum struct {
 	Timestamp int64
-	Host      Ustr
+	Hostname  Ustr
 	Encoded   []byte
 }
 
@@ -110,7 +110,7 @@ type LoadDatum struct {
 
 type GpuDatum struct {
 	Timestamp int64
-	Host      Ustr
+	Hostname  Ustr
 	Encoded   []byte
 }
 
@@ -603,7 +603,7 @@ LineLoop:
 		samples = append(samples, &Sample{
 			Version:    version,
 			Timestamp:  timestamp,
-			Host:       hostname,
+			Hostname:   hostname,
 			Cores:      numCores,
 			MemtotalKB: memTotalKB,
 			User:       user,
@@ -626,14 +626,14 @@ LineLoop:
 		if load != nil {
 			loadData = append(loadData, &LoadDatum{
 				Timestamp: timestamp,
-				Host:      hostname,
+				Hostname:  hostname,
 				Encoded:   load,
 			})
 		}
 		if gpuinfo != nil {
 			gpuData = append(gpuData, &GpuDatum{
 				Timestamp: timestamp,
-				Host:      hostname,
+				Hostname:  hostname,
 				Encoded:   gpuinfo,
 			})
 		}

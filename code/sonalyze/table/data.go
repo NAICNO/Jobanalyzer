@@ -258,3 +258,10 @@ func FormatYyyyMmDdHhMmUtc(t int64) string {
 func FormatIsoUtc(t int64) string {
 	return time.Unix(t, 0).UTC().Format(time.RFC3339)
 }
+
+func FormatHostnames(x *Hostnames, ctx PrintMods) string {
+	if ctx&PrintModFixed != 0 {
+		return x.FormatBrief()
+	}
+	return x.FormatFull()
+}

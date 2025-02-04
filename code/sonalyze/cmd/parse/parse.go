@@ -34,7 +34,7 @@ FIELDS sonarlog.Sample
  Version    Ustr                desc:"Semver string (MAJOR.MINOR.BUGFIX)" alias:"version,v"
  Timestamp  DateTimeValue       desc:"Timestamp of record " alias:"localtime"
  time       IsoDateTimeValue    desc:"Timestamp of record" field:"Timestamp"
- Host       Ustr                desc:"Host name (FQDN)" alias:"host"
+ Hostname   Ustr                desc:"Host name (FQDN)" alias:"host"
  Cores      uint32              desc:"Total number of cores (including hyperthreads)" alias:"cores"
  MemtotalKB uint64              desc:"Installed main memory"
  memtotal   U64Div1M            desc:"Installed main memory (GB)" field:"MemtotalKB"
@@ -82,7 +82,7 @@ ALIASES
   default   job,user,cmd
   Default   Job,User,Cmd
   all       version,localtime,host,cores,memtotal,user,pid,job,cmd,cpu_pct,mem_gb,res_gb,gpus,gpu_pct,gpumem_pct,gpumem_gb,gpu_status,cputime_sec,rolledup,cpu_util_pct
-  All       Version,Timestamp,Host,Cores,MemtotalKB,User,Pid,Ppid,Job,Cmd,CpuPct,CpuKB,RssAnonKB,Gpus,GpuPct,GpuMemPct,GpuKB,GpuFail,CpuTimeSec,Rolledup,CpuUtilPct
+  All       Version,Timestamp,Hostname,Cores,MemtotalKB,User,Pid,Ppid,Job,Cmd,CpuPct,CpuKB,RssAnonKB,Gpus,GpuPct,GpuMemPct,GpuKB,GpuFail,CpuTimeSec,Rolledup,CpuUtilPct
   roundtrip v,time,host,cores,user,job,pid,cmd,cpu%,cpukib,gpus,gpu%,gpumem%,gpukib,gpufail,cputime_sec,rolledup
 
 DEFAULTS default
@@ -199,7 +199,7 @@ func (pc *ParseCommand) Perform(
 	if mergedSamples != nil {
 		// All elements that are part of the InputStreamKey must be part of the sort key here.
 		slices.SortStableFunc(mergedSamples, func(a, b *sonarlog.SampleStream) int {
-			c := cmp.Compare((*a)[0].Host.String(), (*b)[0].Host.String())
+			c := cmp.Compare((*a)[0].Hostname.String(), (*b)[0].Hostname.String())
 			if c == 0 {
 				c = cmp.Compare((*a)[0].Timestamp, (*b)[0].Timestamp)
 				if c == 0 {

@@ -85,14 +85,14 @@ func main() {
 // operators apply; if a type is "GpuSet" then some kind of set operators apply (TBD).
 
 type typeInfo struct {
-	helpName    string			// default is the name as given
-	formatter   string			// default is Format<Typename>
+	helpName  string // default is the name as given
+	formatter string // default is Format<Typename>
 }
 
 var knownTypes = map[string]typeInfo{
 	"[]string": typeInfo{
-		helpName:    "string list",
-		formatter:   "FormatStrings",
+		helpName:  "string list",
+		formatter: "FormatStrings",
 	},
 	"F64Ceil": typeInfo{
 		helpName: "int",
@@ -110,8 +110,12 @@ var knownTypes = map[string]typeInfo{
 	"Ustr":                 typeInfo{helpName: "string"},
 	"UstrMax30":            typeInfo{helpName: "string"},
 	"gpuset.GpuSet": typeInfo{
-		helpName:    "GpuSet",
-		formatter:   "FormatGpuSet",
+		helpName:  "GpuSet",
+		formatter: "FormatGpuSet",
+	},
+	"*Hostnames": typeInfo{
+		helpName:  "Hostnames",
+		formatter: "FormatHostnames",
 	},
 }
 
@@ -159,9 +163,9 @@ import (
 var (
 	_ = cmp.Compare(0,0)
 	_ fmt.Formatter
-    _ = io.SeekStart
+	_ = io.SeekStart
 	_ = UstrEmpty
-    _ gpuset.GpuSet
+	_ gpuset.GpuSet
 )
 `)
 	fieldList := fieldSection(block.TableName, &block.Fields)

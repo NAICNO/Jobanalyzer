@@ -32,7 +32,7 @@ func TestParseSonarLogTagged(t *testing.T) {
 		t.Errorf("Expected 5 readings, got %d", len(readings))
 	}
 	x := readings[0]
-	if x.Host.String() != "ml4.hpc.uio.no" || x.User.String() != "root" || x.Cmd.String() != "tuned" {
+	if x.Hostname.String() != "ml4.hpc.uio.no" || x.User.String() != "root" || x.Cmd.String() != "tuned" {
 		t.Errorf("First record is bogus: %v", x)
 	}
 	if (x.Flags & FlagHeartbeat) != 0 {
@@ -72,7 +72,7 @@ func TestParseSonarLogUntagged(t *testing.T) {
 		t.Errorf("Expected 2 readings, got %d", len(readings))
 	}
 	x := readings[0]
-	if x.Host.String() != "ml3.hpc.uio.no" || x.User.String() != "larsbent" || x.Cmd.String() != "python" {
+	if x.Hostname.String() != "ml3.hpc.uio.no" || x.User.String() != "larsbent" || x.Cmd.String() != "python" {
 		t.Errorf("First record is bogus: %v", x)
 	}
 	if (x.Flags & FlagHeartbeat) != 0 {
