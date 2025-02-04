@@ -254,7 +254,7 @@ func InstantiateSampleFilter(recordFilter *SampleFilter) func(*Sample) bool {
 					return false
 				}
 			case testIncludeHosts:
-				if !recordFilter.IncludeHosts.Match(e.Host.String()) {
+				if !recordFilter.IncludeHosts.Match(e.Hostname.String()) {
 					return false
 				}
 			case testIncludeSingleCommand:

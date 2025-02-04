@@ -65,8 +65,8 @@ type InputStreamSet map[InputStreamKey]*SampleStream
 // Per-cpu load data, expanded.
 
 type LoadData struct {
-	Host Ustr
-	Data []LoadDatum
+	Hostname Ustr
+	Data     []LoadDatum
 }
 
 type LoadDatum struct {
@@ -98,8 +98,8 @@ type LoadDataSet map[Ustr]*LoadData
 // Ditto for GPU data
 
 type GpuData struct {
-	Host Ustr
-	Data []GpuDatum // one per timestamp
+	Hostname Ustr
+	Data     []GpuDatum // one per timestamp
 }
 
 type PerGpuDatum struct {

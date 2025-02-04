@@ -30,7 +30,7 @@ func TestParseOldFieldNames(t *testing.T) {
 }
 
 func TestParseNewFieldNames(t *testing.T) {
-	fields := "Timestamp,Host,Cores,MemtotalKB,User,Pid,Ppid,Job,Cmd,CpuPct,CpuKB,RssAnonKB," +
+	fields := "Timestamp,Hostname,Cores,MemtotalKB,User,Pid,Ppid,Job,Cmd,CpuPct,CpuKB,RssAnonKB," +
 		"Gpus,GpuPct,GpuMemPct,GpuKB,GpuFail,CpuTimeSec,Rolledup,Flags,Version"
 	lines := strings.Split(mockitParse(t, fields), "\n")
 
@@ -39,7 +39,7 @@ func TestParseNewFieldNames(t *testing.T) {
 	}
 
 	// The next line should be the lowest timestamped record, but in the order of fields
-	expect := "Timestamp=2024-10-31 00:00,Host=ml6.hpc.uio.no,Cores=64,MemtotalKB=263419260," +
+	expect := "Timestamp=2024-10-31 00:00,Hostname=ml6.hpc.uio.no,Cores=64,MemtotalKB=263419260," +
 		"User=testuser,Pid=2811127,Ppid=1234,Job=1999327,Cmd=testprog.cuda,CpuPct=96.8,CpuKB=9361016," +
 		"RssAnonKB=476264,Gpus=5,GpuPct=85,GpuMemPct=16,GpuKB=581632,GpuFail=3,CpuTimeSec=1454," +
 		"Rolledup=4,Flags=0,Version=0.9.0"

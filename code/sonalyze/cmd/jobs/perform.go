@@ -11,7 +11,6 @@ import (
 	"go-utils/config"
 	"go-utils/gpuset"
 	"go-utils/hostglob"
-	umaps "go-utils/maps"
 	"go-utils/sonalyze"
 
 	. "sonalyze/cmd"
@@ -98,7 +97,7 @@ type jobAggregate struct {
 	computed [numF64Fields]float64
 	IsZombie bool
 	Cmd      string
-	Host     string
+	Hosts    *Hostnames
 }
 
 func (jc *JobsCommand) NeedsBounds() bool {
@@ -183,7 +182,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	}
 	var (
 		needCmd        = false
-		needHost       = false
+		needHosts      = false
 		needJobAndMark = false
 		needSacctInfo  = slurmFilter != nil
 	)
@@ -191,8 +190,8 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		switch f.Name {
 		case "cmd", "Cmd":
 			needCmd = true
-		case "host", "Host":
-			needHost = true
+		case "host", "hosts", "Hosts":
+			needHosts = true
 		case "jobm", "JobAndMark":
 			needJobAndMark = true
 		case "Submit", "JobName", "State", "Account", "Layout", "Reservation",
@@ -207,13 +206,13 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	discarded := 0
 	for _, job := range jobs {
 		if uint(len(*job)) >= minSamples {
-			host := (*job)[0].Host
+			host := (*job)[0].Hostname
 			jobId := (*job)[0].Job
 			user := (*job)[0].User
 			first := (*job)[0].Timestamp
 			last := (*job)[len(*job)-1].Timestamp
 			duration := last - first
-			aggregate := jc.aggregateJob(cfg, host, *job, needCmd, needHost, jc.Zombie)
+			aggregate := jc.aggregateJob(cfg, host, *job, needCmd, needHosts, jc.Zombie)
 			aggregate.computed[kDuration] = float64(duration)
 			usesGpu := !aggregate.Gpus.IsEmpty()
 			flags := 0
@@ -436,7 +435,7 @@ func (jc *JobsCommand) aggregateJob(
 	cfg *config.ClusterConfig,
 	host Ustr,
 	job sonarlog.SampleStream,
-	needCmd, needHost, needZombie bool,
+	needCmd, needHosts, needZombie bool,
 ) jobAggregate {
 	gpus := gpuset.EmptyGpuSet()
 	var (
@@ -531,39 +530,19 @@ func (jc *JobsCommand) aggregateJob(
 		}
 	}
 
-	hostnames := ""
-	if needHost {
-		// TODO: It's not clear any more why len(hosts) would ever be other than 1, and why this
-		// processing is needed at all.  This could be very old code that is no longer relevant.
-		// The Go code just copies the Rust code here.
-		//
-		// Names are assumed to be compressed as the set of jobs is always the output of some
-		// merge process that will compress when appropriate.  (If they are not compressed for
-		// reasons having to do with how the merge was done, and we don't compress them here,
-		// then there may be substantial redundancy in the output: "c1-10.fox, c1-11.fox", etc,
-		// instead of the desirable "c1-[10,11].fox", but that should not currently be an issue
-		// for `jobs`.)  Therefore there is no compression here.  But even the uniq'ing, sorting
-		// and joining may be redundant.
-		hosts := make(map[string]bool)
+	var hosts *Hostnames
+	if needHosts {
+		hosts = NewHostnames()
 		for _, s := range job {
-			var name string
-			if jc.PrintOpts.Fixed {
-				name, _, _ = strings.Cut(s.Host.String(), ".")
-			} else {
-				name = s.Host.String()
-			}
-			hosts[name] = true
+			hosts.Add(s.Hostname.String())
 		}
-		keys := umaps.Keys(hosts)
-		slices.Sort(keys)
-		hostnames = strings.Join(keys, ", ")
 	}
 	n := float64(len(job))
 	a := jobAggregate{
 		Gpus:     gpus,
 		GpuFail:  int(gpuFail),
 		Cmd:      cmd,
-		Host:     hostnames,
+		Hosts:    hosts,
 		IsZombie: isZombie,
 	}
 	a.computed[kCpuPctAvg] = cpuPctAvg / n

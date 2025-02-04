@@ -219,11 +219,11 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(string) The commands invoking the processes of the job",
 	},
-	"Host": {
+	"Hosts": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatString((d.Host), ctx)
+			return FormatHostnames((d.Hosts), ctx)
 		},
-		Help: "(string) List of the host name(s) running the job (first elements of FQDNs, compressed)",
+		Help: "(Hostnames) List of the host name(s) running the job",
 	},
 	"Now": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -462,7 +462,8 @@ func init() {
 	DefAlias(jobsFormatters, "Gpus", "gpus")
 	DefAlias(jobsFormatters, "GpuFail", "gpufail")
 	DefAlias(jobsFormatters, "Cmd", "cmd")
-	DefAlias(jobsFormatters, "Host", "host")
+	DefAlias(jobsFormatters, "Hosts", "host")
+	DefAlias(jobsFormatters, "Hosts", "hosts")
 	DefAlias(jobsFormatters, "Now", "now")
 	DefAlias(jobsFormatters, "Classification", "classification")
 	DefAlias(jobsFormatters, "CpuTime", "cputime")
@@ -517,8 +518,8 @@ var jobsAliases = map[string][]string{
 	"gpumem":                 []string{"gpumem-avg", "gpumem-peak"},
 	"rgpumem":                []string{"rgpumem-avg", "rgpumem-peak"},
 	"sgpumem":                []string{"sgpumem-avg", "sgpumem-peak"},
-	"All":                    []string{"JobAndMark", "Job", "User", "Duration", "Duration/sec", "Start", "Start/sec", "End", "End/sec", "CpuAvgPct", "CpuPeakPct", "RelativeCpuAvgPct", "RelativeCpuPeakPct", "MemAvgGB", "MemPeakGB", "RelativeMemAvgPct", "RelativeMemPeakPct", "ResidentMemAvgGB", "ResidentMemPeakGB", "RelativeResidentMemAvgPct", "RelativeResidentMemPeakPct", "GpuAvgPct", "GpuPeakPct", "RelativeGpuAvgPct", "RelativeGpuPeakPct", "OccupiedRelativeGpuAvgPct", "OccupiedRelativeGpuPeakPct", "GpuMemAvgGB", "GpuMemPeakGB", "RelativeGpuMemAvgPct", "RelativeGpuMemPeakPct", "OccupiedRelativeGpuMemAvgPct", "OccupiedRelativeGpuMemPeakPct", "Gpus", "GpuFail", "Cmd", "Host", "Now", "Now/sec", "Classification", "CpuTime/sec", "CpuTime", "GpuTime/sec", "GpuTime", "SomeGpu", "NoGpu", "Running", "Completed", "Zombie", "Primordial", "BornLater"},
-	"Std":                    []string{"JobAndMark", "User", "Duration", "Host"},
+	"All":                    []string{"JobAndMark", "Job", "User", "Duration", "Duration/sec", "Start", "Start/sec", "End", "End/sec", "CpuAvgPct", "CpuPeakPct", "RelativeCpuAvgPct", "RelativeCpuPeakPct", "MemAvgGB", "MemPeakGB", "RelativeMemAvgPct", "RelativeMemPeakPct", "ResidentMemAvgGB", "ResidentMemPeakGB", "RelativeResidentMemAvgPct", "RelativeResidentMemPeakPct", "GpuAvgPct", "GpuPeakPct", "RelativeGpuAvgPct", "RelativeGpuPeakPct", "OccupiedRelativeGpuAvgPct", "OccupiedRelativeGpuPeakPct", "GpuMemAvgGB", "GpuMemPeakGB", "RelativeGpuMemAvgPct", "RelativeGpuMemPeakPct", "OccupiedRelativeGpuMemAvgPct", "OccupiedRelativeGpuMemPeakPct", "Gpus", "GpuFail", "Cmd", "Hosts", "Now", "Now/sec", "Classification", "CpuTime/sec", "CpuTime", "GpuTime/sec", "GpuTime", "SomeGpu", "NoGpu", "Running", "Completed", "Zombie", "Primordial", "BornLater"},
+	"Std":                    []string{"JobAndMark", "User", "Duration", "Hosts"},
 	"Cpu":                    []string{"CpuAvgPct", "CpuPeakPct"},
 	"RelativeCpu":            []string{"RelativeCpuAvgPct", "RelativeCpuPeakPct"},
 	"Mem":                    []string{"MemAvgGB", "MemPeakGB"},

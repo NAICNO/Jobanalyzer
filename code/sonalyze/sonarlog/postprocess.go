@@ -65,7 +65,7 @@ func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.S
 		return xs
 	}
 
-	conf := cfg.LookupHost(xs[0].Host.String())
+	conf := cfg.LookupHost(xs[0].Hostname.String())
 	if conf == nil {
 		return xs
 	}
@@ -108,13 +108,13 @@ func createInputStreams(
 	for _, entries := range entryBlobs {
 		for _, e := range entries {
 			if wantBounds {
-				if bound, found := bounds[e.Host]; found {
-					bounds[e.Host] = Timebound{
+				if bound, found := bounds[e.Hostname]; found {
+					bounds[e.Hostname] = Timebound{
 						Earliest: min(bound.Earliest, e.Timestamp),
 						Latest:   max(bound.Latest, e.Timestamp),
 					}
 				} else {
-					bounds[e.Host] = Timebound{
+					bounds[e.Hostname] = Timebound{
 						Earliest: e.Timestamp,
 						Latest:   e.Timestamp,
 					}
@@ -125,7 +125,7 @@ func createInputStreams(
 				continue
 			}
 
-			key := InputStreamKey{e.Host, streamId(e), e.Cmd}
+			key := InputStreamKey{e.Hostname, streamId(e), e.Cmd}
 			if stream, found := streams[key]; found {
 				*stream = append(*stream, Sample{Sample: e})
 			} else {
@@ -266,14 +266,14 @@ func rectifyLoadData(dataBlobs [][]*db.LoadDatum) (streams LoadDataSet, bounds T
 				Time:    d.Timestamp,
 				Decoded: decoded,
 			}
-			if stream, found := streams[d.Host]; found {
+			if stream, found := streams[d.Hostname]; found {
 				stream.Data = append(stream.Data, datum)
 			} else {
 				stream := LoadData{
-					Host: d.Host,
-					Data: []LoadDatum{datum},
+					Hostname: d.Hostname,
+					Data:     []LoadDatum{datum},
 				}
-				streams[d.Host] = &stream
+				streams[d.Hostname] = &stream
 			}
 		}
 	}
@@ -380,14 +380,14 @@ func rectifyGpuData(dataBlobs [][]*db.GpuDatum) (streams GpuDataSet, bounds Time
 				Time:    d.Timestamp,
 				Decoded: decoded,
 			}
-			if stream, found := streams[d.Host]; found {
+			if stream, found := streams[d.Hostname]; found {
 				stream.Data = append(stream.Data, datum)
 			} else {
 				stream := GpuData{
-					Host: d.Host,
-					Data: []GpuDatum{datum},
+					Hostname: d.Hostname,
+					Data:     []GpuDatum{datum},
 				}
-				streams[d.Host] = &stream
+				streams[d.Hostname] = &stream
 			}
 		}
 	}

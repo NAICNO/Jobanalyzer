@@ -41,9 +41,9 @@ var parseFormatters = map[string]Formatter[sonarlog.Sample]{
 		},
 		Help: "(IsoDateTimeValue) Timestamp of record",
 	},
-	"Host": {
+	"Hostname": {
 		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
-			return FormatUstr((d.Host), ctx)
+			return FormatUstr((d.Hostname), ctx)
 		},
 		Help: "(string) Host name (FQDN)",
 	},
@@ -191,7 +191,7 @@ func init() {
 	DefAlias(parseFormatters, "Version", "version")
 	DefAlias(parseFormatters, "Version", "v")
 	DefAlias(parseFormatters, "Timestamp", "localtime")
-	DefAlias(parseFormatters, "Host", "host")
+	DefAlias(parseFormatters, "Hostname", "host")
 	DefAlias(parseFormatters, "Cores", "cores")
 	DefAlias(parseFormatters, "User", "user")
 	DefAlias(parseFormatters, "Pid", "pid")
@@ -241,7 +241,7 @@ var parseAliases = map[string][]string{
 	"default":   []string{"job", "user", "cmd"},
 	"Default":   []string{"Job", "User", "Cmd"},
 	"all":       []string{"version", "localtime", "host", "cores", "memtotal", "user", "pid", "job", "cmd", "cpu_pct", "mem_gb", "res_gb", "gpus", "gpu_pct", "gpumem_pct", "gpumem_gb", "gpu_status", "cputime_sec", "rolledup", "cpu_util_pct"},
-	"All":       []string{"Version", "Timestamp", "Host", "Cores", "MemtotalKB", "User", "Pid", "Ppid", "Job", "Cmd", "CpuPct", "CpuKB", "RssAnonKB", "Gpus", "GpuPct", "GpuMemPct", "GpuKB", "GpuFail", "CpuTimeSec", "Rolledup", "CpuUtilPct"},
+	"All":       []string{"Version", "Timestamp", "Hostname", "Cores", "MemtotalKB", "User", "Pid", "Ppid", "Job", "Cmd", "CpuPct", "CpuKB", "RssAnonKB", "Gpus", "GpuPct", "GpuMemPct", "GpuKB", "GpuFail", "CpuTimeSec", "Rolledup", "CpuUtilPct"},
 	"roundtrip": []string{"v", "time", "host", "cores", "user", "job", "pid", "cmd", "cpu%", "cpukib", "gpus", "gpu%", "gpumem%", "gpukib", "gpufail", "cputime_sec", "rolledup"},
 }
 

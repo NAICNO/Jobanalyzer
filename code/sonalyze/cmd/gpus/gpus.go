@@ -143,7 +143,7 @@ func (gc *GpuCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 				if gc.Gpu != -1 && i == gc.Gpu {
 					var r ReportLine
 					r.Timestamp = DateTimeValue(d.Time)
-					r.Hostname = s.Host
+					r.Hostname = s.Hostname
 					r.Gpu = i
 					r.PerGpuDatum = &gpu
 					reports = append(reports, &r)

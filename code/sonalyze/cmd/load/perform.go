@@ -73,7 +73,7 @@ func (lc *LoadCommand) Perform(
 		if cfg != nil {
 			for _, stream := range mergedStreams {
 				// probe is non-nil by previous construction
-				probe := cfg.LookupHost((*stream)[0].Host.String())
+				probe := cfg.LookupHost((*stream)[0].Hostname.String())
 				if theConf.Description != "" {
 					theConf.Description += "|||" // JSON-compatible separator
 				}
@@ -102,7 +102,7 @@ func (lc *LoadCommand) Perform(
 	// Generate data to be printed
 	reports := make([]LoadReport, 0)
 	for _, stream := range mergedStreams {
-		hostname := (*stream)[0].Host.String()
+		hostname := (*stream)[0].Hostname.String()
 		conf := mergedConf
 		if conf == nil && cfg != nil {
 			conf = cfg.LookupHost(hostname)
@@ -142,13 +142,13 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 	default:
 		panic("Unexpected case")
 	}
-	host := (*ss)[0].Host
+	host := (*ss)[0].Hostname
 	t := trunc(fromIncl)
 	result := make(sonarlog.SampleStream, 0)
 
 	for _, s := range *ss {
 		for t < s.Timestamp {
-			newS := sonarlog.Sample{Sample: &db.Sample{Timestamp: t, Host: host}}
+			newS := sonarlog.Sample{Sample: &db.Sample{Timestamp: t, Hostname: host}}
 			result = append(result, newS)
 			t = step(t)
 		}
@@ -157,7 +157,7 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 	}
 	ending := trunc(toIncl)
 	for t <= ending {
-		newS := sonarlog.Sample{Sample: &db.Sample{Timestamp: t, Host: host}}
+		newS := sonarlog.Sample{Sample: &db.Sample{Timestamp: t, Hostname: host}}
 		result = append(result, newS)
 		t = step(t)
 	}
@@ -208,7 +208,7 @@ func generateReport(
 			GpuGB:               int(d.GpuKB / (1024 * 1024)),
 			RelativeGpuMem:      relativeGpuMem,
 			Gpus:                d.Gpus,
-			Hostname:            d.Host,
+			Hostname:            d.Hostname,
 		})
 	}
 	return
