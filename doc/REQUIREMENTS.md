@@ -13,24 +13,25 @@ Jobanalyzer is a set of tools providing the following types of services for the 
   patterns of the systems and installed software; guidance in moving users' computations from one
   system to another to improve performance or even out load spikes
 
-- For users: first-level analyses of computation patterns, with a view to appropriate system use and
-  scalability - cpu use, gpu use, i/o; guidance in moving a computation from one system to another
-  to improve performance and make appropriate and optimal use of resources for a task
+- For users and support staff: first-level analyses of computation patterns, with a view to
+  appropriate system use and scalability - cpu use, gpu use, i/o; guidance in moving a computation
+  from one system to another to improve performance and make appropriate and optimal use of
+  resources for a task
 
 - For the public and decision makers: utilization statistics and other high-level data about the
   value of the system, this could be pretty basic (X% utilization during the last quarter) or
   sophisticated (system used for N months in project X which published papers P and Q)
 
 A list of detailed use cases and concrete requirements is presented later; the following subsections
-provide a high-level breakdown.
+provide a high-level breakdown.  There is a list of non-cases at the end.
 
 ### Systems administrators
 
-Administrators will partly come to Jobanalyzer via [its web interface](http://158.39.48.160/).  The
-web page presents a management console with data about each of the systems under its control.  These
-data will typically include:
+Administrators will partly come to Jobanalyzer via [its web interface](https://naic-monitor.uio.no).
+The web page presents a management console with data about each of the systems under its control.
+These data will typically include:
 
-- Current and historical system load
+- Current and historical system load (computed in a job-centric way)
 
 - Current and historical jobs
 
@@ -40,6 +41,8 @@ data will typically include:
   resouces they requested, a typical case is that a job running on a machine meant for
   GPU/accelerator computation is not using the accelerators
 
+- Detailed job data including profiles for individual jobs
+
 The data on this console will mostly come from periodic reports, that is, a query or dashboard will
 display the contents of a report already generated.  Some reports will update as often as hourly,
 others more rarely.
@@ -48,11 +51,15 @@ Adminstrators will partly also use a command line interface, that allows for a m
 analysis of users' jobs with an eye toward moving jobs and users from the system they are on to a
 machine that better fit their jobs.
 
-### Users
+In this context, the "load" on the system is the sum of the load of the users' jobs, not necessarily
+the true load, which would also include the operating system and similar "overhead".
 
-Users will currently come to Jobanalyzer via its command line interface (there is room for a web
-interface or other GUI in the future).  The user will query the system for information about her own
-running or completed jobs to examine them for system utilization and scalability.
+### Users and support staff
+
+Users and support staff will currently come to Jobanalyzer via its command line interface (there is
+room for a web interface or other GUI in the future).  The user will query the system for
+information about her own running or completed jobs to examine them for system utilization and
+scalability; the support staff, working on a case, will examine the submitting user's jobs.
 
 There may be an interface that allows a job to be compared post-mortem with a database of benchmark
 results for the purpose of finding a machine that is a good fit for the next run of the job.
@@ -114,9 +121,9 @@ At least these:
 - web-based load dashboard that shows current or near-current and historical loads of all known
   systems, specific UI TBD (see Use cases, below)
 
-- web-based alert dashboard that shows alerts for various conditions that are of interest, such
-  as inappropriate system use, dead processes, and downtime, specific triggers TBD (see Use cases,
-  below), with functionality for extracting reports of users or jobs that regularly cause alerts
+- web-based alert dashboard that shows alerts for various conditions that are of interest, such as
+  inappropriate system use; specific triggers are TBD (see Use cases, below), with functionality for
+  extracting reports of users or jobs that regularly cause alerts
 
 - command-line based tool to examine specific systems and jobs in detail, breaking down jobs
   into per-system components and systems into clusters of jobs running on them
@@ -183,6 +190,9 @@ resources (GPU lists them as active but they are dead).
 To retrieve these data, *A* goes to the web-based overview dashboard, selects system and time window
 (usually only the last few days are interesting), and gets a textual report of jobs that appear to
 be dead weight and the reason for this.
+
+*NOTE*, Story 2 is probably irrelevant now, this is the domain of traditional systems management
+software, which will do this job better.
 
 #### `adm_historical_system_load`
 
@@ -342,6 +352,9 @@ or to assess the appropriateness of running the program on the system in questio
 user stories are also very close to the `adm_misfits` stories, but coming from the user perspective,
 not that of the admin.
 
+(User stories overlap in large part with support staff stories, and we don't currently distinguish
+between them.)
+
 #### `usr_resource_use`
 
 *Story 1 (WP2.3.5):* *U* submits an HPC job and wants to assess how the job used the available hardware,
@@ -425,3 +438,6 @@ By and large, these are use cases that are better served by other tools.
 * In general, traditional "profiling" use cases during development (finding hotspots in code, etc)
   are out of bounds for this project.
 
+* In general, "systems monitoring" use cases - looking for nodes or clusters or interfaces that are
+  down, job systems that don't work, etc - are out of bounds (even though some of the data could be
+  used to build some such services).  Use traditional systems management software for this.
