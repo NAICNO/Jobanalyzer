@@ -53,6 +53,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"slices"
 	"strings"
 
 	"sonalyze/sonarlog"
@@ -66,27 +67,44 @@ func (pc *ProfileCommand) printProfile(
 	hasRolledup bool,
 	m *profData,
 	processes sonarlog.SampleStreams,
+	pif *processIndexFactory,
 ) error {
-	// Add the "nproc" / "NumProcs" field if it is required (we can't do it until rollup has
-	// happened) and the fields are still the defaults.  This is not quite compatible with older
-	// sonalyze: here we have default fields only if no fields were specified (defaults were
-	// applied), while in older code a field list identical to the default would be taken as having
-	// default fields too.  The new logic is better.
+	// Add the "nproc" field if it is required (we can't do it until rollup has happened) and the
+	// fields are still the defaults.  This is not quite compatible with older sonalyze: here we
+	// have default fields only if no fields were specified (defaults were applied), while in older
+	// code a field list identical to the default would be taken as having default fields too.  The
+	// new logic is better.
 	//
 	// Anyway, this hack depends on nothing interesting having happened to pc.Fmt or pc.PrintFields
 	// after the initial parsing.
+	//
+	// The situation is the same for the "host" field: it gets added late if there is more than one
+	// host in the profile.  This field could be anywhere for json output, but for fixed output we
+	// want it second, after the timestamp.
 	hasDefaultFields := pc.Fmt == ""
-	if hasRolledup && hasDefaultFields {
-		pc.PrintFields, _, _ = ParseFormatSpec(
-			profileDefaultFieldsWithNproc,
-			"",
-			profileFormatters,
-			profileAliases,
-		)
+	if hasDefaultFields {
+		fields := slices.Clone(profileAliases["default"])
+		changed := false
+		if hasRolledup {
+			fields = slices.Insert(fields, len(fields)-1, "nproc")
+			changed = true
+		}
+		if pif.isMultiHost() {
+			fields = slices.Insert(fields, 1, "host")
+			changed = true
+		}
+		if changed {
+			pc.PrintFields, _, _ = ParseFormatSpec(
+				strings.Join(fields, ","),
+				"",
+				profileFormatters,
+				profileAliases,
+			)
+		}
 	}
 
 	if pc.PrintOpts.Csv || pc.PrintOpts.Awk {
-		header, matrix, err := pc.collectCsvOrAwk(m, processes)
+		header, matrix, err := pc.collectCsvOrAwk(m, processes, pif)
 		if err != nil {
 			return err
 		}
@@ -96,14 +114,14 @@ func (pc *ProfileCommand) printProfile(
 			FormatRawRowmajorAwk(out, header, matrix)
 		}
 	} else if pc.htmlOutput {
-		labels, rows, err := pc.collectHtml(m, processes)
+		labels, rows, err := pc.collectHtml(m, processes, pif)
 		if err != nil {
 			return err
 		}
 		quant := pc.PrintFields[0].Name
 		formatHtml(out, jobId, quant, host, user, int(pc.Bucket), labels, rows)
 	} else if pc.PrintOpts.Fixed {
-		data, err := pc.collectFixed(m, processes)
+		data, err := pc.collectFixed(m, processes, pif)
 		if err != nil {
 			return err
 		}
@@ -115,7 +133,7 @@ func (pc *ProfileCommand) printProfile(
 			data,
 		)
 	} else if pc.PrintOpts.Json {
-		formatJson(out, m, processes, pc.testNoMemory)
+		formatJson(out, m, processes, pif, pc.testNoMemory)
 	} else {
 		panic("Unknown print format")
 	}
@@ -131,6 +149,7 @@ func (pc *ProfileCommand) printProfile(
 func (pc *ProfileCommand) collectHtml(
 	m *profData,
 	processes sonarlog.SampleStreams,
+	pif *processIndexFactory,
 ) (labels []string, rows []string, err error) {
 	var formatter func(*profDatum) string
 	formatter, err = lookupSingleFormatter(pc.PrintFields, true)
@@ -149,12 +168,13 @@ func (pc *ProfileCommand) collectHtml(
 	rowLabels := make([]string, len(processes))
 	for i, p := range processes {
 		// Here, use the raw pid for compatibility with the Rust code
-		rowLabels[i] = fmt.Sprintf("%s (%d)", (*p)[0].Cmd.String(), (*p)[0].Pid)
+		pid := pif.indexFor((*p)[0])
+		rowLabels[i] = fmt.Sprintf("%s (%s)", (*p)[0].Cmd.String(), pif.nameFor(pid))
 	}
 
 	rows = make([]string, len(processes))
 	for i, p := range processes {
-		cn := processId((*p)[0])
+		cn := pif.indexFor((*p)[0])
 		s := ""
 		sep := ""
 		for _, rn := range rowNames {
@@ -174,10 +194,17 @@ func (pc *ProfileCommand) collectHtml(
 
 // This returns a row-of-columns representation, and the header will be nil if a header is not
 // explicitly requested in the options.
+//
+// NOTE, for multi-host jobs the host is encoded in the header names, this is a tricky matter and
+// really not a super happy outcome (esp for awk, since the header is not printed by default).  It's
+// no worse than the PID or command, really, but the header field is becoming dangerously
+// overloaded.  The syntax of each header field is always <something>(pid@host) or <something>(pid)
+// so it is not a crisis, but we could consider cleaning this up.
 
 func (pc *ProfileCommand) collectCsvOrAwk(
 	m *profData,
 	processes sonarlog.SampleStreams,
+	pif *processIndexFactory,
 ) (header []string, matrix [][]string, err error) {
 	var formatter func(*profDatum) string
 	formatter, err = lookupSingleFormatter(pc.PrintFields, false)
@@ -192,9 +219,10 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 			sep = " "
 		}
 		for _, process := range processes {
+			pid := pif.indexFor((*process)[0])
 			header = append(header,
 				fmt.Sprintf(
-					"%s%s(%d)", (*process)[0].Cmd, sep, (*process)[0].Pid))
+					"%s%s(%s)", (*process)[0].Cmd, sep, pif.nameFor(pid)))
 		}
 	}
 
@@ -209,7 +237,7 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 	for y, rn := range rowNames {
 		matrix[y][0] = formatTime(rn)
 		for x, p := range processes {
-			pid := processId((*p)[0])
+			pid := pif.indexFor((*p)[0])
 			entry := m.get(rn, pid)
 			if entry != nil {
 				matrix[y][x+1] = formatter(entry)
@@ -237,6 +265,7 @@ package profile
 FIELDS *fixedLine
 
  Timestamp     DateTimeValueOrBlank alias:"time"    desc:"Time of the start of the profiling bucket"
+ Hostname      Ustr                 alias:"host"    desc:"Host on which process ran"
  CpuUtilPct    int                  alias:"cpu"     desc:"CPU utilization in percent, 100% = 1 core (except for HTML)"
  VirtualMemGB  int                  alias:"mem"     desc:"Main virtual memory usage in GiB"
  ResidentMemGB int                  alias:"res,rss" desc:"Main resident memory usage in GiB"
@@ -251,7 +280,16 @@ SUMMARY ProfileCommand
 
 Experimental: Print profile information for one aspect of a particular job.
 
-(More information needed)
+This prints a table across time of utilization of various resources of the
+processes in a job.  The job can be on multiple nodes.  For fixed formatting,
+all resources are printed on one line per process per time step; similarly for
+json all resources for a process at a time step are embedded in a single object.
+For CSV, AWK and HTML output a single resource must be selected with -fmt, and
+its utilization across processes per time step is printed; start with the CSV
+output to understand this (eg -fmt csv,gpu will show the table for the gpu
+resource in CSV form).  Commands, process IDs and host names are encoded in the
+output header in an idiosyncratic, but useful, form.  Note that no header is
+printed by default for AWK.  Be sure to file bugs for missing functionality.
 
 HELP ProfileCommand
 
@@ -267,11 +305,10 @@ DEFAULTS default
 
 ELBAT*/
 
-const profileDefaultFieldsWithNproc = "time,cpu,mem,gpu,gpumem,nproc,cmd"
-
 func (pc *ProfileCommand) collectFixed(
 	m *profData,
 	processes sonarlog.SampleStreams,
+	pif *processIndexFactory,
 ) (data []*fixedLine, err error) {
 	rowNames := m.rows()
 
@@ -282,7 +319,7 @@ func (pc *ProfileCommand) collectFixed(
 	for _, rn := range rowNames {
 		first := true
 		for _, p := range processes {
-			cn := processId((*p)[0])
+			cn := pif.indexFor((*p)[0])
 			entry := m.get(rn, cn)
 			if entry != nil {
 				var timestamp int64
@@ -295,6 +332,7 @@ func (pc *ProfileCommand) collectFixed(
 				}
 				data = append(data, &fixedLine{
 					Timestamp:     DateTimeValueOrBlank(timestamp),
+					Hostname:      entry.s.Hostname,
 					CpuUtilPct:    int(math.Round(float64(entry.cpuUtilPct))),
 					VirtualMemGB:  int(math.Round(float64(entry.cpuKB) / (1024 * 1024))),
 					ResidentMemGB: int(math.Round(float64(entry.rssAnonKB) / (1024 * 1024))),
@@ -460,10 +498,12 @@ func formatJson(
 	out io.Writer,
 	m *profData,
 	processes sonarlog.SampleStreams,
+	pif *processIndexFactory,
 	noMemory bool,
 ) {
 	type jsonPoint struct {
 		Command    string `json:"command"`
+		Host       string `json:"host,omitempty"`
 		Pid        uint32 `json:"pid"`
 		CpuUtilPct int    `json:"cpu"`
 		CpuGB      uint64 `json:"mem"`
@@ -482,7 +522,7 @@ func formatJson(
 		points := make([]jsonPoint, 0)
 		var e *profDatum
 		for _, p := range processes {
-			cn := processId((*p)[0])
+			cn := pif.indexFor((*p)[0])
 			entry := m.get(rn, cn)
 			if entry == nil {
 				continue
@@ -495,9 +535,15 @@ func formatJson(
 				cpuGB = entry.cpuKB / (1024 * 1024)
 				gpuGB = entry.gpuKB / (1024 * 1024)
 			}
+			hn, pid := pif.hostAndPid(cn)
+			var hostname string
+			if pif.isMultiHost() {
+				hostname = hn.String()
+			}
 			points = append(points, jsonPoint{
 				Command:    entry.s.Cmd.String(),
-				Pid:        entry.s.Pid, // Hm
+				Host:       hostname,
+				Pid:        pid,
 				CpuUtilPct: int(math.Round(float64(entry.cpuUtilPct))),
 				CpuGB:      cpuGB,
 				RssAnonGB:  entry.rssAnonKB / (1024 * 1024),

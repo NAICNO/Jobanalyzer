@@ -27,6 +27,12 @@ var profileFormatters = map[string]Formatter[*fixedLine]{
 		},
 		Help: "(DateTimeValue) Time of the start of the profiling bucket",
 	},
+	"Hostname": {
+		Fmt: func(d *fixedLine, ctx PrintMods) string {
+			return FormatUstr((d.Hostname), ctx)
+		},
+		Help: "(string) Host on which process ran",
+	},
 	"CpuUtilPct": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt((d.CpuUtilPct), ctx)
@@ -73,6 +79,7 @@ var profileFormatters = map[string]Formatter[*fixedLine]{
 
 func init() {
 	DefAlias(profileFormatters, "Timestamp", "time")
+	DefAlias(profileFormatters, "Hostname", "host")
 	DefAlias(profileFormatters, "CpuUtilPct", "cpu")
 	DefAlias(profileFormatters, "VirtualMemGB", "mem")
 	DefAlias(profileFormatters, "ResidentMemGB", "res")
@@ -85,6 +92,7 @@ func init() {
 
 type fixedLine struct {
 	Timestamp     DateTimeValueOrBlank
+	Hostname      Ustr
 	CpuUtilPct    int
 	VirtualMemGB  int
 	ResidentMemGB int
@@ -97,7 +105,16 @@ type fixedLine struct {
 func (c *ProfileCommand) Summary(out io.Writer) {
 	fmt.Fprint(out, `Experimental: Print profile information for one aspect of a particular job.
 
-(More information needed)
+This prints a table across time of utilization of various resources of the
+processes in a job.  The job can be on multiple nodes.  For fixed formatting,
+all resources are printed on one line per process per time step; similarly for
+json all resources for a process at a time step are embedded in a single object.
+For CSV, AWK and HTML output a single resource must be selected with -fmt, and
+its utilization across processes per time step is printed; start with the CSV
+output to understand this (eg -fmt csv,gpu will show the table for the gpu
+resource in CSV form).  Commands, process IDs and host names are encoded in the
+output header in an idiosyncratic, but useful, form.  Note that no header is
+printed by default for AWK.  Be sure to file bugs for missing functionality.
 `)
 }
 
