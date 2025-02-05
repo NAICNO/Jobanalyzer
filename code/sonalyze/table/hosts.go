@@ -8,12 +8,16 @@ import (
 )
 
 type Hostnames struct {
-	names map[string]bool
+	names  map[string]bool
 	serial uint64
 }
 
 func NewHostnames() *Hostnames {
 	return &Hostnames{names: make(map[string]bool)}
+}
+
+func (hn *Hostnames) IsEmpty() bool {
+	return len(hn.names) == 0
 }
 
 func (hn *Hostnames) Add(name string) {

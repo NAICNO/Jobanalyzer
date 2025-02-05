@@ -2,12 +2,10 @@ package profile
 
 import (
 	"cmp"
-	"errors"
 	"fmt"
 	"io"
 	"math"
 	"slices"
-	"sort"
 
 	"go-utils/config"
 	"go-utils/hostglob"
@@ -16,6 +14,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
+	. "sonalyze/table"
 )
 
 func (pc *ProfileCommand) NeedsBounds() bool {
@@ -37,29 +36,26 @@ func (pc *ProfileCommand) Perform(
 		return fmt.Errorf("No processes matching job ID(s): %v", pc.Job)
 	}
 
-	// Simplify: Assert that the input has only a single host.
 	// Precompute: check whether we need to print the `nproc` field.
-	// TODO: IMPLEMENTME: Remove single-host restriction, it is too limiting.
 
 	var hasRolledup bool
-	var hostName string
+	var hostnames = NewHostnames()
 	for k, vs := range streams {
 		for _, v := range *vs {
 			hasRolledup = hasRolledup || v.Rolledup > 0
 		}
-		if hostName != "" && k.Host.String() != hostName {
-			return errors.New("`profile` only implemented for single-host jobs")
-		}
-		hostName = k.Host.String()
+		hostnames.Add(k.Host.String())
 	}
-	if hostName == "" {
-		hostName = "unknown"
+
+	var hostName = "unknown"
+	if !hostnames.IsEmpty() {
+		hostName = hostnames.FormatFull() // TODO: Compress?
 	}
 
 	// The input is a matrix of per-process-per-point-in-time data, with time running down the
-	// column, process index running across the row, and where each datum can have one or more
-	// measurements of interest for that process at that time (cpu, mem, gpu, gpumem, nproc).  THE
-	// MATRIX IS SPARSE, as processes only have data at points in time when they are running.
+	// column, (process-index,host-id) running across the row, and where each datum can have one or
+	// more measurements of interest for that process at that time (cpu, mem, gpu, gpumem, nproc).
+	// THE MATRIX IS SPARSE, as processes only have data at points in time when they are running.
 	//
 	// We apply (optional) clamping to all the pertinent fields during the matrix conversion step to
 	// make values sane, and build an explicit sparse matrix.
@@ -70,6 +66,8 @@ func (pc *ProfileCommand) Perform(
 	// feel to the list of processes for each timestamp.  Sorting ascending by first timestamp, then
 	// by command name and finally by PID will accomplish that as well as it is possible.  (There
 	// are still going to be cases where two runs might print different data: see processId().)
+	//
+	// It's OK to sort by the true timestamp here.
 	processes := maps.Values(streams)
 	slices.SortStableFunc(processes, func(a, b *sonarlog.SampleStream) int {
 		c := cmp.Compare((*a)[0].Timestamp, (*b)[0].Timestamp)
@@ -106,6 +104,7 @@ func (pc *ProfileCommand) Perform(
 	// be very short and it's not clear what's to be gained yet by doing something more complicated
 	// here like a priority queue, say.
 
+	var pif = newProcessIndexFactory()
 	for nonempty > 0 {
 		// The current time is the minimum time across the lists that are not exhausted.
 		currentTime := int64(math.MaxInt64)
@@ -117,6 +116,7 @@ func (pc *ProfileCommand) Perform(
 		if currentTime == math.MaxInt64 {
 			panic("currentTime")
 		}
+		currentTime = roundToMinute(currentTime)
 		if currentTime != prevTime {
 			timesteps++
 			prevTime = currentTime
@@ -124,8 +124,8 @@ func (pc *ProfileCommand) Perform(
 		for i, p := range processes {
 			if indices[i] < len(*p) {
 				r := (*p)[indices[i]]
-				if r.Timestamp == currentTime {
-					m.set(currentTime, processId(r), newProfDatum(r, pc.Max))
+				if roundToMinute(r.Timestamp) == currentTime {
+					m.set(currentTime, pif.indexFor(r), newProfDatum(r, pc.Max))
 					indices[i]++
 					if indices[i] == len(*p) {
 						nonempty--
@@ -186,7 +186,7 @@ func (pc *ProfileCommand) Perform(
 		Log.Infof("Number of time steps: %d", timesteps)
 	}
 
-	return pc.printProfile(out, uint32(jobId), hostName, userName, hasRolledup, m, processes)
+	return pc.printProfile(out, uint32(jobId), hostName, userName, hasRolledup, m, processes, pif)
 }
 
 // TODO: IMPROVEME: Pids are not unique b/c rolled-up and merged pids are zero and there may be
@@ -199,13 +199,67 @@ func (pc *ProfileCommand) Perform(
 // name, even within the same job - two distinct rolled-up subtrees of processes each with the same
 // command name would be enough.
 
-func processId(s sonarlog.Sample) uint32 {
+// The low 24 bits are the pid.
+// The upper bits are the host index
+
+type processIndex uint64
+
+type processIndexFactory struct {
+	hosts map[Ustr]processIndex // shifted host index
+	rev   []Ustr                // unshifted index
+	next  processIndex
+}
+
+func newProcessIndexFactory() *processIndexFactory {
+	return &processIndexFactory{
+		hosts: make(map[Ustr]processIndex),
+	}
+}
+
+func (pif *processIndexFactory) hostIndex(s sonarlog.Sample) processIndex {
+	if n, found := pif.hosts[s.Hostname]; found {
+		return n
+	}
+	ix := pif.next
+	pif.hosts[s.Hostname] = ix
+	pif.next += (1 << 24)
+	pif.rev = append(pif.rev, s.Hostname)
+	return ix
+}
+
+func (pif *processIndexFactory) indexFor(s sonarlog.Sample) processIndex {
+	hostix := pif.hostIndex(s)
 	// Rolled-up processes have pid=0
 	if s.Pid != 0 {
-		return s.Pid
+		return processIndex(s.Pid) | hostix
 	}
 	// But in that case the Ustr value of the command should be unique enough
-	return uint32(s.Cmd)
+	return processIndex(s.Cmd) | hostix
+}
+
+func (pif *processIndexFactory) nameFor(i processIndex) string {
+	hn, pid := pif.hostAndPid(i)
+	if len(pif.hosts) == 1 {
+		return fmt.Sprintf("%d", pid)
+	}
+	return fmt.Sprintf("%d@%s", pid, hn.String())
+}
+
+func (pif *processIndexFactory) hostAndPid(i processIndex) (Ustr, uint32) {
+	return pif.rev[i>>24], uint32(i & 0xFFFFFF)
+}
+
+func (pif *processIndexFactory) isMultiHost() bool {
+	return len(pif.hosts) > 1
+}
+
+// t is a second count and we want to round to *closest* minute mark
+func roundToMinute(t int64) int64 {
+	s := t % 60
+	if s < 30 {
+		return t - s
+	}
+	return t + (60 - s)
 }
 
 // Max clamping: If the value x is greater than the clamp then return the clamp c, except if x is
@@ -237,7 +291,7 @@ func clampMaxU64(x, c uint64) uint64 {
 
 type profIndex struct {
 	row int64
-	col uint32
+	col processIndex
 }
 
 type profDatum struct {
@@ -276,8 +330,8 @@ type profData struct {
 	hasRowIndex map[int64]bool
 	rowNames    []int64
 	rowDirty    bool
-	hasColIndex map[uint32]bool
-	colNames    []uint32
+	hasColIndex map[processIndex]bool
+	colNames    []processIndex
 	colDirty    bool
 	entries     map[profIndex]*profDatum
 }
@@ -287,18 +341,18 @@ func newProfData() *profData {
 		hasRowIndex: make(map[int64]bool),
 		rowNames:    make([]int64, 0),
 		rowDirty:    false,
-		hasColIndex: make(map[uint32]bool),
-		colNames:    make([]uint32, 0),
+		hasColIndex: make(map[processIndex]bool),
+		colNames:    make([]processIndex, 0),
 		colDirty:    false,
 		entries:     make(map[profIndex]*profDatum),
 	}
 }
 
-func (pd *profData) get(y int64, x uint32) *profDatum {
+func (pd *profData) get(y int64, x processIndex) *profDatum {
 	return pd.entries[profIndex{y, x}]
 }
 
-func (pd *profData) set(y int64, x uint32, v *profDatum) {
+func (pd *profData) set(y int64, x processIndex, v *profDatum) {
 	if !pd.hasRowIndex[y] {
 		pd.rowDirty = true
 		pd.rowNames = append(pd.rowNames, y)
@@ -314,28 +368,16 @@ func (pd *profData) set(y int64, x uint32, v *profDatum) {
 
 func (pd *profData) rows() []int64 {
 	if pd.rowDirty {
-		sort.Sort(Int64Slice(pd.rowNames))
+		slices.Sort(pd.rowNames)
 		pd.rowDirty = false
 	}
 	return pd.rowNames
 }
 
-func (pd *profData) cols() []uint32 {
+func (pd *profData) cols() []processIndex {
 	if pd.colDirty {
-		sort.Sort(Uint32Slice(pd.colNames))
+		slices.Sort(pd.colNames)
 		pd.colDirty = false
 	}
 	return pd.colNames
 }
-
-type Int64Slice []int64
-
-func (s Int64Slice) Len() int           { return len(s) }
-func (s Int64Slice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s Int64Slice) Less(i, j int) bool { return s[i] < s[j] }
-
-type Uint32Slice []uint32
-
-func (s Uint32Slice) Len() int           { return len(s) }
-func (s Uint32Slice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s Uint32Slice) Less(i, j int) bool { return s[i] < s[j] }
