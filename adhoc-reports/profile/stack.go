@@ -28,31 +28,30 @@ import (
 	"strconv"
 )
 
-const candidates = "-+*:=&^%$#@!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const marks = "-+*:=&^%$#@!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
 var (
 	scale = flag.Float64("scale", 10.0, "Value scale factor")
 )
 
 func main() {
 	flag.Parse()
-	r := csv.NewReader(os.Stdin)
-	input, err := r.ReadAll()
+	input, err := csv.NewReader(os.Stdin).ReadAll()
 	if err != nil {
 		panic(err)
 	}
 	hdr := input[0]
-	chars := make([]string, len(hdr)-1)
 	s := ""
 	for i, h := range hdr[1:] {
-		chars[i] = string(candidates[i])
-		fmt.Printf(" %s   %s\n", chars[i], h)
+		fmt.Printf(" %c   %s\n", marks[i], h)
 		for range int(100 / *scale) {
 			s += "_"
 		}
 	}
 	// This line indicates "100% utilization" for all processes.  This is not quite what we want
 	// since coordination processes, watch, etc are usually at 0% and that's the way it should be.
-	// To do better, we should not allocate any chars for processes that are always at 100%.
+	// To do better, we should not allocate any chars for processes that are always ~0% (but we
+	// might list them at the top regardless).
 	fmt.Println("100%              " + s)
 	for _, l := range input[1:] {
 		s := l[0] + "  "
@@ -63,7 +62,7 @@ func main() {
 					panic(err)
 				}
 				for range int(math.Ceil(float64(n) / *scale)) {
-					s += chars[i]
+					s += string(marks[i])
 				}
 			}
 		}
