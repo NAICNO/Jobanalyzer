@@ -16,6 +16,11 @@
 //
 // By default, profile values are scaled by 10 b/c this is "roughly right" for many use cases, but
 // sometimes this will not work out well; use -scale to adjust.
+//
+// The profile can be printed padded with blanks so that it makes columns, one for each process,
+// use -pad to enable this.
+//
+// Jobs that are mostly idle can be removed from the profile with -cull, this is on by default.
 
 package main
 
@@ -32,40 +37,75 @@ const marks = "-+*:=&^%$#@!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0
 
 var (
 	scale = flag.Float64("scale", 10.0, "Value scale factor")
+	pad   = flag.Bool("pad", false, "Pad with blanks")
+	cull  = flag.Bool("cull", true, "Remove jobs with utilization near zero")
 )
 
 func main() {
 	flag.Parse()
 	input, err := csv.NewReader(os.Stdin).ReadAll()
-	if err != nil {
-		panic(err)
-	}
-	hdr := input[0]
-	s := ""
-	for i, h := range hdr[1:] {
-		fmt.Printf(" %c   %s\n", marks[i], h)
-		for range int(100 / *scale) {
-			s += "_"
+	check(err)
+	maxutil := ""
+	indices := make([]int, 0)
+	culled := make([]string, 0)
+	for i, h := range input[0][1:] {
+		keep := !*cull
+		if *cull {
+			for _, l := range input[1:] {
+				n := 0
+				if x := l[i+1]; x != "" {
+					n, err = strconv.Atoi(x)
+					check(err)
+				}
+				if n >= 5 {
+					keep = true
+					break
+				}
+			}
+		}
+		if keep {
+			fmt.Printf(" %c   %s\n", marks[i], h)
+			for range int(100 / *scale) {
+				maxutil += "_"
+			}
+			indices = append(indices, i)
+		} else {
+			culled = append(culled, h)
 		}
 	}
-	// This line indicates "100% utilization" for all processes.  This is not quite what we want
-	// since coordination processes, watch, etc are usually at 0% and that's the way it should be.
-	// To do better, we should not allocate any chars for processes that are always ~0% (but we
-	// might list them at the top regardless).
-	fmt.Println("100%              " + s)
+	for _, c := range culled {
+		fmt.Printf("     %s  (mostly idle)\n", c)
+	}
+	if !*pad {
+		fmt.Println("100%              " + maxutil)
+	}
 	for _, l := range input[1:] {
 		s := l[0] + "  "
-		for i, x := range l[1:] {
-			if x != "" {
-				n, err := strconv.Atoi(x)
-				if err != nil {
-					panic(err)
-				}
-				for range int(math.Ceil(float64(n) / *scale)) {
-					s += string(marks[i])
+		l = l[1:]
+		for _, i := range indices {
+			n := 0
+			if x := l[i]; x != "" {
+				n, err = strconv.Atoi(x)
+				check(err)
+			}
+			k := 0
+			for range int(math.Ceil(float64(n) / *scale)) {
+				s += string(marks[i])
+				k++
+			}
+			if *pad {
+				for k < int(100 / *scale) {
+					s += " "
+					k++
 				}
 			}
 		}
 		fmt.Println(s)
+	}
+}
+
+func check(err error) {
+	if err != nil {
+		panic(err)
 	}
 }
