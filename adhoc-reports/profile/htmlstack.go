@@ -1,10 +1,12 @@
+///usr/bin/true; exec /usr/bin/env go run "$0" "$@"
+
 // This program assumes jobanalyzer profile csv-format input on stdin and will try to print a
 // sensible stacked profile as an HTML+JS program that will render the profile when loaded in
 // a browser.
 //
 // Normally you'd run eg
 //
-//   sonalyze profile -cluster fox -f 4d -j 1307357 -fmt csv,gpu | go run stack.go > test.html
+//   sonalyze profile -cluster fox -f 4d -j 1307357 -fmt csv,gpu | ./htmlstack.go > test.html
 //
 // Normally you'd then open test.html in a browser.
 //
