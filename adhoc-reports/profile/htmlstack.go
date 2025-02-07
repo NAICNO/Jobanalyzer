@@ -33,10 +33,19 @@ var (
 	cull     = flag.Bool("cull", true, "Remove jobs with utilization near zero")
 	verbose  = flag.Bool("v", false, "Verbose output")
 	separate = flag.Bool("separate", false, "Give each process its own graph")
+	floored  = flag.Bool("floored", false, "Use a fixed floor per process")
+	bar      = flag.Bool("bar", false, "Render as bar chart (!floored, !separate)")
 )
 
 func main() {
 	flag.Parse()
+	// We can fix the !floored restriction by inserting a line of spacers between each data line
+	// maybe, but it'll be annoying for the labeling.
+	if *bar && (*floored || *separate) {
+		fmt.Fprintf(os.Stderr, "-bar is incompatible with -floored and -separate")
+		os.Exit(2)
+	}
+
 	input, err := csv.NewReader(os.Stdin).ReadAll()
 	check(err)
 
@@ -82,18 +91,27 @@ func main() {
 
 	if *separate {
 		separatePlots(indices, selected, labels, datalabels, input[1:])
+	} else if *floored {
+		singlePlot(indices, selected, labels, datalabels, input[1:], true)
 	} else {
-		singlePlot(indices, selected, labels, datalabels, input[1:])
+		singlePlot(indices, selected, labels, datalabels, input[1:], false)
 	}
 }
 
 // Stack them to reveal total utilization
 
-func singlePlot(indices []int, selected, labels, datalabels []string, input [][]string) {
+func singlePlot(indices []int, selected, labels, datalabels []string, input [][]string, fixedFloor bool) {
 	// array[timestamp][process] - one datum at each point
 	datasets := make([][]string, len(labels))
 	for i := range len(labels) {
 		datasets[i] = make([]string, len(indices))
+	}
+
+	// FIXME: The floor is more complicated, it is the sum of the max values at the level below the
+	// process, maybe clamped, plus that level's floor.
+	floor := make([]int, len(indices))
+	for proc := range indices {
+		floor[proc] = proc*100
 	}
 
 	// Create profile grid
@@ -104,7 +122,13 @@ func singlePlot(indices []int, selected, labels, datalabels []string, input [][]
 			if x := l[i]; x != "" {
 				n, err := strconv.Atoi(x)
 				check(err)
-				v += n
+				if *bar {
+					v = n
+				} else if fixedFloor {
+					v = floor[proc] + n
+				} else {
+					v += n
+				}
 				datasets[time][proc] = fmt.Sprint(v)
 			}
 		}
@@ -127,6 +151,13 @@ func singlePlot(indices []int, selected, labels, datalabels []string, input [][]
 		rows = append(rows, fmt.Sprintf(`{label: "%s", data: [%s]}`, selected[i], strings.Join(xs, ",")))
 	}
 
+	var stackOpt, barOpt string
+	chartType := "'line'"
+	if *bar {
+		chartType = "'bar'"
+		stackOpt = "stacked: true,"
+		barOpt = "barPercentage: 1, categoryPercentage: 1,"
+	}
 	fmt.Printf(`
 <html>
  <head>
@@ -136,12 +167,13 @@ var LABELS = [%s];
 var DATASETS = [%s];
 function render() {
   new Chart(document.getElementById("chart_node"), {
-    type: 'line',
+    type: %s,
+    grouped: 'true',
     data: {
       labels: LABELS,
       datasets: DATASETS
     },
-    options: { scales: { x: { beginAtZero: true }, y: { beginAtZero: true } } }
+    options: { scales: { x: { %s }, y: { %s %s beginAtZero: true, } } }
   })
 }
   </script>
@@ -153,6 +185,10 @@ function render() {
 `,
 		strings.Join(labels, ","),
 		strings.Join(rows, ","),
+		chartType,
+		stackOpt,
+		stackOpt,
+		barOpt,
 	)
 }
 
