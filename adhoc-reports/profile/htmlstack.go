@@ -28,10 +28,9 @@ const (
 )
 
 var (
-	scale   = flag.Float64("scale", 10.0, "Value scale factor")
-	maxval  = flag.Int("max", defaultMax, "Default maximum data value")
-	cull    = flag.Bool("cull", true, "Remove jobs with utilization near zero")
-	verbose = flag.Bool("v", false, "Verbose output")
+	cull     = flag.Bool("cull", true, "Remove jobs with utilization near zero")
+	verbose  = flag.Bool("v", false, "Verbose output")
+	separate = flag.Bool("separate", false, "Give each process its own graph")
 )
 
 func main() {
@@ -40,7 +39,6 @@ func main() {
 	check(err)
 
 	// Process the header, categorize processes, compute maximum values.
-	maxobserved := 0
 	indices := make([]int, 0)
 	selected := make([]string, 0)
 	culled := make([]string, 0)
@@ -55,7 +53,6 @@ func main() {
 				check(err)
 			}
 			sum += n
-			maxobserved = max(maxobserved, n)
 			if n >= keeper {
 				keep = true
 			}
@@ -68,12 +65,6 @@ func main() {
 			culled = append(culled, hdr)
 		}
 	}
-	if *maxval == defaultMax {
-		*maxval = max(*maxval, maxobserved)
-	}
-	maxTicks := int(math.Ceil(100 / *scale))
-	valsPerTick := float64(*maxval) / float64(maxTicks)
-	_ = valsPerTick
 
 	// The labels are the timestamps, the x axis labels for the overall plot
 	labels := make([]string, len(input[1:]))
@@ -87,6 +78,16 @@ func main() {
 		datalabels[proc] = input[0][1:][i]
 	}
 
+	if *separate {
+		separatePlots(indices, selected, labels, datalabels, input[1:])
+	} else {
+		singlePlot(indices, selected, labels, datalabels, input[1:])
+	}
+}
+
+// Stack them to reveal total utilization
+
+func singlePlot(indices []int, selected, labels, datalabels []string, input [][]string) {
 	// array[timestamp][process] - one datum at each point
 	datasets := make([][]string, len(labels))
 	for i := range len(labels) {
@@ -94,7 +95,7 @@ func main() {
 	}
 
 	// Create profile grid
-	for time, l := range input[1:] {
+	for time, l := range input {
 		l = l[1:]
 		v := 0
 		for proc, i := range indices {
@@ -152,6 +153,61 @@ function render() {
 		strings.Join(rows, ","),
 	)
 }
+
+func separatePlots(indices []int, selected, labels, datalabels []string, input [][]string) {
+	canvasIx := 0
+
+	// Header - load chart lib, define render function
+	fmt.Printf(`
+<html>
+ <head>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>LABELS = [%s]</script>
+  <script>
+function render() {
+
+`,
+		strings.Join(labels, ","))
+
+	for k, proc := range indices {
+		data := make([]string, 0)
+		for _, l := range input {
+			data = append(data, l[1:][proc])
+		}
+		fmt.Printf(`
+  new Chart(document.getElementById("chart_node_%d"), {
+    type: 'line',
+    data: {
+      datasets: [{data:[%s], label: "%s"}],
+      labels: LABELS,
+    },
+    options: { scales: { x: { beginAtZero: true }, y: { beginAtZero: true } } }
+  })
+`, canvasIx, strings.Join(data, ","), datalabels[k])
+		canvasIx++
+	}
+
+	// End header
+	fmt.Printf(`
+  }
+  </script>
+ </head>
+`)
+
+	// Body - define canvases, call the render function
+	fmt.Printf(`
+ <body onload="render()">
+`)
+	for c := range canvasIx {
+		fmt.Printf(`<div><canvas id="chart_node_%d"></canvas></div>
+`, c)
+	}
+	fmt.Printf(`
+ </body>
+<html>
+`)
+}
+
 
 func check(err error) {
 	if err != nil {
