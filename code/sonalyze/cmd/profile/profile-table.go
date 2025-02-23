@@ -90,6 +90,58 @@ func init() {
 	DefAlias(profileFormatters, "NumProcs", "nproc")
 }
 
+// MT: Constant after initialization; immutable
+var profilePredicates = map[string]Predicate[*fixedLine]{
+	"Timestamp": Predicate[*fixedLine]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *fixedLine, v any) int {
+			return cmp.Compare((d.Timestamp), v.(DateTimeValueOrBlank))
+		},
+	},
+	"CpuUtilPct": Predicate[*fixedLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *fixedLine, v any) int {
+			return cmp.Compare((d.CpuUtilPct), v.(int))
+		},
+	},
+	"VirtualMemGB": Predicate[*fixedLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *fixedLine, v any) int {
+			return cmp.Compare((d.VirtualMemGB), v.(int))
+		},
+	},
+	"ResidentMemGB": Predicate[*fixedLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *fixedLine, v any) int {
+			return cmp.Compare((d.ResidentMemGB), v.(int))
+		},
+	},
+	"Gpu": Predicate[*fixedLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *fixedLine, v any) int {
+			return cmp.Compare((d.Gpu), v.(int))
+		},
+	},
+	"GpuMemGB": Predicate[*fixedLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *fixedLine, v any) int {
+			return cmp.Compare((d.GpuMemGB), v.(int))
+		},
+	},
+	"Command": Predicate[*fixedLine]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *fixedLine, v any) int {
+			return cmp.Compare((d.Command), v.(Ustr))
+		},
+	},
+	"NumProcs": Predicate[*fixedLine]{
+		Convert: CvtString2Int,
+		Compare: func(d *fixedLine, v any) int {
+			return cmp.Compare((d.NumProcs), v.(IntOrEmpty))
+		},
+	},
+}
+
 type fixedLine struct {
 	Timestamp     DateTimeValueOrBlank
 	Hostname      Ustr

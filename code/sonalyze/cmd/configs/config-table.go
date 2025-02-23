@@ -91,6 +91,61 @@ func init() {
 	DefAlias(configFormatters, "GpuMemPct", "gpumempct")
 }
 
+// MT: Constant after initialization; immutable
+var configPredicates = map[string]Predicate[*config.NodeConfigRecord]{
+	"Timestamp": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare((d.Timestamp), v.(string))
+		},
+	},
+	"Hostname": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare((d.Hostname), v.(string))
+		},
+	},
+	"Description": Predicate[*config.NodeConfigRecord]{
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare((d.Description), v.(string))
+		},
+	},
+	"CrossNodeJobs": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Bool,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return CompareBool((d.CrossNodeJobs), v.(bool))
+		},
+	},
+	"CpuCores": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare((d.CpuCores), v.(int))
+		},
+	},
+	"MemGB": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare((d.MemGB), v.(int))
+		},
+	},
+	"GpuCards": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare((d.GpuCards), v.(int))
+		},
+	},
+	"GpuMemGB": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return cmp.Compare((d.GpuMemGB), v.(int))
+		},
+	},
+	"GpuMemPct": Predicate[*config.NodeConfigRecord]{
+		Convert: CvtString2Bool,
+		Compare: func(d *config.NodeConfigRecord, v any) int {
+			return CompareBool((d.GpuMemPct), v.(bool))
+		},
+	},
+}
+
 func (c *ConfigCommand) Summary(out io.Writer) {
 	fmt.Fprint(out, `Display information about nodes in a cluster configuration.
 

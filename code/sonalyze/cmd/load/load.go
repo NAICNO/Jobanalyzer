@@ -146,7 +146,12 @@ func (lc *LoadCommand) Validate() error {
 		e5 = errors.New("Grouping across hosts requires first bucketing by time")
 	}
 
-	return errors.Join(e1, e3, e4, e5)
+	var e6 error
+	if lc.ParsedQuery != nil {
+		e6 = errors.New("-q queries not supported for `profile`")
+	}
+
+	return errors.Join(e1, e3, e4, e5, e6)
 }
 
 func (lc *LoadCommand) DefaultRecordFilters() (

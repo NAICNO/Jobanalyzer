@@ -417,6 +417,32 @@ func (rfa *RecordFilterArgs) DefaultUserFilters() (allUsers, skipSystemUsers, de
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
+// Query arguments
+
+type QueryArgs struct {
+	QueryStmt   string
+	ParsedQuery PNode
+}
+
+func (qa *QueryArgs) Add(fs *CLI) {
+	fs.Group("query")
+	fs.StringVar(&qa.QueryStmt, "q", "", "A query expression")
+}
+
+func (qa *QueryArgs) ReifyForRemote(x *ArgReifier) error {
+	x.String("q", qa.QueryStmt)
+	return nil
+}
+
+func (qa *QueryArgs) Validate() (err error) {
+	if qa.QueryStmt != "" {
+		qa.ParsedQuery, err = ParseQuery(qa.QueryStmt)
+	}
+	return
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Config file
 
 type ConfigFileArgs struct {
@@ -605,6 +631,7 @@ func NewRepeatableString(xs *[]string) *RepeatableString {
 type SampleAnalysisArgs struct {
 	DevArgs
 	SourceArgs
+	QueryArgs
 	RecordFilterArgs
 	ConfigFileArgs
 	VerboseArgs
@@ -617,6 +644,7 @@ func (sa *SampleAnalysisArgs) SampleAnalysisFlags() *SampleAnalysisArgs {
 func (s *SampleAnalysisArgs) Add(fs *CLI) {
 	s.DevArgs.Add(fs)
 	s.SourceArgs.Add(fs)
+	s.QueryArgs.Add(fs)
 	s.RecordFilterArgs.Add(fs)
 	s.ConfigFileArgs.Add(fs)
 	s.VerboseArgs.Add(fs)
@@ -628,6 +656,7 @@ func (s *SampleAnalysisArgs) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		s.DevArgs.ReifyForRemote(x),
 		s.SourceArgs.ReifyForRemote(x),
+		s.QueryArgs.ReifyForRemote(x),
 		s.RecordFilterArgs.ReifyForRemote(x),
 		s.ConfigFileArgs.ReifyForRemote(x),
 	)
@@ -637,6 +666,7 @@ func (s *SampleAnalysisArgs) Validate() error {
 	return errors.Join(
 		s.DevArgs.Validate(),
 		s.SourceArgs.Validate(),
+		s.QueryArgs.Validate(),
 		s.RecordFilterArgs.Validate(),
 		s.ConfigFileArgs.Validate(),
 		s.VerboseArgs.Validate(),
@@ -652,6 +682,7 @@ func (s *SampleAnalysisArgs) Validate() error {
 type HostAnalysisArgs struct {
 	DevArgs
 	SourceArgs
+	QueryArgs
 	HostArgs
 	ConfigFileArgs
 	VerboseArgs
@@ -664,6 +695,7 @@ func (sa *HostAnalysisArgs) HostAnalysisFlags() *HostAnalysisArgs {
 func (s *HostAnalysisArgs) Add(fs *CLI) {
 	s.DevArgs.Add(fs)
 	s.SourceArgs.Add(fs)
+	s.QueryArgs.Add(fs)
 	s.HostArgs.Add(fs)
 	s.ConfigFileArgs.Add(fs)
 	s.VerboseArgs.Add(fs)
@@ -675,6 +707,7 @@ func (s *HostAnalysisArgs) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		s.DevArgs.ReifyForRemote(x),
 		s.SourceArgs.ReifyForRemote(x),
+		s.QueryArgs.ReifyForRemote(x),
 		s.HostArgs.ReifyForRemote(x),
 		s.ConfigFileArgs.ReifyForRemote(x),
 	)
@@ -684,6 +717,7 @@ func (s *HostAnalysisArgs) Validate() error {
 	return errors.Join(
 		s.DevArgs.Validate(),
 		s.SourceArgs.Validate(),
+		s.QueryArgs.Validate(),
 		s.HostArgs.Validate(),
 		s.ConfigFileArgs.Validate(),
 		s.VerboseArgs.Validate(),

@@ -47,6 +47,27 @@ func init() {
 	DefAlias(metadataFormatters, "Latest", "latest")
 }
 
+// MT: Constant after initialization; immutable
+var metadataPredicates = map[string]Predicate[*metadataItem]{
+	"Hostname": Predicate[*metadataItem]{
+		Compare: func(d *metadataItem, v any) int {
+			return cmp.Compare((d.Hostname), v.(string))
+		},
+	},
+	"Earliest": Predicate[*metadataItem]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *metadataItem, v any) int {
+			return cmp.Compare((d.Earliest), v.(DateTimeValue))
+		},
+	},
+	"Latest": Predicate[*metadataItem]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *metadataItem, v any) int {
+			return cmp.Compare((d.Latest), v.(DateTimeValue))
+		},
+	},
+}
+
 type metadataItem struct {
 	Hostname string
 	Earliest DateTimeValue

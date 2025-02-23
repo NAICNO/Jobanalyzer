@@ -203,10 +203,13 @@ filters.
   in some ways; see later section.  The option can be repeated.
 
 
-#### Job filtering and aggregation options
+#### Aggregation filter options
+
+##### Job aggregation filtering
 
 These are only available with the `jobs` command.  All filters are optional.  Jobs must pass all
-specified filters.
+specified filters.  The filters generally have an equivalent `-q` variant (see below) but predate
+that functionality.
 
 `--merge-all`, `--batch`
 
@@ -312,10 +315,11 @@ specified filters.
   option does not guarantee that a job is observed at different points in time.  Use `--min-runtime`
   if that's what you mean.)
 
-#### Load filtering and aggregation options
+#### Load aggregation filtering
 
 These are only available with the `load` command.  All filters are optional.  Records must pass all
-specified filters.
+specified filters.  The filters generally have an equivalent `-q` variant (see below) but predate
+that functionality.
 
 `--hourly`, `--half-hourly`
 
@@ -334,9 +338,10 @@ specified filters.
   Sum bucketed/averaged data by time step across all the selected hosts, yielding an aggregate for this
   group/subcluster of hosts.  Requires bucketing other than `--none`.
 
-#### Sacct filtering and aggregation options
+##### Sacct aggregation filtering
 
-Since these are not sample records they have their own filtering rules.
+Since these are not sample records they have their own filtering rules.  The filters generally have
+an equivalent `-q` variant (see below) but predate that functionality.
 
 The default is to print "regular" jobs, ie, not Array jobs or Het jobs.  Select the latter groups
 with `-array` and `-het`.
@@ -402,6 +407,49 @@ with `-array` and `-het`.
 `--het`
 
   Select only het jobs (not implemented yet).
+
+##### General (`-q`) aggregation filtering
+
+This is an experimental facility.  The data extraction and aggregation verbs usually allow a `-q`
+option whose argument is an expression that is applied to each record in the aggregation result and
+selects it or not.
+
+`-q expression`
+
+  Select records for which `expression` is true.  The expression is formed from these simple elements:
+
+* FieldName binop String, where binop is <, <=, >, >=, and =
+* Fieldname "=~" Regexp
+* expression "and" expression
+* expression "or" expression
+* "not" expression
+* "(" expression ")"
+
+  The string, if it does not look like an identifier, can be quoted with `'`, `"`, `/`, or <code>`</code>.
+
+  The field names are the field names available for printing.
+
+  For example:
+
+  ```
+  sonalyze jobs -q 'Cmd =~ python and Host =~ /^(gpu-|int-)/ and Job > 2500000'
+  ```
+
+  The typing rules are:
+
+* for relational operators, the field has a type, and the string value is parsed as that type, and
+  then a comparison is performed on the two values according to type.
+* for `=~`, the field is formatted using the standard formatter without modifiers, and the resulting
+  string is matched against the regular expression.
+
+  Some fields have set-like values (GPU sets, host sets).  The relational operators act as set
+  operators (subsets, set equality) and the string value is be parsed as a set value.  To ask
+  whether a literal a is in b, one has to ask b >= a (ie a, interpreted as a singleton set, is a
+  subset of b).
+
+  There is no query optimization.  It may be advantageous to apply record filters first, or to
+  arrange multiple tests so that the most discriminating test comes first.  In the example above,
+  for example, filtering by job ID first will frequently lead to a faster query.
 
 #### Job printing options
 

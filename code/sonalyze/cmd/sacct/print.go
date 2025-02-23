@@ -117,6 +117,10 @@ func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSumma
 			ArrayIndex:          int(r.Main.ArrayIndex),
 		}
 	}
+	toPrint, err := ApplyQuery(sc.ParsedQuery, sacctFormatters, sacctPredicates, toPrint)
+	if err != nil {
+		return err
+	}
 	FormatData(
 		stdout,
 		sc.PrintFields,

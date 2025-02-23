@@ -106,6 +106,9 @@ func (pc *ProfileCommand) DefaultRecordFilters() (
 	allUsers, skipSystemUsers, determined := pc.RecordFilterArgs.DefaultUserFilters()
 	if !determined {
 		allUsers, skipSystemUsers = false, false
+		if pc.QueryStmt != "" {
+			allUsers = true
+		}
 	}
 	excludeSystemCommands = false
 	excludeHeartbeat = true
