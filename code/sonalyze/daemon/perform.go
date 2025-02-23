@@ -133,11 +133,11 @@ func httpGetHandler(
 				continue
 			}
 
-			if !argOk(command, name) {
+			if why := argOk(command, name); why != "" {
 				w.WriteHeader(400)
-				fmt.Fprintf(w, "Bad parameter %s", name)
+				fmt.Fprintf(w, "Bad parameter %s: %s", name, why)
 				if dc.Verbose {
-					Log.Warningf("Bad parameter %s", name)
+					Log.Warningf("Bad parameter %s: %s", name, why)
 				}
 				return
 			}
@@ -406,7 +406,7 @@ func errResponse(w http.ResponseWriter, code int, err error, stderr string, verb
 // Disallow argument names that are malformed or are specific values.  This is not fabulous but
 // maintaining a whitelist is a lot of work.
 
-func argOk(command, arg string) bool {
+func argOk(command, arg string) string {
 	// Args are alphabetic and lower-case only, except - is allowed except in the first position
 	for i, c := range arg {
 		switch {
@@ -415,13 +415,14 @@ func argOk(command, arg string) bool {
 		case c == '-' && i > 0:
 			// OK
 		default:
-			return false
+			return "Bad character"
 		}
 	}
 
 	// Disallow short options (pretty primitive)
-	if len(arg) <= 1 {
-		return false
+	// Except -q, good grief.
+	if len(arg) <= 1 && arg != "q" {
+		return "Short option"
 	}
 
 	// Specific names are excluded, for now, the names in the comments relate to structure names in
@@ -429,26 +430,26 @@ func argOk(command, arg string) bool {
 	switch arg {
 	case "cpuprofile":
 		// DevArgs (go)
-		return false
+		return "Developer arg"
 	case "data-path", "data-dir":
 		// SourceArgs (rust), DataDirArgs (go)
-		return false
+		return "Local arg"
 	case "cluster", "remote", "auth-file":
 		// SourceArgs
-		return false
+		return "Source arg"
 	case "config-file":
 		// ConfigFileArgs
-		return false
+		return "Config arg"
 	case "report-dir":
 		// ReportCommand
-		return false
+		return "Local arg"
 	case "verbose", "v":
 		// VerboseArgs
-		return false
+		return "Developer arg"
 	case "raw":
 		// MetaArgs (rust)
-		return false
+		return "Meta arg"
 	default:
-		return true
+		return ""
 	}
 }
