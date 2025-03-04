@@ -1,7 +1,8 @@
 # Requirements
 
-(Based on discussion in [ticket 92](https://github.com/NAICNO/Jobanalyzer/issues/92) and also older
-sketches and plans.)
+This is based on discussion in [ticket 92](https://github.com/NAICNO/Jobanalyzer/issues/92), older
+sketches and plans, and on more recent discussions in the development org about how to turn our
+prototypes into a unified, useful system.
 
 This document exists primarily to create agreement within the development org.
 
@@ -11,16 +12,16 @@ Jobanalyzer is a set of tools providing the following types of services for the 
 
 - For systems admininstrators: monitoring of current and historical utilization, as well as usage
   patterns of the systems and installed software; guidance in moving users' computations from one
-  system to another to improve performance or even out load spikes
+  system to another to improve performance or even out load spikes.
 
 - For users and support staff: first-level analyses of computation patterns, with a view to
   appropriate system use and scalability - cpu use, gpu use, i/o; guidance in moving a computation
   from one system to another to improve performance and make appropriate and optimal use of
-  resources for a task
+  resources for a task.  Note there are several subgroups each of users and support staff.
 
-- For the public and decision makers: utilization statistics and other high-level data about the
-  value of the system, this could be pretty basic (X% utilization during the last quarter) or
-  sophisticated (system used for N months in project X which published papers P and Q)
+- For the public, decision makers, and public agencies: utilization statistics and other high-level
+  data about the value of the system, this could be pretty basic (X% utilization during the last
+  quarter) or sophisticated (system used for N months in project X which published papers P and Q).
 
 A list of detailed use cases and concrete requirements is presented later; the following subsections
 provide a high-level breakdown.  There is a list of non-cases at the end.
@@ -54,6 +55,11 @@ machine that better fit their jobs.
 In this context, the "load" on the system is the sum of the load of the users' jobs, not necessarily
 the true load, which would also include the operating system and similar "overhead".
 
+(Probably systems administrators are not going to be the primary users of Jobanalyzer.  They will
+have their own monitoring and administration tools and will want to have a system-centric view of
+system load.  Alerts for users or jobs that misuse the system will likely go to support staff, not
+to sysadmins.)
+
 ### Users and support staff
 
 Users and support staff will currently come to Jobanalyzer via its command line interface (there is
@@ -63,6 +69,27 @@ scalability; the support staff, working on a case, will examine the submitting u
 
 There may be an interface that allows a job to be compared post-mortem with a database of benchmark
 results for the purpose of finding a machine that is a good fit for the next run of the job.
+
+We can identify subgroups of users:
+
+* Developer types: Scientists and software types that build programs, ML models, and similar
+* "Hands-on" end-user types: Users of finished models, builders of pipelines, scientists that
+  use tools such as R, Jupyter, MATLAB to explore their problem space
+* "Production" users: People who run production jobs of otherwise finished software (that they
+  may have written themselves)
+* "External" users: SMB users that develop and run their work on national systems but may have
+  a different notion of service, uptime, timeliness of answers, and cost than scientist types
+* "Expert" users: a cross-cutting category, these are familiar with advanced SW development tools
+  and the ins and outs of tuning for a system, but may come to Jobanalyzer for a first assessment
+  of a problem and post-hoc data
+
+Similarly there are several levels of support staff:
+
+* Front-line support staff may be similar to developer types: they know some things about
+  how the systems work and can benefit from high-level post-hoc analyses of jobs
+* More advanced support staff are similar to both expert users and sysadmins and can
+  benefit from analyses of workloads, users, and systems to aid them in helping users
+  place and run their jobs.
 
 ### The public and decision makers
 
@@ -114,7 +141,7 @@ in the standard manner during its run and after its completion.
 
 ## Artifacts produced
 
-THIS IS EVOLVING.
+THIS IS BOTH EVOLVING AND STALE.
 
 At least these:
 
@@ -148,7 +175,7 @@ TODO: More work needed.
 
 Jobanalyzer should not try to do the job of existing good tools.  For example, `htop` and `nvtop`
 will be better at displaying moment-to-moment load.  A profiler such as `perf` will do better at
-finding bottlenecks in the code.
+finding bottlenecks in the code.  There are also many other, much better tools than those.
 
 What we can hope to do is provide high-level, easy-to-use tools that will collect data across time,
 enough to give a view of the systems' utilization and, help with the initial diagnosis of
