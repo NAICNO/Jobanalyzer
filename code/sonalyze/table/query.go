@@ -104,6 +104,20 @@ func ParseQuery(input string) (PNode, error) {
 	return parser.Parse()
 }
 
+func QueryNames(q PNode, ids map[string]bool) {
+	switch l := q.(type) {
+	case *logicalOp:
+		QueryNames(l.lhs, ids)
+		QueryNames(l.rhs, ids)
+	case *unaryOp:
+		QueryNames(l.opd, ids)
+	case *binaryOp:
+		ids[l.field] = true
+	default:
+		panic("Bad operator type")
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Query generator.
