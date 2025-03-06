@@ -138,6 +138,34 @@ func (jc *JobsCommand) Perform(
 	return jc.printJobSummaries(out, summaries)
 }
 
+// Container for computations we would prefer not to do but will need to do if certain names are
+// used for printing or in queries.
+
+type nameTester struct {
+	needCmd        bool
+	needHosts      bool
+	needJobAndMark bool
+	needSacctInfo  bool
+}
+
+func (nt *nameTester) testName(name string) {
+	switch name {
+	case "cmd", "Cmd":
+		nt.needCmd = true
+	case "host", "hosts", "Hosts":
+		nt.needHosts = true
+	case "jobm", "JobAndMark":
+		nt.needJobAndMark = true
+	case "Submit", "JobName", "State", "Account", "Layout", "Reservation",
+		"Partition", "RequestedGpus", "DiskReadAvgGB", "DiskWriteAvgGB",
+		"RequestedCpus", "RequestedMemGB", "RequestedNodes", "TimeLimit",
+		"ExitCode":
+		// Our names for the Slurm sacct data fields.  Mostly these are the same as in the sacct
+		// data, but there's no shame in sticking to proper naming.
+		nt.needSacctInfo = true
+	}
+}
+
 // A sample stream is a quadruple (host, command, job-related-id, record-list).  A stream is only
 // ever about one job.  There may be multiple streams per job, they will all have the same
 // job-related-id which is unique but not necessarily equal to any field in any of the records.
@@ -180,27 +208,17 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	if jc.Verbose && minSamples > 1 {
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
 	}
-	var (
-		needCmd        = false
-		needHosts      = false
-		needJobAndMark = false
-		needSacctInfo  = slurmFilter != nil
-	)
+	nt := nameTester{
+		needSacctInfo: slurmFilter != nil,
+	}
 	for _, f := range jc.PrintFields {
-		switch f.Name {
-		case "cmd", "Cmd":
-			needCmd = true
-		case "host", "hosts", "Hosts":
-			needHosts = true
-		case "jobm", "JobAndMark":
-			needJobAndMark = true
-		case "Submit", "JobName", "State", "Account", "Layout", "Reservation",
-			"Partition", "RequestedGpus", "DiskReadAvgGB", "DiskWriteAvgGB",
-			"RequestedCpus", "RequestedMemGB", "RequestedNodes", "TimeLimit",
-			"ExitCode":
-			// Our names for the Slurm sacct data fields.  Mostly these are the same as in the sacct
-			// data, but there's no shame in sticking to proper naming.
-			needSacctInfo = true
+		nt.testName(f.Name)
+	}
+	if jc.ParsedQuery != nil {
+		names := make(map[string]bool)
+		QueryNames(jc.ParsedQuery, names)
+		for name := range names {
+			nt.testName(name)
 		}
 	}
 	discarded := 0
@@ -212,7 +230,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 			first := (*job)[0].Timestamp
 			last := (*job)[len(*job)-1].Timestamp
 			duration := last - first
-			aggregate := jc.aggregateJob(cfg, host, *job, needCmd, needHosts, jc.Zombie)
+			aggregate := jc.aggregateJob(cfg, host, *job, nt.needCmd, nt.needHosts, jc.Zombie)
 			aggregate.computed[kDuration] = float64(duration)
 			usesGpu := !aggregate.Gpus.IsEmpty()
 			flags := 0
@@ -242,7 +260,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 				flags |= kIsZombie
 			}
 			jobAndMark := ""
-			if needJobAndMark {
+			if nt.needJobAndMark {
 				mark := ""
 				switch {
 				case flags&(kIsLiveAtStart|kIsLiveAtEnd) == (kIsLiveAtStart | kIsLiveAtEnd):
@@ -288,7 +306,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
 	}
 
-	if needSacctInfo {
+	if nt.needSacctInfo {
 		// TODO: If we have slurm data then those data may have precise measurements for some of the
 		// fields here and we might use them instead.  If so, do so here and not in printing, to
 		// avoid messiness vis-a-vis filtering.
