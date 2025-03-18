@@ -158,6 +158,9 @@ At least these:
 - command-line based tool to produce reports on software used over a period of time, output format
   TBD
 
+- package to be installed in VMs provisioned by the NAIC Orchestrator that will collect data and
+  send it to a Jobanalyzer server
+
 ## Policy
 
 We are going to need to become precise when we talk about "a lot" of resources and "many" users (or
@@ -456,6 +459,24 @@ order to decide whether to provide more money.
 report on is system load, uptime, wait times, projects that were run, projects that were denied(!).
 
 TODO: To be developed.
+
+### "NAIC Orchestrator" user stories
+
+*Story (WP8.x.x):* User logs in to the NAIC Orchestrator and creates a VM. Once the VM is provisioned, sonar 
+package is installed in the VM. Orchestrator will also generate a parameter file in VM which contains the necessary 
+configuration (such as endpoints, vm ID, etc.) for sonar to work. This is done automatically without any user intervention.
+Once the VM is up and running, sonar will start collecting data and send it to the Jobanalyzer server. As the data is
+collected, Jobanalyzer server will start processing the data and generate necessary information related to the user.
+
+*Story (WP8.x.x):* User logs in to the NAIC Orchestrator and starts to create a new VM. NAIC Orchestrator will check
+for existing usage information related to user reported through Jobanalyzer. NAIC Orchestrator will use this information to suggest
+the best VM configuration(s) for the user.
+
+*Story (WP8.x.x):* Admin user logs in to the NAIC Orchestrator.
+Admin user can see following information
+ - usage data of the users.
+ - suggested VM configuration(s) for each user.
+ - most underutilized/ highly utilized VM configurations (etc).
 
 
 ## User stories and use cases that will *NOT* be supported
