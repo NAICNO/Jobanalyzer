@@ -242,7 +242,7 @@ export default function JobQueryPage() {
               </Text>
               <HStack spacing={2} my="20px">
                 <Text>
-                  Click on a job link in the table below to select a profile of the job.
+                  Click on a job link in the table below to view profiles of the job.
                 </Text>
                 <Spacer/>
                 <Button

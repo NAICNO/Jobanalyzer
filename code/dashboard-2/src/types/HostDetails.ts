@@ -1,8 +1,8 @@
-import { ChartDataItem, ChartSeriesConfig } from './chart'
+import { HostDetailsChartDataItem, ChartSeriesConfig } from './chart'
 
 export interface HostDetails {
   chart: {
-    dataItems: ChartDataItem[];
+    dataItems: HostDetailsChartDataItem[];
     seriesConfigs: ChartSeriesConfig[];
   }
   system: {

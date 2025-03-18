@@ -8,7 +8,6 @@ import {
   CommandListCell,
   GenericCell,
   GpuFieldCell,
-  JobQueryJobIdCell,
   WorkingFieldCell,
 } from './components/table/cell'
 import { splitMultiPattern } from './util/query/HostGlobber.ts'
@@ -56,11 +55,11 @@ export const EMPTY_ARRAY: any[] = []
 
 export const DURATION_REGEX = /^(.*)d(.*)h(.*)m$/
 
-export const PROFILE_NAMES = [
-  {key: 'cpu', text: 'CPU'},
-  {key: 'res', text: 'RAM'},
-  {key: 'gpu', text: 'GPU'},
-  {key: 'gpumem', text: 'GPU RAM'}
+export const PROFILING_INFO = [
+  {key: 'cpu', text: 'CPU', scaleFactor: 0.01},
+  {key: 'res', text: 'RAM', scaleFactor: 1},
+  {key: 'gpu', text: 'GPU', scaleFactor: 0.01},
+  {key: 'gpumem', text: 'GPU RAM', scaleFactor: 1},
 ]
 
 export const QueryKeys = {
@@ -72,6 +71,7 @@ export const QueryKeys = {
   HOSTNAME: 'HOSTNAME',
   JOB_QUERY: 'JOB_QUERY',
   EXPORT_JOB_QUERY: 'EXPORT_JOB_QUERY',
+  JOB_PROFILE: 'JOB_PROFILE',
 }
 
 export const SIDEBAR_ITEMS: SidebarItem[] = [
@@ -594,7 +594,7 @@ export const JOB_QUERY_RESULTS_COLUMN: { [K in keyof JobQueryResultsTableItem]: 
     key: 'job',
     title: 'Job#',
     sortable: true,
-    renderFn: JobQueryJobIdCell,
+    renderFn: CellWithLink,
   },
   user: {
     key: 'user',
