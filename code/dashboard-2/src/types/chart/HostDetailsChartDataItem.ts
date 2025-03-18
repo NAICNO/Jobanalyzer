@@ -1,4 +1,4 @@
-export interface ChartDataItem {
+export interface HostDetailsChartDataItem {
   timestamp: number;
   rcpu: number;
   rmem: number;
