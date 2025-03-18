@@ -462,15 +462,17 @@ TODO: To be developed.
 
 ### "NAIC Orchestrator" user stories
 
-*Story (WP8.x.x): User logs in to the NAIC Orchestrator and creates a VM. Once the VM is provisioned, sonar 
+*Story (WP8.x.x):* User logs in to the NAIC Orchestrator and creates a VM. Once the VM is provisioned, sonar 
 package is installed in the VM. Orchestrator will also generate a parameter file in VM which contains the necessary 
 configuration (such as endpoints, vm ID, etc.) for sonar to work. This is done automatically without any user intervention.
+Once the VM is up and running, sonar will start collecting data and send it to the Jobanalyzer server. As the data is
+collected, Jobanalyzer server will start processing the data and generate necessary information related to the user.
 
-*Story (WP8.x.x): User logs in to the NAIC Orchestrator and starts to create a new VM. NAIC Orchestrator will check
-for existing usage data related to user reported through Jobanalyzer. NAIC Orchestrator will use this data to suggest
+*Story (WP8.x.x):* User logs in to the NAIC Orchestrator and starts to create a new VM. NAIC Orchestrator will check
+for existing usage information related to user reported through Jobanalyzer. NAIC Orchestrator will use this information to suggest
 the best VM configuration(s) for the user.
 
-*Story (WP8.x.x): Admin user logs in to the NAIC Orchestrator.
+*Story (WP8.x.x):* Admin user logs in to the NAIC Orchestrator.
 Admin user can see following information
  - usage data of the users.
  - suggested VM configuration(s) for each user.
