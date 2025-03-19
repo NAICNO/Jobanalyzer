@@ -296,7 +296,7 @@ able to register to receive an alert by email when the situation arises.
 
 *A* can state this preference in his profile on the console.
 
-#### `sup_misfits`
+#### `sup_misfits` (high pri)
 
 This is a collection of very similar use cases pertaining to a job (or user) being a poor fit for
 the system the job is running on.  In all cases, there will be policy definition questions (see the
@@ -344,7 +344,8 @@ stand unused, this is Story 1 of `sup_unused_capacity` as well.)
 
 *Story 6 (vampire) (WP2.3.1/2.3.2/2.3.3):* Another variation of *Story 3*, this problem occurs when
 *U* does not run one big job that uses a lot of CPU and no GPU, but many smaller jobs, sometimes
-overlapping, that together have the effect of being a big job in violation of the cpuhog policy.
+overlapping, that together have the effect of being a big job in violation of the cpuhog policy.  (Could
+be an array job.)
 See issue 55 for an exploration.  *A* wants to move *U* to a system without GPUs.
 
 #### `sup_software_use`
