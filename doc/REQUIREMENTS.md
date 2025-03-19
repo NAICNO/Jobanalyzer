@@ -393,7 +393,9 @@ between them.)
 
 #### `usr_resource_use`
 
-*Story 1 (WP2.3.5):* *U* submits an HPC job and wants to assess how the job used the available
+##### Utilization information
+
+*Story 1 (WP2.3.5):* **post-mortem** *U* submits an HPC job and wants to assess how the job used the available
 hardware, without having any particular focus on anything in particular.  This is frequently the
 first thing one does after porting a code to a new machine.
 
@@ -402,20 +404,20 @@ completed.  There is probably a predefined, named query that will apply the most
 options.  (Sabry brings up the similarity to the Slurm `seff` command, see the "Other tools" section
 of [DESIGN.md](DESIGN.md).)
 
-*Story 2 (WP2.3.5):* *U* submits an HPC job expecting to use 16 cores and 8GB memory per CPU. Admins
+*Story 2 (WP2.3.5):* **post-mortem** *U* submits an HPC job expecting to use 16 cores and 8GB memory per CPU. Admins
 complain that *U* is wasting resources (the program runs on one core and uses 4GB). In order to
 debug the problem, *U* wants to check which resources the job just finished used.
 
 *U* breaks out the Jobanalyzer command line tool and asks to see the statistics on her last job that
 completed.
 
-*Story 3 (WP2.3.5):* *U* runs an analysis using Pytorch. *U* expects the code to use GPUs. *U* wants
+*Story 3 (WP2.3.5):* **post-mortem** *U* runs an analysis using Pytorch. *U* expects the code to use GPUs. *U* wants
 to check that the code did indeed use the GPU during the last 10 analyses that ran to completion.
 
 *U* again breaks out the command line tool and asks to see the statistics on her last 10 jobs that
 completed.
 
-*Story 4 (WP2.3.5):* *U* runs a complex pipeline on the ML nodes and observes that it crashes due to
+*Story 4 (WP2.3.5):* **post-mortem** *U* runs a complex pipeline on the ML nodes and observes that it crashes due to
 apparent resource exhaustion.  *U* wants to find out how the individual commands behaved over time.
 
 *U* can run the command line tool and ask to see the per-time-step statistics for the failing job.
@@ -424,6 +426,63 @@ the pipeline is running to obtain more detailed data.
 
 (For more detail on some of the cases, see the `verify_gpu_use` and `verify_resource_use` use cases
 in README.md)
+
+*Story 5 (WP9):* **post-mortem** *U* runs an HPC job and wants (or at least finds useful) an immediate
+and easily digestible overview of the job's behavior and what might be done differently.
+
+Without user involvement, Jobanalyzer generates a summary of the job + recommendations + perhaps a link
+to more information and communicates it to the user, possibly in a Slurm exit message or by email (TBD).
+
+*Story 6 (WP9)*: **on-line** As Story 5, but the user does not want to wait until the end of the job
+but wants information as the job is running.
+
+Without user involvement, Jobanalyzer generates a link to on-line information and communciates it to the
+user, possibly in the Slurm log for the job or by email (TBD).  Probably this would mostly be an on-line 
+profile of job showing usage, allocation, etc, but could also be a textual summary of any analysis of the
+job so far.
+
+#### `usr_batch_queue`
+
+*Story n (WP9):* (slurm script builder and partition picker) **pre-submit** User has a job with some known characteristics and wants to know where to
+place it to run it sooner or to complete it more quickly.  (Characteristics might be hardware needs,
+esp.  Where to place it might be cluster and queue.  User constraints might be the clusters that are accessible
+to the user and available at the moment.)
+
+This is basically best-fit analysis.
+
+At the lowest level, the user can have a UI where:
+- [ ] select clusters available to you
+to expose the available parititions on those clusters.  This allows him to
+- [ ] select interesting partitions by checking off for some resource eg gpu type (I need A100 x 4 x 80GB)
+which leads to a list of partitions with maybe info about wait times or history or some analysis of that.
+Want to run sbatch --test-only with the proposed script to see what a sensible wait time is.
+
+Maybe type in
+- [ ] expected run time
+- [ ] whether it's acceptable to share node or not
+- [ ] whether it's ok to have multiple gpus on multiple nodes
+Then you might get a couple of partitions:
+- best available now
+- best in principle
+Now push a button and get a little script for that and info about how to run it in practice, with a comment to the effect
+that "beware systems change over time", if relevant.
+
+You could consider an "Advanced settings" file which gives you the ability to control cores per gpu, say.
+
+User group targeted: beginner/maybe intermediate.
+
+There is cluster-specific know-how about this, and the slurm admins are *not* likely to maintain this.  So jobanalyzer must compute
+it from node info.
+
+*Sketch Story n (WP9)* (script analyzer) **pre-submit?** User has a slurm script and wants to know if it's sensible in scheduling terms (sbatch lines).
+
+- might try some best-practice rules
+- might try to write an LLM prompt to see if something sensible comes from it
+- might diff script against what comes out from a worksheet like in the previous story
+
+Researchy.
+
+
 
 #### `usr_scalability`
 
