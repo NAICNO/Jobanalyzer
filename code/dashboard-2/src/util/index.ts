@@ -78,7 +78,7 @@ export const reformatHostDescriptions = (description: string): string => {
 export const generateTolRainbowColors = (numColors: number): string[] => {
   const colors: string[] = []
   const saturation = 0.60 // High saturation for vibrant colors
-  const lightness = 0.60  // Lightness adjusted for visibility on both light and dark backgrounds
+  const lightness = 0.55  // Lightness adjusted for visibility on both light and dark backgrounds
 
   for (let i = 0; i < numColors; i++) {
     const hue = (i / numColors) * 360 // Distribute hues evenly
