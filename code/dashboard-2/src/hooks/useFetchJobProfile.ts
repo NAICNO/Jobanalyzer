@@ -22,11 +22,7 @@ export const useFetchJobProfile = (clusterName: string, hostname: string, jobId:
       gcTime: 0,
       queryKey: [QueryKeys.JOB_PROFILE, clusterName, hostname, jobId],
       queryFn: () => fetchJobProfile(axios, clusterName, hostname, jobId, from, to),
-      select: (data) => {
-        return PROFILING_INFO.map(({key, text, scaleFactor}) => {
-          return transformData(data, key, text, scaleFactor)
-        })
-      },
+      select: (data) => transformData(data, PROFILING_INFO),
       initialData: () => {
         return []
       }
@@ -36,43 +32,38 @@ export const useFetchJobProfile = (clusterName: string, hostname: string, jobId:
 
 const transformData = (
   data: FetchedJobProfileResultItem[],
-  profileType: string,
-  profileName: string,
-  scaleFactor: number,
+  profilingInfo: typeof PROFILING_INFO
 ) => {
-  // First pass: collect all unique keys from data points
   const commandPidSet = new Set<string>()
-  data.forEach(entry => {
+  // Precompute raw data items with the original point values
+  const rawDataItems = data.map(entry => {
+    const raw: { time: string, [key: string]: any } = {time: entry.time}
     entry.points.forEach(point => {
       const key = `${point.command}-${point.pid}`
       commandPidSet.add(key)
+      raw[key] = point
     })
+    return raw
   })
 
-  // Convert the set to an array
   const commandPidKeys = Array.from(commandPidSet)
-
-  // Second pass: transform data items using the collected keys
-  const dataItems = data.map(entry => {
-    const transformed: JobProfileDataItem = {time: entry.time}
-    entry.points.forEach(point => {
-      const key = `${point.command}-${point.pid}`
-      transformed[key] = point[profileType] * scaleFactor
-    })
-    return transformed
-  })
-
-  // Generate colors for each key
   const colors = generateTolRainbowColors(commandPidKeys.length)
 
-  // Build seriesConfigs from the unique keys
-  const seriesConfigs: ChartSeriesConfig[] = commandPidKeys.map((key, index) => {
-    return {
+  return profilingInfo.map(({key: profileType, text: profileName, scaleFactor}) => {
+    const dataItems = rawDataItems.map(raw => {
+      const transformed: JobProfileDataItem = {time: raw.time}
+      commandPidKeys.forEach(key => {
+        transformed[key] = raw[key] ? raw[key][profileType] * scaleFactor : 0
+      })
+      return transformed
+    })
+
+    const seriesConfigs: ChartSeriesConfig[] = commandPidKeys.map((key, index) => ({
       dataKey: key,
       label: key,
       lineColor: colors[index],
-    }
-  })
+    }))
 
-  return {dataItems, seriesConfigs, profileName}
+    return {dataItems, seriesConfigs, profileName}
+  })
 }
