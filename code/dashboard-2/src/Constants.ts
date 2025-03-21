@@ -8,7 +8,6 @@ import {
   CommandListCell,
   GenericCell,
   GpuFieldCell,
-  JobQueryJobIdCell,
   WorkingFieldCell,
 } from './components/table/cell'
 import { splitMultiPattern } from './util/query/HostGlobber.ts'
@@ -32,6 +31,7 @@ import {
   JobQueryResultsTableItem,
   JobQueryValues,
   Policies,
+  ProfileInfo,
   SidebarItem,
   SimpleRadioInputOption,
   ViolatingJob,
@@ -56,11 +56,35 @@ export const EMPTY_ARRAY: any[] = []
 
 export const DURATION_REGEX = /^(.*)d(.*)h(.*)m$/
 
-export const PROFILE_NAMES = [
-  {key: 'cpu', text: 'CPU'},
-  {key: 'res', text: 'RAM'},
-  {key: 'gpu', text: 'GPU'},
-  {key: 'gpumem', text: 'GPU RAM'}
+export const PROFILING_INFO: ProfileInfo[] = [
+  {
+    key: 'cpu',
+    text: 'Number of CPU cores (1.0 = 1 core at 100%)',
+    scaleFactor: 0.01,
+    yAxisLabel: 'Number of CPU cores',
+    xAxisLabel: 'Time (UTC)',
+  },
+  {
+    key: 'res',
+    text: 'Resident primary memory in GB',
+    scaleFactor: 1,
+    yAxisLabel: 'Memory (GB)',
+    xAxisLabel: 'Time (UTC)',
+  },
+  {
+    key: 'gpu',
+    text: 'Number of GPU cards in use (1.0 = 1 card at 100%)',
+    scaleFactor: 0.01,
+    yAxisLabel: 'Number of GPU cards',
+    xAxisLabel: 'Time (UTC)',
+  },
+  {
+    key: 'gpumem',
+    text: 'Real GPU memory in GB',
+    scaleFactor: 1,
+    yAxisLabel: 'GPU Memory (GB)',
+    xAxisLabel: 'Time (UTC)',
+  },
 ]
 
 export const QueryKeys = {
@@ -72,6 +96,7 @@ export const QueryKeys = {
   HOSTNAME: 'HOSTNAME',
   JOB_QUERY: 'JOB_QUERY',
   EXPORT_JOB_QUERY: 'EXPORT_JOB_QUERY',
+  JOB_PROFILE: 'JOB_PROFILE',
 }
 
 export const SIDEBAR_ITEMS: SidebarItem[] = [
@@ -594,7 +619,7 @@ export const JOB_QUERY_RESULTS_COLUMN: { [K in keyof JobQueryResultsTableItem]: 
     key: 'job',
     title: 'Job#',
     sortable: true,
-    renderFn: JobQueryJobIdCell,
+    renderFn: CellWithLink,
   },
   user: {
     key: 'user',

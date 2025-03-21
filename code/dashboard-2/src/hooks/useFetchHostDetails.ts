@@ -6,7 +6,7 @@ import useAxios from './useAxios.ts'
 import { CHART_SERIES_CONFIGS, QueryKeys } from '../Constants.ts'
 import { reformatHostDescriptions } from '../util'
 import {
-  ChartDataItem,
+  HostDetailsChartDataItem,
   ChartSeriesConfig,
   HostDetails,
   HostFetchedData,
@@ -63,8 +63,8 @@ export const useFetchHostDetails = (
         // Assemble the chart data.
         const seriesNames = new Set<string>()
 
-        const chartData: ChartDataItem[] = timestamps.map((timestamp, i) => {
-          let dataEntry: Partial<ChartDataItem> = {timestamp: moment(timestamp).valueOf()}
+        const chartData: HostDetailsChartDataItem[] = timestamps.map((timestamp, i) => {
+          let dataEntry: Partial<HostDetailsChartDataItem> = {timestamp: moment(timestamp).valueOf()}
 
           if (isShowData) {
 
@@ -116,13 +116,12 @@ export const useFetchHostDetails = (
             }
           }
 
-          return dataEntry as ChartDataItem
+          return dataEntry as HostDetailsChartDataItem
         })
 
         const seriesConfigs: ChartSeriesConfig[] = Array.from(seriesNames).map((name) => {
           return CHART_SERIES_CONFIGS[name]
         })
-
 
         return {
           system: {

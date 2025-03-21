@@ -3,10 +3,10 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import moment from 'moment'
 import { AxisDomain, DataKey } from 'recharts/types/util/types'
 
-import { ChartDataItem, ChartSeriesConfig } from '../../types'
+import { HostDetailsChartDataItem, ChartSeriesConfig } from '../../types'
 
 interface HostDetailsChartProps {
-  dataItems: ChartDataItem[];
+  dataItems: HostDetailsChartDataItem[];
   seriesConfigs: ChartSeriesConfig[];
   containerProps: {
     width: number | string;
@@ -70,7 +70,6 @@ export const MachineDetailsChart = ({
           interval={'equidistantPreserveStart'}
           tickMargin={30}
           height={100}
-
         />
         <YAxis
           domain={yAxisDomain || ['auto', 'auto']}
