@@ -32,7 +32,6 @@ export const useFetchJobProfile = (clusterName: string, hostname: string, jobId:
 
 const transformData = (
   data: FetchedJobProfileResultItem[],
-  profilingInfo: typeof PROFILING_INFO
 ) => {
   const commandPidSet = new Set<string>()
   // Precompute raw data items with the original point values
@@ -49,11 +48,11 @@ const transformData = (
   const commandPidKeys = Array.from(commandPidSet)
   const colors = generateTolRainbowColors(commandPidKeys.length)
 
-  return profilingInfo.map(({key: profileType, text: profileName, scaleFactor}) => {
+  return PROFILING_INFO.map((profileInfo) => {
     const dataItems = rawDataItems.map(raw => {
       const transformed: JobProfileDataItem = {time: raw.time}
       commandPidKeys.forEach(key => {
-        transformed[key] = raw[key] ? raw[key][profileType] * scaleFactor : 0
+        transformed[key] = raw[key] ? raw[key][profileInfo.key] * profileInfo.scaleFactor : 0
       })
       return transformed
     })
@@ -64,6 +63,6 @@ const transformData = (
       lineColor: colors[index],
     }))
 
-    return {dataItems, seriesConfigs, profileName}
+    return {dataItems, seriesConfigs, profileInfo}
   })
 }

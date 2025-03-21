@@ -56,7 +56,7 @@ export default function JobProfilePage() {
           </Table>
         </TableContainer>
         <Text fontSize="sm" color="gray.500">
-          Tip: Drag the brush below to zoom in and explore specific time ranges.
+          Tip: Drag the brush below to zoom in and explore specific time ranges. Timestamps are in UTC.
         </Text>
         <VStack w={'100%'} spacing={8}>
           {
@@ -64,7 +64,7 @@ export default function JobProfilePage() {
                 return (
                   <JobProfileChart
                     key={index}
-                    profileName={item.profileName}
+                    profileInfo={item.profileInfo}
                     dataItems={item.dataItems}
                     seriesConfigs={item.seriesConfigs}
                     containerProps={{width: '100%', height: 600}}

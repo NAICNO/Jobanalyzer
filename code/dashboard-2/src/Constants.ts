@@ -31,6 +31,7 @@ import {
   JobQueryResultsTableItem,
   JobQueryValues,
   Policies,
+  ProfileInfo,
   SidebarItem,
   SimpleRadioInputOption,
   ViolatingJob,
@@ -55,11 +56,35 @@ export const EMPTY_ARRAY: any[] = []
 
 export const DURATION_REGEX = /^(.*)d(.*)h(.*)m$/
 
-export const PROFILING_INFO = [
-  {key: 'cpu', text: 'CPU', scaleFactor: 0.01},
-  {key: 'res', text: 'RAM', scaleFactor: 1},
-  {key: 'gpu', text: 'GPU', scaleFactor: 0.01},
-  {key: 'gpumem', text: 'GPU RAM', scaleFactor: 1},
+export const PROFILING_INFO: ProfileInfo[] = [
+  {
+    key: 'cpu',
+    text: 'Number of CPU cores (1.0 = 1 core at 100%)',
+    scaleFactor: 0.01,
+    yAxisLabel: 'Number of CPU cores',
+    xAxisLabel: 'Time (UTC)',
+  },
+  {
+    key: 'res',
+    text: 'Resident primary memory in GB',
+    scaleFactor: 1,
+    yAxisLabel: 'Memory (GB)',
+    xAxisLabel: 'Time (UTC)',
+  },
+  {
+    key: 'gpu',
+    text: 'Number of GPU cards in use (1.0 = 1 card at 100%)',
+    scaleFactor: 0.01,
+    yAxisLabel: 'Number of GPU cards',
+    xAxisLabel: 'Time (UTC)',
+  },
+  {
+    key: 'gpumem',
+    text: 'Real GPU memory in GB',
+    scaleFactor: 1,
+    yAxisLabel: 'GPU Memory (GB)',
+    xAxisLabel: 'Time (UTC)',
+  },
 ]
 
 export const QueryKeys = {

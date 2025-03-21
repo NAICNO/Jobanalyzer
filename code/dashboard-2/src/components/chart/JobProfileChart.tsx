@@ -16,10 +16,10 @@ import { Checkbox, Heading, HStack, Select, Spacer, Text, VStack } from '@chakra
 import { DataKey } from 'recharts/types/util/types'
 import moment from 'moment/moment'
 
-import { ChartSeriesConfig, JobProfileDataItem } from '../../types'
+import { ChartSeriesConfig, JobProfileDataItem, ProfileInfo } from '../../types'
 
 interface JobProfileChartProps {
-  profileName: string;
+  profileInfo: ProfileInfo;
   dataItems: JobProfileDataItem[];
   seriesConfigs: ChartSeriesConfig[];
   syncId?: string;
@@ -30,7 +30,7 @@ const dateTimeFormatter = (datetime: number) => {
 }
 
 export const JobProfileChart = ({
-  profileName,
+  profileInfo,
   dataItems,
   seriesConfigs,
   syncId,
@@ -63,7 +63,7 @@ export const JobProfileChart = ({
   return (
     <VStack spacing={2} width={'100%'} alignItems={'start'}>
       <HStack width="100%" paddingLeft={8} paddingRight={4}>
-        <Heading size={'h4'}>{`${profileName} Profile`}</Heading>
+        <Heading size={'h4'}>{profileInfo.text}</Heading>
         <Spacer/>
         <Text>Chart Type: </Text>
         <Select
@@ -95,7 +95,7 @@ export const JobProfileChart = ({
               interval={'equidistantPreserveStart'}
               tickFormatter={dateTimeFormatter}
             />
-            <YAxis/>
+            <YAxis label={{value: profileInfo.yAxisLabel, angle: -90, position: 'insideLeft'}} />
             <Tooltip labelFormatter={dateTimeFormatter}/>
             <Legend
               verticalAlign={'top'}
@@ -160,7 +160,7 @@ export const JobProfileChart = ({
               interval={'equidistantPreserveStart'}
               tickFormatter={dateTimeFormatter}
             />
-            <YAxis/>
+            <YAxis label={{value: profileInfo.yAxisLabel, angle: -90, position: 'insideLeft'}} />
             <Tooltip labelFormatter={dateTimeFormatter}/>
             <Legend
               verticalAlign={'top'}
@@ -197,7 +197,7 @@ export const JobProfileChart = ({
                   <Line
                     dot={false}
                     key={config.dataKey}
-                    type="linear"
+                    type="monotone"
                     dataKey={config.dataKey}
                     stroke={config.lineColor}
                     hide={!lineVisibility[index]}
