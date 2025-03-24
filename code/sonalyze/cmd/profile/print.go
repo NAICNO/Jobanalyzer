@@ -546,7 +546,7 @@ func formatJson(
 				Pid:        pid,
 				CpuUtilPct: int(math.Round(float64(entry.cpuUtilPct))),
 				CpuGB:      cpuGB,
-				RssAnonGB:  entry.rssAnonKB / (1024 * 1024),
+				RssAnonGB:  uint64(math.Round(float64(entry.rssAnonKB) / (1024 * 1024))),
 				GpuPct:     int(math.Round(float64(entry.gpuPct))),
 				GpuMemGB:   gpuGB,
 				Nproc:      int(entry.s.Rolledup) + 1,
