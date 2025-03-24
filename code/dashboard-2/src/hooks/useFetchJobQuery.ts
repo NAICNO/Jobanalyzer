@@ -5,9 +5,8 @@ import useAxios from './useAxios.ts'
 import { QUERY_API_ENDPOINT, QueryKeys } from '../Constants.ts'
 import {
   FetchedJobQueryResultItem,
-  JobQueryJobId,
   JobQueryResultsTableItem,
-  JobQueryValues,
+  JobQueryValues, TextWithLink,
 } from '../types'
 import { parseDateString } from '../util'
 import { prepareJobQueryString } from '../util/query/QueryUtils.ts'
@@ -31,13 +30,25 @@ export const useFetchJobQuery = (jobQueryValues: JobQueryValues, fields: string[
       queryFn: () => fetchJobQuery(axios, jobQueryValues, fields),
       select: data => {
         const converted = data.map((fetchedItem) => {
-          const job: JobQueryJobId = {
-            jobId: fetchedItem.job,
-            clusterName: jobQueryValues.clusterName,
-            hostName: fetchedItem.host,
-            from: jobQueryValues.fromDate,
-            to: jobQueryValues.toDate,
-          }
+
+          const query = new URLSearchParams(
+            Object.entries(
+              {
+                jobId: fetchedItem.job,
+                clusterName: jobQueryValues.clusterName,
+                hostname: fetchedItem.host,
+                user: fetchedItem.user,
+                from: jobQueryValues.fromDate,
+                to: jobQueryValues.toDate,
+              }
+            ).reduce<Record<string, string>>((acc, [key, val]) => {
+              acc[key] = String(val)
+              return acc
+            }, {})
+          ).toString()
+
+          const job: TextWithLink = {text: fetchedItem.job, link: `/jobprofile?${query}`, openInNewTab: true}
+
           return {
             ...fetchedItem,
             job: job,

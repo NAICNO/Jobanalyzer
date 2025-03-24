@@ -1,7 +1,7 @@
-import { JobQueryJobId } from './JobQueryJobId.ts'
+import { TextWithLink } from '../TextWithLink.ts'
 
 export interface JobQueryResultsTableItem {
-  job: JobQueryJobId;
+  job: TextWithLink;
   user: string;
   host: string;
   duration: string;

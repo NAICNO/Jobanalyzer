@@ -1,7 +1,8 @@
 export interface JobQueryJobId {
   jobId: string;
   clusterName: string;
-  hostName: string;
+  hostname: string;
+  user: string;
   from?: string;
   to?: string;
 }

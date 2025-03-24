@@ -15,6 +15,7 @@ import NodeSelectionHelpPage from './pages/NodeSelectionHelpPage.tsx'
 import HostDetailsPage from './pages/HostDetailsPage.tsx'
 import JobQueryPage from './pages/JobQueryPage.tsx'
 import SubclusterPage from './pages/SubclusterPage.tsx'
+import JobProfilePage from './pages/JobProfilePage.tsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -31,7 +32,8 @@ const router = createBrowserRouter(
       <Route path=":clusterName/:hostname/violators" element={<ViolatorsPage/>}/>
       <Route path=":clusterName/:hostname/:violator" element={<ViolatorPage/>}/>
       <Route path=":clusterName/:hostname/deadweight" element={<DeadWeightPage/>}/>
-      <Route path="jobQuery" element={<JobQueryPage/>}/>
+      <Route path="jobquery" element={<JobQueryPage/>}/>
+      <Route path="jobprofile" element={<JobProfilePage/>}/>
     </Route>
   )
 )
