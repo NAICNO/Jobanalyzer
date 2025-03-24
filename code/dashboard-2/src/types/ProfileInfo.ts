@@ -4,5 +4,4 @@ export interface ProfileInfo {
   scaleFactor: number;
   yAxisLabel: string;
   xAxisLabel: string;
-
 }

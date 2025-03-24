@@ -22,7 +22,7 @@ export const useFetchJobProfile = (clusterName: string, hostname: string, jobId:
       gcTime: 0,
       queryKey: [QueryKeys.JOB_PROFILE, clusterName, hostname, jobId],
       queryFn: () => fetchJobProfile(axios, clusterName, hostname, jobId, from, to),
-      select: (data) => transformData(data, PROFILING_INFO),
+      select: (data) => transformData(data),
       initialData: () => {
         return []
       }
@@ -49,10 +49,12 @@ const transformData = (
   const colors = generateTolRainbowColors(commandPidKeys.length)
 
   return PROFILING_INFO.map((profileInfo) => {
-    const dataItems = rawDataItems.map(raw => {
-      const transformed: JobProfileDataItem = {time: raw.time}
+    const dataItems: JobProfileDataItem[] = rawDataItems.map(raw => {
+      const transformed: JobProfileDataItem = {time: raw.time} as JobProfileDataItem
       commandPidKeys.forEach(key => {
-        transformed[key] = raw[key] ? raw[key][profileInfo.key] * profileInfo.scaleFactor : 0
+        transformed[key] = raw[key]
+          ? Math.round(raw[key][profileInfo.key] * profileInfo.scaleFactor * 100) / 100
+          : 0
       })
       return transformed
     })

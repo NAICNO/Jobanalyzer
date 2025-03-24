@@ -1,10 +1,9 @@
 import { ChartSeriesConfig } from './ChartSeriesConfig.ts'
 import { ProfileInfo } from '../ProfileInfo.ts'
 
-export interface JobProfileDataItem {
+export type JobProfileDataItem = {
   time: string;
-  [dataKey: string]: number;
-}
+} & Record<string, number>
 
 export interface JobProfileChartData {
   dataItems: JobProfileDataItem[];
