@@ -10,7 +10,7 @@ import {
   Text,
   VStack
 } from '@chakra-ui/react'
-import { Link as ReactRouterLink, Navigate, useParams } from 'react-router-dom'
+import { Link as ReactRouterLink, Navigate, useParams } from 'react-router'
 
 import { FETCH_FREQUENCIES } from '../Constants.ts'
 import { useFetchHostnames } from '../hooks/useFetchHosts.ts'

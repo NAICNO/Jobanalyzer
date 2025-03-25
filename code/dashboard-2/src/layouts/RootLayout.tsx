@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet } from 'react-router'
 import { Grid, GridItem, useColorMode, useDisclosure } from '@chakra-ui/react'
 
 import { AppHeader, Sidebar } from '../components'

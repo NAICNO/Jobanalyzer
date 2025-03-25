@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom'
 import { ChakraProvider } from '@chakra-ui/react'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter } from 'react-router'
 import { render, screen, within } from '@testing-library/react'
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table'
 
@@ -54,6 +54,7 @@ describe('DashboardTableRow', () => {
 
     const cluster: Cluster = {
       cluster: 'test',
+      canonical: 'test',
       subclusters: [],
       uptime: true,
       violators: true,
@@ -76,7 +77,7 @@ describe('DashboardTableRow', () => {
 
     const table = screen.getByRole('table')
     const rowElements = within(table).getAllByRole('row')
-    const dataRow = rowElements[1]
+    const dataRow = rowElements[2]
     expect(dataRow).toHaveStyle({backgroundColor: '#ff6347'})  // tomato
   })
 })

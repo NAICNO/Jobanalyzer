@@ -1,5 +1,5 @@
 import { ArrowBackIcon } from '@chakra-ui/icons'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router'
 import { IconButton } from '@chakra-ui/react'
 
 export const NavigateBackButton = () => {
