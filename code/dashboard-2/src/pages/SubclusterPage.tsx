@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Heading, HStack, VStack, Text, Link as ChakraLink } from '@chakra-ui/react'
-import { Link as ReactRouterLink, Navigate, useParams } from 'react-router-dom'
+import { Link as ReactRouterLink, Navigate, useParams } from 'react-router'
 
 import { findSubcluster } from '../util'
 import { useFetchHostDetails } from '../hooks/useFetchHostDetails.ts'

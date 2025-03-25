@@ -5,7 +5,7 @@ import {
   Spacer,
   useColorMode,
 } from '@chakra-ui/react'
-import { NavLink } from 'react-router-dom'
+import { NavLink } from 'react-router'
 
 import { APP_NAME } from '../Constants.ts'
 import { LightDarkModeButton } from './LightDarkModeButton.tsx'
@@ -28,7 +28,7 @@ export const AppHeader = ({opOpenSidebarDrawer}: AppHeaderProps) => {
       wrap="wrap"
     >
       <HamburgerButton opOpenSidebarDrawer={opOpenSidebarDrawer}/>
-      <NavLink to={''}>
+      <NavLink to={'/'}>
         <Flex alignItems={'center'}>
           <Image
             src={naicLogo}

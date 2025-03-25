@@ -14,7 +14,7 @@ import {
   useBreakpointValue,
   useColorMode, VStack,
 } from '@chakra-ui/react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router'
 
 import { LightDarkModeButton } from './LightDarkModeButton.tsx'
 import { SIDEBAR_ITEMS } from '../Constants.ts'

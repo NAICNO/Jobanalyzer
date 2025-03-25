@@ -1,5 +1,5 @@
 import { ReactNode, useMemo, useRef, useState } from 'react'
-import { Navigate, useParams, Link as ReactRouterLink, useSearchParams } from 'react-router-dom'
+import { Navigate, useParams, Link as ReactRouterLink, useSearchParams } from 'react-router'
 import {
   Heading,
   VStack,

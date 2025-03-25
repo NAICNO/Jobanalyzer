@@ -6,7 +6,8 @@ exports[`CellWithLink > renders correctly 1`] = `
     class="css-fclqwi"
   >
     <a
-      class="chakra-link css-1856l8r"
+      class="chakra-link css-0"
+      data-discover="true"
       href="/test-link"
     >
       Test Link

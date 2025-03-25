@@ -9,7 +9,7 @@ import {
   Tr,
   VStack
 } from '@chakra-ui/react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router'
 
 import { PageTitle } from '../components'
 import { useFetchJobProfile } from '../hooks/useFetchJobProfile.ts'

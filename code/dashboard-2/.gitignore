@@ -144,3 +144,5 @@ sketch
 dist
 .vercel
 .npmrc
+.yarnrc.yml
+.yarn

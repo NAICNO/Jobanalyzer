@@ -1,10 +1,8 @@
 import {
   createBrowserRouter,
-  createRoutesFromElements,
   Navigate,
-  Route,
   RouterProvider
-} from 'react-router-dom'
+} from 'react-router'
 
 import RootLayout from './layouts/RootLayout.tsx'
 import DashboardPage from './pages/DashboardPage.tsx'
@@ -17,26 +15,70 @@ import JobQueryPage from './pages/JobQueryPage.tsx'
 import SubclusterPage from './pages/SubclusterPage.tsx'
 import JobProfilePage from './pages/JobProfilePage.tsx'
 
-const router = createBrowserRouter(
-  createRoutesFromElements(
-    <Route element={<RootLayout/>}>
-      <Route index element={<Navigate to="dashboard/ml" replace/>}/>
-      <Route path="dashboard" element={<DashboardPage/>}/>
-      <Route path="dashboard/:clusterName" element={<DashboardPage/>}/>
-      <Route path="dashboard/help/node-selection" element={<NodeSelectionHelpPage/>}/>
-      <Route path=":clusterName/subcluster/:subclusterName" element={<SubclusterPage/>}/>
-      <Route path=":clusterName/violators" element={<ViolatorsPage/>}/>
-      <Route path=":clusterName/violators/:violator" element={<ViolatorPage/>}/>
-      <Route path=":clusterName/deadweight" element={<DeadWeightPage/>}/>
-      <Route path=":clusterName/:hostname" element={<HostDetailsPage/>}/>
-      <Route path=":clusterName/:hostname/violators" element={<ViolatorsPage/>}/>
-      <Route path=":clusterName/:hostname/:violator" element={<ViolatorPage/>}/>
-      <Route path=":clusterName/:hostname/deadweight" element={<DeadWeightPage/>}/>
-      <Route path="jobquery" element={<JobQueryPage/>}/>
-      <Route path="jobprofile" element={<JobProfilePage/>}/>
-    </Route>
-  )
-)
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout/>,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="dashboard/ml" replace/>
+      },
+      {
+        path: 'dashboard',
+        element: <DashboardPage/>
+      },
+      {
+        path: 'dashboard/:clusterName',
+        element: <DashboardPage/>
+      },
+      {
+        path: 'dashboard/help/node-selection',
+        element: <NodeSelectionHelpPage/>
+      },
+      {
+        path: ':clusterName/subcluster/:subclusterName',
+        element: <SubclusterPage/>
+      },
+      {
+        path: ':clusterName/violators',
+        element: <ViolatorsPage/>
+      },
+      {
+        path: ':clusterName/violators/:violator',
+        element: <ViolatorPage/>
+      },
+      {
+        path: ':clusterName/deadweight',
+        element: <DeadWeightPage/>
+      },
+      {
+        path: ':clusterName/:hostname',
+        element: <HostDetailsPage/>
+      },
+      {
+        path: ':clusterName/:hostname/violators',
+        element: <ViolatorsPage/>
+      },
+      {
+        path: ':clusterName/:hostname/:violator',
+        element: <ViolatorPage/>
+      },
+      {
+        path: ':clusterName/:hostname/deadweight',
+        element: <DeadWeightPage/>
+      },
+      {
+        path: 'jobquery',
+        element: <JobQueryPage/>
+      },
+      {
+        path: 'jobprofile',
+        element: <JobProfilePage/>
+      }
+    ]
+  }
+])
 
 function App() {
   return (
