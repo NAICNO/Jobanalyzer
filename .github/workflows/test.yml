@@ -34,6 +34,7 @@ jobs:
       with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: 'code/dashboard-2/yarn.lock'
 
     - name: Install dependencies
       working-directory: 'code/dashboard-2'
