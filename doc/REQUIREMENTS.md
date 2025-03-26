@@ -475,6 +475,8 @@ User group targeted: beginner/maybe intermediate.
 There is cluster-specific know-how about this, and the slurm admins are *not* likely to maintain this.  So jobanalyzer must compute
 it from node info.
 
+There are complications: different users may have different constraints (budgets, priorities, privileges) and it's possible the sbatch test would have to be run with the user's authority and/or on the user's account.
+
 *Sketch Story n (WP9)* (script analyzer) **pre-submit?** User has a slurm script and wants to know if it's sensible in scheduling terms (sbatch lines).
 
 - might try some best-practice rules
@@ -482,7 +484,6 @@ it from node info.
 - might diff script against what comes out from a worksheet like in the previous story
 
 Researchy.
-
 
 
 #### `usr_scalability`
