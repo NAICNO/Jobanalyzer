@@ -27,7 +27,7 @@ export default function SubclusterPage() {
 
   const {
     data
-  } = useFetchHostDetails(hostname, 'weekly', true, false, true)
+  } = useFetchHostDetails(cluster.canonical, hostname, 'weekly', true, false, true)
 
   useEffect(() => {
     if (data) {
