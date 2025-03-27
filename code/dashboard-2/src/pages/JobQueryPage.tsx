@@ -16,7 +16,7 @@ import {
 } from '@chakra-ui/react'
 import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from '@tanstack/react-table'
 import { Form, Formik } from 'formik'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router'
 import { ExternalLinkIcon } from '@chakra-ui/icons'
 
 import {

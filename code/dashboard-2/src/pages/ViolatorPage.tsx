@@ -13,7 +13,7 @@ import {
   UnorderedList,
   VStack
 } from '@chakra-ui/react'
-import { Navigate, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router'
 import {
   getCoreRowModel,
   getSortedRowModel,
