@@ -29,6 +29,17 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Generate .yarnrc.yml using default GITHUB_TOKEN
+      working-directory: 'code/dashboard-2'
+      run: |
+        echo 'nodeLinker: node-modules' > .yarnrc.yml
+        echo 'npmScopes:' >> .yarnrc.yml
+        echo '  naicno:' >> .yarnrc.yml
+        echo '    npmRegistryServer: "https://npm.pkg.github.com"' >> .yarnrc.yml
+        echo 'npmRegistries:' >> .yarnrc.yml
+        echo '  "//npm.pkg.github.com":' >> .yarnrc.yml
+        echo "    npmAuthToken: \"${{ secrets.GITHUB_TOKEN }}\"" >> .yarnrc.yml  
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
