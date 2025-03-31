@@ -7,13 +7,12 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-
+  build-backend:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Build
       run: make build
@@ -22,3 +21,29 @@ jobs:
       run: |
         make test
         make regress
+
+  test-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+          node-version: '22'
+          cache: 'yarn'
+          cache-dependency-path: 'code/dashboard-2/yarn.lock'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: 'naicno'
+
+    - name: Install dependencies
+      working-directory: 'code/dashboard-2'
+      run: yarn install --immutable
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run tests
+      working-directory: 'code/dashboard-2'
+      run: yarn test
