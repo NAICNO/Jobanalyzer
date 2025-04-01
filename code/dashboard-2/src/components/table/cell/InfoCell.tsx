@@ -1,4 +1,5 @@
-import { Icon, Tooltip } from '@chakra-ui/icons'
+import { Icon } from '@chakra-ui/icons'
+import { Tooltip } from '@chakra-ui/react'
 
 import { CellWrapper } from './CellWrapper.tsx'
 import { MdInfoOutline } from 'react-icons/md'
