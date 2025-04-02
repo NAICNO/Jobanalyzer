@@ -20,9 +20,6 @@ import {
 } from '../types'
 
 export const getDashboardTableColumns = (selectedCluster: Cluster) => {
-  const columns: (AccessorKeyColumnDef<DashboardTableItem, any> | GroupColumnDef<DashboardTableItem>)[] = [
-    createDashboardTableColumn('hostname'),
-  ]
 
   const addGroupedColumns = (id: string, header: string, keys: (keyof DashboardTableItem)[]) => {
     columns.push(dashboardTableColumnHelper.group({
@@ -31,6 +28,13 @@ export const getDashboardTableColumns = (selectedCluster: Cluster) => {
       columns: keys.map(key => createDashboardTableColumn(key, true)),
     }))
   }
+
+  const columns: (AccessorKeyColumnDef<DashboardTableItem, any> | GroupColumnDef<DashboardTableItem>)[] = []
+
+  columns.push(
+    createDashboardTableColumn('machine'),
+    createDashboardTableColumn('hostname'),
+  )
 
   if (selectedCluster.uptime) {
     addGroupedColumns('uptime', 'Uptime', ['cpu_status', 'gpu_status'])

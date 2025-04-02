@@ -8,6 +8,7 @@ import {
   CommandListCell,
   GenericCell,
   GpuFieldCell,
+  InfoCell,
   WorkingFieldCell,
 } from './components/table/cell'
 import { splitMultiPattern } from './util/query/HostGlobber.ts'
@@ -379,7 +380,8 @@ export const DASHBOARD_COLUMN: { [K in keyof DashboardTableItem]: DashboardTable
   },
   machine: {
     key: 'machine',
-    title: 'Machine',
+    title: '',
+    renderFn: InfoCell,
   },
   longer: {
     key: 'longer',
