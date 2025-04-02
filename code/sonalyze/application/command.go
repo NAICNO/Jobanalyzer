@@ -18,6 +18,7 @@ import (
 	"sonalyze/cmd/report"
 	"sonalyze/cmd/sacct"
 	"sonalyze/cmd/top"
+	"sonalyze/cmd/tree"
 	"sonalyze/cmd/uptime"
 )
 
@@ -35,6 +36,7 @@ func CommandHelp(out io.Writer) {
 	fmt.Fprintf(out, "  sacct    - print information extracted from Slurm sacct data\n")
 	fmt.Fprintf(out, "  sample   - print sonar sample information (aka `parse`)\n")
 	fmt.Fprintf(out, "  top      - print per-cpu load information across time\n")
+	fmt.Fprintf(out, "  tree     - print process tree for a job\n")
 	fmt.Fprintf(out, "  uptime   - print aggregated information about system uptime\n")
 	fmt.Fprintf(out, "  version  - print information about the program\n")
 	fmt.Fprintf(out, "  help     - print this message\n")
@@ -70,6 +72,8 @@ func ConstructCommand(verb string) (command cmd.Command, actualVerb string) {
 		command = new(sacct.SacctCommand)
 	case "top":
 		command = new(top.TopCommand)
+	case "tree":
+		command = new(tree.TreeCommand)
 	case "uptime":
 		command = new(uptime.UptimeCommand)
 	}

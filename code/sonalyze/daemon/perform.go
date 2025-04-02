@@ -61,6 +61,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	http.HandleFunc("/report", httpGetHandler(dc, "report"))
 	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata"))
 	http.HandleFunc("/sacct", httpGetHandler(dc, "sacct"))
+	http.HandleFunc("/tree", httpGetHandler(dc, "tree"))
 	// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
 	// upload infra already running on the clusters.  We'd like to get rid of them eventually.
 	http.HandleFunc("/sonar-freecsv", httpPostHandler(dc, "sample", "text/csv"))
