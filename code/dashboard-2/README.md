@@ -42,7 +42,7 @@ VITE_API_ENDPOINT=http://localhost:5173/api
 VITE_QUERY_API_ENDPOINT=http://localhost:5173/rest
 ```
 
-4. Install the dependencies.
+5. Install the dependencies.
 ```commandline
 yarn install
 ```
