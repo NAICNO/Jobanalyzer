@@ -35,6 +35,13 @@ npmRegistries:
     npmAuthToken: "<github token>"
 ```
 
+4. Create a `.env.development` file in the root of the project and add the following content:
+
+```env
+VITE_API_ENDPOINT=http://localhost:5173/api
+VITE_QUERY_API_ENDPOINT=http://localhost:5173/rest
+```
+
 4. Install the dependencies.
 ```commandline
 yarn install
