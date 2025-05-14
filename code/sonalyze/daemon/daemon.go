@@ -61,6 +61,11 @@
 //   (megabytes) or nnG (gigabytes).  A sensible size *might* be about 256MB per 100 (slurm) nodes
 //   per week.
 //
+// -kafka <broker-address>
+//   EXPERIMENTAL.  The daemon will attempt to ingest data over a unencrypted and unauthenticated
+//   Kafka channel for the clusters found in the data directory.  It should be the only consumer
+//   for those data.
+//
 // Termination:
 //
 //  Sending SIGHUP or SIGTERM to `sonalyze daemon` will shut it down in an orderly manner.
@@ -114,6 +119,7 @@ type DaemonCommand struct {
 	postAuthFile        string
 	matchUserAndCluster bool
 	cache               string
+	kafkaBroker         string
 
 	aliasResolver     *alias.Aliases
 	getAuthenticator  *auth.Authenticator
@@ -140,6 +146,7 @@ func (dc *DaemonCommand) Add(fs *CLI) {
 	fs.StringVar(&dc.jobanalyzerDir, "jobanalyzer-path", "", "Alias for -jobanalyzer-dir")
 	fs.StringVar(&dc.getAuthFile, "password-file", "", "Alias for -analysis-auth")
 	fs.StringVar(&dc.cache, "cache", "", "Enable data caching with this size (nM for megs, nG for gigs)")
+	fs.StringVar(&dc.kafkaBroker, "kafka", "", "Ingest data from this broker for all known clusters")
 }
 
 //go:embed summary.txt
