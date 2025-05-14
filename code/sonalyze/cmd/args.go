@@ -215,28 +215,28 @@ func (s *SourceArgs) Validate() error {
 	case len(s.LogFiles) > 0 || s.DataDir != "":
 		// no action
 	case s.Remote != "" || s.Cluster != "" || s.AuthFile != "":
-		ApplyDefault(&s.Remote, "data-source", "remote")
-		ApplyDefault(&s.AuthFile, "data-source", "auth-file")
-		ApplyDefault(&s.Cluster, "data-source", "cluster")
+		ApplyDefault(&s.Remote, DataSourceRemote)
+		ApplyDefault(&s.AuthFile, DataSourceAuthFile)
+		ApplyDefault(&s.Cluster, DataSourceCluster)
 	default:
 		// There are no remoting args and no data dir args and no logfiles, so apply the ones we
 		// have but error out if we have defaults for both.
-		if (HasDefault("data-source", "remote") ||
-			HasDefault("data-source", "auth-file") ||
-			HasDefault("data-source", "cluster")) &&
-			HasDefault("data-source", "data-dir") {
+		if (HasDefault(DataSourceRemote) ||
+			HasDefault(DataSourceAuthFile) ||
+			HasDefault(DataSourceCluster)) &&
+			HasDefault(DataSourceDataDir) {
 			return errors.New("No data source, but defaults for both remoting and data directory")
 		}
-		if ApplyDefault(&s.DataDir, "data-source", "data-dir") {
+		if ApplyDefault(&s.DataDir, DataSourceDataDir) {
 			// no action
 		} else {
-			ApplyDefault(&s.Remote, "data-source", "remote")
-			ApplyDefault(&s.AuthFile, "data-source", "auth-file")
-			ApplyDefault(&s.Cluster, "data-source", "cluster")
+			ApplyDefault(&s.Remote, DataSourceRemote)
+			ApplyDefault(&s.AuthFile, DataSourceAuthFile)
+			ApplyDefault(&s.Cluster, DataSourceCluster)
 		}
 	}
-	ApplyDefault(&s.FromDateStr, "data-source", "from")
-	ApplyDefault(&s.ToDateStr, "data-source", "to")
+	ApplyDefault(&s.FromDateStr, DataSourceFrom)
+	ApplyDefault(&s.ToDateStr, DataSourceTo)
 
 	err := s.RemotingArgs.Validate()
 	if err != nil {

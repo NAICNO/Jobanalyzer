@@ -1,5 +1,5 @@
 SUBDIRS=alias auth config error filesys freecsv gpuset hostglob httpclient \
-	httpsrv ini maps options process slices slurm sonalyze status sysinfo time
+	httpsrv maps options process slices slurm sonalyze status sysinfo time
 
 .PHONY: default build fmt generate clean test $(SUBDIRS)
 

@@ -5,14 +5,21 @@ import (
 	"os"
 	"path"
 
-	"go-utils/ini"
+	ini "github.com/lars-t-hansen/ini"
 )
 
 // MT: Constant after initialization
-var IniFileMaybe *ini.IniFile
-
-// Attempt to read the ini file.  If it's not there or reading fails, return nil.  Print warnings on
-// failures, but never return an error.
+var (
+	p = ini.NewParser()
+	store *ini.Store
+	dataSource = p.AddSection("data-source")
+	DataSourceRemote = dataSource.AddString("remote")
+	DataSourceAuthFile = dataSource.AddString("auth-file")
+	DataSourceCluster = dataSource.AddString("cluster")
+	DataSourceDataDir = dataSource.AddString("data-dir")
+	DataSourceFrom = dataSource.AddString("from")
+	DataSourceTo = dataSource.AddString("to")
+)
 
 func init() {
 	home := os.Getenv("HOME")
@@ -28,44 +35,21 @@ func init() {
 		return
 	}
 	defer input.Close()
-	ini, err := ini.ParseIni(input)
+	store, err = p.Parse(input)
 	if err != nil {
 		Log.Errorf("Error in trying to parse %s: %s", fn, err.Error())
 		return
 	}
-
-	for _, section := range ini {
-		for name := range section.Vars {
-			// This is probably OK - the spec only says that things get tricky when we insert or
-			// remove elements, but here we're updating an existing element.
-			section.Vars[name] = os.ExpandEnv(section.Vars[name])
-		}
-	}
-
-	IniFileMaybe = &ini
 }
 
-func HasDefault(section, key string) bool {
-	if IniFileMaybe != nil {
-		if defaults := (*IniFileMaybe)[section]; defaults != nil {
-			if _, found := defaults.Vars[key]; found {
-				return true
-			}
-		}
-	}
-	return false
+func HasDefault(f *ini.Field) bool {
+	return store != nil && f.Present(store)
 }
 
-func ApplyDefault(sp *string, section, key string) bool {
-	if IniFileMaybe != nil {
-		if *sp == "" {
-			if defaults := (*IniFileMaybe)[section]; defaults != nil {
-				if val, found := defaults.Vars[key]; found {
-					*sp = val
-					return true
-				}
-			}
-		}
+func ApplyDefault(sp *string, f *ini.Field) bool {
+	if *sp != "" || store == nil || !f.Present(store) {
+		return false
 	}
-	return false
+	*sp = os.ExpandEnv(f.StringVal(store))
+	return true
 }
