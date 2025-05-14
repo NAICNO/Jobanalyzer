@@ -87,8 +87,8 @@ func (cc *ClusterCommand) Validate() error {
 	var e1, e2 error
 
 	if cc.JobanalyzerDir == "" {
-		ApplyDefault(&cc.Remote, "data-source", "remote")
-		ApplyDefault(&cc.AuthFile, "data-source", "auth-file")
+		ApplyDefault(&cc.Remote, DataSourceRemote)
+		ApplyDefault(&cc.AuthFile, DataSourceAuthFile)
 	}
 
 	e1 = errors.Join(

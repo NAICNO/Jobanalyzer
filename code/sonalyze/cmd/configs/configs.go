@@ -111,9 +111,9 @@ func (cc *ConfigCommand) ReifyForRemote(x *ArgReifier) error {
 
 func (cc *ConfigCommand) Validate() error {
 	if cc.ConfigFilename == "" {
-		ApplyDefault(&cc.Remote, "data-source", "remote")
-		ApplyDefault(&cc.AuthFile, "data-source", "auth-file")
-		ApplyDefault(&cc.Cluster, "data-source", "cluster")
+		ApplyDefault(&cc.Remote, DataSourceRemote)
+		ApplyDefault(&cc.AuthFile, DataSourceAuthFile)
+		ApplyDefault(&cc.Cluster, DataSourceCluster)
 	}
 
 	return errors.Join(

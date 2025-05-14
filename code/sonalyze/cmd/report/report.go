@@ -70,9 +70,9 @@ func (rc *ReportCommand) Validate() error {
 	}
 
 	if rc.ReportDir == "" {
-		ApplyDefault(&rc.Remote, "data-source", "remote")
-		ApplyDefault(&rc.AuthFile, "data-source", "auth-file")
-		ApplyDefault(&rc.Cluster, "data-source", "cluster")
+		ApplyDefault(&rc.Remote, DataSourceRemote)
+		ApplyDefault(&rc.AuthFile, DataSourceAuthFile)
+		ApplyDefault(&rc.Cluster, DataSourceCluster)
 	}
 
 	return errors.Join(
