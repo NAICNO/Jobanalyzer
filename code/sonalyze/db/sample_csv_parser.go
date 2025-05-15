@@ -259,6 +259,11 @@ LineLoop:
 							}
 						}
 					}
+				case 'e':
+					if _, ok := match(tokenizer, start, lim, eqloc, "epoch"); ok {
+						// ignore it
+						matched = true
+					}
 				case 'g':
 					if lim-start >= 4 {
 						switch tokenizer.BufAt(start + 3) {
@@ -526,14 +531,14 @@ LineLoop:
 			loadData = append(loadData, &LoadDatum{
 				Timestamp: timestamp,
 				Hostname:  hostname,
-				Encoded:   load,
+				Encoded:   EncodedLoadDataFromBytes(load),
 			})
 		}
 		if gpuinfo != nil {
 			gpuData = append(gpuData, &GpuDatum{
 				Timestamp: timestamp,
 				Hostname:  hostname,
-				Encoded:   gpuinfo,
+				Encoded:   EncodedGpuDataFromBytes(gpuinfo),
 			})
 		}
 	}

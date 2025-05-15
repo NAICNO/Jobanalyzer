@@ -199,7 +199,7 @@ func TestParseVersion(t *testing.T) {
 func TestDecodeBase45Delta(t *testing.T) {
 	// This is the test from the Sonar sources, it's pretty basic.  The string should represent the
 	// array [*1, *0, *29, *43, 1, *11] with * denoting an INITIAL char.
-	xs, err := decodeLoadData([]byte(")(t*1b"))
+	xs, err := decodeLoadData(db.EncodedLoadDataFromBytes([]byte(")(t*1b")))
 	if err != nil {
 		t.Fatal(err)
 	}

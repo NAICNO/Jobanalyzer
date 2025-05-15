@@ -89,22 +89,82 @@ type Sample struct {
 }
 
 // The LoadDatum represents the `load` field from a record.  The data array is owned by its datum
-// and does not share storage with the input.  It is represented encoded as that is the most
-// sensible representation for the cache.
+// and does not share storage with the input.
 //
 // After ingestion and initial correction this datum is *strictly* read-only.  It will be accessed
 // concurrently without locking from many threads and must not be written by any of them.
+//
+// In older data the data array is represented encoded as that is the most sensible representation
+// for the cache.  In newer data the data coming from disk are already decoded and it makes no sense
+// to re-encode them here.
+
+type EncodedLoadData struct {
+	x any
+}
+
+func EncodedLoadDataFromBytes(xs []byte) EncodedLoadData {
+	return EncodedLoadData { x: xs }
+}
+
+func EncodedLoadDataFromValues(xs []uint64) EncodedLoadData {
+	return EncodedLoadData { x: xs }
+}
+
+func DecodeEncodedLoadData(e EncodedLoadData) ([]byte, []uint64) {
+	switch xs := e.x.(type) {
+	case []byte:
+		return xs, nil
+	case []uint64:
+		return nil, xs
+	default:
+		panic("Unexpected")
+	}
+}
 
 type LoadDatum struct {
 	Timestamp int64
 	Hostname  Ustr
-	Encoded   []byte
+	Encoded   EncodedLoadData
 }
 
 // The same as LoadDatum buf for the "gpuinfo" field that was introduced with Sonar 0.13.
 
+type EncodedGpuData struct {
+	x any
+}
+
+type PerGpuSample struct {
+	FanPct      int // Can go above 100
+	PerfMode    int // Typically mode is P<n>, this is <n>
+	MemUsedKB   int64
+	TempC       int
+	PowerDrawW  int
+	PowerLimitW int
+	CeClockMHz  int
+	MemClockMHz int
+}
+
+func EncodedGpuDataFromBytes(xs []byte) EncodedGpuData {
+	return EncodedGpuData { x: xs }
+}
+
+func EncodedGpuDataFromValues(xs []PerGpuSample) EncodedGpuData {
+	return EncodedGpuData { x: xs }
+}
+
+func DecodeEncodedGpuData(e EncodedGpuData) ([]byte, []PerGpuSample) {
+	switch xs := e.x.(type) {
+	case []byte:
+		return xs, nil
+	case []PerGpuSample:
+		return nil, xs
+	default:
+		panic("Unexpected")
+	}
+}
+
 type GpuDatum struct {
 	Timestamp int64
 	Hostname  Ustr
-	Encoded   []byte
+	Encoded   EncodedGpuData
 }

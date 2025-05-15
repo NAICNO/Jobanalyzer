@@ -24,8 +24,6 @@ func ParseSlurmCSV(
 	tokenizer := NewTokenizer(input)
 	endOfInput := false
 	gputmp := make([]byte, 100)
-	comma := []byte{','}
-	gresGpu := []byte("gres/gpu")
 
 LineLoop:
 	for !endOfInput {
@@ -86,33 +84,7 @@ LineLoop:
 					}
 				case 'l':
 					if val, ok := match(tokenizer, start, lim, eqloc, "AllocTRES"); ok {
-						// This field will usually be present and nonzero and will have a lot of
-						// values, so allocating the raw field is a bad idea, and allocating much
-						// during parsing is also bad.  Use a temp buffer to hold the field during
-						// construction, and extract only the gres/gpu fields on the form model=n
-						// with * being inserted for "any" model.  I'm a little uncertain about
-						// whether it's worth it to hold onto the "any" field if a specific GPU
-						// model has been requested, but the documentation suggests that I should,
-						// and it's better to not editorialize too much here.
-						t := gputmp[:0]
-						for len(val) > 0 {
-							before, after, _ := bytes.Cut(val, comma)
-							if bytes.HasPrefix(before, gresGpu) {
-								if len(t) > 0 {
-									t = append(t, ',')
-								}
-								if before[8] == '=' {
-									t = append(t, '*')
-									t = append(t, before[8:]...)
-								} else {
-									// gres/gpu:model=n, skip the :
-									t = append(t, before[9:]...)
-								}
-							}
-							val = after
-						}
-						info.ReqGPUS = ustrs.AllocBytes(t)
-						gputmp = t
+						info.ReqGPUS, gputmp = ParseAllocTRES(val, ustrs, gputmp)
 						matched = true
 					}
 				case 'v':
@@ -223,6 +195,9 @@ LineLoop:
 			case 'P':
 				if val, ok := match(tokenizer, start, lim, eqloc, "Partition"); ok {
 					info.Partition = ustrs.AllocBytes(val)
+					matched = true
+				} else if _, ok := match(tokenizer, start, lim, eqloc, "Priority"); ok {
+					// No field for this yet
 					matched = true
 				}
 			case 'R':
