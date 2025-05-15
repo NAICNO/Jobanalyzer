@@ -24,6 +24,8 @@ type sampleFileReadSyncMethods struct {
 	cfg *config.ClusterConfig
 }
 
+var _ = ReadSyncMethods((*sampleFileReadSyncMethods)(nil))
+
 type sampleFileKind int
 
 const (
@@ -69,6 +71,7 @@ func (sfr *sampleFileReadSyncMethods) SelectDataFromPayload(payload any) (data a
 }
 
 func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
+	_ FileAttr,
 	inputFile io.Reader,
 	uf *UstrCache,
 	verbose bool,

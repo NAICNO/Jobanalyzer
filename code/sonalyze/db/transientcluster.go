@@ -26,7 +26,7 @@ type TransientCluster struct {
 	closed bool
 }
 
-func processTransientFiles(fileNames []string) []*LogFile {
+func processTransientFiles(fileNames []string, ty FileAttr) []*LogFile {
 	if len(fileNames) == 0 {
 		panic("Empty list of files")
 	}
@@ -39,7 +39,7 @@ func processTransientFiles(fileNames []string) []*LogFile {
 					dirname:  path.Dir(fn),
 					basename: path.Base(fn),
 				},
-				0,
+				ty,
 			),
 		)
 	}
@@ -88,6 +88,7 @@ type TransientSampleCluster struct /* implements SampleCluster */ {
 
 func newTransientSampleCluster(
 	fileNames []string,
+	ty FileAttr,
 	cfg *config.ClusterConfig,
 ) *TransientSampleCluster {
 	return &TransientSampleCluster{
@@ -96,7 +97,7 @@ func newTransientSampleCluster(
 		gpuDataMethods:  newSampleFileMethods(cfg, sampleFileKindGpuDatum),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
-			files: processTransientFiles(fileNames),
+			files: processTransientFiles(fileNames, ty),
 		},
 	}
 }
@@ -159,13 +160,14 @@ type TransientSacctCluster struct /* implements SacctCluster */ {
 
 func newTransientSacctCluster(
 	fileNames []string,
+	ty FileAttr,
 	cfg *config.ClusterConfig,
 ) *TransientSacctCluster {
 	return &TransientSacctCluster{
 		methods: newSacctFileMethods(cfg),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
-			files: processTransientFiles(fileNames),
+			files: processTransientFiles(fileNames, ty),
 		},
 	}
 }
@@ -198,13 +200,14 @@ var _ SysinfoCluster = (*TransientSysinfoCluster)(nil)
 
 func newTransientSysinfoCluster(
 	fileNames []string,
+	ty FileAttr,
 	cfg *config.ClusterConfig,
 ) *TransientSysinfoCluster {
 	return &TransientSysinfoCluster{
 		methods: newSysinfoFileMethods(cfg),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
-			files: processTransientFiles(fileNames),
+			files: processTransientFiles(fileNames, ty),
 		},
 	}
 }

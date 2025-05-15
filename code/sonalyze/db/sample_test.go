@@ -10,7 +10,7 @@ import (
 	. "sonalyze/common"
 )
 
-func TestParseSonarLogTagged(t *testing.T) {
+func TestParseSampleCSVTagged(t *testing.T) {
 	// This test file has a blank line that should be skipped
 	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-intermingled.csv")
 	if err != nil {
@@ -49,7 +49,7 @@ func TestParseSonarLogTagged(t *testing.T) {
 	}
 }
 
-func TestParseSonarLogUntagged(t *testing.T) {
+func TestParseSampleCSVUntagged(t *testing.T) {
 	// This test file has a blank line that should be skipped
 	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-untagged-intermingled.csv")
 	if err != nil {

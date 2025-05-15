@@ -10,6 +10,8 @@ import (
 type sysinfoFileReadSyncMethods struct {
 }
 
+var _ = ReadSyncMethods((*sysinfoFileReadSyncMethods)(nil))
+
 func newSysinfoFileMethods(_ *config.ClusterConfig) *sysinfoFileReadSyncMethods {
 	return &sysinfoFileReadSyncMethods{}
 }
@@ -23,6 +25,7 @@ func (sfr *sysinfoFileReadSyncMethods) SelectDataFromPayload(payload any) (data 
 }
 
 func (sfr *sysinfoFileReadSyncMethods) ReadDataLockedAndRectify(
+	_ FileAttr,
 	inputFile io.Reader,
 	uf *UstrCache,
 	verbose bool,
