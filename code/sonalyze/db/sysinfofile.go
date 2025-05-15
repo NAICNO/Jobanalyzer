@@ -27,7 +27,7 @@ func (sfr *sysinfoFileReadSyncMethods) ReadDataLockedAndRectify(
 	uf *UstrCache,
 	verbose bool,
 ) (payload any, softErrors int, err error) {
-	payload, err = ParseSysinfoLog(inputFile, verbose)
+	payload, err = ParseSysinfoOldJSON(inputFile, verbose)
 	return
 }
 

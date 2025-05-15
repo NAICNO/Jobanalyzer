@@ -30,7 +30,7 @@ func (sfr *sacctFileReadSyncMethods) ReadDataLockedAndRectify(
 	uf *UstrCache,
 	verbose bool,
 ) (payload any, softErrors int, err error) {
-	payload, softErrors, err = ParseSacctLog(inputFile, uf, verbose)
+	payload, softErrors, err = ParseSlurmCSV(inputFile, uf, verbose)
 	return
 }
 
