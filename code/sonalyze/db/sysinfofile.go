@@ -25,12 +25,16 @@ func (sfr *sysinfoFileReadSyncMethods) SelectDataFromPayload(payload any) (data 
 }
 
 func (sfr *sysinfoFileReadSyncMethods) ReadDataLockedAndRectify(
-	_ FileAttr,
+	attr FileAttr,
 	inputFile io.Reader,
 	uf *UstrCache,
 	verbose bool,
 ) (payload any, softErrors int, err error) {
-	payload, err = ParseSysinfoOldJSON(inputFile, verbose)
+	if (attr & FileSysinfoV0JSON) != 0 {
+		payload, err = ParseSysinfoV0JSON(inputFile, verbose)
+	} else {
+		payload, err = ParseSysinfoOldJSON(inputFile, verbose)
+	}
 	return
 }
 

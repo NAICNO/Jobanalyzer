@@ -526,14 +526,14 @@ LineLoop:
 			loadData = append(loadData, &LoadDatum{
 				Timestamp: timestamp,
 				Hostname:  hostname,
-				Encoded:   load,
+				Encoded:   EncodedLoadDataFromBytes(load),
 			})
 		}
 		if gpuinfo != nil {
 			gpuData = append(gpuData, &GpuDatum{
 				Timestamp: timestamp,
 				Hostname:  hostname,
-				Encoded:   gpuinfo,
+				Encoded:   EncodedGpuDataFromBytes(gpuinfo),
 			})
 		}
 	}
