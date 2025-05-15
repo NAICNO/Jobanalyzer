@@ -245,11 +245,13 @@ func TestPersistentSampleAppend(t *testing.T) {
 	l1 := "v=0.11.0,time=2023-05-28T14:30:00+02:00,host=a,cores=6,user=larstha,job=249151,pid=11090,cmd=larceny,cpu%=100,cpukib=113989888"
 	l2 := "v=0.11.0,time=2023-05-28T14:35:00+02:00,host=a,cores=8,user=lth,job=49151,pid=111090,cmd=flimflam,cpu%=100,cpukib=113989888"
 	pc.AppendSamplesAsync(
+		FileSampleCSV,
 		"a",
 		"2023-05-28T14:30:00+02:00",
 		l1+"\n",
 	)
 	pc.AppendSamplesAsync(
+		FileSampleCSV,
 		"a",
 		"2023-05-28T14:35:00+02:00",
 		l2,
@@ -276,6 +278,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 
 	// Existing nonempty file
 	pc.AppendSysinfoAsync(
+		FileSysinfoOldJSON,
 		"a",
 		"2023-05-28T16:00:01+02:00",
 		`{
@@ -291,6 +294,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 
 	// New file in existing directory
 	pc.AppendSysinfoAsync(
+		FileSysinfoOldJSON,
 		"c",
 		"2023-05-28T16:00:01+02:00",
 		`{
@@ -306,6 +310,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 
 	// New file in new directory
 	pc.AppendSysinfoAsync(
+		FileSysinfoOldJSON,
 		"d",
 		"2024-04-12T16:00:01+02:00",
 		`{
@@ -387,6 +392,7 @@ func TestPersistentSampleFlush(t *testing.T) {
 
 	l1 := "v=0.11.0,time=2024-02-13T14:30:00+02:00,host=a,cores=6,user=larstha,job=249151,pid=11090,cmd=larceny,cpu%=100,cpukib=113989888"
 	pc.AppendSamplesAsync(
+		FileSampleCSV,
 		"c",
 		"2024-02-13T14:30:00+02:00",
 		l1+"\n",
@@ -594,7 +600,7 @@ func TestCaching(t *testing.T) {
 		t.Fatal("Too much action", msgs)
 	}
 
-	err = pc.AppendSamplesAsync("a", "2023-05-31T14:30:38+02:00", "v=0.11.1,time=2023-05-31T14:30:38+02:00,host=a,user=larstha,cmd=awk")
+	err = pc.AppendSamplesAsync(FileSampleCSV, "a", "2023-05-31T14:30:38+02:00", "v=0.11.1,time=2023-05-31T14:30:38+02:00,host=a,user=larstha,cmd=awk")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -661,7 +667,7 @@ func TestCaching(t *testing.T) {
 		t.Fatal("Too much action", msgs)
 	}
 
-	err = pc.AppendSamplesAsync("a", "2023-05-31T14:30:38+02:00", "v=0.11.1,time=2023-05-31T14:30:38+02:00,host=a,user=larstha,cmd=zappa")
+	err = pc.AppendSamplesAsync(FileSampleCSV, "a", "2023-05-31T14:30:38+02:00", "v=0.11.1,time=2023-05-31T14:30:38+02:00,host=a,user=larstha,cmd=zappa")
 	if err != nil {
 		t.Fatal(err)
 	}

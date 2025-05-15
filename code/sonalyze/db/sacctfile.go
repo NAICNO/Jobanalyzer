@@ -13,6 +13,8 @@ import (
 type sacctFileReadSyncMethods struct {
 }
 
+var _ = ReadSyncMethods((*sacctFileReadSyncMethods)(nil))
+
 func newSacctFileMethods(_ *config.ClusterConfig) *sacctFileReadSyncMethods {
 	return &sacctFileReadSyncMethods{}
 }
@@ -26,6 +28,7 @@ func (sfr *sacctFileReadSyncMethods) SelectDataFromPayload(payload any) (data an
 }
 
 func (sfr *sacctFileReadSyncMethods) ReadDataLockedAndRectify(
+	_ FileAttr,
 	inputFile io.Reader,
 	uf *UstrCache,
 	verbose bool,
