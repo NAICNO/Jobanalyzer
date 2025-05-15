@@ -73,7 +73,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries, _, _, discarded, err := db.ParseSonarLog(f, NewUstrFacade(), true)
+	entries, _, _, discarded, err := db.ParseSampleCSV(f, NewUstrFacade(), true)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -76,7 +76,7 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	var samples []*Sample
 	var loadData []*LoadDatum
 	var gpuData []*GpuDatum
-	samples, loadData, gpuData, softErrors, err = ParseSonarLog(inputFile, uf, verbose)
+	samples, loadData, gpuData, softErrors, err = ParseSampleCSV(inputFile, uf, verbose)
 	if err != nil {
 		return
 	}
