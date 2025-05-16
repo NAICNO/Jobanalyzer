@@ -174,6 +174,19 @@ type SacctCluster interface {
 	) (recordBlobs [][]*SacctInfo, dropped int, err error)
 }
 
+type CluzterCluster interface {
+	Cluster
+
+	CluzterFilenames(
+		fromDate, toDate time.Time,
+	) ([]string, error)
+
+	ReadCluzterData(
+		fromDate, toDate time.Time,
+		verbose bool,
+	) (recordBlobs [][]*CluzterInfo, dropped int, err error)
+}
+
 // An AppendableCluster (not yet well developed, this could be split into appending different types
 // of data) allows data to be appended to the cluster store.
 //
@@ -183,6 +196,7 @@ type AppendableCluster interface {
 	SampleCluster
 	SysinfoCluster
 	SacctCluster
+	CluzterCluster
 
 	// Trigger flushing of all pending data.  In principle the flushing is asynchronous, but
 	// synchronously flushing the data is also allowed.
@@ -197,6 +211,7 @@ type AppendableCluster interface {
 	AppendSamplesAsync(ty FileAttr, host, timestamp string, payload any) error
 	AppendSysinfoAsync(ty FileAttr, host, timestamp string, payload any) error
 	AppendSlurmSacctAsync(ty FileAttr, timestamp string, payload any) error
+	AppendCluzterAsync(ty FileAttr, timestamp string, payload any) error
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -239,7 +254,7 @@ var (
 //  - 0+sample-<hostname>.json contains Sonar sample data for the host
 //  - 0+sysinfo-<hostname>.json contains Sonar sysinfo data for the host
 //  - 0+job-slurm.json contains Sonar slurm job data for the cluster (more general than sacct)
-//  - 0+cluster-slurm.json contains Sonar cluster status data for the cluster
+//  - 0+cluzter-slurm.json contains Sonar cluzter status data for the cluster
 //
 // In the latter scheme, `0` indicates version 0 of the new file format, for more see
 // github.com/NordicHPC/sonar/util/formats/newfmt/types.go.  Extensions to the format are always
@@ -302,6 +317,16 @@ func OpenTransientSysinfoCluster(
 		return nil, err
 	}
 	return newTransientSysinfoCluster(files, ty, cfg), nil
+}
+
+func OpenTransientCluzterCluster(
+	files []string,
+	cfg *config.ClusterConfig,
+) (*TransientCluzterCluster, error) {
+	if len(files) == 0 {
+		return nil, errors.New("Empty list of files")
+	}
+	return newTransientCluzterCluster(files, FileCluzterV0JSON, cfg), nil
 }
 
 func sniffTypeFromFilenames(names []string, oldType, newType FileAttr) (FileAttr, error) {

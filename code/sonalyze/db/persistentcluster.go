@@ -81,6 +81,7 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	sampleFiles  sampleFilesAdapter
 	sysinfoFiles sysinfoFilesAdapter
 	sacctFiles   sacctFilesAdapter
+	cluzterFiles cluzterFilesAdapter
 
 	// MT: Immutable after initialization
 	samplesMethods           ReadSyncMethods
@@ -88,6 +89,7 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	gpuDataMethods           ReadSyncMethods
 	nodeConfigRecordsMethods ReadSyncMethods
 	sacctMethods             ReadSyncMethods
+	cluzterMethods           ReadSyncMethods
 
 	// MT: Immutable after initialization
 	// The dataDir must have been path.Clean'd, it is the root directory for the cluster.
@@ -125,6 +127,7 @@ type persistentDir struct {
 	sampleFiles  map[string]*LogFile
 	sysinfoFiles map[string]*LogFile
 	sacctFiles   map[string]*LogFile
+	cluzterFiles map[string]*LogFile
 }
 
 func newPersistentCluster(dataDir string, cfg *config.ClusterConfig) *PersistentCluster {
@@ -138,6 +141,7 @@ func newPersistentCluster(dataDir string, cfg *config.ClusterConfig) *Persistent
 		gpuDataMethods:           newSampleFileMethods(cfg, sampleFileKindGpuDatum),
 		nodeConfigRecordsMethods: newSysinfoFileMethods(cfg),
 		sacctMethods:             newSacctFileMethods(cfg),
+		cluzterMethods:           newCluzterFileMethods(cfg),
 		dataDir:                  dataDir,
 		cfg:                      cfg,
 		dirs:                     dirs,
@@ -242,6 +246,16 @@ func (pc *PersistentCluster) SacctFilenames(
 	return pc.findFilenames(fromDate, toDate, nil, &pc.sacctFiles)
 }
 
+func (pc *PersistentCluster) CluzterFilenames(
+	fromDate, toDate time.Time,
+) ([]string, error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return pc.findFilenames(fromDate, toDate, nil, &pc.cluzterFiles)
+}
+
 func (pc *PersistentCluster) findFilenames(
 	fromDate, toDate time.Time,
 	hosts *hostglob.HostGlobber,
@@ -331,6 +345,20 @@ func (pc *PersistentCluster) ReadSacctData(
 	)
 }
 
+func (pc *PersistentCluster) ReadCluzterData(
+	fromDate, toDate time.Time,
+	verbose bool,
+) (cluzterBlobs [][]*CluzterInfo, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterMethods,
+		readCluzterSlice,
+	)
+}
+
 func readPersistentClusterRecords[V any, U ~[][]*V](
 	pc *PersistentCluster,
 	fromDate, toDate time.Time,
@@ -386,6 +414,15 @@ func (pc *PersistentCluster) AppendSlurmSacctAsync(ty FileAttr, timestamp string
 		return pc.appendDataAsync(timestamp, "0+job-slurm.json", payload, pc.sacctFiles)
 	default:
 		panic("Unsupported 'slurm' data format")
+	}
+}
+
+func (pc *PersistentCluster) AppendCluzterAsync(ty FileAttr, timestamp string, payload any) error {
+	switch ty {
+	case FileCluzterV0JSON:
+		return pc.appendDataAsync(timestamp, "0+cluzter-slurm.json", payload, pc.cluzterFiles)
+	default:
+		panic("Unsupported 'cluzter' data format")
 	}
 }
 
@@ -513,6 +550,29 @@ func (_ sacctFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
 		return FileSlurmCSV
 	}
 	return FileSlurmV0JSON
+}
+
+type cluzterFilesAdapter struct {
+}
+
+func (_ cluzterFilesAdapter) globs() []string {
+	return []string{"0+cluzter-slurm.json"}
+}
+
+func (_ cluzterFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
+	return d.cluzterFiles
+}
+
+func (_ cluzterFilesAdapter) setFiles(d *persistentDir, files map[string]*LogFile) {
+	d.cluzterFiles = files
+}
+
+func (_ cluzterFilesAdapter) proscribedBasename(fn string) bool {
+	return false
+}
+
+func (_ cluzterFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
+	return FileCluzterV0JSON
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -104,7 +104,7 @@ const (
 	FileSysinfoV0JSON
 	FileSlurmCSV
 	FileSlurmV0JSON
-	FileClusterV0JSON
+	FileCluzterV0JSON
 )
 
 // The components of the Fullname are broken out so as to allow strings to be shared as much as

@@ -233,3 +233,41 @@ func (tsc *TransientSysinfoCluster) ReadSysinfoData(
 
 	return readNodeConfigRecordSlice(tsc.files, verbose, tsc.methods)
 }
+
+type TransientCluzterCluster struct /* implements CluzterCluster */ {
+	// MT: Immutable after initialization
+	methods ReadSyncMethods
+
+	TransientCluster
+}
+
+func newTransientCluzterCluster(
+	fileNames []string,
+	ty FileAttr,
+	cfg *config.ClusterConfig,
+) *TransientCluzterCluster {
+	return &TransientCluzterCluster{
+		methods: newCluzterFileMethods(cfg),
+		TransientCluster: TransientCluster{
+			cfg:   cfg,
+			files: processTransientFiles(fileNames, ty),
+		},
+	}
+}
+
+func (tsc *TransientCluzterCluster) CluzterFilenames(_, _ time.Time) ([]string, error) {
+	return tsc.Filenames()
+}
+
+func (tsc *TransientCluzterCluster) ReadCluzterData(
+	fromDate, toDate time.Time,
+	verbose bool,
+) (recordBlobs [][]*CluzterInfo, dropped int, err error) {
+	tsc.Lock()
+	defer tsc.Unlock()
+	if tsc.closed {
+		return nil, 0, ClusterClosedErr
+	}
+
+	return readCluzterSlice(tsc.files, verbose, tsc.methods)
+}
