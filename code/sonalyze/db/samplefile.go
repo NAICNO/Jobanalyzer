@@ -24,6 +24,8 @@ type sampleFileReadSyncMethods struct {
 	cfg *config.ClusterConfig
 }
 
+var _ = ReadSyncMethods((*sampleFileReadSyncMethods)(nil))
+
 type sampleFileKind int
 
 const (
@@ -69,6 +71,7 @@ func (sfr *sampleFileReadSyncMethods) SelectDataFromPayload(payload any) (data a
 }
 
 func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
+	attr FileAttr,
 	inputFile io.Reader,
 	uf *UstrCache,
 	verbose bool,
@@ -76,7 +79,11 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	var samples []*Sample
 	var loadData []*LoadDatum
 	var gpuData []*GpuDatum
-	samples, loadData, gpuData, softErrors, err = ParseSonarLog(inputFile, uf, verbose)
+	if (attr & FileSampleV0JSON) != 0 {
+		samples, loadData, gpuData, softErrors, err = ParseSamplesV0JSON(inputFile, uf, verbose)
+	} else {
+		samples, loadData, gpuData, softErrors, err = ParseSampleCSV(inputFile, uf, verbose)
+	}
 	if err != nil {
 		return
 	}

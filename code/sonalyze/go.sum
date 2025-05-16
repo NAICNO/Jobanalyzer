@@ -1,2 +1,14 @@
+github.com/NordicHPC/sonar/util/formats v0.0.0-20250516095736-4f3fa9614148 h1:UgWyEauIkT/oIM6MaVPP1S5YlwB61h7CuJ67hrSpvWo=
+github.com/NordicHPC/sonar/util/formats v0.0.0-20250516095736-4f3fa9614148/go.mod h1:6cRx0fr1M91WiFkRCyFRlelOQ0TZ/M7w+dOzj1crrtI=
+github.com/klauspost/compress v1.18.0 h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=
+github.com/klauspost/compress v1.18.0/go.mod h1:2Pp+KzxcywXVXMr50+X0Q/Lsb43OQHYWRCY2AiWywWQ=
 github.com/lars-t-hansen/ini v0.3.0 h1:ExCVIribzx2XXsdhD80q6k4BjayjJb7K3RcBh3EKQd0=
 github.com/lars-t-hansen/ini v0.3.0/go.mod h1:CtRanKqkyCSEhdTvkkI/lTxBMvdb3VYhmI74NVA5lAs=
+github.com/pierrec/lz4/v4 v4.1.22 h1:cKFw6uJDK+/gfw5BcDL0JL5aBsAFdsIT18eRtLj7VIU=
+github.com/pierrec/lz4/v4 v4.1.22/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
+github.com/twmb/franz-go v1.19.1 h1:cOhDFUkGvUFHSQ7UYW6bO77BJa2fYEk5mA2AX+1NIdE=
+github.com/twmb/franz-go v1.19.1/go.mod h1:4kFJ5tmbbl7asgwAGVuyG1ZMx0NNpYk7EqflvWfPCpM=
+github.com/twmb/franz-go/pkg/kmsg v1.11.2 h1:hIw75FpwcAjgeyfIGFqivAvwC5uNIOWRGvQgZhH4mhg=
+github.com/twmb/franz-go/pkg/kmsg v1.11.2/go.mod h1:CFfkkLysDNmukPYhGzuUcDtf46gQSqCZHMW1T4Z+wDE=
+golang.org/x/crypto v0.38.0 h1:jt+WWG8IZlBnVbomuhg2Mdq0+BBQaHbtqHEFEigjUV8=
+golang.org/x/crypto v0.38.0/go.mod h1:MvrbAqul58NNYPKnOra203SB9vpuZW0e+RRZV+Ggqjw=

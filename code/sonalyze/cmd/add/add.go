@@ -135,7 +135,7 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 		return err
 	}
 	defer ds.FlushAsync()
-	err = ds.AppendSysinfoAsync(info.Hostname, info.Timestamp, payload)
+	err = ds.AppendSysinfoAsync(db.FileSysinfoOldJSON, info.Hostname, info.Timestamp, payload)
 	if err == sonarlog.BadTimestampErr {
 		return nil
 	}
@@ -171,7 +171,7 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 			// TODO: IMPROVEME: Benign if timestamp missing (would have to drop data)?
 			return errors.New("Missing timestamp or host in Sonar sample data")
 		}
-		err = ds.AppendSamplesAsync(host, time, text)
+		err = ds.AppendSamplesAsync(db.FileSampleCSV, host, time, text)
 		if err != nil && err != sonarlog.BadTimestampErr {
 			result = errors.Join(result, err)
 		}
@@ -212,7 +212,7 @@ func (ac *AddCommand) addSlurmSacctFreeCsv(payload []byte) error {
 			// TODO: IMPROVEME: Benign if timestamp missing (would have to drop data)?
 			return errors.New("Missing timestamp in sacct data")
 		}
-		err = ds.AppendSlurmSacctAsync(time, text)
+		err = ds.AppendSlurmSacctAsync(db.FileSlurmCSV, time, text)
 		if err != nil && err != sonarlog.BadTimestampErr {
 			result = errors.Join(result, err)
 		}
