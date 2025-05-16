@@ -48,8 +48,8 @@ func ParseSamplesV0JSON(
 			encodedLoadData := make([]uint64, 0) // FIXME
 			loadData = append(loadData, &LoadDatum{
 				Timestamp: t,
-				Hostname: h,
-				Encoded: EncodedLoadDataFromValues(encodedLoadData),
+				Hostname:  h,
+				Encoded:   EncodedLoadDataFromValues(encodedLoadData),
 			})
 		}
 
@@ -57,35 +57,35 @@ func ParseSamplesV0JSON(
 			encodedGpuData := make([]PerGpuSample, 0) // FIXME
 			gpuData = append(gpuData, &GpuDatum{
 				Timestamp: t,
-				Hostname: h,
-				Encoded: EncodedGpuDataFromValues(encodedGpuData),
+				Hostname:  h,
+				Encoded:   EncodedGpuDataFromValues(encodedGpuData),
 			})
 		}
 
 		for _, sample := range data.Samples {
 			gpus, _ := gpuset.NewGpuSet(sample.Gpus)
 			samples = append(samples, &Sample{
-				Timestamp: t,
+				Timestamp:  t,
 				MemtotalKB: data.MemtotalKib,
-				CpuKB: sample.CpuKib,
-				RssAnonKB: sample.RssAnonKib,
-				GpuKB: sample.GpuKib,
+				CpuKB:      sample.CpuKib,
+				RssAnonKB:  sample.RssAnonKib,
+				GpuKB:      sample.GpuKib,
 				CpuTimeSec: sample.CpuTimeSec,
-				Version: ustrs.Alloc(data.Version),
-				Cluster: UstrEmpty, // FIXME?
-				Hostname: ustrs.Alloc(data.Hostname),
-				Cores: uint32(data.Cores),
-				User: ustrs.Alloc(sample.User),
-				Job: uint32(sample.JobId),
-				Pid: uint32(sample.Pid),
-				Ppid: uint32(sample.ParentPid),
-				Cmd: ustrs.Alloc(sample.Cmd),
-				CpuPct: float32(sample.CpuPct),
-				Gpus: gpus,
-				GpuPct: float32(sample.GpuPct),
-				GpuMemPct: float32(sample.GpuMemPct),
-				Rolledup: uint32(sample.Rolledup),
-				Flags: uint8(sample.GpuFail),
+				Version:    ustrs.Alloc(data.Version),
+				Cluster:    UstrEmpty, // FIXME?
+				Hostname:   ustrs.Alloc(data.Hostname),
+				Cores:      uint32(data.Cores),
+				User:       ustrs.Alloc(sample.User),
+				Job:        uint32(sample.JobId),
+				Pid:        uint32(sample.Pid),
+				Ppid:       uint32(sample.ParentPid),
+				Cmd:        ustrs.Alloc(sample.Cmd),
+				CpuPct:     float32(sample.CpuPct),
+				Gpus:       gpus,
+				GpuPct:     float32(sample.GpuPct),
+				GpuMemPct:  float32(sample.GpuMemPct),
+				Rolledup:   uint32(sample.Rolledup),
+				Flags:      uint8(sample.GpuFail),
 			})
 		}
 	})

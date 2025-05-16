@@ -82,4 +82,3 @@ type SacctInfo struct {
 	ExitCode     uint8  // the code part of code:signal
 	ExitSignal   uint8  // the signal part of code:signal
 }
-
