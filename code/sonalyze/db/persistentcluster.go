@@ -473,7 +473,7 @@ type sampleFilesAdapter struct {
 }
 
 func (_ sampleFilesAdapter) globs() []string {
-	return []string{"*.csv","0+sample-*.json"}
+	return []string{"*.csv", "0+sample-*.json"}
 }
 
 func (_ sampleFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
@@ -504,7 +504,7 @@ type sysinfoFilesAdapter struct {
 }
 
 func (_ sysinfoFilesAdapter) globs() []string {
-	return []string{"sysinfo-*.json","0+sysinfo-*.json"}
+	return []string{"sysinfo-*.json", "0+sysinfo-*.json"}
 }
 
 func (_ sysinfoFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
@@ -530,7 +530,7 @@ type sacctFilesAdapter struct {
 }
 
 func (_ sacctFilesAdapter) globs() []string {
-	return []string{"slurm-sacct.csv","0+job-slurm.json"}
+	return []string{"slurm-sacct.csv", "0+job-slurm.json"}
 }
 
 func (_ sacctFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
@@ -620,7 +620,7 @@ func (pc *PersistentCluster) findFilesLocked(
 						dirname:  d.name,
 						basename: name,
 					},
-					fileAppendable | fa.fileTypeFromBasename(name),
+					fileAppendable|fa.fileTypeFromBasename(name),
 				)
 				newFiles[name] = f
 			}

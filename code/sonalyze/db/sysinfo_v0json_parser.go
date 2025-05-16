@@ -34,15 +34,15 @@ func ParseSysinfoV0JSON(input io.Reader, verbose bool) (records []*config.NodeCo
 		// what's happening with that, but that's mostly for older data predating the current
 		// GPU API, so probably OK.
 		records = append(records, &config.NodeConfigRecord{
-			Timestamp: data.Timestamp,
-			Hostname: data.Hostname,
-			Description: data.Description,
+			Timestamp:     data.Timestamp,
+			Hostname:      data.Hostname,
+			Description:   data.Description,
 			CrossNodeJobs: false, // FIXME?
-			CpuCores: int(data.CpuCores),
-			MemGB: int(data.MemGB),
-			GpuCards: int(data.GpuCards),
-			GpuMemGB: int(data.GpuMemGB),
-			GpuMemPct: false,	// FIXME?
+			CpuCores:      int(data.CpuCores),
+			MemGB:         int(data.MemGB),
+			GpuCards:      int(data.GpuCards),
+			GpuMemGB:      int(data.GpuMemGB),
+			GpuMemPct:     false, // FIXME?
 		})
 	})
 	return

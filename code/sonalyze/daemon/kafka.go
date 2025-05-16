@@ -86,8 +86,8 @@ type clusterHandler struct {
 func newClusterHandler(cluster string, ds *db.PersistentCluster, verbose bool) *clusterHandler {
 	return &clusterHandler{
 		cluster: cluster,
-		disp: make(map[string]func(ch *clusterHandler, topic, host string, data []byte) error),
-		ds: ds,
+		disp:    make(map[string]func(ch *clusterHandler, topic, host string, data []byte) error),
+		ds:      ds,
 		verbose: verbose,
 	}
 }
@@ -192,4 +192,3 @@ func handleCluster(ch *clusterHandler, topic, host string, data []byte) error {
 	}
 	return nil
 }
-
