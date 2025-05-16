@@ -10,4 +10,3 @@ import (
 )
 
 type CluzterInfo = newfmt.ClusterAttributes
-

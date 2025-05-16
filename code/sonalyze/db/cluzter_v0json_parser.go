@@ -26,4 +26,3 @@ func ParseCluzterV0JSON(
 	})
 	return
 }
-

@@ -103,11 +103,11 @@ type EncodedLoadData struct {
 }
 
 func EncodedLoadDataFromBytes(xs []byte) EncodedLoadData {
-	return EncodedLoadData { x: xs }
+	return EncodedLoadData{x: xs}
 }
 
 func EncodedLoadDataFromValues(xs []uint64) EncodedLoadData {
-	return EncodedLoadData { x: xs }
+	return EncodedLoadData{x: xs}
 }
 
 func DecodeEncodedLoadData(e EncodedLoadData) ([]byte, []uint64) {
@@ -145,11 +145,11 @@ type PerGpuSample struct {
 }
 
 func EncodedGpuDataFromBytes(xs []byte) EncodedGpuData {
-	return EncodedGpuData { x: xs }
+	return EncodedGpuData{x: xs}
 }
 
 func EncodedGpuDataFromValues(xs []PerGpuSample) EncodedGpuData {
-	return EncodedGpuData { x: xs }
+	return EncodedGpuData{x: xs}
 }
 
 func DecodeEncodedGpuData(e EncodedGpuData) ([]byte, []PerGpuSample) {

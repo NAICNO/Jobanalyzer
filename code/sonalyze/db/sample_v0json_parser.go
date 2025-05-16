@@ -49,8 +49,8 @@ func ParseSamplesV0JSON(
 			encodedLoadData := slices.Clone(data.CpuLoad)
 			loadData = append(loadData, &LoadDatum{
 				Timestamp: t,
-				Hostname: h,
-				Encoded: EncodedLoadDataFromValues(encodedLoadData),
+				Hostname:  h,
+				Encoded:   EncodedLoadDataFromValues(encodedLoadData),
 			})
 		}
 
@@ -70,19 +70,19 @@ func ParseSamplesV0JSON(
 			}
 			gpuData = append(gpuData, &GpuDatum{
 				Timestamp: t,
-				Hostname: h,
-				Encoded: EncodedGpuDataFromValues(encodedGpuData),
+				Hostname:  h,
+				Encoded:   EncodedGpuDataFromValues(encodedGpuData),
 			})
 		}
 
 		for _, sample := range data.Samples {
 			gpus, _ := gpuset.NewGpuSet(sample.Gpus)
 			samples = append(samples, &Sample{
-				Timestamp: t,
+				Timestamp:  t,
 				MemtotalKB: data.MemtotalKib,
-				CpuKB: sample.CpuKib,
-				RssAnonKB: sample.RssAnonKib,
-				GpuKB: sample.GpuKib,
+				CpuKB:      sample.CpuKib,
+				RssAnonKB:  sample.RssAnonKib,
+				GpuKB:      sample.GpuKib,
 				CpuTimeSec: sample.CpuTimeSec,
 				Version:    ustrs.Alloc(data.Version),
 				Cluster:    ustrs.Alloc(string(r.Data.Attributes.Cluster)),
