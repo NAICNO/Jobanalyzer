@@ -88,8 +88,9 @@ type ReadSyncMethods interface {
 
 	// Given rectified data just read from the file, compute their nominal cache occupancy.  It is
 	// unspecified for now whether this is the "ideal" occupancy (using len(), say) or the "actual"
-	// occupancy (using cap(), say).
-	CachedSizeOfPayload(payload any) int64
+	// occupancy (using cap(), say).  This does not have to be super fast, it is only used in
+	// connection with I/O.  The data will tend to be in the CPU cache.
+	CachedSizeOfPayload(payload any) uintptr
 }
 
 type FileAttr int
@@ -229,7 +230,7 @@ func (lf *LogFile) ReadSync(
 		}
 		if reader.IsCacheable() && CacheEnabled() {
 			size := reader.CachedSizeOfPayload(payload)
-			lf.cacheWriteLocked(&cachePayload{payload, softErrors}, size)
+			lf.cacheWriteLocked(&cachePayload{payload, softErrors}, int64(size))
 		}
 	}
 

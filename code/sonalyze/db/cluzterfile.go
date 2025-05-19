@@ -10,6 +10,8 @@ import (
 	. "sonalyze/common"
 )
 
+type cluzterPayloadType = []*CluzterInfo
+
 type cluzterFileReadSyncMethods struct {
 }
 
@@ -22,6 +24,7 @@ func (_ *cluzterFileReadSyncMethods) IsCacheable() bool {
 }
 
 func (sfr *cluzterFileReadSyncMethods) SelectDataFromPayload(payload any) (data any) {
+	var _ = payload.(cluzterPayloadType)
 	return payload
 }
 
@@ -31,29 +34,28 @@ func (sfr *cluzterFileReadSyncMethods) ReadDataLockedAndRectify(
 	_ *UstrCache,
 	verbose bool,
 ) (payload any, softErrors int, err error) {
-	payload, softErrors, err = ParseCluzterV0JSON(inputFile, verbose)
+	var p cluzterPayloadType
+	p, softErrors, err = ParseCluzterV0JSON(inputFile, verbose)
+	payload = p
 	return
 }
 
-var (
-	// MT: Constant after initialization; immutable
-	perCluzterSize int64
-)
-
-func init() {
-	var s CluzterInfo
-	perCluzterSize = int64(unsafe.Sizeof(s) + unsafe.Sizeof(&s))
-}
-
-func (_ *cluzterFileReadSyncMethods) CachedSizeOfPayload(payload any) int64 {
-	data := payload.([]*CluzterInfo)
-	return perSampleSize * int64(len(data))
+func (_ *cluzterFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
+	data := payload.(cluzterPayloadType)
+	size := unsafe.Sizeof(data)
+	// Pointers to CluzterInfo
+	size += uintptr(len(data)) * pointerSize
+	// Every CluzterInfo is different
+	for _, d := range data {
+		size += cluzterInfoSize(d)
+	}
+	return size
 }
 
 func readCluzterSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) ([][]*CluzterInfo, int, error) {
+) ([]cluzterPayloadType, int, error) {
 	return readRecordsFromFiles[CluzterInfo](files, verbose, reader)
 }

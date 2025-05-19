@@ -3,6 +3,8 @@
 package db
 
 import (
+	"unsafe"
+
 	. "sonalyze/common"
 )
 
@@ -81,4 +83,14 @@ type SacctInfo struct {
 	TimelimitRaw uint32 // *seconds* of real time (input data has minutes)
 	ExitCode     uint8  // the code part of code:signal
 	ExitSignal   uint8  // the signal part of code:signal
+}
+
+var (
+	// MT: Constant after initialization; immutable
+	sizeofSacctInfo uintptr
+)
+
+func init() {
+	var x SacctInfo
+	sizeofSacctInfo = unsafe.Sizeof(x)
 }

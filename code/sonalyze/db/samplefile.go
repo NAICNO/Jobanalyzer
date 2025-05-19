@@ -53,6 +53,8 @@ type sampleData struct {
 	gpuData  []*GpuDatum
 }
 
+type samplePayloadType = *sampleData
+
 func (_ *sampleFileReadSyncMethods) IsCacheable() bool {
 	return true
 }
@@ -60,11 +62,11 @@ func (_ *sampleFileReadSyncMethods) IsCacheable() bool {
 func (sfr *sampleFileReadSyncMethods) SelectDataFromPayload(payload any) (data any) {
 	switch sfr.dataNeeded {
 	case DataNeedSamples:
-		return payload.(*sampleData).samples
+		return payload.(samplePayloadType).samples
 	case DataNeedLoadData:
-		return payload.(*sampleData).loadData
+		return payload.(samplePayloadType).loadData
 	case DataNeedGpuData:
-		return payload.(*sampleData).gpuData
+		return payload.(samplePayloadType).gpuData
 	default:
 		panic("Unexpected")
 	}
@@ -109,19 +111,26 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	return
 }
 
-var (
-	// MT: Constant after initialization; immutable
-	perSampleSize int64
-)
-
-func init() {
-	var s Sample
-	perSampleSize = int64(unsafe.Sizeof(s) + unsafe.Sizeof(&s))
-}
-
-func (_ *sampleFileReadSyncMethods) CachedSizeOfPayload(payload any) int64 {
-	data := payload.(*sampleData)
-	return perSampleSize*int64(len(data.samples)) + 8*int64(len(data.loadData)) + 8*int64(len(data.gpuData))
+func (_ *sampleFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
+	data := payload.(samplePayloadType)
+	size := unsafe.Sizeof(data)
+	// Pointers to Samples
+	size += uintptr(len(data.samples)) * pointerSize
+	// Every Sample has the same size
+	size += uintptr(len(data.samples)) * sizeofSample
+	// Pointers to loadData
+	size += uintptr(len(data.loadData)) * pointerSize
+	// Every LoadDatum is unique
+	for _, d := range data.loadData {
+		size += d.Size()
+	}
+	// Pointers to GpuDatums
+	size += uintptr(len(data.gpuData)) * pointerSize
+	// Every GpuDatum is unique
+	for _, d := range data.gpuData {
+		size += d.Size()
+	}
+	return size
 }
 
 func readSampleSlice(

@@ -4,6 +4,7 @@ package db
 
 import (
 	"go-utils/gpuset"
+	"unsafe"
 
 	. "sonalyze/common"
 )
@@ -88,6 +89,16 @@ type Sample struct {
 	Flags      uint8
 }
 
+var (
+	// MT: Constant after initialization; immutable
+	sizeofSample uintptr
+)
+
+func init() {
+	var x Sample
+	sizeofSample = unsafe.Sizeof(x)
+}
+
 // The LoadDatum represents the `load` field from a record.  The data array is owned by its datum
 // and does not share storage with the input.
 //
@@ -127,6 +138,17 @@ type LoadDatum struct {
 	Encoded   EncodedLoadData
 }
 
+func (l *LoadDatum) Size() uintptr {
+	size := unsafe.Sizeof(*l)
+	a, b := DecodeEncodedLoadData(l.Encoded)
+	if a != nil {
+		size += uintptr(len(a))
+	} else {
+		size += uintptr(len(b)) * 8
+	}
+	return size
+}
+
 // The same as LoadDatum buf for the "gpuinfo" field that was introduced with Sonar 0.13.
 
 type EncodedGpuData struct {
@@ -142,6 +164,16 @@ type PerGpuSample struct {
 	PowerLimitW int
 	CeClockMHz  int
 	MemClockMHz int
+}
+
+var (
+	// MT: Constant after initialization; immutable
+	sizeofPerGpuSample uintptr
+)
+
+func init() {
+	var x PerGpuSample
+	sizeofPerGpuSample = unsafe.Sizeof(x)
 }
 
 func EncodedGpuDataFromBytes(xs []byte) EncodedGpuData {
@@ -167,4 +199,15 @@ type GpuDatum struct {
 	Timestamp int64
 	Hostname  Ustr
 	Encoded   EncodedGpuData
+}
+
+func (g *GpuDatum) Size() uintptr {
+	size := unsafe.Sizeof(*g)
+	a, b := DecodeEncodedGpuData(g.Encoded)
+	if a != nil {
+		size += uintptr(len(a))
+	} else {
+		size += uintptr(len(b)) * sizeofPerGpuSample
+	}
+	return size
 }
