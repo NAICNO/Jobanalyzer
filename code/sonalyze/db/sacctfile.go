@@ -10,6 +10,8 @@ import (
 	. "sonalyze/common"
 )
 
+type sacctPayloadType = []*SacctInfo
+
 type sacctFileReadSyncMethods struct {
 }
 
@@ -24,6 +26,7 @@ func (_ *sacctFileReadSyncMethods) IsCacheable() bool {
 }
 
 func (sfr *sacctFileReadSyncMethods) SelectDataFromPayload(payload any) (data any) {
+	var _ = payload.(sacctPayloadType)
 	return payload
 }
 
@@ -33,29 +36,26 @@ func (sfr *sacctFileReadSyncMethods) ReadDataLockedAndRectify(
 	uf *UstrCache,
 	verbose bool,
 ) (payload any, softErrors int, err error) {
-	payload, softErrors, err = ParseSlurmCSV(inputFile, uf, verbose)
+	var p sacctPayloadType
+	p, softErrors, err = ParseSlurmCSV(inputFile, uf, verbose)
+	payload = p
 	return
 }
 
-var (
-	// MT: Constant after initialization; immutable
-	perSacctSize int64
-)
-
-func init() {
-	var s SacctInfo
-	perSacctSize = int64(unsafe.Sizeof(s) + unsafe.Sizeof(&s))
-}
-
-func (_ *sacctFileReadSyncMethods) CachedSizeOfPayload(payload any) int64 {
-	data := payload.([]*SacctInfo)
-	return perSampleSize * int64(len(data))
+func (_ *sacctFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
+	data := payload.(sacctPayloadType) // []*SacctInfo
+	size := unsafe.Sizeof(data)
+	// Pointers to SacctInfo
+	size += uintptr(len(data)) * pointerSize
+	// Every SacctInfo is the same
+	size += uintptr(len(data)) * sizeofSacctInfo
+	return size
 }
 
 func readSacctSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) ([][]*SacctInfo, int, error) {
+) ([]sacctPayloadType, int, error) {
 	return readRecordsFromFiles[SacctInfo](files, verbose, reader)
 }
