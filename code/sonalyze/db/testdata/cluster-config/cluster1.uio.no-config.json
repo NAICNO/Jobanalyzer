@@ -19,6 +19,14 @@
 	    "mem_gb": 1024,
 	    "gpu_cards": 4,
 	    "gpumem_pct": true
+        },
+        {
+	    "hostname":"n3.cluster1.uio.no",
+	    "description": "2x12 AMD EPYC 7642 (hyperthreaded), 2TB, 4x NVIDIA A100 @ 40GB",
+	    "cpu_cores": 24,
+	    "mem_gb": 2048,
+	    "gpu_cards": 2,
+	    "gpumem_gb": 80
         }
     ]
 }
