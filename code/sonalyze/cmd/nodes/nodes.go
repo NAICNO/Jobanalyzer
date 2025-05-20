@@ -79,12 +79,7 @@ DEFAULTS default
 ELBAT*/
 
 type NodeCommand struct {
-	DevArgs
-	SourceArgs
-	QueryArgs
-	HostArgs
-	VerboseArgs
-	ConfigFileArgs
+	HostAnalysisArgs
 	FormatArgs
 	Newest bool
 }
@@ -92,12 +87,7 @@ type NodeCommand struct {
 var _ = (SimpleCommand)((*NodeCommand)(nil))
 
 func (nc *NodeCommand) Add(fs *CLI) {
-	nc.DevArgs.Add(fs)
-	nc.SourceArgs.Add(fs)
-	nc.QueryArgs.Add(fs)
-	nc.HostArgs.Add(fs)
-	nc.VerboseArgs.Add(fs)
-	nc.ConfigFileArgs.Add(fs)
+	nc.HostAnalysisArgs.Add(fs)
 	nc.FormatArgs.Add(fs)
 
 	fs.Group("printing")
@@ -108,23 +98,14 @@ func (nc *NodeCommand) ReifyForRemote(x *ArgReifier) error {
 	// As per normal, do not forward VerboseArgs.
 	x.Bool("newest", nc.Newest)
 	return errors.Join(
-		nc.DevArgs.ReifyForRemote(x),
-		nc.SourceArgs.ReifyForRemote(x),
-		nc.QueryArgs.ReifyForRemote(x),
-		nc.HostArgs.ReifyForRemote(x),
-		nc.ConfigFileArgs.ReifyForRemote(x),
+		nc.HostAnalysisArgs.ReifyForRemote(x),
 		nc.FormatArgs.ReifyForRemote(x),
 	)
 }
 
 func (nc *NodeCommand) Validate() error {
 	return errors.Join(
-		nc.DevArgs.Validate(),
-		nc.SourceArgs.Validate(),
-		nc.QueryArgs.Validate(),
-		nc.HostArgs.Validate(),
-		nc.VerboseArgs.Validate(),
-		nc.ConfigFileArgs.Validate(),
+		nc.HostAnalysisArgs.Validate(),
 		ValidateFormatArgs(
 			&nc.FormatArgs, nodeDefaultFields, nodeFormatters, nodeAliases, DefaultFixed),
 	)
