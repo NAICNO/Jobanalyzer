@@ -49,7 +49,6 @@
 // Note: an argument can be made that glob semantics are better, so that "a[1-3]*b" would not match
 // "a14b": The 14 would be considered "a number" and read as such and matched against {1,2,3}, and
 // that would fail.
-
 package hostglob
 
 import (
@@ -61,13 +60,12 @@ import (
 	"strconv"
 	"strings"
 
-	"go-utils/slices"
+	uslices "go-utils/slices"
 )
 
-// This takes a <multi-pattern> according to the grammar above and returns a list of individual
-// <pattern>s in that list.  It requires a bit of logic because each pattern may contain a fragment
-// that contains a comma.
-
+// SplitMultiPattern takes a <multi-pattern> according to the grammar above and returns a list of
+// individual <pattern>s in that list.  It requires a bit of logic because each pattern may contain
+// a fragment that contains a comma.
 func SplitMultiPattern(s string) ([]string, error) {
 	strings := make([]string, 0)
 	if s == "" {
@@ -106,9 +104,8 @@ func SplitMultiPattern(s string) ([]string, error) {
 	return strings, nil
 }
 
-// This takes a single <pattern> from the grammar above and expands it.  Restriction: The pattern
+// ExpandPattern takes a single <pattern> from the grammar above and expands it.  Restriction: The pattern
 // must contain no "*" wildcards.
-
 func ExpandPattern(s string) ([]string, error) {
 	before, after, has_tail := strings.Cut(s, ".")
 	head_expansions, err := expandPatternElement(before)
@@ -252,6 +249,9 @@ func parseFragment(r *strings.Reader) (any, error) {
 	}
 }
 
+// MT: Constant after initialization; immutable (except for configuration methods).
+var withDigitsRe = regexp.MustCompile(`^(.*?)(\d+)(\D*)$`)
+
 // Given a list of valid <hostname>s by the grammar above, return an abbreviated list that uses
 // <pattern> syntax where possible.  The patterns will contain no "*" wildcards.
 //
@@ -265,10 +265,6 @@ func parseFragment(r *strings.Reader) (any, error) {
 // For simplicity, for host names of the form `a.b.c...` we will not try to compress anything in the
 // `b.c...` portion, and within the `a` portions we will try to compress only the rightmost digit
 // strings.  This will yield good results in general.
-
-// MT: Constant after initialization; immutable (except for configuration methods).
-var withDigitsRe = regexp.MustCompile(`^(.*?)(\d+)(\D*)$`)
-
 func CompressHostnames(hosts []string) []string {
 	// Suffixes is a map from `b.c...` portion to `a` portion of name.
 	suffixes := make(map[string][]string)
@@ -348,77 +344,101 @@ func compressRange(xs []int) string {
 	return s
 }
 
-// A `HostGlobber` is a matcher of patterns against hostnames.
+// A HostGlobber is a matcher of patterns against hostnames.
 //
-// The matcher holds a number of patterns, added with `insert`.  Each `pattern` is a <pattern> in
-// the sense of the grammar referenced above.
+// The matcher holds a number of patterns.  Each pattern is a <pattern> in the sense of the
+// grammar referenced above.
 //
-// The `match_hostname` method attempts to match its argument against the patterns in the matcher,
+// The Match method attempts to match its argument against the patterns in the matcher,
 // returning true if any of them match.
 //
-// The hostGlobber is immutable and thread-safe: the embedded regexes are defined to be thread-safe
+// The HostGlobber is immutable and thread-safe: the embedded regexes are defined to be thread-safe
 // for concurrent use. cf https://pkg.go.dev/regexp#Regexp:
 //
 //  A Regexp is safe for concurrent use by multiple goroutines, except for configuration methods,
 //  such as Regexp.Longest.
 //
 // However note that the RegExp machinery has some shared global state internally in a sync.Map, and
-// so executing a regexp is not necessarily lock-free.  Hence the hostglobber is also not
+// so executing a regexp is not necessarily lock-free.  Hence the HostGlobber is also not
 // necessarily lock-free.  But I'm guessing that map is not heavily contended, TBD.  It could look
-// like it is only used for fairly complex regexes; ours will tend to be simple (single host
-// pattern that should require no backtracking).
-
+// like it is only used for fairly complex regexes; ours will tend to be simple (single host pattern
+// that should require no backtracking).
 type HostGlobber struct {
-	isPrefixMatcher bool
 	matchers        []*regexp.Regexp
 }
 
-// Create a new, empty filter.  The flag indicates whether the globbers in the filter could match
-// only a prefix of the hostname elements or must match all of them.
-
+// Create a new filter matching against the patterns.  The flag indicates whether the globbers in
+// the filter could match only a prefix of the hostname elements or must match all of them.
 func NewGlobber(isPrefixMatcher bool, patterns []string) (*HostGlobber, error) {
+	return NewGlobberWithFix(isPrefixMatcher, "", patterns, "")
+}
+
+// Create a new filter matching against the patterns prefixed by the prefix and suffixed by the
+// suffix.  The flag indicates whether the globbers in the filter could match only a prefix of the
+// hostname elements or must match all of them.
+func NewGlobberWithFix(
+	isPrefixMatcher bool,
+	prefix string,
+	patterns []string,
+	suffix string,
+) (*HostGlobber, error) {
 	matchers := make([]*regexp.Regexp, 0, len(patterns))
 	for _, p := range patterns {
-		re, _, err := compileGlobber(p, isPrefixMatcher)
+		re, _, err := compileGlobber(p, isPrefixMatcher, prefix, suffix)
 		if err != nil {
 			return nil, err
 		}
 		matchers = append(matchers, re)
 	}
-	return &HostGlobber{
-		isPrefixMatcher: isPrefixMatcher,
-		matchers:        matchers,
-	}, nil
+	return &HostGlobber{ matchers }, nil
+}
+
+// Return a globber that matches a string if any of the constituent globbers match it.
+func Join(globbers []*HostGlobber) *HostGlobber {
+	if len(globbers) == 0 {
+		return &HostGlobber{}
+	}
+	n := 0
+	for _, g := range globbers {
+		n += len(g.matchers)
+	}
+	matchers := make([]*regexp.Regexp, n)
+	n = 0
+	for _, g := range globbers {
+		copy(matchers[n:n+len(g.matchers)], g.matchers)
+		n += len(g.matchers)
+	}
+	return &HostGlobber{ matchers }
 }
 
 // Return true iff the filter has no patterns.
-
 func (hg *HostGlobber) IsEmpty() bool {
 	return len(hg.matchers) == 0
 }
 
 func (hg *HostGlobber) String() string {
 	return fmt.Sprint(
-		slices.Map(hg.matchers, func(re *regexp.Regexp) string {
+		uslices.Map(hg.matchers, func(re *regexp.Regexp) string {
 			return re.String()
 		}),
 	)
 }
 
 // Match s against the patterns and return true iff it matches at least one pattern.
-
 func (hg *HostGlobber) Match(host string) bool {
 	for _, re := range hg.matchers {
-		if re.Match([]byte(host)) {
+		if re.MatchString(host) {
 			return true
 		}
 	}
 	return false
 }
 
-func compileGlobber(p string, prefix bool) (*regexp.Regexp, string, error) {
+func compileGlobber(p string, isPrefixMatcher bool, prefix, suffix string) (*regexp.Regexp, string, error) {
+	prefix = regexp.QuoteMeta(prefix)
+	suffix = regexp.QuoteMeta(suffix)
 	in := strings.NewReader(p)
-	r := "^"
+	r := "^" + prefix
 Parser:
 	for {
 		if len(r) > 50000 {
@@ -473,12 +493,12 @@ Parser:
 			r += string(c)
 		}
 	}
-	if prefix {
+	if isPrefixMatcher {
 		// Matching a prefix: we need to match entire host-elements, so following a prefix there
 		// should either be EOS or `.` followed by whatever until EOS.
-		r += "(?:\\..*)?$"
+		r += "(?:\\..*)?" + suffix + "$"
 	} else {
-		r += "$"
+		r += suffix + "$"
 	}
 	re, err := regexp.Compile(r)
 	if err != nil {

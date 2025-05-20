@@ -54,7 +54,6 @@ import (
 	"time"
 
 	"go-utils/config"
-	"go-utils/hostglob"
 	. "sonalyze/common"
 )
 
@@ -102,7 +101,7 @@ type SampleCluster interface {
 	// returned.  Times must be UTC.
 	SampleFilenames(
 		fromDate, toDate time.Time,
-		hosts *hostglob.HostGlobber,
+		hosts *Hosts,
 	) ([]string, error)
 
 	// Read `ps` samples from all the files selected by SampleFilenames() and extract the
@@ -110,7 +109,7 @@ type SampleCluster interface {
 	// records they point to, must not be mutated in any way.
 	ReadSamples(
 		fromDate, toDate time.Time,
-		hosts *hostglob.HostGlobber,
+		hosts *Hosts,
 		verbose bool,
 	) (sampleBlobs [][]*Sample, dropped int, err error)
 
@@ -119,7 +118,7 @@ type SampleCluster interface {
 	// be mutated in any way.
 	ReadLoadData(
 		fromDate, toDate time.Time,
-		hosts *hostglob.HostGlobber,
+		hosts *Hosts,
 		verbose bool,
 	) (dataBlobs [][]*LoadDatum, dropped int, err error)
 
@@ -128,7 +127,7 @@ type SampleCluster interface {
 	// be mutated in any way.
 	ReadGpuData(
 		fromDate, toDate time.Time,
-		hosts *hostglob.HostGlobber,
+		hosts *Hosts,
 		verbose bool,
 	) (dataBlobs [][]*GpuDatum, dropped int, err error)
 }
@@ -141,7 +140,7 @@ type SysinfoCluster interface {
 	// host matcher, if any.  Times must be UTC.
 	SysinfoFilenames(
 		fromDate, toDate time.Time,
-		hosts *hostglob.HostGlobber,
+		hosts *Hosts,
 	) ([]string, error)
 
 	// Read `sysinfo` records from all the files selected by SysinfoFilenames().  Times must be UTC.
@@ -149,7 +148,7 @@ type SysinfoCluster interface {
 	// way.
 	ReadSysinfoData(
 		fromDate, toDate time.Time,
-		hosts *hostglob.HostGlobber,
+		hosts *Hosts,
 		verbose bool,
 	) (sysinfoBlobs [][]*config.NodeConfigRecord, dropped int, err error)
 }

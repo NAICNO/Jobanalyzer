@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"go-utils/config"
-	"go-utils/hostglob"
+	. "sonalyze/common"
 )
 
 // This is a transient cluster mixin that has only one type of files.
@@ -104,14 +104,14 @@ func newTransientSampleCluster(
 
 func (tsc *TransientSampleCluster) SampleFilenames(
 	_, _ time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 ) ([]string, error) {
 	return tsc.Filenames()
 }
 
 func (tsc *TransientSampleCluster) ReadSamples(
 	_, _ time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*Sample, dropped int, err error) {
 	tsc.Lock()
@@ -125,7 +125,7 @@ func (tsc *TransientSampleCluster) ReadSamples(
 
 func (tsc *TransientSampleCluster) ReadLoadData(
 	_, _ time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*LoadDatum, dropped int, err error) {
 	tsc.Lock()
@@ -139,7 +139,7 @@ func (tsc *TransientSampleCluster) ReadLoadData(
 
 func (tsc *TransientSampleCluster) ReadGpuData(
 	_, _ time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*GpuDatum, dropped int, err error) {
 	tsc.Lock()
@@ -215,14 +215,14 @@ func newTransientSysinfoCluster(
 func (tsc *TransientSysinfoCluster) SysinfoFilenames(
 	_,
 	_ time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 ) ([]string, error) {
 	return tsc.Filenames()
 }
 
 func (tsc *TransientSysinfoCluster) ReadSysinfoData(
 	fromDate, toDate time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 	verbose bool,
 ) (recordBlobs [][]*config.NodeConfigRecord, dropped int, err error) {
 	tsc.Lock()

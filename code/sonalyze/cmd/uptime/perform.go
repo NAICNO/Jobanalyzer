@@ -46,7 +46,6 @@ import (
 	"slices"
 
 	"go-utils/config"
-	"go-utils/hostglob"
 	"go-utils/maps"
 	uslices "go-utils/slices"
 
@@ -71,7 +70,7 @@ func (uc *UptimeCommand) Perform(
 	_ db.SampleCluster,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
-	hostGlobber *hostglob.HostGlobber,
+	hostGlobber *Hosts,
 	_ *db.SampleFilter,
 ) error {
 	samples := uslices.CatenateP(maps.Values(streams))
@@ -89,7 +88,7 @@ func (uc *UptimeCommand) computeReports(
 	samples sonarlog.SampleStream,
 	bounds sonarlog.Timebounds,
 	cfg *config.ClusterConfig,
-	hostGlobber *hostglob.HostGlobber,
+	hostGlobber *Hosts,
 ) []*UptimeLine {
 	reports := make([]*UptimeLine, 0)
 	fromIncl, toIncl := uc.InterpretFromToWithBounds(bounds)
@@ -235,9 +234,10 @@ func (uc *UptimeCommand) computeReports(
 
 func (uc *UptimeCommand) computeHostWindows(
 	samples sonarlog.SampleStream,
-	hostGlobber *hostglob.HostGlobber,
+	hosts *Hosts,
 	fromIncl, toIncl int64,
 ) []window {
+	hostGlobber := hosts.HostnameGlobber()
 	windows := make([]window, 0)
 	i := 0
 	lim := len(samples)
@@ -286,10 +286,11 @@ func (uc *UptimeCommand) computeAlwaysDown(
 	reports *[]*UptimeLine,
 	samples sonarlog.SampleStream,
 	cfg *config.ClusterConfig,
-	hostGlobber *hostglob.HostGlobber,
+	hosts *Hosts,
 	fromIncl, toIncl int64,
 ) {
 	if !uc.OnlyUp && cfg != nil {
+		hostGlobber := hosts.HostnameGlobber()
 		hs := make(map[Ustr]bool)
 		for _, h := range cfg.HostsDefinedInTimeWindow(fromIncl, toIncl) {
 			hs[StringToUstr(h)] = true

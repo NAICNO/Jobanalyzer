@@ -62,7 +62,6 @@ import (
 	"time"
 
 	"go-utils/config"
-	"go-utils/hostglob"
 	uslices "go-utils/slices"
 	. "sonalyze/common"
 )
@@ -216,7 +215,7 @@ func (pc *PersistentCluster) flushSyncLocked() {
 
 func (pc *PersistentCluster) SampleFilenames(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 ) ([]string, error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
@@ -227,7 +226,7 @@ func (pc *PersistentCluster) SampleFilenames(
 
 func (pc *PersistentCluster) SysinfoFilenames(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 ) ([]string, error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
@@ -258,7 +257,7 @@ func (pc *PersistentCluster) CluzterFilenames(
 
 func (pc *PersistentCluster) findFilenames(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	fa filesAdapter,
 ) ([]string, error) {
 	pc.Lock()
@@ -273,7 +272,7 @@ func (pc *PersistentCluster) findFilenames(
 
 func (pc *PersistentCluster) ReadSamples(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*Sample, dropped int, err error) {
 	if DEBUG {
@@ -288,7 +287,7 @@ func (pc *PersistentCluster) ReadSamples(
 
 func (pc *PersistentCluster) ReadLoadData(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*LoadDatum, dropped int, err error) {
 	if DEBUG {
@@ -303,7 +302,7 @@ func (pc *PersistentCluster) ReadLoadData(
 
 func (pc *PersistentCluster) ReadGpuData(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*GpuDatum, dropped int, err error) {
 	if DEBUG {
@@ -318,7 +317,7 @@ func (pc *PersistentCluster) ReadGpuData(
 
 func (pc *PersistentCluster) ReadSysinfoData(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*config.NodeConfigRecord, dropped int, err error) {
 	if DEBUG {
@@ -362,7 +361,7 @@ func (pc *PersistentCluster) ReadCluzterData(
 func readPersistentClusterRecords[V any, U ~[][]*V](
 	pc *PersistentCluster,
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	verbose bool,
 	fa filesAdapter,
 	methods ReadSyncMethods,
@@ -462,6 +461,8 @@ func (pc *PersistentCluster) appendDataAsync(
 // Adapters to hide file idiosyncracies in a persistent store.
 
 type filesAdapter interface {
+	// Every string in this list is a basename with extension, containing zero or one *, which
+	// signifies the location of the host name, if applicable.
 	globs() []string
 	proscribedBasename(basename string) bool
 	fileTypeFromBasename(basename string) FileAttr
@@ -581,7 +582,7 @@ func (_ cluzterFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
 
 func (pc *PersistentCluster) findFilesLocked(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	fa filesAdapter,
 ) []*LogFile {
 	globs := fa.globs()
@@ -628,14 +629,12 @@ func (pc *PersistentCluster) findFilesLocked(
 		}
 
 		// Retain only files whose names match the filter, if present
+
 		if hosts != nil && !hosts.IsEmpty() {
-			for _, glob := range globs {
-				extensionLen := len(glob) - strings.LastIndexByte(glob, '.')
-				for _, c := range fa.getFiles(d) {
-					fn := c.basename
-					if hosts.Match(fn[:len(fn)-extensionLen]) {
-						files = append(files, c)
-					}
+			matcher := hosts.FilenameGlobber(globs)
+			for _, c := range fa.getFiles(d) {
+				if matcher.Match(c.basename) {
+					files = append(files, c)
 				}
 			}
 		} else {

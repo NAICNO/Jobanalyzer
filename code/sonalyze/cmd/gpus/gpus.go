@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io"
 
-	"go-utils/hostglob"
-
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
@@ -105,7 +103,7 @@ func (gc *GpuCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	hostGlobber, err := hostglob.NewGlobber(true, gc.Host)
+	hostGlobber, err := NewHosts(true, gc.Host)
 	if err != nil {
 		return err
 	}
