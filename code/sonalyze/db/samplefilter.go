@@ -4,7 +4,6 @@ package db
 
 import (
 	"go-utils/hostglob"
-
 	. "sonalyze/common"
 )
 

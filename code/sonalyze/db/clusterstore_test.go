@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"go-utils/filesys"
-	"go-utils/hostglob"
 	uslices "go-utils/slices"
 	"go-utils/status"
 	. "sonalyze/common"
@@ -88,7 +87,7 @@ func TestTransientSampleFilenames(t *testing.T) {
 		t.Fatal(err)
 	}
 	var d time.Time
-	h, _ := hostglob.NewGlobber(false, []string{"a"})
+	h, _ := NewHosts(false, []string{"a"})
 	// The parameters should be ignored here and the names returned should
 	// be exactly the input names.
 	names, _ := fs.SampleFilenames(d, d, h)
@@ -148,7 +147,7 @@ func TestPersistentSampleFilenames(t *testing.T) {
 		t.Fatal(names, expect)
 	}
 
-	h, _ := hostglob.NewGlobber(true, []string{"a"})
+	h, _ := NewHosts(true, []string{"a"})
 	names, err = pc.SampleFilenames(
 		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
@@ -583,7 +582,7 @@ func TestCaching(t *testing.T) {
 	_ = ul.GetMsgs()
 
 	// This should read 2023/05/31/a.csv
-	glob, _ := hostglob.NewGlobber(false, []string{"a"})
+	glob, _ := NewHosts(false, []string{"a"})
 	_, _, err = pc.ReadSamples(
 		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),

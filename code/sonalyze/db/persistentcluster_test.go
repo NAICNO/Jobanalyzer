@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"go-utils/hostglob"
+	. "sonalyze/common"
 )
 
 var theDB *PersistentCluster
@@ -55,7 +55,7 @@ func TestFilenames(t *testing.T) {
 
 	from, _ := time.Parse(time.RFC3339, "2025-04-12T07:16:00+02:00")
 	to, _ := time.Parse(time.RFC3339, "2025-05-03T12:13:14+02:00")
-	globber, _ := hostglob.NewGlobber(true, []string{"n[1-2].cluster1"})
+	globber, _ := NewHosts(true, []string{"n[1-2].cluster1"})
 
 	fs, err := theDB.SampleFilenames(from, to, nil)
 	if err != nil {
