@@ -34,12 +34,14 @@ func TestFilenames(t *testing.T) {
 	//   to the start of that day.  The `to` is rounded up to the end of the day.  So we want to use
 	//   odd timestamps for that reason
 
+	// Ergo:
 	// There's a directory at 04-11 with matching files
 	// There's a directory at 05-04 with matching files
-	// Some files are for n3.cluster1 but should not match here
-	// There are proscribed bughunt.csv and sacct-slurm.json at 04-12
-	// There are both new and old patterns
+	// Some files are for n3.cluster1
+	// There are proscribed files in various spots (bughunt.csv, cpuhog.csv)
+	// There are both new and old file name schemes
 	// There are files for all file types in all directories
+
 	from, _ := time.Parse(time.RFC3339, "2025-04-12T07:16:00+02:00")
 	to, _ := time.Parse(time.RFC3339, "2025-05-03T12:13:14+02:00")
 	globber, _ := NewHosts(true, []string{"n[1-2].cluster1"})
@@ -123,10 +125,29 @@ func TestFilenames(t *testing.T) {
 		t.Fatal(err)
 	}
 	slices.Sort(fs)
+	expect = []string{
+		"testdata/data/cluster1.uio.no/2025/04/12/0+job-slurm.json",
+		"testdata/data/cluster1.uio.no/2025/04/12/slurm-sacct.csv",
+		"testdata/data/cluster1.uio.no/2025/04/13/0+job-slurm.json",
+		"testdata/data/cluster1.uio.no/2025/05/02/0+job-slurm.json",
+		"testdata/data/cluster1.uio.no/2025/05/03/slurm-sacct.csv",
+	}
+	if !slices.Equal(fs, expect) {
+		t.Fatal(fs)
+	}
 
 	fs, err = theDB.CluzterFilenames(from, to)
 	if err != nil {
 		t.Fatal(err)
 	}
 	slices.Sort(fs)
+	expect = []string{
+		"testdata/data/cluster1.uio.no/2025/04/12/0+cluzter-slurm.json",
+		"testdata/data/cluster1.uio.no/2025/04/13/0+cluzter-slurm.json",
+		"testdata/data/cluster1.uio.no/2025/05/02/0+cluzter-slurm.json",
+		"testdata/data/cluster1.uio.no/2025/05/03/0+cluzter-slurm.json",
+	}
+	if !slices.Equal(fs, expect) {
+		t.Fatal(fs)
+	}
 }
