@@ -38,6 +38,8 @@ func TestFilenames(t *testing.T) {
 	// There's a directory at 05-04 with matching files
 	// Some files are for n3.cluster1 but should not match here
 	// There are proscribed bughunt.csv and sacct-slurm.json at 04-12
+	// There are both new and old patterns
+	// There are files for all file types in all directories
 	from, _ := time.Parse(time.RFC3339, "2025-04-12T07:16:00+02:00")
 	to, _ := time.Parse(time.RFC3339, "2025-05-03T12:13:14+02:00")
 	globber, _ := NewHosts(true, []string{"n[1-2].cluster1"})
@@ -84,12 +86,37 @@ func TestFilenames(t *testing.T) {
 		t.Fatal(err)
 	}
 	slices.Sort(fs)
+	expect = []string{
+		"testdata/data/cluster1.uio.no/2025/04/12/0+sysinfo-n2.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/04/12/sysinfo-n1.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/04/12/sysinfo-n3.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/04/13/0+sysinfo-n1.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/04/13/0+sysinfo-n3.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/05/02/0+sysinfo-n2.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/05/02/0+sysinfo-n3.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/05/02/sysinfo-n1.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/05/03/sysinfo-n1.cluster1.uio.no.json",
+	}
+	if !slices.Equal(fs, expect) {
+		t.Fatal(fs)
+	}
 
 	fs, err = theDB.SysinfoFilenames(from, to, globber)
 	if err != nil {
 		t.Fatal(err)
 	}
 	slices.Sort(fs)
+	expect = []string{
+		"testdata/data/cluster1.uio.no/2025/04/12/0+sysinfo-n2.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/04/12/sysinfo-n1.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/04/13/0+sysinfo-n1.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/05/02/0+sysinfo-n2.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/05/02/sysinfo-n1.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/05/03/sysinfo-n1.cluster1.uio.no.json",
+	}
+	if !slices.Equal(fs, expect) {
+		t.Fatal(fs)
+	}
 
 	fs, err = theDB.SacctFilenames(from, to)
 	if err != nil {
