@@ -14,6 +14,7 @@ the repo.
 Notionally there are these tables:
 
 * `cluster` is the table of clusters known to the DB manager, with their aliases and descriptions
+* `cluzter` is the table of Slurm partition information
 * `config` is the table of per-node configuration information
 * `sysinfo` is the table of per-node system information extracted by Sonar on each node every day
 * `sacct` is the table of completed Slurm jobs on the cluster
@@ -44,6 +45,7 @@ There are raw data extractors that work on a single table:
 * The `sample` operation prints information from the `sample` table
 * The `node` operation prints information from the `sysinfo` table (this operation should have
   been called `sysinfo` but that name is currently taken)
+* (Currently none for the `cluzter` table - but will be coming)
 
 Then there are built-in aggregation operations that work on the `sample` table joined with the
 `config` table.  You almost never want raw sample data, but cooked data from some of the aggregation
@@ -843,3 +845,12 @@ Additionally, no trailing file arguments (`-- filename ...`) are allowed here.
 
 For the `add` operation, the credential supplied with `--auth-file` will be matched against the
 server's "upload credentials" database.
+
+## DATA ACQUISITION BY KAFKA
+
+If the `sonalyze daemon` server is running it can be told to access a Kafka broker to acquire data.
+Run the daemon with the `--kafka` option to provide a broker address (plaintext only, so the broker
+should be running on the local system).  The acquisition will happen for every cluster known to the
+daemon, for all four data types - `cluzter`, `sacct`, `sample`, and `sysinfo`.
+
+The Kafka acquisition service is currently considered experimental.

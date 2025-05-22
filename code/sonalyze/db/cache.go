@@ -32,6 +32,7 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"unsafe"
 
 	. "sonalyze/common"
 )
@@ -68,7 +69,18 @@ var (
 
 	// MT: Constant after initialization; thread-safe
 	cacheUnderflow = make(chan bool, cacheUnderflowCap)
+
+	// MT: Constant after initialization; immutable
+	pointerSize uintptr
+	stringSize  uintptr
 )
+
+func init() {
+	var x *int
+	pointerSize = unsafe.Sizeof(x)
+	var s string
+	stringSize = unsafe.Sizeof(s)
+}
 
 // Data to manage purging.
 //

@@ -18,7 +18,6 @@ import (
 	"slices"
 
 	"go-utils/config"
-	"go-utils/hostglob"
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
@@ -133,10 +132,11 @@ func (cc *ConfigCommand) Validate() error {
 // Analysis
 
 func (cc *ConfigCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
-	includeHosts, err := hostglob.NewGlobber(true, cc.HostArgs.Host)
+	hosts, err := NewHosts(true, cc.HostArgs.Host)
 	if err != nil {
 		return err
 	}
+	includeHosts := hosts.HostnameGlobber()
 
 	cfg, err := db.MaybeGetConfig(cc.ConfigFile())
 	if err != nil {

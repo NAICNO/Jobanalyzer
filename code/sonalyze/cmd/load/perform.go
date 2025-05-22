@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"go-utils/config"
-	"go-utils/hostglob"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
@@ -26,7 +25,7 @@ func (lc *LoadCommand) Perform(
 	_ db.SampleCluster,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
-	hostGlobber *hostglob.HostGlobber,
+	hostGlobber *Hosts,
 	_ *db.SampleFilter,
 ) error {
 	fromIncl, toIncl := lc.InterpretFromToWithBounds(bounds)

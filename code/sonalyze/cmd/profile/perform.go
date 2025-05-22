@@ -8,7 +8,6 @@ import (
 	"slices"
 
 	"go-utils/config"
-	"go-utils/hostglob"
 	"go-utils/maps"
 
 	. "sonalyze/common"
@@ -27,7 +26,7 @@ func (pc *ProfileCommand) Perform(
 	_ db.SampleCluster,
 	streams sonarlog.InputStreamSet,
 	_ sonarlog.Timebounds,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 	_ *db.SampleFilter,
 ) error {
 	jobId := pc.Job[0]

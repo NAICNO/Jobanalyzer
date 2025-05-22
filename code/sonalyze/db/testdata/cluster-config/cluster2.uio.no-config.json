@@ -5,7 +5,7 @@
     "exclude-user":["root","toor"],
     "nodes": [
         {
-	    "hostname":"n37.cluster1.uio.no",
+	    "hostname":"n37.cluster2",
 	    "description": "2x16 AMD EPYC 7282 (hyperthreaded), 256GB, 8x NVIDIA RTX 2080 Ti @ 11GB",
 	    "cpu_cores": 64,
 	    "mem_gb": 256,
@@ -13,7 +13,7 @@
 	    "gpumem_gb": 88
         },
         {
-	    "hostname":"n42.cluster1.uio.no",
+	    "hostname":"n42.cluster2",
 	    "description": "2x48 AMD EPYC 7642 (hyperthreaded), 1TB, 4x NVIDIA A100 @ 40GB",
 	    "cpu_cores": 192,
 	    "mem_gb": 1024,

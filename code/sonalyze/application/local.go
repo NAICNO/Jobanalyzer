@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"go-utils/config"
-	"go-utils/hostglob"
 	"go-utils/maps"
 	"go-utils/slices"
 	. "sonalyze/cmd"
@@ -28,7 +27,7 @@ func LocalOperation(command SampleAnalysisCommand, _ io.Reader, stdout, stderr i
 		return err
 	}
 
-	hostGlobber, recordFilter, err := buildRecordFilters(command, cfg, args.Verbose)
+	hosts, recordFilter, err := buildRecordFilters(command, cfg, args.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
@@ -48,7 +47,7 @@ func LocalOperation(command SampleAnalysisCommand, _ io.Reader, stdout, stderr i
 			theLog,
 			args.FromDate,
 			args.ToDate,
-			hostGlobber,
+			hosts,
 			recordFilter,
 			command.NeedsBounds(),
 			args.Verbose,
@@ -62,14 +61,14 @@ func LocalOperation(command SampleAnalysisCommand, _ io.Reader, stdout, stderr i
 	}
 
 	sonarlog.ComputePerSampleFields(streams)
-	return command.Perform(stdout, cfg, theLog, streams, bounds, hostGlobber, recordFilter)
+	return command.Perform(stdout, cfg, theLog, streams, bounds, hosts, recordFilter)
 }
 
 func buildRecordFilters(
 	command SampleAnalysisCommand,
 	cfg *config.ClusterConfig,
 	verbose bool,
-) (*hostglob.HostGlobber, *db.SampleFilter, error) {
+) (*Hosts, *db.SampleFilter, error) {
 	args := command.SampleAnalysisFlags()
 
 	// Temporary limitation.
@@ -82,7 +81,7 @@ func buildRecordFilters(
 
 	// Included host set, empty means "all"
 
-	includeHosts, err := hostglob.NewGlobber(true, args.RecordFilterArgs.Host)
+	includeHosts, err := NewHosts(true, args.RecordFilterArgs.Host)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -208,7 +207,7 @@ func buildRecordFilters(
 
 	var recordFilter = &db.SampleFilter{
 		IncludeUsers:    includeUsers,
-		IncludeHosts:    includeHosts,
+		IncludeHosts:    includeHosts.HostnameGlobber(),
 		IncludeJobs:     includeJobs,
 		IncludeCommands: includeCommands,
 		ExcludeUsers:    excludeUsers,
