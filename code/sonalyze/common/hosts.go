@@ -25,9 +25,9 @@ func NewHosts(prefix bool, patterns []string) (*Hosts, error) {
 		return nil, err
 	}
 	return &Hosts{
-		prefix: prefix,
+		prefix:   prefix,
 		patterns: slices.Clone(patterns),
-		globber: globber,
+		globber:  globber,
 	}, nil
 }
 

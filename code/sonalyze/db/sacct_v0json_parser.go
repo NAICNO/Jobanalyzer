@@ -102,4 +102,3 @@ func ParseSlurmV0JSON(
 	})
 	return
 }
-

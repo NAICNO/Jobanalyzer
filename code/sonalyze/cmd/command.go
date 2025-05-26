@@ -4,8 +4,8 @@ import (
 	"io"
 
 	"go-utils/config"
-	"sonalyze/db"
 	. "sonalyze/common"
+	"sonalyze/db"
 	"sonalyze/sonarlog"
 	"sonalyze/table"
 )
