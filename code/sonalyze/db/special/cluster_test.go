@@ -1,13 +1,13 @@
 // Simple test cases for the "table" cluster
 
-package db
+package special
 
 import (
 	"testing"
 )
 
 func TestCluster(t *testing.T) {
-	clusters, aliases, err := ReadClusterData("testdata")
+	clusters, aliases, err := ReadClusterData("../filedb/testdata")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,6 @@
 // Adapter for reading and caching cluzter-info files.
 
-package db
+package filedb
 
 import (
 	"io"
@@ -17,7 +17,7 @@ type cluzterPayloadType = []*repr.CluzterInfo
 type cluzterFileReadSyncMethods struct {
 }
 
-func newCluzterFileMethods(_ *config.ClusterConfig) *cluzterFileReadSyncMethods {
+func NewCluzterFileMethods(_ *config.ClusterConfig) *cluzterFileReadSyncMethods {
 	return &cluzterFileReadSyncMethods{}
 }
 
@@ -54,10 +54,10 @@ func (_ *cluzterFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 	return size
 }
 
-func readCluzterSlice(
+func ReadCluzterSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([]cluzterPayloadType, int, error) {
-	return readRecordsFromFiles[repr.CluzterInfo](files, verbose, reader)
+	return ReadRecordsFromFiles[repr.CluzterInfo](files, verbose, reader)
 }

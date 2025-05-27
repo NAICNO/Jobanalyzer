@@ -21,7 +21,7 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
-	"sonalyze/db"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -138,7 +138,7 @@ func (cc *ConfigCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
 	}
 	includeHosts := hosts.HostnameGlobber()
 
-	cfg, err := db.MaybeGetConfig(cc.ConfigFile())
+	cfg, err := special.MaybeGetConfig(cc.ConfigFile())
 	if err != nil {
 		return err
 	}

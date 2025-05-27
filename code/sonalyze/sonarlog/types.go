@@ -2,7 +2,7 @@ package sonarlog
 
 import (
 	. "sonalyze/common"
-	"sonalyze/db"
+	"sonalyze/db/errs"
 	"sonalyze/db/repr"
 )
 
@@ -37,7 +37,7 @@ type Timebounds map[Ustr]Timebound
 
 var (
 	// MT: Constant after initialization; immutable
-	BadTimestampErr = db.BadTimestampErr
+	BadTimestampErr = errs.BadTimestampErr
 )
 
 // The InputStreamKey is (hostname, stream-id, cmd), where the stream-id is defined below; it is

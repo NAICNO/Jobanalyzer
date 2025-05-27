@@ -156,7 +156,7 @@ func (pc *ParseCommand) NeedsBounds() bool {
 func (pc *ParseCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	cluster db.SampleCluster,
+	cluster db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds, // for pc.MergeByJob only
 	hostGlobber *Hosts,

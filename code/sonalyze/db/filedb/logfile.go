@@ -43,7 +43,7 @@
 // Purging will not affect records that have been read and are being used by ongoing operations.  So
 // the amount of data in memory may for a time exceed the cache limit.
 
-package db
+package filedb
 
 import (
 	"bufio"
@@ -96,7 +96,7 @@ type ReadSyncMethods interface {
 type FileAttr int
 
 const (
-	fileAppendable FileAttr = 1 << iota
+	FileAppendable FileAttr = 1 << iota
 
 	// Content types are public
 	FileSampleCSV
@@ -116,13 +116,13 @@ const (
 // probably won't matter very much?
 
 type Fullname struct {
-	cluster  string // .../cluster
-	dirname  string // yyyy/mm/dd or other subdir name (when appropriate)
-	basename string // hostname.csv, sysinfo-hostname.json, ...
+	Cluster  string // .../cluster
+	Dirname  string // yyyy/mm/dd or other subdir name (when appropriate)
+	Basename string // hostname.csv, sysinfo-hostname.json, ...
 }
 
 func (fn Fullname) String() string {
-	return path.Join(fn.cluster, fn.dirname, fn.basename)
+	return path.Join(fn.Cluster, fn.Dirname, fn.Basename)
 }
 
 type cachePayload struct {
@@ -145,7 +145,7 @@ type LogFile struct {
 	logFilePurgeableData
 }
 
-func newLogFile(fn Fullname, attrs FileAttr) *LogFile {
+func NewLogFile(fn Fullname, attrs FileAttr) *LogFile {
 	return &LogFile{
 		Fullname: fn,
 		attrs:    attrs,
@@ -153,7 +153,7 @@ func newLogFile(fn Fullname, attrs FileAttr) *LogFile {
 }
 
 func (lf *LogFile) AppendAsync(payload any) error {
-	if (lf.attrs & fileAppendable) == 0 {
+	if (lf.attrs & FileAppendable) == 0 {
 		panic("Read-only file")
 	}
 	switch x := payload.(type) {
@@ -295,7 +295,7 @@ func (lf *LogFile) flushSyncLocked() (err error) {
 	return
 }
 
-func filenames(files []*LogFile) []string {
+func Filenames(files []*LogFile) []string {
 	names := make([]string, len(files))
 	for i, fn := range files {
 		names[i] = fn.Fullname.String()

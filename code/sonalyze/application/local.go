@@ -16,13 +16,14 @@ import (
 	"sonalyze/cmd/profile"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	"sonalyze/sonarlog"
 )
 
 func LocalOperation(command SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
 	args := command.SampleAnalysisFlags()
 
-	cfg, err := db.MaybeGetConfig(command.ConfigFile())
+	cfg, err := special.MaybeGetConfig(command.ConfigFile())
 	if err != nil {
 		return err
 	}
@@ -32,11 +33,11 @@ func LocalOperation(command SampleAnalysisCommand, _ io.Reader, stdout, stderr i
 		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
 
-	var theLog db.SampleCluster
+	var theLog db.SampleDataProvider
 	if len(args.LogFiles) > 0 {
 		theLog, err = db.OpenTransientSampleCluster(args.LogFiles, cfg)
 	} else {
-		theLog, err = db.OpenPersistentCluster(args.DataDir, cfg)
+		theLog, err = db.OpenPersistentDirectoryDB(args.DataDir, cfg)
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to open log store: %v", err)

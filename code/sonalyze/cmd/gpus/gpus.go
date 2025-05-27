@@ -10,6 +10,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
@@ -98,7 +99,7 @@ type ReportLine struct {
 }
 
 func (gc *GpuCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
-	cfg, err := db.MaybeGetConfig(gc.ConfigFile())
+	cfg, err := special.MaybeGetConfig(gc.ConfigFile())
 	if err != nil {
 		return err
 	}
@@ -108,11 +109,11 @@ func (gc *GpuCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	var theLog db.SampleCluster
+	var theLog db.SampleDataProvider
 	if len(gc.LogFiles) > 0 {
 		theLog, err = db.OpenTransientSampleCluster(gc.LogFiles, cfg)
 	} else {
-		theLog, err = db.OpenPersistentCluster(gc.DataDir, cfg)
+		theLog, err = db.OpenPersistentDirectoryDB(gc.DataDir, cfg)
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to open log store: %v", err)

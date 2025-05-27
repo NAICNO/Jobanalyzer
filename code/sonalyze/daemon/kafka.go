@@ -21,7 +21,7 @@ const (
 
 // This runs on a goroutine - one goroutine per cluster, just to be a little resilient.
 
-func runKafka(kafkaBroker, cluster string, ds *db.PersistentCluster, verbose bool) {
+func runKafka(kafkaBroker, cluster string, ds db.AppendablePersistentDataProvider, verbose bool) {
 	defer ds.Close()
 	handler := newClusterHandler(cluster, ds, verbose)
 	cl, err := kgo.NewClient(
@@ -79,11 +79,11 @@ func runKafka(kafkaBroker, cluster string, ds *db.PersistentCluster, verbose boo
 type clusterHandler struct {
 	cluster string
 	disp    map[string]func(ch *clusterHandler, topic, host string, data []byte) error
-	ds      *db.PersistentCluster
+	ds      db.AppendablePersistentDataProvider
 	verbose bool
 }
 
-func newClusterHandler(cluster string, ds *db.PersistentCluster, verbose bool) *clusterHandler {
+func newClusterHandler(cluster string, ds db.AppendablePersistentDataProvider, verbose bool) *clusterHandler {
 	return &clusterHandler{
 		cluster: cluster,
 		disp:    make(map[string]func(ch *clusterHandler, topic, host string, data []byte) error),
@@ -131,7 +131,7 @@ func handleSample(ch *clusterHandler, topic, host string, data []byte) error {
 		if ch.verbose {
 			log.Printf("%s: Got a good sample %s %s", ch.cluster, topic, host)
 		}
-		return ch.ds.AppendSamplesAsync(db.FileSampleV0JSON, host, string(info.Data.Attributes.Time), data)
+		return ch.ds.AppendSamplesAsync(db.DataSampleV0JSON, host, string(info.Data.Attributes.Time), data)
 	}
 	if ch.verbose {
 		log.Printf("%s: Dropping a sample error object on the floor", ch.cluster)
@@ -149,7 +149,7 @@ func handleSysinfo(ch *clusterHandler, topic, host string, data []byte) error {
 		if ch.verbose {
 			log.Printf("%s: Got a good sysinfo %s %s", ch.cluster, topic, host)
 		}
-		return ch.ds.AppendSysinfoAsync(db.FileSysinfoV0JSON, host, string(info.Data.Attributes.Time), data)
+		return ch.ds.AppendSysinfoAsync(db.DataSysinfoV0JSON, host, string(info.Data.Attributes.Time), data)
 	}
 	if ch.verbose {
 		log.Printf("%s: Dropping a sysinfo error object on the floor", ch.cluster)
@@ -167,7 +167,7 @@ func handleSlurmJobs(ch *clusterHandler, topic, host string, data []byte) error 
 		if ch.verbose {
 			log.Printf("%s: Got a good jobs %s %s", ch.cluster, topic, host)
 		}
-		return ch.ds.AppendSlurmSacctAsync(db.FileSlurmV0JSON, string(info.Data.Attributes.Time), data)
+		return ch.ds.AppendSlurmSacctAsync(db.DataSlurmV0JSON, string(info.Data.Attributes.Time), data)
 	}
 	if ch.verbose {
 		log.Printf("%s: Dropping a job error object on the floor", ch.cluster)
@@ -185,7 +185,7 @@ func handleCluster(ch *clusterHandler, topic, host string, data []byte) error {
 		if ch.verbose {
 			log.Printf("%s: Got a good cluster %s %s", ch.cluster, topic, host)
 		}
-		return ch.ds.AppendCluzterAsync(db.FileCluzterV0JSON, string(info.Data.Attributes.Time), data)
+		return ch.ds.AppendCluzterAsync(db.DataCluzterV0JSON, string(info.Data.Attributes.Time), data)
 	}
 	if ch.verbose {
 		log.Printf("%s: Dropping a cluster error object on the floor", ch.cluster)

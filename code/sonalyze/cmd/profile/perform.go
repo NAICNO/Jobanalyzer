@@ -24,7 +24,7 @@ func (pc *ProfileCommand) NeedsBounds() bool {
 func (pc *ProfileCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	_ db.SampleCluster,
+	_ db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	_ sonarlog.Timebounds,
 	_ *Hosts,

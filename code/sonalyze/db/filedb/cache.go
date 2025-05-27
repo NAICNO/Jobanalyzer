@@ -25,7 +25,7 @@
 //
 // For an overview of locking, see clusterstore.go.
 
-package db
+package filedb
 
 import (
 	"math/rand"
@@ -100,7 +100,7 @@ func CacheInit(cacheSize int64) {
 }
 
 // This is for testing
-func cachePurgeAllSync() {
+func CachePurgeAllSync() {
 	for {
 		f := pickFileToPurge()
 		if f == nil {

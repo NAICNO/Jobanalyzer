@@ -1,4 +1,4 @@
-package db
+package filedb
 
 import (
 	"io"
@@ -28,21 +28,21 @@ type sampleFileReadSyncMethods struct {
 
 var _ = ReadSyncMethods((*sampleFileReadSyncMethods)(nil))
 
-type sampleFileKind int
+type SampleFileKind int
 
 const (
-	sampleFileKindSample sampleFileKind = iota
-	sampleFileKindLoadDatum
-	sampleFileKindGpuDatum
+	SampleFileKindSample SampleFileKind = iota
+	SampleFileKindLoadDatum
+	SampleFileKindGpuDatum
 )
 
-func newSampleFileMethods(cfg *config.ClusterConfig, kind sampleFileKind) *sampleFileReadSyncMethods {
+func NewSampleFileMethods(cfg *config.ClusterConfig, kind SampleFileKind) *sampleFileReadSyncMethods {
 	switch kind {
-	case sampleFileKindSample:
+	case SampleFileKindSample:
 		return &sampleFileReadSyncMethods{DataNeedSamples, cfg}
-	case sampleFileKindLoadDatum:
+	case SampleFileKindLoadDatum:
 		return &sampleFileReadSyncMethods{DataNeedLoadData, cfg}
-	case sampleFileKindGpuDatum:
+	case SampleFileKindGpuDatum:
 		return &sampleFileReadSyncMethods{DataNeedGpuData, cfg}
 	default:
 		panic("Unexpected")
@@ -135,26 +135,26 @@ func (_ *sampleFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 	return size
 }
 
-func readSampleSlice(
+func ReadSampleSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
-	return readRecordsFromFiles[repr.Sample](files, verbose, reader)
+	return ReadRecordsFromFiles[repr.Sample](files, verbose, reader)
 }
 
-func readLoadDatumSlice(
+func ReadLoadDatumSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
 ) (loadDataBlobs [][]*repr.LoadDatum, dropped int, err error) {
-	return readRecordsFromFiles[repr.LoadDatum](files, verbose, reader)
+	return ReadRecordsFromFiles[repr.LoadDatum](files, verbose, reader)
 }
 
-func readGpuDatumSlice(
+func ReadGpuDatumSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
 ) (gpuDataBlobs [][]*repr.GpuDatum, dropped int, err error) {
-	return readRecordsFromFiles[repr.GpuDatum](files, verbose, reader)
+	return ReadRecordsFromFiles[repr.GpuDatum](files, verbose, reader)
 }

@@ -36,7 +36,7 @@ type SlurmJob struct {
 }
 
 func Query(
-	theLog db.SacctCluster,
+	theLog db.SacctDataProvider,
 	fromDate, toDate time.Time,
 	filter QueryFilter,
 	verbose bool,

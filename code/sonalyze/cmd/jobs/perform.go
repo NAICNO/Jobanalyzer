@@ -107,7 +107,7 @@ func (jc *JobsCommand) NeedsBounds() bool {
 func (jc *JobsCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	theDb db.SampleCluster,
+	theDb db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *Hosts,
@@ -179,7 +179,7 @@ func (nt *nameTester) testName(name string) {
 
 func (jc *JobsCommand) aggregateAndFilterJobs(
 	cfg *config.ClusterConfig,
-	theDb db.SampleCluster,
+	theDb db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 ) []*jobSummary {
@@ -311,7 +311,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		// fields here and we might use them instead.  If so, do so here and not in printing, to
 		// avoid messiness vis-a-vis filtering.
 
-		if slurmDb, ok := theDb.(*db.PersistentCluster); ok {
+		if slurmDb, ok := theDb.(db.SacctDataProvider); ok {
 
 			var err error
 

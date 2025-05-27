@@ -1,6 +1,6 @@
 // Simple test cases for the "config" cluster
 
-package db
+package special
 
 import (
 	"cmp"
@@ -11,7 +11,7 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	cfg, err := ReadConfigData(MakeConfigFilePath("testdata", "cluster1.uio.no"))
+	cfg, err := ReadConfigData(MakeConfigFilePath("../filedb/testdata", "cluster1.uio.no"))
 	if err != nil {
 		t.Fatal(err)
 	}

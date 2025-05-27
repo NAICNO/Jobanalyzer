@@ -19,7 +19,7 @@
 // The cluster table is cached; only explicit invalidation will flush it.  The cluster data must be
 // treated as completely read-only.
 
-package db
+package special
 
 import (
 	"errors"

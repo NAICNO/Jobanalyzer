@@ -20,6 +20,8 @@ import (
 	uslices "go-utils/slices"
 	"go-utils/status"
 	. "sonalyze/common"
+	"sonalyze/db/errs"
+	"sonalyze/db/filedb"
 )
 
 const (
@@ -45,11 +47,11 @@ func tmpCopyTree(srcDir string) string {
 }
 
 func TestOpenClose(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir, nil)
+	pc, err := openPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	qc, err := OpenPersistentCluster(theClusterDir, nil)
+	qc, err := openPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,8 +61,8 @@ func TestOpenClose(t *testing.T) {
 
 	// Closing should prevent more dirs from being opened
 	Close()
-	_, err = OpenPersistentCluster(theClusterDir, nil)
-	if err != ClusterClosedErr {
+	_, err = openPersistentCluster(theClusterDir, nil)
+	if err != errs.ClusterClosedErr {
 		t.Fatal("Should be closed")
 	}
 
@@ -88,8 +90,6 @@ func TestTransientSampleFilenames(t *testing.T) {
 	}
 	var d time.Time
 	h, _ := NewHosts(false, []string{"a"})
-	// The parameters should be ignored here and the names returned should
-	// be exactly the input names.
 	names, _ := fs.SampleFilenames(d, d, h)
 	if !reflect.DeepEqual(names, theFiles) {
 		t.Fatal(names, theFiles)
@@ -118,7 +118,7 @@ func TestTransientSampleRead(t *testing.T) {
 }
 
 func TestPersistentSampleFilenames(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir, nil)
+	pc, err := openPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestPersistentSampleFilenames(t *testing.T) {
 }
 
 func TestPersistentSampleRead(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir, nil)
+	pc, err := openPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestPersistentSampleRead(t *testing.T) {
 }
 
 func TestPersistentSysinfoRead(t *testing.T) {
-	pc, err := OpenPersistentCluster(theClusterDir, nil)
+	pc, err := openPersistentCluster(theClusterDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +231,7 @@ func TestPersistentSampleAppend(t *testing.T) {
 	d := tmpCopyTree(theClusterDir)
 	defer os.RemoveAll(d)
 
-	pc, err := OpenPersistentCluster(d, nil)
+	pc, err := openPersistentCluster(d, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,13 +244,13 @@ func TestPersistentSampleAppend(t *testing.T) {
 	l1 := "v=0.11.0,time=2023-05-28T14:30:00+02:00,host=a,cores=6,user=larstha,job=249151,pid=11090,cmd=larceny,cpu%=100,cpukib=113989888"
 	l2 := "v=0.11.0,time=2023-05-28T14:35:00+02:00,host=a,cores=8,user=lth,job=49151,pid=111090,cmd=flimflam,cpu%=100,cpukib=113989888"
 	pc.AppendSamplesAsync(
-		FileSampleCSV,
+		filedb.FileSampleCSV,
 		"a",
 		"2023-05-28T14:30:00+02:00",
 		l1+"\n",
 	)
 	pc.AppendSamplesAsync(
-		FileSampleCSV,
+		filedb.FileSampleCSV,
 		"a",
 		"2023-05-28T14:35:00+02:00",
 		l2,
@@ -270,14 +270,14 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	d := tmpCopyTree(theClusterDir)
 	defer os.RemoveAll(d)
 
-	pc, err := OpenPersistentCluster(d, nil)
+	pc, err := openPersistentCluster(d, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Existing nonempty file
 	pc.AppendSysinfoAsync(
-		FileSysinfoOldJSON,
+		filedb.FileSysinfoOldJSON,
 		"a",
 		"2023-05-28T16:00:01+02:00",
 		`{
@@ -293,7 +293,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 
 	// New file in existing directory
 	pc.AppendSysinfoAsync(
-		FileSysinfoOldJSON,
+		filedb.FileSysinfoOldJSON,
 		"c",
 		"2023-05-28T16:00:01+02:00",
 		`{
@@ -309,7 +309,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 
 	// New file in new directory
 	pc.AppendSysinfoAsync(
-		FileSysinfoOldJSON,
+		filedb.FileSysinfoOldJSON,
 		"d",
 		"2024-04-12T16:00:01+02:00",
 		`{
@@ -366,7 +366,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	pc.Close()
 
 	// Check that new files exist
-	fs := os.DirFS(pc.dataDir).(fs.StatFS)
+	fs := os.DirFS(d).(fs.StatFS)
 	_, err = fs.Stat("2023/05/28/sysinfo-c.json")
 	if err != nil {
 		t.Fatal(err)
@@ -381,7 +381,7 @@ func TestPersistentSampleFlush(t *testing.T) {
 	d := tmpCopyTree(theClusterDir)
 	defer os.RemoveAll(d)
 
-	pc, err := OpenPersistentCluster(d, nil)
+	pc, err := openPersistentCluster(d, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -391,7 +391,7 @@ func TestPersistentSampleFlush(t *testing.T) {
 
 	l1 := "v=0.11.0,time=2024-02-13T14:30:00+02:00,host=a,cores=6,user=larstha,job=249151,pid=11090,cmd=larceny,cpu%=100,cpukib=113989888"
 	pc.AppendSamplesAsync(
-		FileSampleCSV,
+		filedb.FileSampleCSV,
 		"c",
 		"2024-02-13T14:30:00+02:00",
 		l1+"\n",
@@ -474,14 +474,14 @@ func TestCaching(t *testing.T) {
 	defer os.RemoveAll(d)
 
 	// 200 is small enough that we should see some purging.
-	CacheInit(300)
-	cachePurgeAllSync()
+	filedb.CacheInit(300)
+	filedb.CachePurgeAllSync()
 
 	var ul CacheListener
 	Log.SetUnderlying(&ul)
 	Log.LowerLevelTo(status.LogLevelInfo)
 
-	pc, err := OpenPersistentCluster(d, nil)
+	pc, err := openPersistentCluster(d, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -578,7 +578,7 @@ func TestCaching(t *testing.T) {
 	//  - observe Caching msg
 	//  - observe that the contents include the appended data
 
-	cachePurgeAllSync()
+	filedb.CachePurgeAllSync()
 	_ = ul.GetMsgs()
 
 	// This should read 2023/05/31/a.csv
@@ -599,7 +599,12 @@ func TestCaching(t *testing.T) {
 		t.Fatal("Too much action", msgs)
 	}
 
-	err = pc.AppendSamplesAsync(FileSampleCSV, "a", "2023-05-31T14:30:38+02:00", "v=0.11.1,time=2023-05-31T14:30:38+02:00,host=a,user=larstha,cmd=awk")
+	err = pc.AppendSamplesAsync(
+		filedb.FileSampleCSV,
+		"a",
+		"2023-05-31T14:30:38+02:00",
+		"v=0.11.1,time=2023-05-31T14:30:38+02:00,host=a,user=larstha,cmd=awk",
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -647,7 +652,7 @@ func TestCaching(t *testing.T) {
 	//  - Read the old file again
 	//  - observe that the contents include the appended data
 
-	cachePurgeAllSync()
+	filedb.CachePurgeAllSync()
 	_ = ul.GetMsgs()
 
 	_, _, err = pc.ReadSamples(
@@ -666,7 +671,12 @@ func TestCaching(t *testing.T) {
 		t.Fatal("Too much action", msgs)
 	}
 
-	err = pc.AppendSamplesAsync(FileSampleCSV, "a", "2023-05-31T14:30:38+02:00", "v=0.11.1,time=2023-05-31T14:30:38+02:00,host=a,user=larstha,cmd=zappa")
+	err = pc.AppendSamplesAsync(
+		filedb.FileSampleCSV,
+		"a",
+		"2023-05-31T14:30:38+02:00",
+		"v=0.11.1,time=2023-05-31T14:30:38+02:00,host=a,user=larstha,cmd=zappa",
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

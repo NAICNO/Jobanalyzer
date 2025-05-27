@@ -133,7 +133,7 @@ func (mdc *MetadataCommand) NeedsBounds() bool {
 func (mdc *MetadataCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	cluster db.SampleCluster,
+	cluster db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds, // for mdc.Bounds only
 	hostGlobber *Hosts,
@@ -145,7 +145,7 @@ func (mdc *MetadataCommand) Perform(
 	}
 
 	if mdc.Files {
-		if sampleDir, ok := cluster.(db.SampleCluster); ok {
+		if sampleDir, ok := cluster.(db.SampleFilenameProvider); ok {
 			// For -files, print the full paths all the input files as presented to os.Open.
 			files, err := sampleDir.SampleFilenames(mdc.FromDate, mdc.ToDate, hostGlobber)
 			if err != nil {

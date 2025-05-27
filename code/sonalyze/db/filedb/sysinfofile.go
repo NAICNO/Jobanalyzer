@@ -1,4 +1,4 @@
-package db
+package filedb
 
 import (
 	"io"
@@ -17,7 +17,7 @@ type sysinfoFileReadSyncMethods struct {
 
 var _ = ReadSyncMethods((*sysinfoFileReadSyncMethods)(nil))
 
-func newSysinfoFileMethods(_ *config.ClusterConfig) *sysinfoFileReadSyncMethods {
+func NewSysinfoFileMethods(_ *config.ClusterConfig) *sysinfoFileReadSyncMethods {
 	return &sysinfoFileReadSyncMethods{}
 }
 
@@ -66,10 +66,10 @@ func (_ *sysinfoFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 	return size
 }
 
-func readNodeConfigRecordSlice(
+func ReadSysinfoSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([]sysinfoPayloadType, int, error) {
-	return readRecordsFromFiles[repr.SysinfoData](files, verbose, reader)
+	return ReadRecordsFromFiles[repr.SysinfoData](files, verbose, reader)
 }

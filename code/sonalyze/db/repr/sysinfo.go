@@ -16,4 +16,3 @@ func SysinfoDataSize(d *SysinfoData) uintptr {
 	// Ignore Metadata
 	return size
 }
-

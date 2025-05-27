@@ -1,6 +1,6 @@
 // Adapter for reading and caching sacct-info files.
 
-package db
+package filedb
 
 import (
 	"io"
@@ -19,7 +19,7 @@ type sacctFileReadSyncMethods struct {
 
 var _ = ReadSyncMethods((*sacctFileReadSyncMethods)(nil))
 
-func newSacctFileMethods(_ *config.ClusterConfig) *sacctFileReadSyncMethods {
+func NewSacctFileMethods(_ *config.ClusterConfig) *sacctFileReadSyncMethods {
 	return &sacctFileReadSyncMethods{}
 }
 
@@ -58,10 +58,10 @@ func (_ *sacctFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 	return size
 }
 
-func readSacctSlice(
+func ReadSacctSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([]sacctPayloadType, int, error) {
-	return readRecordsFromFiles[repr.SacctInfo](files, verbose, reader)
+	return ReadRecordsFromFiles[repr.SacctInfo](files, verbose, reader)
 }

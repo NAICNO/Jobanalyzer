@@ -1,4 +1,4 @@
-package db
+package filedb
 
 import (
 	"slices"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	. "sonalyze/common"
+	"sonalyze/db/special"
 )
 
 var theDB *PersistentCluster
@@ -16,17 +17,14 @@ func getPersistentDB(t *testing.T, cluster string) *PersistentCluster {
 		return theDB
 	}
 	var err error
-	theCfg, err := ReadConfigData(MakeConfigFilePath("testdata", cluster))
+	theCfg, err := special.ReadConfigData(special.MakeConfigFilePath("testdata", cluster))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if theCfg == nil {
 		t.Fatal("nil config")
 	}
-	theDB, err = OpenPersistentCluster(MakeClusterDataPath("testdata", cluster), theCfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	theDB = NewPersistentCluster(special.MakeClusterDataPath("testdata", cluster), theCfg)
 	return theDB
 }
 

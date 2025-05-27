@@ -23,6 +23,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -116,10 +117,10 @@ func (nc *NodeCommand) Validate() error {
 // Processing
 
 func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	var theLog db.SysinfoCluster
+	var theLog db.SysinfoDataProvider
 	var err error
 
-	cfg, err := db.MaybeGetConfig(nc.ConfigFile())
+	cfg, err := special.MaybeGetConfig(nc.ConfigFile())
 	if err != nil {
 		return err
 	}
@@ -132,7 +133,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	if len(nc.LogFiles) > 0 {
 		theLog, err = db.OpenTransientSysinfoCluster(nc.LogFiles, cfg)
 	} else {
-		theLog, err = db.OpenPersistentCluster(nc.DataDir, cfg)
+		theLog, err = db.OpenPersistentDirectoryDB(nc.DataDir, cfg)
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to open log store: %v", err)

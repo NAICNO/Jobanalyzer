@@ -11,8 +11,8 @@
 // shadow tree is populated with the directories.
 //
 // In each (leaf) directory there are lists of files matching specific semantic patterns, documented
-// in the block comment "FILE NAME SCHEMES" in db/clusterstore.go.  These lists are populated lazily
-// when the files in the directory are first needed.
+// in the block comment "FILE NAME SCHEMES" in db/doc.go.  These lists are populated lazily when the
+// files in the directory are first needed.
 //
 // A specific file can be requested for a given date when inserting data.  The subdirectory for that
 // date may not exist and will first have to be created.  Then the file may not exist and may also
@@ -49,7 +49,7 @@
 // A halfway solution, should non-purging turn out to be a problem, is to purge *everything* every
 // so often, effectively restarting the daemon.
 
-package db
+package filedb
 
 import (
 	"fmt"
@@ -64,7 +64,12 @@ import (
 	"go-utils/config"
 	uslices "go-utils/slices"
 	. "sonalyze/common"
+	"sonalyze/db/errs"
 	"sonalyze/db/repr"
+)
+
+const (
+	dirPermissions = 0755
 )
 
 // Locking discipline (notes).
@@ -130,18 +135,18 @@ type persistentDir struct {
 	cluzterFiles map[string]*LogFile
 }
 
-func newPersistentCluster(dataDir string, cfg *config.ClusterConfig) *PersistentCluster {
+func NewPersistentCluster(dataDir string, cfg *config.ClusterConfig) *PersistentCluster {
 	// Initially, populate for today's date.
 	fromDate := ThisDay(time.Now().UTC())
 	toDate := fromDate.AddDate(0, 0, 1)
 	dirs := findSortedDateIndexedDirectories(dataDir, fromDate, toDate)
 	return &PersistentCluster{
-		samplesMethods:           newSampleFileMethods(cfg, sampleFileKindSample),
-		loadDataMethods:          newSampleFileMethods(cfg, sampleFileKindLoadDatum),
-		gpuDataMethods:           newSampleFileMethods(cfg, sampleFileKindGpuDatum),
-		nodeConfigRecordsMethods: newSysinfoFileMethods(cfg),
-		sacctMethods:             newSacctFileMethods(cfg),
-		cluzterMethods:           newCluzterFileMethods(cfg),
+		samplesMethods:           NewSampleFileMethods(cfg, SampleFileKindSample),
+		loadDataMethods:          NewSampleFileMethods(cfg, SampleFileKindLoadDatum),
+		gpuDataMethods:           NewSampleFileMethods(cfg, SampleFileKindGpuDatum),
+		nodeConfigRecordsMethods: NewSysinfoFileMethods(cfg),
+		sacctMethods:             NewSacctFileMethods(cfg),
+		cluzterMethods:           NewCluzterFileMethods(cfg),
 		dataDir:                  dataDir,
 		cfg:                      cfg,
 		dirs:                     dirs,
@@ -165,7 +170,7 @@ func (pc *PersistentCluster) Close() error {
 	pc.Lock()
 	defer pc.Unlock()
 	if pc.closed {
-		return ClusterClosedErr
+		return errs.ClusterClosedErr
 	}
 
 	pc.closed = true
@@ -264,11 +269,11 @@ func (pc *PersistentCluster) findFilenames(
 	pc.Lock()
 	defer pc.Unlock()
 	if pc.closed {
-		return nil, ClusterClosedErr
+		return nil, errs.ClusterClosedErr
 	}
 
 	files := pc.findFilesLocked(fromDate, toDate, hosts, fa)
-	return filenames(files), nil
+	return Filenames(files), nil
 }
 
 func (pc *PersistentCluster) ReadSamples(
@@ -282,7 +287,7 @@ func (pc *PersistentCluster) ReadSamples(
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.samplesMethods,
-		readSampleSlice,
+		ReadSampleSlice,
 	)
 }
 
@@ -297,7 +302,7 @@ func (pc *PersistentCluster) ReadLoadData(
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.loadDataMethods,
-		readLoadDatumSlice,
+		ReadLoadDatumSlice,
 	)
 }
 
@@ -312,7 +317,7 @@ func (pc *PersistentCluster) ReadGpuData(
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.gpuDataMethods,
-		readGpuDatumSlice,
+		ReadGpuDatumSlice,
 	)
 }
 
@@ -327,7 +332,7 @@ func (pc *PersistentCluster) ReadSysinfoData(
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sysinfoFiles, pc.nodeConfigRecordsMethods,
-		readNodeConfigRecordSlice,
+		ReadSysinfoSlice,
 	)
 }
 
@@ -341,7 +346,7 @@ func (pc *PersistentCluster) ReadSacctData(
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, nil, verbose, &pc.sacctFiles, pc.sacctMethods,
-		readSacctSlice,
+		ReadSacctSlice,
 	)
 }
 
@@ -355,7 +360,7 @@ func (pc *PersistentCluster) ReadCluzterData(
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterMethods,
-		readCluzterSlice,
+		ReadCluzterSlice,
 	)
 }
 
@@ -373,14 +378,14 @@ func readPersistentClusterRecords[V any, U ~[][]*V](
 	pc.Lock()
 	defer pc.Unlock()
 	if pc.closed {
-		return nil, 0, ClusterClosedErr
+		return nil, 0, errs.ClusterClosedErr
 	}
 
 	files := pc.findFilesLocked(fromDate, toDate, hosts, fa)
 	return reader(files, verbose, methods)
 }
 
-// For file name patterns, see the comment "FILE NAME SCHEMES" in clusterstore.go.
+// For file name patterns, see the comment "FILE NAME SCHEMES" in db/doc.go.
 
 func (pc *PersistentCluster) AppendSamplesAsync(ty FileAttr, host, timestamp string, payload any) error {
 	switch ty {
@@ -442,7 +447,7 @@ func (pc *PersistentCluster) appendDataAsync(
 		}
 	}()
 	if pc.closed {
-		return ClusterClosedErr
+		return errs.ClusterClosedErr
 	}
 
 	file, err := pc.findFileByTimeLocked(timestamp, filename, fa)
@@ -616,13 +621,13 @@ func (pc *PersistentCluster) findFilesLocked(
 
 			newFiles := make(map[string]*LogFile, len(basenames))
 			for _, name := range basenames {
-				f := newLogFile(
+				f := NewLogFile(
 					Fullname{
-						cluster:  pc.dataDir,
-						dirname:  d.name,
-						basename: name,
+						Cluster:  pc.dataDir,
+						Dirname:  d.name,
+						Basename: name,
 					},
-					fileAppendable|fa.fileTypeFromBasename(name),
+					FileAppendable|fa.fileTypeFromBasename(name),
 				)
 				newFiles[name] = f
 			}
@@ -634,7 +639,7 @@ func (pc *PersistentCluster) findFilesLocked(
 		if hosts != nil && !hosts.IsEmpty() {
 			matcher := hosts.FilenameGlobber(globs)
 			for _, c := range fa.getFiles(d) {
-				if matcher.Match(c.basename) {
+				if matcher.Match(c.Basename) {
 					files = append(files, c)
 				}
 			}
@@ -658,7 +663,7 @@ func (pc *PersistentCluster) findFileByTimeLocked(
 ) (*LogFile, error) {
 	tval, err := time.Parse(time.RFC3339, timestamp)
 	if err != nil {
-		return nil, BadTimestampErr
+		return nil, errs.BadTimestampErr
 	}
 	// This conversion to UTC creates a detectable semantic change from the Rust code and earlier Go
 	// code.  It means that a record for eg 2024-06-03T00:00:01+02:00 will end up in the 2024/06/02
@@ -672,11 +677,11 @@ func (pc *PersistentCluster) findFileByTimeLocked(
 	}
 	var f *LogFile
 	name := Fullname{
-		cluster:  pc.dataDir,
-		dirname:  d.name,
-		basename: filename,
+		Cluster:  pc.dataDir,
+		Dirname:  d.name,
+		Basename: filename,
 	}
-	attrs := fileAppendable | fa.fileTypeFromBasename(filename)
+	attrs := FileAppendable | fa.fileTypeFromBasename(filename)
 	files := fa.getFiles(d)
 	if files == nil {
 		files = make(map[string]*LogFile, 5)
@@ -684,7 +689,7 @@ func (pc *PersistentCluster) findFileByTimeLocked(
 	}
 	f = files[filename]
 	if f == nil {
-		f = newLogFile(name, attrs)
+		f = NewLogFile(name, attrs)
 		files[filename] = f
 	}
 	return f, nil

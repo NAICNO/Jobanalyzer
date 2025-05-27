@@ -5,12 +5,14 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/filedb"
 )
 
 func init() {
 	// Set up postprocessing of samples as they are read from file, before caching them.  This is
 	// currently very basic, just enough to ensure that the db.Samples are read-only after reading.
-	db.SampleRectifier = standardSampleRectifier
+	// Note the rectifier is not applied to data coming from non-file sources.
+	filedb.SampleRectifier = standardSampleRectifier
 }
 
 // TODO: OPTIMIZEME: We can do more here now that we implement caching.  It will be possible (indeed
@@ -23,7 +25,7 @@ func init() {
 // at the same time.  The data thus returned would be read-only.
 
 func ReadSampleStreamsAndMaybeBounds(
-	c db.SampleCluster,
+	c db.SampleDataProvider,
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
 	recordFilter *db.SampleFilter,
@@ -47,7 +49,7 @@ func ReadSampleStreamsAndMaybeBounds(
 }
 
 func ReadLoadDataStreams(
-	c db.SampleCluster,
+	c db.SampleDataProvider,
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
 	verbose bool,
@@ -72,7 +74,7 @@ func ReadLoadDataStreams(
 }
 
 func ReadGpuDataStreams(
-	c db.SampleCluster,
+	c db.SampleDataProvider,
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
 	verbose bool,

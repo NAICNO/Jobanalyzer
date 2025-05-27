@@ -23,7 +23,7 @@ func (lc *LoadCommand) NeedsBounds() bool {
 func (lc *LoadCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	_ db.SampleCluster,
+	_ db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *Hosts,

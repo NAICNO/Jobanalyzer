@@ -1,14 +1,10 @@
-// A TransientSampleCluster maintains a static list of file names from which Sonar `ps` sample
-// records are read.  The files are read-only and not cacheable.  Mostly this functionality is used
-// for testing.
-//
-// A TransientSacctCluster does the same, but for Slurm `sacct` data.
+// A TransientXCluster maintains a static list of file names holding data of type X.  The files are
+// read-only and not cacheable.  Mostly this functionality is used for testing.
 
-package db
+package filedb
 
 import (
 	"path"
-	"sync"
 	"time"
 
 	"go-utils/config"
@@ -16,15 +12,11 @@ import (
 	"sonalyze/db/repr"
 )
 
-// This is a transient cluster mixin that has only one type of files.
-
+// TransientCluster is a transient cluster mixin that has only one type of files.
 type TransientCluster struct {
 	// MT: Immutable after initialization
 	cfg   *config.ClusterConfig
 	files []*LogFile
-
-	sync.Mutex
-	closed bool
 }
 
 func processTransientFiles(fileNames []string, ty FileAttr) []*LogFile {
@@ -34,11 +26,11 @@ func processTransientFiles(fileNames []string, ty FileAttr) []*LogFile {
 	files := make([]*LogFile, 0, len(fileNames))
 	for _, fn := range fileNames {
 		files = append(files,
-			newLogFile(
+			NewLogFile(
 				Fullname{
-					cluster:  "",
-					dirname:  path.Dir(fn),
-					basename: path.Base(fn),
+					Cluster:  "",
+					Dirname:  path.Dir(fn),
+					Basename: path.Base(fn),
 				},
 				ty,
 			),
@@ -48,34 +40,11 @@ func processTransientFiles(fileNames []string, ty FileAttr) []*LogFile {
 }
 
 func (tc *TransientCluster) Config() *config.ClusterConfig {
-	tc.Lock()
-	defer tc.Unlock()
-	if tc.closed {
-		return nil
-	}
-
 	return tc.cfg
 }
 
-func (tc *TransientCluster) Close() error {
-	tc.Lock()
-	defer tc.Unlock()
-	if tc.closed {
-		return ClusterClosedErr
-	}
-
-	tc.closed = true
-	return nil
-}
-
 func (tc *TransientCluster) Filenames() ([]string, error) {
-	tc.Lock()
-	defer tc.Unlock()
-	if tc.closed {
-		return nil, ClusterClosedErr
-	}
-
-	return filenames(tc.files), nil
+	return Filenames(tc.files), nil
 }
 
 type TransientSampleCluster struct /* implements SampleCluster */ {
@@ -87,15 +56,15 @@ type TransientSampleCluster struct /* implements SampleCluster */ {
 	TransientCluster
 }
 
-func newTransientSampleCluster(
+func NewTransientSampleCluster(
 	fileNames []string,
 	ty FileAttr,
 	cfg *config.ClusterConfig,
 ) *TransientSampleCluster {
 	return &TransientSampleCluster{
-		samplesMethods:  newSampleFileMethods(cfg, sampleFileKindSample),
-		loadDataMethods: newSampleFileMethods(cfg, sampleFileKindLoadDatum),
-		gpuDataMethods:  newSampleFileMethods(cfg, sampleFileKindGpuDatum),
+		samplesMethods:  NewSampleFileMethods(cfg, SampleFileKindSample),
+		loadDataMethods: NewSampleFileMethods(cfg, SampleFileKindLoadDatum),
+		gpuDataMethods:  NewSampleFileMethods(cfg, SampleFileKindGpuDatum),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
 			files: processTransientFiles(fileNames, ty),
@@ -115,13 +84,7 @@ func (tsc *TransientSampleCluster) ReadSamples(
 	_ *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
-	tsc.Lock()
-	defer tsc.Unlock()
-	if tsc.closed {
-		return nil, 0, ClusterClosedErr
-	}
-
-	return readSampleSlice(tsc.files, verbose, tsc.samplesMethods)
+	return ReadSampleSlice(tsc.files, verbose, tsc.samplesMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadLoadData(
@@ -129,13 +92,7 @@ func (tsc *TransientSampleCluster) ReadLoadData(
 	_ *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*repr.LoadDatum, dropped int, err error) {
-	tsc.Lock()
-	defer tsc.Unlock()
-	if tsc.closed {
-		return nil, 0, ClusterClosedErr
-	}
-
-	return readLoadDatumSlice(tsc.files, verbose, tsc.loadDataMethods)
+	return ReadLoadDatumSlice(tsc.files, verbose, tsc.loadDataMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadGpuData(
@@ -143,13 +100,7 @@ func (tsc *TransientSampleCluster) ReadGpuData(
 	_ *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*repr.GpuDatum, dropped int, err error) {
-	tsc.Lock()
-	defer tsc.Unlock()
-	if tsc.closed {
-		return nil, 0, ClusterClosedErr
-	}
-
-	return readGpuDatumSlice(tsc.files, verbose, tsc.gpuDataMethods)
+	return ReadGpuDatumSlice(tsc.files, verbose, tsc.gpuDataMethods)
 }
 
 type TransientSacctCluster struct /* implements SacctCluster */ {
@@ -159,13 +110,13 @@ type TransientSacctCluster struct /* implements SacctCluster */ {
 	TransientCluster
 }
 
-func newTransientSacctCluster(
+func NewTransientSacctCluster(
 	fileNames []string,
 	ty FileAttr,
 	cfg *config.ClusterConfig,
 ) *TransientSacctCluster {
 	return &TransientSacctCluster{
-		methods: newSacctFileMethods(cfg),
+		methods: NewSacctFileMethods(cfg),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
 			files: processTransientFiles(fileNames, ty),
@@ -181,13 +132,7 @@ func (tsc *TransientSacctCluster) ReadSacctData(
 	fromDate, toDate time.Time,
 	verbose bool,
 ) (recordBlobs [][]*repr.SacctInfo, dropped int, err error) {
-	tsc.Lock()
-	defer tsc.Unlock()
-	if tsc.closed {
-		return nil, 0, ClusterClosedErr
-	}
-
-	return readSacctSlice(tsc.files, verbose, tsc.methods)
+	return ReadSacctSlice(tsc.files, verbose, tsc.methods)
 }
 
 type TransientSysinfoCluster struct /* implements SysinfoCluster */ {
@@ -197,15 +142,13 @@ type TransientSysinfoCluster struct /* implements SysinfoCluster */ {
 	TransientCluster
 }
 
-var _ SysinfoCluster = (*TransientSysinfoCluster)(nil)
-
-func newTransientSysinfoCluster(
+func NewTransientSysinfoCluster(
 	fileNames []string,
 	ty FileAttr,
 	cfg *config.ClusterConfig,
 ) *TransientSysinfoCluster {
 	return &TransientSysinfoCluster{
-		methods: newSysinfoFileMethods(cfg),
+		methods: NewSysinfoFileMethods(cfg),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
 			files: processTransientFiles(fileNames, ty),
@@ -226,13 +169,7 @@ func (tsc *TransientSysinfoCluster) ReadSysinfoData(
 	_ *Hosts,
 	verbose bool,
 ) (recordBlobs [][]*repr.SysinfoData, dropped int, err error) {
-	tsc.Lock()
-	defer tsc.Unlock()
-	if tsc.closed {
-		return nil, 0, ClusterClosedErr
-	}
-
-	return readNodeConfigRecordSlice(tsc.files, verbose, tsc.methods)
+	return ReadSysinfoSlice(tsc.files, verbose, tsc.methods)
 }
 
 type TransientCluzterCluster struct /* implements CluzterCluster */ {
@@ -242,13 +179,13 @@ type TransientCluzterCluster struct /* implements CluzterCluster */ {
 	TransientCluster
 }
 
-func newTransientCluzterCluster(
+func NewTransientCluzterCluster(
 	fileNames []string,
 	ty FileAttr,
 	cfg *config.ClusterConfig,
 ) *TransientCluzterCluster {
 	return &TransientCluzterCluster{
-		methods: newCluzterFileMethods(cfg),
+		methods: NewCluzterFileMethods(cfg),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
 			files: processTransientFiles(fileNames, ty),
@@ -264,11 +201,5 @@ func (tsc *TransientCluzterCluster) ReadCluzterData(
 	fromDate, toDate time.Time,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterInfo, dropped int, err error) {
-	tsc.Lock()
-	defer tsc.Unlock()
-	if tsc.closed {
-		return nil, 0, ClusterClosedErr
-	}
-
-	return readCluzterSlice(tsc.files, verbose, tsc.methods)
+	return ReadCluzterSlice(tsc.files, verbose, tsc.methods)
 }
