@@ -3,7 +3,7 @@ package sonarlog
 import (
 	"time"
 
-	"go-utils/hostglob"
+	. "sonalyze/common"
 	"sonalyze/db"
 )
 
@@ -25,7 +25,7 @@ func init() {
 func ReadSampleStreamsAndMaybeBounds(
 	c db.SampleCluster,
 	fromDate, toDate time.Time,
-	hostGlobber *hostglob.HostGlobber,
+	hostGlobber *Hosts,
 	recordFilter *db.SampleFilter,
 	wantBounds bool,
 	verbose bool,
@@ -49,7 +49,7 @@ func ReadSampleStreamsAndMaybeBounds(
 func ReadLoadDataStreams(
 	c db.SampleCluster,
 	fromDate, toDate time.Time,
-	hostGlobber *hostglob.HostGlobber,
+	hostGlobber *Hosts,
 	verbose bool,
 ) (
 	streams LoadDataSet,
@@ -74,7 +74,7 @@ func ReadLoadDataStreams(
 func ReadGpuDataStreams(
 	c db.SampleCluster,
 	fromDate, toDate time.Time,
-	hostGlobber *hostglob.HostGlobber,
+	hostGlobber *Hosts,
 	verbose bool,
 ) (
 	streams GpuDataSet,

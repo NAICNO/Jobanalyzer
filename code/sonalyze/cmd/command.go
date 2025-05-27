@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"go-utils/config"
-	"go-utils/hostglob"
+	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
 	"sonalyze/table"
@@ -103,7 +103,7 @@ type SampleAnalysisCommand interface {
 		cluster db.SampleCluster,
 		streams sonarlog.InputStreamSet,
 		bounds sonarlog.Timebounds,
-		hostGlobber *hostglob.HostGlobber,
+		hostGlobber *Hosts,
 		recordFilter *db.SampleFilter,
 	) error
 

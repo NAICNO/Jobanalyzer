@@ -1,0 +1,6 @@
+S 2025-05-22 2025-04-12
+S 0.14.0-devel 0.14.0
+S mlx.hpc.uio.no cluster1.uio.no
+S ml2.hpc.uio.no n1.cluster1.uio.no
+C user=    [-a-zA-Z0-9_]+ u_
+C "user":" [-a-zA-Z0-9_]+ u_

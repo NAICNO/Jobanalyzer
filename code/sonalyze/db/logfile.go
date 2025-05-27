@@ -76,8 +76,11 @@ type ReadSyncMethods interface {
 
 	// Actually read the file and returns a container for all the data streams in it, along with a
 	// count of soft errors and any hard errors.  All returned records of all streams have been
-	// rectified as necessary - the rectified records will be stored in cache, if applicabl.
+	// rectified as necessary - the rectified records will be stored in cache, if applicable.  The
+	// LogFile attrs are passed as a parameter to allow the reader to customize the reading method
+	// to the data.
 	ReadDataLockedAndRectify(
+		attr FileAttr,
 		input io.Reader,
 		uf *UstrCache,
 		verbose bool,
@@ -85,14 +88,24 @@ type ReadSyncMethods interface {
 
 	// Given rectified data just read from the file, compute their nominal cache occupancy.  It is
 	// unspecified for now whether this is the "ideal" occupancy (using len(), say) or the "actual"
-	// occupancy (using cap(), say).
-	CachedSizeOfPayload(payload any) int64
+	// occupancy (using cap(), say).  This does not have to be super fast, it is only used in
+	// connection with I/O.  The data will tend to be in the CPU cache.
+	CachedSizeOfPayload(payload any) uintptr
 }
 
-type fileAttr int
+type FileAttr int
 
 const (
-	fileAppendable fileAttr = 1 << iota
+	fileAppendable FileAttr = 1 << iota
+
+	// Content types are public
+	FileSampleCSV
+	FileSampleV0JSON
+	FileSysinfoOldJSON
+	FileSysinfoV0JSON
+	FileSlurmCSV
+	FileSlurmV0JSON
+	FileCluzterV0JSON
 )
 
 // The components of the Fullname are broken out so as to allow strings to be shared as much as
@@ -122,7 +135,7 @@ type LogFile struct {
 	Fullname
 
 	sync.Mutex
-	attrs   fileAttr // immutable for now but may store cache metadata?
+	attrs   FileAttr // immutable for now but may store cache metadata?
 	pending []any    // string or []byte
 
 	// Cache data owned by the caching code, protected by the LogFile's mutex
@@ -132,7 +145,7 @@ type LogFile struct {
 	logFilePurgeableData
 }
 
-func newLogFile(fn Fullname, attrs fileAttr) *LogFile {
+func newLogFile(fn Fullname, attrs FileAttr) *LogFile {
 	return &LogFile{
 		Fullname: fn,
 		attrs:    attrs,
@@ -211,13 +224,13 @@ func (lf *LogFile) ReadSync(
 			return
 		}
 		defer inputFile.Close()
-		payload, softErrors, err = reader.ReadDataLockedAndRectify(inputFile, uf, verbose)
+		payload, softErrors, err = reader.ReadDataLockedAndRectify(lf.attrs, inputFile, uf, verbose)
 		if err != nil {
 			return
 		}
 		if reader.IsCacheable() && CacheEnabled() {
 			size := reader.CachedSizeOfPayload(payload)
-			lf.cacheWriteLocked(&cachePayload{payload, softErrors}, size)
+			lf.cacheWriteLocked(&cachePayload{payload, softErrors}, int64(size))
 		}
 	}
 

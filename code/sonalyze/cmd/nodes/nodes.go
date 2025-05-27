@@ -124,12 +124,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	filenameGlobber, err := hostglob.NewGlobber(
-		true,
-		uslices.Map(nc.HostArgs.Host, func(s string) string {
-			return "sysinfo-" + s
-		}),
-	)
+	hosts, err := NewHosts(true, nc.HostArgs.Host)
 	if err != nil {
 		return err
 	}
@@ -148,7 +143,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	recordBlobs, dropped, err := theLog.ReadSysinfoData(
 		nc.FromDate,
 		nc.ToDate,
-		filenameGlobber,
+		hosts,
 		nc.Verbose,
 	)
 	if err != nil {
@@ -160,7 +155,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		UstrStats(stderr, false)
 	}
 
-	hostGlobber, recordFilter, query, err := nc.buildRecordFilter(nc.Verbose)
+	hostGlobber, recordFilter, query, err := nc.buildRecordFilter(hosts, nc.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
@@ -217,12 +212,10 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 }
 
 func (nc *NodeCommand) buildRecordFilter(
+	includeHosts *Hosts,
 	verbose bool,
 ) (*hostglob.HostGlobber, *db.SampleFilter, func(*config.NodeConfigRecord) bool, error) {
-	includeHosts, err := hostglob.NewGlobber(true, nc.HostArgs.Host)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	globber := includeHosts.HostnameGlobber()
 
 	haveFrom := nc.SourceArgs.HaveFrom
 	haveTo := nc.SourceArgs.HaveTo
@@ -236,7 +229,7 @@ func (nc *NodeCommand) buildRecordFilter(
 	}
 
 	var recordFilter = &db.SampleFilter{
-		IncludeHosts: includeHosts,
+		IncludeHosts: globber,
 		From:         from,
 		To:           to,
 	}
@@ -250,5 +243,5 @@ func (nc *NodeCommand) buildRecordFilter(
 		query = c
 	}
 
-	return includeHosts, recordFilter, query, nil
+	return globber, recordFilter, query, nil
 }

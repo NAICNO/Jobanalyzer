@@ -47,6 +47,35 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 		db.CacheInit(dc.cacheSize)
 	}
 
+	if dc.kafkaBroker != "" {
+		clusters, _, err := db.ReadClusterData(dc.jobanalyzerDir)
+		if err != nil {
+			return fmt.Errorf("Could not initialize cluster names: %v", err)
+		}
+		for clusterName, _ := range clusters {
+			cfgPath := db.MakeConfigFilePath(dc.jobanalyzerDir, clusterName)
+			cfg, err := db.MaybeGetConfig(cfgPath)
+			if err != nil {
+				if dc.Verbose {
+					Log.Warningf("Failed to find config file for %s: %s %v", clusterName, cfgPath, err)
+				}
+				continue
+			}
+			dataDir := db.MakeClusterDataPath(dc.jobanalyzerDir, clusterName)
+			ds, err := db.OpenPersistentCluster(dataDir, cfg)
+			if err != nil {
+				if dc.Verbose {
+					Log.Warningf("Failed to open data store for %s", clusterName)
+				}
+				continue
+			}
+			if dc.Verbose {
+				Log.Infof("Starting listener for %s", clusterName)
+			}
+			go runKafka(dc.kafkaBroker, clusterName, ds, dc.Verbose)
+		}
+	}
+
 	// Note "daemon" is not a command here
 	http.HandleFunc("/add", httpAddHandler(dc))
 	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))

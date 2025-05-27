@@ -10,14 +10,14 @@ import (
 	. "sonalyze/common"
 )
 
-func TestParseSonarLogTagged(t *testing.T) {
+func TestParseSampleCSVTagged(t *testing.T) {
 	// This test file has a blank line that should be skipped
 	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-intermingled.csv")
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
 	uf := NewUstrFacade()
-	readings, _, _, bad, err := ParseSonarLog(bytes.NewReader(bs), uf, true)
+	readings, _, _, bad, err := ParseSampleCSV(bytes.NewReader(bs), uf, true)
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
@@ -49,14 +49,14 @@ func TestParseSonarLogTagged(t *testing.T) {
 	}
 }
 
-func TestParseSonarLogUntagged(t *testing.T) {
+func TestParseSampleCSVUntagged(t *testing.T) {
 	// This test file has a blank line that should be skipped
 	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-untagged-intermingled.csv")
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
 	uf := NewUstrFacade()
-	readings, _, _, bad, err := ParseSonarLog(bytes.NewReader(bs), uf, true)
+	readings, _, _, bad, err := ParseSampleCSV(bytes.NewReader(bs), uf, true)
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}

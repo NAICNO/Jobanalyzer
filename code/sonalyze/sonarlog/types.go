@@ -102,16 +102,7 @@ type GpuData struct {
 	Data     []GpuDatum // one per timestamp
 }
 
-type PerGpuDatum struct {
-	FanPct      int // Can go above 100
-	PerfMode    int // Typically mode is P<n>, this is <n>
-	MemUsedKB   int64
-	TempC       int
-	PowerDrawW  int
-	PowerLimitW int
-	CeClockMHz  int
-	MemClockMHz int
-}
+type PerGpuDatum = db.PerGpuSample
 
 type GpuDatum struct {
 	Time    int64

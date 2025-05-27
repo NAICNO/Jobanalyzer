@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"go-utils/config"
-	"go-utils/hostglob"
+	. "sonalyze/common"
 )
 
 // This is a transient cluster mixin that has only one type of files.
@@ -26,7 +26,7 @@ type TransientCluster struct {
 	closed bool
 }
 
-func processTransientFiles(fileNames []string) []*LogFile {
+func processTransientFiles(fileNames []string, ty FileAttr) []*LogFile {
 	if len(fileNames) == 0 {
 		panic("Empty list of files")
 	}
@@ -39,7 +39,7 @@ func processTransientFiles(fileNames []string) []*LogFile {
 					dirname:  path.Dir(fn),
 					basename: path.Base(fn),
 				},
-				0,
+				ty,
 			),
 		)
 	}
@@ -88,6 +88,7 @@ type TransientSampleCluster struct /* implements SampleCluster */ {
 
 func newTransientSampleCluster(
 	fileNames []string,
+	ty FileAttr,
 	cfg *config.ClusterConfig,
 ) *TransientSampleCluster {
 	return &TransientSampleCluster{
@@ -96,21 +97,21 @@ func newTransientSampleCluster(
 		gpuDataMethods:  newSampleFileMethods(cfg, sampleFileKindGpuDatum),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
-			files: processTransientFiles(fileNames),
+			files: processTransientFiles(fileNames, ty),
 		},
 	}
 }
 
 func (tsc *TransientSampleCluster) SampleFilenames(
 	_, _ time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 ) ([]string, error) {
 	return tsc.Filenames()
 }
 
 func (tsc *TransientSampleCluster) ReadSamples(
 	_, _ time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*Sample, dropped int, err error) {
 	tsc.Lock()
@@ -124,7 +125,7 @@ func (tsc *TransientSampleCluster) ReadSamples(
 
 func (tsc *TransientSampleCluster) ReadLoadData(
 	_, _ time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*LoadDatum, dropped int, err error) {
 	tsc.Lock()
@@ -138,7 +139,7 @@ func (tsc *TransientSampleCluster) ReadLoadData(
 
 func (tsc *TransientSampleCluster) ReadGpuData(
 	_, _ time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*GpuDatum, dropped int, err error) {
 	tsc.Lock()
@@ -159,13 +160,14 @@ type TransientSacctCluster struct /* implements SacctCluster */ {
 
 func newTransientSacctCluster(
 	fileNames []string,
+	ty FileAttr,
 	cfg *config.ClusterConfig,
 ) *TransientSacctCluster {
 	return &TransientSacctCluster{
 		methods: newSacctFileMethods(cfg),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
-			files: processTransientFiles(fileNames),
+			files: processTransientFiles(fileNames, ty),
 		},
 	}
 }
@@ -198,13 +200,14 @@ var _ SysinfoCluster = (*TransientSysinfoCluster)(nil)
 
 func newTransientSysinfoCluster(
 	fileNames []string,
+	ty FileAttr,
 	cfg *config.ClusterConfig,
 ) *TransientSysinfoCluster {
 	return &TransientSysinfoCluster{
 		methods: newSysinfoFileMethods(cfg),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
-			files: processTransientFiles(fileNames),
+			files: processTransientFiles(fileNames, ty),
 		},
 	}
 }
@@ -212,14 +215,14 @@ func newTransientSysinfoCluster(
 func (tsc *TransientSysinfoCluster) SysinfoFilenames(
 	_,
 	_ time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 ) ([]string, error) {
 	return tsc.Filenames()
 }
 
 func (tsc *TransientSysinfoCluster) ReadSysinfoData(
 	fromDate, toDate time.Time,
-	_ *hostglob.HostGlobber,
+	_ *Hosts,
 	verbose bool,
 ) (recordBlobs [][]*config.NodeConfigRecord, dropped int, err error) {
 	tsc.Lock()
@@ -229,4 +232,42 @@ func (tsc *TransientSysinfoCluster) ReadSysinfoData(
 	}
 
 	return readNodeConfigRecordSlice(tsc.files, verbose, tsc.methods)
+}
+
+type TransientCluzterCluster struct /* implements CluzterCluster */ {
+	// MT: Immutable after initialization
+	methods ReadSyncMethods
+
+	TransientCluster
+}
+
+func newTransientCluzterCluster(
+	fileNames []string,
+	ty FileAttr,
+	cfg *config.ClusterConfig,
+) *TransientCluzterCluster {
+	return &TransientCluzterCluster{
+		methods: newCluzterFileMethods(cfg),
+		TransientCluster: TransientCluster{
+			cfg:   cfg,
+			files: processTransientFiles(fileNames, ty),
+		},
+	}
+}
+
+func (tsc *TransientCluzterCluster) CluzterFilenames(_, _ time.Time) ([]string, error) {
+	return tsc.Filenames()
+}
+
+func (tsc *TransientCluzterCluster) ReadCluzterData(
+	fromDate, toDate time.Time,
+	verbose bool,
+) (recordBlobs [][]*CluzterInfo, dropped int, err error) {
+	tsc.Lock()
+	defer tsc.Unlock()
+	if tsc.closed {
+		return nil, 0, ClusterClosedErr
+	}
+
+	return readCluzterSlice(tsc.files, verbose, tsc.methods)
 }

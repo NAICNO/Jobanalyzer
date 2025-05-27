@@ -1,5 +1,5 @@
 // A PersistentCluster is backed by a sonarlog date-indexed data store and will find and manage
-// <hostname>.csv and sysinfo-<hostname>.json files (and maybe others, eventually).
+// files in that store.
 //
 //
 // Overall.
@@ -10,9 +10,9 @@
 // shadow tree.  When presented with a new from,to range the first thing we do is make sure the
 // shadow tree is populated with the directories.
 //
-// In each (leaf) directory there are lists of files matching specific semantic patterns: "*.csv"
-// filtered for some weird cases for `sonar ps` samples, "sysinfo-*.json" for `sonar sysinfo` data,
-// and so on.  These lists are populated lazily when the files in the directory are first needed.
+// In each (leaf) directory there are lists of files matching specific semantic patterns, documented
+// in the block comment "FILE NAME SCHEMES" in db/clusterstore.go.  These lists are populated lazily
+// when the files in the directory are first needed.
 //
 // A specific file can be requested for a given date when inserting data.  The subdirectory for that
 // date may not exist and will first have to be created.  Then the file may not exist and may also
@@ -62,7 +62,6 @@ import (
 	"time"
 
 	"go-utils/config"
-	"go-utils/hostglob"
 	uslices "go-utils/slices"
 	. "sonalyze/common"
 )
@@ -81,6 +80,7 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	sampleFiles  sampleFilesAdapter
 	sysinfoFiles sysinfoFilesAdapter
 	sacctFiles   sacctFilesAdapter
+	cluzterFiles cluzterFilesAdapter
 
 	// MT: Immutable after initialization
 	samplesMethods           ReadSyncMethods
@@ -88,6 +88,7 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	gpuDataMethods           ReadSyncMethods
 	nodeConfigRecordsMethods ReadSyncMethods
 	sacctMethods             ReadSyncMethods
+	cluzterMethods           ReadSyncMethods
 
 	// MT: Immutable after initialization
 	// The dataDir must have been path.Clean'd, it is the root directory for the cluster.
@@ -125,6 +126,7 @@ type persistentDir struct {
 	sampleFiles  map[string]*LogFile
 	sysinfoFiles map[string]*LogFile
 	sacctFiles   map[string]*LogFile
+	cluzterFiles map[string]*LogFile
 }
 
 func newPersistentCluster(dataDir string, cfg *config.ClusterConfig) *PersistentCluster {
@@ -138,6 +140,7 @@ func newPersistentCluster(dataDir string, cfg *config.ClusterConfig) *Persistent
 		gpuDataMethods:           newSampleFileMethods(cfg, sampleFileKindGpuDatum),
 		nodeConfigRecordsMethods: newSysinfoFileMethods(cfg),
 		sacctMethods:             newSacctFileMethods(cfg),
+		cluzterMethods:           newCluzterFileMethods(cfg),
 		dataDir:                  dataDir,
 		cfg:                      cfg,
 		dirs:                     dirs,
@@ -212,7 +215,7 @@ func (pc *PersistentCluster) flushSyncLocked() {
 
 func (pc *PersistentCluster) SampleFilenames(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 ) ([]string, error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
@@ -223,7 +226,7 @@ func (pc *PersistentCluster) SampleFilenames(
 
 func (pc *PersistentCluster) SysinfoFilenames(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 ) ([]string, error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
@@ -242,9 +245,19 @@ func (pc *PersistentCluster) SacctFilenames(
 	return pc.findFilenames(fromDate, toDate, nil, &pc.sacctFiles)
 }
 
+func (pc *PersistentCluster) CluzterFilenames(
+	fromDate, toDate time.Time,
+) ([]string, error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return pc.findFilenames(fromDate, toDate, nil, &pc.cluzterFiles)
+}
+
 func (pc *PersistentCluster) findFilenames(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	fa filesAdapter,
 ) ([]string, error) {
 	pc.Lock()
@@ -253,16 +266,13 @@ func (pc *PersistentCluster) findFilenames(
 		return nil, ClusterClosedErr
 	}
 
-	files, err := pc.findFilesLocked(fromDate, toDate, hosts, fa)
-	if err != nil {
-		return nil, err
-	}
+	files := pc.findFilesLocked(fromDate, toDate, hosts, fa)
 	return filenames(files), nil
 }
 
 func (pc *PersistentCluster) ReadSamples(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*Sample, dropped int, err error) {
 	if DEBUG {
@@ -277,7 +287,7 @@ func (pc *PersistentCluster) ReadSamples(
 
 func (pc *PersistentCluster) ReadLoadData(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*LoadDatum, dropped int, err error) {
 	if DEBUG {
@@ -292,7 +302,7 @@ func (pc *PersistentCluster) ReadLoadData(
 
 func (pc *PersistentCluster) ReadGpuData(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*GpuDatum, dropped int, err error) {
 	if DEBUG {
@@ -307,7 +317,7 @@ func (pc *PersistentCluster) ReadGpuData(
 
 func (pc *PersistentCluster) ReadSysinfoData(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*config.NodeConfigRecord, dropped int, err error) {
 	if DEBUG {
@@ -334,10 +344,24 @@ func (pc *PersistentCluster) ReadSacctData(
 	)
 }
 
+func (pc *PersistentCluster) ReadCluzterData(
+	fromDate, toDate time.Time,
+	verbose bool,
+) (cluzterBlobs [][]*CluzterInfo, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterMethods,
+		readCluzterSlice,
+	)
+}
+
 func readPersistentClusterRecords[V any, U ~[][]*V](
 	pc *PersistentCluster,
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	verbose bool,
 	fa filesAdapter,
 	methods ReadSyncMethods,
@@ -351,30 +375,54 @@ func readPersistentClusterRecords[V any, U ~[][]*V](
 		return nil, 0, ClusterClosedErr
 	}
 
-	files, err := pc.findFilesLocked(fromDate, toDate, hosts, fa)
-	if err != nil {
-		return nil, 0, err
-	}
+	files := pc.findFilesLocked(fromDate, toDate, hosts, fa)
 	return reader(files, verbose, methods)
 }
 
-// Samples are stored under yyyy/mm/dd/<hostname>.csv
+// For file name patterns, see the comment "FILE NAME SCHEMES" in clusterstore.go.
 
-func (pc *PersistentCluster) AppendSamplesAsync(host, timestamp string, payload any) error {
-	return pc.appendDataAsync(timestamp, fmt.Sprintf("%s.csv", host), payload, pc.sampleFiles)
+func (pc *PersistentCluster) AppendSamplesAsync(ty FileAttr, host, timestamp string, payload any) error {
+	switch ty {
+	case FileSampleCSV:
+		return pc.appendDataAsync(timestamp, fmt.Sprintf("%s.csv", host), payload, pc.sampleFiles)
+	case FileSampleV0JSON:
+		return pc.appendDataAsync(timestamp, fmt.Sprintf("0+sample-%s.json", host), payload, pc.sampleFiles)
+	default:
+		panic("Unsupported 'sample' data format")
+	}
 }
 
-// Sysinfo is stored under yyyy/mm/dd/sysinfo-<hostname>.json
-
-func (pc *PersistentCluster) AppendSysinfoAsync(host, timestamp string, payload any) error {
-	return pc.appendDataAsync(
-		timestamp, fmt.Sprintf("sysinfo-%s.json", host), payload, pc.sysinfoFiles)
+func (pc *PersistentCluster) AppendSysinfoAsync(ty FileAttr, host, timestamp string, payload any) error {
+	switch ty {
+	case FileSysinfoOldJSON:
+		return pc.appendDataAsync(
+			timestamp, fmt.Sprintf("sysinfo-%s.json", host), payload, pc.sysinfoFiles)
+	case FileSysinfoV0JSON:
+		return pc.appendDataAsync(
+			timestamp, fmt.Sprintf("0+sysinfo-%s.json", host), payload, pc.sysinfoFiles)
+	default:
+		panic("Unsupported 'sysinfo' data format")
+	}
 }
 
-// Sacct data are stored under yyyy/mm/dd/slurm-sacct.csv
+func (pc *PersistentCluster) AppendSlurmSacctAsync(ty FileAttr, timestamp string, payload any) error {
+	switch ty {
+	case FileSlurmCSV:
+		return pc.appendDataAsync(timestamp, "slurm-sacct.csv", payload, pc.sacctFiles)
+	case FileSlurmV0JSON:
+		return pc.appendDataAsync(timestamp, "0+job-slurm.json", payload, pc.sacctFiles)
+	default:
+		panic("Unsupported 'slurm' data format")
+	}
+}
 
-func (pc *PersistentCluster) AppendSlurmSacctAsync(timestamp string, payload any) error {
-	return pc.appendDataAsync(timestamp, "slurm-sacct.csv", payload, pc.sacctFiles)
+func (pc *PersistentCluster) AppendCluzterAsync(ty FileAttr, timestamp string, payload any) error {
+	switch ty {
+	case FileCluzterV0JSON:
+		return pc.appendDataAsync(timestamp, "0+cluzter-slurm.json", payload, pc.cluzterFiles)
+	default:
+		panic("Unsupported 'cluzter' data format")
+	}
 }
 
 func (pc *PersistentCluster) appendDataAsync(
@@ -413,8 +461,11 @@ func (pc *PersistentCluster) appendDataAsync(
 // Adapters to hide file idiosyncracies in a persistent store.
 
 type filesAdapter interface {
-	glob() string
-	proscribed(fn string) bool
+	// Every string in this list is a basename with extension, containing zero or one *, which
+	// signifies the location of the host name, if applicable.
+	globs() []string
+	proscribedBasename(basename string) bool
+	fileTypeFromBasename(basename string) FileAttr
 	getFiles(*persistentDir) map[string]*LogFile
 	setFiles(*persistentDir, map[string]*LogFile)
 }
@@ -422,8 +473,8 @@ type filesAdapter interface {
 type sampleFilesAdapter struct {
 }
 
-func (_ sampleFilesAdapter) glob() string {
-	return "*.csv"
+func (_ sampleFilesAdapter) globs() []string {
+	return []string{"*.csv", "0+sample-*.json"}
 }
 
 func (_ sampleFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
@@ -434,7 +485,7 @@ func (_ sampleFilesAdapter) setFiles(d *persistentDir, files map[string]*LogFile
 	d.sampleFiles = files
 }
 
-func (_ sampleFilesAdapter) proscribed(fn string) bool {
+func (_ sampleFilesAdapter) proscribedBasename(fn string) bool {
 	// Backward compatible: remove cpuhog.csv and bughunt.csv, these later moved into separate
 	// directory trees.
 	//
@@ -443,11 +494,18 @@ func (_ sampleFilesAdapter) proscribed(fn string) bool {
 	return fn == "cpuhog.csv" || fn == "bughunt.csv" || fn == "slurm-sacct.csv"
 }
 
+func (_ sampleFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
+	if strings.HasPrefix(basename, "0+sample-") {
+		return FileSampleV0JSON
+	}
+	return FileSampleCSV
+}
+
 type sysinfoFilesAdapter struct {
 }
 
-func (_ sysinfoFilesAdapter) glob() string {
-	return "sysinfo-*.json"
+func (_ sysinfoFilesAdapter) globs() []string {
+	return []string{"sysinfo-*.json", "0+sysinfo-*.json"}
 }
 
 func (_ sysinfoFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
@@ -458,15 +516,22 @@ func (_ sysinfoFilesAdapter) setFiles(d *persistentDir, files map[string]*LogFil
 	d.sysinfoFiles = files
 }
 
-func (_ sysinfoFilesAdapter) proscribed(fn string) bool {
+func (_ sysinfoFilesAdapter) proscribedBasename(fn string) bool {
 	return false
+}
+
+func (_ sysinfoFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
+	if strings.HasPrefix(basename, "0+sysinfo-") {
+		return FileSysinfoV0JSON
+	}
+	return FileSysinfoOldJSON
 }
 
 type sacctFilesAdapter struct {
 }
 
-func (_ sacctFilesAdapter) glob() string {
-	return "slurm-sacct.csv"
+func (_ sacctFilesAdapter) globs() []string {
+	return []string{"slurm-sacct.csv", "0+job-slurm.json"}
 }
 
 func (_ sacctFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
@@ -477,8 +542,38 @@ func (_ sacctFilesAdapter) setFiles(d *persistentDir, files map[string]*LogFile)
 	d.sacctFiles = files
 }
 
-func (_ sacctFilesAdapter) proscribed(fn string) bool {
+func (_ sacctFilesAdapter) proscribedBasename(fn string) bool {
 	return false
+}
+
+func (_ sacctFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
+	if basename == "slurm-sacct.csv" {
+		return FileSlurmCSV
+	}
+	return FileSlurmV0JSON
+}
+
+type cluzterFilesAdapter struct {
+}
+
+func (_ cluzterFilesAdapter) globs() []string {
+	return []string{"0+cluzter-slurm.json"}
+}
+
+func (_ cluzterFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
+	return d.cluzterFiles
+}
+
+func (_ cluzterFilesAdapter) setFiles(d *persistentDir, files map[string]*LogFile) {
+	d.cluzterFiles = files
+}
+
+func (_ cluzterFilesAdapter) proscribedBasename(fn string) bool {
+	return false
+}
+
+func (_ cluzterFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
+	return FileCluzterV0JSON
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -487,11 +582,10 @@ func (_ sacctFilesAdapter) proscribed(fn string) bool {
 
 func (pc *PersistentCluster) findFilesLocked(
 	fromDate, toDate time.Time,
-	hosts *hostglob.HostGlobber,
+	hosts *Hosts,
 	fa filesAdapter,
-) ([]*LogFile, error) {
-	glob := fa.glob()
-	extensionLen := len(glob) - strings.LastIndexByte(glob, '.')
+) []*LogFile {
+	globs := fa.globs()
 
 	// Find all matching files in the date range.
 	fromDate = ThisDay(fromDate)
@@ -500,14 +594,17 @@ func (pc *PersistentCluster) findFilesLocked(
 	files := make([]*LogFile, 0)
 	for _, d := range pc.selectDirsLocked(fromDate, toDate) {
 		if fa.getFiles(d) == nil {
-			basenames := findFiles(pc.dataDir, d.name, glob)
+			basenames := make([]string, 0)
+			for _, glob := range globs {
+				basenames = append(basenames, findFiles(pc.dataDir, d.name, glob)...)
+			}
 
 			// Filter file names that are simply disallowed
 			{
 				dest := 0
 				for src := 0; src < len(basenames); src++ {
 					fn := basenames[src]
-					if fa.proscribed(fn) {
+					if fa.proscribedBasename(fn) {
 						continue
 					}
 					basenames[dest] = basenames[src]
@@ -524,7 +621,7 @@ func (pc *PersistentCluster) findFilesLocked(
 						dirname:  d.name,
 						basename: name,
 					},
-					fileAppendable,
+					fileAppendable|fa.fileTypeFromBasename(name),
 				)
 				newFiles[name] = f
 			}
@@ -532,10 +629,11 @@ func (pc *PersistentCluster) findFilesLocked(
 		}
 
 		// Retain only files whose names match the filter, if present
+
 		if hosts != nil && !hosts.IsEmpty() {
+			matcher := hosts.FilenameGlobber(globs)
 			for _, c := range fa.getFiles(d) {
-				fn := c.basename
-				if hosts.Match(fn[:len(fn)-extensionLen]) {
+				if matcher.Match(c.basename) {
 					files = append(files, c)
 				}
 			}
@@ -546,7 +644,7 @@ func (pc *PersistentCluster) findFilesLocked(
 		}
 	}
 
-	return files, nil
+	return files
 }
 
 // Pre: LOCK HELD
@@ -577,7 +675,7 @@ func (pc *PersistentCluster) findFileByTimeLocked(
 		dirname:  d.name,
 		basename: filename,
 	}
-	attrs := fileAppendable
+	attrs := fileAppendable | fa.fileTypeFromBasename(filename)
 	files := fa.getFiles(d)
 	if files == nil {
 		files = make(map[string]*LogFile, 5)

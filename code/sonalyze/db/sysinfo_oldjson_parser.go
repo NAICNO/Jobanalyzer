@@ -15,7 +15,7 @@ import (
 // but there is no ability to skip erroneous records and continue going after an error has been
 // encountered.
 
-func ParseSysinfoLog(input io.Reader, verbose bool) (records []*config.NodeConfigRecord, err error) {
+func ParseSysinfoOldJSON(input io.Reader, verbose bool) (records []*config.NodeConfigRecord, err error) {
 	records = make([]*config.NodeConfigRecord, 0)
 	dec := json.NewDecoder(input)
 

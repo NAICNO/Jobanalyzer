@@ -10,7 +10,6 @@ import (
 
 	"go-utils/config"
 	"go-utils/gpuset"
-	"go-utils/hostglob"
 	"go-utils/sonalyze"
 
 	. "sonalyze/cmd"
@@ -110,7 +109,7 @@ func (jc *JobsCommand) Perform(
 	theDb db.SampleCluster,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
-	hostGlobber *hostglob.HostGlobber,
+	hostGlobber *Hosts,
 	_ *db.SampleFilter,
 ) error {
 	if jc.Verbose {

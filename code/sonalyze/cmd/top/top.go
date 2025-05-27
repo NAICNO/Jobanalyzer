@@ -24,7 +24,6 @@ import (
 	"io"
 	"slices"
 
-	"go-utils/hostglob"
 	umaps "go-utils/maps"
 
 	. "sonalyze/cmd"
@@ -70,7 +69,7 @@ func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	hostGlobber, err := hostglob.NewGlobber(true, tc.Host)
+	hostGlobber, err := NewHosts(true, tc.Host)
 	if err != nil {
 		return err
 	}

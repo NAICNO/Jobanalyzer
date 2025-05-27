@@ -16,7 +16,7 @@ func TestConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	hosts := cfg.Hosts()
-	if len(hosts) != 2 {
+	if len(hosts) != 3 {
 		t.Fatal("Hosts ", hosts)
 	}
 	slices.SortFunc(hosts, func(a, b *config.NodeConfigRecord) int {

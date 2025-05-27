@@ -8,10 +8,10 @@ import (
 	"slices"
 
 	"go-utils/config"
-	"go-utils/hostglob"
 	"go-utils/maps"
 	uslices "go-utils/slices"
 	. "sonalyze/cmd"
+	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
@@ -158,7 +158,7 @@ func (pc *ParseCommand) Perform(
 	cluster db.SampleCluster,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds, // for pc.MergeByJob only
-	hostGlobber *hostglob.HostGlobber,
+	hostGlobber *Hosts,
 	recordFilter *db.SampleFilter,
 ) error {
 	var mergedSamples []*sonarlog.SampleStream

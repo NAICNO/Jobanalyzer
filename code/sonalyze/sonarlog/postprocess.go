@@ -332,7 +332,12 @@ func init() {
 	}
 }
 
-func decodeLoadData(data []byte) ([]uint64, error) {
+func decodeLoadData(edata db.EncodedLoadData) ([]uint64, error) {
+	data, decodedVals := db.DecodeEncodedLoadData(edata)
+	if decodedVals != nil {
+		return decodedVals, nil
+	}
+
 	var (
 		// shift==0 means no value
 		val, shift uint64
@@ -426,7 +431,12 @@ func rectifyGpuData(dataBlobs [][]*db.GpuDatum) (streams GpuDataSet, bounds Time
 //
 // fan%=27|28|28,perf=P8|P8|P8,musekib=1024|1024|1024,tempc=26|27|28,poww=5|2|20,powlimw=250|250|250,cez=300|300|300,memz=405|405|405
 
-func decodeGpuData(data []byte) (result []PerGpuDatum, err error) {
+func decodeGpuData(edata db.EncodedGpuData) (result []PerGpuDatum, err error) {
+	data, decodedVals := db.DecodeEncodedGpuData(edata)
+	if decodedVals != nil {
+		panic("NYI")
+	}
+
 	fields := strings.Split(string(data), ",")
 	for _, f := range fields {
 		tag, adata, _ := strings.Cut(f, "=")
