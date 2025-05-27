@@ -13,6 +13,7 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 // This is a transient cluster mixin that has only one type of files.
@@ -113,7 +114,7 @@ func (tsc *TransientSampleCluster) ReadSamples(
 	_, _ time.Time,
 	_ *Hosts,
 	verbose bool,
-) (sampleBlobs [][]*Sample, dropped int, err error) {
+) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
 	tsc.Lock()
 	defer tsc.Unlock()
 	if tsc.closed {
@@ -127,7 +128,7 @@ func (tsc *TransientSampleCluster) ReadLoadData(
 	_, _ time.Time,
 	_ *Hosts,
 	verbose bool,
-) (dataBlobs [][]*LoadDatum, dropped int, err error) {
+) (dataBlobs [][]*repr.LoadDatum, dropped int, err error) {
 	tsc.Lock()
 	defer tsc.Unlock()
 	if tsc.closed {
@@ -141,7 +142,7 @@ func (tsc *TransientSampleCluster) ReadGpuData(
 	_, _ time.Time,
 	_ *Hosts,
 	verbose bool,
-) (dataBlobs [][]*GpuDatum, dropped int, err error) {
+) (dataBlobs [][]*repr.GpuDatum, dropped int, err error) {
 	tsc.Lock()
 	defer tsc.Unlock()
 	if tsc.closed {
@@ -179,7 +180,7 @@ func (tsc *TransientSacctCluster) SacctFilenames(_, _ time.Time) ([]string, erro
 func (tsc *TransientSacctCluster) ReadSacctData(
 	fromDate, toDate time.Time,
 	verbose bool,
-) (recordBlobs [][]*SacctInfo, dropped int, err error) {
+) (recordBlobs [][]*repr.SacctInfo, dropped int, err error) {
 	tsc.Lock()
 	defer tsc.Unlock()
 	if tsc.closed {
@@ -224,7 +225,7 @@ func (tsc *TransientSysinfoCluster) ReadSysinfoData(
 	fromDate, toDate time.Time,
 	_ *Hosts,
 	verbose bool,
-) (recordBlobs [][]*config.NodeConfigRecord, dropped int, err error) {
+) (recordBlobs [][]*repr.SysinfoData, dropped int, err error) {
 	tsc.Lock()
 	defer tsc.Unlock()
 	if tsc.closed {
@@ -262,7 +263,7 @@ func (tsc *TransientCluzterCluster) CluzterFilenames(_, _ time.Time) ([]string, 
 func (tsc *TransientCluzterCluster) ReadCluzterData(
 	fromDate, toDate time.Time,
 	verbose bool,
-) (recordBlobs [][]*CluzterInfo, dropped int, err error) {
+) (recordBlobs [][]*repr.CluzterInfo, dropped int, err error) {
 	tsc.Lock()
 	defer tsc.Unlock()
 	if tsc.closed {

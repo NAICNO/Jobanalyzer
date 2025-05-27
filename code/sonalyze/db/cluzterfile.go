@@ -8,9 +8,10 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
-type cluzterPayloadType = []*CluzterInfo
+type cluzterPayloadType = []*repr.CluzterInfo
 
 type cluzterFileReadSyncMethods struct {
 }
@@ -44,10 +45,10 @@ func (_ *cluzterFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 	data := payload.(cluzterPayloadType)
 	size := unsafe.Sizeof(data)
 	// Pointers to CluzterInfo
-	size += uintptr(len(data)) * pointerSize
+	size += uintptr(len(data)) * repr.PointerSize
 	// Every CluzterInfo is different
 	for _, d := range data {
-		size += cluzterInfoSize(d)
+		size += repr.CluzterInfoSize(d)
 	}
 	return size
 }
@@ -57,5 +58,5 @@ func readCluzterSlice(
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([]cluzterPayloadType, int, error) {
-	return readRecordsFromFiles[CluzterInfo](files, verbose, reader)
+	return readRecordsFromFiles[repr.CluzterInfo](files, verbose, reader)
 }

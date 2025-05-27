@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/NordicHPC/sonar/util/formats/newfmt"
-	"go-utils/config"
+	"sonalyze/db/repr"
 )
 
 // If an error is encountered we will return the records successfully parsed before the error along
@@ -19,8 +19,8 @@ import (
 // Jobanalyzer so that we no longer use NodeConfigRecord, ideally we move to the new SysinfoEnvelope
 // but minimally to the old one.  Of course, then we also have to use the data.
 
-func ParseSysinfoV0JSON(input io.Reader, verbose bool) (records []*config.NodeConfigRecord, err error) {
-	records = make([]*config.NodeConfigRecord, 0)
+func ParseSysinfoV0JSON(input io.Reader, verbose bool) (records []*repr.SysinfoData, err error) {
+	records = make([]*repr.SysinfoData, 0)
 	err = newfmt.ConsumeJSONSysinfo(input, false, func(r *newfmt.SysinfoEnvelope) {
 		data, errdata := newfmt.NewSysinfoToOld(r)
 		if errdata != nil {
@@ -33,7 +33,7 @@ func ParseSysinfoV0JSON(input io.Reader, verbose bool) (records []*config.NodeCo
 		// slurm cluster at some particular point in time.  As for GpuMemPCT, I'm not sure
 		// what's happening with that, but that's mostly for older data predating the current
 		// GPU API, so probably OK.
-		records = append(records, &config.NodeConfigRecord{
+		records = append(records, &repr.SysinfoData{
 			Timestamp:     data.Timestamp,
 			Hostname:      data.Hostname,
 			Description:   data.Description,

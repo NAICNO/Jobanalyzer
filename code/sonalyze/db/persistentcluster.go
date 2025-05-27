@@ -64,6 +64,7 @@ import (
 	"go-utils/config"
 	uslices "go-utils/slices"
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 // Locking discipline (notes).
@@ -274,7 +275,7 @@ func (pc *PersistentCluster) ReadSamples(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
 	verbose bool,
-) (sampleBlobs [][]*Sample, dropped int, err error) {
+) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
@@ -289,7 +290,7 @@ func (pc *PersistentCluster) ReadLoadData(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
 	verbose bool,
-) (dataBlobs [][]*LoadDatum, dropped int, err error) {
+) (dataBlobs [][]*repr.LoadDatum, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
@@ -304,7 +305,7 @@ func (pc *PersistentCluster) ReadGpuData(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
 	verbose bool,
-) (dataBlobs [][]*GpuDatum, dropped int, err error) {
+) (dataBlobs [][]*repr.GpuDatum, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
@@ -319,7 +320,7 @@ func (pc *PersistentCluster) ReadSysinfoData(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
 	verbose bool,
-) (sysinfoBlobs [][]*config.NodeConfigRecord, dropped int, err error) {
+) (sysinfoBlobs [][]*repr.SysinfoData, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
@@ -333,7 +334,7 @@ func (pc *PersistentCluster) ReadSysinfoData(
 func (pc *PersistentCluster) ReadSacctData(
 	fromDate, toDate time.Time,
 	verbose bool,
-) (sacctBlobs [][]*SacctInfo, dropped int, err error) {
+) (sacctBlobs [][]*repr.SacctInfo, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
@@ -347,7 +348,7 @@ func (pc *PersistentCluster) ReadSacctData(
 func (pc *PersistentCluster) ReadCluzterData(
 	fromDate, toDate time.Time,
 	verbose bool,
-) (cluzterBlobs [][]*CluzterInfo, dropped int, err error) {
+) (cluzterBlobs [][]*repr.CluzterInfo, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")

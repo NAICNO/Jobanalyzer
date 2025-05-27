@@ -1,6 +1,6 @@
-// Data representation of Sacct data, and parser for CSV files holding those data.
+// Data representation of Slurm job data.
 
-package db
+package repr
 
 import (
 	"unsafe"
@@ -8,14 +8,7 @@ import (
 	. "sonalyze/common"
 )
 
-// Representation of Slurm data from sacct polling.
-// These should stay in sync with the extractor code in ../../sacctd.
-//
-// - sacctd will elide all fields that are blank, unknown, or (contextually) zero
-//
-// - sacctd will add timezone information to all timestamps
-//
-// About representations:
+// Representation of Slurm data (mostly, and historically, from sacct polling).
 //
 // - See the sacct documentation for interpretation, we follow that except as noted here, eg timeout
 //   has been translated from minutes to seconds.
@@ -87,10 +80,10 @@ type SacctInfo struct {
 
 var (
 	// MT: Constant after initialization; immutable
-	sizeofSacctInfo uintptr
+	SizeofSacctInfo uintptr
 )
 
 func init() {
 	var x SacctInfo
-	sizeofSacctInfo = unsafe.Sizeof(x)
+	SizeofSacctInfo = unsafe.Sizeof(x)
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/NordicHPC/sonar/util/formats/newfmt"
 
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 func ParseSlurmV0JSON(
@@ -15,13 +16,13 @@ func ParseSlurmV0JSON(
 	ustrs UstrAllocator,
 	verbose bool,
 ) (
-	records []*SacctInfo,
+	records []*repr.SacctInfo,
 	softErrors int,
 	err error,
 ) {
 	// Let's not go via the translation layer here, as the JSON data are much closer to what we
 	// want.
-	records = make([]*SacctInfo, 0)
+	records = make([]*repr.SacctInfo, 0)
 	var fakeSacct newfmt.SacctData
 	var gputmp = make([]byte, 100)
 	err = newfmt.ConsumeJSONJobs(input, false, func(r *newfmt.JobsEnvelope) {
@@ -57,7 +58,7 @@ func ParseSlurmV0JSON(
 			}
 			var reqGPUS Ustr
 			reqGPUS, gputmp = ParseAllocTRES([]byte(sacct.AllocTRES), ustrs, gputmp)
-			records = append(records, &SacctInfo{
+			records = append(records, &repr.SacctInfo{
 				Start:        startTime,
 				End:          endTime,
 				Submit:       submitTime,

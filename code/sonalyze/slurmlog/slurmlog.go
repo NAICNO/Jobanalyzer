@@ -11,6 +11,7 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/repr"
 )
 
 type QueryFilter struct {
@@ -30,8 +31,8 @@ type QueryFilter struct {
 
 type SlurmJob struct {
 	Id    uint32
-	Main  *db.SacctInfo
-	Steps []*db.SacctInfo
+	Main  *repr.SacctInfo
+	Steps []*repr.SacctInfo
 }
 
 func Query(
@@ -67,7 +68,7 @@ func Query(
 		}
 
 		recordFilter := make(map[jobkey]bool)
-		var rs []*db.SacctInfo
+		var rs []*repr.SacctInfo
 		for _, r := range records {
 			var key = jobkey{r.JobID, r.JobStep}
 			if !recordFilter[key] {
@@ -98,12 +99,12 @@ func Query(
 		if info, ok := byjob[r.JobID]; ok {
 			info.Steps = append(info.Steps, r)
 		} else {
-			var main *db.SacctInfo
-			var steps []*db.SacctInfo
+			var main *repr.SacctInfo
+			var steps []*repr.SacctInfo
 			if r.User != UstrEmpty {
 				main = r
 			} else {
-				steps = []*db.SacctInfo{r}
+				steps = []*repr.SacctInfo{r}
 			}
 			if main != nil {
 				byjob[r.JobID] = &SlurmJob{

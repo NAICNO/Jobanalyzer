@@ -11,6 +11,7 @@ import (
 	"go-utils/gpuset"
 
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 // If an error is encountered we will return the records successfully parsed before the error along
@@ -22,15 +23,15 @@ func ParseSamplesV0JSON(
 	ustrs UstrAllocator,
 	verbose bool,
 ) (
-	samples []*Sample,
-	loadData []*LoadDatum,
-	gpuData []*GpuDatum,
+	samples []*repr.Sample,
+	loadData []*repr.LoadDatum,
+	gpuData []*repr.GpuDatum,
 	softErrors int,
 	err error,
 ) {
-	samples = make([]*Sample, 0)
-	loadData = make([]*LoadDatum, 0)
-	gpuData = make([]*GpuDatum, 0)
+	samples = make([]*repr.Sample, 0)
+	loadData = make([]*repr.LoadDatum, 0)
+	gpuData = make([]*repr.GpuDatum, 0)
 	err = newfmt.ConsumeJSONSamples(input, false, func(r *newfmt.SampleEnvelope) {
 		data, errdata := newfmt.NewSampleToOld(r)
 		if errdata != nil {
@@ -47,20 +48,20 @@ func ParseSamplesV0JSON(
 		h := ustrs.Alloc(data.Hostname)
 		if data.CpuLoad != nil {
 			encodedLoadData := slices.Clone(data.CpuLoad)
-			loadData = append(loadData, &LoadDatum{
+			loadData = append(loadData, &repr.LoadDatum{
 				Timestamp: t,
 				Hostname:  h,
-				Encoded:   EncodedLoadDataFromValues(encodedLoadData),
+				Encoded:   repr.EncodedLoadDataFromValues(encodedLoadData),
 			})
 		}
 
 		if data.GpuSamples != nil {
-			encodedGpuData := make([]PerGpuSample, len(data.GpuSamples))
+			encodedGpuData := make([]repr.PerGpuSample, len(data.GpuSamples))
 			for i := range data.GpuSamples {
 				s := &encodedGpuData[i]
 				o := &data.GpuSamples[i]
 				s.FanPct = int(o.FanPct)
-				s.PerfMode = 0	// Nobody cares, right now
+				s.PerfMode = 0 // Nobody cares, right now
 				s.MemUsedKB = int64(o.MemUse)
 				s.TempC = int(o.Temp)
 				s.PowerDrawW = int(o.Power)
@@ -68,16 +69,16 @@ func ParseSamplesV0JSON(
 				s.CeClockMHz = int(o.CEClock)
 				s.MemClockMHz = int(o.MemClock)
 			}
-			gpuData = append(gpuData, &GpuDatum{
+			gpuData = append(gpuData, &repr.GpuDatum{
 				Timestamp: t,
 				Hostname:  h,
-				Encoded:   EncodedGpuDataFromValues(encodedGpuData),
+				Encoded:   repr.EncodedGpuDataFromValues(encodedGpuData),
 			})
 		}
 
 		for _, sample := range data.Samples {
 			gpus, _ := gpuset.NewGpuSet(sample.Gpus)
-			samples = append(samples, &Sample{
+			samples = append(samples, &repr.Sample{
 				Timestamp:  t,
 				MemtotalKB: data.MemtotalKib,
 				CpuKB:      sample.CpuKib,

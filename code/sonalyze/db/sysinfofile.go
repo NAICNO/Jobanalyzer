@@ -6,9 +6,10 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
-type sysinfoPayloadType = []*config.NodeConfigRecord
+type sysinfoPayloadType = []*repr.SysinfoData
 
 type sysinfoFileReadSyncMethods struct {
 }
@@ -50,26 +51,17 @@ var (
 )
 
 func init() {
-	var s config.NodeConfigRecord
+	var s repr.SysinfoData
 	perSysinfoSize = int64(unsafe.Sizeof(s))
 }
 
 func (_ *sysinfoFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 	data := payload.(sysinfoPayloadType) // []*config.NodeConfigRecord
 	size := unsafe.Sizeof(data)
-	size += uintptr(len(data)) * pointerSize
+	size += uintptr(len(data)) * repr.PointerSize
 	for _, d := range data {
-		size += sysinfoInfoSize(d)
+		size += repr.SysinfoDataSize(d)
 	}
-	return size
-}
-
-func sysinfoInfoSize(d *config.NodeConfigRecord) uintptr {
-	size := unsafe.Sizeof(*d)
-	size += uintptr(len(d.Timestamp))
-	size += uintptr(len(d.Hostname))
-	size += uintptr(len(d.Description))
-	// Ignore Metadata
 	return size
 }
 
@@ -78,5 +70,5 @@ func readNodeConfigRecordSlice(
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([]sysinfoPayloadType, int, error) {
-	return readRecordsFromFiles[config.NodeConfigRecord](files, verbose, reader)
+	return readRecordsFromFiles[repr.SysinfoData](files, verbose, reader)
 }

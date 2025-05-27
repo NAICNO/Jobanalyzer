@@ -17,6 +17,7 @@ import (
 	"time"
 
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 func ParseSampleCSV(
@@ -24,9 +25,9 @@ func ParseSampleCSV(
 	ustrs UstrAllocator,
 	verbose bool,
 ) (
-	samples []*Sample,
-	loadData []*LoadDatum,
-	gpuData []*GpuDatum,
+	samples []*repr.Sample,
+	loadData []*repr.LoadDatum,
+	gpuData []*repr.GpuDatum,
 	softErrors int,
 	err error,
 ) {
@@ -36,9 +37,9 @@ func ParseSampleCSV(
 		taggedFormat
 	)
 
-	samples = make([]*Sample, 0)
-	loadData = make([]*LoadDatum, 0)
-	gpuData = make([]*GpuDatum, 0)
+	samples = make([]*repr.Sample, 0)
+	loadData = make([]*repr.LoadDatum, 0)
+	gpuData = make([]*repr.GpuDatum, 0)
 	tokenizer := NewTokenizer(input)
 	v060 := ustrs.Alloc("0.6.0")
 	heartbeat := ustrs.Alloc("_heartbeat_")
@@ -502,9 +503,9 @@ LineLoop:
 
 		flags := uint8(0)
 		if command == heartbeat {
-			flags |= FlagHeartbeat
+			flags |= repr.FlagHeartbeat
 		}
-		samples = append(samples, &Sample{
+		samples = append(samples, &repr.Sample{
 			Version:    version,
 			Timestamp:  timestamp,
 			Hostname:   hostname,
@@ -528,17 +529,17 @@ LineLoop:
 			Flags:      flags,
 		})
 		if load != nil {
-			loadData = append(loadData, &LoadDatum{
+			loadData = append(loadData, &repr.LoadDatum{
 				Timestamp: timestamp,
 				Hostname:  hostname,
-				Encoded:   EncodedLoadDataFromBytes(load),
+				Encoded:   repr.EncodedLoadDataFromBytes(load),
 			})
 		}
 		if gpuinfo != nil {
-			gpuData = append(gpuData, &GpuDatum{
+			gpuData = append(gpuData, &repr.GpuDatum{
 				Timestamp: timestamp,
 				Hostname:  hostname,
-				Encoded:   EncodedGpuDataFromBytes(gpuinfo),
+				Encoded:   repr.EncodedGpuDataFromBytes(gpuinfo),
 			})
 		}
 	}

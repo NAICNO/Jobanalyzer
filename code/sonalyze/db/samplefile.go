@@ -6,6 +6,7 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 type DataNeeded int
@@ -48,9 +49,9 @@ func newSampleFileMethods(cfg *config.ClusterConfig, kind sampleFileKind) *sampl
 }
 
 type sampleData struct {
-	samples  []*Sample
-	loadData []*LoadDatum
-	gpuData  []*GpuDatum
+	samples  []*repr.Sample
+	loadData []*repr.LoadDatum
+	gpuData  []*repr.GpuDatum
 }
 
 type samplePayloadType = *sampleData
@@ -78,9 +79,9 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	uf *UstrCache,
 	verbose bool,
 ) (payload any, softErrors int, err error) {
-	var samples []*Sample
-	var loadData []*LoadDatum
-	var gpuData []*GpuDatum
+	var samples []*repr.Sample
+	var loadData []*repr.LoadDatum
+	var gpuData []*repr.GpuDatum
 	if (attr & FileSampleV0JSON) != 0 {
 		samples, loadData, gpuData, softErrors, err = ParseSamplesV0JSON(inputFile, uf, verbose)
 	} else {
@@ -115,17 +116,17 @@ func (_ *sampleFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 	data := payload.(samplePayloadType)
 	size := unsafe.Sizeof(data)
 	// Pointers to Samples
-	size += uintptr(len(data.samples)) * pointerSize
+	size += uintptr(len(data.samples)) * repr.PointerSize
 	// Every Sample has the same size
-	size += uintptr(len(data.samples)) * sizeofSample
+	size += uintptr(len(data.samples)) * repr.SizeofSample
 	// Pointers to loadData
-	size += uintptr(len(data.loadData)) * pointerSize
+	size += uintptr(len(data.loadData)) * repr.PointerSize
 	// Every LoadDatum is unique
 	for _, d := range data.loadData {
 		size += d.Size()
 	}
 	// Pointers to GpuDatums
-	size += uintptr(len(data.gpuData)) * pointerSize
+	size += uintptr(len(data.gpuData)) * repr.PointerSize
 	// Every GpuDatum is unique
 	for _, d := range data.gpuData {
 		size += d.Size()
@@ -137,22 +138,22 @@ func readSampleSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) (sampleBlobs [][]*Sample, dropped int, err error) {
-	return readRecordsFromFiles[Sample](files, verbose, reader)
+) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
+	return readRecordsFromFiles[repr.Sample](files, verbose, reader)
 }
 
 func readLoadDatumSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) (loadDataBlobs [][]*LoadDatum, dropped int, err error) {
-	return readRecordsFromFiles[LoadDatum](files, verbose, reader)
+) (loadDataBlobs [][]*repr.LoadDatum, dropped int, err error) {
+	return readRecordsFromFiles[repr.LoadDatum](files, verbose, reader)
 }
 
 func readGpuDatumSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) (gpuDataBlobs [][]*GpuDatum, dropped int, err error) {
-	return readRecordsFromFiles[GpuDatum](files, verbose, reader)
+) (gpuDataBlobs [][]*repr.GpuDatum, dropped int, err error) {
+	return readRecordsFromFiles[repr.GpuDatum](files, verbose, reader)
 }

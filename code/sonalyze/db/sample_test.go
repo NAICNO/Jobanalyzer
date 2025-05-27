@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 func TestParseSampleCSVTagged(t *testing.T) {
@@ -35,7 +36,7 @@ func TestParseSampleCSVTagged(t *testing.T) {
 	if x.Hostname.String() != "ml4.hpc.uio.no" || x.User.String() != "root" || x.Cmd.String() != "tuned" {
 		t.Errorf("First record is bogus: %v", x)
 	}
-	if (x.Flags & FlagHeartbeat) != 0 {
+	if (x.Flags & repr.FlagHeartbeat) != 0 {
 		t.Errorf("Expected heartbeat flag to be clear")
 	}
 
@@ -44,7 +45,7 @@ func TestParseSampleCSVTagged(t *testing.T) {
 	if x.User.String() != "_sonar_" || x.Cmd.String() != "_heartbeat_" {
 		t.Errorf("Expected heartbeat record")
 	}
-	if (x.Flags & FlagHeartbeat) == 0 {
+	if (x.Flags & repr.FlagHeartbeat) == 0 {
 		t.Errorf("Expected heartbeat flag to be set")
 	}
 }
@@ -75,7 +76,7 @@ func TestParseSampleCSVUntagged(t *testing.T) {
 	if x.Hostname.String() != "ml3.hpc.uio.no" || x.User.String() != "larsbent" || x.Cmd.String() != "python" {
 		t.Errorf("First record is bogus: %v", x)
 	}
-	if (x.Flags & FlagHeartbeat) != 0 {
+	if (x.Flags & repr.FlagHeartbeat) != 0 {
 		t.Errorf("Expected heartbeat flag to be clear")
 	}
 }

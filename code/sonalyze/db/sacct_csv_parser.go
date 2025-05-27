@@ -9,6 +9,7 @@ import (
 	"math"
 
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 func ParseSlurmCSV(
@@ -16,11 +17,11 @@ func ParseSlurmCSV(
 	ustrs UstrAllocator,
 	verbose bool,
 ) (
-	records []*SacctInfo,
+	records []*repr.SacctInfo,
 	softErrors int,
 	err error,
 ) {
-	records = make([]*SacctInfo, 0)
+	records = make([]*repr.SacctInfo, 0)
 	tokenizer := NewTokenizer(input)
 	endOfInput := false
 	gputmp := make([]byte, 100)
@@ -28,7 +29,7 @@ func ParseSlurmCSV(
 LineLoop:
 	for !endOfInput {
 		anyMatched := false
-		info := &SacctInfo{
+		info := &repr.SacctInfo{
 			End: math.MaxInt64,
 		}
 

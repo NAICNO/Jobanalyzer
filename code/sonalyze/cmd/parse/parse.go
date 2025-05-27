@@ -13,6 +13,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/repr"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
@@ -179,7 +180,7 @@ func (pc *ParseCommand) Perform(
 			mapped = append(mapped, uslices.FilterMap(
 				records,
 				db.InstantiateSampleFilter(recordFilter),
-				func(r *db.Sample) sonarlog.Sample {
+				func(r *repr.Sample) sonarlog.Sample {
 					return sonarlog.Sample{Sample: r}
 				},
 			)...)

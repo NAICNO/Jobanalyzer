@@ -9,9 +9,10 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
-type sacctPayloadType = []*SacctInfo
+type sacctPayloadType = []*repr.SacctInfo
 
 type sacctFileReadSyncMethods struct {
 }
@@ -48,12 +49,12 @@ func (sfr *sacctFileReadSyncMethods) ReadDataLockedAndRectify(
 }
 
 func (_ *sacctFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
-	data := payload.(sacctPayloadType) // []*SacctInfo
+	data := payload.(sacctPayloadType) // []*repr.SacctInfo
 	size := unsafe.Sizeof(data)
 	// Pointers to SacctInfo
-	size += uintptr(len(data)) * pointerSize
+	size += uintptr(len(data)) * repr.PointerSize
 	// Every SacctInfo is the same
-	size += uintptr(len(data)) * sizeofSacctInfo
+	size += uintptr(len(data)) * repr.SizeofSacctInfo
 	return size
 }
 
@@ -62,7 +63,7 @@ func readSacctSlice(
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([]sacctPayloadType, int, error) {
-	return readRecordsFromFiles[SacctInfo](files, verbose, reader)
+	return readRecordsFromFiles[repr.SacctInfo](files, verbose, reader)
 }
 
 // The AllocTRES field will usually be present and nonzero and will have a lot of values, so

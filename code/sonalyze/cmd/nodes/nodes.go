@@ -15,7 +15,6 @@ import (
 	"slices"
 	"time"
 
-	"go-utils/config"
 	"go-utils/hostglob"
 	umaps "go-utils/maps"
 	uslices "go-utils/slices"
@@ -23,6 +22,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/repr"
 	. "sonalyze/table"
 )
 
@@ -32,11 +32,11 @@ import (
 
 package nodes
 
-import "go-utils/config"
+import "sonalyze/db/repr"
 
 %%
 
-FIELDS *config.NodeConfigRecord
+FIELDS *repr.SysinfoData
 
  # Note the CrossNodeJobs field is a config-level attribute, it does not appear in the raw sysinfo
  # data, and so it is not included here.
@@ -160,7 +160,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
 
-	records = slices.DeleteFunc(records, func(s *config.NodeConfigRecord) bool {
+	records = slices.DeleteFunc(records, func(s *repr.SysinfoData) bool {
 		if !hostGlobber.IsEmpty() && !hostGlobber.Match(s.Hostname) {
 			return true
 		}
@@ -179,7 +179,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	})
 
 	if nc.Newest {
-		newr := make(map[string]*config.NodeConfigRecord)
+		newr := make(map[string]*repr.SysinfoData)
 		for _, r := range records {
 			if probe := newr[r.Hostname]; probe != nil {
 				if r.Timestamp > probe.Timestamp {
@@ -193,7 +193,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	}
 
 	// Sort by host name first and then by ascending time
-	slices.SortFunc(records, func(a, b *config.NodeConfigRecord) int {
+	slices.SortFunc(records, func(a, b *repr.SysinfoData) int {
 		if h := cmp.Compare(a.Hostname, b.Hostname); h != 0 {
 			return h
 		}
@@ -214,7 +214,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 func (nc *NodeCommand) buildRecordFilter(
 	includeHosts *Hosts,
 	verbose bool,
-) (*hostglob.HostGlobber, *db.SampleFilter, func(*config.NodeConfigRecord) bool, error) {
+) (*hostglob.HostGlobber, *db.SampleFilter, func(*repr.SysinfoData) bool, error) {
 	globber := includeHosts.HostnameGlobber()
 
 	haveFrom := nc.SourceArgs.HaveFrom
@@ -234,7 +234,7 @@ func (nc *NodeCommand) buildRecordFilter(
 		To:           to,
 	}
 
-	var query func(*config.NodeConfigRecord) bool
+	var query func(*repr.SysinfoData) bool
 	if nc.ParsedQuery != nil {
 		c, err := CompileQuery(nodeFormatters, nodePredicates, nc.ParsedQuery)
 		if err != nil {

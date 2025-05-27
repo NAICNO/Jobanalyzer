@@ -15,6 +15,7 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/repr"
 )
 
 // About stream IDs
@@ -46,7 +47,7 @@ import (
 const JobIdTag = 10000000
 
 // Records for job id 0 are always not rolled up and we'll use the pid for those, which is unique.
-func streamId(e *db.Sample) uint32 {
+func streamId(e *repr.Sample) uint32 {
 	syntheticPid := e.Pid
 	if e.Rolledup > 0 {
 		syntheticPid = JobIdTag + e.Job
@@ -60,7 +61,7 @@ func streamId(e *db.Sample) uint32 {
 // guarantees.
 //
 // For now, clean up the gpumem_pct and gpumem_gb fields based on system information.
-func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.Sample {
+func standardSampleRectifier(xs []*repr.Sample, cfg *config.ClusterConfig) []*repr.Sample {
 	if cfg == nil || len(xs) == 0 {
 		return xs
 	}
@@ -90,7 +91,7 @@ func standardSampleRectifier(xs []*db.Sample, cfg *config.ClusterConfig) []*db.S
 // adjacent records with the same timestamp.
 
 func createInputStreams(
-	entryBlobs [][]*db.Sample,
+	entryBlobs [][]*repr.Sample,
 	recordFilter *db.SampleFilter,
 	wantBounds bool,
 ) (InputStreamSet, Timebounds) {
@@ -252,7 +253,7 @@ func removeEmptyStreams(streams InputStreamSet) {
 	})
 }
 
-func rectifyLoadData(dataBlobs [][]*db.LoadDatum) (streams LoadDataSet, bounds Timebounds, errors int) {
+func rectifyLoadData(dataBlobs [][]*repr.LoadDatum) (streams LoadDataSet, bounds Timebounds, errors int) {
 	// Divide data among the hosts and decode each array
 	streams = make(LoadDataSet)
 	for _, data := range dataBlobs {
@@ -332,8 +333,8 @@ func init() {
 	}
 }
 
-func decodeLoadData(edata db.EncodedLoadData) ([]uint64, error) {
-	data, decodedVals := db.DecodeEncodedLoadData(edata)
+func decodeLoadData(edata repr.EncodedLoadData) ([]uint64, error) {
+	data, decodedVals := repr.DecodeEncodedLoadData(edata)
 	if decodedVals != nil {
 		return decodedVals, nil
 	}
@@ -371,7 +372,7 @@ func decodeLoadData(edata db.EncodedLoadData) ([]uint64, error) {
 	return vals[1:], nil
 }
 
-func rectifyGpuData(dataBlobs [][]*db.GpuDatum) (streams GpuDataSet, bounds Timebounds, errors int) {
+func rectifyGpuData(dataBlobs [][]*repr.GpuDatum) (streams GpuDataSet, bounds Timebounds, errors int) {
 	// Divide data among the hosts and decode each array
 	streams = make(GpuDataSet)
 	for _, data := range dataBlobs {
@@ -431,8 +432,8 @@ func rectifyGpuData(dataBlobs [][]*db.GpuDatum) (streams GpuDataSet, bounds Time
 //
 // fan%=27|28|28,perf=P8|P8|P8,musekib=1024|1024|1024,tempc=26|27|28,poww=5|2|20,powlimw=250|250|250,cez=300|300|300,memz=405|405|405
 
-func decodeGpuData(edata db.EncodedGpuData) (result []PerGpuDatum, err error) {
-	data, decodedVals := db.DecodeEncodedGpuData(edata)
+func decodeGpuData(edata repr.EncodedGpuData) (result []PerGpuDatum, err error) {
+	data, decodedVals := repr.DecodeEncodedGpuData(edata)
 	if decodedVals != nil {
 		panic("NYI")
 	}

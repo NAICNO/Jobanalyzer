@@ -1,6 +1,6 @@
 // Data representation of Sonar `sample` data.
 
-package db
+package repr
 
 import (
 	"go-utils/gpuset"
@@ -91,12 +91,12 @@ type Sample struct {
 
 var (
 	// MT: Constant after initialization; immutable
-	sizeofSample uintptr
+	SizeofSample uintptr
 )
 
 func init() {
 	var x Sample
-	sizeofSample = unsafe.Sizeof(x)
+	SizeofSample = unsafe.Sizeof(x)
 }
 
 // The LoadDatum represents the `load` field from a record.  The data array is owned by its datum

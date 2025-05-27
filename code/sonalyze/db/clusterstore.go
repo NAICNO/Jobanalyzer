@@ -55,6 +55,7 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 const (
@@ -111,7 +112,7 @@ type SampleCluster interface {
 		fromDate, toDate time.Time,
 		hosts *Hosts,
 		verbose bool,
-	) (sampleBlobs [][]*Sample, dropped int, err error)
+	) (sampleBlobs [][]*repr.Sample, dropped int, err error)
 
 	// Read `ps` samples from all the files selected by SampleFilenames() and extract the load data.
 	// Times must be UTC.  The inner slices of the result, and the records they point to, must not
@@ -120,7 +121,7 @@ type SampleCluster interface {
 		fromDate, toDate time.Time,
 		hosts *Hosts,
 		verbose bool,
-	) (dataBlobs [][]*LoadDatum, dropped int, err error)
+	) (dataBlobs [][]*repr.LoadDatum, dropped int, err error)
 
 	// Read `ps` samples from all the files selected by SampleFilenames() and extract the gpu data.
 	// Times must be UTC.  The inner slices of the result, and the records they point to, must not
@@ -129,7 +130,7 @@ type SampleCluster interface {
 		fromDate, toDate time.Time,
 		hosts *Hosts,
 		verbose bool,
-	) (dataBlobs [][]*GpuDatum, dropped int, err error)
+	) (dataBlobs [][]*repr.GpuDatum, dropped int, err error)
 }
 
 // A SysinfoCluster can provide `sonar sysinfo` data: per-system hardware configuration data.
@@ -150,7 +151,7 @@ type SysinfoCluster interface {
 		fromDate, toDate time.Time,
 		hosts *Hosts,
 		verbose bool,
-	) (sysinfoBlobs [][]*config.NodeConfigRecord, dropped int, err error)
+	) (sysinfoBlobs [][]*repr.SysinfoData, dropped int, err error)
 }
 
 // There is no HostGlobber here, as the sacct data are not mostly node-oriented.  Any analysis
@@ -170,7 +171,7 @@ type SacctCluster interface {
 	ReadSacctData(
 		fromDate, toDate time.Time,
 		verbose bool,
-	) (recordBlobs [][]*SacctInfo, dropped int, err error)
+	) (recordBlobs [][]*repr.SacctInfo, dropped int, err error)
 }
 
 type CluzterCluster interface {
@@ -183,7 +184,7 @@ type CluzterCluster interface {
 	ReadCluzterData(
 		fromDate, toDate time.Time,
 		verbose bool,
-	) (recordBlobs [][]*CluzterInfo, dropped int, err error)
+	) (recordBlobs [][]*repr.CluzterInfo, dropped int, err error)
 }
 
 // An AppendableCluster (not yet well developed, this could be split into appending different types
@@ -223,15 +224,15 @@ type AppendableCluster interface {
 var (
 	// This is applied to a set of samples newly read from a file, before caching.
 	// MT: Constant after initialization; immutable
-	SampleRectifier func([]*Sample, *config.ClusterConfig) []*Sample
+	SampleRectifier func([]*repr.Sample, *config.ClusterConfig) []*repr.Sample
 
 	// This is applied to a set of load data newly read from a file, before caching.
 	// MT: Constant after initialization; immutable
-	LoadDatumRectifier func([]*LoadDatum, *config.ClusterConfig) []*LoadDatum
+	LoadDatumRectifier func([]*repr.LoadDatum, *config.ClusterConfig) []*repr.LoadDatum
 
 	// This is applied to a set of GPU data newly read from a file, before caching.
 	// MT: Constant after initialization; immutable
-	GpuDatumRectifier func([]*GpuDatum, *config.ClusterConfig) []*GpuDatum
+	GpuDatumRectifier func([]*repr.GpuDatum, *config.ClusterConfig) []*repr.GpuDatum
 )
 
 // Open a directory and attach it to the global logstore.

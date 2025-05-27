@@ -15,6 +15,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/repr"
 	"sonalyze/slurmlog"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
@@ -78,7 +79,7 @@ type jobSummary struct {
 	job            sonarlog.SampleStream
 	computedFlags  int
 	selected       bool // Initially true, used to deselect the record before printing
-	sacctInfo      *db.SacctInfo
+	sacctInfo      *repr.SacctInfo
 }
 
 // Aggregate figures for a job.  For some cross-job data like user and host, go to the sample stream

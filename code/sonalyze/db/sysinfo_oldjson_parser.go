@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"go-utils/config"
+	"sonalyze/db/repr"
 )
 
 // Sysinfo records appear in sequence in the input without preamble/postamble or separators.
@@ -15,8 +16,8 @@ import (
 // but there is no ability to skip erroneous records and continue going after an error has been
 // encountered.
 
-func ParseSysinfoOldJSON(input io.Reader, verbose bool) (records []*config.NodeConfigRecord, err error) {
-	records = make([]*config.NodeConfigRecord, 0)
+func ParseSysinfoOldJSON(input io.Reader, verbose bool) (records []*repr.SysinfoData, err error) {
+	records = make([]*repr.SysinfoData, 0)
 	dec := json.NewDecoder(input)
 
 	for dec.More() {
@@ -25,7 +26,7 @@ func ParseSysinfoOldJSON(input io.Reader, verbose bool) (records []*config.NodeC
 		if err != nil {
 			return
 		}
-		records = append(records, &r)
+		records = append(records, (*repr.SysinfoData)(&r))
 	}
 
 	return
