@@ -1,6 +1,6 @@
 // Parser for sacct data.  This is optimized; it uses the same structure as the Sample parser.
 
-package db
+package parse
 
 import (
 	"bytes"

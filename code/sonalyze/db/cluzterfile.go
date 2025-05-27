@@ -8,6 +8,7 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/parse"
 	"sonalyze/db/repr"
 )
 
@@ -36,7 +37,7 @@ func (sfr *cluzterFileReadSyncMethods) ReadDataLockedAndRectify(
 	verbose bool,
 ) (payload any, softErrors int, err error) {
 	var p cluzterPayloadType
-	p, softErrors, err = ParseCluzterV0JSON(inputFile, verbose)
+	p, softErrors, err = parse.ParseCluzterV0JSON(inputFile, verbose)
 	payload = p
 	return
 }

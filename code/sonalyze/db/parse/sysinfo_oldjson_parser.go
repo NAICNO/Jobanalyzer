@@ -1,6 +1,6 @@
 // Parser for JSON files holding Sonar `sysinfo` data.
 
-package db
+package parse
 
 import (
 	"encoding/json"

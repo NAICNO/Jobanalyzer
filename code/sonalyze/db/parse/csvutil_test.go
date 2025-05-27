@@ -1,4 +1,4 @@
-package db
+package parse
 
 import (
 	"math"

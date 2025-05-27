@@ -6,6 +6,7 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/parse"
 	"sonalyze/db/repr"
 )
 
@@ -83,9 +84,9 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	var loadData []*repr.LoadDatum
 	var gpuData []*repr.GpuDatum
 	if (attr & FileSampleV0JSON) != 0 {
-		samples, loadData, gpuData, softErrors, err = ParseSamplesV0JSON(inputFile, uf, verbose)
+		samples, loadData, gpuData, softErrors, err = parse.ParseSamplesV0JSON(inputFile, uf, verbose)
 	} else {
-		samples, loadData, gpuData, softErrors, err = ParseSampleCSV(inputFile, uf, verbose)
+		samples, loadData, gpuData, softErrors, err = parse.ParseSampleCSV(inputFile, uf, verbose)
 	}
 	if err != nil {
 		return

@@ -6,6 +6,7 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/parse"
 	"sonalyze/db/repr"
 )
 
@@ -37,9 +38,9 @@ func (sfr *sysinfoFileReadSyncMethods) ReadDataLockedAndRectify(
 ) (payload any, softErrors int, err error) {
 	var p sysinfoPayloadType
 	if (attr & FileSysinfoV0JSON) != 0 {
-		p, err = ParseSysinfoV0JSON(inputFile, verbose)
+		p, err = parse.ParseSysinfoV0JSON(inputFile, verbose)
 	} else {
-		p, err = ParseSysinfoOldJSON(inputFile, verbose)
+		p, err = parse.ParseSysinfoOldJSON(inputFile, verbose)
 	}
 	payload = p
 	return

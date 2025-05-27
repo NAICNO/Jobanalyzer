@@ -1,6 +1,6 @@
 // Various utilities used to handle the output of the fast CSV parser
 
-package db
+package parse
 
 import (
 	"bytes"

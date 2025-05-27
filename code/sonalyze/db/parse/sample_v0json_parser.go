@@ -1,6 +1,6 @@
 // Parser for v0 "new format" JSON files holding Sonar `sample` data.
 
-package db
+package parse
 
 import (
 	"io"

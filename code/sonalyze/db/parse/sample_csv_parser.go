@@ -6,7 +6,7 @@
 // Efficiency is a major concern, the parser has been tweaked in many ways to reduce allocation and
 // improve parsing speed.
 
-package db
+package parse
 
 import (
 	"errors"

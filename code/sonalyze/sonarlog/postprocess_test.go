@@ -10,6 +10,7 @@ import (
 	"go-utils/config"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/parse"
 	"sonalyze/db/repr"
 )
 
@@ -74,7 +75,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries, _, _, discarded, err := db.ParseSampleCSV(f, NewUstrFacade(), true)
+	entries, _, _, discarded, err := parse.ParseSampleCSV(f, NewUstrFacade(), true)
 	if err != nil {
 		t.Fatal(err)
 	}

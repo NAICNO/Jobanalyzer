@@ -25,7 +25,7 @@
 // (which is negative).  The indices are valid until the next call to Get() and can be passed to
 // BufAt(), BufSlice() and BufSubstringSlow() to retrieve contents from the internal buffer.
 
-package db
+package parse
 
 import (
 	"errors"

@@ -1,6 +1,6 @@
 // Some simple (and old) test cases for Sonar `sample` data.
 
-package db
+package parse
 
 import (
 	"bytes"
@@ -12,8 +12,9 @@ import (
 )
 
 func TestParseSampleCSVTagged(t *testing.T) {
+	// FIXME: Make the test data local
 	// This test file has a blank line that should be skipped
-	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-intermingled.csv")
+	bs, err := os.ReadFile("../../../tests/sonarlog/whitebox-intermingled.csv")
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
@@ -51,8 +52,9 @@ func TestParseSampleCSVTagged(t *testing.T) {
 }
 
 func TestParseSampleCSVUntagged(t *testing.T) {
+	// FIXME: Make the test data local
 	// This test file has a blank line that should be skipped
-	bs, err := os.ReadFile("../../tests/sonarlog/whitebox-untagged-intermingled.csv")
+	bs, err := os.ReadFile("../../../tests/sonarlog/whitebox-untagged-intermingled.csv")
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}

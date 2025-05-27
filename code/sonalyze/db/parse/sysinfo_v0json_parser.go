@@ -1,6 +1,6 @@
 // Parser for v0 "new format" JSON files holding Sonar `sysinfo` data.
 
-package db
+package parse
 
 import (
 	"io"
