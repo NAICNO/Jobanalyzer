@@ -29,6 +29,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
@@ -64,7 +65,7 @@ func (tc *TopCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
-	cfg, err := db.MaybeGetConfig(tc.ConfigFile())
+	cfg, err := special.MaybeGetConfig(tc.ConfigFile())
 	if err != nil {
 		return err
 	}
@@ -74,11 +75,11 @@ func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	var theLog db.SampleCluster
+	var theLog db.SampleDataProvider
 	if len(tc.LogFiles) > 0 {
 		theLog, err = db.OpenTransientSampleCluster(tc.LogFiles, cfg)
 	} else {
-		theLog, err = db.OpenPersistentCluster(tc.DataDir, cfg)
+		theLog, err = db.OpenPersistentDirectoryDB(tc.DataDir, cfg)
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to open log store: %v", err)

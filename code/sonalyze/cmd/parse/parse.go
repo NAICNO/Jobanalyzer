@@ -13,6 +13,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/repr"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
@@ -155,7 +156,7 @@ func (pc *ParseCommand) NeedsBounds() bool {
 func (pc *ParseCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	cluster db.SampleCluster,
+	cluster db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds, // for pc.MergeByJob only
 	hostGlobber *Hosts,
@@ -179,7 +180,7 @@ func (pc *ParseCommand) Perform(
 			mapped = append(mapped, uslices.FilterMap(
 				records,
 				db.InstantiateSampleFilter(recordFilter),
-				func(r *db.Sample) sonarlog.Sample {
+				func(r *repr.Sample) sonarlog.Sample {
 					return sonarlog.Sample{Sample: r}
 				},
 			)...)

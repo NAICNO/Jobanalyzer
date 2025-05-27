@@ -97,7 +97,7 @@ import (
 	"go-utils/auth"
 	"go-utils/options"
 	. "sonalyze/cmd"
-	"sonalyze/db"
+	"sonalyze/db/special"
 )
 
 const (
@@ -173,7 +173,7 @@ func (dc *DaemonCommand) Validate() error {
 			return fmt.Errorf("Failed to read upload authentication file: %v", e5)
 		}
 	}
-	_, dc.aliasResolver, e6 = db.ReadClusterData(dc.jobanalyzerDir)
+	_, dc.aliasResolver, e6 = special.ReadClusterData(dc.jobanalyzerDir)
 	if dc.cache != "" {
 		var scale int64
 		var before string

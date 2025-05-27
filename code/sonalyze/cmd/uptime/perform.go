@@ -67,7 +67,7 @@ func (uc *UptimeCommand) NeedsBounds() bool {
 func (uc *UptimeCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	_ db.SampleCluster,
+	_ db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *Hosts,

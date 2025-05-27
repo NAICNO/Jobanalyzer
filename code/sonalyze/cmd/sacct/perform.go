@@ -6,6 +6,7 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	"sonalyze/slurmlog"
 )
 
@@ -17,10 +18,10 @@ type sacctSummary struct {
 }
 
 func (sc *SacctCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	var theLog db.SacctCluster
+	var theLog db.SacctDataProvider
 	var err error
 
-	cfg, err := db.MaybeGetConfig(sc.ConfigFile())
+	cfg, err := special.MaybeGetConfig(sc.ConfigFile())
 	if err != nil {
 		return err
 	}
@@ -28,7 +29,7 @@ func (sc *SacctCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	if len(sc.LogFiles) > 0 {
 		theLog, err = db.OpenTransientSacctCluster(sc.LogFiles, cfg)
 	} else {
-		theLog, err = db.OpenPersistentCluster(sc.DataDir, cfg)
+		theLog, err = db.OpenPersistentDirectoryDB(sc.DataDir, cfg)
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to open log store: %v", err)

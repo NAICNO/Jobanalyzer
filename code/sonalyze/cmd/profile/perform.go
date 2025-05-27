@@ -12,6 +12,7 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/repr"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
@@ -23,7 +24,7 @@ func (pc *ProfileCommand) NeedsBounds() bool {
 func (pc *ProfileCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	_ db.SampleCluster,
+	_ db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	_ sonarlog.Timebounds,
 	_ *Hosts,
@@ -151,7 +152,7 @@ func (pc *ProfileCommand) Perform(
 				var count int
 				var cpuUtilPct, gpuPct float32
 				var cpuKB, gpuKB, rssAnonKB uint64
-				var base *db.Sample
+				var base *repr.Sample
 				for _, rn := range myrowNames {
 					if probe := m.get(rn, cn); probe != nil {
 						count++
@@ -299,7 +300,7 @@ type profDatum struct {
 	cpuKB      uint64
 	gpuKB      uint64
 	rssAnonKB  uint64
-	s          *db.Sample
+	s          *repr.Sample
 }
 
 func newProfDatum(r sonarlog.Sample, max float64) *profDatum {

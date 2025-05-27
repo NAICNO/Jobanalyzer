@@ -5,6 +5,7 @@ package db
 import (
 	"go-utils/hostglob"
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 // The db.SampleFilter will be applied to individual records and must be true for records to be
@@ -106,7 +107,7 @@ func InstantiateSampleFilter0(recordFilter *SampleFilter) func(*Sample) bool {
 // Simple bytecode compiler and interpreter.  For typical filters this is much faster than the above
 // code, some sample queries against two months of Fox data run in about half the time.
 
-func InstantiateSampleFilter(recordFilter *SampleFilter) func(*Sample) bool {
+func InstantiateSampleFilter(recordFilter *SampleFilter) func(*repr.Sample) bool {
 	// The filter is a simple bytecode interpreter so as to avoid redundancies and easily specialize
 	// fast cases.  Tests are ordered from most to least likely and most to least discriminating.
 	//
@@ -231,7 +232,7 @@ func InstantiateSampleFilter(recordFilter *SampleFilter) func(*Sample) bool {
 		instr = append(instr, testExcludeLowPids|uint64(recordFilter.MinPid)<<opShift)
 	}
 
-	return func(e *Sample) bool {
+	return func(e *repr.Sample) bool {
 		for _, op := range instr {
 			switch op & opMask {
 			case testIncludeSingleJob:

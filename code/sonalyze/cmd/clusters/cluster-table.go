@@ -2,7 +2,7 @@
 
 package clusters
 
-import "sonalyze/db"
+import "sonalyze/db/special"
 
 import (
 	"cmp"
@@ -22,21 +22,21 @@ var (
 )
 
 // MT: Constant after initialization; immutable
-var clusterFormatters = map[string]Formatter[*db.ClusterEntry]{
+var clusterFormatters = map[string]Formatter[*special.ClusterEntry]{
 	"Name": {
-		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
+		Fmt: func(d *special.ClusterEntry, ctx PrintMods) string {
 			return FormatString((d.Name), ctx)
 		},
 		Help: "(string) Cluster name",
 	},
 	"Description": {
-		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
+		Fmt: func(d *special.ClusterEntry, ctx PrintMods) string {
 			return FormatString((d.Description), ctx)
 		},
 		Help: "(string) Human-consumable cluster summary",
 	},
 	"Aliases": {
-		Fmt: func(d *db.ClusterEntry, ctx PrintMods) string {
+		Fmt: func(d *special.ClusterEntry, ctx PrintMods) string {
 			return FormatStrings((d.Aliases), ctx)
 		},
 		Help: "(string list) Aliases of cluster",
@@ -50,20 +50,20 @@ func init() {
 }
 
 // MT: Constant after initialization; immutable
-var clusterPredicates = map[string]Predicate[*db.ClusterEntry]{
-	"Name": Predicate[*db.ClusterEntry]{
-		Compare: func(d *db.ClusterEntry, v any) int {
+var clusterPredicates = map[string]Predicate[*special.ClusterEntry]{
+	"Name": Predicate[*special.ClusterEntry]{
+		Compare: func(d *special.ClusterEntry, v any) int {
 			return cmp.Compare((d.Name), v.(string))
 		},
 	},
-	"Description": Predicate[*db.ClusterEntry]{
-		Compare: func(d *db.ClusterEntry, v any) int {
+	"Description": Predicate[*special.ClusterEntry]{
+		Compare: func(d *special.ClusterEntry, v any) int {
 			return cmp.Compare((d.Description), v.(string))
 		},
 	},
-	"Aliases": Predicate[*db.ClusterEntry]{
+	"Aliases": Predicate[*special.ClusterEntry]{
 		Convert: CvtString2Strings,
-		SetCompare: func(d *db.ClusterEntry, v any, op int) bool {
+		SetCompare: func(d *special.ClusterEntry, v any, op int) bool {
 			return SetCompareStrings((d.Aliases), v.([]string), op)
 		},
 	},

@@ -98,6 +98,12 @@ var profilePredicates = map[string]Predicate[*fixedLine]{
 			return cmp.Compare((d.Timestamp), v.(DateTimeValueOrBlank))
 		},
 	},
+	"Hostname": Predicate[*fixedLine]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *fixedLine, v any) int {
+			return cmp.Compare((d.Hostname), v.(Ustr))
+		},
+	},
 	"CpuUtilPct": Predicate[*fixedLine]{
 		Convert: CvtString2Int,
 		Compare: func(d *fixedLine, v any) int {

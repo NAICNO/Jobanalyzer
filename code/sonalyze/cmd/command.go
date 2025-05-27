@@ -100,7 +100,7 @@ type SampleAnalysisCommand interface {
 	Perform(
 		out io.Writer,
 		cfg *config.ClusterConfig,
-		cluster db.SampleCluster,
+		cluster db.SampleDataProvider,
 		streams sonarlog.InputStreamSet,
 		bounds sonarlog.Timebounds,
 		hostGlobber *Hosts,

@@ -2,7 +2,8 @@ package sonarlog
 
 import (
 	. "sonalyze/common"
-	"sonalyze/db"
+	"sonalyze/db/errs"
+	"sonalyze/db/repr"
 )
 
 // Code would be simpler if we would embed the db.Sample here but that structure is currently (and
@@ -10,8 +11,8 @@ import (
 // indirection.
 
 type Sample struct {
-	*db.Sample         // Read-only (adjusted) log data
-	CpuUtilPct float32 // Computed from a concrete selection
+	*repr.Sample         // Read-only (adjusted) log data
+	CpuUtilPct   float32 // Computed from a concrete selection
 }
 
 // A sample stream is just a list of samples.
@@ -36,7 +37,7 @@ type Timebounds map[Ustr]Timebound
 
 var (
 	// MT: Constant after initialization; immutable
-	BadTimestampErr = db.BadTimestampErr
+	BadTimestampErr = errs.BadTimestampErr
 )
 
 // The InputStreamKey is (hostname, stream-id, cmd), where the stream-id is defined below; it is
@@ -102,7 +103,7 @@ type GpuData struct {
 	Data     []GpuDatum // one per timestamp
 }
 
-type PerGpuDatum = db.PerGpuSample
+type PerGpuDatum = repr.PerGpuSample
 
 type GpuDatum struct {
 	Time    int64

@@ -15,6 +15,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	"sonalyze/sonarlog"
 )
 
@@ -126,16 +127,16 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 		// TODO: IMPROVEME: Benign if timestamp missing?
 		return errors.New("Missing timestamp or host in Sonar sysinfo data")
 	}
-	cfg, err := db.MaybeGetConfig(ac.ConfigFile())
+	cfg, err := special.MaybeGetConfig(ac.ConfigFile())
 	if err != nil {
 		return err
 	}
-	ds, err := db.OpenPersistentCluster(ac.DataDir, cfg)
+	ds, err := db.OpenAppendablePersistentDirectoryDB(ac.DataDir, cfg)
 	if err != nil {
 		return err
 	}
 	defer ds.FlushAsync()
-	err = ds.AppendSysinfoAsync(db.FileSysinfoOldJSON, info.Hostname, info.Timestamp, payload)
+	err = ds.AppendSysinfoAsync(db.DataSysinfoOldJSON, info.Hostname, info.Timestamp, payload)
 	if err == sonarlog.BadTimestampErr {
 		return nil
 	}
@@ -146,11 +147,11 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sample records %d bytes", len(payload))
 	}
-	cfg, err := db.MaybeGetConfig(ac.ConfigFile())
+	cfg, err := special.MaybeGetConfig(ac.ConfigFile())
 	if err != nil {
 		return err
 	}
-	ds, err := db.OpenPersistentCluster(ac.DataDir, cfg)
+	ds, err := db.OpenAppendablePersistentDirectoryDB(ac.DataDir, cfg)
 	if err != nil {
 		return err
 	}
@@ -171,7 +172,7 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 			// TODO: IMPROVEME: Benign if timestamp missing (would have to drop data)?
 			return errors.New("Missing timestamp or host in Sonar sample data")
 		}
-		err = ds.AppendSamplesAsync(db.FileSampleCSV, host, time, text)
+		err = ds.AppendSamplesAsync(db.DataSampleCSV, host, time, text)
 		if err != nil && err != sonarlog.BadTimestampErr {
 			result = errors.Join(result, err)
 		}
@@ -186,11 +187,11 @@ func (ac *AddCommand) addSlurmSacctFreeCsv(payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sacct records %d bytes", len(payload))
 	}
-	cfg, err := db.MaybeGetConfig(ac.ConfigFile())
+	cfg, err := special.MaybeGetConfig(ac.ConfigFile())
 	if err != nil {
 		return err
 	}
-	ds, err := db.OpenPersistentCluster(ac.DataDir, cfg)
+	ds, err := db.OpenAppendablePersistentDirectoryDB(ac.DataDir, cfg)
 	if err != nil {
 		return err
 	}
@@ -212,7 +213,7 @@ func (ac *AddCommand) addSlurmSacctFreeCsv(payload []byte) error {
 			// TODO: IMPROVEME: Benign if timestamp missing (would have to drop data)?
 			return errors.New("Missing timestamp in sacct data")
 		}
-		err = ds.AppendSlurmSacctAsync(db.FileSlurmCSV, time, text)
+		err = ds.AppendSlurmSacctAsync(db.DataSlurmCSV, time, text)
 		if err != nil && err != sonarlog.BadTimestampErr {
 			result = errors.Join(result, err)
 		}

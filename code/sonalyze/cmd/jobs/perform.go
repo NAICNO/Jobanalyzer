@@ -15,6 +15,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/repr"
 	"sonalyze/slurmlog"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
@@ -78,7 +79,7 @@ type jobSummary struct {
 	job            sonarlog.SampleStream
 	computedFlags  int
 	selected       bool // Initially true, used to deselect the record before printing
-	sacctInfo      *db.SacctInfo
+	sacctInfo      *repr.SacctInfo
 }
 
 // Aggregate figures for a job.  For some cross-job data like user and host, go to the sample stream
@@ -106,7 +107,7 @@ func (jc *JobsCommand) NeedsBounds() bool {
 func (jc *JobsCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	theDb db.SampleCluster,
+	theDb db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *Hosts,
@@ -178,7 +179,7 @@ func (nt *nameTester) testName(name string) {
 
 func (jc *JobsCommand) aggregateAndFilterJobs(
 	cfg *config.ClusterConfig,
-	theDb db.SampleCluster,
+	theDb db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 ) []*jobSummary {
@@ -310,7 +311,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		// fields here and we might use them instead.  If so, do so here and not in printing, to
 		// avoid messiness vis-a-vis filtering.
 
-		if slurmDb, ok := theDb.(*db.PersistentCluster); ok {
+		if slurmDb, ok := theDb.(db.SacctDataProvider); ok {
 
 			var err error
 

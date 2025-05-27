@@ -11,7 +11,7 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
-	"sonalyze/db"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -21,11 +21,11 @@ import (
 
 package clusters
 
-import "sonalyze/db"
+import "sonalyze/db/special"
 
 %%
 
-FIELDS *db.ClusterEntry
+FIELDS *special.ClusterEntry
 
  Name        string   desc:"Cluster name" alias:"cluster"
  Description string   desc:"Human-consumable cluster summary" alias:"desc"
@@ -121,13 +121,13 @@ func (cc *ClusterCommand) Validate() error {
 // Analysis
 
 func (cc *ClusterCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	clusters, _, err := db.ReadClusterData(cc.JobanalyzerDir)
+	clusters, _, err := special.ReadClusterData(cc.JobanalyzerDir)
 	if err != nil {
 		return err
 	}
 
 	printable := umaps.Values(clusters)
-	slices.SortFunc(printable, func(a, b *db.ClusterEntry) int {
+	slices.SortFunc(printable, func(a, b *special.ClusterEntry) int {
 		return cmp.Compare(a.Name, b.Name)
 	})
 

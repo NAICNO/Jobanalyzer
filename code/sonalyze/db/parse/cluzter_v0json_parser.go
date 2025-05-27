@@ -1,0 +1,29 @@
+package parse
+
+import (
+	"io"
+
+	"github.com/NordicHPC/sonar/util/formats/newfmt"
+	"sonalyze/db/repr"
+)
+
+func ParseCluzterV0JSON(
+	input io.Reader,
+	verbose bool,
+) (
+	records []*repr.CluzterInfo,
+	softErrors int,
+	err error,
+) {
+	records = make([]*repr.CluzterInfo, 0)
+	err = newfmt.ConsumeJSONCluster(input, false, func(r *newfmt.ClusterEnvelope) {
+		if r.Data != nil {
+			// TODO: Not optimal to be pointing into that record probably, but not optimal to be
+			// using the original encoding in any case.
+			records = append(records, (*repr.CluzterInfo)(&r.Data.Attributes))
+		} else {
+			softErrors++
+		}
+	})
+	return
+}

@@ -11,6 +11,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/repr"
 	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
@@ -22,7 +23,7 @@ func (lc *LoadCommand) NeedsBounds() bool {
 func (lc *LoadCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	_ db.SampleCluster,
+	_ db.SampleDataProvider,
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *Hosts,
@@ -162,7 +163,7 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 
 	for _, s := range *ss {
 		for t < s.Timestamp {
-			newS := sonarlog.Sample{Sample: &db.Sample{Timestamp: t, Hostname: host}}
+			newS := sonarlog.Sample{Sample: &repr.Sample{Timestamp: t, Hostname: host}}
 			result = append(result, newS)
 			t = step(t)
 		}
@@ -171,7 +172,7 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 	}
 	ending := trunc(toIncl)
 	for t <= ending {
-		newS := sonarlog.Sample{Sample: &db.Sample{Timestamp: t, Hostname: host}}
+		newS := sonarlog.Sample{Sample: &repr.Sample{Timestamp: t, Hostname: host}}
 		result = append(result, newS)
 		t = step(t)
 	}

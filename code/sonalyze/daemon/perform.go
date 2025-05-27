@@ -31,6 +31,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/special"
 )
 
 // Note, this should *NOT* be called Perform(), so that we can be sure we're not confusing a
@@ -43,26 +44,24 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	}
 	Log.SetUnderlying(logger)
 
-	if dc.cacheSize > 0 {
-		db.CacheInit(dc.cacheSize)
-	}
+	db.SetCacheSize(dc.cacheSize)
 
 	if dc.kafkaBroker != "" {
-		clusters, _, err := db.ReadClusterData(dc.jobanalyzerDir)
+		clusters, _, err := special.ReadClusterData(dc.jobanalyzerDir)
 		if err != nil {
 			return fmt.Errorf("Could not initialize cluster names: %v", err)
 		}
 		for clusterName, _ := range clusters {
-			cfgPath := db.MakeConfigFilePath(dc.jobanalyzerDir, clusterName)
-			cfg, err := db.MaybeGetConfig(cfgPath)
+			cfgPath := special.MakeConfigFilePath(dc.jobanalyzerDir, clusterName)
+			cfg, err := special.MaybeGetConfig(cfgPath)
 			if err != nil {
 				if dc.Verbose {
 					Log.Warningf("Failed to find config file for %s: %s %v", clusterName, cfgPath, err)
 				}
 				continue
 			}
-			dataDir := db.MakeClusterDataPath(dc.jobanalyzerDir, clusterName)
-			ds, err := db.OpenPersistentCluster(dataDir, cfg)
+			dataDir := special.MakeClusterDataPath(dc.jobanalyzerDir, clusterName)
+			ds, err := db.OpenAppendablePersistentDirectoryDB(dataDir, cfg)
 			if err != nil {
 				if dc.Verbose {
 					Log.Warningf("Failed to open data store for %s", clusterName)
@@ -145,7 +144,7 @@ func httpGetHandler(
 			arguments = append(
 				arguments,
 				"--report-dir",
-				db.MakeReportDirPath(dc.jobanalyzerDir, clusterName),
+				special.MakeReportDirPath(dc.jobanalyzerDir, clusterName),
 			)
 		case "config":
 			// Nothing, we add the config-file below
@@ -153,7 +152,7 @@ func httpGetHandler(
 			arguments = append(
 				arguments,
 				"--data-path",
-				db.MakeClusterDataPath(dc.jobanalyzerDir, clusterName),
+				special.MakeClusterDataPath(dc.jobanalyzerDir, clusterName),
 			)
 		}
 
@@ -193,7 +192,7 @@ func httpGetHandler(
 			arguments = append(
 				arguments,
 				"--config-file",
-				db.MakeConfigFilePath(dc.jobanalyzerDir, clusterName),
+				special.MakeConfigFilePath(dc.jobanalyzerDir, clusterName),
 			)
 		}
 
@@ -294,7 +293,7 @@ func httpPostHandler(
 		arguments := []string{
 			"--" + dataType,
 			"--data-path",
-			db.MakeClusterDataPath(dc.jobanalyzerDir, clusterName),
+			special.MakeClusterDataPath(dc.jobanalyzerDir, clusterName),
 		}
 
 		stdout, ok := runSonalyze(dc, w, verb, arguments, payload)

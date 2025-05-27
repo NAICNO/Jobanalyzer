@@ -11,7 +11,7 @@ import (
 	"go-utils/maps"
 	"go-utils/slices"
 	. "sonalyze/common"
-	"sonalyze/db"
+	"sonalyze/db/repr"
 )
 
 const (
@@ -615,7 +615,7 @@ func sumRecords(
 
 	// Synthesize the record.
 	return Sample{
-		Sample: &db.Sample{
+		Sample: &repr.Sample{
 			Version:    version,
 			Timestamp:  timestamp,
 			Hostname:   hostname,
