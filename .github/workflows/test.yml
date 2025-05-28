@@ -38,10 +38,8 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: 'naicno'
 
-    - name: Enable Corepack and install Yarn 4.9.1
-      run: |
-          corepack enable
-          corepack prepare yarn@4.9.1 --activate
+    - name: Enable Corepack
+      run: corepack enable
 
     - name: Install dependencies
       working-directory: 'code/dashboard-2'
