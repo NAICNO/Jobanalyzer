@@ -43,8 +43,9 @@ import (
 // v0.6.0 - added 'cluster', 'config', and 'node' verbs, rename/alias 'parse' as 'sample'
 // v0.7.0 - major internal cleanup and restructuring, very minor tweaks to a few output formats
 // v0.8.0 - added 'gpu' and parsing of gpu data
+// v0.9.0 - integration with slurm-monitor's data format under --json; kafka ingest; refactoring
 
-const SonalyzeVersion = "0.8.0"
+const SonalyzeVersion = "0.9.0"
 
 // See end of file for documentation / implementation, and command/command.go for documentation of
 // the CommandLineHandler interface.
