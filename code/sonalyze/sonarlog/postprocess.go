@@ -14,7 +14,6 @@ import (
 	"go-utils/config"
 
 	. "sonalyze/common"
-	"sonalyze/db"
 	"sonalyze/db/repr"
 )
 
@@ -92,13 +91,13 @@ func standardSampleRectifier(xs []*repr.Sample, cfg *config.ClusterConfig) []*re
 
 func createInputStreams(
 	entryBlobs [][]*repr.Sample,
-	recordFilter *db.SampleFilter,
+	recordFilter *SampleFilter,
 	wantBounds bool,
 ) (InputStreamSet, Timebounds) {
 	streams := make(InputStreamSet)
 	bounds := make(Timebounds)
 
-	filterFunc := db.InstantiateSampleFilter(recordFilter)
+	filterFunc := InstantiateSampleFilter(recordFilter)
 
 	// Reconstruct the individual sample streams.  Each job with job id 0 gets its own stream, these
 	// must not be merged downstream (they get different stream IDs but the job IDs remain 0).

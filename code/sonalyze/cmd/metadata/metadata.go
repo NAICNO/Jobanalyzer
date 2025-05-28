@@ -137,7 +137,7 @@ func (mdc *MetadataCommand) Perform(
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds, // for mdc.Bounds only
 	hostGlobber *Hosts,
-	_ *db.SampleFilter,
+	_ *sonarlog.SampleFilter,
 ) error {
 	if mdc.Times {
 		fmt.Fprintf(out, "From: %s\n", mdc.FromDate.Format(time.RFC3339))

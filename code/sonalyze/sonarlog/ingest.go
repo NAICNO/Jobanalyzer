@@ -28,7 +28,7 @@ func ReadSampleStreamsAndMaybeBounds(
 	c db.SampleDataProvider,
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
-	recordFilter *db.SampleFilter,
+	recordFilter *SampleFilter,
 	wantBounds bool,
 	verbose bool,
 ) (

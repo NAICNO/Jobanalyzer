@@ -69,7 +69,7 @@ func buildRecordFilters(
 	command SampleAnalysisCommand,
 	cfg *config.ClusterConfig,
 	verbose bool,
-) (*Hosts, *db.SampleFilter, error) {
+) (*Hosts, *sonarlog.SampleFilter, error) {
 	args := command.SampleAnalysisFlags()
 
 	// Temporary limitation.
@@ -206,7 +206,7 @@ func buildRecordFilters(
 		minPid = 1000
 	}
 
-	var recordFilter = &db.SampleFilter{
+	var recordFilter = &sonarlog.SampleFilter{
 		IncludeUsers:    includeUsers,
 		IncludeHosts:    includeHosts.HostnameGlobber(),
 		IncludeJobs:     includeJobs,

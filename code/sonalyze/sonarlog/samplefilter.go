@@ -1,6 +1,6 @@
 // Sample record filter.  This is performance-sensitive.
 
-package db
+package sonarlog
 
 import (
 	"go-utils/hostglob"
@@ -8,8 +8,10 @@ import (
 	"sonalyze/db/repr"
 )
 
-// The db.SampleFilter will be applied to individual records and must be true for records to be
-// included and false for all others.  It may be applied at any point in the ingestion pipeline.
+// The sonarlog.SampleFilter will be applied to individual records and must be true for records to
+// be included and false for all others.  It may in principle be applied at any point in the
+// ingestion pipeline but at this time it is applied after raw ingestion and is therefore not a part
+// of the database layer.
 //
 // The fields may all have zero values; however, if `To` is not a precise time then it should be set
 // to math.MaxInt64, as zero will mean zero here too.
@@ -32,8 +34,8 @@ type SampleFilter struct {
 // Construct an efficient filter function from the sample filter.
 //
 // This is a convenience function for external code that has a SampleFilter but needs to have a
-// function for filtering.  If the DB layer were to do any filtering by itself it would be under no
-// obligation to use this type of filter function.
+// function for filtering.  (If the DB layer were to do any filtering by itself it would be under no
+// obligation to use this type of filter function.)
 //
 // The recordFilter or its parts *MUST NOT* be modified by the caller subsequently, as parts of it
 // may be retained by the filter function and may be used on concurrent threads.  For all practical

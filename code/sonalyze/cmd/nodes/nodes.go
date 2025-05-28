@@ -24,6 +24,7 @@ import (
 	"sonalyze/db"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
+	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -215,7 +216,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 func (nc *NodeCommand) buildRecordFilter(
 	includeHosts *Hosts,
 	verbose bool,
-) (*hostglob.HostGlobber, *db.SampleFilter, func(*repr.SysinfoData) bool, error) {
+) (*hostglob.HostGlobber, *sonarlog.SampleFilter, func(*repr.SysinfoData) bool, error) {
 	globber := includeHosts.HostnameGlobber()
 
 	haveFrom := nc.SourceArgs.HaveFrom
@@ -229,7 +230,7 @@ func (nc *NodeCommand) buildRecordFilter(
 		to = nc.SourceArgs.ToDate.Unix()
 	}
 
-	var recordFilter = &db.SampleFilter{
+	var recordFilter = &sonarlog.SampleFilter{
 		IncludeHosts: globber,
 		From:         from,
 		To:           to,
