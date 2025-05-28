@@ -14,7 +14,6 @@
     "@chakra-ui/react": "^3.17.0",
     "@emotion/react": "^11.14.0",
     "@fontsource/ibm-plex-sans": "^5.2.5",
-    "@naicno/web-components": "0.0.10",
     "@tanstack/react-query": "^5.76.0",
     "@tanstack/react-query-devtools": "^5.76.0",
     "@tanstack/react-table": "^8.21.3",
