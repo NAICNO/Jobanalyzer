@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react'
 import {
   Box,
-  Button, Checkbox, CheckboxGroup, FormControl, FormErrorMessage, FormLabel,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay, Radio, RadioGroup,
+  Button,
+  Checkbox,
+  CheckboxGroup,
+  Field as ChakraField,
+  Dialog,
+  RadioGroup,
   VStack,
+  DialogOpenChangeDetails,
 } from '@chakra-ui/react'
 import { Field, FieldProps, Form, Formik } from 'formik'
 
@@ -42,7 +41,7 @@ const downloadExported = (exportContent: string, filename: string, mimeType: str
 const columnList = Object.values(JOB_QUERY_RESULTS_COLUMN)
 
 interface JobQueryResultExportModalProps {
-  isOpen: boolean
+  open: boolean
   onClose: () => void
   jobQueryFormValues: JobQueryValues
 }
@@ -52,7 +51,7 @@ const initialExportOptions: ExportOptions = {
   fields: [],
 }
 
-const JobQueryResultExportModal = ({isOpen, onClose, jobQueryFormValues}: JobQueryResultExportModalProps) => {
+const JobQueryResultExportModal = ({open, onClose, jobQueryFormValues}: JobQueryResultExportModalProps) => {
 
   const [exportOptions, setExportOptions] = useState(initialExportOptions)
 
@@ -66,10 +65,16 @@ const JobQueryResultExportModal = ({isOpen, onClose, jobQueryFormValues}: JobQue
     }
   }, [data])
 
+  const handleOpenChange = (details: DialogOpenChangeDetails) => {
+    if (!details.open) {
+      onClose()
+    }
+  }
+
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalOverlay/>
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
+      <Dialog.Backdrop/>
       <Formik
         enableReinitialize={true}
         initialValues={initialExportOptions}
@@ -81,16 +86,16 @@ const JobQueryResultExportModal = ({isOpen, onClose, jobQueryFormValues}: JobQue
           }, 0)
         }}>
         {({isValid, submitForm}) => (
-          <ModalContent>
-            <ModalHeader>Export Result</ModalHeader>
-            <ModalCloseButton/>
-            <ModalBody>
+          <Dialog.Content>
+            <Dialog.Header>Export Result</Dialog.Header>
+            <Dialog.CloseTrigger/>
+            <Dialog.Body>
               <Form>
                 <Field name="format">
                   {({field, meta, form}: FieldProps) => (
-                    <FormControl as="fieldset" mb="20px">
-                      <FormLabel as="legend">File format</FormLabel>
-                      <RadioGroup
+                    <ChakraField.Root as="fieldset" mb="20px">
+                      <ChakraField.Label as="legend">File format</ChakraField.Label>
+                      <RadioGroup.Root
                         {...field}
                         value={field.value}
                         onChange={val => form.setFieldValue('format', val)}
@@ -98,35 +103,39 @@ const JobQueryResultExportModal = ({isOpen, onClose, jobQueryFormValues}: JobQue
                         <VStack alignItems={'start'}>
                           {
                             JOB_QUERY_EXPORT_FORMATS.map((format) => (
-                              <Radio key={format.value} value={format.value}>
+                              <RadioGroup.Item key={format.value} value={format.value}>
                                 {format.label}
-                              </Radio>
+                              </RadioGroup.Item>
                             ))
                           }
                         </VStack>
-                      </RadioGroup>
-                      <FormErrorMessage>{meta.error}</FormErrorMessage>
-                    </FormControl>
+                      </RadioGroup.Root>
+                      <ChakraField.ErrorText>{meta.error}</ChakraField.ErrorText>
+                    </ChakraField.Root>
                   )}
                 </Field>
 
                 <Field name="fields">
                   {({field, meta, form}: FieldProps) => (
-                    <FormControl as="fieldset" isInvalid={!!(meta.error && meta.touched)}>
-                      <FormLabel as="legend">Fields</FormLabel>
-                      <Checkbox
+                    <ChakraField.Root as="fieldset" invalid={!!(meta.error && meta.touched)}>
+                      <ChakraField.Label as="legend">Fields</ChakraField.Label>
+                      <Checkbox.Root
                         mb="10px"
-                        isIndeterminate={field.value.length > 0 && field.value.length < columnList.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
+                        checked={field.value.length > 0 && field.value.length < columnList.length ? 'indeterminate' : true}
+                        onCheckedChange={(e) => {
+                          if (e.checked) {
                             form.setFieldValue('fields', columnList.map((column) => column.key))
                           } else {
                             form.setFieldValue('fields', [])
                           }
                         }}
                       >
-                        Select all
-                      </Checkbox>
+                        <Checkbox.HiddenInput/>
+                        <Checkbox.Control>
+                          <Checkbox.Indicator/>
+                        </Checkbox.Control>
+                        <Checkbox.Label>Select all</Checkbox.Label>
+                      </Checkbox.Root>
                       <Box ml="20px">
                         <CheckboxGroup
                           {...field}
@@ -136,27 +145,27 @@ const JobQueryResultExportModal = ({isOpen, onClose, jobQueryFormValues}: JobQue
                           <VStack alignItems={'start'}>
                             {
                               columnList.map((column) => (
-                                <Checkbox key={column.key} value={column.key}>
+                                <Checkbox.Root key={column.key} value={column.key}>
                                   {column.title}
-                                </Checkbox>
+                                </Checkbox.Root>
                               ))
                             }
                           </VStack>
                         </CheckboxGroup>
                       </Box>
-                      <FormErrorMessage>{meta.error}</FormErrorMessage>
-                    </FormControl>
+                      <ChakraField.ErrorText>{meta.error}</ChakraField.ErrorText>
+                    </ChakraField.Root>
                   )}
                 </Field>
               </Form>
-            </ModalBody>
-            <ModalFooter>
+            </Dialog.Body>
+            <Dialog.Footer>
               <Button
                 colorScheme="blue"
                 mr={3}
                 onClick={submitForm}
-                isDisabled={!isValid || isFetching}
-                isLoading={isFetching}
+                disabled={!isValid || isFetching}
+                loading={isFetching}
               >
                 Download
               </Button>
@@ -166,11 +175,11 @@ const JobQueryResultExportModal = ({isOpen, onClose, jobQueryFormValues}: JobQue
               >
                 Close
               </Button>
-            </ModalFooter>
-          </ModalContent>
+            </Dialog.Footer>
+          </Dialog.Content>
         )}
       </Formik>
-    </Modal>
+    </Dialog.Root>
   )
 }
 export default JobQueryResultExportModal

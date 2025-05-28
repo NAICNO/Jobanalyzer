@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render } from '@testing-library/react'
+import { render } from '../../test-utils.tsx'
 
 import { GpuFieldCell } from '../../../src/components/table/cell'
 

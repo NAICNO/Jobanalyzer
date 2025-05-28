@@ -2,16 +2,12 @@ import { useMemo, useState } from 'react'
 import {
   Box,
   Card,
-  CardBody,
-  Heading,
   HStack,
+  Heading,
+  Icon,
   List,
-  ListIcon,
-  ListItem,
-  SlideFade,
   Text,
-  UnorderedList,
-  VStack
+  VStack,
 } from '@chakra-ui/react'
 import { Navigate, useParams } from 'react-router'
 import {
@@ -20,8 +16,8 @@ import {
   SortingState,
   useReactTable
 } from '@tanstack/react-table'
-import { WarningTwoIcon } from '@chakra-ui/icons'
 import moment from 'moment-timezone'
+import { IoWarning } from 'react-icons/io5'
 
 import { EMPTY_ARRAY, POLICIES } from '../Constants.ts'
 import { findCluster } from '../util'
@@ -41,7 +37,7 @@ export default function ViolatorPage() {
     )
   }
 
-  const {data: allJobsOfUser, isFetched} = useFetchViolator(cluster, violator)
+  const {data: allJobsOfUser} = useFetchViolator(cluster, violator)
 
   const violatingJobTableColumns = useMemo(() => getUserViolatingJobTableColumns(), [cluster])
   const [violatingJobTableSorting, setViolatingJobTableSorting] = useState<SortingState>([])
@@ -77,8 +73,8 @@ export default function ViolatorPage() {
           <NavigateBackButton/>
           <Heading ml={3} size={{base: 'md', md: 'lg'}}>{cluster.name} individual policy violator report</Heading>
         </HStack>
-        <Card variant={'outline'}>
-          <CardBody>
+        <Card.Root variant={'outline'}>
+          <Card.Body>
             <VStack alignItems="start">
               <Text>Hi,</Text>
               <Text>This is a message from your friendly UiO systems administrator.</Text>
@@ -95,37 +91,39 @@ export default function ViolatorPage() {
               <Text mt="10px">Report generated on {formattedTimestamp}</Text>
               <Text mt="10px">User: {violator}</Text>
               <Text mt="10px">Policies violated:</Text>
-              <List ml="20px">
+              <List.Root ml="20px">
                 {
                   violatedPolicies.map(policy => {
                     if (!policy) {
                       return null
                     }
                     return (
-                      <ListItem key={policy.name}>
-                        <ListIcon as={WarningTwoIcon} color="red.500"/>
+                      <List.Item key={policy.name}>
+                        <List.Indicator>
+                          <Icon color={'red.500'}>
+                            <IoWarning/>
+                          </Icon>
+                        </List.Indicator>
                         {policy.name}
                         <Box ml="20px" mt="5px">
-                          <UnorderedList>
-                            <ListItem>Trigger: {policy.trigger}</ListItem>
-                            <ListItem>Problem: {policy.problem}</ListItem>
-                            <ListItem>Remedy: {policy.remedy}</ListItem>
-                          </UnorderedList>
+                          <List.Root>
+                            <List.Item>Trigger: {policy.trigger}</List.Item>
+                            <List.Item>Problem: {policy.problem}</List.Item>
+                            <List.Item>Remedy: {policy.remedy}</List.Item>
+                          </List.Root>
                         </Box>
-                      </ListItem>
+                      </List.Item>
                     )
                   })
                 }
-              </List>
+              </List.Root>
               <Text marginY="20px">(Times below are UTC, job numbers are derived from session leader if not running
                 under
                 Slurm)</Text>
-              <SlideFade in={isFetched}>
-                <ViolatingJobTable table={violatingJobTable}/>
-              </SlideFade>
+              <ViolatingJobTable table={violatingJobTable}/>
             </VStack>
-          </CardBody>
-        </Card>
+          </Card.Body>
+        </Card.Root>
       </VStack>
     </>
   )

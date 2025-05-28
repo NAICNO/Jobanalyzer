@@ -1,6 +1,6 @@
-import { render } from '@testing-library/react'
 import { CellWithLink } from '../../../src/components/table/cell'
 import { MemoryRouter } from 'react-router'
+import { render } from '../../test-utils.tsx'
 
 const mockValue = {
   text: 'Test Link',

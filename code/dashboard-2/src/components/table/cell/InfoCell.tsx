@@ -1,8 +1,8 @@
-import { Icon } from '@chakra-ui/icons'
-import { Tooltip } from '@chakra-ui/react'
+import { Icon } from '@chakra-ui/react'
+import { MdInfoOutline } from 'react-icons/md'
 
 import { CellWrapper } from './CellWrapper.tsx'
-import { MdInfoOutline } from 'react-icons/md'
+import { Tooltip } from '../../ui/tooltip.tsx'
 
 interface InfoCellProps {
   value: string;
@@ -12,12 +12,13 @@ export const InfoCell = ({value}: InfoCellProps) => {
   return (
     <CellWrapper>
       <Tooltip
-        label={value}
-        fontSize="md"
-        hasArrow
+        content={value}
+        showArrow
         openDelay={500}
       >
-        <Icon as={MdInfoOutline}/>
+        <Icon>
+          <MdInfoOutline />
+        </Icon>
       </Tooltip>
     </CellWrapper>
   )

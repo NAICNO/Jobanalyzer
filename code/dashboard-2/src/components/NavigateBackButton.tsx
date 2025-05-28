@@ -1,6 +1,6 @@
-import { ArrowBackIcon } from '@chakra-ui/icons'
 import { Link, useNavigate, useLocation } from 'react-router'
 import { IconButton } from '@chakra-ui/react'
+import { MdArrowBack } from 'react-icons/md'
 
 export const NavigateBackButton = () => {
 
@@ -17,12 +17,15 @@ export const NavigateBackButton = () => {
 
   return (
     <IconButton
-      variant={'subtle'}
-      isRound={true}
-      icon={<ArrowBackIcon boxSize={{base: 4, md: 6}}/>}
+      variant={'outline'}
+      colorPalette={'blue'}
+      rounded="full"
+      size={{base: 'sm', md: 'md'}}
       aria-label="Back"
       as={Link}
       onClick={goBack}
-    />
+    >
+      <MdArrowBack/>
+    </IconButton>
   )
 }

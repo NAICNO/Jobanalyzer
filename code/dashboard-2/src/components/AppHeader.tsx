@@ -3,13 +3,13 @@ import {
   Heading,
   HStack, Image, Show,
   Spacer,
-  useColorMode,
 } from '@chakra-ui/react'
 import { NavLink } from 'react-router'
 
 import { APP_NAME } from '../Constants.ts'
 import { LightDarkModeButton } from './LightDarkModeButton.tsx'
 import { HamburgerButton } from './HamburgerButton.tsx'
+import { useColorMode } from './ui/color-mode.tsx'
 
 interface AppHeaderProps {
   opOpenSidebarDrawer: () => void
@@ -33,19 +33,19 @@ export const AppHeader = ({opOpenSidebarDrawer}: AppHeaderProps) => {
           <Image
             src={naicLogo}
             alt="NAIC logo"
-            w={{base: '60px', md: '80px'}}
+            w={{base: '40px', md: '60px'}}
             mr="20px"
             mb="5px"
           />
-          <Heading as="h1" size={{base: 'md', md: 'xl'}}>
+          <Heading as="h1" size={{base: 'lg', md: '2xl'}}>
             {APP_NAME}
           </Heading>
         </Flex>
       </NavLink>
       <Spacer/>
-      <Show above={'base'}>
+      <Show when={'base'}>
         <HStack
-          spacing={{base: '10px', md: '10px', lg: '20px'}}
+          gap={{base: '10px', md: '10px', lg: '20px'}}
           display={{base: 'none', md: 'flex'}}
           alignItems={'center'}
         >

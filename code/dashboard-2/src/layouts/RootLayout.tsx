@@ -1,11 +1,12 @@
 import { Outlet } from 'react-router'
-import { Grid, GridItem, useColorMode, useDisclosure } from '@chakra-ui/react'
+import { Grid, GridItem, useDisclosure } from '@chakra-ui/react'
 
 import { AppHeader, Sidebar } from '../components'
+import { useColorMode } from '../components/ui/color-mode.tsx'
 
 export default function RootLayout() {
 
-  const {isOpen: isDrawerOpen, onOpen: onOpenDrawer, onClose: onCloseDrawer} = useDisclosure()
+  const {open: isDrawerOpen, onOpen: onOpenDrawer, onClose: onCloseDrawer} = useDisclosure()
 
   const colorMode = useColorMode()
 
@@ -20,26 +21,26 @@ export default function RootLayout() {
       }}
       gridTemplateRows={{
         base: '60px 1fr',
-        md: '80px 1fr',
+        md: '60px 1fr',
       }}
       gridTemplateColumns={{
         base: '1fr',
-        md: '180px 1fr',
+        md: '160px 1fr',
       }}
       gap="1"
       h="100vh"
     >
       <GridItem
-        px={{base: '20px', md: '40px'}}
-        py={{base: '10px', md: '20px'}}
+        px={{base: '20px', md: '20px'}}
+        py={{base: '10px', md: '10px'}}
         area={'header'}
         boxShadow={'md'}
       >
         <AppHeader opOpenSidebarDrawer={onOpenDrawer}/>
       </GridItem>
       <GridItem
-        px="20px"
-        pt="20px"
+        px="10px"
+        pt="10px"
         area={'nav'}
         bg={sidebarBackgroundColor}
         display={{base: isDrawerOpen ? 'block' : 'none', md: 'block'}}
@@ -48,7 +49,7 @@ export default function RootLayout() {
       </GridItem>
       <GridItem
         paddingX="20px"
-        paddingY="20px"
+        paddingY="10px"
         area={'main'}
         bg={mainGridItemBackgroundColor}
       >

@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import {
   Heading,
   HStack,
-  SlideFade,
   Text,
   VStack
 } from '@chakra-ui/react'
@@ -38,7 +37,7 @@ export default function DeadWeightPage() {
     hostname: hostname || null
   }
 
-  const {data, isFetched} = useFetchDeadWeight(cluster, filter)
+  const {data} = useFetchDeadWeight(cluster, filter)
 
   const deadWeightJobTableColumns = useMemo(() => getDeadWeightTableColumns(), [cluster])
   const [sorting, setSorting] = useState<SortingState>([])
@@ -69,9 +68,7 @@ export default function DeadWeightPage() {
           otherwise dead and may be bogging down the system. The list is
           recomputed at noon and midnight and goes back four weeks.
         </Text>
-        <SlideFade in={isFetched}>
-          <DeadWeightTable table={deadWeightTable}/>
-        </SlideFade>
+        <DeadWeightTable table={deadWeightTable}/>
       </VStack>
     </>
   )

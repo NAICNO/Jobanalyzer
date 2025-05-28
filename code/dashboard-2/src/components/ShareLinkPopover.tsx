@@ -1,71 +1,56 @@
 import {
   Box,
-  HStack, IconButton,
+  Clipboard,
+  HStack,
+  IconButton,
   Input,
+  InputGroup,
   Popover,
-  PopoverArrow,
-  PopoverBody,
-  PopoverCloseButton,
-  PopoverContent,
-  PopoverHeader,
-  PopoverTrigger,
-  UsePopperProps,
-  useToast,
-  UseToastOptions
 } from '@chakra-ui/react'
-import { CopyIcon, LinkIcon } from '@chakra-ui/icons'
+import { FaLink } from 'react-icons/fa'
 
 interface ShareLinkPopoverProps {
   link: string
   text: string
-  placement: UsePopperProps['placement']
-  showToast?: boolean
-  toastProps?: {
-    description?: UseToastOptions['duration']
-    duration?: UseToastOptions['duration']
-  }
 }
 
-
-export const ShareLinkPopover = ({link, text, placement, showToast, toastProps}: ShareLinkPopoverProps) => {
-
-  const toast = useToast()
+export const ShareLinkPopover = ({link, text}: ShareLinkPopoverProps) => {
 
   return (
-    <Popover placement={placement}>
-      <PopoverTrigger>
-        <IconButton bg={'transparent'} aria-label="locked" icon={<LinkIcon/>}/>
-      </PopoverTrigger>
-      <PopoverContent>
-        <PopoverArrow/>
-        <PopoverCloseButton/>
-        <PopoverHeader>{text || 'Share this link'}</PopoverHeader>
-        <PopoverBody>
+    <Popover.Root positioning={{placement: 'bottom-start'}}>
+      <Popover.Trigger asChild>
+        <IconButton bg={'transparent'} aria-label="locked">
+          <FaLink/>
+        </IconButton>
+      </Popover.Trigger>
+      <Popover.Content>
+        <Popover.Arrow/>
+        <Popover.CloseTrigger/>
+        <Popover.Header>{text || 'Share this link'}</Popover.Header>
+        <Popover.Body>
           <Box>
-            <HStack spacing={2}>
-              <Input value={link} isReadOnly/>
-              <CopyIcon
-                ml="10px"
-                onClick={() =>
-                  navigator.clipboard.writeText(link)
-                    .then(() => {
-                      if (showToast) {
-                        toast({
-                          description: toastProps?.description || 'Link copied to clipboard',
-                          status: 'success',
-                          duration: toastProps?.duration || 2000,
-                          isClosable: true,
-                        })
-                      }
-                    })}
-                aria-label={'copy'}
-                opacity="0.4"
-                _hover={{opacity: 1}}
-              />
+            <HStack gap={2}>
+              <Clipboard.Root maxW="300px" value={link}>
+                <InputGroup endElement={<ClipboardIconButton/>}>
+                  <Clipboard.Input asChild>
+                    <Input/>
+                  </Clipboard.Input>
+                </InputGroup>
+              </Clipboard.Root>
             </HStack>
           </Box>
-        </PopoverBody>
-      </PopoverContent>
-    </Popover>
+        </Popover.Body>
+      </Popover.Content>
+    </Popover.Root>
+  )
+}
+
+const ClipboardIconButton = () => {
+  return (
+    <Clipboard.Trigger asChild>
+      <IconButton variant="surface" size="xs" me="-2">
+        <Clipboard.Indicator/>
+      </IconButton>
+    </Clipboard.Trigger>
   )
 }

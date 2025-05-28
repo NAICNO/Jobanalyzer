@@ -2,20 +2,29 @@ import { Text } from '@chakra-ui/react'
 
 import { CELL_BACKGROUND_COLORS } from '../../../Constants.ts'
 import { CellWrapper } from './CellWrapper.tsx'
+import { useColorModeValue } from '../../ui/color-mode.tsx'
 
 interface WorkingFieldCellProps {
   value: number;
 }
 
 export const WorkingFieldCell = ({value}: WorkingFieldCellProps) => {
-  let backgroundColor = CELL_BACKGROUND_COLORS.NA
-  if (value >= 75) {
-    backgroundColor = CELL_BACKGROUND_COLORS.WORKING_HARD
-  } else if (value >= 50) {
-    backgroundColor = CELL_BACKGROUND_COLORS.WORKING
-  } else if (value >= 25) {
-    backgroundColor = CELL_BACKGROUND_COLORS.COASTING
-  }
+  const backgroundColor = useColorModeValue(
+    value >= 75
+      ? CELL_BACKGROUND_COLORS.LIGHT.WORKING_HARD
+      : value >= 50
+        ? CELL_BACKGROUND_COLORS.LIGHT.WORKING
+        : value >= 25
+          ? CELL_BACKGROUND_COLORS.LIGHT.COASTING
+          : CELL_BACKGROUND_COLORS.LIGHT.NA,
+    value >= 75
+      ? CELL_BACKGROUND_COLORS.DARK.WORKING_HARD
+      : value >= 50
+        ? CELL_BACKGROUND_COLORS.DARK.WORKING
+        : value >= 25
+          ? CELL_BACKGROUND_COLORS.DARK.COASTING
+          : CELL_BACKGROUND_COLORS.DARK.NA
+  )
   return (
     <CellWrapper styleProps={{backgroundColor}}>
       <Text>{value}</Text>
