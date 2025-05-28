@@ -1,5 +1,7 @@
 # The database
 
+(This is quite stale, and much of it should in any case be moved into doc.go.)
+
 ## Data model at a glance
 
 The database exposes six tables:

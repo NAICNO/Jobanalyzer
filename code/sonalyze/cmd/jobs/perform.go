@@ -111,7 +111,7 @@ func (jc *JobsCommand) Perform(
 	streams sonarlog.InputStreamSet,
 	bounds sonarlog.Timebounds,
 	hostGlobber *Hosts,
-	_ *db.SampleFilter,
+	_ *sonarlog.SampleFilter,
 ) error {
 	if jc.Verbose {
 		Log.Infof("Streams constructed by postprocessing: %d", len(streams))

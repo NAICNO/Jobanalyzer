@@ -90,7 +90,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 		[][]*repr.Sample{
 			entries,
 		},
-		&db.SampleFilter{
+		&SampleFilter{
 			ExcludeUsers: map[Ustr]bool{
 				StringToUstr("root"): true,
 			},

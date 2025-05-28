@@ -104,7 +104,7 @@ type SampleAnalysisCommand interface {
 		streams sonarlog.InputStreamSet,
 		bounds sonarlog.Timebounds,
 		hostGlobber *Hosts,
-		recordFilter *db.SampleFilter,
+		recordFilter *sonarlog.SampleFilter,
 	) error
 
 	// Retrieve configfile for those commands that allow it, otherwise "", or "" for absent
