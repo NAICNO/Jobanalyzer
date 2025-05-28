@@ -1,17 +1,27 @@
-import { ReactNode, useMemo, useRef, useState } from 'react'
-import { Navigate, useParams, Link as ReactRouterLink, useSearchParams } from 'react-router'
 import {
+  ReactNode,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
+import {
+  Link as ReactRouterLink,
+  Navigate,
+  useParams,
+  useSearchParams
+} from 'react-router'
+import {
+  HStack,
   Heading,
-  VStack,
-  Text,
   Link as ChakraLink,
+  Text,
+  VStack,
   useDisclosure,
 } from '@chakra-ui/react'
-import { ExternalLinkIcon } from '@chakra-ui/icons'
 import {
+  SortingState,
   getCoreRowModel,
   getSortedRowModel,
-  SortingState,
   useReactTable,
 } from '@tanstack/react-table'
 
@@ -22,6 +32,7 @@ import { getDashboardTableColumns } from '../util/TableUtils.ts'
 import { NodeSelectionHelpDrawer, NodeSelectionInput, PageTitle } from '../components'
 import { DashboardTable } from '../components/table'
 import { Cluster, Subcluster } from '../types'
+import { LuExternalLink } from 'react-icons/lu'
 
 export default function DashboardPage() {
 
@@ -57,7 +68,7 @@ export default function DashboardPage() {
     }
   })
 
-  const {isOpen: isOpenHelpSidebar, onOpen: onOpenHelpSidebar, onClose} = useDisclosure()
+  const {open: isOpenHelpSidebar, onOpen: onOpenHelpSidebar, onClose} = useDisclosure()
   const focusRef = useRef<HTMLInputElement | null>(null)
 
   const jobQueryLink = `/jobquery?cluster=${clusterName}`
@@ -67,31 +78,46 @@ export default function DashboardPage() {
   }
 
   const subclusterLinks = selectedCluster.subclusters.map((subcluster: Subcluster) => (
-    <ChakraLink
-      key={subcluster.name}
-      as={ReactRouterLink}
-      to={`/${clusterName}/subcluster/${subcluster.name}`}
-    >
-      {subcluster.name}
-      {' '}
+    <ChakraLink key={subcluster.name} asChild variant="underline" colorPalette="blue">
+      <ReactRouterLink to={`/${clusterName}/subcluster/${subcluster.name}`}>
+        {subcluster.name}
+        {' '}
+      </ReactRouterLink>
     </ChakraLink>
   ))
+
+
+  const SubClusterLinks = () => {
+    return (
+      <HStack display="inline-flex" gap={1}>
+        {selectedCluster.subclusters.map((subcluster: Subcluster) => (
+          <ChakraLink key={subcluster.name} asChild variant="underline" colorPalette="blue">
+            <ReactRouterLink to={`/${clusterName}/subcluster/${subcluster.name}`}>
+              {subcluster.name}
+            </ReactRouterLink>
+          </ChakraLink>
+        ))}
+      </HStack>
+    )
+  }
 
   return (
     <>
       <PageTitle title={`${selectedCluster.name} Dashboard`}/>
-      <VStack spacing={1}>
-        <Heading size={{base: 'md', md: 'lg'}} mb={4}>{selectedCluster.name}: Jobanalyzer Dashboard</Heading>
+      <VStack gap={1}>
+        <Heading size={{base: 'lg', md: 'xl'}} mb={1}>{selectedCluster.name}: Jobanalyzer Dashboard</Heading>
         <Text>Click on hostname for machine details.</Text>
         <Text>
-          <ChakraLink as={ReactRouterLink} to={jobQueryLink} isExternal mr="10px">
-            Job query <ExternalLinkIcon mx="2px"/>
+          <ChakraLink asChild mr="10px" target="_blank" variant="underline" colorPalette="blue">
+            <ReactRouterLink to={jobQueryLink}>
+              Job query <LuExternalLink/>
+            </ReactRouterLink>
           </ChakraLink>
           {
             subclusterLinks.length > 0 &&
             <>
               Aggregates:{' '}
-              {subclusterLinks}
+              <SubClusterLinks/>
             </>
           }
         </Text>
@@ -124,11 +150,10 @@ const ViolatorsAndZombiesLinks = ({cluster}: { cluster: Cluster }) => {
     }
 
     return (
-      <ChakraLink
-        as={ReactRouterLink}
-        to={to}
-      >
-        {children}
+      <ChakraLink asChild variant="underline" colorPalette="blue">
+        <ReactRouterLink to={to}>
+          {children}
+        </ReactRouterLink>
       </ChakraLink>
     )
   }

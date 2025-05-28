@@ -1,8 +1,8 @@
 import { ReactNode } from 'react'
-import { Box, StyleProps } from '@chakra-ui/react'
+import { Box, JsxStyleProps } from '@chakra-ui/react'
 
 interface CellWrapperProps {
-  styleProps?: StyleProps
+  styleProps?: JsxStyleProps
   children: ReactNode
 }
 

@@ -1,23 +1,19 @@
+import React from 'react'
 import {
   Box,
-  Divider,
   Drawer,
-  DrawerBody,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerHeader,
-  DrawerOverlay, HStack,
+  HStack,
   List,
-  ListIcon,
-  ListItem,
+  Separator,
   Spacer,
-  useBreakpointValue,
-  useColorMode, VStack,
+  VStack,
+  useBreakpointValue, DrawerOpenChangeDetails,
 } from '@chakra-ui/react'
 import { NavLink, useLocation } from 'react-router'
 
 import { LightDarkModeButton } from './LightDarkModeButton.tsx'
 import { SIDEBAR_ITEMS } from '../Constants.ts'
+import { useColorMode } from './ui/color-mode.tsx'
 
 interface SidebarProps {
   onCloseDrawer: () => void
@@ -28,19 +24,25 @@ export const Sidebar = ({onCloseDrawer, isDrawerOpen}: SidebarProps) => {
 
   const isDrawer = useBreakpointValue({base: true, md: false})
 
+  const handleOnOpenChange = (details: DrawerOpenChangeDetails) => {
+    if (!details.open) {
+      onCloseDrawer()
+    }
+  }
+
   return (
     <>
       {isDrawer ?
-        <Drawer isOpen={isDrawerOpen} placement="left" onClose={onCloseDrawer}>
-          <DrawerOverlay/>
-          <DrawerContent>
-            <DrawerCloseButton/>
-            <DrawerHeader>Menu</DrawerHeader>
-            <DrawerBody>
+        <Drawer.Root open={isDrawerOpen} placement="end" onOpenChange={handleOnOpenChange}>
+          <Drawer.Backdrop/>
+          <Drawer.Content>
+            <Drawer.CloseTrigger/>
+            <Drawer.Header>Menu</Drawer.Header>
+            <Drawer.Body>
               <SideBarContent onCloseDrawer={onCloseDrawer}/>
               <VStack
                 pt="50px"
-                spacing={{base: '10px', md: '10px', lg: '20px'}}
+                gap={{base: '10px', md: '10px', lg: '20px'}}
                 alignItems={'start'}
               >
                 <HStack w={'100%'} pt="10px">
@@ -48,9 +50,9 @@ export const Sidebar = ({onCloseDrawer, isDrawerOpen}: SidebarProps) => {
                   <LightDarkModeButton/>
                 </HStack>
               </VStack>
-            </DrawerBody>
-          </DrawerContent>
-        </Drawer>
+            </Drawer.Body>
+          </Drawer.Content>
+        </Drawer.Root>
         :
         <SideBarContent onCloseDrawer={onCloseDrawer}/>
       }
@@ -65,61 +67,43 @@ const SideBarContent = ({onCloseDrawer}: { onCloseDrawer: () => void }) => {
   const activeBgColor = colorMode === 'light' ? 'gray.300' : 'blue.600'
 
   return (
-    <List fontSize={{base: '1em', md: '1.2em'}} spacing="1">
-      {SIDEBAR_ITEMS.map((item, index) => (
-        <SidebarItem
-          key={index}
-          type={item.type}
-          path={item.path}
-          matches={item.matches}
-          text={item.text}
-          icon={item.icon}
-          hoverBgColor={hoverBgColor}
-          activeBgColor={activeBgColor}
-          onCloseDrawer={onCloseDrawer}
-        />
-      ))}
-    </List>
-  )
-}
+    <List.Root variant={'plain'} fontSize={{base: '1em', md: '1.2em'}} gap="1">
+      {SIDEBAR_ITEMS.map((item, index) => {
+        if (item.type === 'separator') {
+          return (
+            <List.Item key={index}>
+              <Separator variant={'solid'}/>
+            </List.Item>
+          )
+        }
 
-const SidebarItem = ({type, path = '', matches = '', text = '', icon, hoverBgColor, activeBgColor, onCloseDrawer}: {
-  type: string,
-  path: string | undefined,
-  matches: string | undefined,
-  text: string | undefined,
-  icon: any,
-  hoverBgColor: string,
-  activeBgColor: string,
-  onCloseDrawer: () => void
-}) => {
+        const location = useLocation()
+        const {pathname} = location
 
-  if (type === 'separator') {
-    return <Divider my="20px"/>
-  } else {
-
-    const location = useLocation()
-    const {pathname} = location
-
-    const isActive = (path: string) => {
-      return pathname.includes(path)
-    }
-
-    return (
-      <Box>
-        <NavLink to={path} onClick={onCloseDrawer}>
-          <ListItem
-            _hover={{bg: hoverBgColor}}
-            bg={isActive(matches) ? activeBgColor : 'transparent'}
-            px={{base: '12px', md: '10px'}}
-            py="6px"
-            borderRadius="md"
+        const isActive = (path: string) => {
+          return pathname.includes(path)
+        }
+        return (
+          <List.Item
+            key={index}
           >
-            <ListIcon as={icon}/>
-            {text}
-          </ListItem>
-        </NavLink>
-      </Box>
-    )
-  }
+            <NavLink to={item.path} onClick={onCloseDrawer} style={{width: '100%', display: 'block'}}>
+              <Box
+                _hover={{bg: hoverBgColor}}
+                bg={isActive(item.matches) ? activeBgColor : 'transparent'}
+                px={{base: '12px', md: '10px'}}
+                py="6px"
+                borderRadius="md"
+              >
+                <List.Indicator asChild>
+                  {React.createElement(item.icon)}
+                </List.Indicator>
+                {item.text}
+              </Box>
+            </NavLink>
+          </List.Item>
+        )
+      })}
+    </List.Root>
+  )
 }

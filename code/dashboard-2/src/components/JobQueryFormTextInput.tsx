@@ -1,5 +1,5 @@
 import { Field, FieldProps } from 'formik'
-import { FormControl, FormErrorMessage, FormLabel, Input } from '@chakra-ui/react'
+import { Field as ChakraField, Input } from '@chakra-ui/react'
 
 interface JobQueryFormTextInputProps {
   name: string;
@@ -12,11 +12,11 @@ export const JobQueryFormTextInput = ({name, label, type, placeholder}: JobQuery
   return (
     <Field name={name}>
       {({field, meta}: FieldProps) => (
-        <FormControl isInvalid={!!(meta.error && meta.touched)}>
-          <FormLabel>{label}</FormLabel>
+        <ChakraField.Root invalid={!!(meta.error && meta.touched)}>
+          <ChakraField.Label>{label}</ChakraField.Label>
           <Input {...field} type={type} placeholder={placeholder} value={field.value} data-bwignore/>
-          <FormErrorMessage>{meta.error}</FormErrorMessage>
-        </FormControl>
+          <ChakraField.ErrorText>{meta.error}</ChakraField.ErrorText>
+        </ChakraField.Root>
       )}
     </Field>
   )

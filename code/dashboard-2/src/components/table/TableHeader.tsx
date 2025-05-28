@@ -1,7 +1,7 @@
-import { chakra, Th, Thead, Tr } from '@chakra-ui/react'
+import { chakra, Table } from '@chakra-ui/react'
 import { flexRender } from '@tanstack/react-table'
-import { TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons'
 import { Table as TableType } from '@tanstack/react-table'
+import { GoTriangleDown, GoTriangleUp } from 'react-icons/go'
 
 interface TableHeaderProps<T> {
   table: TableType<T>
@@ -9,9 +9,15 @@ interface TableHeaderProps<T> {
 
 export const TableHeader = ({table}: TableHeaderProps<any>) => {
   return (
-    <Thead>
+    <Table.Header>
       {table.getHeaderGroups().map((headerGroup) => (
-        <Tr key={headerGroup.id}>
+        <Table.Row
+          key={headerGroup.id}
+          bg="bg.subtle"
+          position="sticky"
+          top={headerGroup.depth === 0 ? 0 : '2rem'}
+          zIndex={headerGroup.depth === 0 ? 2 : 1}
+        >
           {headerGroup.headers.map((header,) => {
             const meta: any = header.column.columnDef.meta
             const columnRelativeDepth = header.depth - header.column.depth
@@ -30,11 +36,10 @@ export const TableHeader = ({table}: TableHeaderProps<any>) => {
             }
 
             return (
-              <Th
+              <Table.ColumnHeader
                 padding={2}
                 key={header.id}
                 onClick={header.column.getToggleSortingHandler()}
-                isNumeric={meta?.isNumeric}
                 colSpan={header.colSpan}
                 {...(header.depth > 1 ? { 'data-is-grouped-column-sub-header':true } : {})}
                 {...(header.colSpan > 1 ? { 'data-is-grouped-column-header':true } : {})}
@@ -51,18 +56,18 @@ export const TableHeader = ({table}: TableHeaderProps<any>) => {
                   {
                     header.column.getIsSorted() ? (
                       header.column.getIsSorted() === 'desc' ?
-                        <TriangleDownIcon aria-label="sorted descending"/>
+                        <GoTriangleDown aria-label="sorted descending"/>
                         :
-                        <TriangleUpIcon aria-label="sorted ascending"/>
+                        <GoTriangleUp aria-label="sorted ascending"/>
 
                     ) : null
                   }
                 </chakra.span>
-              </Th>
+              </Table.ColumnHeader>
             )
           })}
-        </Tr>
+        </Table.Row>
       ))}
-    </Thead>
+    </Table.Header>
   )
 }

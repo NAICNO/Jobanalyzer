@@ -1,16 +1,14 @@
 import {
+  CloseButton,
   Drawer,
-  DrawerBody,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerHeader,
-  DrawerOverlay,
+  DrawerOpenChangeDetails,
   HStack,
   Heading,
   Link as ChakraLink,
+  Portal,
 } from '@chakra-ui/react'
 import { Link as ReactRouterLink } from 'react-router'
-import { ExternalLinkIcon } from '@chakra-ui/icons'
+import { LuExternalLink } from 'react-icons/lu'
 
 import { NodeSelectionHelpContent } from './NodeSelectionHelpContent.tsx'
 
@@ -21,32 +19,47 @@ interface NodeSelectionHelpDrawerProps {
 }
 
 export const NodeSelectionHelpDrawer = ({isOpen, onClose, finalFocusRef}: NodeSelectionHelpDrawerProps) => {
+
+  const handleOpenChange = (details: DrawerOpenChangeDetails) => {
+    if (!details.open) {
+      onClose()
+    }
+  }
+
   return (
-    <Drawer
-      isOpen={isOpen}
-      placement="right"
-      onClose={onClose}
-      finalFocusRef={finalFocusRef}
+    <Drawer.Root
+      open={isOpen}
+      onOpenChange={handleOpenChange}
+      placement="end"
+      finalFocusEl={finalFocusRef}
       size="xl"
     >
-      <DrawerOverlay/>
-      <DrawerContent>
-        <DrawerCloseButton/>
-        <DrawerHeader>
-          <HStack>
-            <Heading>
-              Query help
-            </Heading>
-            <ChakraLink as={ReactRouterLink} to="/dashboard/help/node-selection" isExternal onClick={onClose}>
-              <ExternalLinkIcon mx="10px"/>
-            </ChakraLink>
-          </HStack>
-        </DrawerHeader>
-
-        <DrawerBody>
-          <NodeSelectionHelpContent/>
-        </DrawerBody>
-      </DrawerContent>
-    </Drawer>
+      <Portal>
+        <Drawer.Backdrop/>
+        <Drawer.Positioner>
+          <Drawer.Content>
+            <Drawer.CloseTrigger/>
+            <Drawer.Header>
+              <HStack>
+                <Heading>
+                  Query help
+                </Heading>
+                <ChakraLink asChild onClick={onClose} target="_blank">
+                  <ReactRouterLink to={'/dashboard/help/node-selection'}>
+                    <LuExternalLink/>
+                  </ReactRouterLink>
+                </ChakraLink>
+              </HStack>
+            </Drawer.Header>
+            <Drawer.Body>
+              <NodeSelectionHelpContent/>
+            </Drawer.Body>
+            <Drawer.CloseTrigger asChild>
+              <CloseButton size={'sm'}/>
+            </Drawer.CloseTrigger>
+          </Drawer.Content>
+        </Drawer.Positioner>
+      </Portal>
+    </Drawer.Root>
   )
 }

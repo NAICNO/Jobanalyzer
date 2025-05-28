@@ -1,17 +1,12 @@
 import {
   Heading,
-  ListItem,
+  Link as ChakraLink,
+  List,
   Table,
-  TableContainer,
-  Tbody,
-  Td,
   Text,
-  Th,
-  Thead,
-  Tr, Link as ChakraLink,
-  UnorderedList, VStack
+  VStack,
 } from '@chakra-ui/react'
-import { ExternalLinkIcon } from '@chakra-ui/icons'
+import { LuExternalLink } from 'react-icons/lu'
 
 const fieldNames = [
   {name: 'cpu%', desc: 'cpu-recent'},
@@ -52,27 +47,27 @@ const abbreviations = [
 
 export const NodeSelectionHelpContent = () => {
   return (
-    <VStack alignItems="start" spacing={2}>
+    <VStack alignItems="start" gap={2}>
       <Text>The query expression selects a subset of all nodes by applying filters.</Text>
       <Heading as="h4" size="md" mt="20px">Expressions</Heading>
       <Text>Query expression syntax is pretty simple. These are all expressions:</Text>
-      <UnorderedList spacing={2}>
-        <ListItem>
+      <List.Root gap={2}>
+        <List.Item>
           <Text>
             A <Text as="em">hostname glob</Text> is a wildcard expression selecting some hosts where "*" is a
             wildcard that stands for any number of characters, ie, "c1-*" selects all nodes in the
             "c1" group of nodes, while "c1*" selects the "c1", "c10", and "c11" groups. "*" by itself
             selects all nodes.
           </Text>
-        </ListItem>
-        <ListItem>
+        </List.Item>
+        <List.Item>
           <Text>
             An <Text as="em">abbreviation</Text> is a word that stands for a pre-defined expression, see the
             list below. For example, the abbreviation "busy" stands for a complex expression that
             selects all nodes that are deemed busy.
           </Text>
-        </ListItem>
-        <ListItem>
+        </List.Item>
+        <List.Item>
           <Text>
             A <Text as="em">relational expression</Text> on the form <Text as="code">fieldname <Text
             as="b">relation</Text> value </Text>
@@ -82,78 +77,78 @@ export const NodeSelectionHelpContent = () => {
             than 50% of its CPU capacity. The relational operators are "{'<'}", "{'<='}", "{'>'}", "{'>'}=",
             and "=". The field names are listed below.
           </Text>
-        </ListItem>
-        <ListItem>
+        </List.Item>
+        <List.Item>
           <Text>
             The <Text as="em">logical operations</Text> <Text as="b">and</Text> and <Text as="b">or</Text> are
             used to combine query expressions, and
             parentheses <Text as="b">(</Text> and <Text as="b">)</Text> are used to group them:
             <Text as="code">login* and (cpu% {'>'} 50 or mem% {'>'} 50)</Text>.
           </Text>
-        </ListItem>
-        <ListItem>
+        </List.Item>
+        <List.Item>
           <Text>
             A set of selected nodes can be complemented by the <Text as="b">~</Text> operator,
             eg, <Text as="code">~login*</Text> is any node except the login nodes.
           </Text>
-        </ListItem>
-      </UnorderedList>
+        </List.Item>
+      </List.Root>
       <Heading as="h4" size="md" mt="20px">Field names</Heading>
       <Text>
         The field names currently defined for the dashboard are those that appear in the table on the
         dashboard. The "recent" columns have uncapitalized names ("cpu%") while the "longer" columns have
         capitalized names ("Cpu%").
       </Text>
-      <TableContainer mt="10px">
-        <Table size="sm">
-          <Thead bg="gray.100">
-            <Tr>
-              <Th>Field</Th>
-              <Th>Description</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
+      <Table.ScrollArea mt="10px">
+        <Table.Root size="sm">
+          <Table.Header bg="gray.100">
+            <Table.Row>
+              <Table.ColumnHeader>Field</Table.ColumnHeader>
+              <Table.ColumnHeader>Description</Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
             {
               fieldNames.map((field) => (
-                <Tr key={field.name}>
-                  <Td>{field.name}</Td>
-                  <Td>{field.desc}</Td>
-                </Tr>
+                <Table.Row key={field.name}>
+                  <Table.Cell>{field.name}</Table.Cell>
+                  <Table.Cell>{field.desc}</Table.Cell>
+                </Table.Row>
               ))
             }
-          </Tbody>
-        </Table>
-      </TableContainer>
+          </Table.Body>
+        </Table.Root>
+      </Table.ScrollArea>
 
       <Heading as="h4" size="md" mt="20px">Abbreviations</Heading>
       <Text>The predefined abbreviations are these:</Text>
-      <TableContainer my="20px">
-        <Table size="sm">
-          <Thead bg="gray.100">
-            <Tr>
-              <Th>Abbreviation</Th>
-              <Th>Description</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
+      <Table.ScrollArea my="20px">
+        <Table.Root size="sm">
+          <Table.Header bg="gray.100">
+            <Table.Row>
+              <Table.ColumnHeader>Abbreviation</Table.ColumnHeader>
+              <Table.ColumnHeader>Description</Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
             {
               abbreviations.map((field) => (
-                <Tr key={field.name}>
-                  <Td>{field.name}</Td>
-                  <Td>{field.desc}</Td>
-                </Tr>
+                <Table.Row key={field.name}>
+                  <Table.Cell>{field.name}</Table.Cell>
+                  <Table.Cell>{field.desc}</Table.Cell>
+                </Table.Row>
               ))
             }
-          </Tbody>
-        </Table>
-      </TableContainer>
+          </Table.Body>
+        </Table.Root>
+      </Table.ScrollArea>
 
       <Text>These have Capitalized variants for the "*-longer" data where that makes sense, eg, "Idle")</Text>
       <Text> For example, to find nodes with spare capacity, simply run "idle". ("Idle" is a poor
         moniker for something running at 49% utilization, so perhaps we want something more subtle.{' '}
-        <ChakraLink href="https://github.com/NAICNO/Jobanalyzer/issues/new" isExternal>
+        <ChakraLink href="https://github.com/NAICNO/Jobanalyzer/issues/new" target="_blank">
           File an issue here.
-          <ExternalLinkIcon mx="4px" mb="4px"/>
+          <LuExternalLink/>
         </ChakraLink>
       </Text>
 
@@ -161,9 +156,9 @@ export const NodeSelectionHelpContent = () => {
 
       <Text> It's easy to add abbreviations - but at this time the abbreviations must be added in the
         query engine, they can't be added by the user.{' '}
-        <ChakraLink href="https://github.com/NAICNO/Jobanalyzer/issues/new" isExternal>
+        <ChakraLink href="https://github.com/NAICNO/Jobanalyzer/issues/new" target="_blank">
           File an issue here.
-          <ExternalLinkIcon mx="4px" mb="4px"/>
+          <LuExternalLink/>
         </ChakraLink>
       </Text>
     </VStack>

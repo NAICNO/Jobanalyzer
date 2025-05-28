@@ -1,5 +1,5 @@
 import { Field, FieldProps } from 'formik'
-import { FormControl, FormLabel, HStack, Radio, RadioGroup } from '@chakra-ui/react'
+import { Field as ChakraField, HStack, RadioGroup } from '@chakra-ui/react'
 import { SimpleRadioInputOption } from '../types'
 
 interface JobQueryFormRadioInputProps {
@@ -12,24 +12,26 @@ export const JobQueryFormRadioInput = ({name, label, options}: JobQueryFormRadio
   return (
     <Field name={name}>
       {({field, form}: FieldProps) => (
-        <FormControl as="fieldset">
-          <FormLabel as="legend">{label}</FormLabel>
-          <RadioGroup
+        <ChakraField.Root as="fieldset">
+          <ChakraField.Label as="legend" pb={2}>{label}</ChakraField.Label>
+          <RadioGroup.Root
             {...field}
             value={field.value}
-            onChange={val => form.setFieldValue(name, val)}
+            onValueChange={val => form.setFieldValue(name, val)}
           >
-            <HStack spacing="24px">
+            <HStack gap="24px">
               {
                 options.map((option) => (
-                  <Radio key={option.value} value={option.value}>
-                    {option.text}
-                  </Radio>
+                  <RadioGroup.Item key={option.value} value={option.value}>
+                    <RadioGroup.ItemHiddenInput/>
+                    <RadioGroup.ItemIndicator/>
+                    <RadioGroup.ItemText>{option.text}</RadioGroup.ItemText>
+                  </RadioGroup.Item>
                 ))
               }
             </HStack>
-          </RadioGroup>
-        </FormControl>
+          </RadioGroup.Root>
+        </ChakraField.Root>
       )}
     </Field>
   )

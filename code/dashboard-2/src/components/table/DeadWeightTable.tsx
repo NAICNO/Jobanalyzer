@@ -1,4 +1,4 @@
-import { Table, Tbody } from '@chakra-ui/react'
+import { Table } from '@chakra-ui/react'
 import { Table as TableType } from '@tanstack/react-table'
 
 import { TableRow } from './TableRow'
@@ -11,13 +11,13 @@ interface DeadWeightTableProps {
 
 export const DeadWeightTable = ({table}: DeadWeightTableProps) => {
   return (
-    <Table size="sm">
+    <Table.Root size="sm">
       <TableHeader table={table}/>
-      <Tbody>
+      <Table.Body>
         {table.getRowModel().rows.map((row) =>
           <TableRow row={row} key={row.id}/>
         )}
-      </Tbody>
-    </Table>
+      </Table.Body>
+    </Table.Root>
   )
 }

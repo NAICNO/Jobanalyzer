@@ -2,22 +2,20 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Button,
   Card,
-  CardBody,
   Grid,
   HStack,
   Heading,
+  Link,
+  Spacer,
+  Stack,
   Text,
   VStack,
-  Link,
   useBreakpointValue,
-  Spacer,
   useDisclosure,
-  Stack,
 } from '@chakra-ui/react'
 import { getCoreRowModel, getSortedRowModel, SortingState, useReactTable } from '@tanstack/react-table'
 import { Form, Formik } from 'formik'
 import { useSearchParams } from 'react-router'
-import { ExternalLinkIcon } from '@chakra-ui/icons'
 
 import {
   EMPTY_ARRAY,
@@ -34,6 +32,7 @@ import { JobQueryResultsSkeleton } from '../components/skeleton/JobQueryResultsS
 import { JobQueryValues } from '../types'
 import { prepareShareableJobQueryLink } from '../util/query/QueryUtils.ts'
 import JobQueryResultExportModal from '../modals/JobQueryResultExportModal.tsx'
+import { LuExternalLink } from 'react-icons/lu'
 
 export default function JobQueryPage() {
 
@@ -91,17 +90,17 @@ export default function JobQueryPage() {
 
   const formGridTemplateColumns = useBreakpointValue({base: '1fr', md: 'repeat(2, 1fr)'})
 
-  const {isOpen, onOpen, onClose} = useDisclosure()
+  const {open, onOpen, onClose, } = useDisclosure()
 
   return (
     <>
       <PageTitle title={'Job Query'}/>
       <VStack alignItems={'start'}>
-        <Card maxW={{md: '700px'}} variant={'outline'}>
-          <CardBody>
+        <Card.Root maxW={{md: '700px'}} variant={'outline'}>
+          <Card.Body>
             <Heading
               size={{base: 'md', md: 'lg'}}
-              mb={4}
+              mb={2}
             >
               Job Query
             </Heading>
@@ -120,7 +119,7 @@ export default function JobQueryPage() {
                 submitForm,
               }) => (
                 <Form>
-                  <Grid templateColumns={formGridTemplateColumns} gridColumnGap={10} gridRowGap={4}>
+                  <Grid templateColumns={formGridTemplateColumns} gridColumnGap={10} gridRowGap={3}>
                     <JobQueryFormTextInput
                       name="clusterName"
                       label="Cluster name"
@@ -182,17 +181,17 @@ export default function JobQueryPage() {
                       options={JOB_QUERY_GPU_OPTIONS}
                     />
                   </Grid>
-                  <VStack alignItems={'start'} mt={'10px'}>
+                  <VStack alignItems={'start'} mt={1}>
                     <Stack
                       direction={{base: 'column', md: 'row'}}
                       alignItems={{base: 'start', md: 'center'}}
-                      spacing={4}
+                      gap={4}
                       mt={4}
                     >
                       <Button
-                        colorScheme="blue"
+                        colorPalette={'blue'}
                         onClick={submitForm}
-                        isDisabled={!isValid}
+                        disabled={!isValid}
                         type="submit"
                       >
                         Select Jobs
@@ -201,10 +200,9 @@ export default function JobQueryPage() {
                         Password protected.{' '}
                         <Link
                           href="https://github.com/NAICNO/Jobanalyzer/issues/new?title=Access"
-                          isExternal
+                          target="_blank"
                         >
-                          File an issue with the title &quot;Access&quot;
-                          <ExternalLinkIcon mx="4px" mb="4px"/>
+                          File an issue with the title &quot;Access&quot; <LuExternalLink/>
                         </Link>
                         {' '}if you need access.
                       </Text>
@@ -216,31 +214,29 @@ export default function JobQueryPage() {
                 </Form>
               )}
             </Formik>
-          </CardBody>
-        </Card>
+          </Card.Body>
+        </Card.Root>
         {
           isLoading &&
           <JobQueryResultsSkeleton/>
         }
         {
           data &&
-          <Card mt="10px" variant={'outline'}>
-            <CardBody>
-              <HStack spacing={2}>
+          <Card.Root mt={1} variant={'outline'}>
+            <Card.Header>
+              <HStack gap={2}>
                 <Heading as="h2" size="lg">
                   Selected Jobs
                 </Heading>
                 <ShareLinkPopover
                   text={'Share link for this query'}
                   link={shareableLink}
-                  placement={'bottom-start'}
-                  showToast
                 />
               </HStack>
-              <Text fontSize="sm" mt="10px">
+              <Text fontSize="sm">
                 Memory values are in GB, cpu/gpu in percent of one core/card.
               </Text>
-              <HStack spacing={2} my="20px">
+              <HStack gap={2} my={2}>
                 <Text>
                   Click on a job link in the table below to view profiles of the job.
                 </Text>
@@ -254,12 +250,14 @@ export default function JobQueryPage() {
                   Export
                 </Button>
               </HStack>
+            </Card.Header>
+            <Card.Body pt={-4}>
               <JobQueryResultsTable table={jobQueryResultsTable}/>
-            </CardBody>
-          </Card>
+            </Card.Body>
+          </Card.Root>
         }
       </VStack>
-      <JobQueryResultExportModal isOpen={isOpen} onClose={onClose} jobQueryFormValues={formValues}/>
+      <JobQueryResultExportModal open={open} onClose={onClose} jobQueryFormValues={formValues}/>
     </>
   )
 }

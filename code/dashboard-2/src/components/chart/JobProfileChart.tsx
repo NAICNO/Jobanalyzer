@@ -12,7 +12,17 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
-import { Checkbox, Heading, HStack, Select, Spacer, Text, VStack } from '@chakra-ui/react'
+import {
+  Checkbox,
+  HStack,
+  Heading,
+  Portal,
+  Select,
+  Spacer,
+  Text,
+  VStack,
+  createListCollection,
+} from '@chakra-ui/react'
 import { DataKey } from 'recharts/types/util/types'
 import moment from 'moment/moment'
 
@@ -36,9 +46,15 @@ export const JobProfileChart = ({
   syncId,
 }: JobProfileChartProps) => {
 
+  const chartTypeOptions = createListCollection({
+    items: [
+      {value: 'area', label: 'Area'},
+      {value: 'line', label: 'Line'}
+    ]
+  })
   const [lineVisibility, setLineVisibility] = useState<boolean[]>(() => seriesConfigs.map(() => true))
   const [dotsVisibility, setDotsVisibility] = useState<boolean>(true)
-  const [chartType, setChartType] = useState<'area' | 'line'>('area')
+  const [chartType, setChartType] = useState<string[]>(['area'])
 
   const handleLegendClick = (dataKey?: DataKey<string>) => {
     const index = seriesConfigs.findIndex((config) => config.dataKey === dataKey)
@@ -61,25 +77,54 @@ export const JobProfileChart = ({
   }
 
   return (
-    <VStack spacing={2} width={'100%'} alignItems={'start'}>
+    <VStack gap={2} width={'100%'} alignItems={'start'}>
       <HStack width="100%" paddingLeft={8} paddingRight={4}>
-        <Heading size={'h4'}>{profileInfo.text}</Heading>
+        <Heading size={'lg'}>{profileInfo.text}</Heading>
         <Spacer/>
         <Text>Chart Type: </Text>
-        <Select
+        <Select.Root
+          collection={chartTypeOptions}
           value={chartType}
-          onChange={(e) => setChartType(e.target.value as 'area' | 'line')}
+          onValueChange={(e) => setChartType(e.value)}
           width="120px"
           size={'sm'}
         >
-          <option value="area">Area</option>
-          <option value="line">Line</option>
-        </Select>
-        <Checkbox isChecked={dotsVisibility} onChange={(e) => setDotsVisibility(e.target.checked)}>
-          Show Dots
-        </Checkbox>
+          <Select.HiddenSelect/>
+          <Select.Control>
+            <Select.Trigger>
+              <Select.ValueText/>
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              <Select.Indicator/>
+            </Select.IndicatorGroup>
+          </Select.Control>
+          <Portal>
+            <Select.Positioner>
+              <Select.Content>
+                <Select.Item item="area">
+                  <Select.ItemText>Area</Select.ItemText>
+                </Select.Item>
+                <Select.Item item="line">
+                  <Select.ItemText>Line</Select.ItemText>
+                </Select.Item>
+              </Select.Content>
+            </Select.Positioner>
+          </Portal>
+        </Select.Root>
+        <Checkbox.Root
+          colorPalette={'blue'}
+          variant={'subtle'}
+          checked={dotsVisibility}
+          onCheckedChange={(e) => setDotsVisibility(!!e.checked)}
+        >
+          <Checkbox.HiddenInput/>
+          <Checkbox.Control/>
+          <Checkbox.Label>
+            Show Dots
+          </Checkbox.Label>
+        </Checkbox.Root>
       </HStack>
-      {chartType === 'area' ? (
+      {chartType[0] === 'area' ? (
         <ResponsiveContainer width="100%" height={700}>
           <AreaChart
             data={dataItems}
@@ -95,7 +140,7 @@ export const JobProfileChart = ({
               interval={'equidistantPreserveStart'}
               tickFormatter={dateTimeFormatter}
             />
-            <YAxis label={{value: profileInfo.yAxisLabel, angle: -90, position: 'insideLeft'}} />
+            <YAxis label={{value: profileInfo.yAxisLabel, angle: -90, position: 'insideLeft'}}/>
             <Tooltip labelFormatter={dateTimeFormatter}/>
             <Legend
               verticalAlign={'top'}
@@ -160,7 +205,7 @@ export const JobProfileChart = ({
               interval={'equidistantPreserveStart'}
               tickFormatter={dateTimeFormatter}
             />
-            <YAxis label={{value: profileInfo.yAxisLabel, angle: -90, position: 'insideLeft'}} />
+            <YAxis label={{value: profileInfo.yAxisLabel, angle: -90, position: 'insideLeft'}}/>
             <Tooltip labelFormatter={dateTimeFormatter}/>
             <Legend
               verticalAlign={'top'}

@@ -1,9 +1,9 @@
 import '@testing-library/jest-dom'
-import { ChakraProvider } from '@chakra-ui/react'
 import { BrowserRouter } from 'react-router'
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table'
 
+import { render } from '../../test-utils.tsx'
 import { Cluster, DashboardTableItem } from '../../../src/types'
 import { DashboardTable } from '../../../src/components/table'
 import { getDashboardTableColumns } from '../../../src/util/TableUtils.ts'
@@ -68,11 +68,9 @@ describe('DashboardTableRow', () => {
     }
 
     render(
-      <ChakraProvider>
-        <BrowserRouter>
-          <DashboardTableWrapper data={data} cluster={cluster}/>
-        </BrowserRouter>
-      </ChakraProvider>
+      <BrowserRouter>
+        <DashboardTableWrapper data={data} cluster={cluster}/>
+      </BrowserRouter>
     )
 
     const table = screen.getByRole('table')
