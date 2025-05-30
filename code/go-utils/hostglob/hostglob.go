@@ -1,41 +1,41 @@
 // There are four operations on host name patterns and sets of host names.
 //
-// - We can *match* a pattern or multi-pattern against a set of concrete host names, yielding a
-//   selection of those host names
-// - We can *expand* a pattern or multi-pattern into a set of concrete host names
-// - We can *compress* a set of concrete host names into a pattern or multi-pattern
-// - We can *split* a multi-pattern into a set of patterns
+//   - We can *match* a pattern or multi-pattern against a set of concrete host names, yielding a
+//     selection of those host names
+//   - We can *expand* a pattern or multi-pattern into a set of concrete host names
+//   - We can *compress* a set of concrete host names into a pattern or multi-pattern
+//   - We can *split* a multi-pattern into a set of patterns
 //
 // The following grammar pertains to all of these:
 //
-//   multi-pattern   ::= pattern ("," pattern)*
-//   pattern         ::= pattern-element ("." pattern-element)*
-//   pattern-element ::= fragment+
-//   fragment        ::= literal | range | wildcard
-//   literal         ::= <longest nonempty string of characters not containing "[" or "," or "*" or ".">
-//   range           ::= "[" range-elt ("," range-elt)* "]"
-//   range-elt       ::= number | number "-" number
-//   number          ::= <nonempty string of 0..9, to be interpreted as decimal>
-//   wildcard        ::= "*"
+//	multi-pattern   ::= pattern ("," pattern)*
+//	pattern         ::= pattern-element ("." pattern-element)*
+//	pattern-element ::= fragment+
+//	fragment        ::= literal | range | wildcard
+//	literal         ::= <longest nonempty string of characters not containing "[" or "," or "*" or ".">
+//	range           ::= "[" range-elt ("," range-elt)* "]"
+//	range-elt       ::= number | number "-" number
+//	number          ::= <nonempty string of 0..9, to be interpreted as decimal>
+//	wildcard        ::= "*"
 //
-//   hostname        ::= host-element ("." host-element)*
-//   host-element    ::= literal
+//	hostname        ::= host-element ("." host-element)*
+//	host-element    ::= literal
 //
 // The following restrictions apply:
 //
-// - In a range A-B, A must be no greater than B or the pattern is invalid
-// - It is not possible to expand a pattern or multi-pattern that contains a wildcard
-// - The expansion of the result of compression of a set of hostnames H must yield exactly
-//   the set H
-// - Compression does not have a unique result and is not required to be optimal
-// - However, compressing the list [y,x] and the list [x,y] must yield the same result (modulo the
-//   ordering of the names in the result set), this is important for some consumers.
-// - The semantics of matching currently follow the semantics of the regular expression expansion of
-//   the pattern-element.  Numbers a, b, ..., z in a range mean /(:?a|b|...|z)/.  A wildcard means
-//   /[^.]*/.  The expansion of a pattern-element always starts with /^/ and ends with /$/.  Hence
-//   "a[1-3]*b" becomes /^a(?:1|2|3)[^.]*b$/.  This can be confusing: "a[1-3]*b" will actually match
-//   the host-element "a14b" because the "1" is matched by the disjunction and the "4" is matched by
-//   the wildcard.
+//   - In a range A-B, A must be no greater than B or the pattern is invalid
+//   - It is not possible to expand a pattern or multi-pattern that contains a wildcard
+//   - The expansion of the result of compression of a set of hostnames H must yield exactly
+//     the set H
+//   - Compression does not have a unique result and is not required to be optimal
+//   - However, compressing the list [y,x] and the list [x,y] must yield the same result (modulo the
+//     ordering of the names in the result set), this is important for some consumers.
+//   - The semantics of matching currently follow the semantics of the regular expression expansion of
+//     the pattern-element.  Numbers a, b, ..., z in a range mean /(:?a|b|...|z)/.  A wildcard means
+//     /[^.]*/.  The expansion of a pattern-element always starts with /^/ and ends with /$/.  Hence
+//     "a[1-3]*b" becomes /^a(?:1|2|3)[^.]*b$/.  This can be confusing: "a[1-3]*b" will actually match
+//     the host-element "a14b" because the "1" is matched by the disjunction and the "4" is matched by
+//     the wildcard.
 //
 // Note: There are implementations of the algorithms here both in the Rust code (sonarlog) and in
 // the JS code (dashboard/hostglob.js).
@@ -355,8 +355,8 @@ func compressRange(xs []int) string {
 // The HostGlobber is immutable and thread-safe: the embedded regexes are defined to be thread-safe
 // for concurrent use. cf https://pkg.go.dev/regexp#Regexp:
 //
-//  A Regexp is safe for concurrent use by multiple goroutines, except for configuration methods,
-//  such as Regexp.Longest.
+//	A Regexp is safe for concurrent use by multiple goroutines, except for configuration methods,
+//	such as Regexp.Longest.
 //
 // However note that the RegExp machinery has some shared global state internally in a sync.Map, and
 // so executing a regexp is not necessarily lock-free.  Hence the HostGlobber is also not
@@ -364,7 +364,7 @@ func compressRange(xs []int) string {
 // like it is only used for fairly complex regexes; ours will tend to be simple (single host pattern
 // that should require no backtracking).
 type HostGlobber struct {
-	matchers        []*regexp.Regexp
+	matchers []*regexp.Regexp
 }
 
 // Create a new filter matching against the patterns.  The flag indicates whether the globbers in
@@ -390,7 +390,7 @@ func NewGlobberWithFix(
 		}
 		matchers = append(matchers, re)
 	}
-	return &HostGlobber{ matchers }, nil
+	return &HostGlobber{matchers}, nil
 }
 
 // Return a globber that matches a string if any of the constituent globbers match it.
@@ -408,7 +408,7 @@ func Join(globbers []*HostGlobber) *HostGlobber {
 		copy(matchers[n:n+len(g.matchers)], g.matchers)
 		n += len(g.matchers)
 	}
-	return &HostGlobber{ matchers }
+	return &HostGlobber{matchers}
 }
 
 // Return true iff the filter has no patterns.
