@@ -1,14 +1,18 @@
 import { useState } from 'react'
 import {
-  Box, Button, ButtonGroup,
+  Box,
+  Button,
   Checkbox,
-  Divider,
-  Heading,
+  Group,
   HStack,
+  Heading,
+  Portal,
   Select,
+  Separator,
   Spacer,
   Text,
-  VStack
+  VStack,
+  createListCollection,
 } from '@chakra-ui/react'
 import { Link as ReactRouterLink, Navigate, useParams } from 'react-router'
 
@@ -53,74 +57,122 @@ export default function HostDetailsPage() {
   const violatorsLink = `/${clusterName}/${hostname}/violators`
   const deadWeightLink = `/${clusterName}/${hostname}/deadweight`
 
+  const collection = createListCollection({
+    items: FETCH_FREQUENCIES,
+  })
+
   return (
     <>
       <PageTitle title={`${hostDetails?.system.hostname} Details`}/>
-      <VStack spacing={4} alignItems="start">
-        <HStack mb="15px">
+      <VStack gap={4} alignItems="start">
+        <HStack mb={1}>
           <NavigateBackButton/>
-          <Heading as="h3" ml={2} size={{base: 'md', md: 'lg'}}>
+          <Heading as="h3" ml={2} size={{base: 'lg', md: 'xl'}}>
             Machine Details: {hostDetails?.system.hostname}
           </Heading>
         </HStack>
-        <Text> Description :{'\t'}{hostDetails?.system.description}
+        <Text>
+          Description :{'\t'}{hostDetails?.system.description}
         </Text>
 
-        <ButtonGroup size={'sm'} spacing="2" variant={'outline'}>
-          <Button as={ReactRouterLink} to={jobQueryLink} leftIcon={<IoSearchOutline/>}>
-            Job Query
+        <Group gap="2">
+          <Button asChild variant="surface" size="xs" colorPalette="blue">
+            <ReactRouterLink to={jobQueryLink}>
+              <IoSearchOutline/> Job Query
+            </ReactRouterLink>
           </Button>
           {selectedCluster.violators &&
-            <Button as={ReactRouterLink} to={violatorsLink} leftIcon={<PiGavel/>}>
-              View Violators
+            <Button asChild variant="surface" size="xs" colorPalette="blue">
+              <ReactRouterLink to={violatorsLink}>
+                <PiGavel/> View Violators
+              </ReactRouterLink>
             </Button>
           }
           {selectedCluster.deadweight &&
-            <Button as={ReactRouterLink} to={deadWeightLink} leftIcon={<GiShamblingZombie/>}>
-              View Zombies
+            <Button asChild variant="surface" size="xs" colorPalette="blue">
+              <ReactRouterLink to={deadWeightLink}>
+                <GiShamblingZombie/> View Zombies
+              </ReactRouterLink>
             </Button>
           }
-        </ButtonGroup>
-        <Divider/>
+        </Group>
+
+        <Separator size="lg"/>
 
         <Heading as="h4" size="lg" my="0px">Machine Load</Heading>
 
         <HStack w="100%">
           <Box w="50%">
-            <Select
-              value={selectedFrequency.value}
+            <Select.Root
+              collection={collection}
+              value={[selectedFrequency.value]}
               size="sm"
               maxW="50%"
-              onChange={(event) => {
-                const value = event.target.value
-                setSelectedFrequency(FETCH_FREQUENCIES.find((frequency) => frequency.value === value)!)
+              onValueChange={(event) => {
+                const value = event.value
+                setSelectedFrequency(FETCH_FREQUENCIES.find((frequency) => frequency.value === value[0])!)
               }}>
-              {
-                FETCH_FREQUENCIES?.map((frequency) => (
-                  <option key={frequency.value} value={frequency.value}>
-                    {frequency.text}
-                  </option>
-                ))
-              }
-            </Select>
+              <Select.HiddenSelect/>
+              <Select.Control>
+                <Select.Trigger>
+                  <Select.ValueText/>
+                </Select.Trigger>
+                <Select.IndicatorGroup>
+                  <Select.Indicator/>
+                </Select.IndicatorGroup>
+              </Select.Control>
+              <Portal>
+                <Select.Positioner>
+                  <Select.Content>
+                    {
+                      collection.items.map((frequency) => (
+                        <Select.Item key={frequency.value} item={frequency}>
+                          <Select.ItemText>
+                            {frequency.text}
+                          </Select.ItemText>
+                        </Select.Item>
+                      ))
+                    }
+                  </Select.Content>
+                </Select.Positioner>
+              </Portal>
+            </Select.Root>
           </Box>
           <Spacer/>
-          <Checkbox
-            isChecked={isShowData}
-            onChange={(event) => setIsShowData(event.target.checked)}>
-            Show data
-          </Checkbox>
-          <Checkbox
-            isChecked={isShowDataPoints}
-            onChange={(event) => setIsShowDataPoints(event.target.checked)}>
-            Show data points
-          </Checkbox>
+          <Checkbox.Root
+            colorPalette={'blue'}
+            variant={'subtle'}
+            checked={isShowData}
+            onCheckedChange={(event) => setIsShowData(!!event.checked)}>
+            <Checkbox.HiddenInput/>
+            <Checkbox.Control/>
+            <Checkbox.Label>
+              Show data
+            </Checkbox.Label>
+          </Checkbox.Root>
+          <Checkbox.Root
+            colorPalette={'blue'}
+            variant={'subtle'}
+            checked={isShowDataPoints}
+            onCheckedChange={(event) => setIsShowDataPoints(!!event.checked)}>
+            <Checkbox.HiddenInput/>
+            <Checkbox.Control/>
+            <Checkbox.Label>
+              Show data points
+            </Checkbox.Label>
+          </Checkbox.Root>
           {hasDowntime &&
-            <Checkbox
-              isChecked={isShowDowntime}
-              onChange={(event) => setIsShowDowntime(event.target.checked)}>
-              Show downtime
-            </Checkbox>
+            <Checkbox.Root
+              colorPalette={'blue'}
+              variant={'subtle'}
+              checked={isShowDowntime}
+              onCheckedChange={(event) => setIsShowDowntime(!!event.checked)}>
+              <Checkbox.HiddenInput/>
+              <Checkbox.Control/>
+              <Checkbox.Label>
+                Show downtime
+              </Checkbox.Label>
+            </Checkbox.Root>
           }
         </HStack>
         <MachineDetailsChart

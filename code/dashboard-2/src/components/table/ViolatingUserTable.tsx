@@ -1,4 +1,4 @@
-import { Table, Tbody } from '@chakra-ui/react'
+import { Table } from '@chakra-ui/react'
 import { Table as TableType } from '@tanstack/react-table'
 import { ViolatingUserTableItem } from '../../types'
 
@@ -11,13 +11,15 @@ interface ViolatingUserTableProps {
 
 export const ViolatingUserTable = ({table}: ViolatingUserTableProps) => {
   return (
-    <Table size="sm">
-      <TableHeader table={table}/>
-      <Tbody>
-        {table.getRowModel().rows.map((row) =>
-          <TableRow row={row} key={row.id}/>
-        )}
-      </Tbody>
-    </Table>
+    <Table.ScrollArea borderWidth="1px"  maxHeight="500px">
+      <Table.Root size="sm" showColumnBorder stickyHeader>
+        <TableHeader table={table}/>
+        <Table.Body>
+          {table.getRowModel().rows.map((row) =>
+            <TableRow row={row} key={row.id}/>
+          )}
+        </Table.Body>
+      </Table.Root>
+    </Table.ScrollArea>
   )
 }

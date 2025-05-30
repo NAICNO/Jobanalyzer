@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
+
+import { render } from '../../test-utils.tsx'
 
 import { WorkingFieldCell } from '../../../src/components/table/cell'
 

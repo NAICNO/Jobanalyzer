@@ -1,4 +1,4 @@
-import { Table, Tbody } from '@chakra-ui/react'
+import { Table } from '@chakra-ui/react'
 import { Table as TableType } from '@tanstack/react-table'
 
 import { DashboardTableRow } from './DashboardTableRow'
@@ -12,13 +12,15 @@ interface DashboardTableProps {
 
 export const DashboardTable = ({table, cluster}: DashboardTableProps) => {
   return (
-    <Table size="sm">
-      <TableHeader table={table}/>
-      <Tbody>
-        {table.getRowModel().rows.map((row) =>
-          <DashboardTableRow row={row} cluster={cluster} key={row.id}/>
-        )}
-      </Tbody>
-    </Table>
+    <Table.ScrollArea borderWidth="0.5px" maxHeight="600px" width="100%">
+      <Table.Root size="sm" showColumnBorder stickyHeader>
+        <TableHeader table={table}/>
+        <Table.Body>
+          {table.getRowModel().rows.map((row) =>
+            <DashboardTableRow row={row} cluster={cluster} key={row.id}/>
+          )}
+        </Table.Body>
+      </Table.Root>
+    </Table.ScrollArea>
   )
 }

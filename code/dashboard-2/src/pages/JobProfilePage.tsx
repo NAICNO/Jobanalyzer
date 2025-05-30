@@ -1,12 +1,7 @@
 import {
   Heading,
   Table,
-  TableContainer,
-  Tbody,
-  Td, Text,
-  Th,
-  Thead,
-  Tr,
+  Text,
   VStack
 } from '@chakra-ui/react'
 import { useSearchParams } from 'react-router'
@@ -31,34 +26,34 @@ export default function JobProfilePage() {
   return (
     <>
       <PageTitle title={'Job Profile Details'}/>
-      <VStack spacing={8} alignItems="start">
+      <VStack gap={2} alignItems="start">
         <Heading as="h3" ml={2} size={{base: 'md', md: 'lg'}}>
           Job Profile Details
         </Heading>
-        <TableContainer>
-          <Table size={'sm'}>
-            <Thead>
-              <Tr>
-                <Th>Job #</Th>
-                <Th>User</Th>
-                <Th>Cluster</Th>
-                <Th>Node</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              <Tr>
-                <Td>{jobId}</Td>
-                <Td>{user}</Td>
-                <Td>{clusterName}</Td>
-                <Td>{hostname}</Td>
-              </Tr>
-            </Tbody>
-          </Table>
-        </TableContainer>
-        <Text fontSize="sm" color="gray.500">
+        <Table.ScrollArea  borderWidth="1px" >
+          <Table.Root size={'sm'} showColumnBorder variant="outline">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Job #</Table.ColumnHeader>
+                <Table.ColumnHeader>User</Table.ColumnHeader>
+                <Table.ColumnHeader>Cluster</Table.ColumnHeader>
+                <Table.ColumnHeader>Node</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              <Table.Row>
+                <Table.Cell>{jobId}</Table.Cell>
+                <Table.Cell>{user}</Table.Cell>
+                <Table.Cell>{clusterName}</Table.Cell>
+                <Table.Cell>{hostname}</Table.Cell>
+              </Table.Row>
+            </Table.Body>
+          </Table.Root>
+        </Table.ScrollArea>
+        <Text fontSize="sm" color="gray.500" mt={4} mb={4}>
           Tip: Drag the brush below to zoom in and explore specific time ranges. Timestamps are in UTC.
         </Text>
-        <VStack w={'100%'} spacing={8}>
+        <VStack w={'100%'} gap={8}>
           {
             data?.map((item, index) => {
                 return (

@@ -146,12 +146,22 @@ export const FETCH_FREQUENCIES = [
   {text: 'Quarterly, by day', value: 'quarterly'},
 ]
 
+
 export const CELL_BACKGROUND_COLORS = {
-  NA: 'transparent',
-  DOWN: 'tomato', // #ff6347
-  WORKING_HARD: 'deepskyblue', // #00bfff
-  WORKING: 'lightskyblue', // #87cefa
-  COASTING: 'lightcyan', // #e0ffff
+  LIGHT: {
+    NA: 'transparent',
+    DOWN: 'tomato', // #ff6347
+    WORKING_HARD: 'deepskyblue', // #00bfff
+    WORKING: 'lightskyblue', // #87cefa
+    COASTING: 'lightcyan', // #e0ffff
+  },
+  DARK: {
+    NA: 'transparent',
+    DOWN: '#8B0000',        // DarkRed
+    WORKING_HARD: '#005F9E',// deep DeepskyBlue
+    WORKING: '#3A70A0',     // muted SteelBlue
+    COASTING: '#205050',    // dark Teal (from light cyan)
+  }
 }
 
 export const CLUSTER_INFO: Record<string, Cluster> = {

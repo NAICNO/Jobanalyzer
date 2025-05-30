@@ -28,18 +28,18 @@ export const NodeSelectionInput = ({defaultQuery, onClickSubmit, onClickHelp, fo
   }
 
   return (
-    <HStack spacing={2} my="20px">
+    <HStack gap={2} mt={2} mb={6}>
       <Text whiteSpace="nowrap">Node selection:</Text>
       <Input
         placeholder="Type selection"
-        width="80%"
         ref={focusRef}
         value={query}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        variant="subtle"
       />
-      <Button onClick={submitQuery} width="120px">Submit</Button>
-      <Button onClick={onClickHelp} variant={'subtle'} width="100px">Help</Button>
+      <Button onClick={submitQuery} colorPalette={'blue'}>Submit</Button>
+      <Button onClick={onClickHelp} variant={'outline'}>Help</Button>
     </HStack>
   )
 }
