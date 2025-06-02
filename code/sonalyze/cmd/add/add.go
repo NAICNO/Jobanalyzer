@@ -14,9 +14,9 @@ import (
 	"go-utils/config"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/sample"
 	"sonalyze/db"
 	"sonalyze/db/special"
-	"sonalyze/sonarlog"
 )
 
 type AddCommand struct /* implements RemotableCommand */ {
@@ -137,7 +137,7 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 	}
 	defer ds.FlushAsync()
 	err = ds.AppendSysinfoAsync(db.DataSysinfoOldJSON, info.Hostname, info.Timestamp, payload)
-	if err == sonarlog.BadTimestampErr {
+	if err == sample.BadTimestampErr {
 		return nil
 	}
 	return err
@@ -173,7 +173,7 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 			return errors.New("Missing timestamp or host in Sonar sample data")
 		}
 		err = ds.AppendSamplesAsync(db.DataSampleCSV, host, time, text)
-		if err != nil && err != sonarlog.BadTimestampErr {
+		if err != nil && err != sample.BadTimestampErr {
 			result = errors.Join(result, err)
 		}
 	}
@@ -214,7 +214,7 @@ func (ac *AddCommand) addSlurmSacctFreeCsv(payload []byte) error {
 			return errors.New("Missing timestamp in sacct data")
 		}
 		err = ds.AppendSlurmSacctAsync(db.DataSlurmCSV, time, text)
-		if err != nil && err != sonarlog.BadTimestampErr {
+		if err != nil && err != sample.BadTimestampErr {
 			result = errors.Join(result, err)
 		}
 	}

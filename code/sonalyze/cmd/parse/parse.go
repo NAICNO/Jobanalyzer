@@ -12,9 +12,9 @@ import (
 	uslices "go-utils/slices"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/sample"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -24,11 +24,11 @@ import (
 
 package parse
 
-import "sonalyze/sonarlog"
+import "sonalyze/data/sample"
 
 %%
 
-FIELDS sonarlog.Sample
+FIELDS sample.Sample
 
  # TODO: IMPROVEME: The use of utc for "localtime" is a bug that comes from the Rust code.
 
@@ -157,13 +157,13 @@ func (pc *ParseCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
 	cluster db.SampleDataProvider,
-	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds, // for pc.MergeByJob only
+	streams sample.InputStreamSet,
+	bounds Timebounds, // for pc.MergeByJob only
 	hostGlobber *Hosts,
-	recordFilter *sonarlog.SampleFilter,
+	recordFilter *sample.SampleFilter,
 ) error {
-	var mergedSamples []*sonarlog.SampleStream
-	var samples sonarlog.SampleStream
+	var mergedSamples []*sample.SampleStream
+	var samples sample.SampleStream
 	switch {
 	default:
 		// Reread the data, bypassing all postprocessing, to get the expected raw values.  If it's
@@ -175,29 +175,29 @@ func (pc *ParseCommand) Perform(
 		}
 
 		// Simulate the normal pipeline, the recordFilter application is expected by the user.
-		mapped := make([]sonarlog.Sample, 0)
+		mapped := make([]sample.Sample, 0)
 		for _, records := range recordBlobs {
 			mapped = append(mapped, uslices.FilterMap(
 				records,
-				sonarlog.InstantiateSampleFilter(recordFilter),
-				func(r *repr.Sample) sonarlog.Sample {
-					return sonarlog.Sample{Sample: r}
+				sample.InstantiateSampleFilter(recordFilter),
+				func(r *repr.Sample) sample.Sample {
+					return sample.Sample{Sample: r}
 				},
 			)...)
 		}
-		samples = sonarlog.SampleStream(mapped)
+		samples = sample.SampleStream(mapped)
 
 	case pc.Clean:
 		mergedSamples = maps.Values(streams)
 
 	case pc.MergeByJob:
-		mergedSamples, _ = sonarlog.MergeByJob(streams, bounds)
+		mergedSamples, _ = sample.MergeByJob(streams, bounds)
 
 	case pc.MergeByHostAndJob:
-		mergedSamples = sonarlog.MergeByHostAndJob(streams)
+		mergedSamples = sample.MergeByHostAndJob(streams)
 	}
 
-	var queryNeg func(sonarlog.Sample) bool
+	var queryNeg func(sample.Sample) bool
 	if pc.ParsedQuery != nil {
 		var err error
 		queryNeg, err = CompileQueryNeg(parseFormatters, parsePredicates, pc.ParsedQuery)
@@ -208,7 +208,7 @@ func (pc *ParseCommand) Perform(
 
 	if mergedSamples != nil {
 		// All elements that are part of the InputStreamKey must be part of the sort key here.
-		slices.SortStableFunc(mergedSamples, func(a, b *sonarlog.SampleStream) int {
+		slices.SortStableFunc(mergedSamples, func(a, b *sample.SampleStream) int {
 			c := cmp.Compare((*a)[0].Hostname.String(), (*b)[0].Hostname.String())
 			if c == 0 {
 				c = cmp.Compare((*a)[0].Timestamp, (*b)[0].Timestamp)

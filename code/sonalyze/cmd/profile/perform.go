@@ -11,9 +11,9 @@ import (
 	"go-utils/maps"
 
 	. "sonalyze/common"
+	"sonalyze/data/sample"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -25,10 +25,10 @@ func (pc *ProfileCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
 	_ db.SampleDataProvider,
-	streams sonarlog.InputStreamSet,
-	_ sonarlog.Timebounds,
+	streams sample.InputStreamSet,
+	_ Timebounds,
 	_ *Hosts,
-	_ *sonarlog.SampleFilter,
+	_ *sample.SampleFilter,
 ) error {
 	jobId := pc.Job[0]
 
@@ -69,7 +69,7 @@ func (pc *ProfileCommand) Perform(
 	//
 	// It's OK to sort by the true timestamp here.
 	processes := maps.Values(streams)
-	slices.SortStableFunc(processes, func(a, b *sonarlog.SampleStream) int {
+	slices.SortStableFunc(processes, func(a, b *sample.SampleStream) int {
 		c := cmp.Compare((*a)[0].Timestamp, (*b)[0].Timestamp)
 		if c == 0 {
 			c = cmp.Compare((*a)[0].Cmd.String(), (*b)[0].Cmd.String())
@@ -216,7 +216,7 @@ func newProcessIndexFactory() *processIndexFactory {
 	}
 }
 
-func (pif *processIndexFactory) hostIndex(s sonarlog.Sample) processIndex {
+func (pif *processIndexFactory) hostIndex(s sample.Sample) processIndex {
 	if n, found := pif.hosts[s.Hostname]; found {
 		return n
 	}
@@ -227,7 +227,7 @@ func (pif *processIndexFactory) hostIndex(s sonarlog.Sample) processIndex {
 	return ix
 }
 
-func (pif *processIndexFactory) indexFor(s sonarlog.Sample) processIndex {
+func (pif *processIndexFactory) indexFor(s sample.Sample) processIndex {
 	hostix := pif.hostIndex(s)
 	// Rolled-up processes have pid=0
 	if s.Pid != 0 {
@@ -303,7 +303,7 @@ type profDatum struct {
 	s          *repr.Sample
 }
 
-func newProfDatum(r sonarlog.Sample, max float64) *profDatum {
+func newProfDatum(r sample.Sample, max float64) *profDatum {
 	var v profDatum
 	v.cpuUtilPct = r.CpuUtilPct
 	v.gpuPct = r.GpuPct

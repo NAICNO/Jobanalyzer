@@ -1,4 +1,4 @@
-package sonarlog
+package sample
 
 import (
 	"time"
@@ -45,55 +45,5 @@ func ReadSampleStreamsAndMaybeBounds(
 		read += len(samples)
 	}
 	streams, bounds = createInputStreams(sampleBlobs, recordFilter, wantBounds)
-	return
-}
-
-func ReadLoadDataStreams(
-	c db.SampleDataProvider,
-	fromDate, toDate time.Time,
-	hostGlobber *Hosts,
-	verbose bool,
-) (
-	streams LoadDataSet,
-	bounds Timebounds,
-	read, dropped int,
-	err error,
-) {
-	// Read and establish invariants
-
-	dataBlobs, dropped, err := c.ReadLoadData(fromDate, toDate, hostGlobber, verbose)
-	if err != nil {
-		return
-	}
-	for _, data := range dataBlobs {
-		read += len(data)
-	}
-	streams, bounds, errors := rectifyLoadData(dataBlobs)
-	dropped += errors
-	return
-}
-
-func ReadGpuDataStreams(
-	c db.SampleDataProvider,
-	fromDate, toDate time.Time,
-	hostGlobber *Hosts,
-	verbose bool,
-) (
-	streams GpuDataSet,
-	bounds Timebounds,
-	read, dropped int,
-	err error,
-) {
-	// Read and establish invariants
-
-	dataBlobs, dropped, err := c.ReadGpuData(fromDate, toDate, hostGlobber, verbose)
-	if err != nil {
-		return
-	}
-	for _, data := range dataBlobs {
-		read += len(data)
-	}
-	streams, bounds, errors := rectifyGpuData(dataBlobs)
-	dropped += errors
 	return
 }

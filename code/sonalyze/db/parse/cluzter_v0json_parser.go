@@ -11,16 +11,33 @@ func ParseCluzterV0JSON(
 	input io.Reader,
 	verbose bool,
 ) (
-	records []*repr.CluzterInfo,
+	attributes []*repr.CluzterAttributes,
+	partitions []*repr.CluzterPartitions,
+	nodes []*repr.CluzterNodes,
 	softErrors int,
 	err error,
 ) {
-	records = make([]*repr.CluzterInfo, 0)
+	attributes = make([]*repr.CluzterAttributes, 0)
+	partitions = make([]*repr.CluzterPartitions, 0)
+	nodes = make([]*repr.CluzterNodes, 0)
 	err = newfmt.ConsumeJSONCluster(input, false, func(r *newfmt.ClusterEnvelope) {
 		if r.Data != nil {
-			// TODO: Not optimal to be pointing into that record probably, but not optimal to be
-			// using the original encoding in any case.
-			records = append(records, (*repr.CluzterInfo)(&r.Data.Attributes))
+			d := &r.Data.Attributes
+			attributes = append(attributes, &repr.CluzterAttributes{
+				Time:    string(d.Time),
+				Cluster: string(d.Cluster),
+				Slurm:   d.Slurm,
+			})
+			partitions = append(partitions, &repr.CluzterPartitions{
+				Time:       string(d.Time),
+				Cluster:    string(d.Cluster),
+				Partitions: d.Partitions,
+			})
+			nodes = append(nodes, &repr.CluzterNodes{
+				Time:    string(d.Time),
+				Cluster: string(d.Cluster),
+				Nodes:   d.Nodes,
+			})
 		} else {
 			softErrors++
 		}

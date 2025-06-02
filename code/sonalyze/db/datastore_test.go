@@ -68,11 +68,11 @@ func TestOpenClose(t *testing.T) {
 
 	// This should work even after Close() because file clusters are independent of the cluster
 	// store.
-	fs, err := OpenTransientSampleCluster(theFiles, nil)
+	fs, err := OpenFileListSampleDB(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	gs, err := OpenTransientSampleCluster(theFiles, nil)
+	gs, err := OpenFileListSampleDB(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestOpenClose(t *testing.T) {
 }
 
 func TestTransientSampleFilenames(t *testing.T) {
-	fs, err := OpenTransientSampleCluster(theFiles, nil)
+	fs, err := OpenFileListSampleDB(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestTransientSampleFilenames(t *testing.T) {
 }
 
 func TestTransientSampleRead(t *testing.T) {
-	fs, err := OpenTransientSampleCluster(theFiles, nil)
+	fs, err := OpenFileListSampleDB(theFiles, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +206,7 @@ func TestPersistentSysinfoRead(t *testing.T) {
 	// 5/30 "b" should have one record
 	// 5/31 "a" should have two records, not equal
 	// 5/32 "b" should have two records, equal
-	recordBlobs, dropped, err := pc.ReadSysinfoData(
+	recordBlobs, dropped, err := pc.ReadSysinfoNodeData(
 		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
 		nil,
@@ -327,7 +327,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	// to not see the data - a synchronous flush is technically required - and if we ever implement
 	// that path then this test will need to have a FlushSync() call before the read.
 
-	recordBlobs, _, err := pc.ReadSysinfoData(
+	recordBlobs, _, err := pc.ReadSysinfoNodeData(
 		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		time.Date(2023, 05, 28, 23, 0, 12, 0, time.UTC),
 		nil,
@@ -346,7 +346,7 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 		t.Fatal("Length", recordBlobs)
 	}
 
-	recordBlobs2, _, err := pc.ReadSysinfoData(
+	recordBlobs2, _, err := pc.ReadSysinfoNodeData(
 		time.Date(2024, 01, 01, 12, 37, 55, 0, time.UTC),
 		time.Date(2024, 05, 01, 23, 0, 12, 0, time.UTC),
 		nil,

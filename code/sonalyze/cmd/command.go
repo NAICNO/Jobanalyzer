@@ -5,8 +5,8 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/data/sample"
 	"sonalyze/db"
-	"sonalyze/sonarlog"
 	"sonalyze/table"
 )
 
@@ -101,10 +101,10 @@ type SampleAnalysisCommand interface {
 		out io.Writer,
 		cfg *config.ClusterConfig,
 		cluster db.SampleDataProvider,
-		streams sonarlog.InputStreamSet,
-		bounds sonarlog.Timebounds,
+		streams sample.InputStreamSet,
+		bounds Timebounds,
 		hostGlobber *Hosts,
-		recordFilter *sonarlog.SampleFilter,
+		recordFilter *sample.SampleFilter,
 	) error
 
 	// Retrieve configfile for those commands that allow it, otherwise "", or "" for absent

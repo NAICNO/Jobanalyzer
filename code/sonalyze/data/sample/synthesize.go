@@ -1,6 +1,6 @@
 // Logic for merging sample streams.
 
-package sonarlog
+package sample
 
 import (
 	"math"

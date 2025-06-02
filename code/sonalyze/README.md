@@ -17,8 +17,7 @@ of lesser interest.
 * `cmd/` - all the application verbs except `daemon`
 * `common/` - shared utility code
 * `daemon/` - logic for the daemon
-* `db/` - storage manager
+* `data/` - storage manager, top part: queries and cleans data coming from the database
+* `db/` - storage manager, bottom part: storage interface
 * `sonalyze.go` - command-line interface for sonalyze + daemon management
-* `sonarlog/` - logic to make sense of and query Sonar data
-* `slurmlog/` - logic to make sense of and query Slurm data
 * `table/` - logic to define the "tables" produced by all the commands, through reflection

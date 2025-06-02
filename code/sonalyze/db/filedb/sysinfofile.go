@@ -10,15 +10,42 @@ import (
 	"sonalyze/db/repr"
 )
 
-type sysinfoPayloadType = []*repr.SysinfoData
+type SysinfoDataNeeded int
+
+const (
+	DataNeedNodeData SysinfoDataNeeded = iota
+	DataNeedCardData
+)
+
+type sysinfoData struct {
+	nodeData []*repr.SysinfoNodeData
+	cardData []*repr.SysinfoCardData
+}
+
+type sysinfoPayloadType = *sysinfoData
 
 type sysinfoFileReadSyncMethods struct {
+	dataNeeded SysinfoDataNeeded
 }
 
 var _ = ReadSyncMethods((*sysinfoFileReadSyncMethods)(nil))
 
-func NewSysinfoFileMethods(_ *config.ClusterConfig) *sysinfoFileReadSyncMethods {
-	return &sysinfoFileReadSyncMethods{}
+type SysinfoFileKind int
+
+const (
+	SysinfoFileKindNodeData SysinfoFileKind = iota
+	SysinfoFileKindCardData
+)
+
+func NewSysinfoFileMethods(_ *config.ClusterConfig, kind SysinfoFileKind) *sysinfoFileReadSyncMethods {
+	switch kind {
+	case SysinfoFileKindNodeData:
+		return &sysinfoFileReadSyncMethods{DataNeedNodeData}
+	case SysinfoFileKindCardData:
+		return &sysinfoFileReadSyncMethods{DataNeedCardData}
+	default:
+		panic("Unexpected")
+	}
 }
 
 func (_ *sysinfoFileReadSyncMethods) IsCacheable() bool {
@@ -26,8 +53,14 @@ func (_ *sysinfoFileReadSyncMethods) IsCacheable() bool {
 }
 
 func (sfr *sysinfoFileReadSyncMethods) SelectDataFromPayload(payload any) (data any) {
-	var _ = payload.(sysinfoPayloadType)
-	return payload
+	switch sfr.dataNeeded {
+	case DataNeedNodeData:
+		return payload.(sysinfoPayloadType).nodeData
+	case DataNeedCardData:
+		return payload.(sysinfoPayloadType).cardData
+	default:
+		panic("Unexpected")
+	}
 }
 
 func (sfr *sysinfoFileReadSyncMethods) ReadDataLockedAndRectify(
@@ -36,40 +69,46 @@ func (sfr *sysinfoFileReadSyncMethods) ReadDataLockedAndRectify(
 	uf *UstrCache,
 	verbose bool,
 ) (payload any, softErrors int, err error) {
-	var p sysinfoPayloadType
+	var nodeData []*repr.SysinfoNodeData
+	var cardData []*repr.SysinfoCardData
 	if (attr & FileSysinfoV0JSON) != 0 {
-		p, err = parse.ParseSysinfoV0JSON(inputFile, verbose)
+		nodeData, cardData, _, err = parse.ParseSysinfoV0JSON(inputFile, verbose)
 	} else {
-		p, err = parse.ParseSysinfoOldJSON(inputFile, verbose)
+		nodeData, cardData, _, err = parse.ParseSysinfoOldJSON(inputFile, verbose)
 	}
-	payload = p
+	if err != nil {
+		return
+	}
+	payload = &sysinfoData{nodeData, cardData}
 	return
 }
 
-var (
-	// MT: Constant after initialization; immutable
-	perSysinfoSize int64
-)
-
-func init() {
-	var s repr.SysinfoData
-	perSysinfoSize = int64(unsafe.Sizeof(s))
-}
-
 func (_ *sysinfoFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
-	data := payload.(sysinfoPayloadType) // []*config.NodeConfigRecord
+	data := payload.(sysinfoPayloadType)
 	size := unsafe.Sizeof(data)
-	size += uintptr(len(data)) * repr.PointerSize
-	for _, d := range data {
-		size += repr.SysinfoDataSize(d)
+	size += uintptr(len(data.nodeData)) * repr.PointerSize
+	for _, d := range data.nodeData {
+		size += d.Size()
+	}
+	size += uintptr(len(data.cardData)) * repr.PointerSize
+	for _, d := range data.cardData {
+		size += d.Size()
 	}
 	return size
 }
 
-func ReadSysinfoSlice(
+func ReadSysinfoNodeDataSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) ([]sysinfoPayloadType, int, error) {
-	return ReadRecordsFromFiles[repr.SysinfoData](files, verbose, reader)
+) ([][]*repr.SysinfoNodeData, int, error) {
+	return ReadRecordsFromFiles[repr.SysinfoNodeData](files, verbose, reader)
+}
+
+func ReadSysinfoCardDataSlice(
+	files []*LogFile,
+	verbose bool,
+	reader ReadSyncMethods,
+) ([][]*repr.SysinfoCardData, int, error) {
+	return ReadRecordsFromFiles[repr.SysinfoCardData](files, verbose, reader)
 }

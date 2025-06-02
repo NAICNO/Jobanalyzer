@@ -28,9 +28,8 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/cpusample"
 	"sonalyze/db"
-	"sonalyze/db/special"
-	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -65,7 +64,7 @@ func (tc *TopCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
-	cfg, err := special.MaybeGetConfig(tc.ConfigFile())
+	theLog, err := db.OpenReadOnlyDB(tc.ConfigFile(), tc.DataDir, db.FileListCpuSampleData, tc.LogFiles)
 	if err != nil {
 		return err
 	}
@@ -75,18 +74,8 @@ func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	var theLog db.SampleDataProvider
-	if len(tc.LogFiles) > 0 {
-		theLog, err = db.OpenTransientSampleCluster(tc.LogFiles, cfg)
-	} else {
-		theLog, err = db.OpenPersistentDirectoryDB(tc.DataDir, cfg)
-	}
-	if err != nil {
-		return fmt.Errorf("Failed to open log store: %v", err)
-	}
-
 	streams, _, read, dropped, err :=
-		sonarlog.ReadLoadDataStreams(
+		cpusample.ReadCpuSamplesByHost(
 			theLog,
 			tc.FromDate,
 			tc.ToDate,
@@ -102,7 +91,7 @@ func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 	}
 
 	hostStreams := umaps.Values(streams)
-	slices.SortFunc(hostStreams, func(a, b *sonarlog.LoadData) int {
+	slices.SortFunc(hostStreams, func(a, b *cpusample.CpuSamplesByHost) int {
 		return cmp.Compare(a.Hostname.String(), b.Hostname.String())
 	})
 

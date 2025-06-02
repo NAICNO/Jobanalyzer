@@ -92,9 +92,12 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	samplesMethods           ReadSyncMethods
 	loadDataMethods          ReadSyncMethods
 	gpuDataMethods           ReadSyncMethods
-	nodeConfigRecordsMethods ReadSyncMethods
+	sysinfoNodeDataMethods   ReadSyncMethods
+	sysinfoCardDataMethods   ReadSyncMethods
 	sacctMethods             ReadSyncMethods
-	cluzterMethods           ReadSyncMethods
+	cluzterAttributesMethods ReadSyncMethods
+	cluzterPartitionsMethods ReadSyncMethods
+	cluzterNodesMethods      ReadSyncMethods
 
 	// MT: Immutable after initialization
 	// The dataDir must have been path.Clean'd, it is the root directory for the cluster.
@@ -142,11 +145,14 @@ func NewPersistentCluster(dataDir string, cfg *config.ClusterConfig) *Persistent
 	dirs := findSortedDateIndexedDirectories(dataDir, fromDate, toDate)
 	return &PersistentCluster{
 		samplesMethods:           NewSampleFileMethods(cfg, SampleFileKindSample),
-		loadDataMethods:          NewSampleFileMethods(cfg, SampleFileKindLoadDatum),
-		gpuDataMethods:           NewSampleFileMethods(cfg, SampleFileKindGpuDatum),
-		nodeConfigRecordsMethods: NewSysinfoFileMethods(cfg),
+		loadDataMethods:          NewSampleFileMethods(cfg, SampleFileKindCpuSamples),
+		gpuDataMethods:           NewSampleFileMethods(cfg, SampleFileKindGpuSamples),
+		sysinfoNodeDataMethods:   NewSysinfoFileMethods(cfg, SysinfoFileKindNodeData),
+		sysinfoCardDataMethods:   NewSysinfoFileMethods(cfg, SysinfoFileKindCardData),
 		sacctMethods:             NewSacctFileMethods(cfg),
-		cluzterMethods:           NewCluzterFileMethods(cfg),
+		cluzterAttributesMethods: NewCluzterFileMethods(cfg, CluzterFileKindAttributeData),
+		cluzterPartitionsMethods: NewCluzterFileMethods(cfg, CluzterFileKindPartitionData),
+		cluzterNodesMethods:      NewCluzterFileMethods(cfg, CluzterFileKindNodeData),
 		dataDir:                  dataDir,
 		cfg:                      cfg,
 		dirs:                     dirs,
@@ -291,48 +297,63 @@ func (pc *PersistentCluster) ReadSamples(
 	)
 }
 
-func (pc *PersistentCluster) ReadLoadData(
+func (pc *PersistentCluster) ReadCpuSamples(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
 	verbose bool,
-) (dataBlobs [][]*repr.LoadDatum, dropped int, err error) {
+) (dataBlobs [][]*repr.CpuSamples, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.loadDataMethods,
-		ReadLoadDatumSlice,
+		ReadCpuSamplesSlice,
 	)
 }
 
-func (pc *PersistentCluster) ReadGpuData(
+func (pc *PersistentCluster) ReadGpuSamples(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
 	verbose bool,
-) (dataBlobs [][]*repr.GpuDatum, dropped int, err error) {
+) (dataBlobs [][]*repr.GpuSamples, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.gpuDataMethods,
-		ReadGpuDatumSlice,
+		ReadGpuSamplesSlice,
 	)
 }
 
-func (pc *PersistentCluster) ReadSysinfoData(
+func (pc *PersistentCluster) ReadSysinfoNodeData(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
 	verbose bool,
-) (sysinfoBlobs [][]*repr.SysinfoData, dropped int, err error) {
+) (sysinfoBlobs [][]*repr.SysinfoNodeData, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, hosts, verbose, &pc.sysinfoFiles, pc.nodeConfigRecordsMethods,
-		ReadSysinfoSlice,
+		pc, fromDate, toDate, hosts, verbose, &pc.sysinfoFiles, pc.sysinfoNodeDataMethods,
+		ReadSysinfoNodeDataSlice,
+	)
+}
+
+func (pc *PersistentCluster) ReadSysinfoCardData(
+	fromDate, toDate time.Time,
+	hosts *Hosts,
+	verbose bool,
+) (sysinfoBlobs [][]*repr.SysinfoCardData, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, hosts, verbose, &pc.sysinfoFiles, pc.sysinfoCardDataMethods,
+		ReadSysinfoCardDataSlice,
 	)
 }
 
@@ -350,17 +371,45 @@ func (pc *PersistentCluster) ReadSacctData(
 	)
 }
 
-func (pc *PersistentCluster) ReadCluzterData(
+func (pc *PersistentCluster) ReadCluzterAttributeData(
 	fromDate, toDate time.Time,
 	verbose bool,
-) (cluzterBlobs [][]*repr.CluzterInfo, dropped int, err error) {
+) (cluzterBlobs [][]*repr.CluzterAttributes, dropped int, err error) {
 	if DEBUG {
 		Assert(fromDate.Location() == time.UTC, "UTC expected")
 		Assert(toDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterMethods,
-		ReadCluzterSlice,
+		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterAttributesMethods,
+		ReadCluzterAttributeDataSlice,
+	)
+}
+
+func (pc *PersistentCluster) ReadCluzterPartitionData(
+	fromDate, toDate time.Time,
+	verbose bool,
+) (cluzterBlobs [][]*repr.CluzterPartitions, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterPartitionsMethods,
+		ReadCluzterPartitionDataSlice,
+	)
+}
+
+func (pc *PersistentCluster) ReadCluzterNodeData(
+	fromDate, toDate time.Time,
+	verbose bool,
+) (cluzterBlobs [][]*repr.CluzterNodes, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterNodesMethods,
+		ReadCluzterNodeDataSlice,
 	)
 }
 

@@ -25,11 +25,11 @@ var (
 
 	// This is applied to a set of load data newly read from a file, before caching.
 	// MT: Constant after initialization; immutable
-	LoadDatumRectifier func([]*repr.LoadDatum, *config.ClusterConfig) []*repr.LoadDatum
+	CpuSamplesRectifier func([]*repr.CpuSamples, *config.ClusterConfig) []*repr.CpuSamples
 
 	// This is applied to a set of GPU data newly read from a file, before caching.
 	// MT: Constant after initialization; immutable
-	GpuDatumRectifier func([]*repr.GpuDatum, *config.ClusterConfig) []*repr.GpuDatum
+	GpuSamplesRectifier func([]*repr.GpuSamples, *config.ClusterConfig) []*repr.GpuSamples
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

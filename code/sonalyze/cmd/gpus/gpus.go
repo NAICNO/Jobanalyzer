@@ -9,9 +9,8 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/gpusample"
 	"sonalyze/db"
-	"sonalyze/db/special"
-	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -27,15 +26,14 @@ FIELDS *ReportLine
 
  Timestamp   DateTimeValue desc:"Timestamp of when the reading was taken"
  Hostname    Ustr          desc:"Name that host is known by on the cluster"
- Gpu         int           desc:"Card index on the host"
- FanPct      int           desc:"Fan speed in percent of max"
- PerfMode    int           desc:"Numeric performance mode"
- MemUsedKB   int64         desc:"Amount of memory in use"
- TempC       int           desc:"Card temperature in degrees C"
- PowerDrawW  int           desc:"Current power draw in Watts"
- PowerLimitW int           desc:"Current power limit in Watts"
- CeClockMHz  int           desc:"Current compute element clock"
- MemClockMHz int           desc:"Current memory clock"
+ Index       uint64        desc:"Card index on the host"
+ Fan         uint64        desc:"Fan speed in percent of max"
+ Memory      uint64        desc:"Amount of memory in use"
+ Temperature int64         desc:"Card temperature in degrees C"
+ Power       uint64        desc:"Current power draw in Watts"
+ PowerLimit  uint64        desc:"Current power limit in Watts"
+ CEClock     uint64        desc:"Current compute element clock in MHz"
+ MemoryClock uint64        desc:"Current memory clock in MHz"
 
 SUMMARY GpuCommand
 
@@ -48,10 +46,10 @@ HELP GpuCommand
 
 ALIASES
 
-  default   Hostname,Gpu,Timestamp,MemUsedKB,PowerDrawW
-  Default   Hostname,Gpu,Timestamp,MemUsedKB,PowerDrawW
-  All       Timestamp,Hostname,Gpu,FanPct,PerfMode,MemUsedKB,TempC,PowerDrawW,\
-            PowerLimitW,CeClockMHz,MemClockMHz
+  default   Hostname,Gpu,Timestamp,Memory,PowerDraw
+  Default   Hostname,Gpu,Timestamp,Memory,PowerDraw
+  All       Timestamp,Hostname,Index,Fan,Memory,Temperature,PowerDraw,\
+            PowerLimit,CEClock,MemoryClock
 
 DEFAULTS default
 
@@ -95,32 +93,21 @@ type ReportLine struct {
 	Timestamp DateTimeValue
 	Hostname  Ustr
 	Gpu       int
-	*sonarlog.PerGpuDatum
+	*gpusample.PerGpuSample
 }
 
-func (gc *GpuCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
-	cfg, err := special.MaybeGetConfig(gc.ConfigFile())
+func (gc *GpuCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
+	theLog, err := db.OpenReadOnlyDB(gc.ConfigFile(), gc.DataDir, db.FileListGpuSampleData, gc.LogFiles)
 	if err != nil {
 		return err
 	}
-
 	hostGlobber, err := NewHosts(true, gc.Host)
 	if err != nil {
 		return err
 	}
 
-	var theLog db.SampleDataProvider
-	if len(gc.LogFiles) > 0 {
-		theLog, err = db.OpenTransientSampleCluster(gc.LogFiles, cfg)
-	} else {
-		theLog, err = db.OpenPersistentDirectoryDB(gc.DataDir, cfg)
-	}
-	if err != nil {
-		return fmt.Errorf("Failed to open log store: %v", err)
-	}
-
 	streams, _, read, dropped, err :=
-		sonarlog.ReadGpuDataStreams(
+		gpusample.ReadGpuSamplesByHost(
 			theLog,
 			gc.FromDate,
 			gc.ToDate,
@@ -144,7 +131,7 @@ func (gc *GpuCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
 					r.Timestamp = DateTimeValue(d.Time)
 					r.Hostname = s.Hostname
 					r.Gpu = i
-					r.PerGpuDatum = &gpu
+					r.PerGpuSample = &gpu
 					reports = append(reports, &r)
 				}
 			}

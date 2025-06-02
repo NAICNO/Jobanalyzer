@@ -5,41 +5,28 @@ import (
 	"io"
 
 	. "sonalyze/common"
+	"sonalyze/data/slurmjob"
 	"sonalyze/db"
-	"sonalyze/db/special"
-	"sonalyze/slurmlog"
 )
 
 type sacctSummary struct {
-	*slurmlog.SlurmJob
+	*slurmjob.SlurmJob
 	maxrss       uint32
 	requestedCpu uint64
 	usedCpu      uint64
 }
 
 func (sc *SacctCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	var theLog db.SacctDataProvider
-	var err error
-
-	cfg, err := special.MaybeGetConfig(sc.ConfigFile())
+	theLog, err := db.OpenReadOnlyDB(sc.ConfigFile(), sc.DataDir, db.FileListSlurmJobData, sc.LogFiles)
 	if err != nil {
 		return err
 	}
 
-	if len(sc.LogFiles) > 0 {
-		theLog, err = db.OpenTransientSacctCluster(sc.LogFiles, cfg)
-	} else {
-		theLog, err = db.OpenPersistentDirectoryDB(sc.DataDir, cfg)
-	}
-	if err != nil {
-		return fmt.Errorf("Failed to open log store: %v", err)
-	}
-
-	jobs, err := slurmlog.Query(
+	jobs, err := slurmjob.Query(
 		theLog,
 		sc.FromDate,
 		sc.ToDate,
-		slurmlog.QueryFilter{
+		slurmjob.QueryFilter{
 			Host:       sc.Host,
 			State:      sc.State,
 			User:       sc.User,
@@ -59,9 +46,9 @@ func (sc *SacctCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 
 	// Partition by job type
 
-	regular := make([]*slurmlog.SlurmJob, 0)
-	arrays := make(map[uint32][]*slurmlog.SlurmJob)
-	het := make([]*slurmlog.SlurmJob, 0)
+	regular := make([]*slurmjob.SlurmJob, 0)
+	arrays := make(map[uint32][]*slurmjob.SlurmJob)
+	het := make([]*slurmjob.SlurmJob, 0)
 	for _, j := range jobs {
 		switch {
 		case j.Main == nil:
@@ -87,7 +74,7 @@ func (sc *SacctCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	}
 }
 
-func (sc *SacctCommand) sacctRegularJobs(stdout io.Writer, regularJobs []*slurmlog.SlurmJob) error {
+func (sc *SacctCommand) sacctRegularJobs(stdout io.Writer, regularJobs []*slurmjob.SlurmJob) error {
 
 	// Compute auxiliary fields we may need during printing
 
@@ -142,7 +129,7 @@ func (sc *SacctCommand) sacctRegularJobs(stdout io.Writer, regularJobs []*slurml
 	return sc.printRegularJobs(stdout, regular)
 }
 
-func (sc *SacctCommand) sacctArrayJobs(stdout io.Writer, arrays map[uint32][]*slurmlog.SlurmJob) error {
+func (sc *SacctCommand) sacctArrayJobs(stdout io.Writer, arrays map[uint32][]*slurmjob.SlurmJob) error {
 	// For the array jobs it could look like we get a number of "elements" that corresponds to the
 	// number of concurrent array jobs?  But that could really be a result of incomplete input data
 	// at this point.

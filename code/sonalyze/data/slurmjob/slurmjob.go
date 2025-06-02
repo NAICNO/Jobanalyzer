@@ -1,4 +1,4 @@
-package slurmlog
+package slurmjob
 
 import (
 	"fmt"

@@ -33,59 +33,53 @@ var gpuFormatters = map[string]Formatter[*ReportLine]{
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
-	"Gpu": {
+	"Index": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt((d.Gpu), ctx)
+			return FormatUint64((d.Index), ctx)
 		},
-		Help: "(int) Card index on the host",
+		Help: "(uint64) Card index on the host",
 	},
-	"FanPct": {
+	"Fan": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt((d.FanPct), ctx)
+			return FormatUint64((d.Fan), ctx)
 		},
-		Help: "(int) Fan speed in percent of max",
+		Help: "(uint64) Fan speed in percent of max",
 	},
-	"PerfMode": {
+	"Memory": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt((d.PerfMode), ctx)
+			return FormatUint64((d.Memory), ctx)
 		},
-		Help: "(int) Numeric performance mode",
+		Help: "(uint64) Amount of memory in use",
 	},
-	"MemUsedKB": {
+	"Temperature": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt64((d.MemUsedKB), ctx)
+			return FormatInt64((d.Temperature), ctx)
 		},
-		Help: "(int64) Amount of memory in use",
+		Help: "(int64) Card temperature in degrees C",
 	},
-	"TempC": {
+	"Power": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt((d.TempC), ctx)
+			return FormatUint64((d.Power), ctx)
 		},
-		Help: "(int) Card temperature in degrees C",
+		Help: "(uint64) Current power draw in Watts",
 	},
-	"PowerDrawW": {
+	"PowerLimit": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt((d.PowerDrawW), ctx)
+			return FormatUint64((d.PowerLimit), ctx)
 		},
-		Help: "(int) Current power draw in Watts",
+		Help: "(uint64) Current power limit in Watts",
 	},
-	"PowerLimitW": {
+	"CEClock": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt((d.PowerLimitW), ctx)
+			return FormatUint64((d.CEClock), ctx)
 		},
-		Help: "(int) Current power limit in Watts",
+		Help: "(uint64) Current compute element clock in MHz",
 	},
-	"CeClockMHz": {
+	"MemoryClock": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt((d.CeClockMHz), ctx)
+			return FormatUint64((d.MemoryClock), ctx)
 		},
-		Help: "(int) Current compute element clock",
-	},
-	"MemClockMHz": {
-		Fmt: func(d *ReportLine, ctx PrintMods) string {
-			return FormatInt((d.MemClockMHz), ctx)
-		},
-		Help: "(int) Current memory clock",
+		Help: "(uint64) Current memory clock in MHz",
 	},
 }
 
@@ -103,58 +97,52 @@ var gpuPredicates = map[string]Predicate[*ReportLine]{
 			return cmp.Compare((d.Hostname), v.(Ustr))
 		},
 	},
-	"Gpu": Predicate[*ReportLine]{
-		Convert: CvtString2Int,
+	"Index": Predicate[*ReportLine]{
+		Convert: CvtString2Uint64,
 		Compare: func(d *ReportLine, v any) int {
-			return cmp.Compare((d.Gpu), v.(int))
+			return cmp.Compare((d.Index), v.(uint64))
 		},
 	},
-	"FanPct": Predicate[*ReportLine]{
-		Convert: CvtString2Int,
+	"Fan": Predicate[*ReportLine]{
+		Convert: CvtString2Uint64,
 		Compare: func(d *ReportLine, v any) int {
-			return cmp.Compare((d.FanPct), v.(int))
+			return cmp.Compare((d.Fan), v.(uint64))
 		},
 	},
-	"PerfMode": Predicate[*ReportLine]{
-		Convert: CvtString2Int,
+	"Memory": Predicate[*ReportLine]{
+		Convert: CvtString2Uint64,
 		Compare: func(d *ReportLine, v any) int {
-			return cmp.Compare((d.PerfMode), v.(int))
+			return cmp.Compare((d.Memory), v.(uint64))
 		},
 	},
-	"MemUsedKB": Predicate[*ReportLine]{
+	"Temperature": Predicate[*ReportLine]{
 		Convert: CvtString2Int64,
 		Compare: func(d *ReportLine, v any) int {
-			return cmp.Compare((d.MemUsedKB), v.(int64))
+			return cmp.Compare((d.Temperature), v.(int64))
 		},
 	},
-	"TempC": Predicate[*ReportLine]{
-		Convert: CvtString2Int,
+	"Power": Predicate[*ReportLine]{
+		Convert: CvtString2Uint64,
 		Compare: func(d *ReportLine, v any) int {
-			return cmp.Compare((d.TempC), v.(int))
+			return cmp.Compare((d.Power), v.(uint64))
 		},
 	},
-	"PowerDrawW": Predicate[*ReportLine]{
-		Convert: CvtString2Int,
+	"PowerLimit": Predicate[*ReportLine]{
+		Convert: CvtString2Uint64,
 		Compare: func(d *ReportLine, v any) int {
-			return cmp.Compare((d.PowerDrawW), v.(int))
+			return cmp.Compare((d.PowerLimit), v.(uint64))
 		},
 	},
-	"PowerLimitW": Predicate[*ReportLine]{
-		Convert: CvtString2Int,
+	"CEClock": Predicate[*ReportLine]{
+		Convert: CvtString2Uint64,
 		Compare: func(d *ReportLine, v any) int {
-			return cmp.Compare((d.PowerLimitW), v.(int))
+			return cmp.Compare((d.CEClock), v.(uint64))
 		},
 	},
-	"CeClockMHz": Predicate[*ReportLine]{
-		Convert: CvtString2Int,
+	"MemoryClock": Predicate[*ReportLine]{
+		Convert: CvtString2Uint64,
 		Compare: func(d *ReportLine, v any) int {
-			return cmp.Compare((d.CeClockMHz), v.(int))
-		},
-	},
-	"MemClockMHz": Predicate[*ReportLine]{
-		Convert: CvtString2Int,
-		Compare: func(d *ReportLine, v any) int {
-			return cmp.Compare((d.MemClockMHz), v.(int))
+			return cmp.Compare((d.MemoryClock), v.(uint64))
 		},
 	},
 }
@@ -176,9 +164,9 @@ func (c *GpuCommand) MaybeFormatHelp() *FormatHelp {
 
 // MT: Constant after initialization; immutable
 var gpuAliases = map[string][]string{
-	"default": []string{"Hostname", "Gpu", "Timestamp", "MemUsedKB", "PowerDrawW"},
-	"Default": []string{"Hostname", "Gpu", "Timestamp", "MemUsedKB", "PowerDrawW"},
-	"All":     []string{"Timestamp", "Hostname", "Gpu", "FanPct", "PerfMode", "MemUsedKB", "TempC", "PowerDrawW", "PowerLimitW", "CeClockMHz", "MemClockMHz"},
+	"default": []string{"Hostname", "Gpu", "Timestamp", "Memory", "PowerDraw"},
+	"Default": []string{"Hostname", "Gpu", "Timestamp", "Memory", "PowerDraw"},
+	"All":     []string{"Timestamp", "Hostname", "Index", "Fan", "Memory", "Temperature", "PowerDraw", "PowerLimit", "CEClock", "MemoryClock"},
 }
 
 const gpuDefaultFields = "default"

@@ -77,6 +77,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 
 	// Note "daemon" is not a command here
 	http.HandleFunc("/add", httpAddHandler(dc))
+	http.HandleFunc("/card", httpGetHandler(dc, "card"))
 	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))
 	http.HandleFunc("/config", httpGetHandler(dc, "config"))
 	http.HandleFunc("/node", httpGetHandler(dc, "node"))
@@ -89,6 +90,8 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	http.HandleFunc("/report", httpGetHandler(dc, "report"))
 	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata"))
 	http.HandleFunc("/sacct", httpGetHandler(dc, "sacct"))
+	http.HandleFunc("/snode", httpGetHandler(dc, "snode"))
+	http.HandleFunc("/spart", httpGetHandler(dc, "spart"))
 	// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
 	// upload infra already running on the clusters.  We'd like to get rid of them eventually.
 	http.HandleFunc("/sonar-freecsv", httpPostHandler(dc, "sample", "text/csv"))

@@ -1,8 +1,5 @@
-// Print sysinfo for individual nodes.  The sysinfo is a simple config.NodeConfigRecord, without any
-// surrounding context.  All fields can be printed, we just print raw data except booleans are "yes"
-// or "no".
-//
-// If there are logfiles present in the input then we use those as a transient cluster of sysinfo.
+// Print sysinfo for individual nodes.  The sysinfo is a simple join of node and gpu data, without
+// any surrounding context.
 
 package nodes
 
@@ -13,18 +10,14 @@ import (
 	"io"
 	"math"
 	"slices"
-	"time"
 
-	"go-utils/hostglob"
 	umaps "go-utils/maps"
-	uslices "go-utils/slices"
 
 	. "sonalyze/cmd"
-	. "sonalyze/common"
+	"sonalyze/data/card"
+	"sonalyze/data/node"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
-	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -34,14 +27,9 @@ import (
 
 package nodes
 
-import "sonalyze/db/repr"
-
 %%
 
-FIELDS *repr.SysinfoData
-
- # Note the CrossNodeJobs field is a config-level attribute, it does not appear in the raw sysinfo
- # data, and so it is not included here.
+FIELDS *NodeData
 
  Timestamp   string desc:"Full ISO timestamp of when the reading was taken" alias:"timestamp"
  Hostname    string desc:"Name that host is known by on the cluster" alias:"host"
@@ -51,6 +39,8 @@ FIELDS *repr.SysinfoData
  GpuCards    int    desc:"Number of installed cards" alias:"gpus"
  GpuMemGB    int    desc:"Total GPU memory across all cards" alias:"gpumem"
  GpuMemPct   bool   desc:"True if GPUs report accurate memory usage in percent" alias:"gpumempct"
+
+GENERATE NodeData
 
 SUMMARY NodeCommand
 
@@ -118,70 +108,112 @@ func (nc *NodeCommand) Validate() error {
 // Processing
 
 func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	var theLog db.SysinfoDataProvider
-	var err error
-
-	cfg, err := special.MaybeGetConfig(nc.ConfigFile())
+	theLog, err := db.OpenReadOnlyDB(
+		nc.ConfigFile(),
+		nc.DataDir,
+		db.FileListNodeData|db.FileListCardData,
+		nc.LogFiles,
+	)
 	if err != nil {
 		return err
-	}
-
-	hosts, err := NewHosts(true, nc.HostArgs.Host)
-	if err != nil {
-		return err
-	}
-
-	if len(nc.LogFiles) > 0 {
-		theLog, err = db.OpenTransientSysinfoCluster(nc.LogFiles, cfg)
-	} else {
-		theLog, err = db.OpenPersistentDirectoryDB(nc.DataDir, cfg)
-	}
-	if err != nil {
-		return fmt.Errorf("Failed to open log store: %v", err)
 	}
 
 	// Read and filter the raw sysinfo data.
+	//
+	// TODO: This is where we really want to lean on code in data/ and not use the repr directly, as
+	// we're computing a join and we'd like the database to do that for us if it is able to.
+	//
+	// What we want here is, for each point in time, join the cards on a host to the node data for
+	// the host, so that we can present at least some card information with the node.  Node names
+	// and time stamps are restricted strings so it's easy enough to use those as a key.  The logic
+	// that is here really belongs in data/sysinfo (or similar), but that does not exist yet.
+	//
+	// Join logic can be generalized by parameterizing by types and the key constructor, probably.
+	// Probably this would turn into a situation where we compute a list of data from both input
+	// sets.
 
-	recordBlobs, dropped, err := theLog.ReadSysinfoData(
-		nc.FromDate,
-		nc.ToDate,
-		hosts,
+	nodes, err := node.Query(
+		theLog,
+		node.QueryFilter{
+			HaveFromDate: nc.HaveFrom,
+			FromDate:     nc.FromDate,
+			HaveToDate:   nc.HaveTo,
+			ToDate:       nc.ToDate,
+			Hosts:        nc.HostArgs.Host,
+		},
 		nc.Verbose,
 	)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)
 	}
-	records := uslices.Catenate(recordBlobs)
-	if nc.Verbose {
-		Log.Infof("%d records read + %d dropped", len(records), dropped)
-		UstrStats(stderr, false)
-	}
-
-	hostGlobber, recordFilter, query, err := nc.buildRecordFilter(hosts, nc.Verbose)
+	cards, err := card.Query(
+		theLog,
+		card.QueryFilter{
+			HaveFromDate: nc.HaveFrom,
+			FromDate:     nc.FromDate,
+			HaveToDate:   nc.HaveTo,
+			ToDate:       nc.ToDate,
+			Hosts:        nc.HostArgs.Host,
+		},
+		nc.Verbose,
+	)
 	if err != nil {
-		return fmt.Errorf("Failed to create record filter: %v", err)
+		return fmt.Errorf("Failed to read log records: %v", err)
 	}
 
-	records = slices.DeleteFunc(records, func(s *repr.SysinfoData) bool {
-		if !hostGlobber.IsEmpty() && !hostGlobber.Match(s.Hostname) {
-			return true
+	type joinedData struct {
+		// the time and host are given by node
+		node  *repr.SysinfoNodeData
+		cards []*repr.SysinfoCardData
+	}
+	joined := make(map[string]*joinedData)
+	for _, r := range nodes {
+		joined[r.Time+"|"+r.Node] = &joinedData{node: r}
+	}
+	for _, r := range cards {
+		if probe := joined[r.Time+"|"+r.Node]; probe != nil {
+			probe.cards = append(probe.cards, r)
 		}
-		parsed, err := time.Parse(time.RFC3339, s.Timestamp)
-		if err != nil {
-			return true
+	}
+	rawRecords := umaps.Values(joined)
+
+	records := make([]*NodeData, len(rawRecords))
+	for i, r := range rawRecords {
+		ht := ""
+		if r.node.ThreadsPerCore > 1 {
+			ht = " (hyperthreaded)"
 		}
-		t := parsed.Unix()
-		if !(t >= recordFilter.From && t <= recordFilter.To) {
-			return true
+		memGB := int(math.Round(float64(r.node.Memory) / (1024 * 1024)))
+		desc := fmt.Sprintf(
+			"%dx%d%s %s, %d GiB", r.node.Sockets, r.node.CoresPerSocket, ht, r.node.CpuModel, memGB)
+		cores := r.node.Sockets * r.node.CoresPerSocket * r.node.ThreadsPerCore
+		numCards := len(r.cards)
+		cardTotalMemKB := uint64(0)
+		for _, c := range r.cards {
+			cardTotalMemKB += c.Memory
 		}
-		if query != nil && !query(s) {
-			return true
+		cardTotalMemGB := int(math.Round(float64(cardTotalMemKB) / (1024 * 1024)))
+		if numCards > 0 {
+			desc += fmt.Sprintf(", %dx %s @ %dGiB", numCards, r.cards[0].Model, (r.cards[0].Memory)/(1024*1024))
 		}
-		return false
-	})
+		records[i] = &NodeData{
+			Timestamp:   r.node.Time,
+			Hostname:    r.node.Node,
+			Description: desc,
+			CpuCores:    int(cores),
+			MemGB:       memGB,
+			GpuCards:    numCards,
+			GpuMemGB:    cardTotalMemGB,
+		}
+	}
+
+	records, err = ApplyQuery(nc.ParsedQuery, nodeFormatters, nodePredicates, records)
+	if err != nil {
+		return err
+	}
 
 	if nc.Newest {
-		newr := make(map[string]*repr.SysinfoData)
+		newr := make(map[string]*NodeData)
 		for _, r := range records {
 			if probe := newr[r.Hostname]; probe != nil {
 				if r.Timestamp > probe.Timestamp {
@@ -195,7 +227,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	}
 
 	// Sort by host name first and then by ascending time
-	slices.SortFunc(records, func(a, b *repr.SysinfoData) int {
+	slices.SortFunc(records, func(a, b *NodeData) int {
 		if h := cmp.Compare(a.Hostname, b.Hostname); h != 0 {
 			return h
 		}
@@ -211,39 +243,4 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	)
 
 	return nil
-}
-
-func (nc *NodeCommand) buildRecordFilter(
-	includeHosts *Hosts,
-	verbose bool,
-) (*hostglob.HostGlobber, *sonarlog.SampleFilter, func(*repr.SysinfoData) bool, error) {
-	globber := includeHosts.HostnameGlobber()
-
-	haveFrom := nc.SourceArgs.HaveFrom
-	haveTo := nc.SourceArgs.HaveTo
-	var from int64 = 0
-	if haveFrom {
-		from = nc.SourceArgs.FromDate.Unix()
-	}
-	var to int64 = math.MaxInt64
-	if haveTo {
-		to = nc.SourceArgs.ToDate.Unix()
-	}
-
-	var recordFilter = &sonarlog.SampleFilter{
-		IncludeHosts: globber,
-		From:         from,
-		To:           to,
-	}
-
-	var query func(*repr.SysinfoData) bool
-	if nc.ParsedQuery != nil {
-		c, err := CompileQuery(nodeFormatters, nodePredicates, nc.ParsedQuery)
-		if err != nil {
-			return nil, nil, nil, fmt.Errorf("Could not compile query: %v", err)
-		}
-		query = c
-	}
-
-	return globber, recordFilter, query, nil
 }
