@@ -7,6 +7,7 @@ import (
 	"time"
 
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 	"sonalyze/db/special"
 )
 
@@ -161,16 +162,23 @@ func TestFilenames(t *testing.T) {
 	}
 }
 
+// TODO: To make these tests stronger we could pre-declare variables receiving the data (of many
+// kinds), to check that types are right.
+
 func TestData(t *testing.T) {
 	theDB := getPersistentDB(t, "cluster1.uio.no")
 	from, _ := time.Parse(time.RFC3339, "2025-04-12T07:16:00+02:00")
 	to, _ := time.Parse(time.RFC3339, "2025-05-03T12:13:14+02:00")
 	globber, _ := NewHosts(true, []string{"n[1-2].cluster1"})
 
+	var softErrors int
+	var err error
+
 	// There should be no gunk in the test data
 	// We have six sample data files in the range, see test case for file names above
 
-	sampleData, softErrors, err := theDB.ReadSamples(from, to, globber, true)
+	var sampleData [][]*repr.Sample
+	sampleData, softErrors, err = theDB.ReadSamples(from, to, globber, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,111 +213,150 @@ SampleLoop:
 		t.Fatal("No sampleOld data read")
 	}
 
-	loadData, softErrors, err := theDB.ReadLoadData(from, to, globber, true)
+	var cpuSampleData [][]*repr.CpuSamples
+	cpuSampleData, softErrors, err = theDB.ReadCpuSamples(from, to, globber, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if softErrors != 0 {
 		t.Fatal("Soft errors", softErrors)
 	}
-	if len(loadData) != 6 {
-		t.Fatal("Wrong number of data files", len(loadData))
+	if len(cpuSampleData) != 6 {
+		t.Fatal("Wrong number of data files", len(cpuSampleData))
 	}
 	// at 2025-04-12 there is old-format data for n1.cluster1
 	// at 2025-04-13 there is new-format data for n1.cluster1
-	var loadDataNewFound, loadDataOldFound bool
-LoadDataLoop:
-	for _, l := range loadData {
+	var cpuSampleDataNewFound, cpuSampleDataOldFound bool
+CpuSampleDataLoop:
+	for _, l := range cpuSampleData {
 		for _, d := range l {
 			timestamp := time.Unix(int64(d.Timestamp), 0).UTC().Format(time.RFC3339)
 			if strings.HasPrefix(timestamp, "2025-04-12") {
-				loadDataOldFound = true
+				cpuSampleDataOldFound = true
 			}
 			if strings.HasPrefix(timestamp, "2025-04-13") {
-				loadDataNewFound = true
+				cpuSampleDataNewFound = true
 			}
-			if loadDataOldFound && loadDataNewFound {
-				break LoadDataLoop
+			if cpuSampleDataOldFound && cpuSampleDataNewFound {
+				break CpuSampleDataLoop
 			}
 		}
 	}
-	if !loadDataNewFound {
-		t.Fatal("No loadDataNew data read")
+	if !cpuSampleDataNewFound {
+		t.Fatal("No cpuSampleDataNew data read")
 	}
-	if !loadDataOldFound {
-		t.Fatal("No loadDataOld data read")
+	if !cpuSampleDataOldFound {
+		t.Fatal("No cpuSampleDataOld data read")
 	}
 
-	gpuData, softErrors, err := theDB.ReadGpuData(from, to, globber, true)
+	var gpuSampleData [][]*repr.GpuSamples
+	gpuSampleData, softErrors, err = theDB.ReadGpuSamples(from, to, globber, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if softErrors != 0 {
 		t.Fatal("Soft errors", softErrors)
 	}
-	if len(gpuData) != 6 {
-		t.Fatal("Wrong number of data files", len(gpuData))
+	if len(gpuSampleData) != 6 {
+		t.Fatal("Wrong number of data files", len(gpuSampleData))
 	}
 	// at 2025-04-12 there is old-format data for n1.cluster1
 	// at 2025-04-13 there is new-format data for n1.cluster1
-	var gpuDataNewFound, gpuDataOldFound bool
-GpuDataLoop:
-	for _, l := range gpuData {
+	var gpuSampleDataNewFound, gpuSampleDataOldFound bool
+GpuSampleDataLoop:
+	for _, l := range gpuSampleData {
 		for _, d := range l {
 			timestamp := time.Unix(int64(d.Timestamp), 0).UTC().Format(time.RFC3339)
 			if strings.HasPrefix(timestamp, "2025-04-12") {
-				gpuDataOldFound = true
+				gpuSampleDataOldFound = true
 			}
 			if strings.HasPrefix(timestamp, "2025-04-13") {
-				gpuDataNewFound = true
+				gpuSampleDataNewFound = true
 			}
-			if gpuDataOldFound && gpuDataNewFound {
-				break GpuDataLoop
+			if gpuSampleDataOldFound && gpuSampleDataNewFound {
+				break GpuSampleDataLoop
 			}
 		}
 	}
-	if !gpuDataNewFound {
-		t.Fatal("No gpuDataNew data read")
+	if !gpuSampleDataNewFound {
+		t.Fatal("No gpuSampleDataNew data read")
 	}
-	if !gpuDataOldFound {
-		t.Fatal("No gpuDataOld data read")
+	if !gpuSampleDataOldFound {
+		t.Fatal("No gpuSampleDataOld data read")
 	}
 
-	sysinfoData, softErrors, err := theDB.ReadSysinfoData(from, to, globber, true)
+	var nodeData [][]*repr.SysinfoNodeData
+	nodeData, softErrors, err = theDB.ReadSysinfoNodeData(from, to, globber, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if softErrors != 0 {
 		t.Fatal("Soft errors", softErrors)
 	}
-	if len(sysinfoData) != 6 {
-		t.Fatal("Wrong number of data files", len(sysinfoData))
+	if len(nodeData) != 6 {
+		t.Fatal("Wrong number of data files", len(nodeData))
 	}
 	// at 2025-04-12 there is old-format data for n1.cluster1
 	// at 2025-04-13 there is new-format data for n1.cluster1
-	var sysinfoNewFound, sysinfoOldFound bool
-SysinfoLoop:
-	for _, l := range sysinfoData {
+	var nodeNewFound, nodeOldFound bool
+NodeLoop:
+	for _, l := range nodeData {
 		for _, d := range l {
-			if strings.HasPrefix(d.Timestamp, "2025-04-12") {
-				sysinfoOldFound = true
+			if strings.HasPrefix(d.Time, "2025-04-12") {
+				nodeOldFound = true
 			}
-			if strings.HasPrefix(d.Timestamp, "2025-04-13") {
-				sysinfoNewFound = true
+			if strings.HasPrefix(d.Time, "2025-04-13") {
+				nodeNewFound = true
 			}
-			if sysinfoOldFound && sysinfoNewFound {
-				break SysinfoLoop
+			if nodeOldFound && nodeNewFound {
+				break NodeLoop
 			}
 		}
 	}
-	if !sysinfoNewFound {
-		t.Fatal("No sysinfoNew data read")
+	if !nodeNewFound {
+		t.Fatal("No new node data read")
 	}
-	if !sysinfoOldFound {
-		t.Fatal("No sysinfoOld data read")
+	if !nodeOldFound {
+		t.Fatal("No old node data read")
 	}
 
-	sacctData, softErrors, err := theDB.ReadSacctData(from, to, true)
+	var cardData [][]*repr.SysinfoCardData
+	cardData, softErrors, err = theDB.ReadSysinfoCardData(from, to, globber, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if softErrors != 0 {
+		t.Fatal("Soft errors", softErrors)
+	}
+	if len(cardData) != 6 {
+		t.Fatal("Wrong number of data files", len(cardData))
+	}
+	// at 2025-04-12 there is old-format data for n1.cluster1
+	// at 2025-04-13 there is new-format data for n1.cluster1
+	var cardNewFound, cardOldFound bool
+CardLoop:
+	for _, l := range cardData {
+		for _, d := range l {
+			if strings.HasPrefix(d.Time, "2025-04-12") {
+				cardOldFound = true
+			}
+			if strings.HasPrefix(d.Time, "2025-04-13") {
+				cardNewFound = true
+			}
+			if cardNewFound && cardOldFound {
+				break CardLoop
+			}
+		}
+	}
+	if !cardNewFound {
+		t.Fatal("No new card data read")
+	}
+	if !cardOldFound {
+		t.Fatal("No old card data read")
+	}
+
+	var sacctData [][]*repr.SacctInfo
+	sacctData, softErrors, err = theDB.ReadSacctData(from, to, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -344,28 +391,81 @@ SacctLoop:
 		t.Fatal("No sacctOld data read")
 	}
 
-	cluzterData, softErrors, err := theDB.ReadCluzterData(from, to, true)
+	var slurmAttrData [][]*repr.CluzterAttributes
+	slurmAttrData, softErrors, err = theDB.ReadCluzterAttributeData(from, to, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if softErrors != 0 {
 		t.Fatal("Soft errors", softErrors)
 	}
-	if len(cluzterData) != 4 {
-		t.Fatal("Wrong number of data files", len(cluzterData))
+	if len(slurmAttrData) != 4 {
+		t.Fatal("Wrong number of data files", len(slurmAttrData))
 	}
 	// At 2025-05-03 there is new-format data (the only kind)
-	var cluzterFound bool
-CluzterLoop:
-	for _, l := range cluzterData {
+	var attrFound bool
+AttrLoop:
+	for _, l := range slurmAttrData {
 		for _, d := range l {
 			if strings.HasPrefix(string(d.Time), "2025-05-03T") {
-				cluzterFound = true
-				break CluzterLoop
+				attrFound = true
+				break AttrLoop
 			}
 		}
 	}
-	if !cluzterFound {
-		t.Fatal("No cluzter data read")
+	if !attrFound {
+		t.Fatal("No cluzter attribute data read")
+	}
+
+	var slurmNodeData [][]*repr.CluzterNodes
+	slurmNodeData, softErrors, err = theDB.ReadCluzterNodeData(from, to, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if softErrors != 0 {
+		t.Fatal("Soft errors", softErrors)
+	}
+	if len(slurmNodeData) != 4 {
+		t.Fatal("Wrong number of data files", len(slurmAttrData))
+	}
+	// At 2025-05-03 there is new-format data (the only kind)
+	var nodeFound bool
+SlurmNodeLoop:
+	for _, l := range slurmNodeData {
+		for _, d := range l {
+			if strings.HasPrefix(string(d.Time), "2025-05-03T") {
+				nodeFound = true
+				break SlurmNodeLoop
+			}
+		}
+	}
+	if !nodeFound {
+		t.Fatal("No cluzter node data read")
+	}
+
+	var slurmPartitionData [][]*repr.CluzterPartitions
+	slurmPartitionData, softErrors, err = theDB.ReadCluzterPartitionData(from, to, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if softErrors != 0 {
+		t.Fatal("Soft errors", softErrors)
+	}
+	if len(slurmPartitionData) != 4 {
+		t.Fatal("Wrong number of data files", len(slurmAttrData))
+	}
+	// At 2025-05-03 there is new-format data (the only kind)
+	var partitionFound bool
+SlurmPartitionLoop:
+	for _, l := range slurmPartitionData {
+		for _, d := range l {
+			if strings.HasPrefix(string(d.Time), "2025-05-03T") {
+				partitionFound = true
+				break SlurmPartitionLoop
+			}
+		}
+	}
+	if !partitionFound {
+		t.Fatal("No cluzter partition data read")
 	}
 }

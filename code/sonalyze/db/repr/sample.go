@@ -1,4 +1,4 @@
-// Data representation of Sonar `sample` data.
+// Data representation of Sonar `sample` data, ie, per-process sample values.
 
 package repr
 
@@ -13,8 +13,7 @@ const (
 	FlagHeartbeat = 1 // Record is a heartbeat record
 )
 
-// The core type for process samples is the `Sample`, which represents one log record without the
-// per-system data (such as `load`).
+// The core type for process samples is the `Sample`, which represents one log record for one process.
 //
 // After ingestion and initial correction this datum is *strictly* read-only.  It will be accessed
 // concurrently without locking from many threads and must not be written by any of them.
@@ -97,117 +96,4 @@ var (
 func init() {
 	var x Sample
 	SizeofSample = unsafe.Sizeof(x)
-}
-
-// The LoadDatum represents the `load` field from a record.  The data array is owned by its datum
-// and does not share storage with the input.
-//
-// After ingestion and initial correction this datum is *strictly* read-only.  It will be accessed
-// concurrently without locking from many threads and must not be written by any of them.
-//
-// In older data the data array is represented encoded as that is the most sensible representation
-// for the cache.  In newer data the data coming from disk are already decoded and it makes no sense
-// to re-encode them here.
-
-type EncodedLoadData struct {
-	x any
-}
-
-func EncodedLoadDataFromBytes(xs []byte) EncodedLoadData {
-	return EncodedLoadData{x: xs}
-}
-
-func EncodedLoadDataFromValues(xs []uint64) EncodedLoadData {
-	return EncodedLoadData{x: xs}
-}
-
-func DecodeEncodedLoadData(e EncodedLoadData) ([]byte, []uint64) {
-	switch xs := e.x.(type) {
-	case []byte:
-		return xs, nil
-	case []uint64:
-		return nil, xs
-	default:
-		panic("Unexpected")
-	}
-}
-
-type LoadDatum struct {
-	Timestamp int64
-	Hostname  Ustr
-	Encoded   EncodedLoadData
-}
-
-func (l *LoadDatum) Size() uintptr {
-	size := unsafe.Sizeof(*l)
-	a, b := DecodeEncodedLoadData(l.Encoded)
-	if a != nil {
-		size += uintptr(len(a))
-	} else {
-		size += uintptr(len(b)) * 8
-	}
-	return size
-}
-
-// The same as LoadDatum buf for the "gpuinfo" field that was introduced with Sonar 0.13.
-
-type EncodedGpuData struct {
-	x any
-}
-
-type PerGpuSample struct {
-	FanPct      int // Can go above 100
-	PerfMode    int // Typically mode is P<n>, this is <n>
-	MemUsedKB   int64
-	TempC       int
-	PowerDrawW  int
-	PowerLimitW int
-	CeClockMHz  int
-	MemClockMHz int
-}
-
-var (
-	// MT: Constant after initialization; immutable
-	sizeofPerGpuSample uintptr
-)
-
-func init() {
-	var x PerGpuSample
-	sizeofPerGpuSample = unsafe.Sizeof(x)
-}
-
-func EncodedGpuDataFromBytes(xs []byte) EncodedGpuData {
-	return EncodedGpuData{x: xs}
-}
-
-func EncodedGpuDataFromValues(xs []PerGpuSample) EncodedGpuData {
-	return EncodedGpuData{x: xs}
-}
-
-func DecodeEncodedGpuData(e EncodedGpuData) ([]byte, []PerGpuSample) {
-	switch xs := e.x.(type) {
-	case []byte:
-		return xs, nil
-	case []PerGpuSample:
-		return nil, xs
-	default:
-		panic("Unexpected")
-	}
-}
-
-type GpuDatum struct {
-	Timestamp int64
-	Hostname  Ustr
-	Encoded   EncodedGpuData
-}
-
-func (g *GpuDatum) Size() uintptr {
-	size := unsafe.Sizeof(*g)
-	a, b := DecodeEncodedGpuData(g.Encoded)
-	if a != nil {
-		size += uintptr(len(a))
-	} else {
-		size += uintptr(len(b)) * sizeofPerGpuSample
-	}
-	return size
 }

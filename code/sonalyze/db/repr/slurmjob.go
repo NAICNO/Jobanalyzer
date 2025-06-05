@@ -1,4 +1,13 @@
 // Data representation of Slurm job data.
+//
+// The data representation produced here is a 2-dimensional volume:
+//
+//   job-attr ...
+//   ...
+//
+// where most job-attrs are primitive.  However, NodeList and ReqGPUS have additional structure and
+// represent a hidden third dimension and/or variable-length field and/or variable number of
+// columns, depending on your point of view.
 
 package repr
 
@@ -75,7 +84,7 @@ type SacctInfo struct {
 	Suspended    uint32 // seconds of real time
 	TimelimitRaw uint32 // *seconds* of real time (input data has minutes)
 	ExitCode     uint8  // the code part of code:signal
-	ExitSignal   uint8  // the signal part of code:signal
+	ExitSignal   uint8  // the signal part of code:signal - only in older data
 }
 
 var (

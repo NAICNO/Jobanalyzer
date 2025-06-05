@@ -11,7 +11,6 @@ import (
 	"time"
 
 	. "sonalyze/common"
-	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -308,7 +307,7 @@ func (s *SourceArgs) Validate() error {
 // Grab FromDate and ToDate from args if available, otherwise infer from the bounds, otherwise use
 // the defaults.  Return as int64 timestamps compatible with the Sample timestamps.
 
-func (args *SourceArgs) InterpretFromToWithBounds(bounds sonarlog.Timebounds) (int64, int64) {
+func (args *SourceArgs) InterpretFromToWithBounds(bounds Timebounds) (int64, int64) {
 	var from, to int64
 	if args.HaveFrom || len(bounds) == 0 {
 		from = args.FromDate.Unix()

@@ -50,12 +50,12 @@ import (
 	uslices "go-utils/slices"
 
 	. "sonalyze/common"
+	"sonalyze/data/sample"
 	"sonalyze/db"
-	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
-// TODO: CLEANUP: The window is just a []sonarlog.Sample, the indices are a Rust-ism.
+// TODO: CLEANUP: The window is just a []sample.Sample, the indices are a Rust-ism.
 type window struct {
 	start, end int // inclusive indices in `samples`
 }
@@ -68,10 +68,10 @@ func (uc *UptimeCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
 	_ db.SampleDataProvider,
-	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds,
+	streams sample.InputStreamSet,
+	bounds Timebounds,
 	hostGlobber *Hosts,
-	_ *sonarlog.SampleFilter,
+	_ *sample.SampleFilter,
 ) error {
 	samples := uslices.CatenateP(maps.Values(streams))
 	if uc.Verbose {
@@ -85,15 +85,15 @@ func (uc *UptimeCommand) Perform(
 // sorted by anything.
 
 func (uc *UptimeCommand) computeReports(
-	samples sonarlog.SampleStream,
-	bounds sonarlog.Timebounds,
+	samples sample.SampleStream,
+	bounds Timebounds,
 	cfg *config.ClusterConfig,
 	hostGlobber *Hosts,
 ) []*UptimeLine {
 	reports := make([]*UptimeLine, 0)
 	fromIncl, toIncl := uc.InterpretFromToWithBounds(bounds)
 
-	slices.SortStableFunc(samples, func(a, b sonarlog.Sample) int {
+	slices.SortStableFunc(samples, func(a, b sample.Sample) int {
 		if a.Hostname != b.Hostname {
 			return cmp.Compare(a.Hostname.String(), b.Hostname.String())
 		}
@@ -233,7 +233,7 @@ func (uc *UptimeCommand) computeReports(
 // interest.  The host name is given by the Host field of the first record in the window.
 
 func (uc *UptimeCommand) computeHostWindows(
-	samples sonarlog.SampleStream,
+	samples sample.SampleStream,
 	hosts *Hosts,
 	fromIncl, toIncl int64,
 ) []window {
@@ -284,7 +284,7 @@ func (uc *UptimeCommand) computeHostWindows(
 
 func (uc *UptimeCommand) computeAlwaysDown(
 	reports *[]*UptimeLine,
-	samples sonarlog.SampleStream,
+	samples sample.SampleStream,
 	cfg *config.ClusterConfig,
 	hosts *Hosts,
 	fromIncl, toIncl int64,

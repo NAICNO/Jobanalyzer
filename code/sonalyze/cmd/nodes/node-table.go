@@ -2,8 +2,6 @@
 
 package nodes
 
-import "sonalyze/db/repr"
-
 import (
 	"cmp"
 	"fmt"
@@ -22,51 +20,51 @@ var (
 )
 
 // MT: Constant after initialization; immutable
-var nodeFormatters = map[string]Formatter[*repr.SysinfoData]{
+var nodeFormatters = map[string]Formatter[*NodeData]{
 	"Timestamp": {
-		Fmt: func(d *repr.SysinfoData, ctx PrintMods) string {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
 			return FormatString((d.Timestamp), ctx)
 		},
 		Help: "(string) Full ISO timestamp of when the reading was taken",
 	},
 	"Hostname": {
-		Fmt: func(d *repr.SysinfoData, ctx PrintMods) string {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
 			return FormatString((d.Hostname), ctx)
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
 	"Description": {
-		Fmt: func(d *repr.SysinfoData, ctx PrintMods) string {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
 			return FormatString((d.Description), ctx)
 		},
 		Help: "(string) End-user description, not parseable",
 	},
 	"CpuCores": {
-		Fmt: func(d *repr.SysinfoData, ctx PrintMods) string {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
 			return FormatInt((d.CpuCores), ctx)
 		},
 		Help: "(int) Total number of cores x threads",
 	},
 	"MemGB": {
-		Fmt: func(d *repr.SysinfoData, ctx PrintMods) string {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
 			return FormatInt((d.MemGB), ctx)
 		},
 		Help: "(int) GB of installed main RAM",
 	},
 	"GpuCards": {
-		Fmt: func(d *repr.SysinfoData, ctx PrintMods) string {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
 			return FormatInt((d.GpuCards), ctx)
 		},
 		Help: "(int) Number of installed cards",
 	},
 	"GpuMemGB": {
-		Fmt: func(d *repr.SysinfoData, ctx PrintMods) string {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
 			return FormatInt((d.GpuMemGB), ctx)
 		},
 		Help: "(int) Total GPU memory across all cards",
 	},
 	"GpuMemPct": {
-		Fmt: func(d *repr.SysinfoData, ctx PrintMods) string {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
 			return FormatBool((d.GpuMemPct), ctx)
 		},
 		Help: "(bool) True if GPUs report accurate memory usage in percent",
@@ -85,52 +83,63 @@ func init() {
 }
 
 // MT: Constant after initialization; immutable
-var nodePredicates = map[string]Predicate[*repr.SysinfoData]{
-	"Timestamp": Predicate[*repr.SysinfoData]{
-		Compare: func(d *repr.SysinfoData, v any) int {
+var nodePredicates = map[string]Predicate[*NodeData]{
+	"Timestamp": Predicate[*NodeData]{
+		Compare: func(d *NodeData, v any) int {
 			return cmp.Compare((d.Timestamp), v.(string))
 		},
 	},
-	"Hostname": Predicate[*repr.SysinfoData]{
-		Compare: func(d *repr.SysinfoData, v any) int {
+	"Hostname": Predicate[*NodeData]{
+		Compare: func(d *NodeData, v any) int {
 			return cmp.Compare((d.Hostname), v.(string))
 		},
 	},
-	"Description": Predicate[*repr.SysinfoData]{
-		Compare: func(d *repr.SysinfoData, v any) int {
+	"Description": Predicate[*NodeData]{
+		Compare: func(d *NodeData, v any) int {
 			return cmp.Compare((d.Description), v.(string))
 		},
 	},
-	"CpuCores": Predicate[*repr.SysinfoData]{
+	"CpuCores": Predicate[*NodeData]{
 		Convert: CvtString2Int,
-		Compare: func(d *repr.SysinfoData, v any) int {
+		Compare: func(d *NodeData, v any) int {
 			return cmp.Compare((d.CpuCores), v.(int))
 		},
 	},
-	"MemGB": Predicate[*repr.SysinfoData]{
+	"MemGB": Predicate[*NodeData]{
 		Convert: CvtString2Int,
-		Compare: func(d *repr.SysinfoData, v any) int {
+		Compare: func(d *NodeData, v any) int {
 			return cmp.Compare((d.MemGB), v.(int))
 		},
 	},
-	"GpuCards": Predicate[*repr.SysinfoData]{
+	"GpuCards": Predicate[*NodeData]{
 		Convert: CvtString2Int,
-		Compare: func(d *repr.SysinfoData, v any) int {
+		Compare: func(d *NodeData, v any) int {
 			return cmp.Compare((d.GpuCards), v.(int))
 		},
 	},
-	"GpuMemGB": Predicate[*repr.SysinfoData]{
+	"GpuMemGB": Predicate[*NodeData]{
 		Convert: CvtString2Int,
-		Compare: func(d *repr.SysinfoData, v any) int {
+		Compare: func(d *NodeData, v any) int {
 			return cmp.Compare((d.GpuMemGB), v.(int))
 		},
 	},
-	"GpuMemPct": Predicate[*repr.SysinfoData]{
+	"GpuMemPct": Predicate[*NodeData]{
 		Convert: CvtString2Bool,
-		Compare: func(d *repr.SysinfoData, v any) int {
+		Compare: func(d *NodeData, v any) int {
 			return CompareBool((d.GpuMemPct), v.(bool))
 		},
 	},
+}
+
+type NodeData struct {
+	Timestamp   string
+	Hostname    string
+	Description string
+	CpuCores    int
+	MemGB       int
+	GpuCards    int
+	GpuMemGB    int
+	GpuMemPct   bool
 }
 
 func (c *NodeCommand) Summary(out io.Writer) {

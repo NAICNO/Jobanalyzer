@@ -1,9 +1,8 @@
-package sonarlog
+package sample
 
 import (
 	"math"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 
@@ -35,8 +34,8 @@ func TestRectifyGpuMem(t *testing.T) {
 			},
 		},
 	)
-	c, err := db.OpenTransientSampleCluster(
-		[]string{"../../tests/sonarlog/whitebox-logclean.csv"},
+	c, err := db.OpenFileListSampleDB(
+		[]string{"../../../tests/sonarlog/whitebox-logclean.csv"},
 		cfg,
 	)
 	if err != nil {
@@ -71,7 +70,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	// This file has field names, cputime_sec, pid, and rolledup.  There are two hosts.  One of the
 	// records is invalid: it's missing the user name.  Another record has a field with an unknown
 	// tag.  Both are counted together as "discarded" which is sort of nuts.
-	f, err := os.Open("../../tests/sonarlog/whitebox-logclean.csv")
+	f, err := os.Open("../../../tests/sonarlog/whitebox-logclean.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,17 +194,5 @@ func TestParseVersion(t *testing.T) {
 	a, b, c = parseVersion(StringToUstr("1.2.3-devel"))
 	if a != 1 || b != 2 || c != 103 {
 		t.Fatal("Could not parse version")
-	}
-}
-
-func TestDecodeBase45Delta(t *testing.T) {
-	// This is the test from the Sonar sources, it's pretty basic.  The string should represent the
-	// array [*1, *0, *29, *43, 1, *11] with * denoting an INITIAL char.
-	xs, err := decodeLoadData(repr.EncodedLoadDataFromBytes([]byte(")(t*1b")))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(xs, []uint64{1, 30, 89, 12}) {
-		t.Fatal("Failed decode")
 	}
 }

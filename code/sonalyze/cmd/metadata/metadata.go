@@ -12,8 +12,8 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/sample"
 	"sonalyze/db"
-	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -134,10 +134,10 @@ func (mdc *MetadataCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
 	cluster db.SampleDataProvider,
-	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds, // for mdc.Bounds only
+	streams sample.InputStreamSet,
+	bounds Timebounds, // for mdc.Bounds only
 	hostGlobber *Hosts,
-	_ *sonarlog.SampleFilter,
+	_ *sample.SampleFilter,
 ) error {
 	if mdc.Times {
 		fmt.Fprintf(out, "From: %s\n", mdc.FromDate.Format(time.RFC3339))
@@ -161,7 +161,7 @@ func (mdc *MetadataCommand) Perform(
 
 	if mdc.Bounds {
 		if mdc.MergeByJob {
-			_, bounds = sonarlog.MergeByJob(streams, bounds)
+			_, bounds = sample.MergeByJob(streams, bounds)
 		}
 		items := make([]*metadataItem, 0)
 		for k, v := range bounds {

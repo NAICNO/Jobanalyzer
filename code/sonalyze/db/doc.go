@@ -4,7 +4,7 @@
 // the future, proper time series databases will be added.
 //
 // Lists of files can be opened with the functions in fileliststore.go, directory trees with the
-// functions in dirtreestore.go.  For traditional reasons these are referred to throughout the code
+// functions in dirtreestore.go.  For historical reasons these are referred to throughout the code
 // as "transient clusters" and "persistent clusters", respectively.
 //
 // The main thread would normally `defer db.Close()` to make sure that all pending writes are done

@@ -5,7 +5,7 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
-	"sonalyze/sonarlog"
+	"sonalyze/data/sample"
 )
 
 // Standard method for cleaning an InputStreamSet relative to a config: the config must have a
@@ -15,16 +15,16 @@ import (
 // Over time this may become more complicated, as the config becomes time-dependent.
 func EnsureConfigForInputStreams(
 	cfg *config.ClusterConfig,
-	streams sonarlog.InputStreamSet,
+	streams sample.InputStreamSet,
 	reason string,
-) (sonarlog.InputStreamSet, error) {
+) (sample.InputStreamSet, error) {
 	// Bail if there's no config data at all.
 	if cfg == nil {
 		return nil, fmt.Errorf("Configuration file required: %s", reason)
 	}
 
 	// Remove streams for which we have no config data.
-	bad := make(map[sonarlog.InputStreamKey]bool)
+	bad := make(map[sample.InputStreamKey]bool)
 	for key, stream := range streams {
 		hn := (*stream)[0].Hostname.String()
 		if cfg.LookupHost(hn) == nil {

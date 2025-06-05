@@ -2,7 +2,7 @@
 
 package parse
 
-import "sonalyze/sonarlog"
+import "sonalyze/data/sample"
 
 import (
 	"cmp"
@@ -22,165 +22,165 @@ var (
 )
 
 // MT: Constant after initialization; immutable
-var parseFormatters = map[string]Formatter[sonarlog.Sample]{
+var parseFormatters = map[string]Formatter[sample.Sample]{
 	"Version": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUstr((d.Version), ctx)
 		},
 		Help: "(string) Semver string (MAJOR.MINOR.BUGFIX)",
 	},
 	"Timestamp": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatDateTimeValue((d.Timestamp), ctx)
 		},
 		Help: "(DateTimeValue) Timestamp of record ",
 	},
 	"time": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatIsoDateTimeValue((d.Timestamp), ctx)
 		},
 		Help: "(IsoDateTimeValue) Timestamp of record",
 	},
 	"Hostname": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUstr((d.Hostname), ctx)
 		},
 		Help: "(string) Host name (FQDN)",
 	},
 	"Cores": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint32((d.Cores), ctx)
 		},
 		Help: "(uint32) Total number of cores (including hyperthreads)",
 	},
 	"MemtotalKB": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.MemtotalKB), ctx)
 		},
 		Help: "(uint64) Installed main memory",
 	},
 	"memtotal": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatU64Div1M((d.MemtotalKB), ctx)
 		},
 		Help: "(int) Installed main memory (GB)",
 	},
 	"User": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUstr((d.User), ctx)
 		},
 		Help: "(string) Username of process owner",
 	},
 	"Pid": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint32((d.Pid), ctx)
 		},
 		Help: "(uint32) Process ID",
 	},
 	"Ppid": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint32((d.Ppid), ctx)
 		},
 		Help: "(uint32) Process parent ID",
 	},
 	"Job": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint32((d.Job), ctx)
 		},
 		Help: "(uint32) Job ID",
 	},
 	"Cmd": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUstr((d.Cmd), ctx)
 		},
 		Help: "(string) Command name",
 	},
 	"CpuPct": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatFloat32((d.CpuPct), ctx)
 		},
 		Help: "(float32) cpu% reading (CONSULT DOCUMENTATION)",
 	},
 	"CpuKB": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.CpuKB), ctx)
 		},
 		Help: "(uint64) Virtual memory reading",
 	},
 	"mem_gb": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatU64Div1M((d.CpuKB), ctx)
 		},
 		Help: "(int) Virtual memory reading",
 	},
 	"RssAnonKB": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.RssAnonKB), ctx)
 		},
 		Help: "(uint64) RssAnon reading",
 	},
 	"res_gb": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatU64Div1M((d.RssAnonKB), ctx)
 		},
 		Help: "(int) RssAnon reading",
 	},
 	"Gpus": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatGpuSet((d.Gpus), ctx)
 		},
 		Help: "(GpuSet) GPU set (`none`,`unknown`,list)",
 	},
 	"GpuPct": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatFloat32((d.GpuPct), ctx)
 		},
 		Help: "(float32) GPU utilization reading",
 	},
 	"GpuMemPct": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatFloat32((d.GpuMemPct), ctx)
 		},
 		Help: "(float32) GPU memory percentage reading",
 	},
 	"GpuKB": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.GpuKB), ctx)
 		},
 		Help: "(uint64) GPU memory utilization reading",
 	},
 	"gpumem_gb": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatU64Div1M((d.GpuKB), ctx)
 		},
 		Help: "(int) GPU memory utilization reading",
 	},
 	"GpuFail": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint8((d.GpuFail), ctx)
 		},
 		Help: "(uint8) GPU status flag (0=ok, 1=error state)",
 	},
 	"CpuTimeSec": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.CpuTimeSec), ctx)
 		},
 		Help: "(uint64) CPU time since last reading (seconds, CONSULT DOCUMENTATION)",
 	},
 	"Rolledup": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint32((d.Rolledup), ctx)
 		},
 		Help: "(uint32) Number of rolled-up processes, minus 1",
 	},
 	"Flags": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint8((d.Flags), ctx)
 		},
 		Help: "(uint8) Bit vector of flags, UTSL",
 	},
 	"CpuUtilPct": {
-		Fmt: func(d sonarlog.Sample, ctx PrintMods) string {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatFloat32((d.CpuUtilPct), ctx)
 		},
 		Help: "(float32) CPU utilization since last reading (percent, CONSULT DOCUMENTATION)",
@@ -215,166 +215,166 @@ func init() {
 }
 
 // MT: Constant after initialization; immutable
-var parsePredicates = map[string]Predicate[sonarlog.Sample]{
-	"Version": Predicate[sonarlog.Sample]{
+var parsePredicates = map[string]Predicate[sample.Sample]{
+	"Version": Predicate[sample.Sample]{
 		Convert: CvtString2Ustr,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Version), v.(Ustr))
 		},
 	},
-	"Timestamp": Predicate[sonarlog.Sample]{
+	"Timestamp": Predicate[sample.Sample]{
 		Convert: CvtString2DateTimeValue,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Timestamp), v.(DateTimeValue))
 		},
 	},
-	"time": Predicate[sonarlog.Sample]{
+	"time": Predicate[sample.Sample]{
 		Convert: CvtString2IsoDateTimeValue,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Timestamp), v.(IsoDateTimeValue))
 		},
 	},
-	"Hostname": Predicate[sonarlog.Sample]{
+	"Hostname": Predicate[sample.Sample]{
 		Convert: CvtString2Ustr,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Hostname), v.(Ustr))
 		},
 	},
-	"Cores": Predicate[sonarlog.Sample]{
+	"Cores": Predicate[sample.Sample]{
 		Convert: CvtString2Uint32,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Cores), v.(uint32))
 		},
 	},
-	"MemtotalKB": Predicate[sonarlog.Sample]{
+	"MemtotalKB": Predicate[sample.Sample]{
 		Convert: CvtString2Uint64,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.MemtotalKB), v.(uint64))
 		},
 	},
-	"memtotal": Predicate[sonarlog.Sample]{
+	"memtotal": Predicate[sample.Sample]{
 		Convert: CvtString2Uint64,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.MemtotalKB), v.(U64Div1M))
 		},
 	},
-	"User": Predicate[sonarlog.Sample]{
+	"User": Predicate[sample.Sample]{
 		Convert: CvtString2Ustr,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.User), v.(Ustr))
 		},
 	},
-	"Pid": Predicate[sonarlog.Sample]{
+	"Pid": Predicate[sample.Sample]{
 		Convert: CvtString2Uint32,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Pid), v.(uint32))
 		},
 	},
-	"Ppid": Predicate[sonarlog.Sample]{
+	"Ppid": Predicate[sample.Sample]{
 		Convert: CvtString2Uint32,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Ppid), v.(uint32))
 		},
 	},
-	"Job": Predicate[sonarlog.Sample]{
+	"Job": Predicate[sample.Sample]{
 		Convert: CvtString2Uint32,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Job), v.(uint32))
 		},
 	},
-	"Cmd": Predicate[sonarlog.Sample]{
+	"Cmd": Predicate[sample.Sample]{
 		Convert: CvtString2Ustr,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Cmd), v.(Ustr))
 		},
 	},
-	"CpuPct": Predicate[sonarlog.Sample]{
+	"CpuPct": Predicate[sample.Sample]{
 		Convert: CvtString2Float32,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.CpuPct), v.(float32))
 		},
 	},
-	"CpuKB": Predicate[sonarlog.Sample]{
+	"CpuKB": Predicate[sample.Sample]{
 		Convert: CvtString2Uint64,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.CpuKB), v.(uint64))
 		},
 	},
-	"mem_gb": Predicate[sonarlog.Sample]{
+	"mem_gb": Predicate[sample.Sample]{
 		Convert: CvtString2Uint64,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.CpuKB), v.(U64Div1M))
 		},
 	},
-	"RssAnonKB": Predicate[sonarlog.Sample]{
+	"RssAnonKB": Predicate[sample.Sample]{
 		Convert: CvtString2Uint64,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.RssAnonKB), v.(uint64))
 		},
 	},
-	"res_gb": Predicate[sonarlog.Sample]{
+	"res_gb": Predicate[sample.Sample]{
 		Convert: CvtString2Uint64,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.RssAnonKB), v.(U64Div1M))
 		},
 	},
-	"Gpus": Predicate[sonarlog.Sample]{
+	"Gpus": Predicate[sample.Sample]{
 		Convert: CvtString2GpuSet,
-		SetCompare: func(d sonarlog.Sample, v any, op int) bool {
+		SetCompare: func(d sample.Sample, v any, op int) bool {
 			return SetCompareGpuSets((d.Gpus), v.(gpuset.GpuSet), op)
 		},
 	},
-	"GpuPct": Predicate[sonarlog.Sample]{
+	"GpuPct": Predicate[sample.Sample]{
 		Convert: CvtString2Float32,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.GpuPct), v.(float32))
 		},
 	},
-	"GpuMemPct": Predicate[sonarlog.Sample]{
+	"GpuMemPct": Predicate[sample.Sample]{
 		Convert: CvtString2Float32,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.GpuMemPct), v.(float32))
 		},
 	},
-	"GpuKB": Predicate[sonarlog.Sample]{
+	"GpuKB": Predicate[sample.Sample]{
 		Convert: CvtString2Uint64,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.GpuKB), v.(uint64))
 		},
 	},
-	"gpumem_gb": Predicate[sonarlog.Sample]{
+	"gpumem_gb": Predicate[sample.Sample]{
 		Convert: CvtString2Uint64,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.GpuKB), v.(U64Div1M))
 		},
 	},
-	"GpuFail": Predicate[sonarlog.Sample]{
+	"GpuFail": Predicate[sample.Sample]{
 		Convert: CvtString2Uint8,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.GpuFail), v.(uint8))
 		},
 	},
-	"CpuTimeSec": Predicate[sonarlog.Sample]{
+	"CpuTimeSec": Predicate[sample.Sample]{
 		Convert: CvtString2Uint64,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.CpuTimeSec), v.(uint64))
 		},
 	},
-	"Rolledup": Predicate[sonarlog.Sample]{
+	"Rolledup": Predicate[sample.Sample]{
 		Convert: CvtString2Uint32,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Rolledup), v.(uint32))
 		},
 	},
-	"Flags": Predicate[sonarlog.Sample]{
+	"Flags": Predicate[sample.Sample]{
 		Convert: CvtString2Uint8,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Flags), v.(uint8))
 		},
 	},
-	"CpuUtilPct": Predicate[sonarlog.Sample]{
+	"CpuUtilPct": Predicate[sample.Sample]{
 		Convert: CvtString2Float32,
-		Compare: func(d sonarlog.Sample, v any) int {
+		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.CpuUtilPct), v.(float32))
 		},
 	},

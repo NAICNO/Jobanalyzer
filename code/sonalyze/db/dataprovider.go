@@ -13,7 +13,8 @@ import (
 	"sonalyze/db/repr"
 )
 
-// DataReprType enumerates the representations of data coming in from external sources.
+// DataReprType enumerates the representations of data coming in from external sources and is used
+// to communicate the representation to the data-insertion methods.
 type DataReprType = filedb.FileAttr
 
 const (
@@ -40,26 +41,32 @@ type SampleDataProvider interface {
 		verbose bool,
 	) (sampleBlobs [][]*repr.Sample, softErrors int, err error)
 
-	ReadLoadData(
+	ReadCpuSamples(
 		fromDate, toDate time.Time,
 		hosts *Hosts,
 		verbose bool,
-	) (dataBlobs [][]*repr.LoadDatum, softErrors int, err error)
+	) (dataBlobs [][]*repr.CpuSamples, softErrors int, err error)
 
-	ReadGpuData(
+	ReadGpuSamples(
 		fromDate, toDate time.Time,
 		hosts *Hosts,
 		verbose bool,
-	) (dataBlobs [][]*repr.GpuDatum, softErrors int, err error)
+	) (dataBlobs [][]*repr.GpuSamples, softErrors int, err error)
 }
 
 // SysinfoDataProvider is a reader for data in "Sysinfo" data streams.
 type SysinfoDataProvider interface {
-	ReadSysinfoData(
+	ReadSysinfoNodeData(
 		fromDate, toDate time.Time,
 		hosts *Hosts,
 		verbose bool,
-	) (sysinfoBlobs [][]*repr.SysinfoData, softErrors int, err error)
+	) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error)
+
+	ReadSysinfoCardData(
+		fromDate, toDate time.Time,
+		hosts *Hosts,
+		verbose bool,
+	) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error)
 }
 
 // SacctDataProvider is a reader for Slurm/sacct data in "Jobs" data streams.
@@ -71,16 +78,27 @@ type SacctDataProvider interface {
 }
 
 // CluzterDataProvider is a reader for Slurm/sinfo data in "Cluster" data streams.  The name
-// "Cluzter" is used at present to disambiguate with several other uses of "Cluster".
+// "Cluzter" is used at present to disambiguate with several other uses of "Cluster" in the database
+// code.
 type CluzterDataProvider interface {
-	ReadCluzterData(
+	ReadCluzterAttributeData(
 		fromDate, toDate time.Time,
 		verbose bool,
-	) (recordBlobs [][]*repr.CluzterInfo, softErrors int, err error)
+	) (recordBlobs [][]*repr.CluzterAttributes, softErrors int, err error)
+
+	ReadCluzterPartitionData(
+		fromDate, toDate time.Time,
+		verbose bool,
+	) (recordBlobs [][]*repr.CluzterPartitions, softErrors int, err error)
+
+	ReadCluzterNodeData(
+		fromDate, toDate time.Time,
+		verbose bool,
+	) (recordBlobs [][]*repr.CluzterNodes, softErrors int, err error)
 }
 
-// PersistentDataProvider provides all data types, and carries a cluster configuration with it.
-type PersistentDataProvider interface {
+// DataProvider provides all data types, and carries a cluster configuration with it.
+type DataProvider interface {
 	Config() *config.ClusterConfig
 
 	SampleDataProvider
@@ -89,7 +107,10 @@ type PersistentDataProvider interface {
 	CluzterDataProvider
 }
 
-// AppendabePersistentDataProvider allows the data stores to be extended in a safe way.
+// PersistentDataProvider is backed by persistent storage in some way, and provides all data types.
+type PersistentDataProvider = DataProvider
+
+// AppendabePersistentDataProvider allows persistent data stores to be extended in a safe way.
 //
 // `payload` is string or []byte, exclusively.  Each should in general be a single record.  The
 // payload may optionally be terminated with \n to indicate end-of-record; any embedded \n are

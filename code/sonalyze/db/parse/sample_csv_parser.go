@@ -26,8 +26,8 @@ func ParseSampleCSV(
 	verbose bool,
 ) (
 	samples []*repr.Sample,
-	loadData []*repr.LoadDatum,
-	gpuData []*repr.GpuDatum,
+	loadData []*repr.CpuSamples,
+	gpuData []*repr.GpuSamples,
 	softErrors int,
 	err error,
 ) {
@@ -38,8 +38,8 @@ func ParseSampleCSV(
 	)
 
 	samples = make([]*repr.Sample, 0)
-	loadData = make([]*repr.LoadDatum, 0)
-	gpuData = make([]*repr.GpuDatum, 0)
+	loadData = make([]*repr.CpuSamples, 0)
+	gpuData = make([]*repr.GpuSamples, 0)
 	tokenizer := NewTokenizer(input)
 	v060 := ustrs.Alloc("0.6.0")
 	heartbeat := ustrs.Alloc("_heartbeat_")
@@ -529,17 +529,17 @@ LineLoop:
 			Flags:      flags,
 		})
 		if load != nil {
-			loadData = append(loadData, &repr.LoadDatum{
+			loadData = append(loadData, &repr.CpuSamples{
 				Timestamp: timestamp,
 				Hostname:  hostname,
-				Encoded:   repr.EncodedLoadDataFromBytes(load),
+				Encoded:   repr.EncodedCpuSamplesFromBytes(load),
 			})
 		}
 		if gpuinfo != nil {
-			gpuData = append(gpuData, &repr.GpuDatum{
+			gpuData = append(gpuData, &repr.GpuSamples{
 				Timestamp: timestamp,
 				Hostname:  hostname,
-				Encoded:   repr.EncodedGpuDataFromBytes(gpuinfo),
+				Encoded:   repr.EncodedGpuSamplesFromBytes(gpuinfo),
 			})
 		}
 	}

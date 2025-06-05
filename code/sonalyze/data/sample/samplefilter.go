@@ -1,6 +1,6 @@
 // Sample record filter.  This is performance-sensitive.
 
-package sonarlog
+package sample
 
 import (
 	"go-utils/hostglob"
@@ -8,10 +8,10 @@ import (
 	"sonalyze/db/repr"
 )
 
-// The sonarlog.SampleFilter will be applied to individual records and must be true for records to
-// be included and false for all others.  It may in principle be applied at any point in the
-// ingestion pipeline but at this time it is applied after raw ingestion and is therefore not a part
-// of the database layer.
+// The sample.SampleFilter will be applied to individual records and must be true for records to be
+// included and false for all others.  It may in principle be applied at any point in the ingestion
+// pipeline but at this time it is applied after raw ingestion and is therefore not a part of the
+// database layer.
 //
 // The fields may all have zero values; however, if `To` is not a precise time then it should be set
 // to math.MaxInt64, as zero will mean zero here too.

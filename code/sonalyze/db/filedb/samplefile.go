@@ -10,17 +10,17 @@ import (
 	"sonalyze/db/repr"
 )
 
-type DataNeeded int
+type SampleDataNeeded int
 
 const (
-	DataNeedSamples DataNeeded = iota
-	DataNeedLoadData
-	DataNeedGpuData
+	DataNeedSamples SampleDataNeeded = iota
+	DataNeedCpuSamples
+	DataNeedGpuSamples
 )
 
 type sampleFileReadSyncMethods struct {
 	// The payload is a *SampleData always.
-	dataNeeded DataNeeded
+	dataNeeded SampleDataNeeded
 
 	// The config is passed to the rectifiers, if they are not nil
 	cfg *config.ClusterConfig
@@ -32,27 +32,27 @@ type SampleFileKind int
 
 const (
 	SampleFileKindSample SampleFileKind = iota
-	SampleFileKindLoadDatum
-	SampleFileKindGpuDatum
+	SampleFileKindCpuSamples
+	SampleFileKindGpuSamples
 )
 
 func NewSampleFileMethods(cfg *config.ClusterConfig, kind SampleFileKind) *sampleFileReadSyncMethods {
 	switch kind {
 	case SampleFileKindSample:
 		return &sampleFileReadSyncMethods{DataNeedSamples, cfg}
-	case SampleFileKindLoadDatum:
-		return &sampleFileReadSyncMethods{DataNeedLoadData, cfg}
-	case SampleFileKindGpuDatum:
-		return &sampleFileReadSyncMethods{DataNeedGpuData, cfg}
+	case SampleFileKindCpuSamples:
+		return &sampleFileReadSyncMethods{DataNeedCpuSamples, cfg}
+	case SampleFileKindGpuSamples:
+		return &sampleFileReadSyncMethods{DataNeedGpuSamples, cfg}
 	default:
 		panic("Unexpected")
 	}
 }
 
 type sampleData struct {
-	samples  []*repr.Sample
-	loadData []*repr.LoadDatum
-	gpuData  []*repr.GpuDatum
+	samples    []*repr.Sample
+	cpuSamples []*repr.CpuSamples
+	gpuSamples []*repr.GpuSamples
 }
 
 type samplePayloadType = *sampleData
@@ -65,10 +65,10 @@ func (sfr *sampleFileReadSyncMethods) SelectDataFromPayload(payload any) (data a
 	switch sfr.dataNeeded {
 	case DataNeedSamples:
 		return payload.(samplePayloadType).samples
-	case DataNeedLoadData:
-		return payload.(samplePayloadType).loadData
-	case DataNeedGpuData:
-		return payload.(samplePayloadType).gpuData
+	case DataNeedCpuSamples:
+		return payload.(samplePayloadType).cpuSamples
+	case DataNeedGpuSamples:
+		return payload.(samplePayloadType).gpuSamples
 	default:
 		panic("Unexpected")
 	}
@@ -81,12 +81,12 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	verbose bool,
 ) (payload any, softErrors int, err error) {
 	var samples []*repr.Sample
-	var loadData []*repr.LoadDatum
-	var gpuData []*repr.GpuDatum
+	var cpuSamples []*repr.CpuSamples
+	var gpuSamples []*repr.GpuSamples
 	if (attr & FileSampleV0JSON) != 0 {
-		samples, loadData, gpuData, softErrors, err = parse.ParseSamplesV0JSON(inputFile, uf, verbose)
+		samples, cpuSamples, gpuSamples, softErrors, err = parse.ParseSamplesV0JSON(inputFile, uf, verbose)
 	} else {
-		samples, loadData, gpuData, softErrors, err = parse.ParseSampleCSV(inputFile, uf, verbose)
+		samples, cpuSamples, gpuSamples, softErrors, err = parse.ParseSampleCSV(inputFile, uf, verbose)
 	}
 	if err != nil {
 		return
@@ -103,13 +103,13 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	if SampleRectifier != nil {
 		samples = SampleRectifier(samples, sfr.cfg)
 	}
-	if LoadDatumRectifier != nil {
-		loadData = LoadDatumRectifier(loadData, sfr.cfg)
+	if CpuSamplesRectifier != nil {
+		cpuSamples = CpuSamplesRectifier(cpuSamples, sfr.cfg)
 	}
-	if GpuDatumRectifier != nil {
-		gpuData = GpuDatumRectifier(gpuData, sfr.cfg)
+	if GpuSamplesRectifier != nil {
+		gpuSamples = GpuSamplesRectifier(gpuSamples, sfr.cfg)
 	}
-	payload = &sampleData{samples, loadData, gpuData}
+	payload = &sampleData{samples, cpuSamples, gpuSamples}
 	return
 }
 
@@ -120,16 +120,16 @@ func (_ *sampleFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 	size += uintptr(len(data.samples)) * repr.PointerSize
 	// Every Sample has the same size
 	size += uintptr(len(data.samples)) * repr.SizeofSample
-	// Pointers to loadData
-	size += uintptr(len(data.loadData)) * repr.PointerSize
-	// Every LoadDatum is unique
-	for _, d := range data.loadData {
+	// Pointers to CpuSamples
+	size += uintptr(len(data.cpuSamples)) * repr.PointerSize
+	// Every CpuSamples object is unique
+	for _, d := range data.cpuSamples {
 		size += d.Size()
 	}
-	// Pointers to GpuDatums
-	size += uintptr(len(data.gpuData)) * repr.PointerSize
-	// Every GpuDatum is unique
-	for _, d := range data.gpuData {
+	// Pointers to GpuSamples
+	size += uintptr(len(data.gpuSamples)) * repr.PointerSize
+	// Every GpuSamples object is unique
+	for _, d := range data.gpuSamples {
 		size += d.Size()
 	}
 	return size
@@ -143,18 +143,18 @@ func ReadSampleSlice(
 	return ReadRecordsFromFiles[repr.Sample](files, verbose, reader)
 }
 
-func ReadLoadDatumSlice(
+func ReadCpuSamplesSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) (loadDataBlobs [][]*repr.LoadDatum, dropped int, err error) {
-	return ReadRecordsFromFiles[repr.LoadDatum](files, verbose, reader)
+) (loadDataBlobs [][]*repr.CpuSamples, dropped int, err error) {
+	return ReadRecordsFromFiles[repr.CpuSamples](files, verbose, reader)
 }
 
-func ReadGpuDatumSlice(
+func ReadGpuSamplesSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
-) (gpuDataBlobs [][]*repr.GpuDatum, dropped int, err error) {
-	return ReadRecordsFromFiles[repr.GpuDatum](files, verbose, reader)
+) (gpuDataBlobs [][]*repr.GpuSamples, dropped int, err error) {
+	return ReadRecordsFromFiles[repr.GpuSamples](files, verbose, reader)
 }

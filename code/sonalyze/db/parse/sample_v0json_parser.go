@@ -24,14 +24,14 @@ func ParseSamplesV0JSON(
 	verbose bool,
 ) (
 	samples []*repr.Sample,
-	loadData []*repr.LoadDatum,
-	gpuData []*repr.GpuDatum,
+	loadData []*repr.CpuSamples,
+	gpuData []*repr.GpuSamples,
 	softErrors int,
 	err error,
 ) {
 	samples = make([]*repr.Sample, 0)
-	loadData = make([]*repr.LoadDatum, 0)
-	gpuData = make([]*repr.GpuDatum, 0)
+	loadData = make([]*repr.CpuSamples, 0)
+	gpuData = make([]*repr.GpuSamples, 0)
 	err = newfmt.ConsumeJSONSamples(input, false, func(r *newfmt.SampleEnvelope) {
 		data, errdata := newfmt.NewSampleToOld(r)
 		if errdata != nil {
@@ -48,31 +48,26 @@ func ParseSamplesV0JSON(
 		h := ustrs.Alloc(data.Hostname)
 		if data.CpuLoad != nil {
 			encodedLoadData := slices.Clone(data.CpuLoad)
-			loadData = append(loadData, &repr.LoadDatum{
+			loadData = append(loadData, &repr.CpuSamples{
 				Timestamp: t,
 				Hostname:  h,
-				Encoded:   repr.EncodedLoadDataFromValues(encodedLoadData),
+				Encoded:   repr.EncodedCpuSamplesFromValues(encodedLoadData),
 			})
 		}
 
-		if data.GpuSamples != nil {
+		// Ignore the translated GPU data, use the original
+		if r.Data.Attributes.System.Gpus != nil {
+			gpus := r.Data.Attributes.System.Gpus
 			encodedGpuData := make([]repr.PerGpuSample, len(data.GpuSamples))
-			for i := range data.GpuSamples {
-				s := &encodedGpuData[i]
-				o := &data.GpuSamples[i]
-				s.FanPct = int(o.FanPct)
-				s.PerfMode = 0 // Nobody cares, right now
-				s.MemUsedKB = int64(o.MemUse)
-				s.TempC = int(o.Temp)
-				s.PowerDrawW = int(o.Power)
-				s.PowerLimitW = int(o.PowerLimit)
-				s.CeClockMHz = int(o.CEClock)
-				s.MemClockMHz = int(o.MemClock)
+			for i := range gpus {
+				encodedGpuData[i].Attr =
+					repr.GpuHasUuid | repr.GpuHasComputeMode | repr.GpuHasUtil | repr.GpuHasFailing
+				encodedGpuData[i].SampleGpu = &gpus[i]
 			}
-			gpuData = append(gpuData, &repr.GpuDatum{
+			gpuData = append(gpuData, &repr.GpuSamples{
 				Timestamp: t,
 				Hostname:  h,
-				Encoded:   repr.EncodedGpuDataFromValues(encodedGpuData),
+				Encoded:   repr.EncodedGpuSamplesFromValues(encodedGpuData),
 			})
 		}
 

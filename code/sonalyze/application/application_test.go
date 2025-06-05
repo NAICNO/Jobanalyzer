@@ -43,7 +43,7 @@ func checkTestOutput(t *testing.T, stdout, fields string, expect []string) {
 	}
 	for i, e := range expect {
 		if lines[i+1] != e {
-			t.Fatalf("Line %d: got %s", i+1, lines[i+1])
+			t.Fatalf("Line %d:\ngot    %s\nexpect %s", i+1, lines[i+1], e)
 		}
 	}
 }

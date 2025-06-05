@@ -1,4 +1,4 @@
-// Application logic for analysis of local data.
+// Application logic for analysis of local Sample data.
 
 package application
 
@@ -15,36 +15,25 @@ import (
 	. "sonalyze/cmd"
 	"sonalyze/cmd/profile"
 	. "sonalyze/common"
+	"sonalyze/data/sample"
 	"sonalyze/db"
-	"sonalyze/db/special"
-	"sonalyze/sonarlog"
 )
 
 func LocalOperation(command SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
 	args := command.SampleAnalysisFlags()
-
-	cfg, err := special.MaybeGetConfig(command.ConfigFile())
+	theLog, err := db.OpenReadOnlyDB(command.ConfigFile(), args.DataDir, db.FileListSampleData, args.LogFiles)
 	if err != nil {
 		return err
 	}
+	cfg := theLog.Config()
 
 	hosts, recordFilter, err := buildRecordFilters(command, cfg, args.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
 
-	var theLog db.SampleDataProvider
-	if len(args.LogFiles) > 0 {
-		theLog, err = db.OpenTransientSampleCluster(args.LogFiles, cfg)
-	} else {
-		theLog, err = db.OpenPersistentDirectoryDB(args.DataDir, cfg)
-	}
-	if err != nil {
-		return fmt.Errorf("Failed to open log store: %v", err)
-	}
-
 	streams, bounds, read, dropped, err :=
-		sonarlog.ReadSampleStreamsAndMaybeBounds(
+		sample.ReadSampleStreamsAndMaybeBounds(
 			theLog,
 			args.FromDate,
 			args.ToDate,
@@ -61,7 +50,7 @@ func LocalOperation(command SampleAnalysisCommand, _ io.Reader, stdout, stderr i
 		UstrStats(stderr, false)
 	}
 
-	sonarlog.ComputePerSampleFields(streams)
+	sample.ComputePerSampleFields(streams)
 	return command.Perform(stdout, cfg, theLog, streams, bounds, hosts, recordFilter)
 }
 
@@ -69,7 +58,7 @@ func buildRecordFilters(
 	command SampleAnalysisCommand,
 	cfg *config.ClusterConfig,
 	verbose bool,
-) (*Hosts, *sonarlog.SampleFilter, error) {
+) (*Hosts, *sample.SampleFilter, error) {
 	args := command.SampleAnalysisFlags()
 
 	// Temporary limitation.
@@ -206,7 +195,7 @@ func buildRecordFilters(
 		minPid = 1000
 	}
 
-	var recordFilter = &sonarlog.SampleFilter{
+	var recordFilter = &sample.SampleFilter{
 		IncludeUsers:    includeUsers,
 		IncludeHosts:    includeHosts.HostnameGlobber(),
 		IncludeJobs:     includeJobs,

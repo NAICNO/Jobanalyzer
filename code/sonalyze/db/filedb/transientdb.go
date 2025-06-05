@@ -63,8 +63,8 @@ func NewTransientSampleCluster(
 ) *TransientSampleCluster {
 	return &TransientSampleCluster{
 		samplesMethods:  NewSampleFileMethods(cfg, SampleFileKindSample),
-		loadDataMethods: NewSampleFileMethods(cfg, SampleFileKindLoadDatum),
-		gpuDataMethods:  NewSampleFileMethods(cfg, SampleFileKindGpuDatum),
+		loadDataMethods: NewSampleFileMethods(cfg, SampleFileKindCpuSamples),
+		gpuDataMethods:  NewSampleFileMethods(cfg, SampleFileKindGpuSamples),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
 			files: processTransientFiles(fileNames, ty),
@@ -87,20 +87,20 @@ func (tsc *TransientSampleCluster) ReadSamples(
 	return ReadSampleSlice(tsc.files, verbose, tsc.samplesMethods)
 }
 
-func (tsc *TransientSampleCluster) ReadLoadData(
+func (tsc *TransientSampleCluster) ReadCpuSamples(
 	_, _ time.Time,
 	_ *Hosts,
 	verbose bool,
-) (dataBlobs [][]*repr.LoadDatum, dropped int, err error) {
-	return ReadLoadDatumSlice(tsc.files, verbose, tsc.loadDataMethods)
+) (dataBlobs [][]*repr.CpuSamples, dropped int, err error) {
+	return ReadCpuSamplesSlice(tsc.files, verbose, tsc.loadDataMethods)
 }
 
-func (tsc *TransientSampleCluster) ReadGpuData(
+func (tsc *TransientSampleCluster) ReadGpuSamples(
 	_, _ time.Time,
 	_ *Hosts,
 	verbose bool,
-) (dataBlobs [][]*repr.GpuDatum, dropped int, err error) {
-	return ReadGpuDatumSlice(tsc.files, verbose, tsc.gpuDataMethods)
+) (dataBlobs [][]*repr.GpuSamples, dropped int, err error) {
+	return ReadGpuSamplesSlice(tsc.files, verbose, tsc.gpuDataMethods)
 }
 
 type TransientSacctCluster struct /* implements SacctCluster */ {
@@ -137,7 +137,8 @@ func (tsc *TransientSacctCluster) ReadSacctData(
 
 type TransientSysinfoCluster struct /* implements SysinfoCluster */ {
 	// MT: Immutable after initialization
-	methods ReadSyncMethods
+	nodeDataMethods ReadSyncMethods
+	cardDataMethods ReadSyncMethods
 
 	TransientCluster
 }
@@ -148,7 +149,8 @@ func NewTransientSysinfoCluster(
 	cfg *config.ClusterConfig,
 ) *TransientSysinfoCluster {
 	return &TransientSysinfoCluster{
-		methods: NewSysinfoFileMethods(cfg),
+		nodeDataMethods: NewSysinfoFileMethods(cfg, SysinfoFileKindNodeData),
+		cardDataMethods: NewSysinfoFileMethods(cfg, SysinfoFileKindCardData),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
 			files: processTransientFiles(fileNames, ty),
@@ -164,17 +166,27 @@ func (tsc *TransientSysinfoCluster) SysinfoFilenames(
 	return tsc.Filenames()
 }
 
-func (tsc *TransientSysinfoCluster) ReadSysinfoData(
+func (tsc *TransientSysinfoCluster) ReadSysinfoNodeData(
 	fromDate, toDate time.Time,
 	_ *Hosts,
 	verbose bool,
-) (recordBlobs [][]*repr.SysinfoData, dropped int, err error) {
-	return ReadSysinfoSlice(tsc.files, verbose, tsc.methods)
+) (recordBlobs [][]*repr.SysinfoNodeData, dropped int, err error) {
+	return ReadSysinfoNodeDataSlice(tsc.files, verbose, tsc.nodeDataMethods)
+}
+
+func (tsc *TransientSysinfoCluster) ReadSysinfoCardData(
+	fromDate, toDate time.Time,
+	_ *Hosts,
+	verbose bool,
+) (recordBlobs [][]*repr.SysinfoCardData, dropped int, err error) {
+	return ReadSysinfoCardDataSlice(tsc.files, verbose, tsc.cardDataMethods)
 }
 
 type TransientCluzterCluster struct /* implements CluzterCluster */ {
 	// MT: Immutable after initialization
-	methods ReadSyncMethods
+	attributeMethods ReadSyncMethods
+	partitionMethods ReadSyncMethods
+	nodeMethods      ReadSyncMethods
 
 	TransientCluster
 }
@@ -185,7 +197,9 @@ func NewTransientCluzterCluster(
 	cfg *config.ClusterConfig,
 ) *TransientCluzterCluster {
 	return &TransientCluzterCluster{
-		methods: NewCluzterFileMethods(cfg),
+		attributeMethods: NewCluzterFileMethods(cfg, CluzterFileKindAttributeData),
+		partitionMethods: NewCluzterFileMethods(cfg, CluzterFileKindPartitionData),
+		nodeMethods:      NewCluzterFileMethods(cfg, CluzterFileKindNodeData),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
 			files: processTransientFiles(fileNames, ty),
@@ -197,9 +211,23 @@ func (tsc *TransientCluzterCluster) CluzterFilenames(_, _ time.Time) ([]string, 
 	return tsc.Filenames()
 }
 
-func (tsc *TransientCluzterCluster) ReadCluzterData(
+func (tsc *TransientCluzterCluster) ReadCluzterAttributeData(
 	fromDate, toDate time.Time,
 	verbose bool,
-) (recordBlobs [][]*repr.CluzterInfo, dropped int, err error) {
-	return ReadCluzterSlice(tsc.files, verbose, tsc.methods)
+) (recordBlobs [][]*repr.CluzterAttributes, dropped int, err error) {
+	return ReadCluzterAttributeDataSlice(tsc.files, verbose, tsc.attributeMethods)
+}
+
+func (tsc *TransientCluzterCluster) ReadCluzterPartitionData(
+	fromDate, toDate time.Time,
+	verbose bool,
+) (recordBlobs [][]*repr.CluzterPartitions, dropped int, err error) {
+	return ReadCluzterPartitionDataSlice(tsc.files, verbose, tsc.partitionMethods)
+}
+
+func (tsc *TransientCluzterCluster) ReadCluzterNodeData(
+	fromDate, toDate time.Time,
+	verbose bool,
+) (recordBlobs [][]*repr.CluzterNodes, dropped int, err error) {
+	return ReadCluzterNodeDataSlice(tsc.files, verbose, tsc.nodeMethods)
 }

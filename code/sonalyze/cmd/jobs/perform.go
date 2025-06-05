@@ -14,10 +14,10 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/sample"
+	"sonalyze/data/slurmjob"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/slurmlog"
-	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -76,7 +76,7 @@ type jobSummary struct {
 	CpuTime        DurationValue
 	GpuTime        DurationValue
 	Classification int // Bit vector of flags
-	job            sonarlog.SampleStream
+	job            sample.SampleStream
 	computedFlags  int
 	selected       bool // Initially true, used to deselect the record before printing
 	sacctInfo      *repr.SacctInfo
@@ -108,10 +108,10 @@ func (jc *JobsCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
 	theDb db.SampleDataProvider,
-	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds,
+	streams sample.InputStreamSet,
+	bounds Timebounds,
 	hostGlobber *Hosts,
-	_ *sonarlog.SampleFilter,
+	_ *sample.SampleFilter,
 ) error {
 	if jc.Verbose {
 		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
@@ -180,8 +180,8 @@ func (nt *nameTester) testName(name string) {
 func (jc *JobsCommand) aggregateAndFilterJobs(
 	cfg *config.ClusterConfig,
 	theDb db.SampleDataProvider,
-	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds,
+	streams sample.InputStreamSet,
+	bounds Timebounds,
 ) []*jobSummary {
 	var now = time.Now().UTC().Unix()
 	var anyMergeableNodes bool
@@ -189,13 +189,13 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		anyMergeableNodes = cfg.HasCrossNodeJobs()
 	}
 
-	var jobs sonarlog.SampleStreams
+	var jobs sample.SampleStreams
 	if jc.MergeAll {
-		jobs, bounds = sonarlog.MergeByJob(streams, bounds)
+		jobs, bounds = sample.MergeByJob(streams, bounds)
 	} else if anyMergeableNodes {
 		jobs, bounds = mergeAcrossSomeNodes(cfg, streams, bounds)
 	} else {
-		jobs = sonarlog.MergeByHostAndJob(streams)
+		jobs = sample.MergeByHostAndJob(streams)
 	}
 	if jc.Verbose {
 		Log.Infof("Jobs constructed by merging: %d", len(jobs))
@@ -339,14 +339,14 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 			}
 
 			var (
-				aJobs, bJobs []*slurmlog.SlurmJob
-				bMap         map[uint32]*slurmlog.SlurmJob
+				aJobs, bJobs []*slurmjob.SlurmJob
+				bMap         map[uint32]*slurmjob.SlurmJob
 			)
-			aJobs, err = slurmlog.Query(
+			aJobs, err = slurmjob.Query(
 				slurmDb,
 				jc.FromDate,
 				jc.ToDate,
-				slurmlog.QueryFilter{
+				slurmjob.QueryFilter{
 					Job: jobIds,
 				},
 				jc.Verbose,
@@ -361,7 +361,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 
 			if slurmFilter != nil {
 				var err error
-				bJobs, err = slurmlog.FilterJobs(
+				bJobs, err = slurmjob.FilterJobs(
 					aJobs,
 					*slurmFilter,
 					jc.Verbose,
@@ -373,7 +373,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 					bJobs = aJobs
 					// Ignore it, fall through to attach job info
 				} else {
-					bMap = make(map[uint32]*slurmlog.SlurmJob)
+					bMap = make(map[uint32]*slurmjob.SlurmJob)
 					for _, j := range bJobs {
 						bMap[j.Id] = j
 					}
@@ -392,7 +392,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 			}
 
 			if bMap == nil {
-				bMap = make(map[uint32]*slurmlog.SlurmJob)
+				bMap = make(map[uint32]*slurmjob.SlurmJob)
 				for _, j := range bJobs {
 					bMap[j.Id] = j
 				}
@@ -419,13 +419,13 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 
 func mergeAcrossSomeNodes(
 	cfg *config.ClusterConfig,
-	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds,
-) (sonarlog.SampleStreams, sonarlog.Timebounds) {
-	mergeable := make(sonarlog.InputStreamSet)
-	mBounds := make(sonarlog.Timebounds)
-	solo := make(sonarlog.InputStreamSet)
-	sBounds := make(sonarlog.Timebounds)
+	streams sample.InputStreamSet,
+	bounds Timebounds,
+) (sample.SampleStreams, Timebounds) {
+	mergeable := make(sample.InputStreamSet)
+	mBounds := make(Timebounds)
+	solo := make(sample.InputStreamSet)
+	sBounds := make(Timebounds)
 	for k, v := range streams {
 		bound := bounds[k.Host]
 		if sys := cfg.LookupHost(k.Host.String()); sys != nil && sys.CrossNodeJobs {
@@ -436,8 +436,8 @@ func mergeAcrossSomeNodes(
 			solo[k] = v
 		}
 	}
-	mergedJobs, mergedBounds := sonarlog.MergeByJob(mergeable, mBounds)
-	otherJobs := sonarlog.MergeByHostAndJob(solo)
+	mergedJobs, mergedBounds := sample.MergeByJob(mergeable, mBounds)
+	otherJobs := sample.MergeByHostAndJob(solo)
 	mergedJobs = append(mergedJobs, otherJobs...)
 	for k, v := range sBounds {
 		mergedBounds[k] = v
@@ -452,7 +452,7 @@ func mergeAcrossSomeNodes(
 func (jc *JobsCommand) aggregateJob(
 	cfg *config.ClusterConfig,
 	host Ustr,
-	job sonarlog.SampleStream,
+	job sample.SampleStream,
 	needCmd, needHosts, needZombie bool,
 ) jobAggregate {
 	gpus := gpuset.EmptyGpuSet()
@@ -476,7 +476,7 @@ func (jc *JobsCommand) aggregateJob(
 
 	for _, s := range job {
 		gpus = gpuset.UnionGpuSets(gpus, s.Gpus)
-		gpuFail = sonarlog.MergeGpuFail(gpuFail, s.GpuFail)
+		gpuFail = sample.MergeGpuFail(gpuFail, s.GpuFail)
 		cpuPctAvg += float64(s.CpuUtilPct)
 		cpuPctPeak = math.Max(cpuPctPeak, float64(s.CpuUtilPct))
 		gpuPctAvg += float64(s.GpuPct)
@@ -632,7 +632,7 @@ func (f *aggregationFilter) apply(s *jobSummary) bool {
 
 func (jc *JobsCommand) buildFilters(
 	cfg *config.ClusterConfig,
-) (*aggregationFilter, *slurmlog.QueryFilter) {
+) (*aggregationFilter, *slurmjob.QueryFilter) {
 	minFilters := make([]filterVal, 0)
 	maxFilters := make([]filterVal, 0)
 
@@ -684,7 +684,7 @@ func (jc *JobsCommand) buildFilters(
 	}
 
 	var summaryFilter *aggregationFilter
-	var slurmFilter *slurmlog.QueryFilter
+	var slurmFilter *slurmjob.QueryFilter
 
 	if len(minFilters) > 0 || len(maxFilters) > 0 || flags != 0 {
 		summaryFilter = &aggregationFilter{
@@ -695,7 +695,7 @@ func (jc *JobsCommand) buildFilters(
 	}
 
 	if len(jc.Partition)+len(jc.Reservation)+len(jc.Account)+len(jc.State)+len(jc.GpuType) > 0 {
-		slurmFilter = &slurmlog.QueryFilter{
+		slurmFilter = &slurmjob.QueryFilter{
 			Account:     jc.Account,
 			Partition:   jc.Partition,
 			Reservation: jc.Reservation,

@@ -10,9 +10,9 @@ import (
 	"go-utils/config"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/sample"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/sonarlog"
 	. "sonalyze/table"
 )
 
@@ -24,10 +24,10 @@ func (lc *LoadCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
 	_ db.SampleDataProvider,
-	streams sonarlog.InputStreamSet,
-	bounds sonarlog.Timebounds,
+	streams sample.InputStreamSet,
+	bounds Timebounds,
 	hostGlobber *Hosts,
-	_ *sonarlog.SampleFilter,
+	_ *sample.SampleFilter,
 ) error {
 	fromIncl, toIncl := lc.InterpretFromToWithBounds(bounds)
 
@@ -41,24 +41,24 @@ func (lc *LoadCommand) Perform(
 
 	// There one synthesized sample stream per host.  The samples will all have different
 	// timestamps, and each stream will be sorted ascending by timestamp.
-	mergedStreams := sonarlog.MergeByHost(streams)
+	mergedStreams := sample.MergeByHost(streams)
 
 	// Bucket the data, if applicable
 	if lc.bucketing != bNone {
-		newStreams := make(sonarlog.SampleStreams, 0)
+		newStreams := make(sample.SampleStreams, 0)
 		for _, s := range mergedStreams {
-			var newS sonarlog.SampleStream
+			var newS sample.SampleStream
 			switch lc.bucketing {
 			case bHalfHourly:
-				newS = sonarlog.FoldSamplesHalfHourly(*s)
+				newS = sample.FoldSamplesHalfHourly(*s)
 			case bHourly:
-				newS = sonarlog.FoldSamplesHourly(*s)
+				newS = sample.FoldSamplesHourly(*s)
 			case bHalfDaily:
-				newS = sonarlog.FoldSamplesHalfDaily(*s)
+				newS = sample.FoldSamplesHalfDaily(*s)
 			case bDaily:
-				newS = sonarlog.FoldSamplesDaily(*s)
+				newS = sample.FoldSamplesDaily(*s)
 			case bWeekly:
-				newS = sonarlog.FoldSamplesWeekly(*s)
+				newS = sample.FoldSamplesWeekly(*s)
 			default:
 				panic("Unexpected case")
 			}
@@ -87,7 +87,7 @@ func (lc *LoadCommand) Perform(
 			}
 			mergedConf = &theConf
 		}
-		mergedStreams = sonarlog.MergeAcrossHostsByTime(mergedStreams)
+		mergedStreams = sample.MergeAcrossHostsByTime(mergedStreams)
 		if len(mergedStreams) > 1 {
 			panic("Too many results")
 		}
@@ -135,7 +135,7 @@ func (lc *LoadCommand) Perform(
 	return nil
 }
 
-func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl, toIncl int64) {
+func (lc *LoadCommand) insertMissingRecords(ss *sample.SampleStream, fromIncl, toIncl int64) {
 	var trunc func(int64) int64
 	var step func(int64) int64
 	switch lc.bucketing {
@@ -159,11 +159,11 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 	}
 	host := (*ss)[0].Hostname
 	t := trunc(fromIncl)
-	result := make(sonarlog.SampleStream, 0)
+	result := make(sample.SampleStream, 0)
 
 	for _, s := range *ss {
 		for t < s.Timestamp {
-			newS := sonarlog.Sample{Sample: &repr.Sample{Timestamp: t, Hostname: host}}
+			newS := sample.Sample{Sample: &repr.Sample{Timestamp: t, Hostname: host}}
 			result = append(result, newS)
 			t = step(t)
 		}
@@ -172,7 +172,7 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 	}
 	ending := trunc(toIncl)
 	for t <= ending {
-		newS := sonarlog.Sample{Sample: &repr.Sample{Timestamp: t, Hostname: host}}
+		newS := sample.Sample{Sample: &repr.Sample{Timestamp: t, Hostname: host}}
 		result = append(result, newS)
 		t = step(t)
 	}
@@ -181,7 +181,7 @@ func (lc *LoadCommand) insertMissingRecords(ss *sonarlog.SampleStream, fromIncl,
 
 // `sys` may be nil if none of the requested fields use its data, so we must guard against that.
 func generateReport(
-	input []sonarlog.Sample,
+	input []sample.Sample,
 	now int64,
 	sys *config.NodeConfigRecord,
 ) (result []*ReportRecord) {
