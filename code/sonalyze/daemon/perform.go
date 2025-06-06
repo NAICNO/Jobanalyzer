@@ -76,7 +76,9 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	}
 
 	// Note "daemon" is not a command here
-	http.HandleFunc("/add", httpAddHandler(dc))
+	if !dc.noAdd {
+		http.HandleFunc("/add", httpAddHandler(dc))
+	}
 	http.HandleFunc("/card", httpGetHandler(dc, "card"))
 	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))
 	http.HandleFunc("/config", httpGetHandler(dc, "config"))
