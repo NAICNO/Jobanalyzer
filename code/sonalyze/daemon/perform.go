@@ -76,7 +76,9 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	}
 
 	// Note "daemon" is not a command here
-	http.HandleFunc("/add", httpAddHandler(dc))
+	if !dc.noAdd {
+		http.HandleFunc("/add", httpAddHandler(dc))
+	}
 	http.HandleFunc("/card", httpGetHandler(dc, "card"))
 	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))
 	http.HandleFunc("/config", httpGetHandler(dc, "config"))
@@ -92,10 +94,12 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	http.HandleFunc("/sacct", httpGetHandler(dc, "sacct"))
 	http.HandleFunc("/snode", httpGetHandler(dc, "snode"))
 	http.HandleFunc("/spart", httpGetHandler(dc, "spart"))
-	// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
-	// upload infra already running on the clusters.  We'd like to get rid of them eventually.
-	http.HandleFunc("/sonar-freecsv", httpPostHandler(dc, "sample", "text/csv"))
-	http.HandleFunc("/sysinfo", httpPostHandler(dc, "sysinfo", "application/json"))
+	if !dc.noAdd {
+		// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
+		// upload infra already running on the clusters.  We'd like to get rid of them eventually.
+		http.HandleFunc("/sonar-freecsv", httpPostHandler(dc, "sample", "text/csv"))
+		http.HandleFunc("/sysinfo", httpPostHandler(dc, "sysinfo", "application/json"))
+	}
 
 	var programFailed bool
 	s := httpsrv.New(dc.Verbose, int(dc.port), func(err error) {

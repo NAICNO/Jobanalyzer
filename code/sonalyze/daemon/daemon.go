@@ -34,37 +34,46 @@
 //
 // -port <port-number>
 //
-//  This is an optional argument.  It is the port number on which to listen, the default is 8087.
+//   This is an optional argument.  It is the port number on which to listen, the default is 8087.
 //
 // -analysis-auth <filename>
 // -password-file <filename>
 //
-//  This is an optional argument.  It names a file with username:password pairs, one per line, to be
-//  matched with values in an incoming HTTP basic authentication header for a GET operation.  (Note,
-//  if the connection is not HTTPS then the password may have been intercepted in transit.)
+//   This is an optional argument.  It names a file with username:password pairs, one per line, to
+//   be matched with values in an incoming HTTP basic authentication header for a GET operation.
+//   (Note, if the connection is not HTTPS then the password may have been intercepted in transit.)
 //
 // -upload-auth <filename>
 //
-//  This is an optional but *strongly* recommended argument.  If provided then the file named must
+//   This is an optional but *strongly* recommended argument.  If provided then the file named must
 //   provide username:password combinations, to be matched with one in an HTTP basic authentication
 //   header.  (If the connection is not HTTPS then the password may have been intercepted in
 //   transit.)
 //
 // -match-user-and-cluster
+//
 //   Optional but *strongly* recommended argument.  If set, and -upload-auth is also provided, then
 //   the user name provided by the HTTP connection must match the cluster name in the data packet or
 //   query string.  The effect is to make it possible for each cluster to have its own
 //   username:password pair and for one cluster not to be able to upload data for another.
 //
 // -cache <size>
+//
 //   Cache raw or parboiled data in memory between operations.  The size is expressed as nnM
 //   (megabytes) or nnG (gigabytes).  A sensible size *might* be about 256MB per 100 (slurm) nodes
 //   per week.
 //
+// -no-add
+//
+//   This disables the /add, /sysinfo and /sonar-freecsv endpoints and the options -upload-auth and
+//   -match-user-and-cluster.  The implication is that we're either running on a read-only database
+//   or we're using -kafka to handle all ingestion.
+//
 // -kafka <broker-address>
+//
 //   EXPERIMENTAL.  The daemon will attempt to ingest data over a unencrypted and unauthenticated
 //   Kafka channel for the clusters found in the data directory.  It should be the only consumer
-//   for those data.
+//   for those data.  The broker-address is normally on the form hostname:port.
 //
 // Termination:
 //
@@ -120,6 +129,7 @@ type DaemonCommand struct {
 	matchUserAndCluster bool
 	cache               string
 	kafkaBroker         string
+	noAdd               bool
 
 	aliasResolver     *alias.Aliases
 	getAuthenticator  *auth.Authenticator
@@ -147,6 +157,7 @@ func (dc *DaemonCommand) Add(fs *CLI) {
 	fs.StringVar(&dc.getAuthFile, "password-file", "", "Alias for -analysis-auth")
 	fs.StringVar(&dc.cache, "cache", "", "Enable data caching with this size (nM for megs, nG for gigs)")
 	fs.StringVar(&dc.kafkaBroker, "kafka", "", "Ingest data from this broker for all known clusters")
+	fs.BoolVar(&dc.noAdd, "no-add", false, "Disable HTTPS ingestion")
 }
 
 //go:embed summary.txt
@@ -157,7 +168,7 @@ func (dc *DaemonCommand) Summary(out io.Writer) {
 }
 
 func (dc *DaemonCommand) Validate() error {
-	var e1, e2, e3, e4, e5, e6, e7 error
+	var e1, e2, e3, e4, e5, e6, e7, e8 error
 	e1 = dc.DevArgs.Validate()
 	e2 = dc.VerboseArgs.Validate()
 	dc.jobanalyzerDir, e3 = options.RequireDirectory(dc.jobanalyzerDir, "-jobanalyzer-dir")
@@ -194,5 +205,10 @@ func (dc *DaemonCommand) Validate() error {
 			}
 		}
 	}
-	return errors.Join(e1, e2, e3, e4, e5, e6, e7)
+	if dc.noAdd {
+		if dc.matchUserAndCluster || dc.postAuthFile != "" {
+			e8 = errors.New("The -no-add switch precludes https upload parameters")
+		}
+	}
+	return errors.Join(e1, e2, e3, e4, e5, e6, e7, e8)
 }
