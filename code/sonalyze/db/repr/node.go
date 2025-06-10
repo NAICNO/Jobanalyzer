@@ -7,7 +7,8 @@ import (
 )
 
 // SysinfoNodeData is basically a view on newfmt.SysinfoAttributes where
-// newfmt=github.com/NordicHPC/sonar/util/formats/newfmt.
+// newfmt=github.com/NordicHPC/sonar/util/formats/newfmt.  The reason it is a separate view is that
+// that data structure carries some fields that should not be visible here.
 type SysinfoNodeData struct {
 	Time           string
 	Cluster        string
