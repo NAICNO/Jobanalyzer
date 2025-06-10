@@ -518,7 +518,7 @@ func (jc *JobsCommand) aggregateJob(
 				rGpuGBAvg = (gpuGBAvg * 100) / gpuMemory
 				rGpuGBPeak = (gpuGBPeak * 100) / gpuMemory
 			}
-			if usesGpu {
+			if usesGpu && !gpus.IsUnknown() {
 				nCards := float64(gpus.Size())
 				sGpuPctAvg = gpuPctAvg / nCards
 				sGpuPctPeak = gpuPctPeak / nCards
