@@ -1,6 +1,7 @@
 package snodes
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
@@ -33,18 +34,20 @@ GENERATE SnodeData
 
 SUMMARY SnodeCommand
 
-  Print Slurm partition data
+  Print Slurm node data
 
 HELP SnodeCommand
 
-  TODO
+  Nodes managed by Slurm can be in various states and belong to various partitions.  A node may also
+  be managed by Slurm at some points in time, and be unmanaged at other points, and can be moved
+  among partitions.  Output records are sorted by time.  The default format is 'fixed'.
 
 ALIASES
 
-  default  host,nodes,states
-  Default  Hostname,Nodes,States
-  all      timestamp,host,nodes,states
-  All      Timestamp,Hostname,Nodes,States
+  default  nodes,states
+  Default  Nodes,States
+  all      timestamp,nodes,states
+  All      Timestamp,Nodes,States
 
 DEFAULTS default
 
@@ -116,6 +119,10 @@ func (nc *SnodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
+
+	slices.SortFunc(reports, func(a, b SnodeData) int {
+		return cmp.Compare(a.Timestamp, b.Timestamp)
+	})
 
 	FormatData(
 		stdout,

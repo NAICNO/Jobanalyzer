@@ -1,13 +1,16 @@
 package cards
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	. "sonalyze/cmd"
 	"sonalyze/data/card"
 	"sonalyze/db"
+	"sonalyze/db/repr"
 	. "sonalyze/table"
 )
 
@@ -24,7 +27,7 @@ import "sonalyze/db/repr"
 FIELDS *repr.SysinfoCardData
 
  Time           string desc:"Full ISO timestamp of when the reading was taken"
- Node           string desc:"Node list"
+ Node           string desc:"Card's node at this time"
  Index          uint64 desc:"Card's index on its node at this time"
  UUID           string desc:"Card's unique identifier (but not necessarily its only unique identifier)"
  Address        string desc:"Card's address on its node at this time"
@@ -46,7 +49,9 @@ SUMMARY CardCommand
 
 HELP CardCommand
 
-  TODO
+  Extract information about individual gpu cards on the cluster from sysinfo and present it in
+  primitive form.  Output records are sorted by time and node name, note cards can be moved between
+  nodes from time to time.  The default format is 'fixed'.
 
 ALIASES
 
@@ -112,6 +117,14 @@ func (nc *CardCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
+
+	// Sort by time first and node name second
+	slices.SortFunc(records, func(a, b *repr.SysinfoCardData) int {
+		if rel := cmp.Compare(a.Time, b.Time); rel != 0 {
+			return rel
+		}
+		return cmp.Compare(a.Node, b.Node)
+	})
 
 	FormatData(
 		stdout,

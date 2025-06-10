@@ -1,9 +1,11 @@
 package sparts
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	. "sonalyze/cmd"
 	"sonalyze/data/slurmpart"
@@ -33,14 +35,18 @@ SUMMARY SpartCommand
 
 HELP SpartCommand
 
-  TODO
+  Slurm partitions are named and contain a set of nodes on the machine.  Not all nodes need be in a
+  partition, some nodes may be in multiple partitions at the same time, and admins can move nodes
+  among partitions.  Thus the partition information (also available from the `sinfo` command) is
+  time-varying.  Output records are sorted by time and partition name, the default format is
+  'fixed'.
 
 ALIASES
 
-  default  host,partition,nodes
-  Default  Hostname,Partition,Nodes
-  all      timestamp,host,part,nodes
-  All      Timestamp,Hostname,Partition,Nodes
+  default  part,nodes
+  Default  Partition,Nodes
+  all      timestamp,part,nodes
+  All      Timestamp,Partition,Nodes
 
 DEFAULTS default
 
@@ -114,6 +120,13 @@ func (nc *SpartCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
+
+	slices.SortFunc(reports, func(a, b SpartData) int {
+		if rel := cmp.Compare(a.Timestamp, b.Timestamp); rel != 0 {
+			return rel
+		}
+		return cmp.Compare(a.Partition, b.Partition)
+	})
 
 	FormatData(
 		stdout,

@@ -18,6 +18,14 @@ const (
 // After ingestion and initial correction this datum is *strictly* read-only.  It will be accessed
 // concurrently without locking from many threads and must not be written by any of them.
 //
+// This is effectively a flattened view of newfmt.SampleProcess where newfmt is
+// github.com/NordicHPC/sonar/util/formats/newfmt.  Fields from its parent types newfmt.SampleJob
+// and newfmt.SampleAttributes have been moved into it.
+//
+// The reason it is a separate view is that that data structure carries some fields that should not
+// be visible here, but in addition, we want this structure to be pointer-free and as small as
+// possible, as there are very many of them in memory at the same time.  Also, historically these
+// data were all part of the same record.
 //
 // Memory use.
 //
@@ -48,12 +56,14 @@ const (
 //
 // It seems likely that if we applied all of these we could save another 30 bytes.
 //
-// TODO: OPTIMIZEME: Now that we are caching data we have more opportunities.  Samples are not
-// stored individually but can be stored as part of a postprocessed stream keyed by Host, StreamId
-// (Pid or JobId), and Cmd.
+// TODO: OPTIMIZEME: Now that we are caching data we have more opportunities, and the new external
+// representations already encode these:
 //
 //  - Common fields (maybe Host, Job, Pid, User, Cluster, Cmd) can be lifted out of the structure to
 //    a header
+//
+// Additionally:
+//
 //  - Timestamp can be delta-encoded as u16
 //  - Version can be removed, as all version-dependent corrections will have been applied during
 //    stream postprocessing
@@ -61,7 +71,9 @@ const (
 // It will also be advantageous to store structures in-line in tightly controlled slices rather than
 // as individual heap-allocated structures.
 //
-// Some of these optimizations will complicate the use of the data, obviously.
+// Some of these optimizations will complicate the use of the data, obviously.  Also, with the
+// future belonging to a proper database, we should await the needs resulting from that
+// reengineering.
 
 type Sample struct {
 	Timestamp  int64

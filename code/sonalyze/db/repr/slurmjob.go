@@ -44,7 +44,11 @@ import (
 //
 // This structure is unreasonably large, but in practice there are many fewer of these (several
 // orders of magnitude fewer) than the Sonar sample records.
-
+//
+// This structure is essentially a flattened view onto newfmt.SlurmJob where newfmt is
+// newfmt=github.com/NordicHPC/sonar/util/formats/newfmt.  The reason it is a separate view is
+// partly the flattening and partly the desire to convert string to Ustr and uint64 to uint32, so as
+// to make this a pointer-free data structure - since there can be many of them and it is large.
 type SacctInfo struct {
 	Start        int64  // Unix time
 	End          int64  // Unix time
