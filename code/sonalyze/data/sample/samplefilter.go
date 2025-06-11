@@ -3,8 +3,18 @@
 package sample
 
 import (
+	"errors"
+	"fmt"
+	"math"
+	"os"
+
+	"go-utils/config"
 	"go-utils/hostglob"
+	umaps "go-utils/maps"
+	uslices "go-utils/slices"
+
 	. "sonalyze/common"
+	"sonalyze/data/common"
 	"sonalyze/db/repr"
 )
 
@@ -307,4 +317,208 @@ func InstantiateSampleFilter(recordFilter *SampleFilter) func(*repr.Sample) bool
 		// pass due to the structure of the database.  So apply them only at the end.
 		return recordFilter.From <= e.Timestamp && e.Timestamp <= recordFilter.To
 	}
+}
+
+type QueryFilter struct {
+	common.QueryFilter
+	AllUsers              bool
+	SkipSystemUsers       bool
+	ExcludeSystemCommands bool
+	ExcludeHeartbeat      bool
+	ExcludeSystemJobs     bool
+	User                  []string
+	ExcludeUser           []string
+	Command               []string
+	ExcludeCommand        []string
+	Job                   []uint32
+	ExcludeJob            []uint32
+}
+
+func BuildSampleFilter(
+	cfg *config.ClusterConfig,
+	filter QueryFilter,
+	verbose bool,
+) (
+	*Hosts,
+	*SampleFilter,
+	error,
+) {
+	// Included host set, empty means "all"
+
+	includeHosts, err := NewHosts(true, filter.Host)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Included job numbers, empty means "all"
+
+	includeJobs := make(map[uint32]bool)
+	for _, j := range filter.Job {
+		includeJobs[j] = true
+	}
+
+	// Excluded job numbers.
+
+	excludeJobs := make(map[uint32]bool)
+	for _, j := range filter.ExcludeJob {
+		excludeJobs[j] = true
+	}
+
+	// Included users, empty means "all"
+
+	allUsers := filter.AllUsers
+	includeUsers := make(map[Ustr]bool)
+	if len(filter.User) > 0 {
+		allUsers = false
+		for _, u := range filter.User {
+			if u == "-" {
+				allUsers = true
+				break
+			}
+		}
+		if !allUsers {
+			for _, u := range filter.User {
+				includeUsers[StringToUstr(u)] = true
+			}
+		}
+	} else if allUsers {
+		// Everyone, so do nothing
+	} else {
+		// LOGNAME is Posix but may be limited to a user being "logged in"; USER is BSD and a bit
+		// more general supposedly.  We prefer the former but will settle for the latter, in
+		// particular, Github actions has only USER.
+		if name := os.Getenv("LOGNAME"); name != "" {
+			includeUsers[StringToUstr(name)] = true
+		} else if name := os.Getenv("USER"); name != "" {
+			includeUsers[StringToUstr(name)] = true
+		} else {
+			return nil, nil, errors.New("Not able to determine user, none given and $LOGNAME and $USER are empty")
+		}
+	}
+
+	// Excluded users.
+
+	excludeUsers := make(map[Ustr]bool)
+	for _, u := range filter.ExcludeUser {
+		excludeUsers[StringToUstr(u)] = true
+	}
+
+	if filter.SkipSystemUsers {
+		// This list needs to be configurable somehow, but isn't so in the Rust version either.
+		excludeUsers[StringToUstr("root")] = true
+		excludeUsers[StringToUstr("zabbix")] = true
+	}
+
+	// Included commands.
+
+	includeCommands := make(map[Ustr]bool)
+	for _, command := range filter.Command {
+		includeCommands[StringToUstr(command)] = true
+	}
+
+	// Excluded commands.
+
+	excludeCommands := make(map[Ustr]bool)
+	for _, command := range filter.ExcludeCommand {
+		excludeCommands[StringToUstr(command)] = true
+	}
+
+	if filter.ExcludeSystemCommands {
+		// This list needs to be configurable somehow, but isn't so in the Rust version either.
+		excludeCommands[StringToUstr("bash")] = true
+		excludeCommands[StringToUstr("zsh")] = true
+		excludeCommands[StringToUstr("sshd")] = true
+		excludeCommands[StringToUstr("tmux")] = true
+		excludeCommands[StringToUstr("systemd")] = true
+	}
+
+	// Skip heartbeat records?  It's probably OK to filter only by command name, since we're
+	// currently doing full-command-name matching.
+
+	if filter.ExcludeHeartbeat {
+		excludeCommands[StringToUstr("_heartbeat_")] = true
+	}
+
+	// System configuration additions, if available
+
+	if cfg != nil {
+		for _, user := range cfg.ExcludeUser {
+			excludeUsers[StringToUstr(user)] = true
+		}
+	}
+
+	// Record filtering logic is the same for all commands.  The record filter can use only raw
+	// ingested data, it can be applied at any point in the pipeline.  It *must* be thread-safe.
+
+	excludeSystemJobs := filter.ExcludeSystemJobs
+	haveFrom := filter.HaveFrom
+	haveTo := filter.HaveTo
+	var from int64 = 0
+	if haveFrom {
+		from = filter.FromDate.Unix()
+	}
+	var to int64 = math.MaxInt64
+	if haveTo {
+		to = filter.ToDate.Unix()
+	}
+	var minPid uint32
+	if excludeSystemJobs {
+		minPid = 1000
+	}
+
+	var recordFilter = &SampleFilter{
+		IncludeUsers:    includeUsers,
+		IncludeHosts:    includeHosts.HostnameGlobber(),
+		IncludeJobs:     includeJobs,
+		IncludeCommands: includeCommands,
+		ExcludeUsers:    excludeUsers,
+		ExcludeJobs:     excludeJobs,
+		ExcludeCommands: excludeCommands,
+		MinPid:          minPid,
+		From:            from,
+		To:              to,
+	}
+
+	if verbose {
+		if haveFrom {
+			Log.Infof("Including records starting on or after %s", filter.FromDate)
+		}
+		if haveTo {
+			Log.Infof("Including records ending on or before %s", filter.ToDate)
+		}
+		if len(includeUsers) > 0 {
+			Log.Infof("Including records with users %s", umaps.Values(includeUsers))
+		}
+		if !includeHosts.IsEmpty() {
+			Log.Infof("Including records with hosts matching %s", includeHosts)
+		}
+		if len(includeJobs) > 0 {
+			Log.Infof(
+				"Including records with job id matching %s",
+				uslices.Map(umaps.Keys(includeJobs), func(x uint32) string {
+					return fmt.Sprint(x)
+				}))
+		}
+		if len(includeCommands) > 0 {
+			Log.Infof("Including records with commands matching %s", umaps.Keys(includeCommands))
+		}
+		if len(excludeUsers) > 0 {
+			Log.Infof("Excluding records with users matching %s", umaps.Keys(excludeUsers))
+		}
+		if len(excludeJobs) > 0 {
+			Log.Infof(
+				"Excluding records with job ids matching %s",
+				uslices.Map(umaps.Keys(excludeJobs), func(x uint32) string {
+					return fmt.Sprint(x)
+				}))
+		}
+		if len(excludeCommands) > 0 {
+			Log.Infof("Excluding records with commands matching %s", umaps.Keys(excludeCommands))
+		}
+		if excludeSystemJobs {
+			Log.Infof("Excluding records with PID < 1000")
+		}
+	}
+
+	return includeHosts, recordFilter, nil
 }

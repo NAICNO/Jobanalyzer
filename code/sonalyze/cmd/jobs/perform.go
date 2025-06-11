@@ -110,7 +110,7 @@ func (jc *JobsCommand) Perform(
 	theDb db.SampleDataProvider,
 	streams sample.InputStreamSet,
 	bounds Timebounds,
-	hostGlobber *Hosts,
+	_ *Hosts,
 	_ *sample.SampleFilter,
 ) error {
 	if jc.Verbose {

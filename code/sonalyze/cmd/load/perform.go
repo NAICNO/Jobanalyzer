@@ -26,7 +26,7 @@ func (lc *LoadCommand) Perform(
 	_ db.SampleDataProvider,
 	streams sample.InputStreamSet,
 	bounds Timebounds,
-	hostGlobber *Hosts,
+	_ *Hosts,
 	_ *sample.SampleFilter,
 ) error {
 	fromIncl, toIncl := lc.InterpretFromToWithBounds(bounds)

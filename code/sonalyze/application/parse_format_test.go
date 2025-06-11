@@ -57,7 +57,7 @@ func mockitParse(t *testing.T, fields string) string {
 		t.Fatal(err)
 	}
 	var stdout, stderr strings.Builder
-	err = LocalOperation(&pc, nil, &stdout, &stderr)
+	err = LocalSampleOperation(&pc, nil, &stdout, &stderr)
 	if err != nil {
 		t.Fatal(err)
 	}

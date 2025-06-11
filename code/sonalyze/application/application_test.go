@@ -26,7 +26,7 @@ func testSampleAnalysisCommand(t *testing.T, command cmd.SampleAnalysisCommand, 
 		t.Fatal(err)
 	}
 	var stdout, stderr strings.Builder
-	err = LocalOperation(command, nil, &stdout, &stderr)
+	err = LocalSampleOperation(command, nil, &stdout, &stderr)
 	if err != nil {
 		t.Fatal(err)
 	}

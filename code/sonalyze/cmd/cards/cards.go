@@ -101,11 +101,11 @@ func (nc *CardCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		card.Query(
 			theLog,
 			card.QueryFilter{
-				HaveFromDate: nc.HaveFrom,
-				FromDate:     nc.FromDate,
-				HaveToDate:   nc.HaveTo,
-				ToDate:       nc.ToDate,
-				Hosts:        nc.HostArgs.Host,
+				HaveFrom: nc.HaveFrom,
+				FromDate: nc.FromDate,
+				HaveTo:   nc.HaveTo,
+				ToDate:   nc.ToDate,
+				Host:     nc.HostArgs.Host,
 			},
 			nc.Verbose,
 		)

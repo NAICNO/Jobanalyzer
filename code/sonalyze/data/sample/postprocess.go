@@ -172,7 +172,7 @@ func createInputStreams(
 //
 // This updates the individual streams and will also remove empty streams from the set.
 
-func ComputePerSampleFields(streams InputStreamSet) {
+func computePerSampleFields(streams InputStreamSet) {
 	// For each stream, compute the cpu_util_pct field of each record.
 	//
 	// For v0.7.0 and later, compute this as the difference in cputime_sec between adjacent records

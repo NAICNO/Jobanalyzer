@@ -53,7 +53,7 @@ func (pc *ProfileCommand) Validate() error {
 	}
 
 	var e3 error
-	if len(pc.Job) != 1 {
+	if len(pc.Job) != 1 || len(pc.ExcludeJob) != 0 {
 		e3 = errors.New("Exactly one specific job number is required by `profile`")
 	}
 
