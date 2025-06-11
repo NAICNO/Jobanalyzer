@@ -90,10 +90,10 @@ func (nc *SpartCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		slurmpart.Query(
 			theLog,
 			slurmpart.QueryFilter{
-				HaveFromDate: nc.HaveFrom,
-				FromDate:     nc.FromDate,
-				HaveToDate:   nc.HaveTo,
-				ToDate:       nc.ToDate,
+				HaveFrom: nc.HaveFrom,
+				FromDate: nc.FromDate,
+				HaveTo:   nc.HaveTo,
+				ToDate:   nc.ToDate,
 			},
 			nc.Verbose,
 		)

@@ -97,7 +97,7 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 		},
 		false,
 	)
-	ComputePerSampleFields(streams)
+	computePerSampleFields(streams)
 
 	if len(streams) != 4 {
 		t.Fatalf("Expected 4 streams, got %d", len(streams))

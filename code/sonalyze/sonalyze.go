@@ -271,7 +271,7 @@ func (_ *standardCommandLineHandler) HandleCommand(
 	case *daemon.DaemonCommand:
 		return command.RunDaemon(stdin, stdout, stderr)
 	case cmd.SampleAnalysisCommand:
-		return application.LocalOperation(command, stdin, stdout, stderr)
+		return application.LocalSampleOperation(command, stdin, stdout, stderr)
 	case cmd.SimpleCommand:
 		return command.Perform(stdin, stdout, stderr)
 	default:
