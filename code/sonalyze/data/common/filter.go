@@ -10,18 +10,18 @@ import (
 )
 
 type QueryFilter struct {
-	HaveFromDate bool // FromDate was user input, not default; see below
-	FromDate     time.Time
-	HaveToDate   bool // ToDate was user input, not default; see below
-	ToDate       time.Time
-	Hosts        []string
+	HaveFrom bool // FromDate was user input, not default; see below
+	FromDate time.Time
+	HaveTo   bool // ToDate was user input, not default; see below
+	ToDate   time.Time
+	Host     []string
 }
 
 func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
 	var hostFilter *Hosts
-	if len(filter.Hosts) > 0 {
+	if len(filter.Host) > 0 {
 		var err error
-		hostFilter, err = NewHosts(true, filter.Hosts)
+		hostFilter, err = NewHosts(true, filter.Host)
 		if err != nil {
 			return nil, err
 		}
@@ -36,11 +36,11 @@ func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
 	// code.
 
 	var scanFrom int64 = 0
-	if filter.HaveFromDate {
+	if filter.HaveFrom {
 		scanFrom = filter.FromDate.Unix()
 	}
 	var scanTo int64 = math.MaxInt64
-	if filter.HaveToDate {
+	if filter.HaveTo {
 		scanTo = filter.ToDate.Unix()
 	}
 	var globber *hostglob.HostGlobber
