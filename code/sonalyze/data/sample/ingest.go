@@ -45,5 +45,6 @@ func ReadSampleStreamsAndMaybeBounds(
 		read += len(samples)
 	}
 	streams, bounds = createInputStreams(sampleBlobs, recordFilter, wantBounds)
+	computePerSampleFields(streams)
 	return
 }
