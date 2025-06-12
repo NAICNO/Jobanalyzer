@@ -15,16 +15,18 @@ import (
 
 package jobs
 
+import "sonalyze/data/samplejob"
+
 %%
 
 FIELDS *jobSummary
 
   JobAndMark         string        desc:"Job ID with mark indicating job running at start+end (!), start (<), or end (>) of time window" alias:"jobm"
-  Job                uint32        desc:"Job ID" alias:"job" field:"JobId"
-  User               Ustr          desc:"Name of user running the job" alias:"user"
-  Duration           DurationValue desc:"Time of last observation minus time of first" alias:"duration"
-  Start              DateTimeValue desc:"Time of first observation" alias:"start"
-  End                DateTimeValue desc:"Time of last observation" alias:"end"
+  Job                uint32        desc:"Job ID" alias:"job" field:"JobId" indirect:"sampleJob"
+  User               Ustr          desc:"Name of user running the job" alias:"user" indirect:"sampleJob"
+  Duration           DurationValue desc:"Time of last observation minus time of first" alias:"duration" indirect:"sampleJob"
+  Start              DateTimeValue desc:"Time of first observation" alias:"start" indirect:"sampleJob"
+  End                DateTimeValue desc:"Time of last observation" alias:"end" indirect:"sampleJob"
   CpuAvgPct          F64Ceil       desc:"Average CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctAvg]" alias:"cpu-avg"
   CpuPeakPct         F64Ceil       desc:"Peak CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctPeak]" alias:"cpu-peak"
   RelativeCpuAvgPct  F64Ceil       desc:"Average relative CPU utilization in percent (100% = all cores)" field:"computed[kRcpuPctAvg]" alias:"rcpu-avg"
@@ -67,52 +69,52 @@ FIELDS *jobSummary
   OccupiedRelativeGpuMemPeakPct \
                      F64Ceil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
                                    field:"computed[kSgpuGBPeak]" alias:"sgpumem-peak"
-  Gpus               gpuset.GpuSet desc:"GPU device numbers used by the job, 'none' if none or 'unknown' in error states" alias:"gpus"
-  GpuFail            int           desc:"Flag indicating GPU status (0=Ok, 1=Failing)" alias:"gpufail"
-  Cmd                string        desc:"The commands invoking the processes of the job" alias:"cmd"
-  Hosts              *Hostnames    desc:"List of the host name(s) running the job" alias:"host,hosts"
+  Gpus               gpuset.GpuSet desc:"GPU device numbers used by the job, 'none' if none or 'unknown' in error states" alias:"gpus" indirect:"sampleJob"
+  GpuFail            int           desc:"Flag indicating GPU status (0=Ok, 1=Failing)" alias:"gpufail" indirect:"sampleJob"
+  Cmd                string        desc:"The commands invoking the processes of the job" alias:"cmd" indirect:"sampleJob"
+  Hosts              *Hostnames    desc:"List of the host name(s) running the job" alias:"host,hosts" indirect:"sampleJob"
   Now                DateTimeValue desc:"The current time" alias:"now"
-  Classification     int           desc:"Bit vector of live-at-start (2) and live-at-end (1) flags" alias:"classification"
-  CpuTime            DurationValue desc:"Total CPU time of the job across all cores" alias:"cputime"
-  GpuTime            DurationValue desc:"Total GPU time of the job across all cards" alias:"gputime"
+  Classification     int           desc:"Bit vector of live-at-start (2) and live-at-end (1) flags" alias:"classification" indirect:"sampleJob"
+  CpuTime            DurationValue desc:"Total CPU time of the job across all cores" alias:"cputime" indirect:"sampleJob"
+  GpuTime            DurationValue desc:"Total GPU time of the job across all cards" alias:"gputime" indirect:"sampleJob"
 
   # The expressions extracting bit flags happen to work for well-understood reasons, but this is
   # brittle and works in Go only because the operator precedence is right (in C it would not work).
   # See TODO in generate-table/README.md.
 
   SomeGpu            bool          desc:"True iff process was seen to use some GPU" \
-                                   field:"computedFlags & kUsesGpu != 0"
+                                   field:"ComputedFlags & samplejob.KUsesGpu != 0" indirect:"sampleJob"
   NoGpu              bool          desc:"True iff process was seen to use no GPU" \
-                                   field:"computedFlags & kDoesNotUseGpu != 0"
+                                   field:"ComputedFlags & samplejob.KDoesNotUseGpu != 0" indirect:"sampleJob"
   Running            bool          desc:"True iff process appears to still be running at end of time window" \
-                                   field:"computedFlags & kIsLiveAtEnd != 0"
+                                   field:"ComputedFlags & samplejob.KIsLiveAtEnd != 0" indirect:"sampleJob"
   Completed          bool          desc:"True iff process appears not to be running at end of time window" \
-                                   field:"computedFlags & kIsNotLiveAtEnd != 0"
+                                   field:"ComputedFlags & samplejob.KIsNotLiveAtEnd != 0" indirect:"sampleJob"
   Zombie             bool          desc:"True iff the process looks like a zombie" \
-                                   field:"computedFlags & kIsZombie != 0"
+                                   field:"ComputedFlags & samplejob.KIsZombie != 0" indirect:"sampleJob"
   Primordial         bool          desc:"True iff the process appears to have been alive at the start of the time window" \
-                                   field:"computedFlags & kIsLiveAtStart != 0"
+                                   field:"ComputedFlags & samplejob.KIsLiveAtStart != 0" indirect:"sampleJob"
   BornLater          bool          desc:"True iff the process appears not to have been alive at the start of the time window" \
-                                   field:"computedFlags & kIsNotLiveAtStart != 0"
+                                   field:"ComputedFlags & samplejob.KIsNotLiveAtStart != 0" indirect:"sampleJob"
 
-  # NOTE!  The slurm fields (via *sacctInfo) are checked for in perform.go.  We can add more slurm
+  # NOTE!  The slurm fields (via *slurmJob) are checked for in perform.go.  We can add more slurm
   # fields here but if so they must also be added there.
 
-  Submit             DateTimeValue desc:"Submit time of job (Slurm)" indirect:"sacctInfo"
-  JobName            Ustr          desc:"Name of job (Slurm)" indirect:"sacctInfo"
-  State              Ustr          desc:"Completion state of job (Slurm)" indirect:"sacctInfo"
-  Account            Ustr          desc:"Name of job's account (Slurm)" indirect:"sacctInfo"
-  Layout             Ustr          desc:"Layout spec of job (Slurm)" indirect:"sacctInfo"
-  Reservation        Ustr          desc:"Name of job's reservation (Slurm)" indirect:"sacctInfo"
-  Partition          Ustr          desc:"Partition of job (Slurm)" indirect:"sacctInfo"
-  RequestedGpus      Ustr          desc:"Names of requested GPUs (Slurm AllocTRES)" indirect:"sacctInfo" field:"ReqGPUS"
-  DiskReadAvgGB      uint32        desc:"Average disk read activity in GB/s (Slurm AveDiskRead)" indirect:"sacctInfo" field:"AveDiskRead"
-  DiskWriteAvgGB     uint32        desc:"Average disk write activity in GB/s (Slurm AveDiskWrite)" indirect:"sacctInfo" field:"AveDiskWrite"
-  RequestedCpus      uint32        desc:"Number of requested CPUs (Slurm)" indirect:"sacctInfo" field:"ReqCPUS"
-  RequestedMemGB     uint32        desc:"Requested memory (Slurm)" indirect:"sacctInfo" field:"ReqMem"
-  RequestedNodes     uint32        desc:"Number of requested nodes (Slurm)" indirect:"sacctInfo" field:"ReqNodes"
-  TimeLimit          U32Duration   desc:"Elapsed time limit (Slurm)" indirect:"sacctInfo" field:"TimelimitRaw"
-  ExitCode           uint8         desc:"Exit code of job (Slurm)" indirect:"sacctInfo"
+  Submit             DateTimeValue desc:"Submit time of job (Slurm)" indirect:"slurmJob.Main"
+  JobName            Ustr          desc:"Name of job (Slurm)" indirect:"slurmJob.Main"
+  State              Ustr          desc:"Completion state of job (Slurm)" indirect:"slurmJob.Main"
+  Account            Ustr          desc:"Name of job's account (Slurm)" indirect:"slurmJob.Main"
+  Layout             Ustr          desc:"Layout spec of job (Slurm)" indirect:"slurmJob.Main"
+  Reservation        Ustr          desc:"Name of job's reservation (Slurm)" indirect:"slurmJob.Main"
+  Partition          Ustr          desc:"Partition of job (Slurm)" indirect:"slurmJob.Main"
+  RequestedGpus      Ustr          desc:"Names of requested GPUs (Slurm AllocTRES)" indirect:"slurmJob.Main" field:"ReqGPUS"
+  DiskReadAvgGB      uint32        desc:"Average disk read activity in GB/s (Slurm AveDiskRead)" indirect:"slurmJob.Main" field:"AveDiskRead"
+  DiskWriteAvgGB     uint32        desc:"Average disk write activity in GB/s (Slurm AveDiskWrite)" indirect:"slurmJob.Main" field:"AveDiskWrite"
+  RequestedCpus      uint32        desc:"Number of requested CPUs (Slurm)" indirect:"slurmJob.Main" field:"ReqCPUS"
+  RequestedMemGB     uint32        desc:"Requested memory (Slurm)" indirect:"slurmJob.Main" field:"ReqMem"
+  RequestedNodes     uint32        desc:"Number of requested nodes (Slurm)" indirect:"slurmJob.Main" field:"ReqNodes"
+  TimeLimit          U32Duration   desc:"Elapsed time limit (Slurm)" indirect:"slurmJob.Main" field:"TimelimitRaw"
+  ExitCode           uint8         desc:"Exit code of job (Slurm)" indirect:"slurmJob.Main"
 
 SUMMARY JobsCommand
 
@@ -201,9 +203,9 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 
 	// Sort ascending by lowest beginning timestamp, and if those are equal, by job number.
 	slices.SortStableFunc(summaries, func(a, b *jobSummary) int {
-		c := cmp.Compare(a.Start, b.Start)
+		c := cmp.Compare(a.sampleJob.Start, b.sampleJob.Start)
 		if c == 0 {
-			c = cmp.Compare(a.JobId, b.JobId)
+			c = cmp.Compare(a.sampleJob.JobId, b.sampleJob.JobId)
 		}
 		return c
 	})
@@ -217,7 +219,7 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 		}
 		counts := make(map[Ustr]uint)
 		for i := len(summaries) - 1; i >= 0; i-- {
-			u := summaries[i].job[0].User
+			u := summaries[i].sampleJob.User
 			c := counts[u] + 1
 			counts[u] = c
 			if c > jc.NumJobs {

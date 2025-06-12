@@ -27,7 +27,7 @@ var uintArgs = []uintArg{
 		"Select only jobs with at least this many samples [default: 1]",
 		1,
 		"min-samples",
-		-1,
+		kSampleCount,
 		false,
 	},
 	uintArg{
@@ -247,6 +247,7 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	MergeAll      bool
 	MergeNone     bool
 	MinRuntimeSec int64
+	SlurmJobData  bool
 
 	// Print args
 	NumJobs uint
@@ -254,8 +255,6 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	// Internal / working storage
 	minRuntimeStr string
 }
-
-var _ SampleAnalysisCommand = (*JobsCommand)(nil)
 
 func (jc *JobsCommand) lookupUint(s string) uint {
 	if v, ok := jc.Uints[s]; ok {
@@ -267,6 +266,9 @@ func (jc *JobsCommand) lookupUint(s string) uint {
 func (jc *JobsCommand) Add(fs *CLI) {
 	jc.SampleAnalysisArgs.Add(fs)
 	jc.FormatArgs.Add(fs)
+
+	fs.Group("local-data-source")
+	fs.BoolVar(&jc.SlurmJobData, "slurm", false, "Interpret file arguments as slurm jobs data, not sonar sample data")
 
 	fs.Group("job-filter")
 	jc.Uints = make(map[string]*uint)
@@ -320,6 +322,7 @@ func (jc *JobsCommand) ReifyForRemote(x *ArgReifier) error {
 			x.UintUnchecked(v.name, *box)
 		}
 	}
+	x.Bool("slurm", jc.SlurmJobData)
 	x.Bool("no-gpu", jc.NoGpu)
 	x.Bool("some-gpu", jc.SomeGpu)
 	x.Bool("completed", jc.Completed)

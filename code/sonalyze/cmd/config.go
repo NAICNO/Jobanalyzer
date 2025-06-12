@@ -10,17 +10,17 @@ import (
 
 // Standard method for cleaning an InputStreamSet relative to a config: the config must have a
 // definition for each host.  No config at all is a fatal error.  No config for a host means we
-// remove the host from the set, we return the modified set.
+// remove the host from the set (imperatively).
 //
 // Over time this may become more complicated, as the config becomes time-dependent.
 func EnsureConfigForInputStreams(
 	cfg *config.ClusterConfig,
 	streams sample.InputStreamSet,
 	reason string,
-) (sample.InputStreamSet, error) {
+) error {
 	// Bail if there's no config data at all.
 	if cfg == nil {
-		return nil, fmt.Errorf("Configuration file required: %s", reason)
+		return fmt.Errorf("Configuration file required: %s", reason)
 	}
 
 	// Remove streams for which we have no config data.
@@ -37,5 +37,5 @@ func EnsureConfigForInputStreams(
 		delete(streams, b)
 	}
 
-	return streams, nil
+	return nil
 }
