@@ -3,7 +3,7 @@ package jobs
 import (
 	"fmt"
 	"io"
-	"math"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -15,13 +15,42 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
+	"sonalyze/data/samplejob"
 	"sonalyze/data/slurmjob"
 	"sonalyze/db"
-	"sonalyze/db/repr"
 	. "sonalyze/table"
 )
 
-// Computed float64 fields in jobAggregate.computed
+type needed struct {
+	samplejob.NeededComputations
+	sacct      bool
+	jobAndMark bool
+	sample     bool
+}
+
+func testName(nt *needed, name string) {
+	switch name {
+	case "cmd", "Cmd":
+		nt.Cmd = true
+	case "host", "hosts", "Hosts":
+		nt.Hosts = true
+	case "jobm", "JobAndMark":
+		nt.jobAndMark = true
+	case "Submit", "JobName", "State", "Account", "Layout", "Reservation",
+		"Partition", "RequestedGpus", "DiskReadAvgGB", "DiskWriteAvgGB",
+		"RequestedCpus", "RequestedMemGB", "RequestedNodes", "TimeLimit",
+		"ExitCode":
+		// Our names for the Slurm sacct data fields.  Mostly these are the same as in the sacct
+		// data, but there's no shame in sticking to proper naming.
+		// TODO: Super brittle!!!  If the print table changes, this must change.
+		// Would be good to have some kind of auto-generated interlock, or to generate this function,
+		// or to generate a predicate for slurm names?
+		nt.sacct = true
+	default:
+		nt.sample = true
+	}
+}
+
 const (
 	kCpuPctAvg      = iota // Average CPU utilization, 1 core == 100%
 	kCpuPctPeak            // Peak CPU utilization ditto
@@ -51,464 +80,11 @@ const (
 	numF64Fields
 )
 
-// Computed flag bits in jobAggregate.computedFlags
-const (
-	kUsesGpu          = (1 << iota) // True if there's reason to believe a gpu was used by job
-	kDoesNotUseGpu                  // Opposite
-	kGpuFail                        // GPU failed
-	kIsLiveAtStart                  // Job had record at earliest timestamp of input set for host
-	kIsNotLiveAtStart               // Opposite
-	kIsLiveAtEnd                    // Job had record at latest timestamp of input set for host
-	kIsNotLiveAtEnd                 // Opposite
-	kIsZombie                       // Command contains <defunct> or user starts with _zombie_
-)
+/*
+   // This is completely ill-defined if hosts were merged because there's no such thing as
+   // a merged config.  This is very old code, probably predating multi-node jobs.
 
-// Package for results from aggregation.
-type jobSummary struct {
-	jobAggregate
-	JobId          uint32
-	User           Ustr
-	JobAndMark     string
-	Now            DateTimeValue
-	Duration       DurationValue
-	Start          DateTimeValue // Earliest time seen for the job, seconds since epoch
-	End            DateTimeValue // Latest time ditto
-	CpuTime        DurationValue
-	GpuTime        DurationValue
-	Classification int // Bit vector of flags
-	job            sample.SampleStream
-	computedFlags  int
-	selected       bool // Initially true, used to deselect the record before printing
-	sacctInfo      *repr.SacctInfo
-}
-
-// Aggregate figures for a job.  For some cross-job data like user and host, go to the sample stream
-// in the jobSummary that owns this aggregate.
-//
-// The float fields of this are *not* rounded in any way.
-//
-// GPU memory: If a system config is present and conf.GpuMemPct is true then kGpuGB* are derived
-// from the recorded percentage figure, otherwise kRgpuGB* are derived from the recorded absolute
-// figures.  If a system config is not present then all fields will represent the recorded values
-// (kRgpuKB * the recorded percentages).
-type jobAggregate struct {
-	GpuFail  int
-	Gpus     gpuset.GpuSet
-	computed [numF64Fields]float64
-	IsZombie bool
-	Cmd      string
-	Hosts    *Hostnames
-}
-
-func (jc *JobsCommand) Perform(
-	out io.Writer,
-	cfg *config.ClusterConfig,
-	theDb db.SampleDataProvider,
-	filter sample.QueryFilter,
-	hosts *Hosts,
-	recordFilter *sample.SampleFilter,
-) error {
-	streams, bounds, read, dropped, err :=
-		sample.ReadSampleStreamsAndMaybeBounds(
-			theDb,
-			filter.FromDate,
-			filter.ToDate,
-			hosts,
-			recordFilter,
-			true,
-			jc.Verbose,
-		)
-	if err != nil {
-		return fmt.Errorf("Failed to read log records: %v", err)
-	}
-	if jc.Verbose {
-		Log.Infof("%d records read + %d dropped\n", read, dropped)
-		UstrStats(out, false)
-	}
-
-	if jc.Verbose {
-		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
-		numSamples := 0
-		for _, stream := range streams {
-			numSamples += len(*stream)
-		}
-		Log.Infof("Samples retained after filtering: %d", numSamples)
-	}
-
-	if NeedsConfig(jobsFormatters, jc.PrintFields) {
-		var err error
-		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
-		if err != nil {
-			return err
-		}
-	}
-
-	summaries := jc.aggregateAndFilterJobs(cfg, theDb, streams, bounds)
-	if jc.Verbose {
-		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
-	}
-
-	return jc.printJobSummaries(out, summaries)
-}
-
-// Container for computations we would prefer not to do but will need to do if certain names are
-// used for printing or in queries.
-
-type nameTester struct {
-	needCmd        bool
-	needHosts      bool
-	needJobAndMark bool
-	needSacctInfo  bool
-}
-
-func (nt *nameTester) testName(name string) {
-	switch name {
-	case "cmd", "Cmd":
-		nt.needCmd = true
-	case "host", "hosts", "Hosts":
-		nt.needHosts = true
-	case "jobm", "JobAndMark":
-		nt.needJobAndMark = true
-	case "Submit", "JobName", "State", "Account", "Layout", "Reservation",
-		"Partition", "RequestedGpus", "DiskReadAvgGB", "DiskWriteAvgGB",
-		"RequestedCpus", "RequestedMemGB", "RequestedNodes", "TimeLimit",
-		"ExitCode":
-		// Our names for the Slurm sacct data fields.  Mostly these are the same as in the sacct
-		// data, but there's no shame in sticking to proper naming.
-		nt.needSacctInfo = true
-	}
-}
-
-// A sample stream is a quadruple (host, command, job-related-id, record-list).  A stream is only
-// ever about one job.  There may be multiple streams per job, they will all have the same
-// job-related-id which is unique but not necessarily equal to any field in any of the records.
-//
-// This function collects the data per job and returns a vector of (aggregate, records) pairs where
-// the aggregate describes the job in aggregate and the records is a synthesized stream of sample
-// records for the job, based on all the input streams for the job.  The manner of the synthesis
-// depends on arguments to the program: with --merge-all we merge across all hosts; with
-// --merge-none we do not merge; otherwise the config file can specify the hosts to merge across;
-// otherwise if there is no config we do not merge.
-
-func (jc *JobsCommand) aggregateAndFilterJobs(
-	cfg *config.ClusterConfig,
-	theDb db.SampleDataProvider,
-	streams sample.InputStreamSet,
-	bounds Timebounds,
-) []*jobSummary {
-	var now = time.Now().UTC().Unix()
-	var anyMergeableNodes bool
-	if !jc.MergeNone && cfg != nil {
-		anyMergeableNodes = cfg.HasCrossNodeJobs()
-	}
-
-	var jobs sample.SampleStreams
-	if jc.MergeAll {
-		jobs, bounds = sample.MergeByJob(streams, bounds)
-	} else if anyMergeableNodes {
-		jobs, bounds = mergeAcrossSomeNodes(cfg, streams, bounds)
-	} else {
-		jobs = sample.MergeByHostAndJob(streams)
-	}
-	if jc.Verbose {
-		Log.Infof("Jobs constructed by merging: %d", len(jobs))
-	}
-
-	summaryFilter, slurmFilter := jc.buildFilters(cfg)
-
-	summaries := make([]*jobSummary, 0)
-	minSamples := jc.lookupUint("min-samples")
-	if jc.Verbose && minSamples > 1 {
-		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
-	}
-	nt := nameTester{
-		needSacctInfo: slurmFilter != nil,
-	}
-	for _, f := range jc.PrintFields {
-		nt.testName(f.Name)
-	}
-	if jc.ParsedQuery != nil {
-		names := make(map[string]bool)
-		QueryNames(jc.ParsedQuery, names)
-		for name := range names {
-			nt.testName(name)
-		}
-	}
-	discarded := 0
-	for _, job := range jobs {
-		if uint(len(*job)) >= minSamples {
-			host := (*job)[0].Hostname
-			jobId := (*job)[0].Job
-			user := (*job)[0].User
-			first := (*job)[0].Timestamp
-			last := (*job)[len(*job)-1].Timestamp
-			duration := last - first
-			aggregate := jc.aggregateJob(cfg, host, *job, nt.needCmd, nt.needHosts, jc.Zombie)
-			aggregate.computed[kDuration] = float64(duration)
-			usesGpu := !aggregate.Gpus.IsEmpty()
-			flags := 0
-			if usesGpu {
-				flags |= kUsesGpu
-			} else {
-				flags |= kDoesNotUseGpu
-			}
-			if aggregate.GpuFail != 0 {
-				flags |= kGpuFail
-			}
-			bound, haveBound := bounds[host]
-			if !haveBound {
-				panic("Expected to find bound")
-			}
-			if first == bound.Earliest {
-				flags |= kIsLiveAtStart
-			} else {
-				flags |= kIsNotLiveAtStart
-			}
-			if last == bound.Latest {
-				flags |= kIsLiveAtEnd
-			} else {
-				flags |= kIsNotLiveAtEnd
-			}
-			if aggregate.IsZombie {
-				flags |= kIsZombie
-			}
-			jobAndMark := ""
-			if nt.needJobAndMark {
-				mark := ""
-				switch {
-				case flags&(kIsLiveAtStart|kIsLiveAtEnd) == (kIsLiveAtStart | kIsLiveAtEnd):
-					mark = "!"
-				case flags&kIsLiveAtStart != 0:
-					mark = "<"
-				case flags&kIsLiveAtEnd != 0:
-					mark = ">"
-				}
-				jobAndMark = fmt.Sprint(jobId, mark)
-			}
-			classification := 0
-			if (flags & kIsLiveAtStart) != 0 {
-				classification |= sonalyze.LIVE_AT_START
-			}
-			if (flags & kIsLiveAtEnd) != 0 {
-				classification |= sonalyze.LIVE_AT_END
-			}
-			summary := &jobSummary{
-				jobAggregate:   aggregate,
-				JobId:          jobId,
-				JobAndMark:     jobAndMark,
-				User:           user,
-				CpuTime:        DurationValue(math.Round(aggregate.computed[kCpuPctAvg] * float64(duration) / 100)),
-				GpuTime:        DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(kDuration) / 100)),
-				Duration:       DurationValue(duration),
-				Now:            DateTimeValue(now),
-				Start:          DateTimeValue(first),
-				End:            DateTimeValue(last),
-				selected:       true,
-				Classification: classification,
-				job:            *job,
-				computedFlags:  flags,
-			}
-			if summaryFilter == nil || summaryFilter.apply(summary) {
-				summaries = append(summaries, summary)
-			}
-		} else {
-			discarded++
-		}
-	}
-	if jc.Verbose {
-		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
-	}
-
-	if nt.needSacctInfo {
-		// TODO: If we have slurm data then those data may have precise measurements for some of the
-		// fields here and we might use them instead.  If so, do so here and not in printing, to
-		// avoid messiness vis-a-vis filtering.
-
-		if slurmDb, ok := theDb.(db.SacctDataProvider); ok {
-
-			var err error
-
-			// Two things happen here:
-			//
-			// - attach slurm info to summaries we have
-			// - reduce the set of summaries we have by filtering on slurm information for those
-			//   summaries that do have slurm information
-			//
-			// Importantly, the first step cannot incorporate the second step, because it is valid
-			// for a job in the first set to not have a slurm aspect.
-			//
-			// So:
-			//
-			// - compute a set A of SlurmJobs from the job IDs alone
-			// - then another smaller set B of SlurmJobs from A with the other filters
-			// - then A \ B is the set of jobs to remove from the list of summaries
-			// - and B is the set of jobs contributing info for the remaining jobs
-
-			jobIds := make([]uint32, 0)
-			for _, summary := range summaries {
-				if summary.JobId != 0 {
-					jobIds = append(jobIds, summary.JobId)
-				}
-			}
-
-			var (
-				aJobs, bJobs []*slurmjob.SlurmJob
-				bMap         map[uint32]*slurmjob.SlurmJob
-			)
-			aJobs, err = slurmjob.Query(
-				slurmDb,
-				jc.FromDate,
-				jc.ToDate,
-				slurmjob.QueryFilter{
-					Job: jobIds,
-				},
-				jc.Verbose,
-			)
-			if err != nil {
-				if jc.Verbose {
-					Log.Warningf("Slurm data query failed: %v", err)
-				}
-				// Oh well
-				return summaries
-			}
-
-			if slurmFilter != nil {
-				var err error
-				bJobs, err = slurmjob.FilterJobs(
-					aJobs,
-					*slurmFilter,
-					jc.Verbose,
-				)
-				if err != nil {
-					if jc.Verbose {
-						Log.Warningf("Slurm data filter failed (bizarrely): %v", err)
-					}
-					bJobs = aJobs
-					// Ignore it, fall through to attach job info
-				} else {
-					bMap = make(map[uint32]*slurmjob.SlurmJob)
-					for _, j := range bJobs {
-						bMap[j.Id] = j
-					}
-					cullSet := make(map[uint32]bool)
-					for _, a := range aJobs {
-						if bMap[a.Id] == nil {
-							cullSet[a.Id] = true
-						}
-					}
-					summaries = slices.DeleteFunc(summaries, func(s *jobSummary) bool {
-						return cullSet[s.JobId]
-					})
-				}
-			} else {
-				bJobs = aJobs
-			}
-
-			if bMap == nil {
-				bMap = make(map[uint32]*slurmjob.SlurmJob)
-				for _, j := range bJobs {
-					bMap[j.Id] = j
-				}
-			}
-
-			for _, summary := range summaries {
-				if probe, found := bMap[summary.JobId]; found {
-					summary.sacctInfo = probe.Main // Hm
-				}
-			}
-		} else {
-			if jc.Verbose {
-				Log.Warningf("Needed slurm data but can't read those from transient cluster")
-			}
-		}
-	}
-
-	return summaries
-}
-
-// Look to the config to find nodes that have CrossNodeJobs set, and merge their streams as if by
-// --merge-all; the remaining streams are merged as if by --merge-none, and the two sets of merged
-// jobs are combined into one set.
-
-func mergeAcrossSomeNodes(
-	cfg *config.ClusterConfig,
-	streams sample.InputStreamSet,
-	bounds Timebounds,
-) (sample.SampleStreams, Timebounds) {
-	mergeable := make(sample.InputStreamSet)
-	mBounds := make(Timebounds)
-	solo := make(sample.InputStreamSet)
-	sBounds := make(Timebounds)
-	for k, v := range streams {
-		bound := bounds[k.Host]
-		if sys := cfg.LookupHost(k.Host.String()); sys != nil && sys.CrossNodeJobs {
-			mBounds[k.Host] = bound
-			mergeable[k] = v
-		} else {
-			sBounds[k.Host] = bound
-			solo[k] = v
-		}
-	}
-	mergedJobs, mergedBounds := sample.MergeByJob(mergeable, mBounds)
-	otherJobs := sample.MergeByHostAndJob(solo)
-	mergedJobs = append(mergedJobs, otherJobs...)
-	for k, v := range sBounds {
-		mergedBounds[k] = v
-	}
-	return mergedJobs, mergedBounds
-}
-
-// Given a list of log entries for a job, sorted ascending by timestamp and with no duplicated
-// timestamps, return a JobAggregate for the job, with values that are computed from all log
-// entries.
-
-func (jc *JobsCommand) aggregateJob(
-	cfg *config.ClusterConfig,
-	host Ustr,
-	job sample.SampleStream,
-	needCmd, needHosts, needZombie bool,
-) jobAggregate {
-	gpus := gpuset.EmptyGpuSet()
-	var (
-		gpuFail                       uint8
-		cpuPctAvg, cpuPctPeak         float64
-		rCpuPctAvg, rCpuPctPeak       float64
-		cpuGBAvg, cpuGBPeak           float64
-		rCpuGBAvg, rCpuGBPeak         float64
-		gpuPctAvg, gpuPctPeak         float64
-		rGpuPctAvg, rGpuPctPeak       float64
-		sGpuPctAvg, sGpuPctPeak       float64
-		rssAnonGBAvg, rssAnonGBPeak   float64
-		rRssAnonGBAvg, rRssAnonGBPeak float64
-		gpuGBAvg, gpuGBPeak           float64
-		rGpuGBAvg, rGpuGBPeak         float64
-		sGpuGBAvg, sGpuGBPeak         float64
-		isZombie                      bool
-	)
-	const kb2gb = 1.0 / (1024 * 1024)
-
-	for _, s := range job {
-		gpus = gpuset.UnionGpuSets(gpus, s.Gpus)
-		gpuFail = sample.MergeGpuFail(gpuFail, s.GpuFail)
-		cpuPctAvg += float64(s.CpuUtilPct)
-		cpuPctPeak = math.Max(cpuPctPeak, float64(s.CpuUtilPct))
-		gpuPctAvg += float64(s.GpuPct)
-		gpuPctPeak = math.Max(gpuPctPeak, float64(s.GpuPct))
-		cpuGBAvg += float64(s.CpuKB) * kb2gb
-		cpuGBPeak = math.Max(cpuGBPeak, float64(s.CpuKB)*kb2gb)
-		rssAnonGBAvg += float64(s.RssAnonKB) * kb2gb
-		rssAnonGBPeak = math.Max(rssAnonGBPeak, float64(s.RssAnonKB)*kb2gb)
-		gpuGBAvg += float64(s.GpuKB) * kb2gb
-		gpuGBPeak = math.Max(gpuGBPeak, float64(s.GpuKB)*kb2gb)
-
-		if needZombie && !isZombie {
-			cmd := s.Cmd.String()
-			isZombie = strings.Contains(cmd, "<defunct>") || strings.HasPrefix(cmd, "_zombie_")
-		}
-	}
-	usesGpu := !gpus.IsEmpty()
-
-	if cfg != nil {
+   	if cfg != nil {
 		if sys := cfg.LookupHost(host.String()); sys != nil {
 			// Quantities can be zero in surprising ways, so always guard divisions
 			if cores := float64(sys.CpuCores); cores > 0 {
@@ -546,70 +122,251 @@ func (jc *JobsCommand) aggregateJob(
 		}
 	}
 
-	cmd := ""
-	if needCmd {
-		names := make(map[Ustr]bool)
-		for _, sample := range job {
-			if _, found := names[sample.Cmd]; found {
-				continue
-			}
-			if cmd != "" {
-				cmd += ", "
-			}
-			cmd += sample.Cmd.String()
-			names[sample.Cmd] = true
-		}
-	}
+	a.CpuPctAvg] = cpuPctAvg / n
+	a.Computed[KCpuPctPeak] = cpuPctPeak
+	a.Computed[KRcpuPctAvg] = rCpuPctAvg / n
+	a.Computed[KRcpuPctPeak] = rCpuPctPeak
 
-	var hosts *Hostnames
-	if needHosts {
-		hosts = NewHostnames()
-		for _, s := range job {
-			hosts.Add(s.Hostname.String())
-		}
-	}
-	n := float64(len(job))
-	a := jobAggregate{
-		Gpus:     gpus,
-		GpuFail:  int(gpuFail),
-		Cmd:      cmd,
-		Hosts:    hosts,
-		IsZombie: isZombie,
-	}
-	a.computed[kCpuPctAvg] = cpuPctAvg / n
-	a.computed[kCpuPctPeak] = cpuPctPeak
-	a.computed[kRcpuPctAvg] = rCpuPctAvg / n
-	a.computed[kRcpuPctPeak] = rCpuPctPeak
+	a.Computed[KCpuGBAvg] = cpuGBAvg / n
+	a.Computed[KCpuGBPeak] = cpuGBPeak
+	a.Computed[KRcpuGBAvg] = rCpuGBAvg / n
+	a.Computed[KRcpuGBPeak] = rCpuGBPeak
 
-	a.computed[kCpuGBAvg] = cpuGBAvg / n
-	a.computed[kCpuGBPeak] = cpuGBPeak
-	a.computed[kRcpuGBAvg] = rCpuGBAvg / n
-	a.computed[kRcpuGBPeak] = rCpuGBPeak
+	a.Computed[KRssAnonGBAvg] = rssAnonGBAvg / n
+	a.Computed[KRssAnonGBPeak] = rssAnonGBPeak
+	a.Computed[KRrssAnonGBAvg] = rRssAnonGBAvg / n
+	a.Computed[KRrssAnonGBPeak] = rRssAnonGBPeak
 
-	a.computed[kRssAnonGBAvg] = rssAnonGBAvg / n
-	a.computed[kRssAnonGBPeak] = rssAnonGBPeak
-	a.computed[kRrssAnonGBAvg] = rRssAnonGBAvg / n
-	a.computed[kRrssAnonGBPeak] = rRssAnonGBPeak
+	a.Computed[KGpuPctAvg] = gpuPctAvg / n
+	a.Computed[KGpuPctPeak] = gpuPctPeak
+	a.Computed[KRgpuPctAvg] = rGpuPctAvg / n
+	a.Computed[KRgpuPctPeak] = rGpuPctPeak
+	a.Computed[KSgpuPctAvg] = sGpuPctAvg / n
+	a.Computed[KSgpuPctPeak] = sGpuPctPeak
 
-	a.computed[kGpuPctAvg] = gpuPctAvg / n
-	a.computed[kGpuPctPeak] = gpuPctPeak
-	a.computed[kRgpuPctAvg] = rGpuPctAvg / n
-	a.computed[kRgpuPctPeak] = rGpuPctPeak
-	a.computed[kSgpuPctAvg] = sGpuPctAvg / n
-	a.computed[kSgpuPctPeak] = sGpuPctPeak
+	a.Computed[KGpuGBAvg] = gpuGBAvg / n
+	a.Computed[KGpuGBPeak] = gpuGBPeak
+	a.Computed[KRgpuGBAvg] = rGpuGBAvg / n
+	a.Computed[KRgpuGBPeak] = rGpuGBPeak
+	a.Computed[KSgpuGBAvg] = sGpuGBAvg / n
+	a.Computed[KSgpuGBPeak] = sGpuGBPeak
 
-	a.computed[kGpuGBAvg] = gpuGBAvg / n
-	a.computed[kGpuGBPeak] = gpuGBPeak
-	a.computed[kRgpuGBAvg] = rGpuGBAvg / n
-	a.computed[kRgpuGBPeak] = rGpuGBPeak
-	a.computed[kSgpuGBAvg] = sGpuGBAvg / n
-	a.computed[kSgpuGBPeak] = sGpuGBPeak
+*/
 
-	return a
+// A number of fields could come *either* from the sample job or the slurm job, depending on what
+// data we have, and it's the result of that joining that we want to print when we print jobs.  If
+// there is a SlurmJob but not a SampleJob then a SampleJob is synthesized from the slurmJob data.
+// This keeps printing logic sane, and there are no samples exposed so that's fine.
+type jobSummary struct {
+	Now        DateTimeValue
+	JobAndMark string
+	selected   bool
+	sampleJob  *samplejob.SampleJob
+	slurmJob   *slurmjob.SlurmJob
+	computed   [numF64Fields]float64
 }
 
-// Aggregation filters.
-//
+type JobsDataProvider interface {
+	db.ProcessSampleDataProvider
+	db.SacctDataProvider
+}
+
+func (jc *JobsCommand) Perform(
+	out io.Writer,
+	cfg *config.ClusterConfig,
+	theDb JobsDataProvider,
+	filter sample.QueryFilter,
+	hosts *Hosts,
+	recordFilter *sample.SampleFilter,
+) error {
+	var needConfig = NeedsConfig(jobsFormatters, jc.PrintFields)
+	if needConfig && cfg == nil {
+		return fmt.Errorf("Configuration file required for relative format arguments")
+	}
+	var need needed
+	for _, f := range jc.PrintFields {
+		testName(&need, f.Name)
+	}
+	if jc.ParsedQuery != nil {
+		names := make(map[string]bool)
+		QueryNames(jc.ParsedQuery, names)
+		for name := range names {
+			testName(&need, name)
+		}
+	}
+
+	// Map from JobId to the summary
+	var smap = make(map[uint32]*jobSummary)
+	var sampleFilter, slurmFilter = jc.buildFilters(cfg)
+
+	if need.sample {
+		var merge samplejob.Merge
+		switch {
+		case jc.MergeAll:
+			merge = samplejob.MergeAll
+		case jc.MergeNone:
+			merge = samplejob.MergeNone
+		}
+
+		isMergeable := func(k sample.InputStreamKey) bool {
+			// TODO: Eventually we'll need to use the epoch here
+			sys := cfg.LookupHost(k.Host.String())
+			return sys != nil && sys.CrossNodeJobs
+		}
+
+		sampleJobs, err := samplejob.Query(
+			theDb,
+			isMergeable,
+			filter.FromDate,
+			filter.ToDate,
+			hosts,
+			recordFilter,
+			need.NeededComputations,
+			merge,
+			jc.Verbose,
+		)
+		if err != nil {
+			return err
+		}
+		if jc.Verbose {
+			Log.Infof("Sample jobs after aggregation filtering: %d", len(sampleJobs))
+		}
+
+		// TODO: Probably remove streams for which there is no config?
+
+		// TODO: This may be too soon for filtering.  The relative utilization for slurm systems can
+		// only (or perhaps - "also"?) be seen in relation to the reservation; the numbers computed
+		// by samplejob.Query() will be relative to the node configuration.  So here we must choose
+		// to send in a configuration that is appropriately scaled to the query, or we must correct
+		// the data after query but before filtering.  Either way we want the slurm data first.
+		//
+		// Or maybe the more correct view here is that some aggregation should not happen in data/
+		// but should happen here, driven by what we want to see?  The way this has been solved up
+		// until now is that we compute everything and then let the printing sort it out.  But there
+		// are other ways of thinking about that.  And the use of the Computed array for easy
+		// filtering also plays into that somehow.
+
+		for _, sj := range sampleJobs {
+			// TODO: Compute the computed fields!!
+			js := &jobSummary{sampleJob: sj}
+			if sampleFilter == nil || sampleFilter.apply(js) {
+				smap[sj.JobId] = js
+			}
+		}
+	}
+
+	if need.sacct {
+		pending := StringToUstr("PENDING")
+		running := StringToUstr("RUNNING")
+		if slurmFilter == nil {
+			slurmFilter = &slurmjob.QueryFilter{}
+		}
+		slurmJobs, err := slurmjob.Query(
+			theDb,
+			jc.FromDate,
+			jc.ToDate,
+			*slurmFilter,
+			jc.Verbose,
+		)
+		if err != nil {
+			if jc.Verbose {
+				Log.Warningf("Slurm data query failed: %v", err)
+			}
+			goto NoSlurm
+		}
+
+		// Each SlurmJob is a collection of records for the same job.  This is complicated
+		// because we have multiple states now, but so long as Query returns the most recent
+		// data for the Id then we should be ok here.
+		for _, j := range slurmJobs {
+			if probe := smap[j.Id]; probe != nil {
+				probe.slurmJob = j
+				continue
+			}
+
+			// Synthesize a SampleJob from the SlurmJob to hold the data that are common to
+			// the two, and then attach that if it passes the filter.
+			var gpus gpuset.GpuSet
+			// TODO: compute gpus from ReqGPUS
+			var hosts *Hostnames = NewHostnames()
+			// TODO: compute hosts from NodeList
+			var classification int
+			if j.Main.State == pending || j.Main.State == running {
+				classification |= sonalyze.LIVE_AT_END
+			}
+			var flags int
+			if (classification & sonalyze.LIVE_AT_END) != 0 {
+				flags |= samplejob.KIsLiveAtEnd
+			} else {
+				flags |= samplejob.KIsNotLiveAtEnd
+			}
+			if !gpus.IsEmpty() {
+				flags |= samplejob.KUsesGpu
+			} else {
+				flags |= samplejob.KDoesNotUseGpu
+			}
+			var sampleJob = &samplejob.SampleJob{
+				// `GpuFail` is not computable
+				Gpus: gpus,
+				// `Computed` is handled below
+				// `IsZombie` is not applicable
+				Cmd:      j.Main.JobName.String(),
+				Hosts:    hosts,
+				JobId:    j.Id,
+				User:     j.Main.User,
+				Duration: DurationValue(j.Main.ElapsedRaw),
+				Start:    DateTimeValue(j.Main.Start),
+				End:      DateTimeValue(j.Main.End),
+				// `Job` is not applicable
+				CpuTime: DurationValue(j.Main.SystemCPU + j.Main.UserCPU),
+				// `GpuTime` is not applicable
+				Classification: classification,
+				ComputedFlags:  flags,
+			}
+			// TODO: Computed fields, at least these:
+			js := &jobSummary{
+				sampleJob: sampleJob,
+				slurmJob:  j,
+			}
+			js.computed[kDuration] = float64(sampleJob.Duration)
+			// CpuPctAvg = (SystemCPU + UserCPU) / (End - Start)
+			// RcpuPctAvg = ...
+			if sampleFilter == nil || sampleFilter.apply(js) {
+				smap[j.Id] = js
+			}
+		}
+
+	NoSlurm:
+	}
+
+	// Also TODO: min-samples is a thing, but it got dropped on the floor somewhere.  There is now
+	// SampleCount int the SampleJob record.  Be careful when applying the filter to synthesized
+	// jobs above, or when synthesizing jobs, since the natural sample count for synthesized jobs is
+	// zero.
+
+	var summaries = slices.Collect(maps.Values(smap))
+
+	var now = time.Now().UTC().Unix()
+	for i := range summaries {
+		summaries[i].Now = now
+		if need.jobAndMark {
+			mark := ""
+			flags := summaries[i].sampleJob.ComputedFlags
+			switch {
+			case flags&(samplejob.KIsLiveAtStart|samplejob.KIsLiveAtEnd) == (samplejob.KIsLiveAtStart | samplejob.KIsLiveAtEnd):
+				mark = "!"
+			case flags&samplejob.KIsLiveAtStart != 0:
+				mark = "<"
+			case flags&samplejob.KIsLiveAtEnd != 0:
+				mark = ">"
+			}
+			summaries[i].JobAndMark = fmt.Sprint(summaries[i].sampleJob.JobId, mark)
+		}
+	}
+
+	return jc.printJobSummaries(out, summaries)
+}
+
 // Filtering is mostly wasted work.  Very frequently, all the filters will pass because the coarse
 // filtering (job number, user, command, host) has been applied already and most of the filters
 // applied to the aggregate are not very interesting to many users and will not be used to reject
@@ -623,13 +380,13 @@ type filterVal struct {
 	ix    int
 }
 
-type aggregationFilter struct {
+type sampleFilter struct {
 	minFilters []filterVal
 	maxFilters []filterVal
 	flags      int
 }
 
-func (f *aggregationFilter) apply(s *jobSummary) bool {
+func (f *sampleFilter) apply(s *jobSummary) bool {
 	for _, v := range f.minFilters {
 		if s.computed[v.ix] < v.limit {
 			return false
@@ -640,12 +397,12 @@ func (f *aggregationFilter) apply(s *jobSummary) bool {
 			return false
 		}
 	}
-	return (f.flags & s.computedFlags) == f.flags
+	return (f.flags & s.sampleJob.ComputedFlags) == f.flags
 }
 
 func (jc *JobsCommand) buildFilters(
 	cfg *config.ClusterConfig,
-) (*aggregationFilter, *slurmjob.QueryFilter) {
+) (*sampleFilter, *slurmjob.QueryFilter) {
 	minFilters := make([]filterVal, 0)
 	maxFilters := make([]filterVal, 0)
 
@@ -678,29 +435,29 @@ func (jc *JobsCommand) buildFilters(
 	// computed flags.
 	flags := 0
 	if jc.NoGpu {
-		flags |= kDoesNotUseGpu
+		flags |= samplejob.KDoesNotUseGpu
 	}
 	if jc.SomeGpu {
-		flags |= kUsesGpu
+		flags |= samplejob.KUsesGpu
 	}
 	if jc.Completed {
-		flags |= kIsNotLiveAtEnd
+		flags |= samplejob.KIsNotLiveAtEnd
 	}
 	if jc.Running {
-		flags |= kIsLiveAtEnd
+		flags |= samplejob.KIsLiveAtEnd
 	}
 	if jc.Zombie {
-		flags |= kIsZombie
+		flags |= samplejob.KIsZombie
 	}
 	if jc.Verbose && flags != 0 {
 		Log.Infof("Flag-filtering (UTSL): %x", flags)
 	}
 
-	var summaryFilter *aggregationFilter
-	var slurmFilter *slurmjob.QueryFilter
+	var theSampleFilter *sampleFilter
+	var theSlurmFilter *slurmjob.QueryFilter
 
 	if len(minFilters) > 0 || len(maxFilters) > 0 || flags != 0 {
-		summaryFilter = &aggregationFilter{
+		theSampleFilter = &sampleFilter{
 			minFilters,
 			maxFilters,
 			flags,
@@ -708,7 +465,7 @@ func (jc *JobsCommand) buildFilters(
 	}
 
 	if len(jc.Partition)+len(jc.Reservation)+len(jc.Account)+len(jc.State)+len(jc.GpuType) > 0 {
-		slurmFilter = &slurmjob.QueryFilter{
+		theSlurmFilter = &slurmjob.QueryFilter{
 			Account:     jc.Account,
 			Partition:   jc.Partition,
 			Reservation: jc.Reservation,
@@ -717,5 +474,5 @@ func (jc *JobsCommand) buildFilters(
 		}
 	}
 
-	return summaryFilter, slurmFilter
+	return theSampleFilter, theSlurmFilter
 }
