@@ -1,24 +1,24 @@
 // DO NOT EDIT.  Generated from sparts.go by generate-table
 
+
 package sparts
+
 
 import (
 	"cmp"
 	"fmt"
-	"go-utils/gpuset"
 	"io"
+	"go-utils/gpuset"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
-
 var (
-	_ = cmp.Compare(0, 0)
+	_ = cmp.Compare(0,0)
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
 	_ gpuset.GpuSet
 )
-
 // MT: Constant after initialization; immutable
 var spartFormatters = map[string]Formatter[SpartData]{
 	"Timestamp": {
@@ -70,7 +70,7 @@ var spartPredicates = map[string]Predicate[SpartData]{
 type SpartData struct {
 	Timestamp string
 	Partition string
-	Nodes     []string
+	Nodes []string
 }
 
 func (c *SpartCommand) Summary(out io.Writer) {
@@ -100,3 +100,4 @@ var spartAliases = map[string][]string{
 }
 
 const spartDefaultFields = "default"
+

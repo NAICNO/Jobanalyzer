@@ -1,24 +1,24 @@
 // DO NOT EDIT.  Generated from print.go by generate-table
 
+
 package uptime
+
 
 import (
 	"cmp"
 	"fmt"
-	"go-utils/gpuset"
 	"io"
+	"go-utils/gpuset"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
-
 var (
-	_ = cmp.Compare(0, 0)
+	_ = cmp.Compare(0,0)
 	_ fmt.Formatter
 	_ = io.SeekStart
 	_ = UstrEmpty
 	_ gpuset.GpuSet
 )
-
 // MT: Constant after initialization; immutable
 var uptimeFormatters = map[string]Formatter[*UptimeLine]{
 	"Device": {
@@ -93,11 +93,11 @@ var uptimePredicates = map[string]Predicate[*UptimeLine]{
 }
 
 type UptimeLine struct {
-	Device   string
+	Device string
 	Hostname string
-	State    string
-	Start    DateTimeValue
-	End      DateTimeValue
+	State string
+	Start DateTimeValue
+	End DateTimeValue
 }
 
 func (c *UptimeCommand) Summary(out io.Writer) {
@@ -129,10 +129,11 @@ func (c *UptimeCommand) MaybeFormatHelp() *FormatHelp {
 
 // MT: Constant after initialization; immutable
 var uptimeAliases = map[string][]string{
-	"default": []string{"device", "host", "state", "start", "end"},
-	"Default": []string{"Device", "Hostname", "State", "Start", "End"},
-	"all":     []string{"default"},
-	"All":     []string{"Default"},
+	"default": []string{"device","host","state","start","end"},
+	"Default": []string{"Device","Hostname","State","Start","End"},
+	"all": []string{"default"},
+	"All": []string{"Default"},
 }
 
 const uptimeDefaultFields = "default"
+
