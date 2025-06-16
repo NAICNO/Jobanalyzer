@@ -16,19 +16,41 @@ import (
 	. "sonalyze/table"
 )
 
-func (lc *LoadCommand) NeedsBounds() bool {
-	return true
-}
-
 func (lc *LoadCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	_ db.SampleDataProvider,
-	streams sample.InputStreamSet,
-	bounds Timebounds,
-	_ *Hosts,
-	_ *sample.SampleFilter,
+	theDb db.SampleDataProvider,
+	filter sample.QueryFilter,
+	hosts *Hosts,
+	recordFilter *sample.SampleFilter,
 ) error {
+	streams, bounds, read, dropped, err :=
+		sample.ReadSampleStreamsAndMaybeBounds(
+			theDb,
+			filter.FromDate,
+			filter.ToDate,
+			hosts,
+			recordFilter,
+			true,
+			lc.Verbose,
+		)
+	if err != nil {
+		return fmt.Errorf("Failed to read log records: %v", err)
+	}
+	if lc.Verbose {
+		Log.Infof("%d records read + %d dropped\n", read, dropped)
+		UstrStats(out, false)
+	}
+
+	if lc.Verbose {
+		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
+		numSamples := 0
+		for _, stream := range streams {
+			numSamples += len(*stream)
+		}
+		Log.Infof("Samples retained after filtering: %d", numSamples)
+	}
+
 	fromIncl, toIncl := lc.InterpretFromToWithBounds(bounds)
 
 	if NeedsConfig(loadFormatters, lc.PrintFields) {
