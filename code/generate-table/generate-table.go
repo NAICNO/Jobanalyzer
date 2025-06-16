@@ -157,7 +157,8 @@ func setComparer(ty string) string {
 	if probe, found := knownTypes[ty]; found && probe.setComparer != "" {
 		return probe.setComparer
 	}
-	panic("Not a set")
+	log.Fatalf("Not a set: %s", ty)
+	return ""
 }
 
 func isSetType(ty string) bool {
@@ -372,14 +373,20 @@ func fieldPredicates(tableName string, fields *parser.FieldSect) {
 			}
 			fmt.Fprintf(output, "\t\t},\n")
 		case isSetType(field.Type):
-			if attrs["indirect"] != "" {
-				panic("No support for indirection to set types yet")
-			}
 			fmt.Fprintf(output, "\t\tSetCompare: func(d %s, v any, op int) bool {\n", fields.Type)
-			fmt.Fprintf(output, "\t\t\treturn %s((d.%s), v.(%s), op)\n", setComparer(field.Type), actualFieldName, field.Type)
+			if ptrName := attrs["indirect"]; ptrName != "" {
+				fmt.Fprintf(output, "\t\t\tif (d.%s) != nil {\n", ptrName)
+				fmt.Fprintf(output, "\t\t\t\treturn %s((d.%s.%s), v.(%s), op)\n",
+					setComparer(field.Type), ptrName, actualFieldName, field.Type)
+				fmt.Fprintf(output, "\t\t\t}\n")
+				fmt.Fprintf(output, "\t\t\treturn false\n")
+			} else {
+				fmt.Fprintf(output, "\t\t\treturn %s((d.%s), v.(%s), op)\n",
+					setComparer(field.Type), actualFieldName, field.Type)
+			}
 			fmt.Fprintf(output, "\t\t},\n")
 		default:
-			panic("Unknown case")
+			panic("Unexpected case in fieldPredicates()")
 		}
 		fmt.Fprintf(output, "\t},\n")
 	}
