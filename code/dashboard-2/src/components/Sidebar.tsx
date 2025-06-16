@@ -65,6 +65,7 @@ const SideBarContent = ({onCloseDrawer}: { onCloseDrawer: () => void }) => {
   const {colorMode} = useColorMode()
   const hoverBgColor = colorMode === 'light' ? 'gray.200' : 'blue.500'
   const activeBgColor = colorMode === 'light' ? 'gray.300' : 'blue.600'
+  const separatorColor = colorMode === 'light' ? 'gray.300' : 'gray.600'
 
   return (
     <List.Root variant={'plain'} fontSize={{base: '1em', md: '1.2em'}} gap="1">
@@ -72,7 +73,12 @@ const SideBarContent = ({onCloseDrawer}: { onCloseDrawer: () => void }) => {
         if (item.type === 'separator') {
           return (
             <List.Item key={index}>
-              <Separator variant={'solid'}/>
+              <Separator 
+                my={2} 
+                borderColor={separatorColor} 
+                opacity={0.8} 
+                width="100%" 
+              />
             </List.Item>
           )
         }

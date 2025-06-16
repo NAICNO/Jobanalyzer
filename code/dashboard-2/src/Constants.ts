@@ -1,6 +1,7 @@
 import { GrNodes } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
 import { LuBookOpen, LuGraduationCap, LuShip } from 'react-icons/lu'
+import { MdOutlineQueryStats } from 'react-icons/md'
 import * as yup from 'yup'
 
 import {
@@ -136,6 +137,16 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     text: 'Betzy',
     icon: LuGraduationCap
   },
+  {
+    type: 'separator',
+  },
+  {
+    type: 'link',
+    path: '/jobquery',
+    matches: '/jobquery',
+    text: 'Job Query',
+    icon: MdOutlineQueryStats,
+  }
 ]
 
 export const FETCH_FREQUENCIES = [
