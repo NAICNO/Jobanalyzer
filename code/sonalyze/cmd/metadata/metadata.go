@@ -126,28 +126,49 @@ func (mdc *MetadataCommand) DefaultRecordFilters() (
 	return
 }
 
-func (mdc *MetadataCommand) NeedsBounds() bool {
-	return mdc.Bounds
-}
-
 func (mdc *MetadataCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	cluster db.SampleDataProvider,
-	streams sample.InputStreamSet,
-	bounds Timebounds, // for mdc.Bounds only
-	hostGlobber *Hosts,
-	_ *sample.SampleFilter,
+	theDb db.SampleDataProvider,
+	filter sample.QueryFilter,
+	hosts *Hosts,
+	recordFilter *sample.SampleFilter,
 ) error {
+	streams, bounds, read, dropped, err :=
+		sample.ReadSampleStreamsAndMaybeBounds(
+			theDb,
+			filter.FromDate,
+			filter.ToDate,
+			hosts,
+			recordFilter,
+			mdc.Bounds,
+			mdc.Verbose,
+		)
+	if err != nil {
+		return fmt.Errorf("Failed to read log records: %v", err)
+	}
+	if mdc.Verbose {
+		Log.Infof("%d records read + %d dropped\n", read, dropped)
+		UstrStats(out, false)
+	}
+	if mdc.Verbose {
+		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
+		numSamples := 0
+		for _, stream := range streams {
+			numSamples += len(*stream)
+		}
+		Log.Infof("Samples retained after filtering: %d", numSamples)
+	}
+
 	if mdc.Times {
 		fmt.Fprintf(out, "From: %s\n", mdc.FromDate.Format(time.RFC3339))
 		fmt.Fprintf(out, "To:   %s\n", mdc.ToDate.Format(time.RFC3339))
 	}
 
 	if mdc.Files {
-		if sampleDir, ok := cluster.(db.SampleFilenameProvider); ok {
+		if sampleDir, ok := theDb.(db.SampleFilenameProvider); ok {
 			// For -files, print the full paths all the input files as presented to os.Open.
-			files, err := sampleDir.SampleFilenames(mdc.FromDate, mdc.ToDate, hostGlobber)
+			files, err := sampleDir.SampleFilenames(mdc.FromDate, mdc.ToDate, hosts)
 			if err != nil {
 				return err
 			}

@@ -100,19 +100,32 @@ type jobAggregate struct {
 	Hosts    *Hostnames
 }
 
-func (jc *JobsCommand) NeedsBounds() bool {
-	return true
-}
-
 func (jc *JobsCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
 	theDb db.SampleDataProvider,
-	streams sample.InputStreamSet,
-	bounds Timebounds,
-	_ *Hosts,
-	_ *sample.SampleFilter,
+	filter sample.QueryFilter,
+	hosts *Hosts,
+	recordFilter *sample.SampleFilter,
 ) error {
+	streams, bounds, read, dropped, err :=
+		sample.ReadSampleStreamsAndMaybeBounds(
+			theDb,
+			filter.FromDate,
+			filter.ToDate,
+			hosts,
+			recordFilter,
+			true,
+			jc.Verbose,
+		)
+	if err != nil {
+		return fmt.Errorf("Failed to read log records: %v", err)
+	}
+	if jc.Verbose {
+		Log.Infof("%d records read + %d dropped\n", read, dropped)
+		UstrStats(out, false)
+	}
+
 	if jc.Verbose {
 		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
 		numSamples := 0

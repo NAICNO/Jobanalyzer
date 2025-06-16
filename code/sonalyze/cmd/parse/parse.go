@@ -149,29 +149,63 @@ func (pc *ParseCommand) ConfigFile() string {
 	return ""
 }
 
-func (pc *ParseCommand) NeedsBounds() bool {
-	return pc.MergeByJob
-}
-
 func (pc *ParseCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	cluster db.SampleDataProvider,
-	streams sample.InputStreamSet,
-	bounds Timebounds, // for pc.MergeByJob only
-	hostGlobber *Hosts,
+	theDb db.SampleDataProvider,
+	filter sample.QueryFilter,
+	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
 	var mergedSamples []*sample.SampleStream
 	var samples sample.SampleStream
-	switch {
-	default:
-		// Reread the data, bypassing all postprocessing, to get the expected raw values.  If it's
-		// expensive then so be it - this is special-case code usually used for limited testing, not
-		// something you'd use for analysis.
-		recordBlobs, _, err := cluster.ReadSamples(pc.FromDate, pc.ToDate, hostGlobber, pc.Verbose)
+
+	if pc.Clean || pc.MergeByJob || pc.MergeByHostAndJob {
+		streams, bounds, read, dropped, err :=
+			sample.ReadSampleStreamsAndMaybeBounds(
+				theDb,
+				filter.FromDate,
+				filter.ToDate,
+				hosts,
+				recordFilter,
+				pc.MergeByJob,
+				pc.Verbose,
+			)
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to read log records: %v", err)
+		}
+		if pc.Verbose {
+			Log.Infof("%d records read + %d dropped\n", read, dropped)
+			UstrStats(out, false)
+		}
+		if pc.Verbose {
+			Log.Infof("Streams constructed by postprocessing: %d", len(streams))
+			numSamples := 0
+			for _, stream := range streams {
+				numSamples += len(*stream)
+			}
+			Log.Infof("Samples retained after filtering: %d", numSamples)
+		}
+
+		switch {
+		case pc.Clean:
+			mergedSamples = maps.Values(streams)
+
+		case pc.MergeByJob:
+			mergedSamples, _ = sample.MergeByJob(streams, bounds)
+
+		case pc.MergeByHostAndJob:
+			mergedSamples = sample.MergeByHostAndJob(streams)
+		}
+	} else {
+		// Bypass postprocessing to get the expected raw values.
+		recordBlobs, dropped, err := theDb.ReadSamples(pc.FromDate, pc.ToDate, hosts, pc.Verbose)
+		if err != nil {
+			return fmt.Errorf("Failed to read log records: %v", err)
+		}
+		if pc.Verbose {
+			Log.Infof("%d record blobs read + %d dropped\n", len(recordBlobs), dropped)
+			UstrStats(out, false)
 		}
 
 		// Simulate the normal pipeline, the recordFilter application is expected by the user.
@@ -186,15 +220,6 @@ func (pc *ParseCommand) Perform(
 			)...)
 		}
 		samples = sample.SampleStream(mapped)
-
-	case pc.Clean:
-		mergedSamples = maps.Values(streams)
-
-	case pc.MergeByJob:
-		mergedSamples, _ = sample.MergeByJob(streams, bounds)
-
-	case pc.MergeByHostAndJob:
-		mergedSamples = sample.MergeByHostAndJob(streams)
 	}
 
 	var queryNeg func(sample.Sample) bool

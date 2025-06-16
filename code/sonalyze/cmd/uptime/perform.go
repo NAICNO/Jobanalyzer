@@ -42,6 +42,7 @@ package uptime
 
 import (
 	"cmp"
+	"fmt"
 	"io"
 	"slices"
 
@@ -60,25 +61,46 @@ type window struct {
 	start, end int // inclusive indices in `samples`
 }
 
-func (uc *UptimeCommand) NeedsBounds() bool {
-	return true
-}
-
 func (uc *UptimeCommand) Perform(
 	out io.Writer,
 	cfg *config.ClusterConfig,
-	_ db.SampleDataProvider,
-	streams sample.InputStreamSet,
-	bounds Timebounds,
-	hostGlobber *Hosts,
-	_ *sample.SampleFilter,
+	theDb db.SampleDataProvider,
+	filter sample.QueryFilter,
+	hosts *Hosts,
+	recordFilter *sample.SampleFilter,
 ) error {
+	streams, bounds, read, dropped, err :=
+		sample.ReadSampleStreamsAndMaybeBounds(
+			theDb,
+			filter.FromDate,
+			filter.ToDate,
+			hosts,
+			recordFilter,
+			true,
+			uc.Verbose,
+		)
+	if err != nil {
+		return fmt.Errorf("Failed to read log records: %v", err)
+	}
+	if uc.Verbose {
+		Log.Infof("%d records read + %d dropped\n", read, dropped)
+		UstrStats(out, false)
+	}
+	if uc.Verbose {
+		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
+		numSamples := 0
+		for _, stream := range streams {
+			numSamples += len(*stream)
+		}
+		Log.Infof("Samples retained after filtering: %d", numSamples)
+	}
+
 	samples := uslices.CatenateP(maps.Values(streams))
 	if uc.Verbose {
 		Log.Infof("%d streams", len(streams))
 		Log.Infof("%d records after hack", len(samples))
 	}
-	return uc.printReports(out, uc.computeReports(samples, bounds, cfg, hostGlobber))
+	return uc.printReports(out, uc.computeReports(samples, bounds, cfg, hosts))
 }
 
 // Compute up/down reports for all selected hosts within the time window.  The result will not be

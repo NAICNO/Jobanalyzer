@@ -17,19 +17,40 @@ import (
 	. "sonalyze/table"
 )
 
-func (pc *ProfileCommand) NeedsBounds() bool {
-	return false
-}
-
 func (pc *ProfileCommand) Perform(
 	out io.Writer,
 	_ *config.ClusterConfig,
-	_ db.SampleDataProvider,
-	streams sample.InputStreamSet,
-	_ Timebounds,
-	_ *Hosts,
-	_ *sample.SampleFilter,
+	theDb db.SampleDataProvider,
+	filter sample.QueryFilter,
+	hosts *Hosts,
+	recordFilter *sample.SampleFilter,
 ) error {
+	streams, _, read, dropped, err :=
+		sample.ReadSampleStreamsAndMaybeBounds(
+			theDb,
+			filter.FromDate,
+			filter.ToDate,
+			hosts,
+			recordFilter,
+			false,
+			pc.Verbose,
+		)
+	if err != nil {
+		return fmt.Errorf("Failed to read log records: %v", err)
+	}
+	if pc.Verbose {
+		Log.Infof("%d records read + %d dropped\n", read, dropped)
+		UstrStats(out, false)
+	}
+	if pc.Verbose {
+		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
+		numSamples := 0
+		for _, stream := range streams {
+			numSamples += len(*stream)
+		}
+		Log.Infof("Samples retained after filtering: %d", numSamples)
+	}
+
 	jobId := pc.Job[0]
 
 	if len(streams) == 0 {
