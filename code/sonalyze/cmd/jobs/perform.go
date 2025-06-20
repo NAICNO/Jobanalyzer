@@ -179,10 +179,6 @@ func (jc *JobsCommand) Perform(
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
-	var needConfig = NeedsConfig(jobsFormatters, jc.PrintFields)
-	if needConfig && cfg == nil {
-		return fmt.Errorf("Configuration file required for relative format arguments")
-	}
 	var need needed
 	for _, f := range jc.PrintFields {
 		testName(&need, f.Name)
@@ -195,9 +191,16 @@ func (jc *JobsCommand) Perform(
 		}
 	}
 
+	// The sampleFilter is used also for sample jobs synthesized from slurm jobs, so is always
+	// needed.
+	var needConfig = NeedsConfig(jobsFormatters, jc.PrintFields)
+	if needConfig && cfg == nil {
+		return fmt.Errorf("Configuration file required for relative format arguments")
+	}
+	var sampleFilter = jc.buildSampleFilter(cfg != nil)
+
 	// Map from JobId to the summary
 	var smap = make(map[uint32]*jobSummary)
-	var sampleFilter, slurmFilter = jc.buildFilters(cfg)
 
 	if need.sample {
 		var merge samplejob.Merge
@@ -256,6 +259,7 @@ func (jc *JobsCommand) Perform(
 	}
 
 	if need.sacct {
+		var slurmFilter = jc.buildSlurmFilter()
 		pending := StringToUstr("PENDING")
 		running := StringToUstr("RUNNING")
 		if slurmFilter == nil {
@@ -400,14 +404,12 @@ func (f *sampleFilter) apply(s *jobSummary) bool {
 	return (f.flags & s.sampleJob.ComputedFlags) == f.flags
 }
 
-func (jc *JobsCommand) buildFilters(
-	cfg *config.ClusterConfig,
-) (*sampleFilter, *slurmjob.QueryFilter) {
+func (jc *JobsCommand) buildSampleFilter(allowRelative bool) *sampleFilter {
 	minFilters := make([]filterVal, 0)
 	maxFilters := make([]filterVal, 0)
 
 	for _, v := range uintArgs {
-		if v.aggregateIx != -1 && (cfg != nil || !v.relative) {
+		if v.aggregateIx != -1 && (allowRelative || !v.relative) {
 			val := jc.lookupUint(v.name)
 			if strings.HasPrefix(v.name, "min-") && val != 0 {
 				if jc.Verbose {
@@ -453,26 +455,26 @@ func (jc *JobsCommand) buildFilters(
 		Log.Infof("Flag-filtering (UTSL): %x", flags)
 	}
 
-	var theSampleFilter *sampleFilter
-	var theSlurmFilter *slurmjob.QueryFilter
-
-	if len(minFilters) > 0 || len(maxFilters) > 0 || flags != 0 {
-		theSampleFilter = &sampleFilter{
-			minFilters,
-			maxFilters,
-			flags,
-		}
+	if len(minFilters) > 0 || len(maxFilters) > 0 || flags == 0 {
+		return nil
 	}
 
-	if len(jc.Partition)+len(jc.Reservation)+len(jc.Account)+len(jc.State)+len(jc.GpuType) > 0 {
-		theSlurmFilter = &slurmjob.QueryFilter{
-			Account:     jc.Account,
-			Partition:   jc.Partition,
-			Reservation: jc.Reservation,
-			GpuType:     jc.GpuType,
-			State:       jc.State,
-		}
+	return &sampleFilter{
+		minFilters,
+		maxFilters,
+		flags,
 	}
+}
 
-	return theSampleFilter, theSlurmFilter
+func (jc *JobsCommand) buildSlurmFilter() *slurmjob.QueryFilter {
+	if len(jc.Partition)+len(jc.Reservation)+len(jc.Account)+len(jc.State)+len(jc.GpuType) == 0 {
+		return nil
+	}
+	return &slurmjob.QueryFilter{
+		Account:     jc.Account,
+		Partition:   jc.Partition,
+		Reservation: jc.Reservation,
+		GpuType:     jc.GpuType,
+		State:       jc.State,
+	}
 }
