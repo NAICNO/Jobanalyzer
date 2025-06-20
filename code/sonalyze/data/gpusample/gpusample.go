@@ -28,7 +28,7 @@ type GpuSamples struct {
 type GpuSamplesByHostSet map[Ustr]*GpuSamplesByHost
 
 func ReadGpuSamplesByHost(
-	c db.SampleDataProvider,
+	c db.GpuSampleDataProvider,
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
 	verbose bool,

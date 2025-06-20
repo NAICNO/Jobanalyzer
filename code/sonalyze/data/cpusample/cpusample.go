@@ -44,7 +44,7 @@ func CpuSamplesLessByTime(a, b CpuSamples) int {
 type CpuSampleSet map[Ustr]*CpuSamplesByHost
 
 func ReadCpuSamplesByHost(
-	c db.SampleDataProvider,
+	c db.CpuSampleDataProvider,
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
 	verbose bool,

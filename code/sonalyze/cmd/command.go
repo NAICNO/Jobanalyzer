@@ -81,14 +81,17 @@ type SimpleCommand interface {
 //
 // Represents a sonalyze "sonar sample" analysis command: jobs, load, parse, etc
 
-type SampleAnalysisCommand interface {
-	AnalysisCommand
-
+type SampleAnalysisParameters interface {
 	// Retrieve shared arguments
 	SampleAnalysisFlags() *SampleAnalysisArgs
 
 	// Provide appropriate default settings for these flags
 	DefaultRecordFilters() (allUsers, skipSystemUsers, excludeSystemCommands, excludeHeartbeat bool)
+}
+
+type SampleAnalysisCommand interface {
+	AnalysisCommand
+	SampleAnalysisParameters
 
 	// Perform the operation.  The recordFilter has been compiled from the filter.
 	Perform(
