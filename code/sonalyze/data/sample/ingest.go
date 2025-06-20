@@ -25,7 +25,7 @@ func init() {
 // at the same time.  The data thus returned would be read-only.
 
 func ReadSampleStreamsAndMaybeBounds(
-	c db.SampleDataProvider,
+	c db.ProcessSampleDataProvider,
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
 	recordFilter *SampleFilter,

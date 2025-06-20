@@ -102,7 +102,8 @@ func Query(
 		// TODO: This basically does not allow the "main" line to show up after other lines, is that
 		// sensible?  Since we can't have a job without a main line, we will not create an entry
 		// here if main is nil.  If we change the logic here to allow main to be added later, we
-		// must add post-filtering to remove entries with a main that remains nil at the end.
+		// must add post-filtering to remove entries with a main that remains nil at the end.  The
+		// printing code in "jobs" depends on there being a main.
 		if info, ok := byjob[r.JobID]; ok {
 			info.Steps = append(info.Steps, r)
 		} else {
