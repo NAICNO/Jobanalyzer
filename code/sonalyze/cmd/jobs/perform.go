@@ -28,6 +28,10 @@ type needed struct {
 	sample     bool
 }
 
+// TODO: Super brittle!!!  If the print table changes, this must change.
+// Would be good to have some kind of auto-generated interlock, or to generate this function,
+// or to generate a predicate for slurm names?
+
 func testName(nt *needed, name string) {
 	switch name {
 	case "cmd", "Cmd":
@@ -42,9 +46,6 @@ func testName(nt *needed, name string) {
 		"ExitCode":
 		// Our names for the Slurm sacct data fields.  Mostly these are the same as in the sacct
 		// data, but there's no shame in sticking to proper naming.
-		// TODO: Super brittle!!!  If the print table changes, this must change.
-		// Would be good to have some kind of auto-generated interlock, or to generate this function,
-		// or to generate a predicate for slurm names?
 		nt.sacct = true
 	default:
 		nt.sample = true
@@ -79,6 +80,263 @@ const (
 	kDuration              // Duration of job in seconds (wall clock, not CPU)
 	numF64Fields
 )
+
+// A number of fields could come *either* from the sample job or the slurm job, depending on what
+// data we have, and it's the result of that joining that we want to print when we print jobs.  If
+// there is a SlurmJob but not a SampleJob then a SampleJob is synthesized from the slurmJob data.
+// This keeps printing logic sane, and there are no samples exposed so that's fine.
+type jobSummary struct {
+	Now        DateTimeValue
+	JobAndMark string
+	selected   bool
+	sampleJob  *samplejob.SampleJob
+	slurmJob   *slurmjob.SlurmJob
+	computed   [numF64Fields]float64
+}
+
+type JobsDataProvider interface {
+	db.ProcessSampleDataProvider
+	db.SacctDataProvider
+}
+
+func (jc *JobsCommand) Perform(
+	out io.Writer,
+	cfg *config.ClusterConfig,
+	theDb JobsDataProvider,
+	filter sample.QueryFilter,
+	hosts *Hosts,
+	recordFilter *sample.SampleFilter,
+) error {
+	var need needed
+	for _, f := range jc.PrintFields {
+		testName(&need, f.Name)
+	}
+	if jc.ParsedQuery != nil {
+		names := make(map[string]bool)
+		QueryNames(jc.ParsedQuery, names)
+		for name := range names {
+			testName(&need, name)
+		}
+	}
+
+	var needConfig = NeedsConfig(jobsFormatters, jc.PrintFields)
+	if needConfig && cfg == nil {
+		return fmt.Errorf("Configuration file required for relative format arguments")
+	}
+
+	// We want to:
+	//
+	//  - compute an "OR" of slurm jobs and sample jobs so that if a job ID is in either data set
+	//    then the job is in the result
+	//  - synthesize SampleJob data for slurm jobs without a corresponding sample job
+	//  - compute relative fields for all the jobs in the set, which depends either on the allocation
+	//    for the job or on the node's configuration
+	//  - filter the resulting summaries
+	//
+	// This needs to be done in a particular order to work at all.
+
+	// Map from JobId to the summary
+	var smap = make(map[uint32]*jobSummary)
+
+	if need.sample {
+		sampleJobs, err := jc.findSampleJobs(
+			cfg,
+			theDb,
+			filter,
+			hosts,
+			recordFilter,
+			need.NeededComputations,
+		)
+		if err != nil {
+			return err
+		}
+		for _, j := range sampleJobs {
+			smap[j.JobId] = &jobSummary{sampleJob: j}
+		}
+	}
+
+	if need.sacct {
+		slurmJobs, err := jc.findSlurmJobs(theDb, filter)
+		if err != nil {
+			return err
+		}
+		for _, j := range slurmJobs {
+			if probe := smap[j.Id]; probe != nil {
+				probe.slurmJob = j
+			} else {
+				smap[j.Id] = &jobSummary{
+					sampleJob: jc.synthesizeSampleJob(j),
+					slurmJob: j,
+				}
+			}
+		}
+	}
+
+	for _, j := range smap {
+		jc.computeComputedFields(cfg, j)
+	}
+
+	if sampleFilter := jc.buildSampleFilter(cfg != nil); sampleFilter != nil {
+		maps.DeleteFunc(smap, func(k uint32, v *jobSummary) bool {
+			return !sampleFilter.apply(v)
+		})
+	}
+
+	// Also TODO: min-samples is a thing, but it got dropped on the floor somewhere.  There is now
+	// SampleCount int the SampleJob record.  Be careful when applying the filter to synthesized
+	// jobs above, or when synthesizing jobs, since the natural sample count for synthesized jobs is
+	// zero.
+
+	var summaries = slices.Collect(maps.Values(smap))
+
+	var now = time.Now().UTC().Unix()
+	for i := range summaries {
+		summaries[i].Now = now
+		if need.jobAndMark {
+			mark := ""
+			flags := summaries[i].sampleJob.ComputedFlags
+			switch {
+			case flags&(samplejob.KIsLiveAtStart|samplejob.KIsLiveAtEnd) == (samplejob.KIsLiveAtStart | samplejob.KIsLiveAtEnd):
+				mark = "!"
+			case flags&samplejob.KIsLiveAtStart != 0:
+				mark = "<"
+			case flags&samplejob.KIsLiveAtEnd != 0:
+				mark = ">"
+			}
+			summaries[i].JobAndMark = fmt.Sprint(summaries[i].sampleJob.JobId, mark)
+		}
+	}
+
+	return jc.printJobSummaries(out, summaries)
+}
+
+func (jc *JobsCommand) findSampleJobs(
+	cfg *config.ClusterConfig,
+	theDb JobsDataProvider,
+	filter sample.QueryFilter,
+	hosts *Hosts,
+	recordFilter *sample.SampleFilter,
+	need samplejob.NeededComputations,
+) ([]*samplejob.SampleJob, error) {
+	var merge samplejob.Merge
+	switch {
+	case jc.MergeAll:
+		merge = samplejob.MergeAll
+	case jc.MergeNone:
+		merge = samplejob.MergeNone
+	}
+
+	isMergeable := func(k sample.InputStreamKey) bool {
+		// TODO: Eventually we'll need to use the epoch here
+		sys := cfg.LookupHost(k.Host.String())
+		return sys != nil && sys.CrossNodeJobs
+	}
+
+	sampleJobs, err := samplejob.Query(
+		theDb,
+		isMergeable,
+		filter.FromDate,
+		filter.ToDate,
+		hosts,
+		recordFilter,
+		need,
+		merge,
+		jc.Verbose,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if jc.Verbose {
+		Log.Infof("Sample jobs after aggregation filtering: %d", len(sampleJobs))
+	}
+
+	return sampleJobs, nil
+}
+
+func (jc *JobsCommand) findSlurmJobs(
+	theDb JobsDataProvider,
+	filter sample.QueryFilter,
+) (
+	[]*slurmjob.SlurmJob,
+	error,
+) {
+	slurmFilter := jc.buildSlurmFilter()
+	if slurmFilter == nil {
+		slurmFilter = &slurmjob.QueryFilter{}
+	}
+
+	slurmJobs, err := slurmjob.Query(
+		theDb,
+		filter.FromDate,
+		filter.ToDate,
+		*slurmFilter,
+		jc.Verbose,
+	)
+	if err != nil {
+		if jc.Verbose {
+			Log.Warningf("Slurm data query failed: %v", err)
+		}
+		return nil, err
+	}
+	if jc.Verbose {
+		Log.Infof("Slurm jobs after aggregation filtering: %d", len(slurmJobs))
+	}
+
+	return slurmJobs, nil
+}
+
+var (
+	pending = StringToUstr("PENDING")
+	running = StringToUstr("RUNNING")
+)
+
+// Synthesize a SampleJob from the SlurmJob to hold common data.
+func (jc *JobsCommand) synthesizeSampleJob(j *slurmjob.SlurmJob) *samplejob.SampleJob {
+	var gpus gpuset.GpuSet
+	// TODO: compute gpus from ReqGPUS
+	var hosts *Hostnames = NewHostnames()
+	// TODO: compute hosts from NodeList
+	var classification int
+	if j.Main.State == pending || j.Main.State == running {
+		classification |= sonalyze.LIVE_AT_END
+	}
+	var flags int
+	if (classification & sonalyze.LIVE_AT_END) != 0 {
+		flags |= samplejob.KIsLiveAtEnd
+	} else {
+		flags |= samplejob.KIsNotLiveAtEnd
+	}
+	if !gpus.IsEmpty() {
+		flags |= samplejob.KUsesGpu
+	} else {
+		flags |= samplejob.KDoesNotUseGpu
+	}
+	var sampleJob = &samplejob.SampleJob{
+		// `GpuFail` is not computable
+		Gpus: gpus,
+		// `Computed` is handled below
+		// `IsZombie` is not applicable
+		Cmd:      j.Main.JobName.String(),
+		Hosts:    hosts,
+		JobId:    j.Id,
+		User:     j.Main.User,
+		Duration: DurationValue(j.Main.ElapsedRaw),
+		Start:    DateTimeValue(j.Main.Start),
+		End:      DateTimeValue(j.Main.End),
+		// `Job` is not applicable
+		CpuTime: DurationValue(j.Main.SystemCPU + j.Main.UserCPU),
+		// `GpuTime` is not applicable
+		Classification: classification,
+		ComputedFlags:  flags,
+	}
+	return sampleJob
+}
+
+func (jc *JobsCommand) computeComputedFields(cfg *config.ClusterConfig, js *jobSummary, ) {
+	// TODO: Computed fields, at least these:
+	js.computed[kDuration] = float64(js.sampleJob.Duration)
+	// CpuPctAvg = (SystemCPU + UserCPU) / (End - Start)
+	// RcpuPctAvg = ...
 
 /*
    // This is completely ill-defined if hosts were merged because there's no such thing as
@@ -153,222 +411,6 @@ const (
 
 */
 
-// A number of fields could come *either* from the sample job or the slurm job, depending on what
-// data we have, and it's the result of that joining that we want to print when we print jobs.  If
-// there is a SlurmJob but not a SampleJob then a SampleJob is synthesized from the slurmJob data.
-// This keeps printing logic sane, and there are no samples exposed so that's fine.
-type jobSummary struct {
-	Now        DateTimeValue
-	JobAndMark string
-	selected   bool
-	sampleJob  *samplejob.SampleJob
-	slurmJob   *slurmjob.SlurmJob
-	computed   [numF64Fields]float64
-}
-
-type JobsDataProvider interface {
-	db.ProcessSampleDataProvider
-	db.SacctDataProvider
-}
-
-func (jc *JobsCommand) Perform(
-	out io.Writer,
-	cfg *config.ClusterConfig,
-	theDb JobsDataProvider,
-	filter sample.QueryFilter,
-	hosts *Hosts,
-	recordFilter *sample.SampleFilter,
-) error {
-	var need needed
-	for _, f := range jc.PrintFields {
-		testName(&need, f.Name)
-	}
-	if jc.ParsedQuery != nil {
-		names := make(map[string]bool)
-		QueryNames(jc.ParsedQuery, names)
-		for name := range names {
-			testName(&need, name)
-		}
-	}
-
-	// The sampleFilter is used also for sample jobs synthesized from slurm jobs, so is always
-	// needed.
-	var needConfig = NeedsConfig(jobsFormatters, jc.PrintFields)
-	if needConfig && cfg == nil {
-		return fmt.Errorf("Configuration file required for relative format arguments")
-	}
-	var sampleFilter = jc.buildSampleFilter(cfg != nil)
-
-	// Map from JobId to the summary
-	var smap = make(map[uint32]*jobSummary)
-
-	if need.sample {
-		var merge samplejob.Merge
-		switch {
-		case jc.MergeAll:
-			merge = samplejob.MergeAll
-		case jc.MergeNone:
-			merge = samplejob.MergeNone
-		}
-
-		isMergeable := func(k sample.InputStreamKey) bool {
-			// TODO: Eventually we'll need to use the epoch here
-			sys := cfg.LookupHost(k.Host.String())
-			return sys != nil && sys.CrossNodeJobs
-		}
-
-		sampleJobs, err := samplejob.Query(
-			theDb,
-			isMergeable,
-			filter.FromDate,
-			filter.ToDate,
-			hosts,
-			recordFilter,
-			need.NeededComputations,
-			merge,
-			jc.Verbose,
-		)
-		if err != nil {
-			return err
-		}
-		if jc.Verbose {
-			Log.Infof("Sample jobs after aggregation filtering: %d", len(sampleJobs))
-		}
-
-		// TODO: Probably remove streams for which there is no config?
-
-		// TODO: This may be too soon for filtering.  The relative utilization for slurm systems can
-		// only (or perhaps - "also"?) be seen in relation to the reservation; the numbers computed
-		// by samplejob.Query() will be relative to the node configuration.  So here we must choose
-		// to send in a configuration that is appropriately scaled to the query, or we must correct
-		// the data after query but before filtering.  Either way we want the slurm data first.
-		//
-		// Or maybe the more correct view here is that some aggregation should not happen in data/
-		// but should happen here, driven by what we want to see?  The way this has been solved up
-		// until now is that we compute everything and then let the printing sort it out.  But there
-		// are other ways of thinking about that.  And the use of the Computed array for easy
-		// filtering also plays into that somehow.
-
-		for _, sj := range sampleJobs {
-			// TODO: Compute the computed fields!!
-			js := &jobSummary{sampleJob: sj}
-			if sampleFilter == nil || sampleFilter.apply(js) {
-				smap[sj.JobId] = js
-			}
-		}
-	}
-
-	if need.sacct {
-		var slurmFilter = jc.buildSlurmFilter()
-		pending := StringToUstr("PENDING")
-		running := StringToUstr("RUNNING")
-		if slurmFilter == nil {
-			slurmFilter = &slurmjob.QueryFilter{}
-		}
-		slurmJobs, err := slurmjob.Query(
-			theDb,
-			jc.FromDate,
-			jc.ToDate,
-			*slurmFilter,
-			jc.Verbose,
-		)
-		if err != nil {
-			if jc.Verbose {
-				Log.Warningf("Slurm data query failed: %v", err)
-			}
-			goto NoSlurm
-		}
-
-		// Each SlurmJob is a collection of records for the same job.  This is complicated
-		// because we have multiple states now, but so long as Query returns the most recent
-		// data for the Id then we should be ok here.
-		for _, j := range slurmJobs {
-			if probe := smap[j.Id]; probe != nil {
-				probe.slurmJob = j
-				continue
-			}
-
-			// Synthesize a SampleJob from the SlurmJob to hold the data that are common to
-			// the two, and then attach that if it passes the filter.
-			var gpus gpuset.GpuSet
-			// TODO: compute gpus from ReqGPUS
-			var hosts *Hostnames = NewHostnames()
-			// TODO: compute hosts from NodeList
-			var classification int
-			if j.Main.State == pending || j.Main.State == running {
-				classification |= sonalyze.LIVE_AT_END
-			}
-			var flags int
-			if (classification & sonalyze.LIVE_AT_END) != 0 {
-				flags |= samplejob.KIsLiveAtEnd
-			} else {
-				flags |= samplejob.KIsNotLiveAtEnd
-			}
-			if !gpus.IsEmpty() {
-				flags |= samplejob.KUsesGpu
-			} else {
-				flags |= samplejob.KDoesNotUseGpu
-			}
-			var sampleJob = &samplejob.SampleJob{
-				// `GpuFail` is not computable
-				Gpus: gpus,
-				// `Computed` is handled below
-				// `IsZombie` is not applicable
-				Cmd:      j.Main.JobName.String(),
-				Hosts:    hosts,
-				JobId:    j.Id,
-				User:     j.Main.User,
-				Duration: DurationValue(j.Main.ElapsedRaw),
-				Start:    DateTimeValue(j.Main.Start),
-				End:      DateTimeValue(j.Main.End),
-				// `Job` is not applicable
-				CpuTime: DurationValue(j.Main.SystemCPU + j.Main.UserCPU),
-				// `GpuTime` is not applicable
-				Classification: classification,
-				ComputedFlags:  flags,
-			}
-			// TODO: Computed fields, at least these:
-			js := &jobSummary{
-				sampleJob: sampleJob,
-				slurmJob:  j,
-			}
-			js.computed[kDuration] = float64(sampleJob.Duration)
-			// CpuPctAvg = (SystemCPU + UserCPU) / (End - Start)
-			// RcpuPctAvg = ...
-			if sampleFilter == nil || sampleFilter.apply(js) {
-				smap[j.Id] = js
-			}
-		}
-
-	NoSlurm:
-	}
-
-	// Also TODO: min-samples is a thing, but it got dropped on the floor somewhere.  There is now
-	// SampleCount int the SampleJob record.  Be careful when applying the filter to synthesized
-	// jobs above, or when synthesizing jobs, since the natural sample count for synthesized jobs is
-	// zero.
-
-	var summaries = slices.Collect(maps.Values(smap))
-
-	var now = time.Now().UTC().Unix()
-	for i := range summaries {
-		summaries[i].Now = now
-		if need.jobAndMark {
-			mark := ""
-			flags := summaries[i].sampleJob.ComputedFlags
-			switch {
-			case flags&(samplejob.KIsLiveAtStart|samplejob.KIsLiveAtEnd) == (samplejob.KIsLiveAtStart | samplejob.KIsLiveAtEnd):
-				mark = "!"
-			case flags&samplejob.KIsLiveAtStart != 0:
-				mark = "<"
-			case flags&samplejob.KIsLiveAtEnd != 0:
-				mark = ">"
-			}
-			summaries[i].JobAndMark = fmt.Sprint(summaries[i].sampleJob.JobId, mark)
-		}
-	}
-
-	return jc.printJobSummaries(out, summaries)
 }
 
 // Filtering is mostly wasted work.  Very frequently, all the filters will pass because the coarse
