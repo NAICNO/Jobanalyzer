@@ -176,7 +176,7 @@ export const ChartComponent = ({
 
   const [lineVisibility, setLineVisibility] = useState<boolean[]>(() => seriesConfigs.map(() => true))
 
-  const hiddenSeriesCount = seriesConfigs.length - maxLegendItems
+  const hiddenSeriesCount = seriesConfigs.length - (maxLegendItems ?? 0)
   const handleLegendClick = (dataKey?: DataKey<string>) => {
     const index = seriesConfigs.findIndex((config) => config.dataKey === dataKey)
     setLineVisibility((prev) => {
