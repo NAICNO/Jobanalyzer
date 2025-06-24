@@ -1,7 +1,7 @@
 import { GrNodes } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
 import { LuBookOpen, LuGraduationCap, LuShip } from 'react-icons/lu'
-import { MdOutlineQueryStats } from 'react-icons/md'
+import { MdSearch } from 'react-icons/md'
 import * as yup from 'yup'
 
 import {
@@ -61,28 +61,30 @@ export const DURATION_REGEX = /^(.*)d(.*)h(.*)m$/
 export const PROFILING_INFO: ProfileInfo[] = [
   {
     key: 'cpu',
-    text: 'Number of CPU cores (1.0 = 1 core at 100%)',
+    title: 'Number of CPU cores',
+    description: '1.0 = 1 core at 100%',
     scaleFactor: 0.01,
     yAxisLabel: 'Number of CPU cores',
     xAxisLabel: 'Time (UTC)',
   },
   {
     key: 'res',
-    text: 'Resident primary memory in GB',
+    title: 'Resident primary memory in GB',
     scaleFactor: 1,
     yAxisLabel: 'Memory (GB)',
     xAxisLabel: 'Time (UTC)',
   },
   {
     key: 'gpu',
-    text: 'Number of GPU cards in use (1.0 = 1 card at 100%)',
+    title: 'Number of GPU cards in use',
+    description: '1.0 = 1 card at 100%',
     scaleFactor: 0.01,
     yAxisLabel: 'Number of GPU cards',
     xAxisLabel: 'Time (UTC)',
   },
   {
     key: 'gpumem',
-    text: 'Real GPU memory in GB',
+    title: 'Real GPU memory in GB',
     scaleFactor: 1,
     yAxisLabel: 'GPU Memory (GB)',
     xAxisLabel: 'Time (UTC)',
@@ -145,7 +147,7 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     path: '/jobquery',
     matches: '/jobquery',
     text: 'Job Query',
-    icon: MdOutlineQueryStats,
+    icon: MdSearch,
   }
 ]
 

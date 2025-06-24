@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import moment from 'moment'
-import { AxisDomain, DataKey } from 'recharts/types/util/types'
 
+import { AxisDomain, DataKey } from 'recharts/types/util/types'
 import { HostDetailsChartDataItem, ChartSeriesConfig } from '../../types'
+import { dateTimeFormatter } from '../../util'
 
 interface HostDetailsChartProps {
   dataItems: HostDetailsChartDataItem[];
@@ -44,10 +44,6 @@ export const MachineDetailsChart = ({
     }
   }, [seriesConfigs])
 
-
-  const dateTimeFormatter = (datetime: number) => {
-    return moment(datetime).format('MMM D, HH:mm')
-  }
 
   if (!dataItems.length || !seriesConfigs.length) {
     return
