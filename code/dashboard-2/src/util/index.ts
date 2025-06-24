@@ -135,3 +135,7 @@ const hslToHex = (h: number, s: number, l: number): string => {
 
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
+
+export const dateTimeFormatter = (datetime: number) => {
+  return moment(datetime).format('MMM D, HH:mm')
+}
