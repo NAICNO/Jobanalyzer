@@ -58,8 +58,12 @@ func Query(
 		Log.Infof("%d records read + %d dropped", len(records), dropped)
 	}
 
-	// Deal with redundant records: due to overlap in data collection runs, a record may be the same
-	// as a record we already have.  The pair (JobID, JobStep) is always unique.
+	// Deal with redundant records: due to overlap in data collection runs, a record may be for the
+	// same job as a record we already have.  The pair (JobID, JobStep) always uniquely identifies
+	// the record.  In the case of conflict, we should prefer the most recent record and the most
+	// recent state (terminated > running > pending).  This means that if a job has completed, subsequent
+	// filtering will only see the completed records, and a query asking for running jobs will
+	// not see the earlier running records for the job in question.
 
 	{
 		type jobkey struct {
@@ -67,19 +71,22 @@ func Query(
 			JobStep Ustr
 		}
 
-		recordFilter := make(map[jobkey]bool)
-		var rs []*repr.SacctInfo
+		recordFilter := make(map[jobkey]*repr.SacctInfo)
 		for _, r := range records {
 			var key = jobkey{r.JobID, r.JobStep}
-			if !recordFilter[key] {
-				recordFilter[key] = true
-				rs = append(rs, r)
+			if probe := recordFilter[key]; probe != nil {
+				if r.Time > probe.Time ||
+					r.Time == probe.Time && stateVal(r.State) > stateVal(probe.State) {
+					recordFilter[key] = r
+				}
+			} else {
+				recordFilter[key] = r
 			}
 		}
 		if verbose {
-			Log.Infof("%d duplicate records dropped", len(records)-len(rs))
+			Log.Infof("%d duplicate records dropped", len(records)-len(recordFilter))
 		}
-		records = rs
+		records = umaps.Values(recordFilter)
 	}
 
 	// Group by job ID
@@ -140,6 +147,22 @@ func Query(
 	}
 
 	return umaps.Values(byjob), nil
+}
+
+var (
+	pending = StringToUstr("PENDING")
+	running = StringToUstr("RUNNING")
+)
+
+func stateVal(a Ustr) int {
+	switch a {
+	case pending:
+		return 0
+	case running:
+		return 1
+	default:
+		return 2
+	}
 }
 
 func FilterJobs(

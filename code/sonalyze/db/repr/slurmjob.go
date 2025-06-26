@@ -50,6 +50,7 @@ import (
 // partly the flattening and partly the desire to convert string to Ustr and uint64 to uint32, so as
 // to make this a pointer-free data structure - since there can be many of them and it is large.
 type SacctInfo struct {
+	Time         int64  // Unix time - record timestamp, not in older data
 	Start        int64  // Unix time
 	End          int64  // Unix time
 	Submit       int64  // Unix time
