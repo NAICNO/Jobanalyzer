@@ -66,10 +66,9 @@ package table
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
-
-	umaps "go-utils/maps"
 )
 
 // The data structure implements the tree literally, with backlinks so that it's possible to walk
@@ -272,7 +271,7 @@ func (a *Hostnames) HasSubset(b *Hostnames, proper bool) bool {
 // the head node.
 
 func (h *Hostnames) FormatBrief() string {
-	xs := umaps.Keys(h.s.sources.next)
+	xs := slices.Collect(maps.Keys(h.s.sources.next))
 	slices.Sort(xs)
 	return strings.Join(xs, ",")
 }
@@ -282,7 +281,12 @@ func (h *Hostnames) FormatBrief() string {
 // the root, constructing full names as we go.
 
 func (h *Hostnames) FormatFull() string {
-	xs := make([]string, 0)
+	xs := slices.Collect(h.FullNames)
+	slices.Sort(xs)
+	return strings.Join(xs, ",")
+}
+
+func (h *Hostnames) FullNames(yield func(string) bool) {
 	for _, n := range h.s.sinks() {
 		x := ""
 		for {
@@ -293,8 +297,8 @@ func (h *Hostnames) FormatFull() string {
 			x = "." + x
 			n = n.back
 		}
-		xs = append(xs, x)
+		if !yield(x) {
+			break
+		}
 	}
-	slices.Sort(xs)
-	return strings.Join(xs, ",")
 }

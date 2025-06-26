@@ -2,6 +2,8 @@ package table
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 	"testing"
 )
 
@@ -232,5 +234,17 @@ func TestHostnames(t *testing.T) {
 		if rhs.HasSubset(lhs, true) {
 			t.Fatal("Less")
 		}
+	}
+}
+
+func TestEnumerate(t *testing.T) {
+	h := NewHostnames()
+	h.Add("a.b.c")
+	h.Add("x.b.c")
+	h.Add("y.c")
+	names := slices.Collect(h.FullNames)
+	slices.Sort(names)
+	if strings.Join(names, ",") != "a.b.c,x.b.c,y.c" {
+		t.Fatal(names)
 	}
 }
