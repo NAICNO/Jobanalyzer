@@ -75,13 +75,15 @@ type SnodeData struct {
 }
 
 func (c *SnodeCommand) Summary(out io.Writer) {
-	fmt.Fprint(out, `  Print Slurm partition data
+	fmt.Fprint(out, `  Print Slurm node data
 `)
 }
 
 const snodeHelp = `
 snode
-  TODO
+  Nodes managed by Slurm can be in various states and belong to various partitions.  A node may also
+  be managed by Slurm at some points in time, and be unmanaged at other points, and can be moved
+  among partitions.  Output records are sorted by time.  The default format is 'fixed'.
 `
 
 func (c *SnodeCommand) MaybeFormatHelp() *FormatHelp {
@@ -90,10 +92,10 @@ func (c *SnodeCommand) MaybeFormatHelp() *FormatHelp {
 
 // MT: Constant after initialization; immutable
 var snodeAliases = map[string][]string{
-	"default": []string{"host", "nodes", "states"},
-	"Default": []string{"Hostname", "Nodes", "States"},
-	"all":     []string{"timestamp", "host", "nodes", "states"},
-	"All":     []string{"Timestamp", "Hostname", "Nodes", "States"},
+	"default": []string{"nodes", "states"},
+	"Default": []string{"Nodes", "States"},
+	"all":     []string{"timestamp", "nodes", "states"},
+	"All":     []string{"Timestamp", "Nodes", "States"},
 }
 
 const snodeDefaultFields = "default"

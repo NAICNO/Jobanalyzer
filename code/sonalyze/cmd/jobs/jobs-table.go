@@ -73,13 +73,15 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kRcpuPctAvg]), ctx)
 		},
-		Help: "(int) Average relative CPU utilization in percent (100% = all cores)",
+		Help:        "(int) Average relative CPU utilization in percent (100% = all cores)",
+		NeedsConfig: true,
 	},
 	"RelativeCpuPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kRcpuPctPeak]), ctx)
 		},
-		Help: "(int) Peak relative CPU utilization in percent (100% = all cores)",
+		Help:        "(int) Peak relative CPU utilization in percent (100% = all cores)",
+		NeedsConfig: true,
 	},
 	"MemAvgGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -97,13 +99,15 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kRcpuGBAvg]), ctx)
 		},
-		Help: "(int) Average relative main virtual memory utilization in percent (100% = system RAM)",
+		Help:        "(int) Average relative main virtual memory utilization in percent (100% = system RAM)",
+		NeedsConfig: true,
 	},
 	"RelativeMemPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kRcpuGBPeak]), ctx)
 		},
-		Help: "(int) Peak relative main virtual memory utilization in percent (100% = system RAM)",
+		Help:        "(int) Peak relative main virtual memory utilization in percent (100% = system RAM)",
+		NeedsConfig: true,
 	},
 	"ResidentMemAvgGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -121,13 +125,15 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kRrssAnonGBAvg]), ctx)
 		},
-		Help: "(int) Average relative main resident memory utilization in percent (100% = all RAM)",
+		Help:        "(int) Average relative main resident memory utilization in percent (100% = all RAM)",
+		NeedsConfig: true,
 	},
 	"RelativeResidentMemPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kRrssAnonGBPeak]), ctx)
 		},
-		Help: "(int) Peak relative main resident memory utilization in percent (100% = all RAM)",
+		Help:        "(int) Peak relative main resident memory utilization in percent (100% = all RAM)",
+		NeedsConfig: true,
 	},
 	"GpuAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -145,25 +151,29 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kRgpuPctAvg]), ctx)
 		},
-		Help: "(int) Average relative GPU utilization in percent (100% = all cards)",
+		Help:        "(int) Average relative GPU utilization in percent (100% = all cards)",
+		NeedsConfig: true,
 	},
 	"RelativeGpuPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kRgpuPctPeak]), ctx)
 		},
-		Help: "(int) Peak relative GPU utilization in percent (100% = all cards)",
+		Help:        "(int) Peak relative GPU utilization in percent (100% = all cards)",
+		NeedsConfig: true,
 	},
 	"OccupiedRelativeGpuAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kSgpuPctAvg]), ctx)
 		},
-		Help: "(int) Average relative GPU utilization in percent (100% = all cards used by job)",
+		Help:        "(int) Average relative GPU utilization in percent (100% = all cards used by job)",
+		NeedsConfig: true,
 	},
 	"OccupiedRelativeGpuPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kSgpuPctPeak]), ctx)
 		},
-		Help: "(int) Peak relative GPU utilization in percent (100% = all cards used by job)",
+		Help:        "(int) Peak relative GPU utilization in percent (100% = all cards used by job)",
+		NeedsConfig: true,
 	},
 	"GpuMemAvgGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -181,25 +191,29 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kRgpuGBAvg]), ctx)
 		},
-		Help: "(int) Average relative GPU resident memory utilization in percent (100% = all GPU RAM)",
+		Help:        "(int) Average relative GPU resident memory utilization in percent (100% = all GPU RAM)",
+		NeedsConfig: true,
 	},
 	"RelativeGpuMemPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kRgpuGBPeak]), ctx)
 		},
-		Help: "(int) Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)",
+		Help:        "(int) Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)",
+		NeedsConfig: true,
 	},
 	"OccupiedRelativeGpuMemAvgPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kSgpuGBAvg]), ctx)
 		},
-		Help: "(int) Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
+		Help:        "(int) Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
+		NeedsConfig: true,
 	},
 	"OccupiedRelativeGpuMemPeakPct": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatF64Ceil((d.computed[kSgpuGBPeak]), ctx)
 		},
-		Help: "(int) Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
+		Help:        "(int) Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
+		NeedsConfig: true,
 	},
 	"Gpus": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {

@@ -33,7 +33,7 @@ var cardFormatters = map[string]Formatter[*repr.SysinfoCardData]{
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatString((d.Node), ctx)
 		},
-		Help: "(string) Node list",
+		Help: "(string) Card's node at this time",
 	},
 	"Index": {
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
@@ -219,7 +219,9 @@ func (c *CardCommand) Summary(out io.Writer) {
 
 const cardHelp = `
 card
-  TODO
+  Extract information about individual gpu cards on the cluster from sysinfo and present it in
+  primitive form.  Output records are sorted by time and node name, note cards can be moved between
+  nodes from time to time.  The default format is 'fixed'.
 `
 
 func (c *CardCommand) MaybeFormatHelp() *FormatHelp {
