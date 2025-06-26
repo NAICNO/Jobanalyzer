@@ -69,6 +69,8 @@ import (
 	"maps"
 	"slices"
 	"strings"
+
+	"go-utils/hostglob"
 )
 
 // The data structure implements the tree literally, with backlinks so that it's possible to walk
@@ -244,6 +246,24 @@ func (h *Hostnames) Add(hostname string) {
 	if h.s.addNames(hostname) {
 		h.serial++
 	}
+}
+
+// The nodelist is a "multi-pattern" according to the grammar in ../../go-utils/hostglob.
+func (h *Hostnames) AddCompressed(nodelist string) error {
+	patterns, err := hostglob.SplitMultiPattern(nodelist)
+	if err != nil {
+		return err
+	}
+	for _, p := range patterns {
+		names, err := hostglob.ExpandPattern(p)
+		if err != nil {
+			return err
+		}
+		for _, n := range names {
+			h.Add(n)
+		}
+	}
+	return nil
 }
 
 func (h *Hostnames) IsEmpty() bool {

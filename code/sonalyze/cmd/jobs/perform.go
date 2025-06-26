@@ -5,6 +5,7 @@ import (
 	"io"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -252,9 +253,28 @@ var (
 // Synthesize a SampleJob from the SlurmJob to hold common data.
 func (jc *JobsCommand) synthesizeSampleJob(j *slurmjob.SlurmJob) *samplejob.SampleJob {
 	var gpus gpuset.GpuSet
-	// TODO: compute gpus from ReqGPUS
+	// Compute gpus from ReqGPUS.  This is not so easy b/c it does not necessarily have indices,
+	// just device counts.  We fake it.  We use only the first element in the list because the
+	// meaning of the list is that it is ordered from highest to lowest precedence.  TODO: Is it
+	// sufficient to look at the Main here?  Probably not.
+	if j.Main.ReqGPUS != UstrEmpty {
+		var v uint32
+		a, _, _ := strings.Cut(j.Main.ReqGPUS.String(), ",")
+		_, x, _ := strings.Cut(a, "=")
+		n, err := strconv.ParseUint(x, 10, 64)
+		if err != nil {
+			n = 1
+		}
+		for i := uint64(0) ; i < n ; i++ {
+			gpus, _ = gpuset.Adjoin(gpus, v)
+			v++
+		}
+	}
 	var hosts *Hostnames = NewHostnames()
-	// TODO: compute hosts from NodeList
+	err := hosts.AddCompressed(j.Main.NodeList.String())
+	if err != nil {
+		Log.Warningf("Bad node list from slurm data: %s", j.Main.NodeList.String())
+	}
 	var classification int
 	if j.Main.State == pending || j.Main.State == running {
 		classification |= sonalyze.LIVE_AT_END
