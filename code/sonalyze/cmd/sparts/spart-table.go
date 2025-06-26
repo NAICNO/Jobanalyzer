@@ -80,7 +80,11 @@ func (c *SpartCommand) Summary(out io.Writer) {
 
 const spartHelp = `
 spart
-  TODO
+  Slurm partitions are named and contain a set of nodes on the machine.  Not all nodes need be in a
+  partition, some nodes may be in multiple partitions at the same time, and admins can move nodes
+  among partitions.  Thus the partition information (also available from the "sinfo" command) is
+  time-varying.  Output records are sorted by time and partition name, the default format is
+  "fixed".
 `
 
 func (c *SpartCommand) MaybeFormatHelp() *FormatHelp {
@@ -89,10 +93,10 @@ func (c *SpartCommand) MaybeFormatHelp() *FormatHelp {
 
 // MT: Constant after initialization; immutable
 var spartAliases = map[string][]string{
-	"default": []string{"host", "partition", "nodes"},
-	"Default": []string{"Hostname", "Partition", "Nodes"},
-	"all":     []string{"timestamp", "host", "part", "nodes"},
-	"All":     []string{"Timestamp", "Hostname", "Partition", "Nodes"},
+	"default": []string{"part", "nodes"},
+	"Default": []string{"Partition", "Nodes"},
+	"all":     []string{"timestamp", "part", "nodes"},
+	"All":     []string{"Timestamp", "Partition", "Nodes"},
 }
 
 const spartDefaultFields = "default"

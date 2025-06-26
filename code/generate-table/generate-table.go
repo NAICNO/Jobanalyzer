@@ -286,7 +286,7 @@ func fieldFormatters(tableName string, fields *parser.FieldSect) (fieldList []fi
 			default:
 				log.Fatalf("Field %s: Bad attribute value for 'config'", field.Name)
 			}
-		} else if strings.Index(actualFieldName, "Relative") != -1 {
+		} else if strings.Index(actualFieldName, "Relative") != -1 || strings.Index(field.Name, "Relative") != -1 {
 			needsConfig = true
 		}
 
