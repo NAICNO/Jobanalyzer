@@ -30,6 +30,8 @@ func ParseSlurmV0JSON(
 			softErrors++
 			return
 		}
+		t, _ := time.Parse(time.RFC3339, string(r.Data.Attributes.Time))
+		timestamp := t.Unix()
 		for i := range r.Data.Attributes.SlurmJobs {
 			job := &r.Data.Attributes.SlurmJobs[i]
 			sacct := job.Sacct
@@ -59,6 +61,7 @@ func ParseSlurmV0JSON(
 			var reqGPUS Ustr
 			reqGPUS, gputmp = ParseAllocTRES([]byte(sacct.AllocTRES), ustrs, gputmp)
 			records = append(records, &repr.SacctInfo{
+				Time:         timestamp,
 				Start:        startTime,
 				End:          endTime,
 				Submit:       submitTime,
