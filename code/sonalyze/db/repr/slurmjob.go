@@ -19,28 +19,28 @@ import (
 
 // Representation of Slurm data (mostly, and historically, from sacct polling).
 //
-// - See the sacct documentation for interpretation, we follow that except as noted here, eg timeout
-//   has been translated from minutes to seconds.
+//   - See the sacct documentation for interpretation, we follow that except as noted here, eg timeout
+//     has been translated from minutes to seconds.
 //
-// - the JobIDRaw field is split here into JobID (integer) and JobStep (string), with the latter
-//   being empty for the "main" record for the job.  For array jobs, JobID is parsed into
-//   ArrayJobID, ArrayIndex, and ArrayStep.  For het jobs, JobID is parsed into HetJobID,
-//   HetOffset, and HetStep.  For normal jobs, the array and het fields are zero/blank.
+//   - the JobIDRaw field is split here into JobID (integer) and JobStep (string), with the latter
+//     being empty for the "main" record for the job.  For array jobs, JobID is parsed into
+//     ArrayJobID, ArrayIndex, and ArrayStep.  For het jobs, JobID is parsed into HetJobID,
+//     HetOffset, and HetStep.  For normal jobs, the array and het fields are zero/blank.
 //
-// - 2^32-1 seconds is about 136 years; it seems like a long time and is fine for elapsed/real time.
-//   But 170K cores (Betzy) running flat out for a week comes to about 24 times that.  So fields for
-//   total consumed CPU time must be 64 bits.
+//   - 2^32-1 seconds is about 136 years; it seems like a long time and is fine for elapsed/real time.
+//     But 170K cores (Betzy) running flat out for a week comes to about 24 times that.  So fields for
+//     total consumed CPU time must be 64 bits.
 //
-// - No doubt something can be made of sub-gigabyte memory sizes, but everything here is rounded up
-//   to the nearest GB.
+//   - No doubt something can be made of sub-gigabyte memory sizes, but everything here is rounded up
+//     to the nearest GB.
 //
 // - I/O is also presented in GB (anything less isn't meaningful), rounded up to nearest GB.
 //
-// - The state field has been stripped of extraneous information, eg, "CANCELLED by ..." is just
-//   CANCELLED.
+//   - The state field has been stripped of extraneous information, eg, "CANCELLED by ..." is just
+//     CANCELLED.
 //
-// - For jobs that were cancelled before they got to be scheduled, Start can be 0 and NodeList can
-//   be the empty string, and probably a number of other fields are off too in this case.
+//   - For jobs that were cancelled before they got to be scheduled, Start can be 0 and NodeList can
+//     be the empty string, and probably a number of other fields are off too in this case.
 //
 // This structure is unreasonably large, but in practice there are many fewer of these (several
 // orders of magnitude fewer) than the Sonar sample records.
