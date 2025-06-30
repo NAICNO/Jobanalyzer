@@ -20,4 +20,4 @@ of lesser interest.
 * `data/` - storage manager, top part: queries and cleans data coming from the database
 * `db/` - storage manager, bottom part: storage interface
 * `sonalyze.go` - command-line interface for sonalyze + daemon management
-* `table/` - logic to define the "tables" produced by all the commands, through reflection
+* `table/` - helper logic to define the "tables" produced by all the commands
