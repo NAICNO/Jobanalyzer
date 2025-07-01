@@ -82,6 +82,7 @@ type Sample struct {
 	RssAnonKB  uint64
 	GpuKB      uint64
 	CpuTimeSec uint64
+	Epoch      uint64
 	Version    Ustr
 	Cluster    Ustr
 	Hostname   Ustr
