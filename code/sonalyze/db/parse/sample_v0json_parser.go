@@ -4,7 +4,6 @@ package parse
 
 import (
 	"io"
-	"slices"
 	"time"
 
 	"github.com/NordicHPC/sonar/util/formats/newfmt"
@@ -33,69 +32,102 @@ func ParseSamplesV0JSON(
 	loadData = make([]*repr.CpuSamples, 0)
 	gpuData = make([]*repr.GpuSamples, 0)
 	err = newfmt.ConsumeJSONSamples(input, false, func(r *newfmt.SampleEnvelope) {
-		data, errdata := newfmt.NewSampleToOld(r)
-		if errdata != nil {
+		if r.Errors != nil {
 			softErrors++
 			return
 		}
-
-		ti, err := time.Parse(time.RFC3339, data.Timestamp)
+		version := ustrs.Alloc(string(r.Meta.Version))
+		data := r.Data.Attributes
+		ti, err := time.Parse(time.RFC3339, string(data.Time))
 		if err != nil {
 			// Can't recover from a bad timestamp
 			return
 		}
-		t := ti.Unix()
-		h := ustrs.Alloc(data.Hostname)
-		if data.CpuLoad != nil {
-			encodedLoadData := slices.Clone(data.CpuLoad)
+		timestamp := ti.Unix()
+		cluster := ustrs.Alloc(string(data.Cluster))
+		node := ustrs.Alloc(string(data.Node))
+		cpus := data.System.Cpus
+		if len(cpus) > 0 {
+			cpuLoad := make([]uint64, len(cpus))
+			for i, n := range cpus {
+				cpuLoad[i] = uint64(n)
+			}
 			loadData = append(loadData, &repr.CpuSamples{
-				Timestamp: t,
-				Hostname:  h,
-				Encoded:   repr.EncodedCpuSamplesFromValues(encodedLoadData),
+				Timestamp: timestamp,
+				Hostname:  node,
+				Encoded:   repr.EncodedCpuSamplesFromValues(cpuLoad),
 			})
 		}
-
-		// Ignore the translated GPU data, use the original
-		if r.Data.Attributes.System.Gpus != nil {
-			gpus := r.Data.Attributes.System.Gpus
-			encodedGpuData := make([]repr.PerGpuSample, len(data.GpuSamples))
+		// This is a map because we can't depend on `gpus` being populated in the same way as the
+		// per-process gpu array.
+		failing := make(map[uint64]bool)
+		gpus := data.System.Gpus
+		if len(gpus) > 0 {
+			encodedGpuData := make([]repr.PerGpuSample, len(gpus))
 			for i := range gpus {
 				encodedGpuData[i].Attr =
 					repr.GpuHasUuid | repr.GpuHasComputeMode | repr.GpuHasUtil | repr.GpuHasFailing
 				encodedGpuData[i].SampleGpu = &gpus[i]
+				failing[gpus[i].Index] = gpus[i].Failing != 0
 			}
 			gpuData = append(gpuData, &repr.GpuSamples{
-				Timestamp: t,
-				Hostname:  h,
+				Timestamp: timestamp,
+				Hostname:  node,
 				Encoded:   repr.EncodedGpuSamplesFromValues(encodedGpuData),
 			})
 		}
-
-		for _, sample := range data.Samples {
-			gpus, _ := gpuset.NewGpuSet(sample.Gpus)
+		if len(data.Jobs) == 0 {
 			samples = append(samples, &repr.Sample{
-				Timestamp:  t,
-				MemtotalKB: data.MemtotalKib,
-				CpuKB:      sample.CpuKib,
-				RssAnonKB:  sample.RssAnonKib,
-				GpuKB:      sample.GpuKib,
-				CpuTimeSec: sample.CpuTimeSec,
-				Version:    ustrs.Alloc(data.Version),
-				Cluster:    ustrs.Alloc(string(r.Data.Attributes.Cluster)),
-				Hostname:   ustrs.Alloc(data.Hostname),
-				Cores:      uint32(data.Cores),
-				User:       ustrs.Alloc(sample.User),
-				Job:        uint32(sample.JobId),
-				Pid:        uint32(sample.Pid),
-				Ppid:       uint32(sample.ParentPid),
-				Cmd:        ustrs.Alloc(sample.Cmd),
-				CpuPct:     float32(sample.CpuPct),
-				Gpus:       gpus,
-				GpuPct:     float32(sample.GpuPct),
-				GpuMemPct:  float32(sample.GpuMemPct),
-				Rolledup:   uint32(sample.Rolledup),
-				Flags:      uint8(sample.GpuFail),
+				Timestamp:  timestamp,
+				Version:    version,
+				Cluster:    cluster,
+				Hostname:   node,
+				Flags:      repr.FlagHeartbeat,
 			})
+		}
+		for _, job := range data.Jobs {
+			user := ustrs.Alloc(string(job.User))
+			for _, process := range job.Processes {
+				var pgpus gpuset.GpuSet
+				var gpuPct float64
+				var gpuMemPct float64
+				var gpuKib uint64
+				var gpuFail uint8
+				for _, g := range process.Gpus {
+					pgpus, _ = gpuset.Adjoin(pgpus, uint32(g.Index))
+					gpuPct += g.GpuUtil
+					gpuMemPct += g.GpuMemoryUtil
+					gpuKib += g.GpuMemory
+					if failing[g.Index] {
+						gpuFail = 1
+					}
+				}
+				samples = append(samples, &repr.Sample{
+					Timestamp:  timestamp,
+					MemtotalKB: 0,
+					CpuKB:      process.VirtualMemory,
+					RssAnonKB:  process.ResidentMemory,
+					GpuKB:      gpuKib,
+					CpuTimeSec: process.CpuTime,
+					Epoch:      job.Epoch,
+					Version:    version,
+					Cluster:    cluster,
+					Hostname:   node,
+					Cores:      uint32(len(cpus)),
+					User:       user,
+					Job:        uint32(job.Job),
+					Pid:        uint32(process.Pid),
+					Ppid:       uint32(process.ParentPid),
+					Cmd:        ustrs.Alloc(process.Cmd),
+					CpuPct:     float32(process.CpuAvg),
+					Gpus:       pgpus,
+					GpuPct:     float32(gpuPct),
+					GpuMemPct:  float32(gpuMemPct),
+					Rolledup:   uint32(process.Rolledup),
+					GpuFail:    gpuFail,
+					Flags:      0,
+				})
+			}
 		}
 	})
 	return

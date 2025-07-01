@@ -58,6 +58,7 @@ LineLoop:
 			numCores         uint32  = math.MaxUint32
 			memTotalKB       uint64  = math.MaxUint64
 			user                     = UstrEmpty
+			epoch            uint64  = 0
 			pid              uint32  = math.MaxUint32
 			ppid             uint32  = math.MaxUint32
 			jobId            uint32  = math.MaxUint32
@@ -261,8 +262,8 @@ LineLoop:
 						}
 					}
 				case 'e':
-					if _, ok := match(tokenizer, start, lim, eqloc, "epoch"); ok {
-						// ignore it
+					if val, ok := match(tokenizer, start, lim, eqloc, "epoch"); ok {
+						epoch, err = parseUint(val)
 						matched = true
 					}
 				case 'g':
@@ -512,6 +513,7 @@ LineLoop:
 			Cores:      numCores,
 			MemtotalKB: memTotalKB,
 			User:       user,
+			Epoch:      epoch,
 			Pid:        pid,
 			Ppid:       ppid,
 			Job:        jobId,
