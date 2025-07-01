@@ -55,6 +55,9 @@ type SampleJob struct {
 	// Job's primary ID
 	JobId uint32
 
+	// Job's epoch
+	Epoch uint64
+
 	// User running the job
 	User Ustr
 
@@ -207,6 +210,7 @@ func aggregateAndFilterJobs(
 	for _, job := range jobs {
 		host := (*job)[0].Hostname
 		jobId := (*job)[0].Job
+		epoch := (*job)[0].Epoch
 		user := (*job)[0].User
 		first := (*job)[0].Timestamp
 		last := (*job)[len(*job)-1].Timestamp
@@ -247,6 +251,7 @@ func aggregateAndFilterJobs(
 			classification |= sonalyze.LIVE_AT_END
 		}
 		aggregate.JobId = jobId
+		aggregate.Epoch = epoch
 		aggregate.User = user
 		aggregate.CpuTime = DurationValue(math.Round(aggregate.CpuPctSum * float64(duration) / 100))
 		aggregate.GpuTime = DurationValue(math.Round(aggregate.GpuPctSum * float64(duration) / 100))

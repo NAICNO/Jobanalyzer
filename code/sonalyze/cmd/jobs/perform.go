@@ -93,7 +93,7 @@ func (jc *JobsCommand) Perform(
 	}
 
 	isMergeable := func(k sample.InputStreamKey) bool {
-		// TODO: Eventually we'll need to use the epoch here
+		// TODO: Eventually we'll need to use the epoch here.  We now have it.
 		var sys *config.NodeConfigRecord
 		if cfg != nil {
 			sys = cfg.LookupHost(k.Host.String())
@@ -112,9 +112,6 @@ func (jc *JobsCommand) Perform(
 	//
 	// This needs to be done in a particular order to work at all.
 
-	// Map from JobId to the summary
-	var smap = make(map[uint32]*jobSummary)
-
 	sampleJobs, err := jc.findSampleJobs(
 		isMergeable,
 		theDb,
@@ -125,37 +122,96 @@ func (jc *JobsCommand) Perform(
 	if err != nil {
 		return err
 	}
-	for _, j := range sampleJobs {
-		smap[j.JobId] = &jobSummary{sampleJob: j, selected: true}
-	}
 
 	slurmJobs, err := jc.findSlurmJobs(theDb, filter)
 	if err != nil {
 		return err
 	}
-	for _, j := range slurmJobs {
-		if probe := smap[j.Id]; probe != nil {
-			probe.slurmJob = j
-		} else {
-			smap[j.Id] = &jobSummary{
-				sampleJob: jc.synthesizeSampleJob(j),
-				slurmJob:  j,
-				selected:  true,
+
+	var summaries []*jobSummary
+	if len(slurmJobs) > 0 {
+		// Join slurm jobs to sample jobs, synthesizing sample jobs from slurm jobs when there are
+		// no corresponding sample jobs.
+		//
+		// The sample data may contain samples for non-slurm jobs coming from both slurm and
+		// non-slurm nodes on slurm-managed clusters.  In other words, the key for the join is not
+		// simply the JobId, but also one bit of information about slurm/non-slurm data.  Both data
+		// sets must incorporate this bit, but for slurmJobs it is implicitly true always.  The
+		// epoch field in sampleJobs will do this for us (for newer data).  The epoch field further
+		// distinguishes non-slurm jobs from each other on the same host.
+		//
+		// It's unlikely that the epoch is ever the same on two different nodes, but it can happen
+		// if there's a power outage and the nodes come up at the same time (within the same
+		// second).  So for non-zero epoch we must distinguish by node name.  Fortunately, these
+		// nodes will all have hostname sets that have exactly one member.
+		//
+		// So the hash table probably has a
+		// This is not quite right because there can be non-slurm jobs on slurm nodes.  The JobId is
+		// not unique.  The sampleJobs are all unique.  It is only when we join slurmJobs that we
+		// should find sampleJobs to attach them to, and when we synthesize a sampleJob it too must
+		// create a unique key.  But the key must always be derivable from the data.
+		//
+		// On slurm systems, the JobId *is* unique for slurm jobs.
+		//
+		// Otherwise, the JobId is at least pid+some host set identifier+something to do with time - the
+		// epoch again plus the time cutoff for reuse?
+		//
+		// Uniqueness (in this case) is sufficient for the set of jobs we're processing.  But since the
+		// key can be computed from the job data, it'll still be globally unique.  But we can compress
+		// eg via hash table.
+		//
+		// We only need the map when there is stuff to join - ie, when we have any slurm jobs at all.
+		// But in that case there could also be non-slurm jobs in the mix because clusters can have
+		// non-slurm nodes.  But those jobs can maybe be tagged specially?
+		//
+		// the job id really needs to incorporate an is-slurm-node or is-slurm-job bit
+
+		// really the epoch will fit in 32 bits so this could be simpler
+		// epoch *must* be 0 for batch jobs
+		// plus the key is more complicated, it needs to include host
+		// the host set for each sampleJob (whether synthesized or not) with nonzero epoch
+		//  must contain exactly one host
+		// we can hash this host for a serial number, or include the string here
+		// for batch jobs the host can be blank here, the host set may be complicated in
+		//  any case.  or we could use the ustr repr of it.
+		type key struct {
+			jobid uint32
+			epoch uint64
+			name string
+		}
+		var smap = make(map[uint32]*jobSummary)
+		for _, j := range sampleJobs {
+			smap[j.JobId] = &jobSummary{sampleJob: j, selected: true}
+		}
+		for _, j := range slurmJobs {
+			if probe := smap[j.Id]; probe != nil {
+				probe.slurmJob = j
+			} else {
+				smap[j.Id] = &jobSummary{
+					sampleJob: jc.synthesizeSampleJob(j),
+					slurmJob:  j,
+					selected:  true,
+				}
 			}
+		}
+		summaries = slices.Collect(maps.Values(smap))
+	} else {
+		summaries = make([]*jobSummary, 0, len(sampleJobs))
+		for _, j := range sampleJobs {
+			summaries = append(summaries, &jobSummary{sampleJob: j, selected: true})
 		}
 	}
 
-	for _, j := range smap {
+	for _, j := range summaries {
 		jc.computeComputedFields(j, cfg)
 	}
 
 	if sampleFilter := jc.buildSampleFilter(cfg != nil); sampleFilter != nil {
-		maps.DeleteFunc(smap, func(k uint32, v *jobSummary) bool {
+		summaries = slices.DeleteFunc(summaries, func(v *jobSummary) bool {
 			return !sampleFilter.apply(v)
 		})
 	}
 
-	var summaries = slices.Collect(maps.Values(smap))
 
 	var now = time.Now().UTC().Unix()
 	for i := range summaries {
