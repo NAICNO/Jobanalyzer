@@ -40,6 +40,10 @@ import (
 //
 // TODO: INVESTIGATE: Admins swear that Slurm Job IDs are never reused (and that chaos ensues when
 // they are) and are currently above 1e6 on some systems.
+//
+// TODO: The invariant stated above is not true, because rollups only happen for jobs that have
+// the same ppid and no children.  Thus we could easily construct a process hierarchy where there
+// are several groups of rolled-up processes with the same job ID and command.
 
 const JobIdTag = 10000000
 

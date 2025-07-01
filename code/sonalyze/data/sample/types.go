@@ -29,16 +29,16 @@ var (
 	BadTimestampErr = errs.BadTimestampErr
 )
 
-// The InputStreamKey is (hostname, stream-id, cmd), where the stream-id is defined below; it is
-// meaningful only for non-merged streams.
+// The InputStreamKey is (hostname, stream-id, cmd), where the stream-id is defined in
+// postprocess.go; it is meaningful only for non-merged streams.
 //
 // An InputStreamSet maps a InputStreamKey to a SampleStream pertinent to that key.  It is named as
 // it is because the InputStreamKey is meaningful only for non-merged streams.
 
 type InputStreamKey struct {
-	Host     Ustr
-	StreamId uint32
-	Cmd      Ustr
+	Host     Ustr   // A single node name, not any kind of node set
+	StreamId uint32 // See postprocess.go
+	Cmd      Ustr   // The command name
 }
 
 // The streams are heap-allocated so that we can update them without also updating the map.
