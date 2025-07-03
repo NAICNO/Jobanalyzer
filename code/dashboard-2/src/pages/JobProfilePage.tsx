@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import {
+  Box,
+  Button,
   Heading,
   HStack,
   SegmentGroup,
   SimpleGrid,
   Spacer,
-  Table,
+  Tag,
   Text,
   VStack,
 } from '@chakra-ui/react'
@@ -16,6 +18,7 @@ import { PageTitle } from '../components'
 import { useFetchJobProfile } from '../hooks/useFetchJobProfile.ts'
 import { JobProfileChart } from '../components/chart/JobProfileChart.tsx'
 import { useColorModeValue } from '../components/ui/color-mode.tsx'
+import { JobBasicInfoTable } from '../components/table/JobBasicInfoTable.tsx'
 
 export default function JobProfilePage() {
 
@@ -39,33 +42,55 @@ export default function JobProfilePage() {
   // Get theme-aware border color
   const borderColor = useColorModeValue('gray.200', 'gray.600')
 
+  const query = new URLSearchParams(
+    Object.entries(
+      {
+        clusterName: clusterName,
+        hostname: hostname,
+        user: user,
+        jobId: jobId,
+      }
+    ).reduce<Record<string, string>>((acc, [key, val]) => {
+      acc[key] = String(val)
+      return acc
+    }, {})
+  ).toString()
+
+  const treeUrl = `/jobs/tree?${query}`
+
   return (
     <>
-      <PageTitle title={'Job Profile Details'}/>
+      <PageTitle title={`Job Profile - ${clusterName} ${jobId}`}/>
       <VStack gap={2} alignItems="start">
         <Heading as="h3" ml={2} size={{base: 'md', md: 'lg'}}>
           Job Profile Details
         </Heading>
-        <Table.ScrollArea borderWidth="1px">
-          <Table.Root size={'sm'} showColumnBorder variant="outline">
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader>Job #</Table.ColumnHeader>
-                <Table.ColumnHeader>User</Table.ColumnHeader>
-                <Table.ColumnHeader>Cluster</Table.ColumnHeader>
-                <Table.ColumnHeader>Node</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              <Table.Row>
-                <Table.Cell>{jobId}</Table.Cell>
-                <Table.Cell>{user}</Table.Cell>
-                <Table.Cell>{clusterName}</Table.Cell>
-                <Table.Cell>{hostname}</Table.Cell>
-              </Table.Row>
-            </Table.Body>
-          </Table.Root>
-        </Table.ScrollArea>
+        <HStack alignItems="start">
+          <JobBasicInfoTable jobId={jobId} user={user} clusterName={clusterName} hostname={hostname}/>
+          <Box position="relative" display="inline-block" pl={4}>
+            <Button asChild colorPalette={'blue'}>
+              <a href={treeUrl} target="_blank" rel="noopener noreferrer">View Process Tree</a>
+            </Button>
+            <Tag.Root
+              position="absolute"
+              top="-1"
+              right="-1"
+              fontSize="xs"
+              color="white"
+              colorPalette={'orange'}
+              variant="solid"
+              px={2}
+              py={0.5}
+              borderRadius="md"
+              transform="translate(25%, -50%)"
+            >
+              <Tag.Label>
+                Experimental
+              </Tag.Label>
+            </Tag.Root>
+          </Box>
+        </HStack>
+
         <HStack alignItems="start" justifyContent={'space-between'} width={'100%'}>
           <Text fontSize="sm" color="gray.500" mt={4} mb={4}>
             Tip: Drag the brush below to zoom in and explore specific time ranges. Timestamps are in UTC.

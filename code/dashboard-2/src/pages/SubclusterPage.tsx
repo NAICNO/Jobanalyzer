@@ -35,7 +35,7 @@ export default function SubclusterPage() {
     }
   }, [data])
 
-  const jobQueryLink = `/jobQuery?cluster=${clusterName}&host=${subcluster.nodes}`
+  const jobQueryLink = `/jobs/query?cluster=${clusterName}&host=${subcluster.nodes}`
 
 
   return (

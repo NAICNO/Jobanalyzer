@@ -14,6 +14,7 @@ import HostDetailsPage from './pages/HostDetailsPage.tsx'
 import JobQueryPage from './pages/JobQueryPage.tsx'
 import SubclusterPage from './pages/SubclusterPage.tsx'
 import JobProfilePage from './pages/JobProfilePage.tsx'
+import JobProcessTreePage from './pages/JobProcessTreePage.tsx'
 
 const router = createBrowserRouter([
   {
@@ -26,56 +27,81 @@ const router = createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: <DashboardPage/>
+        children: [
+          {
+            index: true,
+            element: <DashboardPage/>,
+          },
+          {
+            path: ':clusterName',
+            element: <DashboardPage/>,
+          },
+          {
+            path: 'help/node-selection',
+            element: <NodeSelectionHelpPage/>,
+          }
+        ]
       },
       {
-        path: 'dashboard/:clusterName',
-        element: <DashboardPage/>
+        path: ':clusterName',
+        children: [
+          {
+            path: 'subcluster/:subclusterName',
+            element: <SubclusterPage/>,
+          },
+          {
+            path: 'violators',
+            element: <ViolatorsPage/>,
+          },
+          {
+            path: 'violators/:violator',
+            element: <ViolatorPage/>,
+          },
+          {
+            path: 'deadweight',
+            element: <DeadWeightPage/>,
+          },
+          {
+            path: ':hostname',
+            children: [
+              {
+                index: true,
+                element: <HostDetailsPage/>,
+              },
+              {
+                path: 'violators',
+                element: <ViolatorsPage/>,
+              },
+              {
+                path: 'violators/:violator',
+                element: <ViolatorPage/>,
+              },
+              {
+                path: 'deadweight',
+                element: <DeadWeightPage/>,
+              }
+            ]
+          }
+        ]
       },
       {
-        path: 'dashboard/help/node-selection',
-        element: <NodeSelectionHelpPage/>
+        path: 'jobs',
+        children: [
+          {
+            index: true,
+            path: 'query',
+            element: <JobQueryPage/>,
+          },
+          {
+            path: 'profile',
+            element: <JobProfilePage/>,
+          },
+          {
+            path: 'tree',
+            element: <JobProcessTreePage/>,
+          }
+        ]
       },
-      {
-        path: ':clusterName/subcluster/:subclusterName',
-        element: <SubclusterPage/>
-      },
-      {
-        path: ':clusterName/violators',
-        element: <ViolatorsPage/>
-      },
-      {
-        path: ':clusterName/violators/:violator',
-        element: <ViolatorPage/>
-      },
-      {
-        path: ':clusterName/deadweight',
-        element: <DeadWeightPage/>
-      },
-      {
-        path: ':clusterName/:hostname',
-        element: <HostDetailsPage/>
-      },
-      {
-        path: ':clusterName/:hostname/violators',
-        element: <ViolatorsPage/>
-      },
-      {
-        path: ':clusterName/:hostname/:violator',
-        element: <ViolatorPage/>
-      },
-      {
-        path: ':clusterName/:hostname/deadweight',
-        element: <DeadWeightPage/>
-      },
-      {
-        path: 'jobquery',
-        element: <JobQueryPage/>
-      },
-      {
-        path: 'jobprofile',
-        element: <JobProfilePage/>
-      }
     ]
   }
 ])
