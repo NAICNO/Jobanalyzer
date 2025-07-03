@@ -66,11 +66,6 @@ export default function JobProcessTreePage() {
 
   const {nodes: fetchedNodes, edges: fetchedEdges} = jobProcessTree || {nodes: [], edges: []}
 
-  // console.log('jobProcessTree', jobProcessTree)
-
-  console.log('nodes', fetchedNodes)
-  console.log('edges', fetchedEdges)
-
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
