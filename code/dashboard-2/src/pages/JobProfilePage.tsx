@@ -69,7 +69,7 @@ export default function JobProfilePage() {
           <JobBasicInfoTable jobId={jobId} user={user} clusterName={clusterName} hostname={hostname}/>
           <Box position="relative" display="inline-block" pl={4}>
             <Button asChild colorPalette={'blue'}>
-              <a href={treeUrl} target="_blank">View Process Tree</a>
+              <a href={treeUrl} target="_blank" rel="noopener noreferrer">View Process Tree</a>
             </Button>
             <Tag.Root
               position="absolute"
