@@ -47,7 +47,7 @@ export const useFetchJobQuery = (jobQueryValues: JobQueryValues, fields: string[
             }, {})
           ).toString()
 
-          const job: TextWithLink = {text: fetchedItem.job, link: `/jobprofile?${query}`, openInNewTab: true}
+          const job: TextWithLink = {text: fetchedItem.job, link: `/jobs/profile?${query}`, openInNewTab: true}
 
           return {
             ...fetchedItem,

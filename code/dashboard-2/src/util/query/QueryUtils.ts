@@ -420,7 +420,7 @@ export const prepareShareableJobQueryLink = (jobQueryValues: JobQueryValues, fie
     fields = Object.keys(JOB_QUERY_RESULTS_COLUMN)
   }
   const queryString = prepareJobQueryString(jobQueryValues, fields)
-  const uri = `${window.location.origin}/jobQuery?${queryString}`
+  const uri = `${window.location.origin}/jobs/query?${queryString}`
   return encodeURI(uri)
 }
 

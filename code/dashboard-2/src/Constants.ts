@@ -101,6 +101,7 @@ export const QueryKeys = {
   JOB_QUERY: 'JOB_QUERY',
   EXPORT_JOB_QUERY: 'EXPORT_JOB_QUERY',
   JOB_PROFILE: 'JOB_PROFILE',
+  JOB_PROCESS_TREE: 'JOB_PROCESS_TREE',
 }
 
 export const SIDEBAR_ITEMS: SidebarItem[] = [
@@ -144,8 +145,8 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
   },
   {
     type: 'link',
-    path: '/jobquery',
-    matches: '/jobquery',
+    path: '/jobs/query',
+    matches: '/jobs',
     text: 'Job Query',
     icon: MdSearch,
   }

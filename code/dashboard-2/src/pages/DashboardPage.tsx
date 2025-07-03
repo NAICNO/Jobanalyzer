@@ -60,7 +60,7 @@ export default function DashboardPage() {
   const {open: isOpenHelpSidebar, onOpen: onOpenHelpSidebar, onClose} = useDisclosure()
   const focusRef = useRef<HTMLInputElement | null>(null)
 
-  const jobQueryLink = `/jobquery?cluster=${clusterName}`
+  const jobQueryLink = `/jobs/query?cluster=${clusterName}`
 
   const handleSubmitClick = (query: string) => {
     setSearchParams({query})
