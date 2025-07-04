@@ -53,7 +53,7 @@ export default function HostDetailsPage() {
     data: hostDetails
   } = useFetchHostDetails(selectedCluster.canonical, hostname!, selectedFrequency.value, isShowData, isShowDowntime, isValidHostname)
 
-  const jobQueryLink = `/jobs/query?cluster=${clusterName}&host=${hostname}`
+  const jobQueryLink = `/jobquery?cluster=${clusterName}&host=${hostname}`
   const violatorsLink = `/${clusterName}/${hostname}/violators`
   const deadWeightLink = `/${clusterName}/${hostname}/deadweight`
 

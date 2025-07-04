@@ -145,8 +145,8 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
   },
   {
     type: 'link',
-    path: '/jobs/query',
-    matches: '/jobs',
+    path: '/jobquery',
+    matches: '/jobquery',
     text: 'Job Query',
     icon: MdSearch,
   }

@@ -56,7 +56,7 @@ export default function JobProfilePage() {
     }, {})
   ).toString()
 
-  const treeUrl = `/jobs/tree?${query}`
+  const treeUrl = `/jobquery/tree?${query}`
 
   return (
     <>
