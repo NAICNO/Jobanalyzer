@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AxiosInstance } from 'axios'
 
 import useAxios from './useAxios.ts'
-import { QUERY_API_ENDPOINT, QueryKeys } from '../Constants.ts'
+import { JOB_QUERY_BASE_PATH, QUERY_API_ENDPOINT, QueryKeys } from '../Constants.ts'
 import {
   FetchedJobQueryResultItem,
   JobQueryResultsTableItem,
@@ -47,7 +47,7 @@ export const useFetchJobQuery = (jobQueryValues: JobQueryValues, fields: string[
             }, {})
           ).toString()
 
-          const job: TextWithLink = {text: fetchedItem.job, link: `/jobs/profile?${query}`, openInNewTab: true}
+          const job: TextWithLink = {text: fetchedItem.job, link: `${JOB_QUERY_BASE_PATH}/profile?${query}`, openInNewTab: true}
 
           return {
             ...fetchedItem,

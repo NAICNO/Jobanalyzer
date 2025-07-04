@@ -85,11 +85,10 @@ const router = createBrowserRouter([
         ]
       },
       {
-        path: 'jobs',
+        path: 'jobquery',
         children: [
           {
             index: true,
-            path: 'query',
             element: <JobQueryPage/>,
           },
           {

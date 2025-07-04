@@ -15,7 +15,7 @@ import {
 } from '@tanstack/react-table'
 
 import { useFetchDashboard } from '../hooks/useFetchDashboard.ts'
-import { EMPTY_ARRAY, } from '../Constants.ts'
+import { EMPTY_ARRAY, JOB_QUERY_BASE_PATH, } from '../Constants.ts'
 import { findCluster } from '../util'
 import { getDashboardTableColumns } from '../util/TableUtils.ts'
 import { NodeSelectionHelpDrawer, NodeSelectionInput, PageTitle } from '../components'
@@ -60,7 +60,7 @@ export default function DashboardPage() {
   const {open: isOpenHelpSidebar, onOpen: onOpenHelpSidebar, onClose} = useDisclosure()
   const focusRef = useRef<HTMLInputElement | null>(null)
 
-  const jobQueryLink = `/jobs/query?cluster=${clusterName}`
+  const jobQueryLink = `${JOB_QUERY_BASE_PATH}?cluster=${clusterName}`
 
   const handleSubmitClick = (query: string) => {
     setSearchParams({query})

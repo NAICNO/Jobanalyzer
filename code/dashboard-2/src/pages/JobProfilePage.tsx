@@ -19,6 +19,7 @@ import { useFetchJobProfile } from '../hooks/useFetchJobProfile.ts'
 import { JobProfileChart } from '../components/chart/JobProfileChart.tsx'
 import { useColorModeValue } from '../components/ui/color-mode.tsx'
 import { JobBasicInfoTable } from '../components/table/JobBasicInfoTable.tsx'
+import { JOB_QUERY_BASE_PATH } from '../Constants.ts'
 
 export default function JobProfilePage() {
 
@@ -56,7 +57,7 @@ export default function JobProfilePage() {
     }, {})
   ).toString()
 
-  const treeUrl = `/jobs/tree?${query}`
+  const treeUrl = `${JOB_QUERY_BASE_PATH}/tree?${query}`
 
   return (
     <>
