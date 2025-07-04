@@ -16,7 +16,7 @@ import {
 } from '@chakra-ui/react'
 import { Link as ReactRouterLink, Navigate, useParams } from 'react-router'
 
-import { FETCH_FREQUENCIES } from '../Constants.ts'
+import { FETCH_FREQUENCIES, JOB_QUERY_BASE_PATH } from '../Constants.ts'
 import { useFetchHostnames } from '../hooks/useFetchHosts.ts'
 import { useFetchHostDetails } from '../hooks/useFetchHostDetails.ts'
 import { findCluster } from '../util'
@@ -53,7 +53,7 @@ export default function HostDetailsPage() {
     data: hostDetails
   } = useFetchHostDetails(selectedCluster.canonical, hostname!, selectedFrequency.value, isShowData, isShowDowntime, isValidHostname)
 
-  const jobQueryLink = `/jobquery?cluster=${clusterName}&host=${hostname}`
+  const jobQueryLink = `${JOB_QUERY_BASE_PATH}?cluster=${clusterName}&host=${hostname}`
   const violatorsLink = `/${clusterName}/${hostname}/violators`
   const deadWeightLink = `/${clusterName}/${hostname}/deadweight`
 

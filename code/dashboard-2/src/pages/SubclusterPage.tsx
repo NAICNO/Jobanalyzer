@@ -7,6 +7,7 @@ import { useFetchHostDetails } from '../hooks/useFetchHostDetails.ts'
 import { MachineDetailsChart } from '../components/chart/MachineDetailsChart.tsx'
 import { NavigateBackButton, PageTitle } from '../components'
 import { HostDetails } from '../types'
+import { JOB_QUERY_BASE_PATH } from '../Constants.ts'
 
 export default function SubclusterPage() {
 
@@ -35,7 +36,7 @@ export default function SubclusterPage() {
     }
   }, [data])
 
-  const jobQueryLink = `/jobquery?cluster=${clusterName}&host=${subcluster.nodes}`
+  const jobQueryLink = `${JOB_QUERY_BASE_PATH}?cluster=${clusterName}&host=${subcluster.nodes}`
 
 
   return (

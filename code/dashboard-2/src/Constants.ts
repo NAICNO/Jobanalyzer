@@ -58,6 +58,8 @@ export const EMPTY_ARRAY: any[] = []
 
 export const DURATION_REGEX = /^(.*)d(.*)h(.*)m$/
 
+export const JOB_QUERY_BASE_PATH = '/jobquery'
+
 export const PROFILING_INFO: ProfileInfo[] = [
   {
     key: 'cpu',
@@ -145,8 +147,8 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
   },
   {
     type: 'link',
-    path: '/jobquery',
-    matches: '/jobquery',
+    path: 'JOB_QUERY_BASE_PATH',
+    matches: 'JOB_QUERY_BASE_PATH',
     text: 'Job Query',
     icon: MdSearch,
   }

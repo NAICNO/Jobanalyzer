@@ -73,7 +73,7 @@ import { GlobOperation } from './GlobOperation.ts'
 import { Bitset } from './Bitset.ts'
 import JobQueryValues from '../../types/JobQueryValues.ts'
 import { splitMultiPattern } from './HostGlobber.ts'
-import { JOB_QUERY_RESULTS_COLUMN, TRUE_VAL } from '../../Constants.ts'
+import { JOB_QUERY_BASE_PATH, JOB_QUERY_RESULTS_COLUMN, TRUE_VAL } from '../../Constants.ts'
 
 export function compileQuery(query: string, knownFields: Record<string, string | boolean> = {}, builtinOperations: Record<string, any> = {}) {
 
@@ -420,7 +420,7 @@ export const prepareShareableJobQueryLink = (jobQueryValues: JobQueryValues, fie
     fields = Object.keys(JOB_QUERY_RESULTS_COLUMN)
   }
   const queryString = prepareJobQueryString(jobQueryValues, fields)
-  const uri = `${window.location.origin}/jobquery?${queryString}`
+  const uri = `${window.location.origin}${JOB_QUERY_BASE_PATH}?${queryString}`
   return encodeURI(uri)
 }
 
