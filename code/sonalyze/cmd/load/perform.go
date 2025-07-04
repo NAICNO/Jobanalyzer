@@ -55,7 +55,7 @@ func (lc *LoadCommand) Perform(
 
 	if NeedsConfig(loadFormatters, lc.PrintFields) {
 		var err error
-		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
+		err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
 		if err != nil {
 			return err
 		}
