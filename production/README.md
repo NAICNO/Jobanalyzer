@@ -1,5 +1,12 @@
 # Sonar and Jobanalyzer production setups
 
+## NOTE 2025-08-15
+
+The documentation in this directory tree is probably still correct as far as it goes, but is
+frequently old-fashioned.  Up-to-date deployment instructions for NRIS systems are in [a Sigma2
+gitlab repo](https://gitlab.sigma2.no/larstha/sonar-deploy), for NRIS members that have access to
+that.  Eventually that information should be merged into this repo somehow.
+
 ## Cluster names
 
 Every cluster has a *cluster name* that distinguishes it globally.  Frequently the cluster name is
