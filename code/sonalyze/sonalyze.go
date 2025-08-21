@@ -29,6 +29,7 @@ import (
 	"go-utils/status"
 	"sonalyze/application"
 	"sonalyze/cmd"
+	"sonalyze/cmd/jobs"
 	. "sonalyze/common"
 	"sonalyze/daemon"
 	"sonalyze/db"
@@ -270,6 +271,8 @@ func (_ *standardCommandLineHandler) HandleCommand(
 	switch command := anyCmd.(type) {
 	case *daemon.DaemonCommand:
 		return command.RunDaemon(stdin, stdout, stderr)
+	case *jobs.JobsCommand:
+		return application.LocalJobsOperation(command, stdin, stdout, stderr)
 	case cmd.SampleAnalysisCommand:
 		return application.LocalSampleOperation(command, stdin, stdout, stderr)
 	case cmd.SimpleCommand:
