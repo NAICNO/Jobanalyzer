@@ -1,3 +1,40 @@
+/*
+Mkconf creates a Jobanalyzer config file from sysinfo data.
+
+It runs sonalyze with the given arguments to collect sysinfo data, and produces a
+JSON configuration object for the cluster on standard output.
+
+Usage:
+
+	mkconf flag ...
+
+The flags are:
+
+	-sonalyze sonalyze-path
+	   The path to the sonalyze executable (required)
+
+	-cluster cluster-name
+	   The name (could be short name) of the cluster to extract sysinfo for (required)
+
+	-remote hostname
+	   The sonalyze remote server (required if not set in your ~/.sonalyze)
+
+	-auth-file filename
+	   The authorization .netrc file (required if not set in your ~/.sonalyze)
+
+	-name cluster-name
+	   The *canonical* cluster name to be used in the output (required)
+
+	-desc description
+	   The description of the cluster to be used in the outpu (required)
+
+	-aliases alias,...
+	   A list of short aliases for the cluster (optional)
+
+	-cross-node
+	   Flag the cluster as being able to distribute jobs across multiple nodes.  This
+	   is a bad hack but for now we have it.  Default false.
+*/
 package main
 
 import (
@@ -14,6 +51,11 @@ import (
 	"strconv"
 	"strings"
 )
+
+// TODO: We want a -coalesce flag to coalesce nodes with the same descriptions and compatible
+// (compressible) names, but it's not super important.  It saves a little memory in the backend on
+// the really big systems, and it makes the config file smaller (the config file for Betzy is over
+// 300KB).
 
 var (
 	sonalyze    = flag.String("sonalyze", "", "Path to sonalyze `executable`")
@@ -34,6 +76,7 @@ const (
 	memIx
 	gpusIx
 	gpuMemIx
+	timestampIx
 	lastField
 )
 
@@ -53,6 +96,7 @@ type node struct {
 	MemGB       uint64 `json:"mem_gb"`
 	GpuCards    uint64 `json:"gpu_cards,omitempty"`
 	GpuMemGB    uint64 `json:"gpumem_gb,omitempty"`
+	Timestamp   string `json:"timestamp,omitempty"`
 }
 
 func main() {
@@ -69,14 +113,14 @@ func main() {
 	if *description == "" {
 		log.Fatal("Missing -desc")
 	}
-	parsedAliases := []string{}
+	var parsedAliases []string
 	if *aliases != "" {
 		parsedAliases = strings.Split(*aliases, ",")
+		for i, v := range parsedAliases {
+			parsedAliases[i] = strings.TrimSpace(v)
+		}
 	}
-
-	// run sonalyze with the args + -fmt csv,host,desc,cores,mem,gpus,gpumem -newest
-
-	args := []string{"node", "-cluster", *cluster, "-fmt", "csv,host,desc,cores,mem,gpus,gpumem", "-newest"}
+	args := []string{"node", "-cluster", *cluster, "-fmt", "csv,host,desc,cores,mem,gpus,gpumem,timestamp", "-f", "4w", "-newest"}
 	if *remote != "" {
 		args = append(args, "-remote", *remote)
 	}
@@ -108,6 +152,7 @@ func main() {
 			MemGB:       number(rec[memIx]),
 			GpuCards:    number(rec[gpusIx]),
 			GpuMemGB:    number(rec[gpuMemIx]),
+			Timestamp:   rec[timestampIx],
 		})
 	}
 	slices.SortFunc(nodes, func(a, b *node) int {
