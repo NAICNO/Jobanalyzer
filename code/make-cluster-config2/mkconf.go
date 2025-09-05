@@ -10,46 +10,49 @@ Usage:
 
 The flags are:
 
-	-sonalyze sonalyze-path
-	   The path to the sonalyze executable (required)
+		-sonalyze sonalyze-path
+		   The path to the sonalyze executable (required)
 
-	-cluster cluster-name
-	   The name (could be short name) of the cluster to extract sysinfo for (required)
+		-cluster cluster-name
+		   The name (could be short name) of the cluster to extract sysinfo for (required)
 
-	-remote hostname
-	   The sonalyze remote server (required if not set in your ~/.sonalyze)
+		-remote hostname
+		   The sonalyze remote server (required if not set in your ~/.sonalyze)
 
-	-auth-file filename
-	   The authorization .netrc file (required if not set in your ~/.sonalyze)
+		-auth-file filename
+		   The authorization .netrc file (required if not set in your ~/.sonalyze)
 
-	-name cluster-name
-	   The *canonical* cluster name to be used in the output (required)
+		-name cluster-name
+		   The *canonical* cluster name to be used in the output (required)
 
-	-desc description
-	   The description of the cluster to be used in the outpu (required)
+		-desc description
+		   The description of the cluster to be used in the outpu (required)
 
-	-aliases alias,...
-	   A list of short aliases for the cluster (optional)
+		-aliases alias,...
+		   A list of short aliases for the cluster (optional)
 
-	-cross-node
-	   Flag the cluster as being able to distribute jobs across multiple nodes.  This
-	   is a bad hack but for now we have it.  Default false.
+		-cross-node
+		   Flag the cluster as being able to distribute jobs across multiple nodes.  This
+		   is a bad hack but for now we have it.  Default false.  Normally, set it to true
+	       on every cluster that runs Slurm.
 */
 package main
 
+// TODO: The code here is pretty much the same as that of ../make-cluster-config except for the use
+// of the sonalyze server to provide sysinfo data.  We should merge the two programs.
+
 import (
 	"bytes"
-	"cmp"
 	"encoding/csv"
-	"encoding/json"
 	"flag"
 	"io"
 	"log"
 	"os"
 	"os/exec"
-	"slices"
 	"strconv"
 	"strings"
+
+	"go-utils/config"
 )
 
 // TODO: We want a -coalesce flag to coalesce nodes with the same descriptions and compatible
@@ -80,24 +83,7 @@ const (
 	lastField
 )
 
-// JSON structure
-type envelope struct {
-	Name        string   `json:"name"`
-	Aliases     []string `json:"aliases"`
-	Description string   `json:"description"`
-	Nodes       []*node  `json:"nodes"`
-}
-
-type node struct {
-	Hostname    string `json:"hostname"`
-	Description string `json:"description"`
-	CrossNode   bool   `json:"cross_node_jobs,omitempty"`
-	CpuCores    uint64 `json:"cpu_cores"`
-	MemGB       uint64 `json:"mem_gb"`
-	GpuCards    uint64 `json:"gpu_cards,omitempty"`
-	GpuMemGB    uint64 `json:"gpumem_gb,omitempty"`
-	Timestamp   string `json:"timestamp,omitempty"`
-}
+type node = config.NodeConfigRecord
 
 func main() {
 	flag.Parse()
@@ -120,7 +106,13 @@ func main() {
 			parsedAliases[i] = strings.TrimSpace(v)
 		}
 	}
-	args := []string{"node", "-cluster", *cluster, "-fmt", "csv,host,desc,cores,mem,gpus,gpumem,timestamp", "-f", "4w", "-newest"}
+	args := []string{
+		"node",
+		"-cluster", *cluster,
+		"-fmt", "csv,host,desc,cores,mem,gpus,gpumem,timestamp",
+		"-f", "4w",
+		"-newest",
+	}
 	if *remote != "" {
 		args = append(args, "-remote", *remote)
 	}
@@ -145,30 +137,28 @@ func main() {
 			log.Fatal("Record too short")
 		}
 		nodes = append(nodes, &node{
-			Hostname:    rec[hostIx],
-			Description: rec[descIx],
-			CrossNode:   *crossNode,
-			CpuCores:    number(rec[coresIx]),
-			MemGB:       number(rec[memIx]),
-			GpuCards:    number(rec[gpusIx]),
-			GpuMemGB:    number(rec[gpuMemIx]),
-			Timestamp:   rec[timestampIx],
+			Hostname:      rec[hostIx],
+			Description:   rec[descIx],
+			CrossNodeJobs: *crossNode,
+			CpuCores:      int(number(rec[coresIx])),
+			MemGB:         int(number(rec[memIx])),
+			GpuCards:      int(number(rec[gpusIx])),
+			GpuMemGB:      int(number(rec[gpuMemIx])),
+			Timestamp:     rec[timestampIx],
 		})
 	}
-	slices.SortFunc(nodes, func(a, b *node) int {
-		return cmp.Compare(a.Hostname, b.Hostname)
-	})
-	out, err = json.MarshalIndent(
-		&envelope{
-			Name:        *name,
-			Aliases:     parsedAliases,
-			Description: *description,
-			Nodes:       nodes,
-		}, "", " ")
+	cfg := config.NewClusterConfig(
+		2,
+		*name,
+		*description,
+		parsedAliases,
+		nil,
+		nodes,
+	)
+	err = config.WriteConfigTo(os.Stdout, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	os.Stdout.Write(out)
 }
 
 func number(s string) uint64 {

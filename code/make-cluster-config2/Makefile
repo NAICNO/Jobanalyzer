@@ -11,7 +11,7 @@ mkconf: mkconf.go go.mod
 	go build
 
 clean:
-	rm *-config.json
+	rm -f *-config.json mkconf
 
 # The dependencies aren't quite right here.  Another dependency is whether the sysinfo has changed
 # (apart from the timestamp).  I could write code to determine that but I'm not going to.
