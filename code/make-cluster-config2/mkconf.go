@@ -10,31 +10,33 @@ Usage:
 
 The flags are:
 
-		-sonalyze sonalyze-path
-		   The path to the sonalyze executable (required)
+	-sonalyze sonalyze-path
+	   The path to the sonalyze executable (required)
 
-		-cluster cluster-name
-		   The name (could be short name) of the cluster to extract sysinfo for (required)
+	-cluster cluster-name
+	   The name (could be short name) of the cluster to extract sysinfo for (required)
 
-		-remote hostname
-		   The sonalyze remote server (required if not set in your ~/.sonalyze)
+	-remote hostname
+	   The sonalyze remote server (required if not set in your ~/.sonalyze).  Normally
+	   this will be an https: URL.
 
-		-auth-file filename
-		   The authorization .netrc file (required if not set in your ~/.sonalyze)
+	-auth-file filename
+	   The authorization file (required if not set in your ~/.sonalyze).  This is a
+	   .netrc file or a file with username:password.
 
-		-name cluster-name
-		   The *canonical* cluster name to be used in the output (required)
+	-name cluster-name
+	   The *canonical* cluster name to be used in the output (required)
 
-		-desc description
-		   The description of the cluster to be used in the outpu (required)
+	-desc description
+	   The description of the cluster to be used in the output (required)
 
-		-aliases alias,...
-		   A list of short aliases for the cluster (optional)
+	-aliases alias,...
+	   A list of short aliases for the cluster, to be used in the output
 
-		-cross-node
-		   Flag the cluster as being able to distribute jobs across multiple nodes.  This
-		   is a bad hack but for now we have it.  Default false.  Normally, set it to true
-	       on every cluster that runs Slurm.
+	-cross-node
+	   Flag the cluster as being able to distribute jobs across multiple nodes.  This
+	   is a bad hack but for now we have it.  Default false.  Normally, set it to true
+	   on every cluster that runs Slurm.
 */
 package main
 
@@ -72,7 +74,7 @@ var (
 	crossNode   = flag.Bool("cross-node", false, "Cross-node jobs are allowed")
 )
 
-// CSV fields
+const csvArgs = "host,desc,cores,mem,gpus,gpumem,timestamp"
 const (
 	hostIx = iota
 	descIx
@@ -81,7 +83,7 @@ const (
 	gpusIx
 	gpuMemIx
 	timestampIx
-	lastField
+	numCsvFields
 )
 
 type node = config.NodeConfigRecord
@@ -110,7 +112,7 @@ func main() {
 	args := []string{
 		"node",
 		"-cluster", *cluster,
-		"-fmt", "csv,host,desc,cores,mem,gpus,gpumem,timestamp",
+		"-fmt", "csv," + csvArgs,
 		"-f", "4w",
 		"-newest",
 	}
@@ -121,7 +123,7 @@ func main() {
 		args = append(args, "-auth-file", *authFile)
 	}
 	cmd := exec.Command(*sonalyze, args...)
-	stderr := &strings.Builder {}
+	stderr := &strings.Builder{}
 	cmd.Stderr = stderr
 	out, err := cmd.Output()
 	if err != nil {
@@ -137,8 +139,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if len(rec) < lastField {
-			log.Fatal("Record too short")
+		if len(rec) < numCsvFields {
+			log.Fatal("Record too short: ", len(rec))
 		}
 		nodes = append(nodes, &node{
 			Hostname:      rec[hostIx],
