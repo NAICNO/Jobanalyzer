@@ -14,12 +14,21 @@ config: mlx.hpc.uio.no-config.json \
 	fram.sigma2.no-config.json
 .PHONY: config
 
+build: mkconf
+.PHONY: build
+
 clean:
-	rm -f *-config.json mkconf
+	go clean
+	rm -f *-config.json
 .PHONY: clean
 
-mkconf: mkconf.go go.mod
+mkconf: mkconf.go go.mod ../go-utils/*/*.go
 	go build
+
+fmt generate test:
+	go $(MAKECMDGOALS)
+	set -e ; for d in $(SUBDIRS); do ( set -e ; cd $$d ; go $(MAKECMDGOALS) ) ; done
+.PHONY: fmt generate test
 
 # The dependencies aren't quite right here.  Another dependency is whether the sysinfo has changed
 # (apart from the timestamp).  I could write code to determine that but I'm not going to.
