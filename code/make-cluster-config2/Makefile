@@ -1,17 +1,25 @@
-SONALYZE=~/go/bin/sonalyze
+# These are settings for running as user sonalyze on naic-monitor
 
-all: mlx.hpc.uio.no-config.json \
+SONALYZE=$(HOME)/sonalyze/sonalyze
+CREDENTIAL=-auth-file $(HOME)/secrets/naicreport/credential.txt -remote https://naic-monitor.uio.no
+
+default:
+	@echo "Adjust the variables in the Makefile and run 'make clean ; make config'"
+.PHONY: default
+
+config: mlx.hpc.uio.no-config.json \
 	fox.educloud.no-config.json \
 	betzy.sigma2.no-config.json \
 	saga.sigma2.no-config.json \
 	fram.sigma2.no-config.json
-.PHONY: all
-
-mkconf: mkconf.go go.mod
-	go build
+.PHONY: config
 
 clean:
 	rm -f *-config.json mkconf
+.PHONY: clean
+
+mkconf: mkconf.go go.mod
+	go build
 
 # The dependencies aren't quite right here.  Another dependency is whether the sysinfo has changed
 # (apart from the timestamp).  I could write code to determine that but I'm not going to.
@@ -19,6 +27,7 @@ clean:
 fox.educloud.no-config.json: Makefile mkconf
 	./mkconf \
 		-sonalyze $(SONALYZE) \
+		$(CREDENTIAL) \
 		-cluster fox \
 		-name "fox.educloud.no" \
 		-aliases "fox" \
@@ -29,6 +38,7 @@ fox.educloud.no-config.json: Makefile mkconf
 betzy.sigma2.no-config.json: Makefile mkconf
 	./mkconf \
 		-sonalyze $(SONALYZE) \
+		$(CREDENTIAL) \
 		-cluster betzy \
 		-name "betzy.sigma2.no" \
 		-aliases "betzy" \
@@ -39,6 +49,7 @@ betzy.sigma2.no-config.json: Makefile mkconf
 saga.sigma2.no-config.json: Makefile mkconf
 	./mkconf \
 		-sonalyze $(SONALYZE) \
+		$(CREDENTIAL) \
 		-cluster saga \
 		-name "saga.sigma2.no" \
 		-aliases "saga" \
@@ -49,6 +60,7 @@ saga.sigma2.no-config.json: Makefile mkconf
 fram.sigma2.no-config.json: Makefile mkconf
 	./mkconf \
 		-sonalyze $(SONALYZE) \
+		$(CREDENTIAL) \
 		-cluster fram \
 		-name "fram.sigma2.no" \
 		-aliases "fram" \
@@ -59,6 +71,7 @@ fram.sigma2.no-config.json: Makefile mkconf
 mlx.hpc.uio.no-config.json: Makefile mkconf
 	./mkconf \
 		-sonalyze $(SONALYZE) \
+		$(CREDENTIAL) \
 		-cluster mlx \
 		-name "mlx.hpc.uio.no" \
 		-aliases "ml,mlx" \

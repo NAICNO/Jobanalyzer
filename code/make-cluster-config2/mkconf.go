@@ -45,6 +45,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -117,11 +118,14 @@ func main() {
 		args = append(args, "-remote", *remote)
 	}
 	if *authFile != "" {
-		args = append(args, "-authfile", *authFile)
+		args = append(args, "-auth-file", *authFile)
 	}
-	out, err := exec.Command(*sonalyze, args...).Output()
+	cmd := exec.Command(*sonalyze, args...)
+	stderr := &strings.Builder {}
+	cmd.Stderr = stderr
+	out, err := cmd.Output()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Sprintf("Sonalyze terminated with error: %v.  Command output:\n%s", err, stderr.String()))
 	}
 	rdr := csv.NewReader(bytes.NewReader(out))
 	nodes := make([]*node, 0)
