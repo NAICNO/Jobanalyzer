@@ -80,7 +80,9 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 		http.HandleFunc("/add", httpAddHandler(dc))
 	}
 	// Keep these alphabetical.
-	// WHEN UPDATING THESE, ALSO UPDATE SWITCH IN ../application/command.go!
+	//
+	// WHEN UPDATING THESE, ALSO UPDATE SWITCH IN ../application/command.go, HELP TEXT THE SAME
+	// PLACE, AND ANY WEB SERVER CONFIG.
 	http.HandleFunc("/card", httpGetHandler(dc, "card"))
 	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))
 	http.HandleFunc("/config", httpGetHandler(dc, "config"))

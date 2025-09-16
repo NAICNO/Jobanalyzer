@@ -50,7 +50,9 @@ func CommandHelp(out io.Writer) {
 }
 
 // Keep these alphabetical
-// WHEN UPDATING THESE, ALSO UPDATE THE HELP ABOVE AND HTTP HANDLERS IN ../daemon/perform.go!
+//
+// WHEN UPDATING THESE, ALSO UPDATE THE HELP ABOVE, HTTP HANDLERS IN ../daemon/perform.go,
+// AND ANY WEB SERVER CONFIG.
 func ConstructCommand(verb string) (command cmd.Command, actualVerb string) {
 	switch verb {
 	case "add":
