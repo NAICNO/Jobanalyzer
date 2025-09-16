@@ -126,7 +126,7 @@ func (gc *GpuCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	for _, s := range streams {
 		for _, d := range s.Data {
 			for i, gpu := range d.Decoded {
-				if gc.Gpu != -1 && i == gc.Gpu {
+				if gc.Gpu == -1 || i == gc.Gpu {
 					var r ReportLine
 					r.Timestamp = DateTimeValue(d.Time)
 					r.Hostname = s.Hostname
