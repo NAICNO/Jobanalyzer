@@ -79,21 +79,25 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	if !dc.noAdd {
 		http.HandleFunc("/add", httpAddHandler(dc))
 	}
+	// Keep these alphabetical.
+	// WHEN UPDATING THESE, ALSO UPDATE SWITCH IN ../application/command.go!
 	http.HandleFunc("/card", httpGetHandler(dc, "card"))
 	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))
 	http.HandleFunc("/config", httpGetHandler(dc, "config"))
-	http.HandleFunc("/node", httpGetHandler(dc, "node"))
+	http.HandleFunc("/gpu", httpGetHandler(dc, "gpu"))
 	http.HandleFunc("/jobs", httpGetHandler(dc, "jobs"))
 	http.HandleFunc("/load", httpGetHandler(dc, "load"))
-	http.HandleFunc("/uptime", httpGetHandler(dc, "uptime"))
-	http.HandleFunc("/profile", httpGetHandler(dc, "profile"))
-	http.HandleFunc("/parse", httpGetHandler(dc, "sample"))
-	http.HandleFunc("/sample", httpGetHandler(dc, "sample"))
-	http.HandleFunc("/report", httpGetHandler(dc, "report"))
 	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata"))
+	http.HandleFunc("/node", httpGetHandler(dc, "node"))
+	http.HandleFunc("/parse", httpGetHandler(dc, "sample"))
+	http.HandleFunc("/profile", httpGetHandler(dc, "profile"))
+	http.HandleFunc("/report", httpGetHandler(dc, "report"))
 	http.HandleFunc("/sacct", httpGetHandler(dc, "sacct"))
+	http.HandleFunc("/sample", httpGetHandler(dc, "sample"))
 	http.HandleFunc("/snode", httpGetHandler(dc, "snode"))
 	http.HandleFunc("/spart", httpGetHandler(dc, "spart"))
+	// Omitting `top` for now because it is very limited.
+	http.HandleFunc("/uptime", httpGetHandler(dc, "uptime"))
 	if !dc.noAdd {
 		// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
 		// upload infra already running on the clusters.  We'd like to get rid of them eventually.
