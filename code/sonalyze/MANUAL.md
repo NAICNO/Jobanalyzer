@@ -600,6 +600,11 @@ Currently the only section is `[data-source]` and valid keys are `remote`, `auth
 In the future it seems likely that sections could be added to provide defaults for
 e.g. `[record-filter]` and for individual verbs, e.g. `[jobs]`.
 
+## ENVIRONMENT VARIABLES
+
+Remote credentials can be provided in the `SONALYZE_AUTH` variable, this takes a `username:password` and
+overrides whatever values are used with `-auth-file` or in `$HOME/.sonalyze`.
+
 ## LOG FILES
 
 The log files under the log root directory -- ie when log file names are not provided on the command

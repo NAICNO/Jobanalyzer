@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"errors"
 	"io"
+	"os"
 	"slices"
 
 	umaps "go-utils/maps"
@@ -88,7 +89,9 @@ func (cc *ClusterCommand) Validate() error {
 
 	if cc.JobanalyzerDir == "" {
 		ApplyDefault(&cc.Remote, DataSourceRemote)
-		ApplyDefault(&cc.AuthFile, DataSourceAuthFile)
+		if os.Getenv("SONALYZE_AUTH") == "" {
+			ApplyDefault(&cc.AuthFile, DataSourceAuthFile)
+		}
 	}
 
 	e1 = errors.Join(

@@ -15,6 +15,7 @@ import (
 	"cmp"
 	"errors"
 	"io"
+	"os"
 	"slices"
 
 	"go-utils/config"
@@ -111,7 +112,9 @@ func (cc *ConfigCommand) ReifyForRemote(x *ArgReifier) error {
 func (cc *ConfigCommand) Validate() error {
 	if cc.ConfigFilename == "" {
 		ApplyDefault(&cc.Remote, DataSourceRemote)
-		ApplyDefault(&cc.AuthFile, DataSourceAuthFile)
+		if os.Getenv("SONALYZE_AUTH") == "" {
+			ApplyDefault(&cc.AuthFile, DataSourceAuthFile)
+		}
 		ApplyDefault(&cc.Cluster, DataSourceCluster)
 	}
 
