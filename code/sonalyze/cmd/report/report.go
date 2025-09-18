@@ -71,7 +71,9 @@ func (rc *ReportCommand) Validate() error {
 
 	if rc.ReportDir == "" {
 		ApplyDefault(&rc.Remote, DataSourceRemote)
-		ApplyDefault(&rc.AuthFile, DataSourceAuthFile)
+		if os.Getenv("SONALYZE_AUTH") == "" {
+			ApplyDefault(&rc.AuthFile, DataSourceAuthFile)
+		}
 		ApplyDefault(&rc.Cluster, DataSourceCluster)
 	}
 

@@ -44,7 +44,13 @@ func RemoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	args := rCmd.RemotingFlags()
 	var username, password string
 	var netrcFile string // "" if not netrc
-	if args.AuthFile != "" {
+	if it := os.Getenv("SONALYZE_AUTH"); it != "" {
+		var ok bool
+		username, password, ok = strings.Cut(strings.TrimSpace(it), ":")
+		if !ok {
+			return errors.New("Invalid SONALYZE_AUTH syntax")
+		}
+	} else if args.AuthFile != "" {
 		f, err := os.Open(args.AuthFile)
 		if err != nil {
 			// Note, file name is redacted

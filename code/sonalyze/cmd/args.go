@@ -122,7 +122,7 @@ func (ra *RemotingArgsNoCluster) Add(fs *CLI) {
 	fs.StringVar(&ra.Remote, "remote", "",
 		"Select a remote `url` to serve the query [default: none].")
 	fs.StringVar(&ra.AuthFile, "auth-file", "",
-		"Provide a `file` with username:password [default: none].  For use with -remote.")
+		"Provide a `file` on username:password or netrc format [default: none].  For use with -remote.")
 }
 
 func (ra *RemotingArgsNoCluster) Validate() error {
@@ -210,18 +210,21 @@ func (s *SourceArgs) SetRestArguments(args []string) {
 }
 
 func (s *SourceArgs) Validate() error {
+	env_auth := os.Getenv("SONALYZE_AUTH") != ""
 	switch {
 	case len(s.LogFiles) > 0 || s.DataDir != "":
 		// no action
-	case s.Remote != "" || s.Cluster != "" || s.AuthFile != "":
+	case s.Remote != "" || s.Cluster != "" || (env_auth || s.AuthFile != ""):
 		ApplyDefault(&s.Remote, DataSourceRemote)
-		ApplyDefault(&s.AuthFile, DataSourceAuthFile)
+		if !env_auth {
+			ApplyDefault(&s.AuthFile, DataSourceAuthFile)
+		}
 		ApplyDefault(&s.Cluster, DataSourceCluster)
 	default:
 		// There are no remoting args and no data dir args and no logfiles, so apply the ones we
 		// have but error out if we have defaults for both.
 		if (HasDefault(DataSourceRemote) ||
-			HasDefault(DataSourceAuthFile) ||
+			(env_auth || HasDefault(DataSourceAuthFile)) ||
 			HasDefault(DataSourceCluster)) &&
 			HasDefault(DataSourceDataDir) {
 			return errors.New("No data source, but defaults for both remoting and data directory")
@@ -230,7 +233,9 @@ func (s *SourceArgs) Validate() error {
 			// no action
 		} else {
 			ApplyDefault(&s.Remote, DataSourceRemote)
-			ApplyDefault(&s.AuthFile, DataSourceAuthFile)
+			if !env_auth {
+				ApplyDefault(&s.AuthFile, DataSourceAuthFile)
+			}
 			ApplyDefault(&s.Cluster, DataSourceCluster)
 		}
 	}

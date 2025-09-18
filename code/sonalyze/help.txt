@@ -52,6 +52,10 @@ password is `verysecret`, then the file will be
 
   machine naic-monitor.uio.no login bob password verysecret
 
+Alternatively, a username:password pair can be supplied by the
+SONALYZE_AUTH environment variable, this takes precedence over the
+auth file (whether specified on the command line or in ~/.sonalyze).
+
 Finally, most commands operate only on the data for a single cluster.
 The cluster is specified with `-cluster CLUSTERNAME`, where the name
 can be the full name (betzy.sigma2.no) or its nickname (betzy).
