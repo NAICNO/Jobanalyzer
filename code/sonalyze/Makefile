@@ -6,7 +6,7 @@ SUBDIRS=application \
 	common \
 	daemon \
 	data/card data/common data/cpusample data/gpusample data/node data/sample \
-	data/slurmjob data/slurmnode data/slurmpart \
+	data/samplejob data/slurmjob data/slurmnode data/slurmpart \
 	db db/errs db/filedb db/parse db/repr db/special \
 	table
 
