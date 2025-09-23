@@ -81,7 +81,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	}
 	// Keep these alphabetical.
 	//
-	// WHEN UPDATING THESE, ALSO UPDATE SWITCH IN ../application/command.go, HELP TEXT THE SAME
+	// WHEN UPDATING THESE, ALSO UPDATE SWITCH IN ../application/command.go, HELP TEXT IN THE SAME
 	// PLACE, AND ANY WEB SERVER CONFIG.
 	http.HandleFunc("/card", httpGetHandler(dc, "card"))
 	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))
@@ -91,6 +91,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	http.HandleFunc("/load", httpGetHandler(dc, "load"))
 	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata"))
 	http.HandleFunc("/node", httpGetHandler(dc, "node"))
+	http.HandleFunc("/nodeprof", httpGetHandler(dc, "nodeprof"))
 	http.HandleFunc("/parse", httpGetHandler(dc, "sample"))
 	http.HandleFunc("/profile", httpGetHandler(dc, "profile"))
 	http.HandleFunc("/report", httpGetHandler(dc, "report"))

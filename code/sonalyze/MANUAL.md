@@ -45,6 +45,7 @@ There are raw data extractors that work on a single table:
 * The `sample` operation prints information from the `sample` table
 * The `node` operation prints information from the `sysinfo` table (this operation should have
   been called `sysinfo` but that name is currently taken)
+* The `nodeprof` operation prints per-node load information from the `sample` table
 * (Currently none for the `cluzter` table - but will be coming)
 
 Then there are built-in aggregation operations that work on the `sample` table joined with the
