@@ -53,6 +53,12 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		},
 		Help: "(uint32) Total number of cores (including hyperthreads)",
 	},
+	"Threads": {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
+			return FormatUint32((d.Threads), ctx)
+		},
+		Help: "(uint32) Number of threads active",
+	},
 	"MemtotalKB": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.MemtotalKB), ctx)
@@ -193,6 +199,7 @@ func init() {
 	DefAlias(parseFormatters, "Timestamp", "localtime")
 	DefAlias(parseFormatters, "Hostname", "host")
 	DefAlias(parseFormatters, "Cores", "cores")
+	DefAlias(parseFormatters, "Threads", "threads")
 	DefAlias(parseFormatters, "User", "user")
 	DefAlias(parseFormatters, "Pid", "pid")
 	DefAlias(parseFormatters, "Ppid", "ppid")
@@ -244,6 +251,12 @@ var parsePredicates = map[string]Predicate[sample.Sample]{
 		Convert: CvtString2Uint32,
 		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.Cores), v.(uint32))
+		},
+	},
+	"Threads": Predicate[sample.Sample]{
+		Convert: CvtString2Uint32,
+		Compare: func(d sample.Sample, v any) int {
+			return cmp.Compare((d.Threads), v.(uint32))
 		},
 	},
 	"MemtotalKB": Predicate[sample.Sample]{
@@ -406,8 +419,8 @@ func (c *ParseCommand) MaybeFormatHelp() *FormatHelp {
 var parseAliases = map[string][]string{
 	"default":   []string{"job", "user", "cmd"},
 	"Default":   []string{"Job", "User", "Cmd"},
-	"all":       []string{"version", "localtime", "host", "cores", "memtotal", "user", "pid", "job", "cmd", "cpu_pct", "mem_gb", "res_gb", "gpus", "gpu_pct", "gpumem_pct", "gpumem_gb", "gpu_status", "cputime_sec", "rolledup", "cpu_util_pct"},
-	"All":       []string{"Version", "Timestamp", "Hostname", "Cores", "MemtotalKB", "User", "Pid", "Ppid", "Job", "Cmd", "CpuPct", "CpuKB", "RssAnonKB", "Gpus", "GpuPct", "GpuMemPct", "GpuKB", "GpuFail", "CpuTimeSec", "Rolledup", "CpuUtilPct"},
+	"all":       []string{"version", "localtime", "host", "cores", "threads", "memtotal", "user", "pid", "job", "cmd", "cpu_pct", "mem_gb", "res_gb", "gpus", "gpu_pct", "gpumem_pct", "gpumem_gb", "gpu_status", "cputime_sec", "rolledup", "cpu_util_pct"},
+	"All":       []string{"Version", "Timestamp", "Hostname", "Cores", "Threads", "MemtotalKB", "User", "Pid", "Ppid", "Job", "Cmd", "CpuPct", "CpuKB", "RssAnonKB", "Gpus", "GpuPct", "GpuMemPct", "GpuKB", "GpuFail", "CpuTimeSec", "Rolledup", "CpuUtilPct"},
 	"roundtrip": []string{"v", "time", "host", "cores", "user", "job", "pid", "cmd", "cpu%", "cpukib", "gpus", "gpu%", "gpumem%", "gpukib", "gpufail", "cputime_sec", "rolledup"},
 }
 
