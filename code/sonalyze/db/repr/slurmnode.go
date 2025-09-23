@@ -18,7 +18,7 @@ type CluzterNodes struct {
 	Nodes   []newfmt.ClusterNodes
 }
 
-func (c *CluzterNodes) TimeAndNode() (string, string) {
+func (c *CluzterNodes) TimeAndNode() (any, string) {
 	return c.Time, ""
 }
 

@@ -23,12 +23,14 @@ func ParseSamplesV0JSON(
 	verbose bool,
 ) (
 	samples []*repr.Sample,
+	nodeSamples []*repr.NodeSample,
 	loadData []*repr.CpuSamples,
 	gpuData []*repr.GpuSamples,
 	softErrors int,
 	err error,
 ) {
 	samples = make([]*repr.Sample, 0)
+	nodeSamples = make([]*repr.NodeSample, 0)
 	loadData = make([]*repr.CpuSamples, 0)
 	gpuData = make([]*repr.GpuSamples, 0)
 	err = newfmt.ConsumeJSONSamples(input, false, func(r *newfmt.SampleEnvelope) {
@@ -76,13 +78,23 @@ func ParseSamplesV0JSON(
 				Encoded:   repr.EncodedGpuSamplesFromValues(encodedGpuData),
 			})
 		}
+		nodeSamples = append(nodeSamples, &repr.NodeSample{
+			Timestamp:        timestamp,
+			Hostname:         node,
+			UsedMemory:       data.System.UsedMemory,
+			Load1:            data.System.Load1,
+			Load5:            data.System.Load5,
+			Load15:           data.System.Load15,
+			RunnableEntities: data.System.RunnableEntities,
+			ExistingEntities: data.System.ExistingEntities,
+		})
 		if len(data.Jobs) == 0 {
 			samples = append(samples, &repr.Sample{
-				Timestamp:  timestamp,
-				Version:    version,
-				Cluster:    cluster,
-				Hostname:   node,
-				Flags:      repr.FlagHeartbeat,
+				Timestamp: timestamp,
+				Version:   version,
+				Cluster:   cluster,
+				Hostname:  node,
+				Flags:     repr.FlagHeartbeat,
 			})
 		}
 		for _, job := range data.Jobs {
@@ -114,6 +126,7 @@ func ParseSamplesV0JSON(
 					Cluster:    cluster,
 					Hostname:   node,
 					Cores:      uint32(len(cpus)),
+					Threads:    uint32(process.NumThreads) + 1,
 					User:       user,
 					Job:        uint32(job.Job),
 					Pid:        uint32(process.Pid),

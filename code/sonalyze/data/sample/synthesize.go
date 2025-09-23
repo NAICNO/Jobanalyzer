@@ -326,6 +326,7 @@ func MergeAcrossHostsByTime(streams SampleStreams) SampleStreams {
 //   - gpumem_gb is the sum across the gpumem_gb of R
 //   - cputime_sec is the sum across the cputime_sec of R
 //   - rolledup is the number of records in the list
+//   - threads is the sum across the threads of R
 //   - cpu_util_pct is the sum across the cpu_util_pct of R (roughly the best we can do)
 //
 // Invariants of the input that are used:
@@ -592,7 +593,7 @@ func sumRecords(
 ) Sample {
 	var cpuPct, gpuPct, gpuMemPct, cpuUtilPct float32
 	var cpuKB, rssAnonKB, gpuKB, cpuTimeSec uint64
-	var rolledup uint32
+	var rolledup, threads uint32
 	var gpuFail uint8
 	var gpus = gpuset.EmptyGpuSet()
 	for _, s := range selected {
@@ -605,6 +606,7 @@ func sumRecords(
 		gpuKB += s.GpuKB
 		cpuTimeSec += s.CpuTimeSec
 		rolledup += s.Rolledup
+		threads += s.Threads
 		gpuFail = MergeGpuFail(gpuFail, s.GpuFail)
 		gpus = gpuset.UnionGpuSets(gpus, s.Gpus)
 	}
@@ -632,6 +634,7 @@ func sumRecords(
 			GpuFail:    gpuFail,
 			CpuTimeSec: cpuTimeSec,
 			Rolledup:   rolledup,
+			Threads:    threads,
 		},
 		CpuUtilPct: cpuUtilPct,
 	}

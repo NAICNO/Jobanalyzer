@@ -14,6 +14,7 @@ type SampleDataNeeded int
 
 const (
 	DataNeedSamples SampleDataNeeded = iota
+	DataNeedNodeSamples
 	DataNeedCpuSamples
 	DataNeedGpuSamples
 )
@@ -32,6 +33,7 @@ type SampleFileKind int
 
 const (
 	SampleFileKindSample SampleFileKind = iota
+	SampleFileKindNodeSample
 	SampleFileKindCpuSamples
 	SampleFileKindGpuSamples
 )
@@ -40,6 +42,8 @@ func NewSampleFileMethods(cfg *config.ClusterConfig, kind SampleFileKind) *sampl
 	switch kind {
 	case SampleFileKindSample:
 		return &sampleFileReadSyncMethods{DataNeedSamples, cfg}
+	case SampleFileKindNodeSample:
+		return &sampleFileReadSyncMethods{DataNeedNodeSamples, cfg}
 	case SampleFileKindCpuSamples:
 		return &sampleFileReadSyncMethods{DataNeedCpuSamples, cfg}
 	case SampleFileKindGpuSamples:
@@ -50,9 +54,10 @@ func NewSampleFileMethods(cfg *config.ClusterConfig, kind SampleFileKind) *sampl
 }
 
 type sampleData struct {
-	samples    []*repr.Sample
-	cpuSamples []*repr.CpuSamples
-	gpuSamples []*repr.GpuSamples
+	samples     []*repr.Sample
+	nodeSamples []*repr.NodeSample
+	cpuSamples  []*repr.CpuSamples
+	gpuSamples  []*repr.GpuSamples
 }
 
 type samplePayloadType = *sampleData
@@ -65,6 +70,8 @@ func (sfr *sampleFileReadSyncMethods) SelectDataFromPayload(payload any) (data a
 	switch sfr.dataNeeded {
 	case DataNeedSamples:
 		return payload.(samplePayloadType).samples
+	case DataNeedNodeSamples:
+		return payload.(samplePayloadType).nodeSamples
 	case DataNeedCpuSamples:
 		return payload.(samplePayloadType).cpuSamples
 	case DataNeedGpuSamples:
@@ -81,12 +88,15 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	verbose bool,
 ) (payload any, softErrors int, err error) {
 	var samples []*repr.Sample
+	var nodeSamples []*repr.NodeSample
 	var cpuSamples []*repr.CpuSamples
 	var gpuSamples []*repr.GpuSamples
 	if (attr & FileSampleV0JSON) != 0 {
-		samples, cpuSamples, gpuSamples, softErrors, err = parse.ParseSamplesV0JSON(inputFile, uf, verbose)
+		samples, nodeSamples, cpuSamples, gpuSamples, softErrors, err =
+			parse.ParseSamplesV0JSON(inputFile, uf, verbose)
 	} else {
-		samples, cpuSamples, gpuSamples, softErrors, err = parse.ParseSampleCSV(inputFile, uf, verbose)
+		samples, cpuSamples, gpuSamples, softErrors, err =
+			parse.ParseSampleCSV(inputFile, uf, verbose)
 	}
 	if err != nil {
 		return
@@ -109,7 +119,9 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	if GpuSamplesRectifier != nil {
 		gpuSamples = GpuSamplesRectifier(gpuSamples, sfr.cfg)
 	}
-	payload = &sampleData{samples, cpuSamples, gpuSamples}
+	// TODO: Ideally, nodeSample rectifier?  We're not using the rectifiers for anything except
+	// samples at the moment.
+	payload = &sampleData{samples, nodeSamples, cpuSamples, gpuSamples}
 	return
 }
 
@@ -141,6 +153,14 @@ func ReadSampleSlice(
 	reader ReadSyncMethods,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
 	return ReadRecordsFromFiles[repr.Sample](files, verbose, reader)
+}
+
+func ReadNodeSampleSlice(
+	files []*LogFile,
+	verbose bool,
+	reader ReadSyncMethods,
+) (sampleBlobs [][]*repr.NodeSample, dropped int, err error) {
+	return ReadRecordsFromFiles[repr.NodeSample](files, verbose, reader)
 }
 
 func ReadCpuSamplesSlice(

@@ -87,6 +87,7 @@ type Sample struct {
 	Cluster    Ustr
 	Hostname   Ustr
 	Cores      uint32
+	Threads    uint32
 	User       Ustr
 	Job        uint32
 	Pid        uint32

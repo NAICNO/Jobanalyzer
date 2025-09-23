@@ -7,6 +7,7 @@ import (
 
 	"go-utils/hostglob"
 	. "sonalyze/common"
+	"sonalyze/db/repr"
 )
 
 type QueryFilter struct {
@@ -65,19 +66,24 @@ func (c *CompiledFilter) HostFilter() *Hosts {
 	return c.hostFilter
 }
 
-type Filterable interface {
-	TimeAndNode() (string, string)
-}
-
-func ApplyFilter[T Filterable](filter *CompiledFilter, records []T) []T {
+func ApplyFilter[T repr.Filterable](filter *CompiledFilter, records []T) []T {
 	return slices.DeleteFunc(records, func(s T) bool {
-		timeStr, nodeStr := s.TimeAndNode()
+		timeVal, nodeStr := s.TimeAndNode()
 		if filter.globber != nil && !filter.globber.IsEmpty() && !filter.globber.Match(nodeStr) {
 			return true
 		}
-		parsed, err := time.Parse(time.RFC3339, timeStr)
-		if err != nil {
-			return true
+		var parsed time.Time
+		switch v := timeVal.(type) {
+		case string:
+			var err error
+			parsed, err = time.Parse(time.RFC3339, v)
+			if err != nil {
+				return true
+			}
+		case time.Time:
+			parsed = v
+		default:
+			panic("Internal error: value from TimeAndNode is not string or time.Time")
 		}
 		t := parsed.Unix()
 		if filter.scanFrom <= t && t <= filter.scanTo {
