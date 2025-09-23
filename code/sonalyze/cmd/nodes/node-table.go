@@ -69,6 +69,12 @@ var nodeFormatters = map[string]Formatter[*NodeData]{
 		},
 		Help: "(bool) True if GPUs report accurate memory usage in percent",
 	},
+	"Distances": {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
+			return FormatString((d.Distances), ctx)
+		},
+		Help: "(string) NUMA distance matrix",
+	},
 }
 
 func init() {
@@ -80,6 +86,7 @@ func init() {
 	DefAlias(nodeFormatters, "GpuCards", "gpus")
 	DefAlias(nodeFormatters, "GpuMemGB", "gpumem")
 	DefAlias(nodeFormatters, "GpuMemPct", "gpumempct")
+	DefAlias(nodeFormatters, "Distances", "distances")
 }
 
 // MT: Constant after initialization; immutable
@@ -129,6 +136,11 @@ var nodePredicates = map[string]Predicate[*NodeData]{
 			return CompareBool((d.GpuMemPct), v.(bool))
 		},
 	},
+	"Distances": Predicate[*NodeData]{
+		Compare: func(d *NodeData, v any) int {
+			return cmp.Compare((d.Distances), v.(string))
+		},
+	},
 }
 
 type NodeData struct {
@@ -140,6 +152,7 @@ type NodeData struct {
 	GpuCards    int
 	GpuMemGB    int
 	GpuMemPct   bool
+	Distances   string
 }
 
 func (c *NodeCommand) Summary(out io.Writer) {
@@ -169,8 +182,8 @@ func (c *NodeCommand) MaybeFormatHelp() *FormatHelp {
 var nodeAliases = map[string][]string{
 	"default": []string{"host", "cores", "mem", "gpus", "gpumem", "desc"},
 	"Default": []string{"Hostname", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "Description"},
-	"all":     []string{"timestamp", "host", "desc", "cores", "mem", "gpus", "gpumem", "gpumempct"},
-	"All":     []string{"Timestamp", "Hostname", "Description", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "GpuMemPct"},
+	"all":     []string{"timestamp", "host", "desc", "cores", "mem", "gpus", "gpumem", "gpumempct", "distances"},
+	"All":     []string{"Timestamp", "Hostname", "Description", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "GpuMemPct", "Distances"},
 }
 
 const nodeDefaultFields = "default"
