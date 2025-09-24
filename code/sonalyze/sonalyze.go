@@ -44,8 +44,9 @@ import (
 // v0.7.0 - major internal cleanup and restructuring, very minor tweaks to a few output formats
 // v0.8.0 - added 'gpu' and parsing of gpu data
 // v0.9.0 - integration with slurm-monitor's data format under --json; kafka ingest; refactoring
+// v0.10.0 - added 'nodeprof' verb, some new fields to existing tables
 
-const SonalyzeVersion = "0.9.0"
+const SonalyzeVersion = "0.10.0"
 
 // See end of file for documentation / implementation, and command/command.go for documentation of
 // the CommandLineHandler interface.
