@@ -18,7 +18,7 @@ type CluzterPartitions struct {
 	Partitions []newfmt.ClusterPartition
 }
 
-func (c *CluzterPartitions) TimeAndNode() (string, string) {
+func (c *CluzterPartitions) TimeAndNode() (any, string) {
 	return c.Time, ""
 }
 

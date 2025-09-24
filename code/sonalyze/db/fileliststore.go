@@ -16,6 +16,7 @@ type FileListDataType int
 
 const (
 	FileListSampleData FileListDataType = 1 << iota
+	FileListNodeSampleData
 	FileListCpuSampleData
 	FileListGpuSampleData
 	FileListNodeData
@@ -54,8 +55,8 @@ func OpenFileListDB(
 	var transientCluzterCluster *filedb.TransientCluzterCluster
 	var err error
 	switch {
-	case dataType&(FileListSampleData|FileListCpuSampleData|FileListGpuSampleData) != 0:
-		if dataType&^(FileListSampleData|FileListCpuSampleData|FileListGpuSampleData) != 0 {
+	case dataType&(FileListSampleData|FileListNodeSampleData|FileListCpuSampleData|FileListGpuSampleData) != 0:
+		if dataType&^(FileListSampleData|FileListNodeSampleData|FileListCpuSampleData|FileListGpuSampleData) != 0 {
 			panic("Incompatible type flags")
 		}
 		transientSampleCluster, err = OpenFileListSampleDB(files, cfg)

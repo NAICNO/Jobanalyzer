@@ -36,6 +36,7 @@ const (
 // CPU load data, and GPU utilization data.
 type SampleDataProvider interface {
 	ProcessSampleDataProvider
+	NodeSampleDataProvider
 	CpuSampleDataProvider
 	GpuSampleDataProvider
 }
@@ -46,6 +47,14 @@ type ProcessSampleDataProvider interface {
 		hosts *Hosts,
 		verbose bool,
 	) (sampleBlobs [][]*repr.Sample, softErrors int, err error)
+}
+
+type NodeSampleDataProvider interface {
+	ReadNodeSamples(
+		fromDate, toDate time.Time,
+		hosts *Hosts,
+		verbose bool,
+	) (sampleBlobs [][]*repr.NodeSample, softErrors int, err error)
 }
 
 type CpuSampleDataProvider interface {

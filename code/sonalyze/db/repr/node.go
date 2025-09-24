@@ -22,9 +22,10 @@ type SysinfoNodeData struct {
 	CpuModel       string
 	Memory         uint64
 	TopoSVG        string
+	Distances      [][]uint64
 }
 
-func (n *SysinfoNodeData) TimeAndNode() (string, string) {
+func (n *SysinfoNodeData) TimeAndNode() (any, string) {
 	return n.Time, n.Node
 }
 
@@ -38,5 +39,6 @@ func (d *SysinfoNodeData) Size() uintptr {
 	size += uintptr(len(d.Architecture))
 	size += uintptr(len(d.CpuModel))
 	size += uintptr(len(d.TopoSVG))
+	size += unsafe.Sizeof(d.Distances[0][0]) * uintptr(len(d.Distances)*len(d.Distances[0]))
 	return size
 }

@@ -47,6 +47,8 @@ const (
 	kSgpuPctPeak           // Peak GPU utilization, all cards used by job == 100%
 	kSgpuGBAvg             // Average GPU memory utilization, all cards used by job == 100%
 	kSgpuGBPeak            // Peak GPU memory utilization ditto
+	kThreadAvg             // Average number of active threads (summed across all processes)
+	kThreadPeak            // Peak number of active threads (ditto)
 	kDuration              // Duration of job in seconds (wall clock, not CPU)
 	numF64Fields
 )
@@ -483,6 +485,7 @@ func (jc *JobsCommand) aggregateJob(
 		gpuGBAvg, gpuGBPeak           float64
 		rGpuGBAvg, rGpuGBPeak         float64
 		sGpuGBAvg, sGpuGBPeak         float64
+		threadAvg, threadPeak         uint32
 		isZombie                      bool
 	)
 	const kb2gb = 1.0 / (1024 * 1024)
@@ -491,15 +494,17 @@ func (jc *JobsCommand) aggregateJob(
 		gpus = gpuset.UnionGpuSets(gpus, s.Gpus)
 		gpuFail = sample.MergeGpuFail(gpuFail, s.GpuFail)
 		cpuPctAvg += float64(s.CpuUtilPct)
-		cpuPctPeak = math.Max(cpuPctPeak, float64(s.CpuUtilPct))
+		cpuPctPeak = max(cpuPctPeak, float64(s.CpuUtilPct))
 		gpuPctAvg += float64(s.GpuPct)
-		gpuPctPeak = math.Max(gpuPctPeak, float64(s.GpuPct))
+		gpuPctPeak = max(gpuPctPeak, float64(s.GpuPct))
 		cpuGBAvg += float64(s.CpuKB) * kb2gb
-		cpuGBPeak = math.Max(cpuGBPeak, float64(s.CpuKB)*kb2gb)
+		cpuGBPeak = max(cpuGBPeak, float64(s.CpuKB)*kb2gb)
 		rssAnonGBAvg += float64(s.RssAnonKB) * kb2gb
-		rssAnonGBPeak = math.Max(rssAnonGBPeak, float64(s.RssAnonKB)*kb2gb)
+		rssAnonGBPeak = max(rssAnonGBPeak, float64(s.RssAnonKB)*kb2gb)
 		gpuGBAvg += float64(s.GpuKB) * kb2gb
-		gpuGBPeak = math.Max(gpuGBPeak, float64(s.GpuKB)*kb2gb)
+		gpuGBPeak = max(gpuGBPeak, float64(s.GpuKB)*kb2gb)
+		threadAvg += s.Threads
+		threadPeak = max(threadPeak, s.Threads)
 
 		if needZombie && !isZombie {
 			cmd := s.Cmd.String()
@@ -604,6 +609,9 @@ func (jc *JobsCommand) aggregateJob(
 	a.computed[kRgpuGBPeak] = rGpuGBPeak
 	a.computed[kSgpuGBAvg] = sGpuGBAvg / n
 	a.computed[kSgpuGBPeak] = sGpuGBPeak
+
+	a.computed[kThreadAvg] = float64(threadAvg) / n
+	a.computed[kThreadPeak] = float64(threadPeak)
 
 	return a
 }

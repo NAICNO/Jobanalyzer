@@ -250,5 +250,5 @@ If `parser/parser.y` needs to be changed for bug fixes or amendments, then `pars
 be regenerated.  Running `go generate` in the parser subdirectory is enough.  For this to work,
 `goyacc` must be installed and in the path.  To install it in `~/go/bin`:
 ```
-go install golang.org/x/tools/cmd/goyacc@master
+go install golang.org/x/tools/cmd/goyacc@latest
 ```

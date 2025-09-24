@@ -39,6 +39,7 @@ FIELDS *NodeData
  GpuCards    int    desc:"Number of installed cards" alias:"gpus"
  GpuMemGB    int    desc:"Total GPU memory across all cards" alias:"gpumem"
  GpuMemPct   bool   desc:"True if GPUs report accurate memory usage in percent" alias:"gpumempct"
+ Distances   string desc:"NUMA distance matrix" alias:"distances"
 
 GENERATE NodeData
 
@@ -63,8 +64,8 @@ ALIASES
 
   default  host,cores,mem,gpus,gpumem,desc
   Default  Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,Description
-  all      timestamp,host,desc,cores,mem,gpus,gpumem,gpumempct
-  All      Timestamp,Hostname,Description,CpuCores,MemGB,GpuCards,GpuMemGB,GpuMemPct
+  all      timestamp,host,desc,cores,mem,gpus,gpumem,gpumempct,distances
+  All      Timestamp,Hostname,Description,CpuCores,MemGB,GpuCards,GpuMemGB,GpuMemPct,Distances
 
 DEFAULTS default
 
@@ -196,6 +197,10 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		if numCards > 0 {
 			desc += fmt.Sprintf(", %dx %s @ %dGiB", numCards, r.cards[0].Model, (r.cards[0].Memory)/(1024*1024))
 		}
+		distances := ""
+		if r.node.Distances != nil {
+			distances = fmt.Sprintf("%v", r.node.Distances)
+		}
 		records[i] = &NodeData{
 			Timestamp:   r.node.Time,
 			Hostname:    r.node.Node,
@@ -204,6 +209,7 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 			MemGB:       memGB,
 			GpuCards:    numCards,
 			GpuMemGB:    cardTotalMemGB,
+			Distances:   distances,
 		}
 	}
 

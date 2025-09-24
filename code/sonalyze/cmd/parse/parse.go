@@ -37,6 +37,7 @@ FIELDS sample.Sample
  time       IsoDateTimeValue    desc:"Timestamp of record" field:"Timestamp"
  Hostname   Ustr                desc:"Host name (FQDN)" alias:"host"
  Cores      uint32              desc:"Total number of cores (including hyperthreads)" alias:"cores"
+ Threads    uint32              desc:"Number of threads active" alias:"threads"
  MemtotalKB uint64              desc:"Installed main memory"
  memtotal   U64Div1M            desc:"Installed main memory (GB)" field:"MemtotalKB"
  User       Ustr                desc:"Username of process owner" alias:"user"
@@ -82,8 +83,8 @@ ALIASES
 
   default   job,user,cmd
   Default   Job,User,Cmd
-  all       version,localtime,host,cores,memtotal,user,pid,job,cmd,cpu_pct,mem_gb,res_gb,gpus,gpu_pct,gpumem_pct,gpumem_gb,gpu_status,cputime_sec,rolledup,cpu_util_pct
-  All       Version,Timestamp,Hostname,Cores,MemtotalKB,User,Pid,Ppid,Job,Cmd,CpuPct,CpuKB,RssAnonKB,Gpus,GpuPct,GpuMemPct,GpuKB,GpuFail,CpuTimeSec,Rolledup,CpuUtilPct
+  all       version,localtime,host,cores,threads,memtotal,user,pid,job,cmd,cpu_pct,mem_gb,res_gb,gpus,gpu_pct,gpumem_pct,gpumem_gb,gpu_status,cputime_sec,rolledup,cpu_util_pct
+  All       Version,Timestamp,Hostname,Cores,Threads,MemtotalKB,User,Pid,Ppid,Job,Cmd,CpuPct,CpuKB,RssAnonKB,Gpus,GpuPct,GpuMemPct,GpuKB,GpuFail,CpuTimeSec,Rolledup,CpuUtilPct
   roundtrip v,time,host,cores,user,job,pid,cmd,cpu%,cpukib,gpus,gpu%,gpumem%,gpukib,gpufail,cputime_sec,rolledup
 
 DEFAULTS default

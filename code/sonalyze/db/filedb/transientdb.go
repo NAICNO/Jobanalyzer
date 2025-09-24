@@ -49,9 +49,10 @@ func (tc *TransientCluster) Filenames() ([]string, error) {
 
 type TransientSampleCluster struct /* implements SampleCluster */ {
 	// MT: Immutable after initialization
-	samplesMethods  ReadSyncMethods
-	loadDataMethods ReadSyncMethods
-	gpuDataMethods  ReadSyncMethods
+	samplesMethods     ReadSyncMethods
+	nodeSamplesMethods ReadSyncMethods
+	loadDataMethods    ReadSyncMethods
+	gpuDataMethods     ReadSyncMethods
 
 	TransientCluster
 }
@@ -62,9 +63,10 @@ func NewTransientSampleCluster(
 	cfg *config.ClusterConfig,
 ) *TransientSampleCluster {
 	return &TransientSampleCluster{
-		samplesMethods:  NewSampleFileMethods(cfg, SampleFileKindSample),
-		loadDataMethods: NewSampleFileMethods(cfg, SampleFileKindCpuSamples),
-		gpuDataMethods:  NewSampleFileMethods(cfg, SampleFileKindGpuSamples),
+		samplesMethods:     NewSampleFileMethods(cfg, SampleFileKindSample),
+		nodeSamplesMethods: NewSampleFileMethods(cfg, SampleFileKindNodeSample),
+		loadDataMethods:    NewSampleFileMethods(cfg, SampleFileKindCpuSamples),
+		gpuDataMethods:     NewSampleFileMethods(cfg, SampleFileKindGpuSamples),
 		TransientCluster: TransientCluster{
 			cfg:   cfg,
 			files: processTransientFiles(fileNames, ty),
@@ -85,6 +87,14 @@ func (tsc *TransientSampleCluster) ReadSamples(
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
 	return ReadSampleSlice(tsc.files, verbose, tsc.samplesMethods)
+}
+
+func (tsc *TransientSampleCluster) ReadNodeSamples(
+	_, _ time.Time,
+	_ *Hosts,
+	verbose bool,
+) (sampleBlobs [][]*repr.NodeSample, dropped int, err error) {
+	return ReadNodeSampleSlice(tsc.files, verbose, tsc.nodeSamplesMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadCpuSamples(

@@ -9,6 +9,8 @@ import (
 	"sonalyze/db/repr"
 )
 
+var defaultDistances = [][]uint64{[]uint64{10}}
+
 func ParseSysinfoV0JSON(
 	input io.Reader,
 	verbose bool,
@@ -23,6 +25,10 @@ func ParseSysinfoV0JSON(
 	err = newfmt.ConsumeJSONSysinfo(input, false, func(r *newfmt.SysinfoEnvelope) {
 		if r.Data != nil {
 			var d *newfmt.SysinfoAttributes = &r.Data.Attributes
+			distances := d.Distances
+			if distances == nil {
+				distances = defaultDistances
+			}
 			nodeData = append(nodeData, &repr.SysinfoNodeData{
 				Time:           string(d.Time),
 				Cluster:        string(d.Cluster),
@@ -36,6 +42,7 @@ func ParseSysinfoV0JSON(
 				CpuModel:       d.CpuModel,
 				Memory:         uint64(d.Memory),
 				TopoSVG:        d.TopoSVG,
+				Distances:      distances,
 			})
 			for i := range d.Cards {
 				cardData = append(cardData, &repr.SysinfoCardData{

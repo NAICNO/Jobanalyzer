@@ -13,6 +13,7 @@ import (
 	"sonalyze/cmd/jobs"
 	"sonalyze/cmd/load"
 	"sonalyze/cmd/metadata"
+	"sonalyze/cmd/nodeprof"
 	"sonalyze/cmd/nodes"
 	"sonalyze/cmd/parse"
 	"sonalyze/cmd/profile"
@@ -37,6 +38,7 @@ func CommandHelp(out io.Writer) {
 	fmt.Fprintf(out, "  load     - print system load across time\n")
 	fmt.Fprintf(out, "  metadata - parse data, print stats and metadata\n")
 	fmt.Fprintf(out, "  node     - print node information extracted from sysinfo table\n")
+	fmt.Fprintf(out, "  nodeprof - print node profile information extracted from sample table\n")
 	fmt.Fprintf(out, "  profile  - print the profile of a particular job\n")
 	fmt.Fprintf(out, "  report   - print a precomputed report\n")
 	fmt.Fprintf(out, "  sacct    - print job information extracted from Slurm sacct data\n")
@@ -74,6 +76,8 @@ func ConstructCommand(verb string) (command cmd.Command, actualVerb string) {
 		verb = "metadata"
 	case "node":
 		command = new(nodes.NodeCommand)
+	case "nodeprof":
+		command = new(nodeprof.NodeProfCommand)
 	case "profile":
 		command = new(profile.ProfileCommand)
 	case "report":

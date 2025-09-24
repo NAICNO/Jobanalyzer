@@ -215,6 +215,18 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		Help:        "(int) Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
 		NeedsConfig: true,
 	},
+	"ThreadAvg": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			return FormatF64Ceil((d.computed[kThreadAvg]), ctx)
+		},
+		Help: "(int) Average number of active threads summed across all processes",
+	},
+	"ThreadPeak": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			return FormatF64Ceil((d.computed[kThreadPeak]), ctx)
+		},
+		Help: "(int) Peak number of active threads summed across all processes",
+	},
 	"Gpus": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatGpuSet((d.Gpus), ctx)
@@ -473,6 +485,8 @@ func init() {
 	DefAlias(jobsFormatters, "RelativeGpuMemPeakPct", "rgpumem-peak")
 	DefAlias(jobsFormatters, "OccupiedRelativeGpuMemAvgPct", "sgpumem-avg")
 	DefAlias(jobsFormatters, "OccupiedRelativeGpuMemPeakPct", "sgpumem-peak")
+	DefAlias(jobsFormatters, "ThreadAvg", "thread-avg")
+	DefAlias(jobsFormatters, "ThreadPeak", "thread-peak")
 	DefAlias(jobsFormatters, "Gpus", "gpus")
 	DefAlias(jobsFormatters, "GpuFail", "gpufail")
 	DefAlias(jobsFormatters, "Cmd", "cmd")
@@ -663,6 +677,18 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *jobSummary, v any) int {
 			return cmp.Compare((d.computed[kSgpuGBPeak]), v.(F64Ceil))
+		},
+	},
+	"ThreadAvg": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kThreadAvg]), v.(F64Ceil))
+		},
+	},
+	"ThreadPeak": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kThreadPeak]), v.(F64Ceil))
 		},
 	},
 	"Gpus": Predicate[*jobSummary]{
@@ -925,7 +951,7 @@ func (c *JobsCommand) MaybeFormatHelp() *FormatHelp {
 
 // MT: Constant after initialization; immutable
 var jobsAliases = map[string][]string{
-	"all":                    []string{"jobm", "job", "user", "duration", "duration/sec", "start", "start/sec", "end", "end/sec", "cpu-avg", "cpu-peak", "rcpu-avg", "rcpu-peak", "mem-avg", "mem-peak", "rmem-avg", "rmem-peak", "res-avg", "res-peak", "rres-avg", "rres-peak", "gpu-avg", "gpu-peak", "rgpu-avg", "rgpu-peak", "sgpu-avg", "sgpu-peak", "gpumem-avg", "gpumem-peak", "rgpumem-avg", "rgpumem-peak", "sgpumem-avg", "sgpumem-peak", "gpus", "gpufail", "cmd", "host", "now", "now/sec", "classification", "cputime/sec", "cputime", "gputime/sec", "gputime"},
+	"all":                    []string{"jobm", "job", "user", "duration", "duration/sec", "start", "start/sec", "end", "end/sec", "cpu-avg", "cpu-peak", "rcpu-avg", "rcpu-peak", "mem-avg", "mem-peak", "rmem-avg", "rmem-peak", "res-avg", "res-peak", "rres-avg", "rres-peak", "gpu-avg", "gpu-peak", "rgpu-avg", "rgpu-peak", "sgpu-avg", "sgpu-peak", "gpumem-avg", "gpumem-peak", "rgpumem-avg", "rgpumem-peak", "sgpumem-avg", "sgpumem-peak", "thread-avg", "thread-peak", "gpus", "gpufail", "cmd", "host", "now", "now/sec", "classification", "cputime/sec", "cputime", "gputime/sec", "gputime"},
 	"std":                    []string{"jobm", "user", "duration", "host"},
 	"cpu":                    []string{"cpu-avg", "cpu-peak"},
 	"rcpu":                   []string{"rcpu-avg", "rcpu-peak"},
@@ -939,7 +965,8 @@ var jobsAliases = map[string][]string{
 	"gpumem":                 []string{"gpumem-avg", "gpumem-peak"},
 	"rgpumem":                []string{"rgpumem-avg", "rgpumem-peak"},
 	"sgpumem":                []string{"sgpumem-avg", "sgpumem-peak"},
-	"All":                    []string{"JobAndMark", "Job", "User", "Duration", "Duration/sec", "Start", "Start/sec", "End", "End/sec", "CpuAvgPct", "CpuPeakPct", "RelativeCpuAvgPct", "RelativeCpuPeakPct", "MemAvgGB", "MemPeakGB", "RelativeMemAvgPct", "RelativeMemPeakPct", "ResidentMemAvgGB", "ResidentMemPeakGB", "RelativeResidentMemAvgPct", "RelativeResidentMemPeakPct", "GpuAvgPct", "GpuPeakPct", "RelativeGpuAvgPct", "RelativeGpuPeakPct", "OccupiedRelativeGpuAvgPct", "OccupiedRelativeGpuPeakPct", "GpuMemAvgGB", "GpuMemPeakGB", "RelativeGpuMemAvgPct", "RelativeGpuMemPeakPct", "OccupiedRelativeGpuMemAvgPct", "OccupiedRelativeGpuMemPeakPct", "Gpus", "GpuFail", "Cmd", "Hosts", "Now", "Now/sec", "Classification", "CpuTime/sec", "CpuTime", "GpuTime/sec", "GpuTime", "SomeGpu", "NoGpu", "Running", "Completed", "Zombie", "Primordial", "BornLater"},
+	"threads":                []string{"thread-avg", "thread-peak"},
+	"All":                    []string{"JobAndMark", "Job", "User", "Duration", "Duration/sec", "Start", "Start/sec", "End", "End/sec", "CpuAvgPct", "CpuPeakPct", "RelativeCpuAvgPct", "RelativeCpuPeakPct", "MemAvgGB", "MemPeakGB", "RelativeMemAvgPct", "RelativeMemPeakPct", "ResidentMemAvgGB", "ResidentMemPeakGB", "RelativeResidentMemAvgPct", "RelativeResidentMemPeakPct", "GpuAvgPct", "GpuPeakPct", "RelativeGpuAvgPct", "RelativeGpuPeakPct", "OccupiedRelativeGpuAvgPct", "OccupiedRelativeGpuPeakPct", "GpuMemAvgGB", "GpuMemPeakGB", "RelativeGpuMemAvgPct", "RelativeGpuMemPeakPct", "OccupiedRelativeGpuMemAvgPct", "OccupiedRelativeGpuMemPeakPct", "ThreadAvg", "ThreadPeak", "Gpus", "GpuFail", "Cmd", "Hosts", "Now", "Now/sec", "Classification", "CpuTime/sec", "CpuTime", "GpuTime/sec", "GpuTime", "SomeGpu", "NoGpu", "Running", "Completed", "Zombie", "Primordial", "BornLater"},
 	"Std":                    []string{"JobAndMark", "User", "Duration", "Hosts"},
 	"Cpu":                    []string{"CpuAvgPct", "CpuPeakPct"},
 	"RelativeCpu":            []string{"RelativeCpuAvgPct", "RelativeCpuPeakPct"},
@@ -953,6 +980,7 @@ var jobsAliases = map[string][]string{
 	"GpuMem":                 []string{"GpuMemAvgGB", "GpuMemPeakGB"},
 	"RelativeGpuMem":         []string{"RelativeGpuMemAvgPct", "RelativeGpuMemPeakPct"},
 	"OccupiedRelativeGpuMem": []string{"OccupiedRelativeGpuMemAvgPct", "OccupiedRelativeGpuMemPeakPct"},
+	"Threads":                []string{"ThreadAvg", "ThreadPeak"},
 	"default":                []string{"std", "cpu", "mem", "gpu", "gpumem", "cmd"},
 	"Default":                []string{"Std", "Cpu", "Mem", "Gpu", "GpuMem", "Cmd"},
 }

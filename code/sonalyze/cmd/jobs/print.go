@@ -67,6 +67,10 @@ FIELDS *jobSummary
   OccupiedRelativeGpuMemPeakPct \
                      F64Ceil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
                                    field:"computed[kSgpuGBPeak]" alias:"sgpumem-peak"
+  ThreadAvg          F64Ceil       desc:"Average number of active threads summed across all processes" \
+                                   field:"computed[kThreadAvg]" alias:"thread-avg"
+  ThreadPeak         F64Ceil       desc:"Peak number of active threads summed across all processes" \
+                                   field:"computed[kThreadPeak]" alias:"thread-peak"
   Gpus               gpuset.GpuSet desc:"GPU device numbers used by the job, 'none' if none or 'unknown' in error states" alias:"gpus"
   GpuFail            int           desc:"Flag indicating GPU status (0=Ok, 1=Failing)" alias:"gpufail"
   Cmd                string        desc:"The commands invoking the processes of the job" alias:"cmd"
@@ -145,8 +149,8 @@ ALIASES
   all         jobm,job,user,duration,duration/sec,start,start/sec,end,end/sec,cpu-avg,cpu-peak,rcpu-avg,\
               rcpu-peak,mem-avg,mem-peak,rmem-avg,rmem-peak,res-avg,res-peak,rres-avg,rres-peak,gpu-avg,\
               gpu-peak,rgpu-avg,rgpu-peak,sgpu-avg,sgpu-peak,gpumem-avg,gpumem-peak,rgpumem-avg,rgpumem-peak,\
-              sgpumem-avg,sgpumem-peak,gpus,gpufail,cmd,host,now,now/sec,classification,cputime/sec,cputime,\
-              gputime/sec,gputime
+              sgpumem-avg,sgpumem-peak,thread-avg,thread-peak,gpus,gpufail,cmd,host,now,now/sec,classification,\
+              cputime/sec,cputime,gputime/sec,gputime
   std         jobm,user,duration,host
   cpu         cpu-avg,cpu-peak
   rcpu        rcpu-avg,rcpu-peak
@@ -160,13 +164,14 @@ ALIASES
   gpumem      gpumem-avg,gpumem-peak
   rgpumem     rgpumem-avg,rgpumem-peak
   sgpumem     sgpumem-avg,sgpumem-peak
+  threads     thread-avg,thread-peak
   All         JobAndMark,Job,User,Duration,Duration/sec,Start,Start/sec,End,End/sec,CpuAvgPct,CpuPeakPct,\
               RelativeCpuAvgPct,RelativeCpuPeakPct,MemAvgGB,MemPeakGB,RelativeMemAvgPct,RelativeMemPeakPct,\
               ResidentMemAvgGB,ResidentMemPeakGB,RelativeResidentMemAvgPct,RelativeResidentMemPeakPct,\
               GpuAvgPct,GpuPeakPct,RelativeGpuAvgPct,RelativeGpuPeakPct,OccupiedRelativeGpuAvgPct,\
               OccupiedRelativeGpuPeakPct,GpuMemAvgGB,GpuMemPeakGB,RelativeGpuMemAvgPct,\
-              RelativeGpuMemPeakPct,OccupiedRelativeGpuMemAvgPct,OccupiedRelativeGpuMemPeakPct,Gpus,GpuFail,\
-              Cmd,Hosts,Now,Now/sec,Classification,CpuTime/sec,CpuTime,GpuTime/sec,GpuTime,\
+              RelativeGpuMemPeakPct,OccupiedRelativeGpuMemAvgPct,OccupiedRelativeGpuMemPeakPct,ThreadAvg,ThreadPeak,\
+              Gpus,GpuFail,Cmd,Hosts,Now,Now/sec,Classification,CpuTime/sec,CpuTime,GpuTime/sec,GpuTime,\
               SomeGpu,NoGpu,Running,Completed,Zombie,Primordial,BornLater
   Std         JobAndMark,User,Duration,Hosts
   Cpu         CpuAvgPct,CpuPeakPct
@@ -185,6 +190,7 @@ ALIASES
               RelativeGpuMemAvgPct,RelativeGpuMemPeakPct
   OccupiedRelativeGpuMem \
               OccupiedRelativeGpuMemAvgPct,OccupiedRelativeGpuMemPeakPct
+  Threads     ThreadAvg,ThreadPeak
 
   default     std,cpu,mem,gpu,gpumem,cmd
   Default     Std,Cpu,Mem,Gpu,GpuMem,Cmd

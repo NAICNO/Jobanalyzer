@@ -14,7 +14,7 @@ type SysinfoCardData struct {
 	*newfmt.SysinfoGpuCard
 }
 
-func (c *SysinfoCardData) TimeAndNode() (string, string) {
+func (c *SysinfoCardData) TimeAndNode() (any, string) {
 	return c.Time, c.Node
 }
 

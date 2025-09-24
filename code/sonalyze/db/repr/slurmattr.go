@@ -16,7 +16,7 @@ type CluzterAttributes struct {
 	Slurm   bool
 }
 
-func (c *CluzterAttributes) TimeAndNode() (string, string) {
+func (c *CluzterAttributes) TimeAndNode() (any, string) {
 	return c.Time, ""
 }
 
