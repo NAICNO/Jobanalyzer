@@ -10,9 +10,7 @@ exports[`GpuFieldCell > renders correctly when value is 0 1`] = `
   <div
     class="css-xrjgq3"
   >
-    <p
-      class="css-0"
-    >
+    <p>
       0
     </p>
   </div>
@@ -29,9 +27,7 @@ exports[`GpuFieldCell > renders correctly when value is not 0 or undefined 1`] =
   <div
     class="css-16upyym"
   >
-    <p
-      class="css-0"
-    >
+    <p>
       1
     </p>
   </div>
