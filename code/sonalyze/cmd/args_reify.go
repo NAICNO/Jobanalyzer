@@ -76,6 +76,10 @@ func (r *ArgReifier) String(n, v string) {
 	}
 }
 
+func (r *ArgReifier) StringUnchecked(n, v string) {
+	r.addString(n, v)
+}
+
 func (r *ArgReifier) RepeatableString(n string, vs []string) {
 	for _, v := range vs {
 		r.String(n, v)

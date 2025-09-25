@@ -2,6 +2,7 @@ package sacct
 
 import (
 	"errors"
+	"fmt"
 	"math"
 
 	. "sonalyze/cmd"
@@ -55,7 +56,7 @@ func (sc *SacctCommand) Add(fs *CLI) {
 	sc.FormatArgs.Add(fs)
 
 	fs.Group("job-filter")
-	fs.StringVar(&sc.minRuntimeStr, "min-runtime", "",
+	fs.StringVar(&sc.minRuntimeStr, "min-runtime", fmt.Sprintf("%dm", defaultMinRuntime/60),
 		"Select jobs with elapsed time at least this, format `WwDdHhMm`, all parts\n"+
 			"optional [default: 0m]")
 	fs.StringVar(&sc.maxRuntimeStr, "max-runtime", "",
@@ -93,11 +94,11 @@ func (sc *SacctCommand) ReifyForRemote(x *ArgReifier) error {
 	x.RepeatableString("account", sc.Account)
 	x.RepeatableString("partition", sc.Partition)
 	x.RepeatableUint32("job", sc.Job)
-	x.String("min-runtime", sc.minRuntimeStr)
+	x.StringUnchecked("min-runtime", sc.minRuntimeStr)
 	x.String("max-runtime", sc.maxRuntimeStr)
-	x.Uint("min-reserved-cores", sc.MinReservedCores)
+	x.UintUnchecked("min-reserved-cores", sc.MinReservedCores)
 	x.Uint("max-reserved-cores", sc.MaxReservedCores)
-	x.Uint("min-reserved-mem", sc.MinReservedMem)
+	x.UintUnchecked("min-reserved-mem", sc.MinReservedMem)
 	x.Uint("max-reserved-mem", sc.MaxReservedMem)
 	x.Bool("all", sc.All)
 	x.Bool("some-gpu", sc.SomeGPU)
