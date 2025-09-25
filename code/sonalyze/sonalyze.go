@@ -46,7 +46,7 @@ import (
 // v0.9.0 - integration with slurm-monitor's data format under --json; kafka ingest; refactoring
 // v0.10.0 - added 'nodeprof' verb, some new fields to existing tables
 
-const SonalyzeVersion = "0.10.0"
+const SonalyzeVersion = "0.10.1"
 
 // See end of file for documentation / implementation, and command/command.go for documentation of
 // the CommandLineHandler interface.
