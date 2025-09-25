@@ -10,7 +10,7 @@ require github.com/lars-t-hansen/ini v0.3.0
 
 require github.com/twmb/franz-go v1.19.1
 
-require github.com/NordicHPC/sonar/util/formats v0.15.0-rc1
+require github.com/NordicHPC/sonar/util/formats v0.15.0
 
 require (
 	github.com/klauspost/compress v1.18.0 // indirect
