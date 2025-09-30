@@ -75,6 +75,18 @@ var nodeFormatters = map[string]Formatter[*NodeData]{
 		},
 		Help: "(string) NUMA distance matrix",
 	},
+	"TopoSVG": {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
+			return FormatString((d.TopoSVG), ctx)
+		},
+		Help: "(string) SVG encoding of node topology",
+	},
+	"TopoText": {
+		Fmt: func(d *NodeData, ctx PrintMods) string {
+			return FormatString((d.TopoText), ctx)
+		},
+		Help: "(string) Text encoding of node topology",
+	},
 }
 
 func init() {
@@ -87,6 +99,8 @@ func init() {
 	DefAlias(nodeFormatters, "GpuMemGB", "gpumem")
 	DefAlias(nodeFormatters, "GpuMemPct", "gpumempct")
 	DefAlias(nodeFormatters, "Distances", "distances")
+	DefAlias(nodeFormatters, "TopoSVG", "toposvg")
+	DefAlias(nodeFormatters, "TopoText", "topotext")
 }
 
 // MT: Constant after initialization; immutable
@@ -141,6 +155,16 @@ var nodePredicates = map[string]Predicate[*NodeData]{
 			return cmp.Compare((d.Distances), v.(string))
 		},
 	},
+	"TopoSVG": Predicate[*NodeData]{
+		Compare: func(d *NodeData, v any) int {
+			return cmp.Compare((d.TopoSVG), v.(string))
+		},
+	},
+	"TopoText": Predicate[*NodeData]{
+		Compare: func(d *NodeData, v any) int {
+			return cmp.Compare((d.TopoText), v.(string))
+		},
+	},
 }
 
 type NodeData struct {
@@ -153,6 +177,8 @@ type NodeData struct {
 	GpuMemGB    int
 	GpuMemPct   bool
 	Distances   string
+	TopoSVG     string
+	TopoText    string
 }
 
 func (c *NodeCommand) Summary(out io.Writer) {
@@ -172,6 +198,10 @@ node
   Extract information about individual nodes on the cluster from sysinfo and present
   them in primitive form.  Output records are sorted by node name.  The default
   format is 'fixed'.
+
+  Note that 'all' and 'All' do not include the topology data (toposvg, topotext), which
+  are usually large if present.  The most practical extraction method would be with e.g.
+  "-from ... -host ... -newest -fmt noheader,csv,topotext" for whatever single node is desired.
 `
 
 func (c *NodeCommand) MaybeFormatHelp() *FormatHelp {

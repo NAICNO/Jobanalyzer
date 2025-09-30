@@ -3,6 +3,7 @@
 package parse
 
 import (
+	"encoding/base64"
 	"io"
 
 	"github.com/NordicHPC/sonar/util/formats/newfmt"
@@ -29,6 +30,23 @@ func ParseSysinfoV0JSON(
 			if distances == nil {
 				distances = defaultDistances
 			}
+			var topoSvg, topoText string
+			if d.TopoSVG != "" {
+				dst := make([]byte, base64.StdEncoding.DecodedLen(len(d.TopoSVG)))
+				n, err := base64.StdEncoding.Decode(dst, []byte(d.TopoSVG))
+				if err != nil {
+					softErrors++
+				}
+				topoSvg = string(dst[:n])
+			}
+			if d.TopoText != "" {
+				dst := make([]byte, base64.StdEncoding.DecodedLen(len(d.TopoText)))
+				n, err := base64.StdEncoding.Decode(dst, []byte(d.TopoText))
+				if err != nil {
+					softErrors++
+				}
+				topoText = string(dst[:n])
+			}
 			nodeData = append(nodeData, &repr.SysinfoNodeData{
 				Time:           string(d.Time),
 				Cluster:        string(d.Cluster),
@@ -41,7 +59,8 @@ func ParseSysinfoV0JSON(
 				ThreadsPerCore: uint64(d.ThreadsPerCore),
 				CpuModel:       d.CpuModel,
 				Memory:         uint64(d.Memory),
-				TopoSVG:        d.TopoSVG,
+				TopoSVG:        topoSvg,
+				TopoText:       topoText,
 				Distances:      distances,
 			})
 			for i := range d.Cards {
