@@ -8,7 +8,8 @@ import (
 
 // SysinfoNodeData is basically a view on newfmt.SysinfoAttributes where
 // newfmt=github.com/NordicHPC/sonar/util/formats/newfmt.  The reason it is a separate view is that
-// that data structure carries some fields that should not be visible here.
+// that data structure carries some fields that should not be visible here, and we've decoded the
+// Base64-encoded topo data.
 type SysinfoNodeData struct {
 	Time           string
 	Cluster        string
@@ -21,7 +22,8 @@ type SysinfoNodeData struct {
 	ThreadsPerCore uint64
 	CpuModel       string
 	Memory         uint64
-	TopoSVG        string
+	TopoSVG        string // decoded if present
+	TopoText       string // decoded if present
 	Distances      [][]uint64
 }
 
@@ -39,6 +41,7 @@ func (d *SysinfoNodeData) Size() uintptr {
 	size += uintptr(len(d.Architecture))
 	size += uintptr(len(d.CpuModel))
 	size += uintptr(len(d.TopoSVG))
+	size += uintptr(len(d.TopoText))
 	size += unsafe.Sizeof(d.Distances[0][0]) * uintptr(len(d.Distances)*len(d.Distances[0]))
 	return size
 }

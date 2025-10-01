@@ -40,6 +40,8 @@ FIELDS *NodeData
  GpuMemGB    int    desc:"Total GPU memory across all cards" alias:"gpumem"
  GpuMemPct   bool   desc:"True if GPUs report accurate memory usage in percent" alias:"gpumempct"
  Distances   string desc:"NUMA distance matrix" alias:"distances"
+ TopoSVG     string desc:"SVG encoding of node topology" alias:"toposvg"
+ TopoText    string desc:"Text encoding of node topology" alias:"topotext"
 
 GENERATE NodeData
 
@@ -59,6 +61,11 @@ HELP NodeCommand
   Extract information about individual nodes on the cluster from sysinfo and present
   them in primitive form.  Output records are sorted by node name.  The default
   format is 'fixed'.
+
+  Note that 'all' and 'All' do not include the topology data (toposvg, topotext), which
+  are usually large if present.  The most practical extraction method would be with e.g.
+  "-from ... -host ... -newest -fmt noheader,fixed,topotext" for whatever single node
+  is desired.
 
 ALIASES
 
@@ -210,6 +217,8 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 			GpuCards:    numCards,
 			GpuMemGB:    cardTotalMemGB,
 			Distances:   distances,
+			TopoSVG:     r.node.TopoSVG,
+			TopoText:    r.node.TopoText,
 		}
 	}
 
