@@ -9,7 +9,7 @@
 # However there's bug 166: the filtering happens too late, so the utilization computed for this
 # record is (910-200)/(60*5)=2.367.
 
-output=$($SONALYZE parse --clean --fmt=csv,job,cputime_sec,cpu_util_pct -- regress_63_filter_negative_utilization.csv)
+output=$($SONALYZE parse --clean --fmt=csv,separator,job,cputime_sec,cpu_util_pct -- regress_63_filter_negative_utilization.csv)
 CHECK parse_duplicate_timestamps '*
 1249151,310,100
 1249151,910,1' "$output" 166

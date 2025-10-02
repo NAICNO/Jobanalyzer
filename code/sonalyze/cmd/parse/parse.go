@@ -252,7 +252,9 @@ func (pc *ParseCommand) Perform(
 			if queryNeg != nil {
 				xs = slices.DeleteFunc(xs, queryNeg)
 			}
-			fmt.Fprintln(out, "*")
+			if pc.PrintOpts.Fixed || pc.PrintOpts.Separator {
+				fmt.Fprintln(out, "*")
+			}
 			FormatData(
 				out,
 				pc.PrintFields,
