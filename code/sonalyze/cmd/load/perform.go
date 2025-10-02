@@ -72,19 +72,19 @@ func (lc *LoadCommand) Perform(
 			var newS sample.SampleStream
 			switch lc.bucketing {
 			case bHalfHourly:
-				newS = sample.FoldSamplesHalfHourly(*s)
+				newS = sample.FoldSamplesHalfHourly(s)
 			case bHourly:
-				newS = sample.FoldSamplesHourly(*s)
+				newS = sample.FoldSamplesHourly(s)
 			case bHalfDaily:
-				newS = sample.FoldSamplesHalfDaily(*s)
+				newS = sample.FoldSamplesHalfDaily(s)
 			case bDaily:
-				newS = sample.FoldSamplesDaily(*s)
+				newS = sample.FoldSamplesDaily(s)
 			case bWeekly:
-				newS = sample.FoldSamplesWeekly(*s)
+				newS = sample.FoldSamplesWeekly(s)
 			default:
 				panic("Unexpected case")
 			}
-			newStreams = append(newStreams, &newS)
+			newStreams = append(newStreams, newS)
 		}
 		mergedStreams = newStreams
 	}
@@ -97,7 +97,7 @@ func (lc *LoadCommand) Perform(
 		if cfg != nil {
 			for _, stream := range mergedStreams {
 				// probe is non-nil by previous construction
-				probe := cfg.LookupHost((*stream)[0].Hostname.String())
+				probe := cfg.LookupHost(stream[0].Hostname.String())
 				if theConf.Description != "" {
 					theConf.Description += "|||" // JSON-compatible separator
 				}
@@ -117,9 +117,8 @@ func (lc *LoadCommand) Perform(
 
 	// If not printing compactly then insert missing record in the streams
 	if !lc.Compact && lc.All && lc.bucketing != bNone {
-		for _, stream := range mergedStreams {
-			// stream is a *SampleStream and is updated in-place
-			lc.insertMissingRecords(stream, fromIncl, toIncl)
+		for i := range mergedStreams {
+			mergedStreams[i] = lc.insertMissingRecords(mergedStreams[i], fromIncl, toIncl)
 		}
 	}
 
@@ -135,12 +134,12 @@ func (lc *LoadCommand) Perform(
 	// Generate data to be printed
 	reports := make([]LoadReport, 0)
 	for _, stream := range mergedStreams {
-		hostname := (*stream)[0].Hostname.String()
+		hostname := stream[0].Hostname.String()
 		conf := mergedConf
 		if conf == nil && cfg != nil {
 			conf = cfg.LookupHost(hostname)
 		}
-		rs := generateReport(*stream, time.Now().Unix(), conf)
+		rs := generateReport(stream, time.Now().Unix(), conf)
 		if queryNeg != nil {
 			rs = slices.DeleteFunc(rs, queryNeg)
 		}
@@ -157,7 +156,7 @@ func (lc *LoadCommand) Perform(
 	return nil
 }
 
-func (lc *LoadCommand) insertMissingRecords(ss *sample.SampleStream, fromIncl, toIncl int64) {
+func (lc *LoadCommand) insertMissingRecords(ss sample.SampleStream, fromIncl, toIncl int64) sample.SampleStream {
 	var trunc func(int64) int64
 	var step func(int64) int64
 	switch lc.bucketing {
@@ -179,11 +178,11 @@ func (lc *LoadCommand) insertMissingRecords(ss *sample.SampleStream, fromIncl, t
 	default:
 		panic("Unexpected case")
 	}
-	host := (*ss)[0].Hostname
+	host := ss[0].Hostname
 	t := trunc(fromIncl)
 	result := make(sample.SampleStream, 0)
 
-	for _, s := range *ss {
+	for _, s := range ss {
 		for t < s.Timestamp {
 			newS := sample.Sample{Sample: &repr.Sample{Timestamp: t, Hostname: host}}
 			result = append(result, newS)
@@ -198,7 +197,7 @@ func (lc *LoadCommand) insertMissingRecords(ss *sample.SampleStream, fromIncl, t
 		result = append(result, newS)
 		t = step(t)
 	}
-	*ss = result
+	return result
 }
 
 // `sys` may be nil if none of the requested fields use its data, so we must guard against that.

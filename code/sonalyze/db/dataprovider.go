@@ -1,5 +1,5 @@
 // Data providers - abstract interface to a data store.  There are several types of store, see
-// go.doc in this directory.
+// doc.go in this directory.
 
 package db
 
@@ -27,8 +27,9 @@ const (
 	DataCluzterV0JSON  = filedb.FileCluzterV0JSON
 )
 
-// The readers return slices of data that may be shared with the database.  The inner slices of the
-// result, and the records they point to, must not be mutated in ANY way.
+// The readers in the SampleDataProvider return slices of data that may be shared with the database.
+// The inner slices of the result, and the records they point to, must not be mutated in ANY way.
+// The outer slices are however freshly created and may be updated by the caller.
 //
 // Time bounds given to readers and file name extractors must be UTC.
 
@@ -42,7 +43,7 @@ type SampleDataProvider interface {
 }
 
 type ProcessSampleDataProvider interface {
-	ReadSamples(
+	ReadProcessSamples(
 		fromDate, toDate time.Time,
 		hosts *Hosts,
 		verbose bool,

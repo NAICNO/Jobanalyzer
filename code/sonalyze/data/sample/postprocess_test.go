@@ -45,7 +45,7 @@ func TestRectifyGpuMem(t *testing.T) {
 	// gpumem%=12 so we should see a computed value for gpukib which is different from the gpukib
 	// figure in the data.
 	var notime time.Time
-	sampleBlobs, _, err := c.ReadSamples(notime, notime, nil, false)
+	sampleBlobs, _, err := c.ReadProcessSamples(notime, notime, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}

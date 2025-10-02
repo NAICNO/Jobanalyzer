@@ -147,34 +147,34 @@ func (_ *sampleFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 	return size
 }
 
-func ReadSampleSlice(
+func readProcessSampleSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
-	return ReadRecordsFromFiles[repr.Sample](files, verbose, reader)
+	return readRecordsFromFiles[repr.Sample](files, verbose, reader)
 }
 
-func ReadNodeSampleSlice(
+func readNodeSampleSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
 ) (sampleBlobs [][]*repr.NodeSample, dropped int, err error) {
-	return ReadRecordsFromFiles[repr.NodeSample](files, verbose, reader)
+	return readRecordsFromFiles[repr.NodeSample](files, verbose, reader)
 }
 
-func ReadCpuSamplesSlice(
+func readCpuSamplesSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
 ) (loadDataBlobs [][]*repr.CpuSamples, dropped int, err error) {
-	return ReadRecordsFromFiles[repr.CpuSamples](files, verbose, reader)
+	return readRecordsFromFiles[repr.CpuSamples](files, verbose, reader)
 }
 
-func ReadGpuSamplesSlice(
+func readGpuSamplesSlice(
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,
 ) (gpuDataBlobs [][]*repr.GpuSamples, dropped int, err error) {
-	return ReadRecordsFromFiles[repr.GpuSamples](files, verbose, reader)
+	return readRecordsFromFiles[repr.GpuSamples](files, verbose, reader)
 }

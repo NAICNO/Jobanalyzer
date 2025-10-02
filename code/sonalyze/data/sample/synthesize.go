@@ -1,5 +1,13 @@
 // Logic for merging sample streams.
 
+// In general, the Merge*() functions will return a slice-of-slices where the slices may be
+// manipulated and changed freely, as may the data except for the leaf values representing
+// db/repr/Sample values.  However, in some cases storage for the inner slices will be shared with
+// the values in the input InputStreamSet, and if the inner slices of the InputStreamSet values are
+// updated after the merge operation this must be taken into account.
+//
+// The safest pattern is that the InputStreamSets are consumed by the Merge*() functions.
+
 package sample
 
 import (
@@ -32,17 +40,17 @@ func MergeByHostAndJob(streams InputStreamSet) SampleStreams {
 		job  uint32
 	}
 
-	type CommandsAndSampleStreams struct {
+	type CommandsAndIndirectStreams struct {
 		commands map[Ustr]bool
-		streams  SampleStreams
+		streams  indirectStreams
 	}
 
 	// The value is a set of command names and a vector of the individual streams.
-	collections := make(map[HostAndJob]*CommandsAndSampleStreams)
+	collections := make(map[HostAndJob]*CommandsAndIndirectStreams)
 
 	// The value is a map (by host) of the individual streams with job ID zero, these can't be
 	// merged and must just be passed on.
-	zero := make(map[Ustr]*SampleStreams)
+	zero := make(map[Ustr]*indirectStreams)
 
 	// Partition into jobs with ID and jobs without, and group the former by host and job and
 	// collect information about each bag.
@@ -52,7 +60,7 @@ func MergeByHostAndJob(streams InputStreamSet) SampleStreams {
 			if bag, found := zero[key.Host]; found {
 				*bag = append(*bag, stream)
 			} else {
-				zero[key.Host] = &SampleStreams{stream}
+				zero[key.Host] = &indirectStreams{stream}
 			}
 		} else {
 			k := HostAndJob{key.Host, id}
@@ -60,9 +68,9 @@ func MergeByHostAndJob(streams InputStreamSet) SampleStreams {
 				box.commands[key.Cmd] = true
 				box.streams = append(box.streams, stream)
 			} else {
-				collections[k] = &CommandsAndSampleStreams{
+				collections[k] = &CommandsAndIndirectStreams{
 					commands: map[Ustr]bool{key.Cmd: true},
-					streams:  SampleStreams{stream},
+					streams:  indirectStreams{stream},
 				}
 			}
 		}
@@ -72,12 +80,14 @@ func MergeByHostAndJob(streams InputStreamSet) SampleStreams {
 	for key, cmdsAndStreams := range collections {
 		if zeroes, found := zero[key.host]; found {
 			delete(zero, key.host)
-			merged = append(merged, *zeroes...)
+			for _, v := range *zeroes {
+				merged = append(merged, *v)
+			}
 		}
 		commands := maps.Keys(cmdsAndStreams.commands)
 		UstrSortAscending(commands)
 		username := mergedUserName(cmdsAndStreams.streams)
-		merged = append(merged, mergeStreams(
+		merged = append(merged, *mergeStreams(
 			key.host,
 			UstrJoin(commands, StringToUstr(",")),
 			username,
@@ -92,7 +102,7 @@ func MergeByHostAndJob(streams InputStreamSet) SampleStreams {
 // Any user from any record is fine because we really should never be merging records from different
 // users.  However, in some testing scenarios we sometimes do merge records from different users and
 // to make that predictable we sort and join the names.
-func mergedUserName(streams SampleStreams) Ustr {
+func mergedUserName(streams indirectStreams) Ustr {
 	nameset := make(map[Ustr]bool)
 	for _, s := range streams {
 		nameset[(*s)[0].User] = true
@@ -119,7 +129,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 	type jobDataTy struct {
 		commands map[Ustr]bool
 		hosts    map[Ustr]bool
-		streams  SampleStreams
+		streams  indirectStreams
 	}
 
 	// The key is the job ID
@@ -127,7 +137,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 
 	// The value is a vector of the individual streams with job ID zero, these can't be merged and
 	// must just be passed on.
-	zero := make(SampleStreams, 0)
+	zero := make(indirectStreams, 0)
 
 	// Distribute the streams into `zero` or some box in `collections`
 	for k, v := range streams {
@@ -142,7 +152,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 			collections[id] = &jobDataTy{
 				commands: map[Ustr]bool{k.Cmd: true},
 				hosts:    map[Ustr]bool{k.Host: true},
-				streams:  SampleStreams{v},
+				streams:  indirectStreams{v},
 			}
 		}
 	}
@@ -163,7 +173,10 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 	}
 
 	// Initialize the set of result streams with the zero jobs
-	var newStreams SampleStreams = zero
+	newStreams := make(SampleStreams, 0, len(zero)+len(collections))
+	for _, z := range zero {
+		newStreams = append(newStreams, *z)
+	}
 
 	// Iterate across the non-zero jobs and update newBounds with merged bounds and newStreams with
 	// merged streams.
@@ -186,7 +199,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 		commands := maps.Keys(jobData.commands)
 		UstrSortAscending(commands)
 		user := mergedUserName(jobData.streams)
-		newStreams = append(newStreams, mergeStreams(
+		newStreams = append(newStreams, *mergeStreams(
 			hostname,
 			UstrJoin(commands, StringToUstr(",")),
 			user,
@@ -211,14 +224,14 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 
 func MergeByHost(streams InputStreamSet) SampleStreams {
 	// The key is the host name.
-	collections := make(map[Ustr]SampleStreams)
+	collections := make(map[Ustr]indirectStreams)
 
 	for k, s := range streams {
 		// This lumps jobs with job ID 0 in with the others.
 		if vs, ok := collections[k.Host]; ok {
 			collections[k.Host] = append(vs, s)
 		} else {
-			collections[k.Host] = SampleStreams{s}
+			collections[k.Host] = indirectStreams{s}
 		}
 	}
 
@@ -227,7 +240,7 @@ func MergeByHost(streams InputStreamSet) SampleStreams {
 	username := cmdname
 	jobId := uint32(0)
 	for hostname, streams := range collections {
-		vs = append(vs, mergeStreams(hostname, cmdname, username, jobId, streams))
+		vs = append(vs, *mergeStreams(hostname, cmdname, username, jobId, streams))
 	}
 
 	return vs
@@ -239,18 +252,22 @@ func MergeAcrossHostsByTime(streams SampleStreams) SampleStreams {
 	if len(streams) == 0 {
 		return streams
 	}
-	names := slices.Map(streams, func(s *SampleStream) string {
-		return (*s)[0].Hostname.String()
+	names := slices.Map(streams, func(s SampleStream) string {
+		return s[0].Hostname.String()
 	})
 	hostname := StringToUstr(strings.Join(hostglob.CompressHostnames(names), ","))
+	istreams := make(indirectStreams, 0, len(streams))
+	for _, v := range streams {
+		istreams = append(istreams, &v)
+	}
 	tmp := mergeStreams(
 		hostname,
 		StringToUstr("_merged_"),
 		StringToUstr("_merged_"),
 		0,
-		streams,
+		istreams,
 	)
-	return []*SampleStream{tmp}
+	return SampleStreams([]SampleStream{*tmp})
 }
 
 // What does it mean to sample a job that runs on multiple hosts, or to sample a host that runs
@@ -344,7 +361,7 @@ func mergeStreams(
 	command Ustr,
 	username Ustr,
 	jobId uint32,
-	streams SampleStreams,
+	streams indirectStreams,
 ) *SampleStream {
 	// Generated records
 	records := make(SampleStream, 0)

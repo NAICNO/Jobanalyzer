@@ -168,13 +168,13 @@ func (pc *ProfileCommand) collectHtml(
 	rowLabels := make([]string, len(processes))
 	for i, p := range processes {
 		// Here, use the raw pid for compatibility with the Rust code
-		pid := pif.indexFor((*p)[0])
-		rowLabels[i] = fmt.Sprintf("%s (%s)", (*p)[0].Cmd.String(), pif.nameFor(pid))
+		pid := pif.indexFor(p[0])
+		rowLabels[i] = fmt.Sprintf("%s (%s)", p[0].Cmd.String(), pif.nameFor(pid))
 	}
 
 	rows = make([]string, len(processes))
 	for i, p := range processes {
-		cn := pif.indexFor((*p)[0])
+		cn := pif.indexFor(p[0])
 		s := ""
 		sep := ""
 		for _, rn := range rowNames {
@@ -219,10 +219,10 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 			sep = " "
 		}
 		for _, process := range processes {
-			pid := pif.indexFor((*process)[0])
+			pid := pif.indexFor(process[0])
 			header = append(header,
 				fmt.Sprintf(
-					"%s%s(%s)", (*process)[0].Cmd, sep, pif.nameFor(pid)))
+					"%s%s(%s)", process[0].Cmd, sep, pif.nameFor(pid)))
 		}
 	}
 
@@ -237,7 +237,7 @@ func (pc *ProfileCommand) collectCsvOrAwk(
 	for y, rn := range rowNames {
 		matrix[y][0] = formatTime(rn)
 		for x, p := range processes {
-			pid := pif.indexFor((*p)[0])
+			pid := pif.indexFor(p[0])
 			entry := m.get(rn, pid)
 			if entry != nil {
 				matrix[y][x+1] = formatter(entry)
@@ -319,7 +319,7 @@ func (pc *ProfileCommand) collectFixed(
 	for _, rn := range rowNames {
 		first := true
 		for _, p := range processes {
-			cn := pif.indexFor((*p)[0])
+			cn := pif.indexFor(p[0])
 			entry := m.get(rn, cn)
 			if entry != nil {
 				var timestamp int64
@@ -522,7 +522,7 @@ func formatJson(
 		points := make([]jsonPoint, 0)
 		var e *profDatum
 		for _, p := range processes {
-			cn := pif.indexFor((*p)[0])
+			cn := pif.indexFor(p[0])
 			entry := m.get(rn, cn)
 			if entry == nil {
 				continue

@@ -102,7 +102,7 @@ func ReadSysinfoNodeDataSlice(
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([][]*repr.SysinfoNodeData, int, error) {
-	return ReadRecordsFromFiles[repr.SysinfoNodeData](files, verbose, reader)
+	return readRecordsFromFiles[repr.SysinfoNodeData](files, verbose, reader)
 }
 
 func ReadSysinfoCardDataSlice(
@@ -110,5 +110,5 @@ func ReadSysinfoCardDataSlice(
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([][]*repr.SysinfoCardData, int, error) {
-	return ReadRecordsFromFiles[repr.SysinfoCardData](files, verbose, reader)
+	return readRecordsFromFiles[repr.SysinfoCardData](files, verbose, reader)
 }

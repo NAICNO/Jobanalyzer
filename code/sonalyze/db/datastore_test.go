@@ -103,7 +103,7 @@ func TestTransientSampleRead(t *testing.T) {
 	}
 	// The parameters are ignored here
 	var d time.Time
-	sampleBlobs, dropped, err := fs.ReadSamples(d, d, nil, verbose)
+	sampleBlobs, dropped, err := fs.ReadProcessSamples(d, d, nil, verbose)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +172,7 @@ func TestPersistentSampleRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sampleBlobs, dropped, err := pc.ReadSamples(
+	sampleBlobs, dropped, err := pc.ReadProcessSamples(
 		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
 		nil,
@@ -491,7 +491,7 @@ func TestCaching(t *testing.T) {
 	// Read five times to stress the cache a bit
 	numReads := 5
 	for i := 0; i < numReads; i++ {
-		_, _, err = pc.ReadSamples(
+		_, _, err = pc.ReadProcessSamples(
 			time.Date(2023, 05, 01, 0, 0, 0, 0, time.UTC),
 			time.Date(2023, 06, 30, 0, 0, 0, 0, time.UTC),
 			nil,
@@ -583,7 +583,7 @@ func TestCaching(t *testing.T) {
 
 	// This should read 2023/05/31/a.csv
 	glob, _ := NewHosts(false, []string{"a"})
-	_, _, err = pc.ReadSamples(
+	_, _, err = pc.ReadProcessSamples(
 		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
 		glob,
@@ -608,7 +608,7 @@ func TestCaching(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sampleBlobs, _, err := pc.ReadSamples(
+	sampleBlobs, _, err := pc.ReadProcessSamples(
 		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
 		glob,
@@ -655,7 +655,7 @@ func TestCaching(t *testing.T) {
 	filedb.CachePurgeAllSync()
 	_ = ul.GetMsgs()
 
-	_, _, err = pc.ReadSamples(
+	_, _, err = pc.ReadProcessSamples(
 		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
 		glob,
@@ -680,7 +680,7 @@ func TestCaching(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = pc.ReadSamples(
+	_, _, err = pc.ReadProcessSamples(
 		time.Date(2023, 05, 28, 0, 0, 0, 0, time.UTC),
 		time.Date(2023, 05, 29, 0, 0, 0, 0, time.UTC),
 		glob,
@@ -699,7 +699,7 @@ func TestCaching(t *testing.T) {
 	if !m {
 		t.Fatal("Missing caching msg", msgs)
 	}
-	sampleBlobs, _, err = pc.ReadSamples(
+	sampleBlobs, _, err = pc.ReadProcessSamples(
 		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
 		glob,

@@ -109,7 +109,7 @@ func ReadCluzterAttributeDataSlice(
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([][]*repr.CluzterAttributes, int, error) {
-	return ReadRecordsFromFiles[repr.CluzterAttributes](files, verbose, reader)
+	return readRecordsFromFiles[repr.CluzterAttributes](files, verbose, reader)
 }
 
 func ReadCluzterPartitionDataSlice(
@@ -117,7 +117,7 @@ func ReadCluzterPartitionDataSlice(
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([][]*repr.CluzterPartitions, int, error) {
-	return ReadRecordsFromFiles[repr.CluzterPartitions](files, verbose, reader)
+	return readRecordsFromFiles[repr.CluzterPartitions](files, verbose, reader)
 }
 
 func ReadCluzterNodeDataSlice(
@@ -125,5 +125,5 @@ func ReadCluzterNodeDataSlice(
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([][]*repr.CluzterNodes, int, error) {
-	return ReadRecordsFromFiles[repr.CluzterNodes](files, verbose, reader)
+	return readRecordsFromFiles[repr.CluzterNodes](files, verbose, reader)
 }

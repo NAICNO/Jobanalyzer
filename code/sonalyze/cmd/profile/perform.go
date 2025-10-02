@@ -8,7 +8,6 @@ import (
 	"slices"
 
 	"go-utils/config"
-	"go-utils/maps"
 
 	. "sonalyze/common"
 	"sonalyze/data/sample"
@@ -89,24 +88,28 @@ func (pc *ProfileCommand) Perform(
 	// are still going to be cases where two runs might print different data: see processId().)
 	//
 	// It's OK to sort by the true timestamp here.
-	processes := maps.Values(streams)
-	slices.SortStableFunc(processes, func(a, b *sample.SampleStream) int {
-		c := cmp.Compare((*a)[0].Timestamp, (*b)[0].Timestamp)
+	processes := make([]sample.SampleStream, 0, len(streams))
+	for _, v := range streams {
+		processes = append(processes, *v)
+	}
+
+	slices.SortStableFunc(processes, func(a, b sample.SampleStream) int {
+		c := cmp.Compare(a[0].Timestamp, b[0].Timestamp)
 		if c == 0 {
-			c = cmp.Compare((*a)[0].Cmd.String(), (*b)[0].Cmd.String())
+			c = cmp.Compare(a[0].Cmd.String(), b[0].Cmd.String())
 			if c == 0 {
-				c = cmp.Compare((*a)[0].Pid, (*b)[0].Pid)
+				c = cmp.Compare(a[0].Pid, b[0].Pid)
 			}
 		}
 		return c
 	})
 
-	userName := (*processes[0])[0].User.String()
+	userName := processes[0][0].User.String()
 
 	// Number of nonempty streams remaining, this is the termination condition.
 	nonempty := 0
 	for _, p := range processes {
-		if len(*p) > 0 {
+		if len(p) > 0 {
 			nonempty++
 		}
 	}
@@ -130,8 +133,8 @@ func (pc *ProfileCommand) Perform(
 		// The current time is the minimum time across the lists that are not exhausted.
 		currentTime := int64(math.MaxInt64)
 		for i, p := range processes {
-			if indices[i] < len(*p) {
-				currentTime = min(currentTime, (*p)[indices[i]].Timestamp)
+			if indices[i] < len(p) {
+				currentTime = min(currentTime, p[indices[i]].Timestamp)
 			}
 		}
 		if currentTime == math.MaxInt64 {
@@ -143,12 +146,12 @@ func (pc *ProfileCommand) Perform(
 			prevTime = currentTime
 		}
 		for i, p := range processes {
-			if indices[i] < len(*p) {
-				r := (*p)[indices[i]]
+			if indices[i] < len(p) {
+				r := p[indices[i]]
 				if roundToMinute(r.Timestamp) == currentTime {
 					m.set(currentTime, pif.indexFor(r), newProfDatum(r, pc.Max))
 					indices[i]++
-					if indices[i] == len(*p) {
+					if indices[i] == len(p) {
 						nonempty--
 					}
 				}

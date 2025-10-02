@@ -238,14 +238,14 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	}
 	discarded := 0
 	for _, job := range jobs {
-		if uint(len(*job)) >= minSamples {
-			host := (*job)[0].Hostname
-			jobId := (*job)[0].Job
-			user := (*job)[0].User
-			first := (*job)[0].Timestamp
-			last := (*job)[len(*job)-1].Timestamp
+		if uint(len(job)) >= minSamples {
+			host := job[0].Hostname
+			jobId := job[0].Job
+			user := job[0].User
+			first := job[0].Timestamp
+			last := job[len(job)-1].Timestamp
 			duration := last - first
-			aggregate := jc.aggregateJob(cfg, host, *job, nt.needCmd, nt.needHosts, jc.Zombie)
+			aggregate := jc.aggregateJob(cfg, host, job, nt.needCmd, nt.needHosts, jc.Zombie)
 			aggregate.computed[kDuration] = float64(duration)
 			usesGpu := !aggregate.Gpus.IsEmpty()
 			flags := 0
@@ -307,7 +307,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 				End:            DateTimeValue(last),
 				selected:       true,
 				Classification: classification,
-				job:            *job,
+				job:            job,
 				computedFlags:  flags,
 			}
 			if summaryFilter == nil || summaryFilter.apply(summary) {
