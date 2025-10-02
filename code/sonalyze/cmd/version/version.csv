@@ -1,3 +1,4 @@
+"0.11.0","Topo fields. Omit run separator for 'sample' in most cases. Remotable 'version'.  Misc cleanup."
 "0.10.1","bugfix"
 "0.10.0","added 'nodeprof' verb, some new fields to existing tables"
 "0.9.0","integration with slurm-monitor's data format under --json; kafka ingest; refactoring"
