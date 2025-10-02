@@ -23,6 +23,7 @@ import (
 	"sonalyze/cmd/sparts"
 	"sonalyze/cmd/top"
 	"sonalyze/cmd/uptime"
+	"sonalyze/cmd/version"
 )
 
 // TODO: Group these, probably.
@@ -47,7 +48,7 @@ func CommandHelp(out io.Writer) {
 	fmt.Fprintf(out, "  spart    - print partition information extracted from Slurm sinfo data\n")
 	fmt.Fprintf(out, "  top      - print per-cpu load information across time\n")
 	fmt.Fprintf(out, "  uptime   - print aggregated information about system uptime\n")
-	fmt.Fprintf(out, "  version  - print information about the program\n")
+	fmt.Fprintf(out, "  version  - print information about the program (or the server, with -remote)\n")
 	fmt.Fprintf(out, "  help     - print this message\n")
 }
 
@@ -95,6 +96,8 @@ func ConstructCommand(verb string) (command cmd.Command, actualVerb string) {
 		command = new(top.TopCommand)
 	case "uptime":
 		command = new(uptime.UptimeCommand)
+	case "version":
+		command = new(version.VersionCommand)
 	}
 	actualVerb = verb
 	return

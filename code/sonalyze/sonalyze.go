@@ -35,19 +35,6 @@ import (
 	. "sonalyze/table"
 )
 
-// v0.1.0 - translation from Rust
-// v0.2.0 - added 'add' verb
-// v0.3.0 - added 'daemon' verb (integrating sonalyzed into sonalyze), added caching
-// v0.4.0 - added 'top' verb
-// v0.5.0 - added 'sacct' verb and 'add -slurm-sacct', and a number of bug fixes
-// v0.6.0 - added 'cluster', 'config', and 'node' verbs, rename/alias 'parse' as 'sample'
-// v0.7.0 - major internal cleanup and restructuring, very minor tweaks to a few output formats
-// v0.8.0 - added 'gpu' and parsing of gpu data
-// v0.9.0 - integration with slurm-monitor's data format under --json; kafka ingest; refactoring
-// v0.10.0 - added 'nodeprof' verb, some new fields to existing tables
-
-const SonalyzeVersion = "0.10.1"
-
 // See end of file for documentation / implementation, and command/command.go for documentation of
 // the CommandLineHandler interface.
 //
@@ -86,12 +73,6 @@ func sonalyze() error {
 		fmt.Fprintf(out, "Each command accepts -h to further explain options.\n\n")
 		fmt.Fprintf(out, "For help on some other topics, try `sonalyze help <topic>`:\n")
 		topicalHelpTopics(out)
-		os.Exit(0)
-
-	case "version":
-		// Must print version on stdout, and the features() thing is required by some tests.
-		// "short" indicates that we're only parsing the first 8 fields (v0.6.0 data).
-		fmt.Printf("sonalyze-go version(%s) features(short_untagged_sonar_data)\n", SonalyzeVersion)
 		os.Exit(0)
 
 	default:

@@ -107,6 +107,8 @@ type SampleAnalysisCommand interface {
 	ConfigFile() string
 }
 
+var _ = (RemotableCommand)((SampleAnalysisCommand)(nil))
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // This is a container for behavior.  It's probably important that it has no mutable state.  There
