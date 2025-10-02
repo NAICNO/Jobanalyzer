@@ -9,12 +9,6 @@ import (
 	. "sonalyze/table"
 )
 
-const (
-	defaultMinRuntime       = 600
-	defaultMinReservedMem   = 10
-	defaultMinReservedCores = 4
-)
-
 type SacctCommand struct /* implements AnalysisCommand */ {
 	HostAnalysisArgs
 	FormatArgs
@@ -55,17 +49,17 @@ func (sc *SacctCommand) Add(fs *CLI) {
 	sc.FormatArgs.Add(fs)
 
 	fs.Group("job-filter")
-	fs.StringVar(&sc.minRuntimeStr, "min-runtime", "",
+	fs.StringVar(&sc.minRuntimeStr, "min-runtime", "0m",
 		"Select jobs with elapsed time at least this, format `WwDdHhMm`, all parts\n"+
 			"optional [default: 0m]")
 	fs.StringVar(&sc.maxRuntimeStr, "max-runtime", "",
 		"Select jobs with elapsed time at most this, format `WwDdHhMm`, all parts\n"+
-			"optional [default: 0m]")
-	fs.UintVar(&sc.MinReservedMem, "min-reserved-mem", defaultMinReservedMem,
+			"optional [default: no max]")
+	fs.UintVar(&sc.MinReservedMem, "min-reserved-mem", 0,
 		"Select jobs with reserved memory at least this (GB)")
 	fs.UintVar(&sc.MaxReservedMem, "max-reserved-mem", 0,
 		"Select jobs with reserved memory at most this (GB)")
-	fs.UintVar(&sc.MinReservedCores, "min-reserved-cores", defaultMinReservedCores,
+	fs.UintVar(&sc.MinReservedCores, "min-reserved-cores", 0,
 		"Select jobs with reserved cores (cpus * nodes) at least this")
 	fs.UintVar(&sc.MaxReservedCores, "max-reserved-cores", 0,
 		"Select jobs with reserved cores (cpus * nodes) at most this")
@@ -120,10 +114,6 @@ func (sc *SacctCommand) Validate() error {
 	)
 	sc.MinRuntime, e7 = DurationToSeconds("-min-runtime", sc.minRuntimeStr)
 	sc.MaxRuntime, e8 = DurationToSeconds("-max-runtime", sc.maxRuntimeStr)
-
-	if sc.minRuntimeStr == "" {
-		sc.MinRuntime = defaultMinRuntime
-	}
 
 	if sc.All {
 		sc.MinRuntime = 0
