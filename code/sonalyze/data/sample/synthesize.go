@@ -1,5 +1,13 @@
 // Logic for merging sample streams.
 
+// In general, the Merge*() functions will return a slice-of-slices where the slices may be
+// manipulated and changed freely, as may the data except for the leaf values representing
+// db/repr/Sample values.  However, in some cases storage for the inner slices will be shared with
+// the values in the input InputStreamSet, and if the inner slices of the InputStreamSet values are
+// updated after the merge operation this must be taken into account.
+//
+// The safest pattern is that the InputStreamSets are consumed by the Merge*() functions.
+
 package sample
 
 import (
