@@ -15,6 +15,11 @@ func init() {
 	filedb.SampleRectifier = standardSampleRectifier
 }
 
+// Read data and bucket them in InputStreams.  The caller receives ownership of the InputStreamSet.
+// The spines of the data structures may be modified, but the ultimate repr.Sample value is owned by
+// the database and is read-only.  Any augmentation must be added in the wrapping sample.Sample
+// object.
+//
 // TODO: OPTIMIZEME: We can do more here now that we implement caching.  It will be possible (indeed
 // desirable) to preprocess the cached data as much as possible so that all we need to do in
 // createInputStreams (or later) is stitch streams together and resolve issues at the joins, and
