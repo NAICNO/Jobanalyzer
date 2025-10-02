@@ -72,6 +72,7 @@ type FormatOptions struct {
 	Named      bool   // csvnamed explicitly requested
 	Header     bool   // true if nothing requested b/c fixed+header is default
 	NoDefaults bool   // if true and the string returned is "*skip*" and the mode is csv or json then print nothing
+	Separator  bool   // for some commands, print a separator between natural runs in the output
 }
 
 func (fo *FormatOptions) IsDefaultFormat() bool {
@@ -207,6 +208,7 @@ func StandardFormatOptions(others map[string]bool, def DefaultFormat) *FormatOpt
 	awk := others["awk"] && !csv && !json
 	fixed := others["fixed"] && !csv && !json && !awk
 	nodefaults := others["nodefaults"]
+	separator := others["separator"]
 	tag := ""
 	for x := range others {
 		if strings.HasPrefix(x, "tag:") {
@@ -235,6 +237,7 @@ func StandardFormatOptions(others map[string]bool, def DefaultFormat) *FormatOpt
 		Header:     header,
 		Tag:        tag,
 		Named:      csvnamed,
+		Separator:  separator,
 		NoDefaults: nodefaults,
 	}
 }
@@ -459,7 +462,7 @@ func formatJson(unbufOut io.Writer, fields []FieldSpec, opts *FormatOptions, col
 		fmt.Fprint(out, s.String())
 		rowSep = ","
 	}
-	fmt.Fprint(out, "]")
+	fmt.Fprintln(out, "]")
 }
 
 // TODO: IMPROVEME: Maybe handle control characters and other gunk better?

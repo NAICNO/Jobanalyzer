@@ -155,6 +155,8 @@ Summary of control options:
   header      print a header line (not for json)
   nodefaults  do not print fields that have default (zero/blank) values
   noheader    do not print a header line
+  separator   for some commands, print a '*' separator line between natural
+              runs in the output
   tag:<value> print a column called "tag" last with <value> in every row
 
 Summary of print modifiers and formats:
