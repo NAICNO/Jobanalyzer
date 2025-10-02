@@ -359,7 +359,7 @@ func requestPreamble(
 	}
 
 	clusterValues, found := r.URL.Query()["cluster"]
-	if command != "cluster" {
+	if command != "cluster" && command != "version" {
 		if !found || len(clusterValues) != 1 || clusterValues[0] == "" {
 			w.WriteHeader(400)
 			fmt.Fprintf(w, "Bad parameters - missing or empty or repeated 'cluster'")
