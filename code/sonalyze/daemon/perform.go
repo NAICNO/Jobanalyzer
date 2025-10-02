@@ -101,6 +101,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	http.HandleFunc("/spart", httpGetHandler(dc, "spart"))
 	// Omitting `top` for now because it is very limited.
 	http.HandleFunc("/uptime", httpGetHandler(dc, "uptime"))
+	http.HandleFunc("/version", httpGetHandler(dc, "version"))
 	if !dc.noAdd {
 		// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
 		// upload infra already running on the clusters.  We'd like to get rid of them eventually.
@@ -162,6 +163,8 @@ func httpGetHandler(
 			)
 		case "config":
 			// Nothing, we add the config-file below
+		case "version":
+			// Nothing at all
 		default:
 			arguments = append(
 				arguments,
@@ -202,7 +205,7 @@ func httpGetHandler(
 
 		// Everyone except `cluster` and `report` gets a config, which they will need for caching
 		// things properly.
-		if command != "cluster" && command != "report" {
+		if command != "cluster" && command != "report" && command != "version" {
 			arguments = append(
 				arguments,
 				"--config-file",

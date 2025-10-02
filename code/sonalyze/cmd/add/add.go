@@ -19,7 +19,7 @@ import (
 	"sonalyze/db/special"
 )
 
-type AddCommand struct /* implements RemotableCommand */ {
+type AddCommand struct {
 	DevArgs
 	VerboseArgs
 	DataDirArgs
@@ -29,6 +29,8 @@ type AddCommand struct /* implements RemotableCommand */ {
 	Sysinfo    bool
 	SlurmSacct bool
 }
+
+var _ = (RemotableCommand)((*AddCommand)(nil))
 
 //go:embed summary.txt
 var summary string
