@@ -8,7 +8,6 @@ import (
 	"slices"
 
 	"go-utils/config"
-	"go-utils/maps"
 	uslices "go-utils/slices"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
@@ -158,7 +157,7 @@ func (pc *ParseCommand) Perform(
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
-	var mergedSamples []*sample.SampleStream
+	var mergedSamples []sample.SampleStream
 	var samples sample.SampleStream
 
 	if pc.Clean || pc.MergeByJob || pc.MergeByHostAndJob {
@@ -190,7 +189,10 @@ func (pc *ParseCommand) Perform(
 
 		switch {
 		case pc.Clean:
-			mergedSamples = maps.Values(streams)
+			mergedSamples = make([]sample.SampleStream, 0, len(streams))
+			for _, v := range streams {
+				mergedSamples = append(mergedSamples, *v)
+			}
 
 		case pc.MergeByJob:
 			mergedSamples, _ = sample.MergeByJob(streams, bounds)
@@ -234,21 +236,21 @@ func (pc *ParseCommand) Perform(
 
 	if mergedSamples != nil {
 		// All elements that are part of the InputStreamKey must be part of the sort key here.
-		slices.SortStableFunc(mergedSamples, func(a, b *sample.SampleStream) int {
-			c := cmp.Compare((*a)[0].Hostname.String(), (*b)[0].Hostname.String())
+		slices.SortStableFunc(mergedSamples, func(a, b sample.SampleStream) int {
+			c := cmp.Compare(a[0].Hostname.String(), b[0].Hostname.String())
 			if c == 0 {
-				c = cmp.Compare((*a)[0].Timestamp, (*b)[0].Timestamp)
+				c = cmp.Compare(a[0].Timestamp, b[0].Timestamp)
 				if c == 0 {
-					c = cmp.Compare((*a)[0].Job, (*b)[0].Job)
+					c = cmp.Compare(a[0].Job, b[0].Job)
 					if c == 0 {
-						c = cmp.Compare((*a)[0].Cmd.String(), (*b)[0].Cmd.String())
+						c = cmp.Compare(a[0].Cmd.String(), b[0].Cmd.String())
 					}
 				}
 			}
 			return c
 		})
 		for _, stream := range mergedSamples {
-			xs := *stream
+			xs := stream
 			if queryNeg != nil {
 				xs = slices.DeleteFunc(xs, queryNeg)
 			}

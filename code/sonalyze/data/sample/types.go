@@ -22,7 +22,9 @@ type SampleStream []Sample
 // A bag of streams.  The constraints on the individual streams in terms of uniqueness and so on
 // depends on how they were merged and are not implied by the type.
 
-type SampleStreams []*SampleStream
+type SampleStreams []SampleStream
+
+type indirectStreams []*SampleStream
 
 var (
 	// MT: Constant after initialization; immutable
