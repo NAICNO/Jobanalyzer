@@ -284,7 +284,7 @@ func (pc *PersistentCluster) findFilenames(
 	return Filenames(files), nil
 }
 
-func (pc *PersistentCluster) ReadSamples(
+func (pc *PersistentCluster) ReadProcessSamples(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
 	verbose bool,

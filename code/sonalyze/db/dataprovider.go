@@ -42,7 +42,7 @@ type SampleDataProvider interface {
 }
 
 type ProcessSampleDataProvider interface {
-	ReadSamples(
+	ReadProcessSamples(
 		fromDate, toDate time.Time,
 		hosts *Hosts,
 		verbose bool,

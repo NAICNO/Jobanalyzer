@@ -37,7 +37,7 @@ func ReadSampleStreamsAndMaybeBounds(
 	read, dropped int,
 	err error,
 ) {
-	sampleBlobs, dropped, err := c.ReadSamples(fromDate, toDate, hostGlobber, verbose)
+	sampleBlobs, dropped, err := c.ReadProcessSamples(fromDate, toDate, hostGlobber, verbose)
 	if err != nil {
 		return
 	}

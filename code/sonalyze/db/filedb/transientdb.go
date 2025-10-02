@@ -81,7 +81,7 @@ func (tsc *TransientSampleCluster) SampleFilenames(
 	return tsc.Filenames()
 }
 
-func (tsc *TransientSampleCluster) ReadSamples(
+func (tsc *TransientSampleCluster) ReadProcessSamples(
 	_, _ time.Time,
 	_ *Hosts,
 	verbose bool,

@@ -200,7 +200,7 @@ func (pc *ParseCommand) Perform(
 		}
 	} else {
 		// Bypass postprocessing to get the expected raw values.
-		recordBlobs, dropped, err := theDb.ReadSamples(pc.FromDate, pc.ToDate, hosts, pc.Verbose)
+		recordBlobs, dropped, err := theDb.ReadProcessSamples(pc.FromDate, pc.ToDate, hosts, pc.Verbose)
 		if err != nil {
 			return fmt.Errorf("Failed to read log records: %v", err)
 		}
