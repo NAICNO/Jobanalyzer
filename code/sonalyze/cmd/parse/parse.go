@@ -97,6 +97,7 @@ type ParseCommand struct /* implements SampleAnalysisCommand */ {
 	MergeByHostAndJob bool
 	MergeByJob        bool
 	Clean             bool
+	LastN             uint
 }
 
 var _ SampleAnalysisCommand = (*ParseCommand)(nil)
@@ -112,6 +113,10 @@ func (pc *ParseCommand) Add(fs *CLI) {
 		"Merge streams that have the same job ID, across hosts")
 	fs.BoolVar(&pc.Clean, "clean", false,
 		"Clean the job but perform no merging")
+
+	fs.Group("printing")
+	fs.UintVar(&pc.LastN, "last", 0,
+		"Show only the most recent `n` records for merged and cleaned jobs, 0=all")
 }
 
 func (pc *ParseCommand) ReifyForRemote(x *ArgReifier) error {
@@ -126,7 +131,12 @@ func (pc *ParseCommand) ReifyForRemote(x *ArgReifier) error {
 }
 
 func (pc *ParseCommand) Validate() error {
+	var e1 error
+	if pc.LastN > 0 && (!pc.MergeByHostAndJob && !pc.MergeByJob && !pc.Clean) {
+		e1 = errors.New("-last requires a merge/clean option")
+	}
 	return errors.Join(
+		e1,
 		pc.SampleAnalysisArgs.Validate(),
 		ValidateFormatArgs(
 			&pc.FormatArgs, parseDefaultFields, parseFormatters, parseAliases, DefaultCsv),
@@ -235,6 +245,15 @@ func (pc *ParseCommand) Perform(
 	}
 
 	if mergedSamples != nil {
+		if pc.LastN > 0 {
+			// The samples are already sorted by time, so pick the last of each run.
+			for i := range mergedSamples {
+				if len(mergedSamples[i]) > int(pc.LastN) {
+					mergedSamples[i] = mergedSamples[i][len(mergedSamples[i])-int(pc.LastN):]
+				}
+			}
+		}
+
 		// All elements that are part of the InputStreamKey must be part of the sort key here.
 		slices.SortStableFunc(mergedSamples, func(a, b sample.SampleStream) int {
 			c := cmp.Compare(a[0].Hostname.String(), b[0].Hostname.String())
