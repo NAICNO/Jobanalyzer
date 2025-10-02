@@ -86,7 +86,7 @@ func (tsc *TransientSampleCluster) ReadProcessSamples(
 	_ *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
-	return ReadSampleSlice(tsc.files, verbose, tsc.samplesMethods)
+	return readProcessSampleSlice(tsc.files, verbose, tsc.samplesMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadNodeSamples(
@@ -94,7 +94,7 @@ func (tsc *TransientSampleCluster) ReadNodeSamples(
 	_ *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*repr.NodeSample, dropped int, err error) {
-	return ReadNodeSampleSlice(tsc.files, verbose, tsc.nodeSamplesMethods)
+	return readNodeSampleSlice(tsc.files, verbose, tsc.nodeSamplesMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadCpuSamples(
@@ -102,7 +102,7 @@ func (tsc *TransientSampleCluster) ReadCpuSamples(
 	_ *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*repr.CpuSamples, dropped int, err error) {
-	return ReadCpuSamplesSlice(tsc.files, verbose, tsc.loadDataMethods)
+	return readCpuSamplesSlice(tsc.files, verbose, tsc.loadDataMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadGpuSamples(
@@ -110,7 +110,7 @@ func (tsc *TransientSampleCluster) ReadGpuSamples(
 	_ *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*repr.GpuSamples, dropped int, err error) {
-	return ReadGpuSamplesSlice(tsc.files, verbose, tsc.gpuDataMethods)
+	return readGpuSamplesSlice(tsc.files, verbose, tsc.gpuDataMethods)
 }
 
 type TransientSacctCluster struct /* implements SacctCluster */ {

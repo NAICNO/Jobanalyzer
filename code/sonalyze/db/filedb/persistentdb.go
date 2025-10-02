@@ -295,7 +295,7 @@ func (pc *PersistentCluster) ReadProcessSamples(
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.samplesMethods,
-		ReadSampleSlice,
+		readProcessSampleSlice,
 	)
 }
 
@@ -310,7 +310,7 @@ func (pc *PersistentCluster) ReadNodeSamples(
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.nodeSamplesMethods,
-		ReadNodeSampleSlice,
+		readNodeSampleSlice,
 	)
 }
 
@@ -325,7 +325,7 @@ func (pc *PersistentCluster) ReadCpuSamples(
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.loadDataMethods,
-		ReadCpuSamplesSlice,
+		readCpuSamplesSlice,
 	)
 }
 
@@ -340,7 +340,7 @@ func (pc *PersistentCluster) ReadGpuSamples(
 	}
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.gpuDataMethods,
-		ReadGpuSamplesSlice,
+		readGpuSamplesSlice,
 	)
 }
 

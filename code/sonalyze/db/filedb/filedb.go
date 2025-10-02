@@ -155,7 +155,7 @@ func init() {
 // a typesafe container that can be iterated over, esp in Go 1.23 or later.  But even defining a
 // type a la ResultSet[T] and returning that would help, probably.
 
-func ReadRecordsFromFiles[T any](
+func readRecordsFromFiles[T any](
 	files []*LogFile,
 	verbose bool,
 	reader ReadSyncMethods,

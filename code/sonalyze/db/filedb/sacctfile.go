@@ -63,5 +63,5 @@ func ReadSacctSlice(
 	verbose bool,
 	reader ReadSyncMethods,
 ) ([]sacctPayloadType, int, error) {
-	return ReadRecordsFromFiles[repr.SacctInfo](files, verbose, reader)
+	return readRecordsFromFiles[repr.SacctInfo](files, verbose, reader)
 }
