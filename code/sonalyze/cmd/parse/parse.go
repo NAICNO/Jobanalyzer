@@ -127,6 +127,9 @@ func (pc *ParseCommand) ReifyForRemote(x *ArgReifier) error {
 	x.Bool("merge-by-host-and-job", pc.MergeByHostAndJob)
 	x.Bool("merge-by-job", pc.MergeByJob)
 	x.Bool("clean", pc.Clean)
+	if pc.LastN > 0 {
+		x.Uint("last", pc.LastN)
+	}
 	return e1
 }
 
