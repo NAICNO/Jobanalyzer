@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"go-utils/config"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
@@ -13,19 +14,43 @@ import (
 
 var theDB *PersistentCluster
 
+type myMeta struct {
+	cfg *config.ClusterConfig
+}
+
+func (mm *myMeta) ClusterName() string {
+	return "mlx.hpc.uio.no"
+}
+
+func (mm *myMeta) SetDataProvider(_ any) {
+	panic("NYI")
+}
+
+func (mm *myMeta) ExcludedUsers() []string {
+	return mm.cfg.ExcludeUser
+}
+
+func (mm *myMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string {
+	return mm.cfg.HostsDefinedInTimeWindow(fromIncl, toIncl)
+}
+
+func (mm *myMeta) LookupHostByTime(host string, time int64) *config.NodeConfigRecord {
+	return mm.cfg.LookupHost(host)
+}
+
 func getPersistentDB(t *testing.T, cluster string) *PersistentCluster {
 	if theDB != nil {
 		return theDB
 	}
 	var err error
-	theCfg, err := special.ReadConfigData(special.MakeConfigFilePath("testdata", cluster))
+	theCfg, err := special.MaybeGetConfig(special.MakeConfigFilePath("testdata", cluster))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if theCfg == nil {
 		t.Fatal("nil config")
 	}
-	theDB = NewPersistentCluster(special.MakeClusterDataPath("testdata", cluster), theCfg)
+	theDB = NewPersistentCluster(special.MakeClusterDataPath("testdata", cluster), &myMeta{cfg: theCfg})
 	return theDB
 }
 

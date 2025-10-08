@@ -53,7 +53,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 		}
 		for clusterName, _ := range clusters {
 			cfgPath := special.MakeConfigFilePath(dc.jobanalyzerDir, clusterName)
-			cfg, err := special.MaybeGetConfig(cfgPath)
+			meta := NewMetaFromNames(clusterName, cfgPath)
 			if err != nil {
 				if dc.Verbose {
 					Log.Warningf("Failed to find config file for %s: %s %v", clusterName, cfgPath, err)
@@ -61,13 +61,14 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 				continue
 			}
 			dataDir := special.MakeClusterDataPath(dc.jobanalyzerDir, clusterName)
-			ds, err := db.OpenAppendablePersistentDirectoryDB(dataDir, cfg)
+			ds, err := db.OpenAppendablePersistentDirectoryDB(meta, dataDir)
 			if err != nil {
 				if dc.Verbose {
 					Log.Warningf("Failed to open data store for %s", clusterName)
 				}
 				continue
 			}
+			meta.SetDataProvider(ds)
 			if dc.Verbose {
 				Log.Infof("Starting listener for %s", clusterName)
 			}
