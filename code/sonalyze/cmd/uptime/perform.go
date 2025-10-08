@@ -46,13 +46,13 @@ import (
 	"io"
 	"slices"
 
-	"go-utils/config"
 	"go-utils/maps"
 	uslices "go-utils/slices"
 
 	. "sonalyze/common"
 	"sonalyze/data/sample"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -63,7 +63,7 @@ type window struct {
 
 func (uc *UptimeCommand) Perform(
 	out io.Writer,
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	theDb db.SampleDataProvider,
 	filter sample.QueryFilter,
 	hosts *Hosts,
@@ -100,7 +100,7 @@ func (uc *UptimeCommand) Perform(
 		Log.Infof("%d streams", len(streams))
 		Log.Infof("%d records after hack", len(samples))
 	}
-	return uc.printReports(out, uc.computeReports(samples, bounds, cfg, hosts))
+	return uc.printReports(out, uc.computeReports(samples, bounds, meta, hosts))
 }
 
 // Compute up/down reports for all selected hosts within the time window.  The result will not be
@@ -109,7 +109,7 @@ func (uc *UptimeCommand) Perform(
 func (uc *UptimeCommand) computeReports(
 	samples sample.SampleStream,
 	bounds Timebounds,
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	hostGlobber *Hosts,
 ) []*UptimeLine {
 	reports := make([]*UptimeLine, 0)
@@ -122,7 +122,7 @@ func (uc *UptimeCommand) computeReports(
 		return cmp.Compare(a.Timestamp, b.Timestamp)
 	})
 
-	uc.computeAlwaysDown(&reports, samples, cfg, hostGlobber, fromIncl, toIncl)
+	uc.computeAlwaysDown(&reports, samples, meta, hostGlobber, fromIncl, toIncl)
 
 	hostUpWindows := make([]window, 0)
 	cutoff := int64(uc.Interval) * 60 * 2
@@ -307,15 +307,18 @@ func (uc *UptimeCommand) computeHostWindows(
 func (uc *UptimeCommand) computeAlwaysDown(
 	reports *[]*UptimeLine,
 	samples sample.SampleStream,
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	hosts *Hosts,
 	fromIncl, toIncl int64,
 ) {
-	if !uc.OnlyUp && cfg != nil {
+	if !uc.OnlyUp {
 		hostGlobber := hosts.HostnameGlobber()
 		hs := make(map[Ustr]bool)
-		for _, h := range cfg.HostsDefinedInTimeWindow(fromIncl, toIncl) {
+		for _, h := range meta.HostsDefinedInTimeWindow(fromIncl, toIncl) {
 			hs[StringToUstr(h)] = true
+		}
+		if len(hs) == 0 {
+			return
 		}
 		for _, sample := range samples {
 			delete(hs, sample.Hostname)

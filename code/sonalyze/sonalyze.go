@@ -249,13 +249,16 @@ func (_ *standardCommandLineHandler) HandleCommand(
 	stdin io.Reader,
 	stdout, stderr io.Writer,
 ) error {
-	switch command := anyCmd.(type) {
-	case *daemon.DaemonCommand:
+	if command, ok := anyCmd.(*daemon.DaemonCommand); ok {
 		return command.RunDaemon(stdin, stdout, stderr)
+	}
+
+	meta := cmd.NewMeta(anyCmd)
+	switch command := anyCmd.(type) {
 	case cmd.SampleAnalysisCommand:
-		return application.LocalSampleOperation(command, stdin, stdout, stderr)
+		return application.LocalSampleOperation(meta, command, stdin, stdout, stderr)
 	case cmd.SimpleCommand:
-		return command.Perform(stdin, stdout, stderr)
+		return command.Perform(meta, stdin, stdout, stderr)
 	default:
 		return errors.New("NYI command")
 	}

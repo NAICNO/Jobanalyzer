@@ -12,6 +12,7 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/db/special"
 )
 
 type ReportCommand struct {
@@ -22,7 +23,7 @@ type ReportCommand struct {
 	ReportName string // This must be a plain filename
 }
 
-var _ = (SimpleCommand)((*ReportCommand)(nil))
+var _ = SimpleCommand((*ReportCommand)(nil))
 
 //go:embed summary.txt
 var summary string
@@ -84,7 +85,7 @@ func (rc *ReportCommand) Validate() error {
 	)
 }
 
-func (rc *ReportCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
+func (rc *ReportCommand) Perform(_ special.ClusterMeta, _ io.Reader, stdout, _ io.Writer) error {
 	// ReportDir will have a value that is safe if from remote invocation
 	// ReportName will have a safe value
 	fn := path.Join(rc.ReportDir, rc.ReportName)

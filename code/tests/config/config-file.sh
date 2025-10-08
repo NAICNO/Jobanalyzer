@@ -1,5 +1,10 @@
 # Misc tests for config files
 
+# No longer relevant - we do not have config files.
+# TODO: Clean up permanently
+
+exit 0
+
 # The Go and Rust implementations have diverging error messages, hence a little complexity here.
 
 # The data for ML4 says we have 20 cores, and the first input record says 1714.2% CPU used, so that

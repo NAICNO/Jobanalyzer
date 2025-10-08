@@ -13,7 +13,7 @@ func testSimpleCommand(t *testing.T, command cmd.SimpleCommand, fields string, e
 		t.Fatal(err)
 	}
 	var stdout strings.Builder
-	err = command.Perform(nil, &stdout, nil)
+	err = command.Perform(cmd.NewMeta(command), nil, &stdout, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func testSampleAnalysisCommand(t *testing.T, command cmd.SampleAnalysisCommand, 
 		t.Fatal(err)
 	}
 	var stdout, stderr strings.Builder
-	err = LocalSampleOperation(command, nil, &stdout, &stderr)
+	err = LocalSampleOperation(cmd.NewMeta(command), command, nil, &stdout, &stderr)
 	if err != nil {
 		t.Fatal(err)
 	}

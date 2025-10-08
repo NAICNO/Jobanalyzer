@@ -127,7 +127,7 @@ func ReadClusterData(
 
 	// Find descriptions for known clusters.
 	for c, v := range clusters {
-		cfg, err := ReadConfigData(MakeConfigFilePath(jobanalyzerDir, c))
+		cfg, err := MaybeGetConfig(MakeConfigFilePath(jobanalyzerDir, c))
 		if err != nil {
 			continue
 		}

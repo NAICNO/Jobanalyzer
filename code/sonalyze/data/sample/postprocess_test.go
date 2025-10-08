@@ -13,30 +13,60 @@ import (
 	"sonalyze/db/repr"
 )
 
+type myMeta struct {
+	cfg *config.ClusterConfig
+}
+
+func (mm *myMeta) ClusterName() string {
+	return "mlx.hpc.uio.no"
+}
+
+func (mm *myMeta) SetDataProvider(_ any) {
+	panic("NYI")
+}
+
+func (mm *myMeta) ExcludedUsers() []string {
+	return mm.cfg.ExcludeUser
+}
+
+func (mm *myMeta) HasCrossNodeJobs() bool {
+	return mm.cfg.HasCrossNodeJobs()
+}
+
+func (mm *myMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string {
+	return mm.cfg.HostsDefinedInTimeWindow(fromIncl, toIncl)
+}
+
+func (mm *myMeta) LookupHostByTime(host string, time int64) *config.NodeConfigRecord {
+	return mm.cfg.LookupHost(host)
+}
+
 func TestRectifyGpuMem(t *testing.T) {
 	// The input file has gpukib fields, but by using a config that says to use gpumem% instead we
 	// should force the values in the record to something else.
 	memsize := 400
 	numcards := 1
-	cfg := config.NewClusterConfig(
-		2,
-		"Test",
-		"Test",
-		[]string{},
-		[]string{},
-		[]*config.NodeConfigRecord{
-			&config.NodeConfigRecord{
-				Timestamp: "2024-06-12T11:20:00+02.00",
-				Hostname:  "ml4.hpc.uio.no",
-				GpuMemPct: true,
-				GpuCards:  numcards,
-				GpuMemGB:  memsize,
+	meta := &myMeta{
+		cfg: config.NewClusterConfig(
+			2,
+			"Test",
+			"Test",
+			[]string{},
+			[]string{},
+			[]*config.NodeConfigRecord{
+				&config.NodeConfigRecord{
+					Timestamp: "2024-06-12T11:20:00+02.00",
+					Hostname:  "ml4.hpc.uio.no",
+					GpuMemPct: true,
+					GpuCards:  numcards,
+					GpuMemGB:  memsize,
+				},
 			},
-		},
-	)
+		),
+	}
 	c, err := db.OpenFileListSampleDB(
+		meta,
 		[]string{"../../../tests/sonarlog/whitebox-logclean.csv"},
-		cfg,
 	)
 	if err != nil {
 		t.Fatal(err)

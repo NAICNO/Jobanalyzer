@@ -30,7 +30,8 @@ type AddCommand struct {
 	SlurmSacct bool
 }
 
-var _ = (RemotableCommand)((*AddCommand)(nil))
+var _ = RemotableCommand((*AddCommand)(nil))
+var _ = SimpleCommand((*AddCommand)(nil))
 
 //go:embed summary.txt
 var summary string
@@ -98,24 +99,24 @@ func (ac *AddCommand) ReifyForRemote(x *ArgReifier) error {
 	return e1
 }
 
-func (ac *AddCommand) Perform(stdin io.Reader, _, _ io.Writer) error {
+func (ac *AddCommand) Perform(meta special.ClusterMeta, stdin io.Reader, _, _ io.Writer) error {
 	data, err := io.ReadAll(stdin)
 	if err != nil {
 		return err
 	}
 	switch {
 	case ac.Sample:
-		return ac.addSonarFreeCsv(data)
+		return ac.addSonarFreeCsv(meta, data)
 	case ac.Sysinfo:
-		return ac.addSysinfo(data)
+		return ac.addSysinfo(meta, data)
 	case ac.SlurmSacct:
-		return ac.addSlurmSacctFreeCsv(data)
+		return ac.addSlurmSacctFreeCsv(meta, data)
 	default:
 		panic("Unexpected")
 	}
 }
 
-func (ac *AddCommand) addSysinfo(payload []byte) error {
+func (ac *AddCommand) addSysinfo(meta special.ClusterMeta, payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sysinfo record %d bytes", len(payload))
 	}
@@ -129,15 +130,12 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 		// TODO: IMPROVEME: Benign if timestamp missing?
 		return errors.New("Missing timestamp or host in Sonar sysinfo data")
 	}
-	cfg, err := special.MaybeGetConfig(ac.ConfigFile())
-	if err != nil {
-		return err
-	}
-	ds, err := db.OpenAppendablePersistentDirectoryDB(ac.DataDir, cfg)
+	ds, err := db.OpenAppendablePersistentDirectoryDB(meta, ac.DataDir)
 	if err != nil {
 		return err
 	}
 	defer ds.FlushAsync()
+	meta.SetDataProvider(ds)
 	err = ds.AppendSysinfoAsync(db.DataSysinfoOldJSON, info.Hostname, info.Timestamp, payload)
 	if err == sample.BadTimestampErr {
 		return nil
@@ -145,19 +143,16 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 	return err
 }
 
-func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
+func (ac *AddCommand) addSonarFreeCsv(meta special.ClusterMeta, payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sample records %d bytes", len(payload))
 	}
-	cfg, err := special.MaybeGetConfig(ac.ConfigFile())
-	if err != nil {
-		return err
-	}
-	ds, err := db.OpenAppendablePersistentDirectoryDB(ac.DataDir, cfg)
+	ds, err := db.OpenAppendablePersistentDirectoryDB(meta, ac.DataDir)
 	if err != nil {
 		return err
 	}
 	defer ds.FlushAsync()
+	meta.SetDataProvider(ds)
 	count := 0
 	scanner := bufio.NewScanner(bytes.NewReader(payload))
 	var result error
@@ -185,19 +180,16 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 	return result
 }
 
-func (ac *AddCommand) addSlurmSacctFreeCsv(payload []byte) error {
+func (ac *AddCommand) addSlurmSacctFreeCsv(meta special.ClusterMeta, payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sacct records %d bytes", len(payload))
 	}
-	cfg, err := special.MaybeGetConfig(ac.ConfigFile())
-	if err != nil {
-		return err
-	}
-	ds, err := db.OpenAppendablePersistentDirectoryDB(ac.DataDir, cfg)
+	ds, err := db.OpenAppendablePersistentDirectoryDB(meta, ac.DataDir)
 	if err != nil {
 		return err
 	}
 	defer ds.FlushAsync()
+	meta.SetDataProvider(ds)
 	count := 0
 	scanner := bufio.NewScanner(bytes.NewReader(payload))
 	var result error

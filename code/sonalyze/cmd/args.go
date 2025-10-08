@@ -162,6 +162,10 @@ func (va *RemotingArgs) RemotingFlags() *RemotingArgsNoCluster {
 	return &va.RemotingArgsNoCluster
 }
 
+func (va *RemotingArgs) ClusterName() string {
+	return va.Cluster
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // SourceArgs pertain to source file location and initial filtering-by-location, though the

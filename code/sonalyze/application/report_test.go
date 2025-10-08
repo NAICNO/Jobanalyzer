@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"sonalyze/cmd"
 	"sonalyze/cmd/report"
 )
 
@@ -20,7 +21,7 @@ func TestReport(t *testing.T) {
 		t.Fatal(err)
 	}
 	var stdout strings.Builder
-	err = rc.Perform(nil, &stdout, nil)
+	err = rc.Perform(cmd.NewMeta(&rc), nil, &stdout, nil)
 	lines := strings.Split(stdout.String(), "\n")
 	if len(lines) != len(expect) {
 		t.Fatalf("Length: got %d", len(lines))

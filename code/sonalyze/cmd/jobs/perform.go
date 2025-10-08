@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"go-utils/config"
 	"go-utils/gpuset"
 	"go-utils/sonalyze"
 
@@ -18,6 +17,7 @@ import (
 	"sonalyze/data/slurmjob"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -104,7 +104,7 @@ type jobAggregate struct {
 
 func (jc *JobsCommand) Perform(
 	out io.Writer,
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	theDb db.SampleDataProvider,
 	filter sample.QueryFilter,
 	hosts *Hosts,
@@ -139,13 +139,13 @@ func (jc *JobsCommand) Perform(
 
 	if NeedsConfig(jobsFormatters, jc.PrintFields) {
 		var err error
-		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
+		streams, err = EnsureConfigForInputStreams(meta, streams, "relative format arguments")
 		if err != nil {
 			return err
 		}
 	}
 
-	summaries := jc.aggregateAndFilterJobs(cfg, theDb, streams, bounds)
+	summaries := jc.aggregateAndFilterJobs(meta, theDb, streams, bounds)
 	if jc.Verbose {
 		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
@@ -193,22 +193,19 @@ func (nt *nameTester) testName(name string) {
 // otherwise if there is no config we do not merge.
 
 func (jc *JobsCommand) aggregateAndFilterJobs(
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	theDb db.SampleDataProvider,
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) []*jobSummary {
 	var now = time.Now().UTC().Unix()
-	var anyMergeableNodes bool
-	if !jc.MergeNone && cfg != nil {
-		anyMergeableNodes = cfg.HasCrossNodeJobs()
-	}
+	anyMergeableNodes := !jc.MergeNone && meta.HasCrossNodeJobs()
 
 	var jobs sample.SampleStreams
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
 	} else if anyMergeableNodes {
-		jobs, bounds = mergeAcrossSomeNodes(cfg, streams, bounds)
+		jobs, bounds = mergeAcrossSomeNodes(meta, streams, bounds)
 	} else {
 		jobs = sample.MergeByHostAndJob(streams)
 	}
@@ -216,7 +213,12 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		Log.Infof("Jobs constructed by merging: %d", len(jobs))
 	}
 
-	summaryFilter, slurmFilter := jc.buildFilters(cfg)
+	// TODO: This will likely bite back at some point but I don't know what to do about it yet.
+	// Previously, this condition was cfg != nil but that doesn't really make sense any longer.
+	// What we really want is to know whether we have base data for a relative determination on a
+	// given host but buildFilters does not operate on that level.
+	canHandleRelative := true
+	summaryFilter, slurmFilter := jc.buildFilters(canHandleRelative)
 
 	summaries := make([]*jobSummary, 0)
 	minSamples := jc.lookupUint("min-samples")
@@ -245,7 +247,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 			first := job[0].Timestamp
 			last := job[len(job)-1].Timestamp
 			duration := last - first
-			aggregate := jc.aggregateJob(cfg, host, job, nt.needCmd, nt.needHosts, jc.Zombie)
+			aggregate := jc.aggregateJob(meta, host, job, nt.needCmd, nt.needHosts, jc.Zombie)
 			aggregate.computed[kDuration] = float64(duration)
 			usesGpu := !aggregate.Gpus.IsEmpty()
 			flags := 0
@@ -433,7 +435,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 // jobs are combined into one set.
 
 func mergeAcrossSomeNodes(
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) (sample.SampleStreams, Timebounds) {
@@ -443,7 +445,7 @@ func mergeAcrossSomeNodes(
 	sBounds := make(Timebounds)
 	for k, v := range streams {
 		bound := bounds[k.Host]
-		if sys := cfg.LookupHost(k.Host.String()); sys != nil && sys.CrossNodeJobs {
+		if sys := meta.LookupHostByTime(k.Host.String(), (*v)[0].Timestamp); sys != nil && sys.CrossNodeJobs {
 			mBounds[k.Host] = bound
 			mergeable[k] = v
 		} else {
@@ -465,7 +467,7 @@ func mergeAcrossSomeNodes(
 // entries.
 
 func (jc *JobsCommand) aggregateJob(
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	host Ustr,
 	job sample.SampleStream,
 	needCmd, needHosts, needZombie bool,
@@ -513,39 +515,37 @@ func (jc *JobsCommand) aggregateJob(
 	}
 	usesGpu := !gpus.IsEmpty()
 
-	if cfg != nil {
-		if sys := cfg.LookupHost(host.String()); sys != nil {
-			// Quantities can be zero in surprising ways, so always guard divisions
-			if cores := float64(sys.CpuCores); cores > 0 {
-				rCpuPctAvg = cpuPctAvg / cores
-				rCpuPctPeak = cpuPctPeak / cores
-			}
-			if memory := float64(sys.MemGB); memory > 0 {
-				rCpuGBAvg = (cpuGBAvg * 100) / memory
-				rCpuGBPeak = (cpuGBPeak * 100) / memory
-				rRssAnonGBAvg = (rssAnonGBAvg * 100) / memory
-				rRssAnonGBPeak = (rssAnonGBPeak * 100) / memory
-			}
+	if sys := meta.LookupHostByTime(host.String(), job[0].Timestamp); sys != nil {
+		// Quantities can be zero in surprising ways, so always guard divisions
+		if cores := float64(sys.CpuCores); cores > 0 {
+			rCpuPctAvg = cpuPctAvg / cores
+			rCpuPctPeak = cpuPctPeak / cores
+		}
+		if memory := float64(sys.MemGB); memory > 0 {
+			rCpuGBAvg = (cpuGBAvg * 100) / memory
+			rCpuGBPeak = (cpuGBPeak * 100) / memory
+			rRssAnonGBAvg = (rssAnonGBAvg * 100) / memory
+			rRssAnonGBPeak = (rssAnonGBPeak * 100) / memory
+		}
+		if gpuCards := float64(sys.GpuCards); gpuCards > 0 {
+			rGpuPctAvg = gpuPctAvg / gpuCards
+			rGpuPctPeak = gpuPctPeak / gpuCards
+		}
+		if gpuMemory := float64(sys.GpuMemGB); gpuMemory > 0 {
+			// As we have a config, logclean will have computed proper GPU memory values for the
+			// job, so we need not look to sys.GpuMemPct here.
+			rGpuGBAvg = (gpuGBAvg * 100) / gpuMemory
+			rGpuGBPeak = (gpuGBPeak * 100) / gpuMemory
+		}
+		if usesGpu && !gpus.IsUnknown() {
+			nCards := float64(gpus.Size())
+			sGpuPctAvg = gpuPctAvg / nCards
+			sGpuPctPeak = gpuPctPeak / nCards
 			if gpuCards := float64(sys.GpuCards); gpuCards > 0 {
-				rGpuPctAvg = gpuPctAvg / gpuCards
-				rGpuPctPeak = gpuPctPeak / gpuCards
-			}
-			if gpuMemory := float64(sys.GpuMemGB); gpuMemory > 0 {
-				// As we have a config, logclean will have computed proper GPU memory values for the
-				// job, so we need not look to sys.GpuMemPct here.
-				rGpuGBAvg = (gpuGBAvg * 100) / gpuMemory
-				rGpuGBPeak = (gpuGBPeak * 100) / gpuMemory
-			}
-			if usesGpu && !gpus.IsUnknown() {
-				nCards := float64(gpus.Size())
-				sGpuPctAvg = gpuPctAvg / nCards
-				sGpuPctPeak = gpuPctPeak / nCards
-				if gpuCards := float64(sys.GpuCards); gpuCards > 0 {
-					if gpuMemory := float64(sys.GpuMemGB); gpuMemory > 0 {
-						jobGpuGB := nCards * (gpuMemory / gpuCards)
-						sGpuGBAvg = (gpuGBAvg * 100) / jobGpuGB
-						sGpuGBPeak = (gpuGBPeak * 100) / jobGpuGB
-					}
+				if gpuMemory := float64(sys.GpuMemGB); gpuMemory > 0 {
+					jobGpuGB := nCards * (gpuMemory / gpuCards)
+					sGpuGBAvg = (gpuGBAvg * 100) / jobGpuGB
+					sGpuGBPeak = (gpuGBPeak * 100) / jobGpuGB
 				}
 			}
 		}
@@ -652,13 +652,13 @@ func (f *aggregationFilter) apply(s *jobSummary) bool {
 }
 
 func (jc *JobsCommand) buildFilters(
-	cfg *config.ClusterConfig,
+	canHandleRelative bool,
 ) (*aggregationFilter, *slurmjob.QueryFilter) {
 	minFilters := make([]filterVal, 0)
 	maxFilters := make([]filterVal, 0)
 
 	for _, v := range uintArgs {
-		if v.aggregateIx != -1 && (cfg != nil || !v.relative) {
+		if v.aggregateIx != -1 && (canHandleRelative || !v.relative) {
 			val := jc.lookupUint(v.name)
 			if strings.HasPrefix(v.name, "min-") && val != 0 {
 				if jc.Verbose {

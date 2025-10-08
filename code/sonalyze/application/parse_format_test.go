@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"sonalyze/cmd"
 	"sonalyze/cmd/parse"
 )
 
@@ -57,7 +58,7 @@ func mockitParse(t *testing.T, fields string) string {
 		t.Fatal(err)
 	}
 	var stdout, stderr strings.Builder
-	err = LocalSampleOperation(&pc, nil, &stdout, &stderr)
+	err = LocalSampleOperation(cmd.NewMeta(&pc), &pc, nil, &stdout, &stderr)
 	if err != nil {
 		t.Fatal(err)
 	}

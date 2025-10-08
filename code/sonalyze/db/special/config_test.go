@@ -11,7 +11,7 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	cfg, err := ReadConfigData(MakeConfigFilePath("../filedb/testdata", "cluster1.uio.no"))
+	cfg, err := readConfigData(MakeConfigFilePath("../filedb/testdata", "cluster1.uio.no"))
 	if err != nil {
 		t.Fatal(err)
 	}

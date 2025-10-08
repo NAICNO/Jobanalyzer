@@ -66,6 +66,8 @@ type ClusterCommand struct {
 	JobanalyzerDir string
 }
 
+var _ = (SimpleCommand)((*ClusterCommand)(nil))
+
 func (cc *ClusterCommand) Add(fs *CLI) {
 	cc.DevArgs.Add(fs)
 	cc.RemotingArgsNoCluster.Add(fs)
@@ -123,7 +125,7 @@ func (cc *ClusterCommand) Validate() error {
 //
 // Analysis
 
-func (cc *ClusterCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
+func (cc *ClusterCommand) Perform(_ special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
 	clusters, _, err := special.ReadClusterData(cc.JobanalyzerDir)
 	if err != nil {
 		return err
