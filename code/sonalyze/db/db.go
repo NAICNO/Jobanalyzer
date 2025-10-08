@@ -7,30 +7,18 @@ import (
 
 // Utility to open a database from a set of parameters.  We must have dataDir xor logFiles.
 func OpenReadOnlyDB(
-	configFile string,
-	dataDir string,
+	meta special.ClusterMeta,
 	dataType FileListDataType,
-	logFiles []string,
 ) (
 	DataProvider,
 	error,
 ) {
-	cfg, err := special.MaybeGetConfig(configFile)
-	if err != nil {
-		return nil, err
-	}
 	var theLog DataProvider
-	if len(logFiles) > 0 {
-		// This does not work, probably a default value gets in the way?
-		// if dataDir != "" {
-		// 	return nil, fmt.Errorf("Can't have both dataDir and logFiles")
-		// }
-		theLog, err = OpenFileListDB(dataType, logFiles, cfg)
+	var err error
+	if len(meta.LogFiles()) > 0 {
+		theLog, err = OpenFileListDB(meta, dataType)
 	} else {
-		if dataDir == "" {
-			return nil, fmt.Errorf("Must have either dataDir or logFiles")
-		}
-		theLog, err = OpenPersistentDirectoryDB(dataDir, cfg)
+		theLog, err = OpenPersistentDirectoryDB(meta)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open log store: %v", err)

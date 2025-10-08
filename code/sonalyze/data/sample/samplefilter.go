@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 
-	"go-utils/config"
 	"go-utils/hostglob"
 	umaps "go-utils/maps"
 	uslices "go-utils/slices"
@@ -16,6 +15,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/data/common"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 // The sample.SampleFilter will be applied to individual records and must be true for records to be
@@ -335,7 +335,7 @@ type QueryFilter struct {
 }
 
 func BuildSampleFilter(
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	filter QueryFilter,
 	verbose bool,
 ) (
@@ -439,12 +439,10 @@ func BuildSampleFilter(
 		excludeCommands[StringToUstr("_heartbeat_")] = true
 	}
 
-	// System configuration additions, if available
+	// Cluster additions, if available
 
-	if cfg != nil {
-		for _, user := range cfg.ExcludeUser {
-			excludeUsers[StringToUstr(user)] = true
-		}
+	for _, user := range meta.ExcludedUsers() {
+		excludeUsers[StringToUstr(user)] = true
 	}
 
 	// Record filtering logic is the same for all commands.  The record filter can use only raw

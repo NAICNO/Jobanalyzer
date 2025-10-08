@@ -4,14 +4,9 @@ import (
 	"cmp"
 	"errors"
 	"io"
-	"os"
 	"slices"
 
-	umaps "go-utils/maps"
-	"go-utils/options"
-
 	. "sonalyze/cmd"
-	. "sonalyze/common"
 	"sonalyze/db/special"
 	. "sonalyze/table"
 )
@@ -59,45 +54,36 @@ ELBAT*/
 
 type ClusterCommand struct {
 	DevArgs
-	RemotingArgsNoCluster
+	DatabaseArgs
 	QueryArgs
 	VerboseArgs
 	FormatArgs
-	JobanalyzerDir string
 }
+
+var _ = PrimitiveCommand((*ClusterCommand)(nil))
 
 func (cc *ClusterCommand) Add(fs *CLI) {
 	cc.DevArgs.Add(fs)
-	cc.RemotingArgsNoCluster.Add(fs)
+	cc.DatabaseArgs.Add(fs, DBArgOptions{OmitCluster: true})
 	cc.QueryArgs.Add(fs)
 	cc.VerboseArgs.Add(fs)
 	cc.FormatArgs.Add(fs)
-	fs.Group("local-data-source")
-	fs.StringVar(&cc.JobanalyzerDir, "jobanalyzer-dir", "", "Jobanalyzer root `directory`")
 }
 
 func (cc *ClusterCommand) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(
 		cc.DevArgs.ReifyForRemote(x),
+		cc.DatabaseArgs.ReifyForRemote(x),
 		cc.QueryArgs.ReifyForRemote(x),
 		cc.FormatArgs.ReifyForRemote(x),
 	)
 }
 
 func (cc *ClusterCommand) Validate() error {
-	var e1, e2 error
-
-	if cc.JobanalyzerDir == "" {
-		ApplyDefault(&cc.Remote, DataSourceRemote)
-		if os.Getenv("SONALYZE_AUTH") == "" {
-			ApplyDefault(&cc.AuthFile, DataSourceAuthFile)
-		}
-	}
-
-	e1 = errors.Join(
+	return errors.Join(
 		cc.DevArgs.Validate(),
 		cc.VerboseArgs.Validate(),
-		cc.RemotingArgsNoCluster.Validate(),
+		cc.DatabaseArgs.Validate(),
 		cc.QueryArgs.Validate(),
 		ValidateFormatArgs(
 			&cc.FormatArgs,
@@ -107,16 +93,6 @@ func (cc *ClusterCommand) Validate() error {
 			DefaultFixed,
 		),
 	)
-
-	if cc.RemotingFlags().Remoting {
-		if cc.JobanalyzerDir != "" {
-			e2 = errors.New("-jobanalyzer-dir not valid for remote execution")
-		}
-	} else {
-		cc.JobanalyzerDir, e2 = options.RequireDirectory(cc.JobanalyzerDir, "-jobanalyzer-dir")
-	}
-
-	return errors.Join(e1, e2)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,16 +100,12 @@ func (cc *ClusterCommand) Validate() error {
 // Analysis
 
 func (cc *ClusterCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	clusters, _, err := special.ReadClusterData(cc.JobanalyzerDir)
-	if err != nil {
-		return err
-	}
-
-	printable := umaps.Values(clusters)
+	printable := special.AllClusters()
 	slices.SortFunc(printable, func(a, b *special.ClusterEntry) int {
 		return cmp.Compare(a.Name, b.Name)
 	})
 
+	var err error
 	printable, err = ApplyQuery(
 		cc.ParsedQuery, clusterFormatters, clusterPredicates, printable)
 	if err != nil {

@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"go-utils/config"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
+	"sonalyze/db/special"
 )
 
 // Standard method for cleaning an InputStreamSet relative to a config: the config must have a
@@ -14,27 +14,28 @@ import (
 //
 // Over time this may become more complicated, as the config becomes time-dependent.
 func EnsureConfigForInputStreams(
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	streams sample.InputStreamSet,
 	reason string,
 ) (sample.InputStreamSet, error) {
-	// Bail if there's no config data at all.
-	if cfg == nil {
-		return nil, fmt.Errorf("Configuration file required: %s", reason)
-	}
-
 	// Remove streams for which we have no config data.
 	bad := make(map[sample.InputStreamKey]bool)
 	for key, stream := range streams {
-		hn := (*stream)[0].Hostname.String()
-		if cfg.LookupHost(hn) == nil {
+		hn := (*stream)[0].Hostname
+		ts := (*stream)[0].Timestamp
+		if meta.LookupHostByTime(hn, ts) == nil {
 			bad[key] = true
-			Log.Infof("Warning: Missing host configuration for %s", hn)
+			Log.Infof("Warning: Missing host configuration for %s", hn.String())
 		}
 	}
 
 	for b := range bad {
 		delete(streams, b)
+	}
+
+	// Bail if there's no config data at all.
+	if len(streams) == 0 {
+		return nil, fmt.Errorf("All configuration data missing: %s", reason)
 	}
 
 	return streams, nil

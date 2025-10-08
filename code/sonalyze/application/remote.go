@@ -34,14 +34,14 @@ const (
 
 var netrc = regexp.MustCompile(`^machine\s+\S+\s+login\s+\S+\s+password\s+\S+\s*$`)
 
-func RemoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout, stderr io.Writer) error {
+func RemoteOperation(rCmd Command, verb string, stdin io.Reader, stdout, stderr io.Writer) error {
 	r := NewArgReifier()
 	err := rCmd.ReifyForRemote(&r)
 	if err != nil {
 		return err
 	}
 
-	args := rCmd.RemotingFlags()
+	authFile := rCmd.AuthFile()
 	var username, password string
 	var netrcFile string // "" if not netrc
 	if it := os.Getenv("SONALYZE_AUTH"); it != "" {
@@ -50,8 +50,8 @@ func RemoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 		if !ok {
 			return errors.New("Invalid SONALYZE_AUTH syntax")
 		}
-	} else if args.AuthFile != "" {
-		f, err := os.Open(args.AuthFile)
+	} else if authFile != "" {
+		f, err := os.Open(authFile)
 		if err != nil {
 			// Note, file name is redacted
 			return errors.New("Failed to open auth file")
@@ -69,7 +69,7 @@ func RemoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 			return errors.New("Auth file must have exactly one line")
 		}
 		if netrc.MatchString(lines[0]) {
-			netrcFile = args.AuthFile
+			netrcFile = authFile
 		} else {
 			var ok bool
 			username, password, ok = strings.Cut(strings.TrimSpace(lines[0]), ":")
@@ -121,7 +121,7 @@ func RemoteOperation(rCmd RemotableCommand, verb string, stdin io.Reader, stdout
 	default:
 		panic("Unimplemented")
 	}
-	curlArgs = append(curlArgs, args.Remote+"/"+verb+"?"+r.EncodedArguments())
+	curlArgs = append(curlArgs, rCmd.RemoteHost()+"/"+verb+"?"+r.EncodedArguments())
 
 	if rCmd.VerboseFlag() {
 		Log.Infof(

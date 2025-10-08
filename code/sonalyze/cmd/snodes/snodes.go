@@ -10,6 +10,7 @@ import (
 	. "sonalyze/cmd"
 	"sonalyze/data/slurmnode"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -78,8 +79,8 @@ func (nc *SnodeCommand) ReifyForRemote(x *ArgReifier) error {
 	)
 }
 
-func (nc *SnodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(nc.ConfigFile(), nc.DataDir, db.FileListSlurmNodeData, nc.LogFiles)
+func (nc *SnodeCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListSlurmNodeData)
 	if err != nil {
 		return err
 	}

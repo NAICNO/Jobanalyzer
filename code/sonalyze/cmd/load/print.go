@@ -6,7 +6,7 @@ import (
 	"io"
 	"slices"
 
-	"go-utils/config"
+	"sonalyze/db/repr"
 	. "sonalyze/table"
 )
 
@@ -66,7 +66,7 @@ ELBAT*/
 
 type LoadReport struct {
 	hostname string
-	conf     *config.NodeConfigRecord // may be nil, beware
+	conf     *repr.NodeSummary // may be nil, beware
 	records  []*ReportRecord
 }
 

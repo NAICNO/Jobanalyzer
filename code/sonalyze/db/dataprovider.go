@@ -6,8 +6,6 @@ package db
 import (
 	"time"
 
-	"go-utils/config"
-
 	. "sonalyze/common"
 	"sonalyze/db/filedb"
 	"sonalyze/db/repr"
@@ -117,10 +115,8 @@ type CluzterDataProvider interface {
 	) (recordBlobs [][]*repr.CluzterNodes, softErrors int, err error)
 }
 
-// DataProvider provides all data types, and carries a cluster configuration with it.
+// DataProvider provides all data types.
 type DataProvider interface {
-	Config() *config.ClusterConfig
-
 	SampleDataProvider
 	SysinfoDataProvider
 	SacctDataProvider

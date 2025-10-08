@@ -61,11 +61,11 @@ import (
 	"sync"
 	"time"
 
-	"go-utils/config"
 	uslices "go-utils/slices"
 	. "sonalyze/common"
 	"sonalyze/db/errs"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 const (
@@ -105,7 +105,7 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	dataDir string
 
 	// MT: Immutable after initialization
-	cfg *config.ClusterConfig
+	meta special.ClusterMeta
 
 	sync.Mutex
 	closed bool
@@ -139,39 +139,29 @@ type persistentDir struct {
 	cluzterFiles map[string]*LogFile
 }
 
-func NewPersistentCluster(dataDir string, cfg *config.ClusterConfig) *PersistentCluster {
+func NewPersistentCluster(dataDir string, meta special.ClusterMeta) *PersistentCluster {
 	// Initially, populate for today's date.
 	fromDate := ThisDay(time.Now().UTC())
 	toDate := fromDate.AddDate(0, 0, 1)
 	dirs := findSortedDateIndexedDirectories(dataDir, fromDate, toDate)
 	return &PersistentCluster{
-		samplesMethods:           NewSampleFileMethods(cfg, SampleFileKindSample),
-		nodeSamplesMethods:       NewSampleFileMethods(cfg, SampleFileKindNodeSample),
-		loadDataMethods:          NewSampleFileMethods(cfg, SampleFileKindCpuSamples),
-		gpuDataMethods:           NewSampleFileMethods(cfg, SampleFileKindGpuSamples),
-		sysinfoNodeDataMethods:   NewSysinfoFileMethods(cfg, SysinfoFileKindNodeData),
-		sysinfoCardDataMethods:   NewSysinfoFileMethods(cfg, SysinfoFileKindCardData),
-		sacctMethods:             NewSacctFileMethods(cfg),
-		cluzterAttributesMethods: NewCluzterFileMethods(cfg, CluzterFileKindAttributeData),
-		cluzterPartitionsMethods: NewCluzterFileMethods(cfg, CluzterFileKindPartitionData),
-		cluzterNodesMethods:      NewCluzterFileMethods(cfg, CluzterFileKindNodeData),
+		samplesMethods:           NewSampleFileMethods(meta, SampleFileKindSample),
+		nodeSamplesMethods:       NewSampleFileMethods(meta, SampleFileKindNodeSample),
+		loadDataMethods:          NewSampleFileMethods(meta, SampleFileKindCpuSamples),
+		gpuDataMethods:           NewSampleFileMethods(meta, SampleFileKindGpuSamples),
+		sysinfoNodeDataMethods:   NewSysinfoFileMethods(meta, SysinfoFileKindNodeData),
+		sysinfoCardDataMethods:   NewSysinfoFileMethods(meta, SysinfoFileKindCardData),
+		sacctMethods:             NewSacctFileMethods(meta),
+		cluzterAttributesMethods: NewCluzterFileMethods(meta, CluzterFileKindAttributeData),
+		cluzterPartitionsMethods: NewCluzterFileMethods(meta, CluzterFileKindPartitionData),
+		cluzterNodesMethods:      NewCluzterFileMethods(meta, CluzterFileKindNodeData),
 		dataDir:                  dataDir,
-		cfg:                      cfg,
+		meta:                     meta,
 		dirs:                     dirs,
 		fromDate:                 fromDate,
 		toDate:                   toDate,
 		dirty:                    make(map[*LogFile]bool),
 	}
-}
-
-func (pc *PersistentCluster) Config() *config.ClusterConfig {
-	pc.Lock()
-	defer pc.Unlock()
-	if pc.closed {
-		return nil
-	}
-
-	return pc.cfg
 }
 
 func (pc *PersistentCluster) Close() error {

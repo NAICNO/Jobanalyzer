@@ -12,6 +12,7 @@ import (
 	. "sonalyze/cmd"
 	"sonalyze/data/config"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -109,12 +110,10 @@ func (nc *NodeCommand) Validate() error {
 //
 // Processing
 
-func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
+func (nc *NodeCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
 	theLog, err := db.OpenReadOnlyDB(
-		nc.ConfigFile(),
-		nc.DataDir,
+		meta,
 		db.FileListNodeData|db.FileListCardData,
-		nc.LogFiles,
 	)
 	if err != nil {
 		return err

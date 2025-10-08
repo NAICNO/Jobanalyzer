@@ -7,15 +7,15 @@ import (
 	"path"
 	"time"
 
-	"go-utils/config"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 // TransientCluster is a transient cluster mixin that has only one type of files.
 type TransientCluster struct {
 	// MT: Immutable after initialization
-	cfg   *config.ClusterConfig
+	meta  special.ClusterMeta
 	files []*LogFile
 }
 
@@ -39,10 +39,6 @@ func processTransientFiles(fileNames []string, ty FileAttr) []*LogFile {
 	return files
 }
 
-func (tc *TransientCluster) Config() *config.ClusterConfig {
-	return tc.cfg
-}
-
 func (tc *TransientCluster) Filenames() ([]string, error) {
 	return Filenames(tc.files), nil
 }
@@ -58,17 +54,17 @@ type TransientSampleCluster struct /* implements SampleCluster */ {
 }
 
 func NewTransientSampleCluster(
-	fileNames []string,
+	meta special.ClusterMeta,
 	ty FileAttr,
-	cfg *config.ClusterConfig,
+	fileNames []string,
 ) *TransientSampleCluster {
 	return &TransientSampleCluster{
-		samplesMethods:     NewSampleFileMethods(cfg, SampleFileKindSample),
-		nodeSamplesMethods: NewSampleFileMethods(cfg, SampleFileKindNodeSample),
-		loadDataMethods:    NewSampleFileMethods(cfg, SampleFileKindCpuSamples),
-		gpuDataMethods:     NewSampleFileMethods(cfg, SampleFileKindGpuSamples),
+		samplesMethods:     NewSampleFileMethods(meta, SampleFileKindSample),
+		nodeSamplesMethods: NewSampleFileMethods(meta, SampleFileKindNodeSample),
+		loadDataMethods:    NewSampleFileMethods(meta, SampleFileKindCpuSamples),
+		gpuDataMethods:     NewSampleFileMethods(meta, SampleFileKindGpuSamples),
 		TransientCluster: TransientCluster{
-			cfg:   cfg,
+			meta:  meta,
 			files: processTransientFiles(fileNames, ty),
 		},
 	}
@@ -121,14 +117,14 @@ type TransientSacctCluster struct /* implements SacctCluster */ {
 }
 
 func NewTransientSacctCluster(
-	fileNames []string,
+	meta special.ClusterMeta,
 	ty FileAttr,
-	cfg *config.ClusterConfig,
+	fileNames []string,
 ) *TransientSacctCluster {
 	return &TransientSacctCluster{
-		methods: NewSacctFileMethods(cfg),
+		methods: NewSacctFileMethods(meta),
 		TransientCluster: TransientCluster{
-			cfg:   cfg,
+			meta:  meta,
 			files: processTransientFiles(fileNames, ty),
 		},
 	}
@@ -154,15 +150,15 @@ type TransientSysinfoCluster struct /* implements SysinfoCluster */ {
 }
 
 func NewTransientSysinfoCluster(
-	fileNames []string,
+	meta special.ClusterMeta,
 	ty FileAttr,
-	cfg *config.ClusterConfig,
+	fileNames []string,
 ) *TransientSysinfoCluster {
 	return &TransientSysinfoCluster{
-		nodeDataMethods: NewSysinfoFileMethods(cfg, SysinfoFileKindNodeData),
-		cardDataMethods: NewSysinfoFileMethods(cfg, SysinfoFileKindCardData),
+		nodeDataMethods: NewSysinfoFileMethods(meta, SysinfoFileKindNodeData),
+		cardDataMethods: NewSysinfoFileMethods(meta, SysinfoFileKindCardData),
 		TransientCluster: TransientCluster{
-			cfg:   cfg,
+			meta:  meta,
 			files: processTransientFiles(fileNames, ty),
 		},
 	}
@@ -202,16 +198,16 @@ type TransientCluzterCluster struct /* implements CluzterCluster */ {
 }
 
 func NewTransientCluzterCluster(
-	fileNames []string,
+	meta special.ClusterMeta,
 	ty FileAttr,
-	cfg *config.ClusterConfig,
+	fileNames []string,
 ) *TransientCluzterCluster {
 	return &TransientCluzterCluster{
-		attributeMethods: NewCluzterFileMethods(cfg, CluzterFileKindAttributeData),
-		partitionMethods: NewCluzterFileMethods(cfg, CluzterFileKindPartitionData),
-		nodeMethods:      NewCluzterFileMethods(cfg, CluzterFileKindNodeData),
+		attributeMethods: NewCluzterFileMethods(meta, CluzterFileKindAttributeData),
+		partitionMethods: NewCluzterFileMethods(meta, CluzterFileKindPartitionData),
+		nodeMethods:      NewCluzterFileMethods(meta, CluzterFileKindNodeData),
 		TransientCluster: TransientCluster{
-			cfg:   cfg,
+			meta:  meta,
 			files: processTransientFiles(fileNames, ty),
 		},
 	}

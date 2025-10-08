@@ -7,13 +7,13 @@ import (
 	"io"
 	"slices"
 
-	"go-utils/config"
 	uslices "go-utils/slices"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -164,7 +164,7 @@ func (pc *ParseCommand) ConfigFile() string {
 
 func (pc *ParseCommand) Perform(
 	out io.Writer,
-	_ *config.ClusterConfig,
+	_ special.ClusterMeta,
 	theDb db.SampleDataProvider,
 	filter sample.QueryFilter,
 	hosts *Hosts,

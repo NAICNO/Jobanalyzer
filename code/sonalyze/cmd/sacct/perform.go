@@ -7,6 +7,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/data/slurmjob"
 	"sonalyze/db"
+	"sonalyze/db/special"
 )
 
 type sacctSummary struct {
@@ -16,8 +17,8 @@ type sacctSummary struct {
 	usedCpu      uint64
 }
 
-func (sc *SacctCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(sc.ConfigFile(), sc.DataDir, db.FileListSlurmJobData, sc.LogFiles)
+func (sc *SacctCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListSlurmJobData)
 	if err != nil {
 		return err
 	}

@@ -37,10 +37,10 @@ output=$($SONALYZE parse --fmt=job,gpu_status -- parse_gpufail.csv | sort)
 CHECK parse_gpufail "1269178,1
 1269179,0" "$output"
 
-# Input file does not exist.  The Go and Rust versions have different capitalization of the error message.
+# Input file does not exist.
 output=$($SONALYZE parse -- no-such-file.csv 2>&1)
 exitcode=$?
-CHECK_ERR parse_no_file $exitcode "$output" "[Nn]o such file or directory"
+CHECK_ERR parse_no_file $exitcode "$output" "No such input file: no-such-file.csv"
 
 # This file has four records, the second has a timestamp that is out of range and the fourth has a
 # timestamp that is malformed.  We should be left with two.

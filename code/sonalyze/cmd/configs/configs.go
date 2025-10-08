@@ -15,13 +15,14 @@ import (
 	"cmp"
 	"errors"
 	"io"
-	"os"
 	"slices"
-
-	"go-utils/config"
+	"time"
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/config"
+	"sonalyze/db"
+	"sonalyze/db/repr"
 	"sonalyze/db/special"
 	. "sonalyze/table"
 )
@@ -32,11 +33,11 @@ import (
 
 package configs
 
-import "go-utils/config"
+import "sonalyze/db/repr"
 
 %%
 
-FIELDS *config.NodeConfigRecord
+FIELDS *repr.NodeSummary
 
  Timestamp     string desc:"Full ISO timestamp of when the reading was taken" alias:"timestamp"
  Hostname      string desc:"Name that host is known by on the cluster" alias:"host"
@@ -76,32 +77,29 @@ ELBAT*/
 
 type ConfigCommand struct {
 	DevArgs
+	SourceArgs
 	QueryArgs
 	HostArgs
-	RemotingArgs
 	VerboseArgs
-	ConfigFileArgs
 	FormatArgs
 }
 
+var _ = SimpleCommand((*ConfigCommand)(nil))
+
 func (cc *ConfigCommand) Add(fs *CLI) {
 	cc.DevArgs.Add(fs)
-	cc.RemotingArgs.Add(fs)
+	cc.SourceArgs.Add(fs, 14)
 	cc.QueryArgs.Add(fs)
 	cc.HostArgs.Add(fs)
 	cc.VerboseArgs.Add(fs)
-	cc.ConfigFileArgs.Add(fs)
 	cc.FormatArgs.Add(fs)
 }
 
 func (cc *ConfigCommand) ReifyForRemote(x *ArgReifier) error {
-	// This is normally done by SourceArgs
-	x.String("cluster", cc.RemotingArgs.Cluster)
-
 	// As per normal, do not forward VerboseArgs.
 	return errors.Join(
 		cc.DevArgs.ReifyForRemote(x),
-		cc.ConfigFileArgs.ReifyForRemote(x),
+		cc.SourceArgs.ReifyForRemote(x),
 		cc.QueryArgs.ReifyForRemote(x),
 		cc.HostArgs.ReifyForRemote(x),
 		cc.FormatArgs.ReifyForRemote(x),
@@ -109,21 +107,12 @@ func (cc *ConfigCommand) ReifyForRemote(x *ArgReifier) error {
 }
 
 func (cc *ConfigCommand) Validate() error {
-	if cc.ConfigFilename == "" {
-		ApplyDefault(&cc.Remote, DataSourceRemote)
-		if os.Getenv("SONALYZE_AUTH") == "" {
-			ApplyDefault(&cc.AuthFile, DataSourceAuthFile)
-		}
-		ApplyDefault(&cc.Cluster, DataSourceCluster)
-	}
-
 	return errors.Join(
 		cc.DevArgs.Validate(),
+		cc.SourceArgs.Validate(),
 		cc.QueryArgs.Validate(),
 		cc.HostArgs.Validate(),
-		cc.RemotingArgs.Validate(),
 		cc.VerboseArgs.Validate(),
-		cc.ConfigFileArgs.Validate(),
 		ValidateFormatArgs(
 			&cc.FormatArgs, configDefaultFields, configFormatters, configAliases, DefaultFixed),
 	)
@@ -133,26 +122,22 @@ func (cc *ConfigCommand) Validate() error {
 //
 // Analysis
 
-func (cc *ConfigCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
+func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, _ io.Writer) error {
 	hosts, err := NewHosts(true, cc.HostArgs.Host)
 	if err != nil {
 		return err
 	}
 	includeHosts := hosts.HostnameGlobber()
 
-	cfg, err := special.MaybeGetConfig(cc.ConfigFile())
-	if err != nil {
-		return err
-	}
-	if cfg == nil {
-		return errors.New("-config-file required")
-	}
-
 	// `records` is always freshly allocated
-	records := cfg.Hosts()
+	var records []*repr.NodeSummary
+	records = NodesDefinedInTimeWindow(meta, cc.FromDate, cc.ToDate, cc.Verbose)
+	if len(records) == 0 {
+		records = meta.NodesDefinedInConfigIfAny()
+	}
 
 	if !includeHosts.IsEmpty() {
-		records = slices.DeleteFunc(records, func(r *config.NodeConfigRecord) bool {
+		records = slices.DeleteFunc(records, func(r *repr.NodeSummary) bool {
 			return !includeHosts.Match(r.Hostname)
 		})
 	}
@@ -163,7 +148,7 @@ func (cc *ConfigCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
 		return err
 	}
 
-	slices.SortFunc(records, func(a, b *config.NodeConfigRecord) int {
+	slices.SortFunc(records, func(a, b *repr.NodeSummary) int {
 		return cmp.Compare(a.Hostname, b.Hostname)
 	})
 
@@ -176,4 +161,37 @@ func (cc *ConfigCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
 	)
 
 	return nil
+}
+
+func NodesDefinedInTimeWindow(
+	meta special.ClusterMeta,
+	from, to time.Time,
+	verbose bool,
+) (result []*repr.NodeSummary) {
+	theLog, err := db.OpenReadOnlyDB(
+		meta,
+		db.FileListNodeData|db.FileListCardData,
+	)
+	if err != nil {
+		return
+	}
+	ns, err := config.Query(
+		theLog,
+		config.QueryArgs{
+			HaveFrom: true,
+			FromDate: from,
+			HaveTo:   true,
+			ToDate:   to,
+			Verbose:  verbose,
+			Newest:   true,
+		},
+	)
+	if err != nil {
+		return
+	}
+	result = make([]*repr.NodeSummary, 0, len(ns))
+	for _, n := range ns {
+		result = append(result, &n.NodeSummary)
+	}
+	return
 }
