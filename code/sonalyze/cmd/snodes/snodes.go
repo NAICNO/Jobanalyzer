@@ -10,6 +10,7 @@ import (
 	. "sonalyze/cmd"
 	"sonalyze/data/slurmnode"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -55,7 +56,7 @@ type SnodeCommand struct {
 	FormatArgs
 }
 
-var _ = (SimpleCommand)((*SnodeCommand)(nil))
+var _ = SimpleCommand((*SnodeCommand)(nil))
 
 func (nc *SnodeCommand) Add(fs *CLI) {
 	nc.HostAnalysisArgs.Add(fs)
@@ -78,8 +79,8 @@ func (nc *SnodeCommand) ReifyForRemote(x *ArgReifier) error {
 	)
 }
 
-func (nc *SnodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(nc.ConfigFile(), nc.DataDir, db.FileListSlurmNodeData, nc.LogFiles)
+func (nc *SnodeCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+	theLog, err := db.OpenReadOnlyDB(meta, nc.DataDir, db.FileListSlurmNodeData, nc.LogFiles)
 	if err != nil {
 		return err
 	}

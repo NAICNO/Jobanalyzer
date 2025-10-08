@@ -84,6 +84,8 @@ type ConfigCommand struct {
 	FormatArgs
 }
 
+var _ = SimpleCommand((*ConfigCommand)(nil))
+
 func (cc *ConfigCommand) Add(fs *CLI) {
 	cc.DevArgs.Add(fs)
 	cc.RemotingArgs.Add(fs)
@@ -133,7 +135,7 @@ func (cc *ConfigCommand) Validate() error {
 //
 // Analysis
 
-func (cc *ConfigCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
+func (cc *ConfigCommand) Perform(_ special.ClusterMeta, _ io.Reader, stdout, _ io.Writer) error {
 	hosts, err := NewHosts(true, cc.HostArgs.Host)
 	if err != nil {
 		return err

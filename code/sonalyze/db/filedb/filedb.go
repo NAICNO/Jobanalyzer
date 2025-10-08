@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"strings"
 
-	"go-utils/config"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 const (
@@ -21,15 +21,15 @@ const (
 var (
 	// This is applied to a set of samples newly read from a file, before caching.
 	// MT: Constant after initialization; immutable
-	SampleRectifier func([]*repr.Sample, *config.ClusterConfig) []*repr.Sample
+	SampleRectifier func([]*repr.Sample, special.ClusterMeta) []*repr.Sample
 
 	// This is applied to a set of load data newly read from a file, before caching.
 	// MT: Constant after initialization; immutable
-	CpuSamplesRectifier func([]*repr.CpuSamples, *config.ClusterConfig) []*repr.CpuSamples
+	CpuSamplesRectifier func([]*repr.CpuSamples, special.ClusterMeta) []*repr.CpuSamples
 
 	// This is applied to a set of GPU data newly read from a file, before caching.
 	// MT: Constant after initialization; immutable
-	GpuSamplesRectifier func([]*repr.GpuSamples, *config.ClusterConfig) []*repr.GpuSamples
+	GpuSamplesRectifier func([]*repr.GpuSamples, special.ClusterMeta) []*repr.GpuSamples
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

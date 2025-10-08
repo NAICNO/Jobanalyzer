@@ -3,10 +3,10 @@ package cmd
 import (
 	"io"
 
-	"go-utils/config"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	"sonalyze/table"
 )
 
@@ -74,7 +74,7 @@ type AnalysisCommand interface {
 type SimpleCommand interface {
 	Command
 
-	Perform(in io.Reader, stdout, stderr io.Writer) error
+	Perform(meta special.ClusterMeta, in io.Reader, stdout, stderr io.Writer) error
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,7 +96,7 @@ type SampleAnalysisCommand interface {
 	// Perform the operation.  The recordFilter has been compiled from the filter.
 	Perform(
 		out io.Writer,
-		cfg *config.ClusterConfig,
+		meta special.ClusterMeta,
 		theLog db.SampleDataProvider,
 		filter sample.QueryFilter,
 		hosts *Hosts,

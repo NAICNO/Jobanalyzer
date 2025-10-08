@@ -11,6 +11,7 @@ import (
 	"sonalyze/data/card"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -68,7 +69,7 @@ type CardCommand struct {
 	FormatArgs
 }
 
-var _ = (SimpleCommand)((*CardCommand)(nil))
+var _ = SimpleCommand((*CardCommand)(nil))
 
 func (nc *CardCommand) Add(fs *CLI) {
 	nc.HostAnalysisArgs.Add(fs)
@@ -91,8 +92,8 @@ func (nc *CardCommand) ReifyForRemote(x *ArgReifier) error {
 	)
 }
 
-func (nc *CardCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(nc.ConfigFile(), nc.DataDir, db.FileListCardData, nc.LogFiles)
+func (nc *CardCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+	theLog, err := db.OpenReadOnlyDB(meta, nc.DataDir, db.FileListCardData, nc.LogFiles)
 	if err != nil {
 		return err
 	}
