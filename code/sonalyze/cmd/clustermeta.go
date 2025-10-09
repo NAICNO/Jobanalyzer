@@ -83,10 +83,3 @@ func (tm *trivialMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string
 	}
 	return nil
 }
-
-func (tm *trivialMeta) HasCrossNodeJobs() bool {
-	if cfg := tm.getConfig(); cfg != nil {
-		return cfg.HasCrossNodeJobs()
-	}
-	return false
-}

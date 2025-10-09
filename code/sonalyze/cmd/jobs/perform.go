@@ -199,12 +199,10 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	bounds Timebounds,
 ) []*jobSummary {
 	var now = time.Now().UTC().Unix()
-	anyMergeableNodes := !jc.MergeNone && meta.HasCrossNodeJobs()
-
 	var jobs sample.SampleStreams
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
-	} else if anyMergeableNodes {
+	} else if !jc.MergeNone {
 		jobs, bounds = mergeAcrossSomeNodes(meta, streams, bounds)
 	} else {
 		jobs = sample.MergeByHostAndJob(streams)

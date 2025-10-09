@@ -30,10 +30,6 @@ func (mm *myMeta) ExcludedUsers() []string {
 	return mm.cfg.ExcludeUser
 }
 
-func (mm *myMeta) HasCrossNodeJobs() bool {
-	return mm.cfg.HasCrossNodeJobs()
-}
-
 func (mm *myMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string {
 	return mm.cfg.HostsDefinedInTimeWindow(fromIncl, toIncl)
 }

@@ -9,10 +9,6 @@ import (
 type ClusterMeta interface {
 	ClusterName() string
 
-	// This is of dubious correctness but it's how we've had it traditionally.  Really this attribute is
-	// connected to specific nodes.
-	HasCrossNodeJobs() bool
-
 	// Arguably this is also time-dependent but let's not worry about it yet
 	ExcludedUsers() []string
 
