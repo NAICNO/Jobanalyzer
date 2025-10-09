@@ -10,6 +10,7 @@ import (
 	"io"
 	"math"
 	"slices"
+	"time"
 
 	umaps "go-utils/maps"
 
@@ -127,99 +128,52 @@ func (nc *NodeCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, st
 		return err
 	}
 
-	// Read and filter the raw sysinfo data.
-	//
-	// TODO: This is where we really want to lean on code in data/ and not use the repr directly, as
-	// we're computing a join and we'd like the database to do that for us if it is able to.
-	//
-	// What we want here is, for each point in time, join the cards on a host to the node data for
-	// the host, so that we can present at least some card information with the node.  Node names
-	// and time stamps are restricted strings so it's easy enough to use those as a key.  The logic
-	// that is here really belongs in data/sysinfo (or similar), but that does not exist yet.
-	//
-	// Join logic can be generalized by parameterizing by types and the key constructor, probably.
-	// Probably this would turn into a situation where we compute a list of data from both input
-	// sets.
-
-	nodes, err := node.Query(
-		theLog,
-		node.QueryFilter{
-			HaveFrom: nc.HaveFrom,
-			FromDate: nc.FromDate,
-			HaveTo:   nc.HaveTo,
-			ToDate:   nc.ToDate,
-			Host:     nc.HostArgs.Host,
-		},
-		nc.Verbose,
-	)
+	rawRecords, err := Query(theLog, NodeQueryArgs{
+		HaveFrom: nc.HaveFrom,
+		FromDate: nc.FromDate,
+		HaveTo:   nc.HaveTo,
+		ToDate:   nc.ToDate,
+		Host:     nc.HostArgs.Host,
+		Verbose:  nc.Verbose,
+	})
 	if err != nil {
-		return fmt.Errorf("Failed to read log records: %v", err)
+		return err
 	}
-	cards, err := card.Query(
-		theLog,
-		card.QueryFilter{
-			HaveFrom: nc.HaveFrom,
-			FromDate: nc.FromDate,
-			HaveTo:   nc.HaveTo,
-			ToDate:   nc.ToDate,
-			Host:     nc.HostArgs.Host,
-		},
-		nc.Verbose,
-	)
-	if err != nil {
-		return fmt.Errorf("Failed to read log records: %v", err)
-	}
-
-	type joinedData struct {
-		// the time and host are given by node
-		node  *repr.SysinfoNodeData
-		cards []*repr.SysinfoCardData
-	}
-	joined := make(map[string]*joinedData)
-	for _, r := range nodes {
-		joined[r.Time+"|"+r.Node] = &joinedData{node: r}
-	}
-	for _, r := range cards {
-		if probe := joined[r.Time+"|"+r.Node]; probe != nil {
-			probe.cards = append(probe.cards, r)
-		}
-	}
-	rawRecords := umaps.Values(joined)
 
 	records := make([]*NodeData, len(rawRecords))
 	for i, r := range rawRecords {
 		ht := ""
-		if r.node.ThreadsPerCore > 1 {
+		if r.Node.ThreadsPerCore > 1 {
 			ht = " (hyperthreaded)"
 		}
-		memGB := int(math.Round(float64(r.node.Memory) / (1024 * 1024)))
+		memGB := int(math.Round(float64(r.Node.Memory) / (1024 * 1024)))
 		desc := fmt.Sprintf(
-			"%dx%d%s %s, %d GiB", r.node.Sockets, r.node.CoresPerSocket, ht, r.node.CpuModel, memGB)
-		cores := r.node.Sockets * r.node.CoresPerSocket * r.node.ThreadsPerCore
-		numCards := len(r.cards)
+			"%dx%d%s %s, %d GiB", r.Node.Sockets, r.Node.CoresPerSocket, ht, r.Node.CpuModel, memGB)
+		cores := r.Node.Sockets * r.Node.CoresPerSocket * r.Node.ThreadsPerCore
+		numCards := len(r.Cards)
 		cardTotalMemKB := uint64(0)
-		for _, c := range r.cards {
+		for _, c := range r.Cards {
 			cardTotalMemKB += c.Memory
 		}
 		cardTotalMemGB := int(math.Round(float64(cardTotalMemKB) / (1024 * 1024)))
 		if numCards > 0 {
-			desc += fmt.Sprintf(", %dx %s @ %dGiB", numCards, r.cards[0].Model, (r.cards[0].Memory)/(1024*1024))
+			desc += fmt.Sprintf(", %dx %s @ %dGiB", numCards, r.Cards[0].Model, (r.Cards[0].Memory)/(1024*1024))
 		}
 		distances := ""
-		if r.node.Distances != nil {
-			distances = fmt.Sprintf("%v", r.node.Distances)
+		if r.Node.Distances != nil {
+			distances = fmt.Sprintf("%v", r.Node.Distances)
 		}
 		records[i] = &NodeData{
-			Timestamp:   r.node.Time,
-			Hostname:    r.node.Node,
+			Timestamp:   r.Node.Time,
+			Hostname:    r.Node.Node,
 			Description: desc,
 			CpuCores:    int(cores),
 			MemGB:       memGB,
 			GpuCards:    numCards,
 			GpuMemGB:    cardTotalMemGB,
 			Distances:   distances,
-			TopoSVG:     r.node.TopoSVG,
-			TopoText:    r.node.TopoText,
+			TopoSVG:     r.Node.TopoSVG,
+			TopoText:    r.Node.TopoText,
 		}
 	}
 
@@ -259,4 +213,74 @@ func (nc *NodeCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, st
 	)
 
 	return nil
+}
+
+type NodeQueryArgs struct {
+	HaveFrom bool
+	FromDate time.Time
+	HaveTo   bool
+	ToDate   time.Time
+	Host     []string
+	Verbose  bool
+}
+
+type JoinedData struct {
+	// the time and host are given by node
+	Node  *repr.SysinfoNodeData
+	Cards []*repr.SysinfoCardData
+}
+
+// Read and filter the raw sysinfo data.
+//
+// TODO: This is where we really want to lean on code in data/ and not use the repr directly, as
+// we're computing a join and we'd like the database to do that for us if it is able to.
+//
+// What we want here is, for each point in time, join the cards on a host to the node data for
+// the host, so that we can present at least some card information with the node.  Node names
+// and time stamps are restricted strings so it's easy enough to use those as a key.  The logic
+// that is here really belongs in data/sysinfo (or similar), but that does not exist yet.
+//
+// Join logic can be generalized by parameterizing by types and the key constructor, probably.
+// Probably this would turn into a situation where we compute a list of data from both input
+// sets.
+
+func Query(theLog db.DataProvider, qa NodeQueryArgs) ([]*JoinedData, error) {
+	nodes, err := node.Query(
+		theLog,
+		node.QueryFilter{
+			HaveFrom: qa.HaveFrom,
+			FromDate: qa.FromDate,
+			HaveTo:   qa.HaveTo,
+			ToDate:   qa.ToDate,
+			Host:     qa.Host,
+		},
+		qa.Verbose,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read log records: %v", err)
+	}
+	cards, err := card.Query(
+		theLog,
+		card.QueryFilter{
+			HaveFrom: qa.HaveFrom,
+			FromDate: qa.FromDate,
+			HaveTo:   qa.HaveTo,
+			ToDate:   qa.ToDate,
+			Host:     qa.Host,
+		},
+		qa.Verbose,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read log records: %v", err)
+	}
+	joined := make(map[string]*JoinedData)
+	for _, r := range nodes {
+		joined[r.Time+"|"+r.Node] = &JoinedData{Node: r}
+	}
+	for _, r := range cards {
+		if probe := joined[r.Time+"|"+r.Node]; probe != nil {
+			probe.Cards = append(probe.Cards, r)
+		}
+	}
+	return umaps.Values(joined), nil
 }
