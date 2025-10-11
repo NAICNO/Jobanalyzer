@@ -63,6 +63,7 @@ var (
 
 	// The cache has a value if the clusterCache map is not nil.  The clusterAliases may be nil if
 	// there was no alias file.
+	dirScanned     bool
 	clusterCache   map[string]*ClusterEntry
 	clusterAliases *alias.Aliases
 )
@@ -73,6 +74,22 @@ type ClusterEntry struct {
 	Name        string
 	Description string
 	Aliases     []string // Not sorted
+	ExcludeUser []string // Not sorted
+}
+
+func AddClusterFromConfig(cfg *config.ClusterConfig) *ClusterEntry {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if clusterCache == nil {
+		clusterCache = make(map[string]*ClusterEntry)
+	}
+
+	if clusterAliases == nil {
+		clusterAliases = ?
+	}
+
+	// FIXME
 }
 
 // The cluster table is returned as a pair: a shared immutable map from cluster name to cluster
@@ -84,13 +101,18 @@ func ReadClusterData(
 	clusterCacheLock.Lock()
 	defer clusterCacheLock.Unlock()
 
-	if clusterCache != nil {
+	if dirScanned {
 		clusters = clusterCache
 		aliases = clusterAliases
 		return
 	}
 
-	clusters = make(map[string]*ClusterEntry)
+	dirScanned = true
+	if clusterCache != nil {
+		clusters = clusterCache
+	} else {
+		clusters = make(map[string]*ClusterEntry)
+	}
 
 	// Find cluster names from the data directory
 	dirEntries, err := os.ReadDir(path.Join(jobanalyzerDir, dataDirName))
@@ -117,6 +139,7 @@ func ReadClusterData(
 			return
 		}
 	}
+	// FIXME: Merge aliases
 	if aliases != nil {
 		for c, as := range aliases.ReverseExpand() {
 			if probe, found := clusters[c]; found {
@@ -132,6 +155,7 @@ func ReadClusterData(
 			continue
 		}
 		v.Description = cfg.Description
+		v.ExcludeUser = cfg.ExcludeUser
 	}
 
 	clusterCache = clusters

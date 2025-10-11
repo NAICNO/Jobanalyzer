@@ -126,6 +126,7 @@ func (cc *ClusterCommand) Validate() error {
 // Analysis
 
 func (cc *ClusterCommand) Perform(_ special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+	// FIXME - This should go away, we should just ask for a list of the clusters
 	clusters, _, err := special.ReadClusterData(cc.JobanalyzerDir)
 	if err != nil {
 		return err

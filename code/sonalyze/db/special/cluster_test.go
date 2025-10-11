@@ -7,6 +7,7 @@ import (
 )
 
 func TestCluster(t *testing.T) {
+	// Replace by some cluster-opening functionality
 	clusters, aliases, err := ReadClusterData("../filedb/testdata")
 	if err != nil {
 		t.Fatal(err)

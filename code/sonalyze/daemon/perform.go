@@ -38,6 +38,8 @@ import (
 // DaemonCommand with a SimpleCommand.
 
 func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
+	// FIXME - and does the alias resolver even make sense here, does it have a multi-cluster API?
+	_, dc.aliasResolver, _ = special.ReadClusterData(dc.jobanalyzerDir)
 	logger, err := syslog.Dial("", "", syslog.LOG_INFO|syslog.LOG_USER, logTag)
 	if err != nil {
 		return fmt.Errorf("FATAL ERROR: Failing to open logger: %v", err)
@@ -47,19 +49,21 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	db.SetCacheSize(dc.cacheSize)
 
 	if dc.kafkaBroker != "" {
+		// FIXME - new cluster enumeration API
 		clusters, _, err := special.ReadClusterData(dc.jobanalyzerDir)
 		if err != nil {
 			return fmt.Errorf("Could not initialize cluster names: %v", err)
 		}
 		for clusterName, _ := range clusters {
 			cfgPath := special.MakeConfigFilePath(dc.jobanalyzerDir, clusterName)
-			meta := NewMetaFromNames(clusterName, cfgPath)
+			cfg, err := special.MaybeGetConfig(cfgPath)
 			if err != nil {
 				if dc.Verbose {
 					Log.Warningf("Failed to find config file for %s: %s %v", clusterName, cfgPath, err)
 				}
 				continue
 			}
+			meta := NewMetaFromConfig(special.AddClusterFromConfig(cfg), cfg)
 			dataDir := special.MakeClusterDataPath(dc.jobanalyzerDir, clusterName)
 			ds, err := db.OpenAppendablePersistentDirectoryDB(meta, dataDir)
 			if err != nil {

@@ -249,11 +249,96 @@ func (_ *standardCommandLineHandler) HandleCommand(
 	stdin io.Reader,
 	stdout, stderr io.Writer,
 ) error {
+	// This is the one place in the system where we "open the database", which for now means opening
+	// the cluster store.  We can have many clusters in the store.  The cluster store must provide
+	// enumeration and lookup and other things, and each "cluster" object also provides services.
+	//
+	// Since sonalyze can be run against a jobanalyzer directory (containing multiple data types for
+	// each of multiple clusters, as well as cluster metadata), against a data directory (containing
+	// multiple data types for only one cluster and no metadata for it), or against a file list
+	// (containing a single data type for one cluster and no metadata for it), there are various
+	// modes for opening the cluster store.  These are the rules:
+	//
+	// - If there is a -jobanalyzer-dir $DIR then we open this as the multi-cluster store, and
+	//   -data-dir, -config-file, and file lists are disallowed, and we read the cluster config data
+	//   from that directory.
+	//
+	// - Otherwise, if there is a -cluster-config then this contains (new-style) cluster
+	//   configuration data for the single cluster and we will read the file and define a cluster
+	//   according to those data.  These configuration data do not contain node data.
+	//
+	// - Otherwise, if there is a -config-file then this contains (old-style) cluster configuration
+	//   data for the single cluster and we will read the file and define a cluster according to
+	//   those data.  These configuration data may contain node data.
+	//
+	// - Otherwise, we will define a single anonymous cluster.
+	//
+	// Normal argument parsing applies, which is to say, there can be no -data-dir or file list
+	// with -jobanalyzer-dir, and there can be no file list with -data-dir either.
+	//
+	// When a -jobanalyzer-dir is given, all (old-style) node definitions in the data store are
+	// ignored; all node data are read from the database.
+	//
+	// When a -cluster-config is given (with -data-dir or a file list), all node data will be sought
+	// in the database, though in the case of a file list this will only be sensible if the files
+	// have sysinfo data - not the common case.
+	//
+	// When a -config-file is given (with -data-dir or a file list), all node data will be sought in
+	// the config data.
+	//
+	// TODO.
+	//
+	// Most places in the system use command.DataDir to find the data directory for the cluster in
+	// question.  This should probably be removed and should be moved to the meta object, which is
+	// the appropriate place to locate cluster-specific data.  Indeed everyone who takes the DataDir
+	// value also takes a meta object.  The meta object could supply both the data dir and the file
+	// list (LogFiles), which would make the most sense.  Although, the meta object is being
+	// constructed in a context where maybe not all commands may have data-dir or file list.  But
+	// when we are running from a jobanalyzer-dir, the data-dir is computed (somewhere), not given,
+	// and must be attached to the meta object anyway I think.
+	//
+	// It would be nice to have only one -config-file switch, taking two formats, not two different
+	// ones?  Depends on how similar they are.
+	//
+	// APIs in db/special/cluster.go must change.
+	//
+	// Probably there will be a JobanalyzerDir accessor on the command like there is a ConfigFile
+	// accessor, and we can take it from there.
+	//
+	// There's an argument to be made for one more mode: where we have -data-dir but instead of a
+	// -config-file we have just a cluster config file for a single cluster, and the node data
+	// should still be gotten from the directory.  (After all this would be normal.)  This config
+	// file is different because it must combine various data sources now in several places, such as
+	// aliases from one place and cluster high-level info from another.
+
+	var err error
+	var cfg *config.ClusterConfig
+	var single *special.ClusterEntry
+	if jaArg, ok := anyCmd.(interface { JobanalyzerDir() string }); ok {
+		err = special.OpenClusterStore(jaArg.JobanalyzerDir())
+	} else if gcArg, ok := anyCmd(interface { ConfigFile() string }); ok {
+		cfg, err = special.MaybeGetConfig(gcArg.ConfigFile())
+		if err = nil {
+			single, err = special.OpenClusterStoreFromConfig(cfg)
+		}
+	} else {
+		single = special.OpenEmptyClusterStore()
+	}
+	if err != nil {
+		return err
+	}
+
 	if command, ok := anyCmd.(*daemon.DaemonCommand); ok {
 		return command.RunDaemon(stdin, stdout, stderr)
 	}
 
-	meta := cmd.NewMeta(anyCmd)
+	// What should happen here is not NewMetaFromConfig, but get the cluster store to produce the
+	// meta for us.  Probably.  Although it amounts to the same thing.  Probably instead of
+	// returning a ClusterEntry above, and retaining the cfg, the "single" above is really the "meta".
+	// Then in the daemon code, the ClusterMeta for a cluster is looked up in the cluster store
+	// instead of being constructed in any way.
+
+	meta := cmd.NewMetaFromConfig(single, cfg)
 	switch command := anyCmd.(type) {
 	case cmd.SampleAnalysisCommand:
 		return application.LocalSampleOperation(meta, command, stdin, stdout, stderr)
