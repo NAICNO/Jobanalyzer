@@ -38,6 +38,12 @@ import (
 // DaemonCommand with a SimpleCommand.
 
 func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
+	var clusters map[string]*special.ClusterEntry
+	var err error
+	clusters, dc.aliasResolver, err = special.ReadClusterData(dc.jobanalyzerDir)
+	if err != nil {
+		return fmt.Errorf("Could not initialize cluster names: %v", err)
+	}
 	logger, err := syslog.Dial("", "", syslog.LOG_INFO|syslog.LOG_USER, logTag)
 	if err != nil {
 		return fmt.Errorf("FATAL ERROR: Failing to open logger: %v", err)
@@ -47,10 +53,6 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	db.SetCacheSize(dc.cacheSize)
 
 	if dc.kafkaBroker != "" {
-		clusters, _, err := special.ReadClusterData(dc.jobanalyzerDir)
-		if err != nil {
-			return fmt.Errorf("Could not initialize cluster names: %v", err)
-		}
 		for clusterName, _ := range clusters {
 			cfgPath := special.MakeConfigFilePath(dc.jobanalyzerDir, clusterName)
 			meta := NewMetaFromNames(clusterName, cfgPath)
