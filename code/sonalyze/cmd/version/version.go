@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	. "sonalyze/cmd"
-	"sonalyze/db/special"
 )
 
 type VersionCommand struct {
@@ -18,8 +17,7 @@ type VersionCommand struct {
 	VerboseArgs
 }
 
-var _ = SimpleCommand((*VersionCommand)(nil))
-var _ = RemotableCommand((*VersionCommand)(nil))
+var _ = PrimitiveCommand((*VersionCommand)(nil))
 
 func (vc *VersionCommand) Add(fs *CLI) {
 	vc.DatabaseArgs.Add(fs, DBArgOptions{NoDatabase: true})
@@ -45,7 +43,7 @@ func (vc *VersionCommand) Summary(out io.Writer) {
 //go:embed version.csv
 var versionData string
 
-func (_ *VersionCommand) Perform(_ special.ClusterMeta, _ io.Reader, stdout, _ io.Writer) error {
+func (_ *VersionCommand) Perform(_ io.Reader, stdout, _ io.Writer) error {
 	version := "0.0.0"
 
 	rdr := csv.NewReader(strings.NewReader(versionData))

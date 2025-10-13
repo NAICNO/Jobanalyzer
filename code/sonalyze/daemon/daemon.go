@@ -180,3 +180,7 @@ func (dc *DaemonCommand) Validate() error {
 	}
 	return errors.Join(e1, e2, e4, e5, e7, e8)
 }
+
+func (dc *DaemonCommand) ReifyForRemote(x *ArgReifier) error {
+	panic("Daemon is not remotable")
+}

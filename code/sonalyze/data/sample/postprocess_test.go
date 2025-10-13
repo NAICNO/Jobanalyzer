@@ -8,42 +8,20 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/data/cluster"
 	"sonalyze/db"
 	"sonalyze/db/parse"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
-
-type myMeta struct {
-	cfg *config.ClusterConfig
-}
-
-func (mm *myMeta) ClusterName() string {
-	return "mlx.hpc.uio.no"
-}
-
-func (mm *myMeta) SetDataProvider(_ any) {
-	panic("NYI")
-}
-
-func (mm *myMeta) ExcludedUsers() []string {
-	return mm.cfg.ExcludeUser
-}
-
-func (mm *myMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string {
-	return mm.cfg.HostsDefinedInTimeWindow(fromIncl, toIncl)
-}
-
-func (mm *myMeta) LookupHostByTime(host string, time int64) *config.NodeConfigRecord {
-	return mm.cfg.LookupHost(host)
-}
 
 func TestRectifyGpuMem(t *testing.T) {
 	// The input file has gpukib fields, but by using a config that says to use gpumem% instead we
 	// should force the values in the record to something else.
 	memsize := 400
 	numcards := 1
-	meta := &myMeta{
-		cfg: config.NewClusterConfig(
+	special.OpenDataStoreFromConfig(
+		config.NewClusterConfig(
 			2,
 			"Test",
 			"Test",
@@ -59,7 +37,8 @@ func TestRectifyGpuMem(t *testing.T) {
 				},
 			},
 		),
-	}
+	)
+	meta := cluster.NewMetaFromCluster(special.GetSingleCluster())
 	c, err := db.OpenFileListSampleDB(
 		meta,
 		[]string{"../../../tests/sonarlog/whitebox-logclean.csv"},

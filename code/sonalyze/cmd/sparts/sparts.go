@@ -82,7 +82,7 @@ func (nc *SpartCommand) ReifyForRemote(x *ArgReifier) error {
 }
 
 func (nc *SpartCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, nc.DataDir, db.FileListSlurmPartitionData, nc.LogFiles)
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListSlurmPartitionData)
 	if err != nil {
 		return err
 	}

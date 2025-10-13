@@ -43,9 +43,7 @@ func LocalSampleOperation(
 
 	theLog, err := db.OpenReadOnlyDB(
 		meta,
-		args.DataDir,
 		db.FileListSampleData,
-		args.LogFiles,
 	)
 	if err != nil {
 		return err

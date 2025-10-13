@@ -18,7 +18,7 @@ type sacctSummary struct {
 }
 
 func (sc *SacctCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, sc.DataDir, db.FileListSlurmJobData, sc.LogFiles)
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListSlurmJobData)
 	if err != nil {
 		return err
 	}

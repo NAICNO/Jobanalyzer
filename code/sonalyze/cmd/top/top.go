@@ -66,7 +66,7 @@ func (tc *TopCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 func (tc *TopCommand) Perform(meta special.ClusterMeta, stdin io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, tc.DataDir, db.FileListCpuSampleData, tc.LogFiles)
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListCpuSampleData)
 	if err != nil {
 		return err
 	}

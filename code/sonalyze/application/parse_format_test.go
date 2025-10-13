@@ -6,6 +6,7 @@ import (
 
 	"sonalyze/cmd"
 	"sonalyze/cmd/parse"
+	"sonalyze/db/special"
 )
 
 // Basic unit test that all field names are working in the printer.  The input record has all the
@@ -51,14 +52,19 @@ func TestParseNewFieldNames(t *testing.T) {
 
 func mockitParse(t *testing.T, fields string) string {
 	var pc parse.ParseCommand
-	pc.SourceArgs.LogFiles = []string{"testdata/parse_format_test/test.csv"}
+	pc.DatabaseArgs.SetLogFiles([]string{"testdata/parse_format_test/test.csv"}, "logfiles.cluster")
 	pc.FormatArgs.Fmt = "csvnamed,header," + fields
 	err := pc.Validate()
 	if err != nil {
 		t.Fatal(err)
 	}
+	err = cmd.OpenDataStoreFromCommand(&pc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer special.CloseDataStore()
 	var stdout, stderr strings.Builder
-	err = LocalSampleOperation(cmd.NewMeta(&pc), &pc, nil, &stdout, &stderr)
+	err = LocalSampleOperation(cmd.NewMetaFromCommand(&pc), &pc, nil, &stdout, &stderr)
 	if err != nil {
 		t.Fatal(err)
 	}

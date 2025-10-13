@@ -120,9 +120,7 @@ func (nc *NodeCommand) Validate() error {
 func (nc *NodeCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
 	theLog, err := db.OpenReadOnlyDB(
 		meta,
-		nc.DataDir,
 		db.FileListNodeData|db.FileListCardData,
-		nc.LogFiles,
 	)
 	if err != nil {
 		return err

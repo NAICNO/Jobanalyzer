@@ -31,7 +31,9 @@ import (
 	"sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/daemon"
+	"sonalyze/data/cluster"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -104,8 +106,8 @@ func sonalyze() error {
 			defer stop()
 		}
 
-		if cmd, ok := anyCmd.(cmd.RemotableCommand); ok && cmd.RemotingFlags().Remoting {
-			return application.RemoteOperation(cmd, verb, os.Stdin, os.Stdout, out)
+		if anyCmd.Remoting() {
+			return application.RemoteOperation(anyCmd, verb, os.Stdin, os.Stdout, out)
 		}
 
 		// We are running against a local cluster store.
@@ -242,9 +244,16 @@ func OneShotHandleCommand(
 	anyCmd cmd.Command,
 	stdin io.Reader,
 	stdout, stderr io.Writer,
-) error {
-	if command, ok := anyCmd.(*daemon.DaemonCommand); ok {
-		return command.RunDaemon(stdin, stdout, stderr)
+) (err error) {
+	if !anyCmd.Remoting() {
+		// Initialize local data store.
+		err = cmd.OpenDataStoreFromCommand(anyCmd)
+		if err != nil {
+			return fmt.Errorf("Could not initialize data store: %v", err)
+		}
+		if command, ok := anyCmd.(*daemon.DaemonCommand); ok {
+			return command.RunDaemon(stdin, stdout, stderr)
+		}
 	}
 	return OneShotHandleSingleCommand(anyCmd, stdin, stdout, stderr)
 }
@@ -254,7 +263,23 @@ func OneShotHandleSingleCommand(
 	stdin io.Reader,
 	stdout, stderr io.Writer,
 ) error {
-	meta := cmd.NewMeta(anyCmd)
+	if command, ok := anyCmd.(cmd.PrimitiveCommand); ok {
+		return command.Perform(stdin, stdout, stderr)
+	}
+
+	var cluzter *special.ClusterEntry
+	if anyCmd.ClusterName() != "" {
+		cluzter = special.LookupCluster(anyCmd.ClusterName())
+		if cluzter == nil {
+			return errors.New("Cluster " + anyCmd.ClusterName() + " not found")
+		}
+	} else {
+		cluzter = special.GetSingleCluster()
+		if cluzter == nil {
+			return errors.New("No cluster target, and multiple clusters defined")
+		}
+	}
+	meta := cluster.NewMetaFromCluster(cluzter)
 	switch command := anyCmd.(type) {
 	case cmd.SampleAnalysisCommand:
 		return application.LocalSampleOperation(meta, command, stdin, stdout, stderr)
@@ -263,6 +288,7 @@ func OneShotHandleSingleCommand(
 	default:
 		return errors.New("NYI command")
 	}
+
 	panic("Unreachable")
 }
 

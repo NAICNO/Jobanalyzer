@@ -27,7 +27,7 @@ func testitNode(t *testing.T, fields string) {
 		}
 	)
 	var nc nodes.NodeCommand
-	nc.SourceArgs.LogFiles = logFiles
+	nc.DatabaseArgs.SetLogFiles(logFiles, "logfiles.cluster")
 	nc.FormatArgs.Fmt = "csv,header," + fields
 	testSimpleCommand(t, &nc, fields, expect)
 }

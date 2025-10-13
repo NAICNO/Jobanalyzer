@@ -60,7 +60,7 @@ type ClusterCommand struct {
 	FormatArgs
 }
 
-var _ = (SimpleCommand)((*ClusterCommand)(nil))
+var _ = PrimitiveCommand((*ClusterCommand)(nil))
 
 func (cc *ClusterCommand) Add(fs *CLI) {
 	cc.DevArgs.Add(fs)
@@ -99,17 +99,13 @@ func (cc *ClusterCommand) Validate() error {
 //
 // Analysis
 
-func (cc *ClusterCommand) Perform(_ special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	err := special.OpenFullDataStore(cc.JobanalyzerDir)
-	if err != nil {
-		return err
-	}
-
+func (cc *ClusterCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 	printable := special.AllClusters()
 	slices.SortFunc(printable, func(a, b *special.ClusterEntry) int {
 		return cmp.Compare(a.Name, b.Name)
 	})
 
+	var err error
 	printable, err = ApplyQuery(
 		cc.ParsedQuery, clusterFormatters, clusterPredicates, printable)
 	if err != nil {

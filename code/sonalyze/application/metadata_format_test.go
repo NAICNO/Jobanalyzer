@@ -23,7 +23,7 @@ func testitMetadata(t *testing.T, fields string) {
 		}
 	)
 	var mc metadata.MetadataCommand
-	mc.SourceArgs.LogFiles = []string{"testdata/metadata_format/test.csv"}
+	mc.DatabaseArgs.SetLogFiles([]string{"testdata/metadata_format/test.csv"}, "logfiles.cluster")
 	mc.FormatArgs.Fmt = "csv,header," + fields
 	mc.Bounds = true
 	testSampleAnalysisCommand(t, &mc, fields, expect)
