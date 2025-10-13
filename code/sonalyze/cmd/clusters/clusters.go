@@ -7,7 +7,6 @@ import (
 	"os"
 	"slices"
 
-	umaps "go-utils/maps"
 	"go-utils/options"
 
 	. "sonalyze/cmd"
@@ -126,12 +125,12 @@ func (cc *ClusterCommand) Validate() error {
 // Analysis
 
 func (cc *ClusterCommand) Perform(_ special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	clusters, _, err := special.ReadClusterData(cc.JobanalyzerDir)
+	err := special.OpenFullDataStore(cc.JobanalyzerDir)
 	if err != nil {
 		return err
 	}
 
-	printable := umaps.Values(clusters)
+	printable := special.AllClusters()
 	slices.SortFunc(printable, func(a, b *special.ClusterEntry) int {
 		return cmp.Compare(a.Name, b.Name)
 	})

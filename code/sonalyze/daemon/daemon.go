@@ -102,7 +102,6 @@ import (
 	"strconv"
 	"strings"
 
-	"go-utils/alias"
 	"go-utils/auth"
 	"go-utils/options"
 	. "sonalyze/cmd"
@@ -130,7 +129,6 @@ type DaemonCommand struct {
 	kafkaBroker         string
 	noAdd               bool
 
-	aliasResolver     *alias.Aliases
 	getAuthenticator  *auth.Authenticator
 	postAuthenticator *auth.Authenticator
 	cmdlineHandler    CommandLineHandler

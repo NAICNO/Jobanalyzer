@@ -38,11 +38,9 @@ import (
 // DaemonCommand with a SimpleCommand.
 
 func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
-	var clusters map[string]*special.ClusterEntry
-	var err error
-	clusters, dc.aliasResolver, err = special.ReadClusterData(dc.jobanalyzerDir)
+	err := special.OpenFullDataStore(dc.jobanalyzerDir)
 	if err != nil {
-		return fmt.Errorf("Could not initialize cluster names: %v", err)
+		return fmt.Errorf("Could not initialize data store: %v", err)
 	}
 	logger, err := syslog.Dial("", "", syslog.LOG_INFO|syslog.LOG_USER, logTag)
 	if err != nil {
@@ -53,28 +51,28 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	db.SetCacheSize(dc.cacheSize)
 
 	if dc.kafkaBroker != "" {
-		for clusterName, _ := range clusters {
-			cfgPath := special.MakeConfigFilePath(dc.jobanalyzerDir, clusterName)
-			meta := NewMetaFromNames(clusterName, cfgPath)
+		for _, cluster := range special.AllClusters() {
+			cfgPath := special.MakeConfigFilePath(dc.jobanalyzerDir, cluster.Name)
+			meta := NewMetaFromNames(cluster.Name, cfgPath)
 			if err != nil {
 				if dc.Verbose {
-					Log.Warningf("Failed to find config file for %s: %s %v", clusterName, cfgPath, err)
+					Log.Warningf("Failed to find config file for %s: %s %v", cluster.Name, cfgPath, err)
 				}
 				continue
 			}
-			dataDir := special.MakeClusterDataPath(dc.jobanalyzerDir, clusterName)
+			dataDir := special.MakeClusterDataPath(dc.jobanalyzerDir, cluster.Name)
 			ds, err := db.OpenAppendablePersistentDirectoryDB(meta, dataDir)
 			if err != nil {
 				if dc.Verbose {
-					Log.Warningf("Failed to open data store for %s", clusterName)
+					Log.Warningf("Failed to open data store for %s", cluster.Name)
 				}
 				continue
 			}
 			meta.SetDataProvider(ds)
 			if dc.Verbose {
-				Log.Infof("Starting listener for %s", clusterName)
+				Log.Infof("Starting listener for %s", cluster.Name)
 			}
-			go runKafka(dc.kafkaBroker, clusterName, ds, dc.Verbose)
+			go runKafka(dc.kafkaBroker, cluster.Name, ds, dc.Verbose)
 		}
 	}
 
@@ -371,11 +369,7 @@ func requestPreamble(
 			}
 			return
 		}
-
-		clusterName = clusterValues[0]
-		if dc.aliasResolver != nil {
-			clusterName = dc.aliasResolver.Resolve(clusterName)
-		}
+		clusterName = special.ResolveClusterName(clusterValues[0])
 	} else {
 		if found {
 			w.WriteHeader(400)

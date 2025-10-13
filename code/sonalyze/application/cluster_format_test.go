@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"sonalyze/cmd/clusters"
+	"sonalyze/db/special"
 )
 
 func TestClusters(t *testing.T) {
@@ -28,4 +29,5 @@ func testitCluster(t *testing.T, fields string) {
 	cc.JobanalyzerDir = jobanalyzerDir
 	cc.FormatArgs.Fmt = "csv,header," + fields
 	testSimpleCommand(t, &cc, fields, expect)
+	special.CloseDataStore()
 }
