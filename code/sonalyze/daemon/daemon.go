@@ -106,7 +106,6 @@ import (
 	"go-utils/auth"
 	"go-utils/options"
 	. "sonalyze/cmd"
-	"sonalyze/db/special"
 )
 
 const (
@@ -168,7 +167,7 @@ func (dc *DaemonCommand) Summary(out io.Writer) {
 }
 
 func (dc *DaemonCommand) Validate() error {
-	var e1, e2, e3, e4, e5, e6, e7, e8 error
+	var e1, e2, e3, e4, e5, e7, e8 error
 	e1 = dc.DevArgs.Validate()
 	e2 = dc.VerboseArgs.Validate()
 	dc.jobanalyzerDir, e3 = options.RequireDirectory(dc.jobanalyzerDir, "-jobanalyzer-dir")
@@ -184,7 +183,6 @@ func (dc *DaemonCommand) Validate() error {
 			return fmt.Errorf("Failed to read upload authentication file: %v", e5)
 		}
 	}
-	_, dc.aliasResolver, e6 = special.ReadClusterData(dc.jobanalyzerDir)
 	if dc.cache != "" {
 		var scale int64
 		var before string
@@ -210,5 +208,5 @@ func (dc *DaemonCommand) Validate() error {
 			e8 = errors.New("The -no-add switch precludes https upload parameters")
 		}
 	}
-	return errors.Join(e1, e2, e3, e4, e5, e6, e7, e8)
+	return errors.Join(e1, e2, e3, e4, e5, e7, e8)
 }
