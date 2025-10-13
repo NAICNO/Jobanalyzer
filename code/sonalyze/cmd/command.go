@@ -25,6 +25,8 @@ type SetRestArgumentsAPI interface {
 	SetRestArguments(args []string)
 }
 
+var _ = SetRestArgumentsAPI((*DatabaseArgs)(nil))
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Any command of any type must be able to define and validate command line args, and handle some
@@ -47,13 +49,19 @@ type Command interface {
 	VerboseFlag() bool
 }
 
+type RemotingFlags struct {
+	AuthFile string
+	Remote   string
+	Remoting bool
+}
+
 type RemotableCommand interface {
 	Command
 
 	// Reify all arguments including shared arguments for remote execution, with checking
 	ReifyForRemote(x *ArgReifier) error
 
-	RemotingFlags() *RemotingArgsNoCluster
+	RemotingFlags() RemotingFlags
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
