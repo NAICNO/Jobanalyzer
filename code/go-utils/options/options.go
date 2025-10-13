@@ -8,7 +8,6 @@ import (
 )
 
 // Require a non-empty value that names an existing directory.
-
 func RequireDirectory(optval, optname string) (string, error) {
 	if optval == "" {
 		return "", fmt.Errorf("Required argument: %s", optname)
@@ -18,6 +17,22 @@ func RequireDirectory(optval, optname string) (string, error) {
 	info, err := os.DirFS(optval).(fs.StatFS).Stat(".")
 	if err != nil || !info.IsDir() {
 		return "", fmt.Errorf("Bad %s directory %s", optname, optval)
+	}
+
+	return optval, nil
+}
+
+func RequireFile(optval, optname string) (string, error) {
+	if optval == "" {
+		return "", fmt.Errorf("Required argument: %s", optname)
+	}
+
+	optval = path.Clean(optval)
+	info, err := os.Stat(optval)
+	// Not real happy with this definition but IsRegular() is definitely wrong, as it also excludes
+	// symlinks and some other sensible files.
+	if err != nil || info.IsDir() {
+		return optval, fmt.Errorf("Bad %s file %s", optname, optval)
 	}
 
 	return optval, nil
