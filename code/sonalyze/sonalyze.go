@@ -35,12 +35,6 @@ import (
 	. "sonalyze/table"
 )
 
-// See end of file for documentation / implementation, and command/command.go for documentation of
-// the CommandLineHandler interface.
-//
-// MT: Constant after initialization; immutable (no fields)
-var stdhandler = standardCommandLineHandler{}
-
 func main() {
 	err := sonalyze()
 	if err != nil {
@@ -76,14 +70,14 @@ func sonalyze() error {
 		os.Exit(0)
 
 	default:
-		anyCmd, verb := stdhandler.ParseVerb(cmdName, maybeVerb)
+		anyCmd, verb := OneShotParseVerb(cmdName, maybeVerb)
 		if anyCmd == nil {
 			fmt.Fprintf(out, "Unknown operation: %s\nTry `sonalyze help`\n", maybeVerb)
 			os.Exit(2)
 		}
 
 		fs := cmd.NewCLI(maybeVerb, anyCmd, cmdName, true)
-		err := stdhandler.ParseArgs(verb, args, anyCmd, fs)
+		err := OneShotParseArgs(verb, args, anyCmd, fs)
 		if err != nil {
 			fmt.Fprintf(out, "Bad arguments: %v\nTry `sonalyze %s -h`\n", err, maybeVerb)
 			os.Exit(2)
@@ -102,7 +96,7 @@ func sonalyze() error {
 			}
 		}
 
-		stop, err := stdhandler.StartCPUProfile(anyCmd.CpuProfileFile())
+		stop, err := OneShotStartCPUProfile(anyCmd.CpuProfileFile())
 		if err != nil {
 			return err
 		}
@@ -122,7 +116,7 @@ func sonalyze() error {
 		// Note, we are dependent on nobody calling Exit() after this point.
 		defer db.Close()
 
-		return stdhandler.HandleCommand(anyCmd, os.Stdin, os.Stdout, out)
+		return OneShotHandleCommand(anyCmd, os.Stdin, os.Stdout, out)
 	}
 	panic("Unreachable")
 }
@@ -182,15 +176,15 @@ func topicalHelpTopics(out io.Writer) {
 //
 // Command line parsing and execution helpers.
 
-type standardCommandLineHandler struct {
-}
-
-func (_ *standardCommandLineHandler) ParseVerb(
-	cmdName, maybeVerb string,
-) (command cmd.Command, verb string) {
+func OneShotParseVerb(cmdName, maybeVerb string) (command cmd.Command, verb string) {
 	switch maybeVerb {
 	case "daemon":
-		command = daemon.New(&daemonCommandLineHandler{})
+		command = daemon.New(cmd.CommandLineHandler{
+			DaemonParseVerb,
+			DaemonParseArgs,
+			DaemonStartCPUProfile,
+			DaemonHandleCommand,
+		})
 	default:
 		command, maybeVerb = application.ConstructCommand(maybeVerb)
 	}
@@ -198,7 +192,7 @@ func (_ *standardCommandLineHandler) ParseVerb(
 	return
 }
 
-func (_ *standardCommandLineHandler) ParseArgs(
+func OneShotParseArgs(
 	verb string,
 	args []string,
 	command cmd.Command,
@@ -230,7 +224,7 @@ func (_ *standardCommandLineHandler) ParseArgs(
 	return command.Validate()
 }
 
-func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func(), error) {
+func OneShotStartCPUProfile(profileFile string) (func(), error) {
 	if profileFile == "" {
 		return nil, nil
 	}
@@ -244,7 +238,7 @@ func (_ *standardCommandLineHandler) StartCPUProfile(profileFile string) (func()
 	return func() { pprof.StopCPUProfile() }, nil
 }
 
-func (_ *standardCommandLineHandler) HandleCommand(
+func OneShotHandleCommand(
 	anyCmd cmd.Command,
 	stdin io.Reader,
 	stdout, stderr io.Writer,
@@ -252,7 +246,14 @@ func (_ *standardCommandLineHandler) HandleCommand(
 	if command, ok := anyCmd.(*daemon.DaemonCommand); ok {
 		return command.RunDaemon(stdin, stdout, stderr)
 	}
+	return OneShotHandleSingleCommand(anyCmd, stdin, stdout, stderr)
+}
 
+func OneShotHandleSingleCommand(
+	anyCmd cmd.Command,
+	stdin io.Reader,
+	stdout, stderr io.Writer,
+) error {
 	meta := cmd.NewMeta(anyCmd)
 	switch command := anyCmd.(type) {
 	case cmd.SampleAnalysisCommand:
@@ -267,25 +268,20 @@ func (_ *standardCommandLineHandler) HandleCommand(
 
 // No profiling, no recursive running of daemon when running commands remotely with `sonalyze daemon`.
 
-type daemonCommandLineHandler struct {
-}
-
-func (_ *daemonCommandLineHandler) ParseVerb(
-	cmdName, maybeVerb string,
-) (command cmd.Command, verb string) {
+func DaemonParseVerb(cmdName, maybeVerb string) (command cmd.Command, verb string) {
 	if maybeVerb == "daemon" {
 		return
 	}
-	return stdhandler.ParseVerb(cmdName, maybeVerb)
+	return OneShotParseVerb(cmdName, maybeVerb)
 }
 
-func (_ *daemonCommandLineHandler) ParseArgs(
+func DaemonParseArgs(
 	verb string,
 	args []string,
 	command cmd.Command,
 	fs *cmd.CLI,
 ) error {
-	err := stdhandler.ParseArgs(verb, args, command, fs)
+	err := OneShotParseArgs(verb, args, command, fs)
 	if err != nil {
 		return err
 	}
@@ -295,11 +291,11 @@ func (_ *daemonCommandLineHandler) ParseArgs(
 	return nil
 }
 
-func (_ *daemonCommandLineHandler) StartCPUProfile(string) (func(), error) {
+func DaemonStartCPUProfile(string) (func(), error) {
 	panic("Should not happen")
 }
 
-func (_ *daemonCommandLineHandler) HandleCommand(
+func DaemonHandleCommand(
 	anyCmd cmd.Command,
 	stdin io.Reader,
 	stdout, stderr io.Writer,
@@ -307,5 +303,5 @@ func (_ *daemonCommandLineHandler) HandleCommand(
 	if _, ok := anyCmd.(*daemon.DaemonCommand); ok {
 		panic("Should not happen")
 	}
-	return stdhandler.HandleCommand(anyCmd, stdin, stdout, stderr)
+	return OneShotHandleSingleCommand(anyCmd, stdin, stdout, stderr)
 }

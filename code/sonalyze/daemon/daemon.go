@@ -99,11 +99,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strconv"
-	"strings"
 
 	"go-utils/auth"
-	"go-utils/options"
 	. "sonalyze/cmd"
 )
 
@@ -120,19 +117,17 @@ const (
 type DaemonCommand struct {
 	DevArgs
 	VerboseArgs
-	jobanalyzerDir      string
+	DatabaseArgs
 	port                uint
 	getAuthFile         string
 	postAuthFile        string
 	matchUserAndCluster bool
-	cache               string
 	kafkaBroker         string
 	noAdd               bool
 
 	getAuthenticator  *auth.Authenticator
 	postAuthenticator *auth.Authenticator
 	cmdlineHandler    CommandLineHandler
-	cacheSize         int64
 }
 
 func New(cmdlineHandler CommandLineHandler) *DaemonCommand {
@@ -144,15 +139,13 @@ func New(cmdlineHandler CommandLineHandler) *DaemonCommand {
 func (dc *DaemonCommand) Add(fs *CLI) {
 	dc.DevArgs.Add(fs)
 	dc.VerboseArgs.Add(fs)
+	dc.DatabaseArgs.Add(fs, DBArgOptions{RequireFullDatabase: true})
 	fs.Group("daemon-configuration")
-	fs.StringVar(&dc.jobanalyzerDir, "jobanalyzer-dir", "", "Jobanalyzer root `directory` (required)")
 	fs.UintVar(&dc.port, "port", defaultListenPort, "Listen for connections on `port`")
 	fs.StringVar(&dc.getAuthFile, "analysis-auth", "", "Authentication info `filename` for analysis access")
 	fs.StringVar(&dc.postAuthFile, "upload-auth", "", "Authentication info `filename` for data upload access")
 	fs.BoolVar(&dc.matchUserAndCluster, "match-user-and-cluster", false, "Require user name to match cluster name")
-	fs.StringVar(&dc.jobanalyzerDir, "jobanalyzer-path", "", "Alias for -jobanalyzer-dir")
 	fs.StringVar(&dc.getAuthFile, "password-file", "", "Alias for -analysis-auth")
-	fs.StringVar(&dc.cache, "cache", "", "Enable data caching with this size (nM for megs, nG for gigs)")
 	fs.StringVar(&dc.kafkaBroker, "kafka", "", "Ingest data from this broker for all known clusters")
 	fs.BoolVar(&dc.noAdd, "no-add", false, "Disable HTTPS ingestion")
 }
@@ -165,10 +158,9 @@ func (dc *DaemonCommand) Summary(out io.Writer) {
 }
 
 func (dc *DaemonCommand) Validate() error {
-	var e1, e2, e3, e4, e5, e7, e8 error
+	var e1, e2, e4, e5, e7, e8 error
 	e1 = dc.DevArgs.Validate()
 	e2 = dc.VerboseArgs.Validate()
-	dc.jobanalyzerDir, e3 = options.RequireDirectory(dc.jobanalyzerDir, "-jobanalyzer-dir")
 	if dc.getAuthFile != "" {
 		dc.getAuthenticator, e4 = auth.ReadPasswords(dc.getAuthFile)
 		if e4 != nil {
@@ -181,30 +173,10 @@ func (dc *DaemonCommand) Validate() error {
 			return fmt.Errorf("Failed to read upload authentication file: %v", e5)
 		}
 	}
-	if dc.cache != "" {
-		var scale int64
-		var before string
-		var found bool
-		if before, found = strings.CutSuffix(dc.cache, "M"); found {
-			scale = 1024 * 1024
-		} else if before, found = strings.CutSuffix(dc.cache, "G"); found {
-			scale = 1024 * 1024 * 1024
-		} else {
-			e7 = errors.New("Bad -cache value: suffix")
-		}
-		if scale > 0 {
-			size, err := strconv.ParseInt(before, 10, 64)
-			if err == nil && size > 0 {
-				dc.cacheSize = size * scale
-			} else {
-				e7 = errors.New("Bad -cache value")
-			}
-		}
-	}
 	if dc.noAdd {
 		if dc.matchUserAndCluster || dc.postAuthFile != "" {
 			e8 = errors.New("The -no-add switch precludes https upload parameters")
 		}
 	}
-	return errors.Join(e1, e2, e3, e4, e5, e7, e8)
+	return errors.Join(e1, e2, e4, e5, e7, e8)
 }

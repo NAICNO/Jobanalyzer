@@ -109,18 +109,25 @@ func (va *VerboseArgs) VerboseFlag() bool {
 // retired.)
 
 type DatabaseArgs struct {
+	// Remote arguments
 	Remote   string
 	AuthFile string
 	Remoting bool
 	Cluster  string
 
+	// Local arguments
 	JobanalyzerDir string
 	DataDir        string
 	ReportDir      string
 	ConfigFilename string
 	LogFiles       []string
+	CacheSize      int64
 
+	// Creation options, sometimes used during validation
 	options DBArgOptions
+
+	// Temporary
+	cache               string
 }
 
 func (db *DatabaseArgs) ConfigFile() string {
@@ -128,6 +135,9 @@ func (db *DatabaseArgs) ConfigFile() string {
 }
 
 type DBArgOptions struct {
+	// Require -jobanalyzer-dir (for the daemon) and disable all other options.
+	RequireFullDatabase bool
+
 	// Do not accept -cluster, as the command is not cluster-specific.
 	OmitCluster bool
 
@@ -142,29 +152,35 @@ type DBArgOptions struct {
 func (db *DatabaseArgs) Add(fs *CLI, opts DBArgOptions) {
 	db.options = opts
 
-	fs.Group("remote-data-source")
-	fs.StringVar(&db.Remote, "remote", "",
-		"Select a remote `url` to serve the query [default: none].")
-	fs.StringVar(&db.AuthFile, "auth-file", "",
-		"Provide a `file` on username:password or netrc format [default: none].  For use with -remote.")
-	if opts.OmitCluster {
-		fs.StringVar(&db.Cluster, "cluster", "",
-			"Select the cluster `name` for which we want data [default: none].  For use with -remote.")
+	if !opts.RequireFullDatabase {
+		fs.Group("remote-data-source")
+		fs.StringVar(&db.Remote, "remote", "",
+			"Select a remote `url` to serve the query [default: none].")
+		fs.StringVar(&db.AuthFile, "auth-file", "",
+			"Provide a `file` on username:password or netrc format [default: none].  For use with -remote.")
+		if opts.OmitCluster {
+			fs.StringVar(&db.Cluster, "cluster", "",
+				"Select the cluster `name` for which we want data [default: none].  For use with -remote.")
+		}
 	}
 
 	fs.Group("local-data-source")
 	fs.StringVar(&db.JobanalyzerDir, "jobanalyzer-dir", "",
 		"Jobanalyzer root `directory`, precludes all other local data source arguments.")
-	fs.StringVar(&db.DataDir, "data-dir", "",
-		"Select the root `directory` for log files [default: none]")
-	fs.StringVar(&db.DataDir, "data-path", "", "Alias for -data-dir `directory`")
-	fs.StringVar(&db.ConfigFilename, "config-file", "",
-		"A `filename` for a file holding JSON data with system information, for when we\n"+
-			"want to print or use system-relative values [default: none]")
-	if opts.IncludeReportDir {
-		fs.StringVar(
-			&db.ReportDir, "report-dir", "", "`directory-name` containing reports [default: none]")
+	if !opts.RequireFullDatabase {
+		fs.StringVar(&db.DataDir, "data-dir", "",
+			"Select the root `directory` for log files [default: none]")
+		fs.StringVar(&db.DataDir, "data-path", "", "Alias for -data-dir `directory`")
+		fs.StringVar(&db.ConfigFilename, "config-file", "",
+			"A `filename` for a file holding JSON data with system information, for when we\n"+
+				"want to print or use system-relative values [default: none]")
+		if opts.IncludeReportDir {
+			fs.StringVar(
+				&db.ReportDir, "report-dir", "", "`directory-name` containing reports [default: none]")
+		}
 	}
+
+	fs.StringVar(&db.cache, "cache", "", "Enable data caching with this size (nM for megs, nG for gigs)")
 }
 
 func (db *DatabaseArgs) RemotingFlags() RemotingFlags {
@@ -214,7 +230,7 @@ func (db *DatabaseArgs) Validate() error {
 			return errors.New("A -jobanalyzer-dir precludes a -config-file")
 		}
 		if len(db.LogFiles) > 0 {
-			return errors.New("A -data-dir precludes a file list")
+			return errors.New("A -jobanalyzer-dir precludes a file list")
 		}
 	case db.DataDir != "":
 		if db.ReportDir != "" {
@@ -256,8 +272,9 @@ func (db *DatabaseArgs) Validate() error {
 		ApplyDefault(&db.Cluster, DataSourceCluster)
 	}
 
+	var e1, e2, e3, e4, e5, e6, e7 error
+
 	// Clean all local names and check that they exist, for better error reporting.
-	var e1, e2, e3, e4, e5, e6 error
 	if db.JobanalyzerDir != "" {
 		db.JobanalyzerDir, e1 = options.RequireDirectory(db.JobanalyzerDir, "-jobanalyzer-dir")
 	}
@@ -287,7 +304,28 @@ func (db *DatabaseArgs) Validate() error {
 		db.AuthFile, e6 = options.RequireFile(db.AuthFile, "-auth-file")
 	}
 
-	return errors.Join(e1, e2, e3, e4, e5, e6)
+	if db.cache != "" {
+		var scale int64
+		var before string
+		var found bool
+		if before, found = strings.CutSuffix(db.cache, "M"); found {
+			scale = 1024 * 1024
+		} else if before, found = strings.CutSuffix(db.cache, "G"); found {
+			scale = 1024 * 1024 * 1024
+		} else {
+			e7 = errors.New("Bad -cache value: suffix")
+		}
+		if scale > 0 {
+			size, err := strconv.ParseInt(before, 10, 64)
+			if err == nil && size > 0 {
+				db.CacheSize = size * scale
+			} else {
+				e7 = errors.New("Bad -cache value")
+			}
+		}
+	}
+
+	return errors.Join(e1, e2, e3, e4, e5, e6, e7)
 }
 
 func (db *DatabaseArgs) ReifyForRemote(x *ArgReifier) error {
