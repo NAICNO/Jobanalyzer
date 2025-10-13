@@ -94,9 +94,7 @@ func (nc *NodeProfCommand) Validate() error {
 func (nc *NodeProfCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
 	theLog, err := db.OpenReadOnlyDB(
 		meta,
-		nc.DataDir,
 		db.FileListNodeSampleData,
-		nc.LogFiles,
 	)
 	if err != nil {
 		return err

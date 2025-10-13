@@ -99,7 +99,7 @@ type ReportLine struct {
 }
 
 func (gc *GpuCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, gc.DataDir, db.FileListGpuSampleData, gc.LogFiles)
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListGpuSampleData)
 	if err != nil {
 		return err
 	}

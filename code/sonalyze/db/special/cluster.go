@@ -29,6 +29,7 @@ import (
 	"sync"
 
 	"go-utils/alias"
+	"go-utils/config"
 	umaps "go-utils/maps"
 )
 
@@ -75,6 +76,16 @@ type ClusterEntry struct {
 	Description string
 	Aliases     []string // Not sorted
 	ExcludeUser []string // Not sorted
+
+	// Misc implementation - semi-private, shared with ClusterMeta for now
+	HaveDataDir   bool
+	DataDir       string
+	HaveLogFiles  bool
+	LogFiles      []string
+	HaveReportDir bool
+	ReportDir     string
+	HaveConfig    bool
+	Config        *config.ClusterConfig
 }
 
 func OpenFullDataStore(jobanalyzerDir string) error {
@@ -99,8 +110,14 @@ func OpenFullDataStore(jobanalyzerDir string) error {
 	}
 	for _, e := range dirEntries {
 		if e.IsDir() {
-			n := e.Name()
-			clusters[n] = &ClusterEntry{Name: n}
+			name := e.Name()
+			clusters[name] = &ClusterEntry{
+				Name:          name,
+				HaveDataDir:   true,
+				DataDir:       MakeClusterDataPath(jobanalyzerDir, name),
+				HaveReportDir: true,
+				ReportDir:     MakeReportDirPath(jobanalyzerDir, name),
+			}
 		}
 	}
 
@@ -126,17 +143,172 @@ func OpenFullDataStore(jobanalyzerDir string) error {
 
 	// Find descriptions for known clusters.
 	for c, v := range clusters {
-		cfg, err := MaybeGetConfig(MakeConfigFilePath(jobanalyzerDir, c))
+		cfg, err := maybeGetConfig(MakeConfigFilePath(jobanalyzerDir, c))
 		if err != nil {
 			continue
 		}
 		v.Description = cfg.Description
 		v.ExcludeUser = cfg.ExcludeUser
+		v.HaveConfig  = true
+		v.Config      = cfg
 	}
 
 	dataStoreOpen = true
 	clusterCache = clusters
 	clusterAliases = aliases
+	return nil
+}
+
+// For the following, the cluster name will be set to "data.cluster", "report.cluster",
+// "logfiles.cluster", "config.cluster" if configFile is not provided or if the file does not
+// provide a cluster name.
+
+func OpenDataStoreFromDataDir(dataDir, configFile string) error {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	cfg, err := maybeGetConfig(configFile)
+	if err != nil {
+		return errors.New("Could not read config file " + configFile)
+	}
+	v := &ClusterEntry{HaveDataDir: true, DataDir: dataDir}
+	if cfg != nil {
+		v.Name = cfg.Name
+		v.Description = cfg.Description
+		v.HaveConfig = true
+		v.Config = cfg
+	}
+	if v.Name == "" {
+		v.Name = "data.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (data dir)"
+	}
+
+	dataStoreOpen = true
+	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	return nil
+}
+
+func OpenDataStoreFromReportDir(reportDir, configFile string) error {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	cfg, err := maybeGetConfig(configFile)
+	if err != nil {
+		return errors.New("Could not read config file " + configFile)
+	}
+	v := &ClusterEntry{HaveReportDir: true, ReportDir: reportDir}
+	if cfg != nil {
+		v.Name = cfg.Name
+		v.Description = cfg.Description
+		v.HaveConfig = true
+		v.Config = cfg
+	}
+	if v.Name == "" {
+		v.Name = "report.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (report dir)"
+	}
+
+	dataStoreOpen = true
+	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	return nil
+}
+
+func OpenDataStoreFromLogFiles(logFiles []string, configFile string) error {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	cfg, err := maybeGetConfig(configFile)
+	if err != nil {
+		return errors.New("Could not read config file " + configFile)
+	}
+	v := &ClusterEntry{HaveLogFiles: true, LogFiles: logFiles}
+	if cfg != nil {
+		v.Name = cfg.Name
+		v.Description = cfg.Description
+		v.HaveConfig = true
+		v.Config = cfg
+	}
+	if v.Name == "" {
+		v.Name = "logfiles.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (log files)"
+	}
+
+	dataStoreOpen = true
+	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	return nil
+}
+
+func OpenDataStoreFromConfigFile(configFile string) error {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	cfg, err := maybeGetConfig(configFile)
+	if err != nil {
+		return errors.New("Could not read config file " + configFile)
+	}
+	v := &ClusterEntry{
+		Name: cfg.Name,
+		Description: cfg.Description,
+		HaveConfig: true,
+		Config: cfg,
+	}
+	if v.Name == "" {
+		v.Name = "config.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (config file)"
+	}
+
+	dataStoreOpen = true
+	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	return nil
+}
+
+func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	v := &ClusterEntry{
+		Name: cfg.Name,
+		Description: cfg.Description,
+		HaveConfig: true,
+		Config: cfg,
+	}
+	if v.Name == "" {
+		v.Name = "config.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (config file)"
+	}
+
+	dataStoreOpen = true
+	clusterCache = map[string]*ClusterEntry{v.Name: v}
 	return nil
 }
 
@@ -153,8 +325,22 @@ func CloseDataStore() {
 	clusterAliases = nil
 }
 
-// The entry will be nil if the cluster is not defined.  The alias resolver is always consulted.
-// Panics if the database is not open.
+func GetSingleCluster() *ClusterEntry {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if !dataStoreOpen {
+		panic("Data store is not open")
+	}
+
+	if len(clusterCache) == 1 {
+		for _, v := range clusterCache {
+			return v
+		}
+	}
+	return nil
+}
+
 func LookupCluster(name string) *ClusterEntry {
 	clusterCacheLock.Lock()
 	defer clusterCacheLock.Unlock()
@@ -193,4 +379,12 @@ func AllClusters() []*ClusterEntry {
 	}
 
 	return umaps.Values(clusterCache)
+}
+
+// Read the config file if the file name is not empty.
+func maybeGetConfig(configFileName string) (*config.ClusterConfig, error) {
+	if configFileName == "" {
+		return nil, nil
+	}
+	return ReadConfigData(configFileName)
 }

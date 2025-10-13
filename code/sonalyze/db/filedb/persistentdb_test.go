@@ -1,3 +1,6 @@
+// This is strictly representation-level.  It knowningly uses a config file.  In time it would make
+// sense to change this test to make use of sysinfo from the persistent dir.
+
 package filedb
 
 import (
@@ -14,28 +17,41 @@ import (
 
 var theDB *PersistentCluster
 
-type myMeta struct {
-	cfg *config.ClusterConfig
+type stubMeta struct {
+	dataDir string
+    cfg *config.ClusterConfig
 }
 
-func (mm *myMeta) ClusterName() string {
-	return "mlx.hpc.uio.no"
+func (mm *stubMeta) ClusterName() string {
+       return "mlx.hpc.uio.no"
 }
 
-func (mm *myMeta) SetDataProvider(_ any) {
-	panic("NYI")
+func (mm *stubMeta) ExcludedUsers() []string {
+       return mm.cfg.ExcludeUser
 }
 
-func (mm *myMeta) ExcludedUsers() []string {
-	return mm.cfg.ExcludeUser
+func (mm *stubMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string {
+       return mm.cfg.HostsDefinedInTimeWindow(fromIncl, toIncl)
 }
 
-func (mm *myMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string {
-	return mm.cfg.HostsDefinedInTimeWindow(fromIncl, toIncl)
+func (mm *stubMeta) LookupHostByTime(host string, time int64) *config.NodeConfigRecord {
+       return mm.cfg.LookupHost(host)
 }
 
-func (mm *myMeta) LookupHostByTime(host string, time int64) *config.NodeConfigRecord {
-	return mm.cfg.LookupHost(host)
+func (mm *stubMeta) DataDir() string {
+	return mm.dataDir
+}
+
+func (mm *stubMeta) LogFiles() []string {
+	return nil
+}
+
+func (mm *stubMeta) ReportDir() string {
+	return ""
+}
+
+func (mm *stubMeta) ConfigFile() *config.ClusterConfig {
+	return mm.cfg
 }
 
 func getPersistentDB(t *testing.T, cluster string) *PersistentCluster {
@@ -43,14 +59,16 @@ func getPersistentDB(t *testing.T, cluster string) *PersistentCluster {
 		return theDB
 	}
 	var err error
-	theCfg, err := special.MaybeGetConfig(special.MakeConfigFilePath("testdata", cluster))
+	// Do not change this.
+	theCfg, err := special.ReadConfigData(special.MakeConfigFilePath("testdata", cluster))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if theCfg == nil {
 		t.Fatal("nil config")
 	}
-	theDB = NewPersistentCluster(special.MakeClusterDataPath("testdata", cluster), &myMeta{cfg: theCfg})
+	dataDir := special.MakeClusterDataPath("testdata", cluster)
+	theDB = NewPersistentCluster(dataDir, &stubMeta{dataDir: dataDir, cfg: theCfg})
 	return theDB
 }
 

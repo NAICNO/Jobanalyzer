@@ -17,18 +17,10 @@ var (
 	configCache     = make(map[string]*config.ClusterConfig)
 )
 
-// Read the config file if the file name is not empty.
-func MaybeGetConfig(configFileName string) (*config.ClusterConfig, error) {
-	if configFileName == "" {
-		return nil, nil
-	}
-	return readConfigData(configFileName)
-}
-
-// readConfigData reads or returns the cached config, which is a shared object that will not be
+// ReadConfigData reads or returns the cached config, which is a shared object that will not be
 // modified subsequently and must not be modified by the caller.  (Cache invalidation will never
 // invalidate the object either, but subsequent calls may return a different object.)
-func readConfigData(configFileName string) (*config.ClusterConfig, error) {
+func ReadConfigData(configFileName string) (*config.ClusterConfig, error) {
 	configCacheLock.Lock()
 	defer configCacheLock.Unlock()
 
@@ -43,12 +35,3 @@ func readConfigData(configFileName string) (*config.ClusterConfig, error) {
 	configCache[configFileName] = cfg
 	return cfg, nil
 }
-
-// Invalidate all cached config data from all files.  Data that have been returned earlier continues
-// to be live, but readConfigData will re-read.
-// func InvalidateConfigCache() {
-// 	configCacheLock.Lock()
-// 	defer configCacheLock.Unlock()
-//
-// 	clear(configCache)
-// }

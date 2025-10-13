@@ -121,17 +121,14 @@ func (cc *ConfigCommand) Validate() error {
 //
 // Analysis
 
-func (cc *ConfigCommand) Perform(_ special.ClusterMeta, _ io.Reader, stdout, _ io.Writer) error {
+func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, _ io.Writer) error {
 	hosts, err := NewHosts(true, cc.HostArgs.Host)
 	if err != nil {
 		return err
 	}
 	includeHosts := hosts.HostnameGlobber()
 
-	cfg, err := special.MaybeGetConfig(cc.ConfigFile())
-	if err != nil {
-		return err
-	}
+	cfg := meta.ConfigFile()
 	if cfg == nil {
 		return errors.New("-config-file required")
 	}

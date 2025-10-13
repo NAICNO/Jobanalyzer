@@ -44,17 +44,15 @@ func SetCacheSize(size int64) {
 // Open a date-keyed directory tree as a read-only persistent database.
 func OpenPersistentDirectoryDB(
 	meta special.ClusterMeta,
-	dataDir string,
 ) (PersistentDataProvider, error) {
-	return gClusterStore.openPersistentCluster(meta, dataDir)
+	return gClusterStore.openPersistentCluster(meta, meta.DataDir())
 }
 
 // Open a date-keyed directory tree as a read-write persistent database.
 func OpenAppendablePersistentDirectoryDB(
 	meta special.ClusterMeta,
-	dataDir string,
 ) (AppendablePersistentDataProvider, error) {
-	return gClusterStore.openPersistentCluster(meta, dataDir)
+	return gClusterStore.openPersistentCluster(meta, meta.DataDir())
 }
 
 // Drain all pending writes in the database, close all the attached Cluster nodes, and return when

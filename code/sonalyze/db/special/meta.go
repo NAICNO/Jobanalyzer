@@ -19,6 +19,17 @@ type ClusterMeta interface {
 	// seconds since Unix epoch
 	LookupHostByTime(host string, time int64) *config.NodeConfigRecord
 
-	// FIXME: the provider must be a db.DataProvider, circular packages, clean later
-	SetDataProvider(provider any)
+	// Data providers.  These will evolve.
+
+	// Return a list of logfiles iff we have them, otherwise nil
+	LogFiles() []string
+
+	// Return a data directory either from -data-dir or computed from -jobanalyzer-dir, otherwise ""
+	DataDir() string
+
+	// Return a data directory either from -report-dir or computed from -jobanalyzer-dir, otherwise ""
+	ReportDir() string
+
+	// Return the cluster configuration, from -config-file or derived from the database
+	ConfigFile() *config.ClusterConfig
 }

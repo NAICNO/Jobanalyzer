@@ -93,7 +93,7 @@ func (nc *CardCommand) ReifyForRemote(x *ArgReifier) error {
 }
 
 func (nc *CardCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, nc.DataDir, db.FileListCardData, nc.LogFiles)
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListCardData)
 	if err != nil {
 		return err
 	}

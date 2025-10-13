@@ -83,7 +83,7 @@ func (nc *SnodeCommand) ReifyForRemote(x *ArgReifier) error {
 }
 
 func (nc *SnodeCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, nc.DataDir, db.FileListSlurmNodeData, nc.LogFiles)
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListSlurmNodeData)
 	if err != nil {
 		return err
 	}

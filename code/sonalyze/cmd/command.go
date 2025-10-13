@@ -47,21 +47,22 @@ type Command interface {
 
 	// The -v flag
 	VerboseFlag() bool
-}
-
-type RemotingFlags struct {
-	AuthFile string
-	Remote   string
-	Remoting bool
-}
-
-type RemotableCommand interface {
-	Command
 
 	// Reify all arguments including shared arguments for remote execution, with checking
 	ReifyForRemote(x *ArgReifier) error
 
-	RemotingFlags() RemotingFlags
+	// DatabaseArgs API (evolving)
+	Dataless() bool
+	JobanalyzerDir() string
+	DataDir() string
+	ReportDir() string
+	LogFiles() []string
+	ConfigFile() string
+	CacheSize() int64
+	ClusterName() string
+	RemoteHost() string
+	Remoting() bool
+	AuthFile() string
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,14 +71,24 @@ type RemotableCommand interface {
 // are manipulated.
 
 type AnalysisCommand interface {
+	Command
 	SetRestArgumentsAPI
 	FormatHelpAPI
-	RemotableCommand
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Represents a simple command that handles its own logic completely
+// Represents a simple command that handles its own logic completely, on no cluster
+
+type PrimitiveCommand interface {
+	Command
+
+	Perform(in io.Reader, stdout, stderr io.Writer) error
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Represents a simple command that handles its own logic completely, but on one cluster
 
 type SimpleCommand interface {
 	Command
@@ -114,8 +125,6 @@ type SampleAnalysisCommand interface {
 	// Retrieve configfile for those commands that allow it, otherwise "", or "" for absent
 	ConfigFile() string
 }
-
-var _ = (RemotableCommand)((SampleAnalysisCommand)(nil))
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
