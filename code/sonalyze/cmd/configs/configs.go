@@ -21,7 +21,9 @@ import (
 	"go-utils/config"
 
 	. "sonalyze/cmd"
+	"sonalyze/cmd/nodes"
 	. "sonalyze/common"
+	"sonalyze/db"
 	"sonalyze/db/special"
 	. "sonalyze/table"
 )
@@ -128,11 +130,22 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 	}
 	includeHosts := hosts.HostnameGlobber()
 
-	// `records` is always freshly allocated
-	// TODO: use from/to here for filtering?
+	// TODO: use from/to here for filtering?  Not obvious that it's a meaningful idea but
+	// the command line options allow it.  The default 'to' should be now and the default 'from'
+	// should be 2 weeks ago.
+	//
+	// TODO: don't we have a time abstraction for this we could use?
+
 	now := time.Now().Unix()
 	then := now - (14 * 24 * 60 * 60) // 2 weeks ago
-	records := meta.NodesDefinedInTimeWindow(then, now)
+
+	// `records` is always freshly allocated
+	var records []*config.NodeConfigRecord
+	records = NodesDefinedInTimeWindow(meta, then, now, cc.Verbose)
+	if records == nil {
+		records = meta.NodesDefinedInConfigIfAny()
+	}
+
 	if !includeHosts.IsEmpty() {
 		records = slices.DeleteFunc(records, func(r *config.NodeConfigRecord) bool {
 			return !includeHosts.Match(r.Hostname)
@@ -158,4 +171,48 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 	)
 
 	return nil
+}
+
+func NodesDefinedInTimeWindow(
+	meta special.ClusterMeta,
+	from, to int64,
+	verbose bool,
+) (result []*config.NodeConfigRecord) {
+	theLog, err := db.OpenReadOnlyDB(
+		meta,
+		db.FileListNodeData|db.FileListCardData,
+	)
+	if err != nil {
+		return
+	}
+	ns, err := nodes.Query(
+		theLog,
+		nodes.NodeQueryArgs{
+			HaveFrom: true,
+			FromDate: time.Unix(from, 0),
+			HaveTo:   true,
+			ToDate:   time.Unix(to, 0),
+			Verbose:  verbose,
+			Newest:   true,
+		},
+	)
+	if err != nil {
+		return
+	}
+	// Transform to NodeConfigRecord, sort of stupid
+	result = make([]*config.NodeConfigRecord, 0, len(ns))
+	for _, n := range ns {
+		result = append(result, &config.NodeConfigRecord{
+			Timestamp:     n.Timestamp,
+			Hostname:      n.Hostname,
+			Description:   n.Description,
+			CrossNodeJobs: false, // Unknown, need to join with sinfo data
+			CpuCores:      n.CpuCores,
+			MemGB:         n.MemGB,
+			GpuCards:      n.GpuCards,
+			GpuMemGB:      n.GpuMemGB,
+			GpuMemPct:     false, // Unknown, can't know, almost certainly false
+		})
+	}
+	return
 }

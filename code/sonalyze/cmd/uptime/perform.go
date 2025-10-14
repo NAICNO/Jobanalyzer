@@ -49,6 +49,7 @@ import (
 	"go-utils/maps"
 	uslices "go-utils/slices"
 
+	"sonalyze/cmd/configs"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
 	"sonalyze/db"
@@ -314,7 +315,10 @@ func (uc *UptimeCommand) computeAlwaysDown(
 	if !uc.OnlyUp {
 		hostGlobber := hosts.HostnameGlobber()
 		hs := make(map[Ustr]bool)
-		nodes := meta.NodesDefinedInTimeWindow(fromIncl, toIncl)
+		nodes := configs.NodesDefinedInTimeWindow(meta, fromIncl, toIncl, uc.Verbose)
+		if nodes == nil {
+			nodes = meta.NodesDefinedInConfigIfAny()
+		}
 		for _, n := range nodes {
 			hs[StringToUstr(n.Hostname)] = true
 		}
