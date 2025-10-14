@@ -18,8 +18,9 @@ type ClusterMeta interface {
 	// yet.
 	ExcludedUsers() []string
 
-	// Nodes present in the time window.
-	NodesDefinedInTimeWindow(fromIncl, toIncl int64) []*config.NodeConfigRecord
+	// A fresh list of nodes present in a static config if we have a static config, otherwise nil.
+	// This API will likely go away; in the future, configs will not provide node data.
+	NodesDefinedInConfigIfAny() []*config.NodeConfigRecord
 
 	// This can be nil.  We want the latest host information at or before the given time, which is
 	// seconds since Unix epoch.

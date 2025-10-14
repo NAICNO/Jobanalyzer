@@ -30,7 +30,7 @@ func (mm *stubMeta) ExcludedUsers() []string {
 	return mm.cfg.ExcludeUser
 }
 
-func (mm *stubMeta) NodesDefinedInTimeWindow(_, _ int64) []*config.NodeConfigRecord {
+func (mm *stubMeta) NodesDefinedInConfigIfAny() []*config.NodeConfigRecord {
 	return slices.Clone(mm.cfg.Hosts())
 }
 
