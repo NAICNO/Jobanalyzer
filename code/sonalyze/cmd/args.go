@@ -80,8 +80,9 @@ func (va *VerboseArgs) VerboseFlag() bool {
 // call.
 //
 // To specify a remote source, use -remote.  This optionally takes -auth-file and by default (for
-// historical reasons) requires -cluster, though commands can use DBArgNoCluster to specify that
-// -cluster should not be accepted.  Also for historical reasons, -cluster implies -remote.
+// historical reasons) requires -cluster, though commands can use option OmitCluster to the Add()
+// method to specify that -cluster should not be accepted.  Also for historical reasons, -cluster
+// implies -remote unless there is also a local data source argument.
 //
 // If the source is remote, then the env var SONALYZE_AUTH can specify the value for -auth-file,
 // this overrides anything specified elsewhere.
@@ -100,10 +101,17 @@ func (va *VerboseArgs) VerboseFlag() bool {
 // data.  This precludes -report-dir and a file list.
 //
 // Otherwise, if -report-dir is present then that is a directory for a single cluster's
-// generated-reports data store.  This precludes -data-dir and a file list.
+// generated-reports data store, and the -config-file argument may provide cluster configuration
+// data.  This precludes -data-dir and a file list.
 //
-// Otherwise, there should be a file list representing one kind of data for a single cluster, and
-// the -config-file argument may provide cluster configuration data for that cluster.
+// Otherwise, there may be a file list representing one kind of data for a single cluster, and the
+// -config-file argument may provide cluster configuration data for that cluster.
+//
+// Finally, if there are none of the above then a few commands (such as "version") allow there to be
+// no data source at all (expressing it with the option NoDatabase), but for all other commands it
+// is an error not to provide a data source.
+//
+// In principle, many of the sources could be combined, but currently that is not allowed.
 //
 // (In the past, there were environment-variable options for the data directory; these have been
 // retired.)
@@ -207,17 +215,17 @@ func (db *DatabaseArgs) Dataless() bool {
 }
 
 type DBArgOptions struct {
-	// Require -jobanalyzer-dir (for the daemon) and disable all other options.
+	// Require -jobanalyzer-dir (typically for the daemon) and disable all other data source
+	// options.
 	RequireFullDatabase bool
 
-	// Do not accept -cluster, as the command is not cluster-specific.
+	// Do not accept -cluster, typically because the command is not cluster-specific.
 	OmitCluster bool
 
-	// Include -report-dir, and require or compute (as needed) -report-dir for local execution, this
-	// precludes -data-dir and file lists.
+	// Include -report-dir, and require or compute -report-dir for local execution.
 	IncludeReportDir bool
 
-	// There is no database, do not open any data source, but handle remote execution.
+	// There is no database.  Do not open any data source, but handle remote execution.
 	NoDatabase bool
 }
 
@@ -239,6 +247,7 @@ func (db *DatabaseArgs) Add(fs *CLI, opts DBArgOptions) {
 	}
 
 	fs.Group("local-data-source")
+	// Even for NoDatabase we allow jobanalyzer-dir since this makes life easier for everyone.
 	fs.StringVar(&db.jobanalyzerDir, "jobanalyzer-dir", "",
 		"Jobanalyzer root `directory`, precludes all other local data source arguments.")
 	if !opts.RequireFullDatabase {
@@ -314,13 +323,6 @@ func (db *DatabaseArgs) Validate() error {
 			return errors.New("A -report-dir precludes a file list")
 		}
 	}
-
-	// TODO: Not sure what to do about -report-dir yet: do we need to compute something?  Or is it
-	// hidden inside the database eventually?
-
-	// TODO: A bare -config-file is also a data source - when you're running the `config` command.
-	// But that's a pretty special case.  It's like -report-dir: it's only meaningful when running
-	// `report`.  Possibly this next test needs a few more conditions.
 
 	if !db.options.NoDatabase {
 		if !db.remoting &&

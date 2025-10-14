@@ -19,7 +19,10 @@ type ClusterMeta interface {
 	// seconds since Unix epoch
 	LookupHostByTime(host string, time int64) *config.NodeConfigRecord
 
-	// Data providers.  These will evolve.
+	// Return the cluster configuration at the given time.
+	ConfigAtTime(time int64) *config.ClusterConfig
+
+	// Data for the underlying representation.
 
 	// Return a list of logfiles iff we have them, otherwise nil
 	LogFiles() []string
@@ -29,7 +32,4 @@ type ClusterMeta interface {
 
 	// Return a data directory either from -report-dir or computed from -jobanalyzer-dir, otherwise ""
 	ReportDir() string
-
-	// Return the cluster configuration, from -config-file or derived from the database
-	ConfigFile() *config.ClusterConfig
 }

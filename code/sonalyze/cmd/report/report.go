@@ -70,6 +70,9 @@ func (rc *ReportCommand) Validate() error {
 }
 
 func (rc *ReportCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, _ io.Writer) error {
+	// TODO: This is a pretty inappropriate interface.  We want some kind of database abstraction
+	// here, not go directly to the file system.
+
 	// ReportDir will have a value that is safe if from remote invocation
 	// ReportName will have a safe value
 	fn := path.Join(meta.ReportDir(), rc.ReportName)
