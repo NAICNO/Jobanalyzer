@@ -110,12 +110,12 @@ func (va *VerboseArgs) VerboseFlag() bool {
 
 type DatabaseArgs struct {
 	// Shared arguments
-	clusterName  string
+	clusterName string
 
 	// Remote arguments
 	remoteHost string
-	authFile string
-	remoting bool
+	authFile   string
+	remoting   bool
 
 	// Local arguments
 	jobanalyzerDir string
