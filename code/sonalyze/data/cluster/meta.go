@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"slices"
+
 	"go-utils/config"
 	"sonalyze/db/special"
 )
@@ -35,9 +37,9 @@ func (tm *clusterMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string
 	return nil
 }
 
-func (tm *clusterMeta) ConfigAtTime(_ int64) *config.ClusterConfig {
+func (tm *clusterMeta) NodesDefinedInTimeWindow(_, _ int64) []*config.NodeConfigRecord {
 	if tm.cluster.HaveConfig {
-		return tm.cluster.Config
+		return slices.Clone(tm.cluster.Config.Hosts())
 	}
 	return nil
 }

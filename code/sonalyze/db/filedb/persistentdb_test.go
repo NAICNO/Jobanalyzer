@@ -34,6 +34,10 @@ func (mm *stubMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string {
 	return mm.cfg.HostsDefinedInTimeWindow(fromIncl, toIncl)
 }
 
+func (mm *stubMeta) NodesDefinedInTimeWindow(_, _ int64) []*config.NodeConfigRecord {
+	return slices.Clone(mm.cfg.Hosts())
+}
+
 func (mm *stubMeta) LookupHostByTime(host string, time int64) *config.NodeConfigRecord {
 	return mm.cfg.LookupHost(host)
 }
@@ -48,10 +52,6 @@ func (mm *stubMeta) LogFiles() []string {
 
 func (mm *stubMeta) ReportDir() string {
 	return ""
-}
-
-func (mm *stubMeta) ConfigAtTime(_ int64) *config.ClusterConfig {
-	return mm.cfg
 }
 
 func getPersistentDB(t *testing.T, cluster string) *PersistentCluster {

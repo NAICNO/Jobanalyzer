@@ -129,14 +129,11 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 	}
 	includeHosts := hosts.HostnameGlobber()
 
-	cfg := meta.ConfigAtTime(time.Now().Unix())
-	if cfg == nil {
-		return errors.New("-config-file required")
-	}
-
 	// `records` is always freshly allocated
-	records := cfg.Hosts()
-
+	// TODO: use from/to here for filtering?
+	now := time.Now().Unix()
+	then := now - (14 * 24 * 60 * 60) // 2 weeks ago
+	records := meta.NodesDefinedInTimeWindow(then, now)
 	if !includeHosts.IsEmpty() {
 		records = slices.DeleteFunc(records, func(r *config.NodeConfigRecord) bool {
 			return !includeHosts.Match(r.Hostname)
