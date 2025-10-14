@@ -19,23 +19,23 @@ var theDB *PersistentCluster
 
 type stubMeta struct {
 	dataDir string
-    cfg *config.ClusterConfig
+	cfg     *config.ClusterConfig
 }
 
 func (mm *stubMeta) ClusterName() string {
-       return "mlx.hpc.uio.no"
+	return "mlx.hpc.uio.no"
 }
 
 func (mm *stubMeta) ExcludedUsers() []string {
-       return mm.cfg.ExcludeUser
+	return mm.cfg.ExcludeUser
 }
 
 func (mm *stubMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string {
-       return mm.cfg.HostsDefinedInTimeWindow(fromIncl, toIncl)
+	return mm.cfg.HostsDefinedInTimeWindow(fromIncl, toIncl)
 }
 
 func (mm *stubMeta) LookupHostByTime(host string, time int64) *config.NodeConfigRecord {
-       return mm.cfg.LookupHost(host)
+	return mm.cfg.LookupHost(host)
 }
 
 func (mm *stubMeta) DataDir() string {

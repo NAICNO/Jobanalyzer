@@ -149,8 +149,8 @@ func OpenFullDataStore(jobanalyzerDir string) error {
 		}
 		v.Description = cfg.Description
 		v.ExcludeUser = cfg.ExcludeUser
-		v.HaveConfig  = true
-		v.Config      = cfg
+		v.HaveConfig = true
+		v.Config = cfg
 	}
 
 	dataStoreOpen = true
@@ -269,10 +269,10 @@ func OpenDataStoreFromConfigFile(configFile string) error {
 		return errors.New("Could not read config file " + configFile)
 	}
 	v := &ClusterEntry{
-		Name: cfg.Name,
+		Name:        cfg.Name,
 		Description: cfg.Description,
-		HaveConfig: true,
-		Config: cfg,
+		HaveConfig:  true,
+		Config:      cfg,
 	}
 	if v.Name == "" {
 		v.Name = "config.cluster"
@@ -295,10 +295,10 @@ func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
 	}
 
 	v := &ClusterEntry{
-		Name: cfg.Name,
+		Name:        cfg.Name,
 		Description: cfg.Description,
-		HaveConfig: true,
-		Config: cfg,
+		HaveConfig:  true,
+		Config:      cfg,
 	}
 	if v.Name == "" {
 		v.Name = "config.cluster"
