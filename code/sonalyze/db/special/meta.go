@@ -6,23 +6,29 @@ import (
 	"go-utils/config"
 )
 
+// The ClusterMeta is largely a per-command object representing a view on the cluster for that
+// command.  It needs to be fairly cheap and it will tend to wrap other data (eg, the methods of
+// implementing objects may call into the database layer, and may reference more-persistent cluster
+// and configuration data).  It's a bit of a hodgepodge.
 type ClusterMeta interface {
+	// Return the name of the cluster.  This is assumed to be time-unvarying.
 	ClusterName() string
 
-	// Arguably this is also time-dependent but let's not worry about it yet
+	// This is also time-dependent in the same way as the following, but let's not worry about it
+	// yet.
 	ExcludedUsers() []string
 
-	// Host names defined in the time window
+	// Host names defined in the time window.
 	HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string
 
+	// Nodes present in the time window.
+	NodesDefinedInTimeWindow(fromIncl, toIncl int64) []*config.NodeConfigRecord
+
 	// This can be nil.  We want the latest host information at or before the given time, which is
-	// seconds since Unix epoch
+	// seconds since Unix epoch.
 	LookupHostByTime(host string, time int64) *config.NodeConfigRecord
 
-	// Return the cluster configuration at the given time.
-	ConfigAtTime(time int64) *config.ClusterConfig
-
-	// Data for the underlying representation.
+	// Data for the underlying representation, used by various database implementations.
 
 	// Return a list of logfiles iff we have them, otherwise nil
 	LogFiles() []string
