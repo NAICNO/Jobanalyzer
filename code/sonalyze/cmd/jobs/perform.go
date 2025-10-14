@@ -211,10 +211,10 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		Log.Infof("Jobs constructed by merging: %d", len(jobs))
 	}
 
-	// TODO: This will likely bite back at some point but I don't know what to do about it yet.
-	// Previously, this condition was cfg != nil but that doesn't really make sense any longer.
-	// What we really want is to know whether we have base data for a relative determination on a
-	// given host but buildFilters does not operate on that level.
+	// TODO: This is some old logic that will likely bite back at some point, but I don't know what
+	// to do about it yet.  Previously, this condition was cfg != nil, but that doesn't really make
+	// sense any longer.  What we really want is to know whether we have base data for a relative
+	// determination on a given host, but buildFilters does not operate on that level.
 	canHandleRelative := true
 	summaryFilter, slurmFilter := jc.buildFilters(canHandleRelative)
 

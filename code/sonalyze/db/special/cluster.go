@@ -23,6 +23,7 @@ package special
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -143,8 +144,10 @@ func OpenFullDataStore(jobanalyzerDir string) error {
 
 	// Find descriptions for known clusters.
 	for c, v := range clusters {
-		cfg, err := maybeGetConfig(MakeConfigFilePath(jobanalyzerDir, c))
+		cfg, err := ReadConfigData(MakeConfigFilePath(jobanalyzerDir, c))
 		if err != nil {
+			// Arguably we could remove it, but this code will change anyway.
+			v.Description = "No configuration found"
 			continue
 		}
 		v.Description = cfg.Description
@@ -173,7 +176,7 @@ func OpenDataStoreFromDataDir(dataDir, configFile string) error {
 
 	cfg, err := maybeGetConfig(configFile)
 	if err != nil {
-		return errors.New("Could not read config file " + configFile)
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
 	}
 	v := &ClusterEntry{HaveDataDir: true, DataDir: dataDir}
 	if cfg != nil {
@@ -204,7 +207,7 @@ func OpenDataStoreFromReportDir(reportDir, configFile string) error {
 
 	cfg, err := maybeGetConfig(configFile)
 	if err != nil {
-		return errors.New("Could not read config file " + configFile)
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
 	}
 	v := &ClusterEntry{HaveReportDir: true, ReportDir: reportDir}
 	if cfg != nil {
@@ -235,7 +238,7 @@ func OpenDataStoreFromLogFiles(logFiles []string, configFile string) error {
 
 	cfg, err := maybeGetConfig(configFile)
 	if err != nil {
-		return errors.New("Could not read config file " + configFile)
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
 	}
 	v := &ClusterEntry{HaveLogFiles: true, LogFiles: logFiles}
 	if cfg != nil {
@@ -266,7 +269,7 @@ func OpenDataStoreFromConfigFile(configFile string) error {
 
 	cfg, err := maybeGetConfig(configFile)
 	if err != nil {
-		return errors.New("Could not read config file " + configFile)
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
 	}
 	v := &ClusterEntry{
 		Name:        cfg.Name,

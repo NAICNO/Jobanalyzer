@@ -50,7 +50,7 @@ func (mm *stubMeta) ReportDir() string {
 	return ""
 }
 
-func (mm *stubMeta) ConfigFile() *config.ClusterConfig {
+func (mm *stubMeta) ConfigAtTime(_ int64) *config.ClusterConfig {
 	return mm.cfg
 }
 

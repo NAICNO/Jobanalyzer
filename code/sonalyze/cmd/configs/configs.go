@@ -16,6 +16,7 @@ import (
 	"errors"
 	"io"
 	"slices"
+	"time"
 
 	"go-utils/config"
 
@@ -127,7 +128,7 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 	}
 	includeHosts := hosts.HostnameGlobber()
 
-	cfg := meta.ConfigFile()
+	cfg := meta.ConfigAtTime(time.Now().Unix())
 	if cfg == nil {
 		return errors.New("-config-file required")
 	}

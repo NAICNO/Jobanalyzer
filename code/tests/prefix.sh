@@ -1,7 +1,5 @@
 # See comments in run_tests.sh in this directory for all information.
 
-set -eo pipefail
-
 # These variables are read by the suffix.sh program.  They are private to the test runner but
 # visible also to the test cases, hence the tr_ prefix.
 tr_hard_errors=0
