@@ -12,6 +12,9 @@ import (
 
 // The types can be OR'ed together if they are provided by the same file type.  This is sort of a
 // secret handshake for now.
+//
+// These type designators are used even for commands that don't operate on file lists.  This is a
+// little dumb but renaming can happen eventually.
 type FileListDataType int
 
 const (
