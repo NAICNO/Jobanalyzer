@@ -314,8 +314,9 @@ func (uc *UptimeCommand) computeAlwaysDown(
 	if !uc.OnlyUp {
 		hostGlobber := hosts.HostnameGlobber()
 		hs := make(map[Ustr]bool)
-		for _, h := range meta.HostsDefinedInTimeWindow(fromIncl, toIncl) {
-			hs[StringToUstr(h)] = true
+		nodes := meta.NodesDefinedInTimeWindow(fromIncl, toIncl)
+		for _, n := range nodes {
+			hs[StringToUstr(n.Hostname)] = true
 		}
 		if len(hs) == 0 {
 			return

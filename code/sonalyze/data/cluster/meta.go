@@ -30,13 +30,6 @@ func (tm *clusterMeta) LookupHostByTime(host string, time int64) *config.NodeCon
 	return nil
 }
 
-func (tm *clusterMeta) HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string {
-	if tm.cluster.HaveConfig {
-		return tm.cluster.Config.HostsDefinedInTimeWindow(fromIncl, toIncl)
-	}
-	return nil
-}
-
 func (tm *clusterMeta) NodesDefinedInTimeWindow(_, _ int64) []*config.NodeConfigRecord {
 	if tm.cluster.HaveConfig {
 		return slices.Clone(tm.cluster.Config.Hosts())

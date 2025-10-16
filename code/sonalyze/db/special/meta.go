@@ -18,9 +18,6 @@ type ClusterMeta interface {
 	// yet.
 	ExcludedUsers() []string
 
-	// Host names defined in the time window.
-	HostsDefinedInTimeWindow(fromIncl, toIncl int64) []string
-
 	// Nodes present in the time window.
 	NodesDefinedInTimeWindow(fromIncl, toIncl int64) []*config.NodeConfigRecord
 
