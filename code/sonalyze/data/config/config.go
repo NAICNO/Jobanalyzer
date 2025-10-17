@@ -18,9 +18,9 @@ import (
 
 type NodeConfig struct {
 	uconfig.NodeConfigRecord
-	Distances   string
-	TopoSVG     string
-	TopoText    string
+	Distances string
+	TopoSVG   string
+	TopoText  string
 }
 
 type QueryArgs struct {
@@ -112,9 +112,9 @@ func Query(theLog db.DataProvider, qa QueryArgs) ([]*NodeConfig, error) {
 				GpuMemGB:    cardTotalMemGB,
 				// `Metadata` is unused by sonalyze
 			},
-			Distances:   distances,
-			TopoSVG:     r.node.TopoSVG,
-			TopoText:    r.node.TopoText,
+			Distances: distances,
+			TopoSVG:   r.node.TopoSVG,
+			TopoText:  r.node.TopoText,
 		}
 	}
 	if qa.Query != nil {
