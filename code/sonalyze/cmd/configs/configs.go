@@ -199,20 +199,9 @@ func NodesDefinedInTimeWindow(
 	if err != nil {
 		return
 	}
-	// Transform to NodeConfigRecord, sort of stupid
 	result = make([]*config.NodeConfigRecord, 0, len(ns))
 	for _, n := range ns {
-		result = append(result, &config.NodeConfigRecord{
-			Timestamp:     n.Timestamp,
-			Hostname:      n.Hostname,
-			Description:   n.Description,
-			CrossNodeJobs: false, // Unknown, need to join with sinfo data
-			CpuCores:      n.CpuCores,
-			MemGB:         n.MemGB,
-			GpuCards:      n.GpuCards,
-			GpuMemGB:      n.GpuMemGB,
-			GpuMemPct:     false, // Unknown, can't know, almost certainly false
-		})
+		result = append(result, &n.NodeConfigRecord)
 	}
 	return
 }

@@ -7,6 +7,7 @@ import (
 	"math"
 	"time"
 
+	uconfig "go-utils/config"
 	umaps "go-utils/maps"
 
 	"sonalyze/data/card"
@@ -16,14 +17,7 @@ import (
 )
 
 type NodeConfig struct {
-	Timestamp   string
-	Hostname    string
-	Description string
-	CpuCores    int
-	MemGB       int
-	GpuCards    int
-	GpuMemGB    int
-	GpuMemPct   bool
+	uconfig.NodeConfigRecord
 	Distances   string
 	TopoSVG     string
 	TopoText    string
@@ -108,13 +102,16 @@ func Query(theLog db.DataProvider, qa QueryArgs) ([]*NodeConfig, error) {
 			distances = fmt.Sprintf("%v", r.node.Distances)
 		}
 		records[i] = &NodeConfig{
-			Timestamp:   r.node.Time,
-			Hostname:    r.node.Node,
-			Description: desc,
-			CpuCores:    int(cores),
-			MemGB:       memGB,
-			GpuCards:    numCards,
-			GpuMemGB:    cardTotalMemGB,
+			NodeConfigRecord: uconfig.NodeConfigRecord{
+				Timestamp:   r.node.Time,
+				Hostname:    r.node.Node,
+				Description: desc,
+				CpuCores:    int(cores),
+				MemGB:       memGB,
+				GpuCards:    numCards,
+				GpuMemGB:    cardTotalMemGB,
+				// `Metadata` is unused by sonalyze
+			},
 			Distances:   distances,
 			TopoSVG:     r.node.TopoSVG,
 			TopoText:    r.node.TopoText,
