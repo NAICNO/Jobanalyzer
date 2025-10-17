@@ -172,12 +172,6 @@ type NodeQueryArgs struct {
 	Query    func(records []*NodeData) ([]*NodeData, error)
 }
 
-type joinedData struct {
-	// the time and host are given by node
-	Node  *repr.SysinfoNodeData
-	Cards []*repr.SysinfoCardData
-}
-
 // Read and filter the raw sysinfo data.
 //
 // TODO: This is where we really want to lean on code in data/ and not use the repr directly, as
@@ -221,50 +215,55 @@ func Query(theLog db.DataProvider, qa NodeQueryArgs) ([]*NodeData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)
 	}
+	type joinedData struct {
+		// the time and host are given by node
+		node  *repr.SysinfoNodeData
+		cards []*repr.SysinfoCardData
+	}
 	joined := make(map[string]*joinedData)
 	for _, r := range nodes {
-		joined[r.Time+"|"+r.Node] = &joinedData{Node: r}
+		joined[r.Time+"|"+r.Node] = &joinedData{node: r}
 	}
 	for _, r := range cards {
 		if probe := joined[r.Time+"|"+r.Node]; probe != nil {
-			probe.Cards = append(probe.Cards, r)
+			probe.cards = append(probe.cards, r)
 		}
 	}
 	rawRecords := umaps.Values(joined)
 	records := make([]*NodeData, len(rawRecords))
 	for i, r := range rawRecords {
 		ht := ""
-		if r.Node.ThreadsPerCore > 1 {
+		if r.node.ThreadsPerCore > 1 {
 			ht = " (hyperthreaded)"
 		}
-		memGB := int(math.Round(float64(r.Node.Memory) / (1024 * 1024)))
+		memGB := int(math.Round(float64(r.node.Memory) / (1024 * 1024)))
 		desc := fmt.Sprintf(
-			"%dx%d%s %s, %d GiB", r.Node.Sockets, r.Node.CoresPerSocket, ht, r.Node.CpuModel, memGB)
-		cores := r.Node.Sockets * r.Node.CoresPerSocket * r.Node.ThreadsPerCore
-		numCards := len(r.Cards)
+			"%dx%d%s %s, %d GiB", r.node.Sockets, r.node.CoresPerSocket, ht, r.node.CpuModel, memGB)
+		cores := r.node.Sockets * r.node.CoresPerSocket * r.node.ThreadsPerCore
+		numCards := len(r.cards)
 		cardTotalMemKB := uint64(0)
-		for _, c := range r.Cards {
+		for _, c := range r.cards {
 			cardTotalMemKB += c.Memory
 		}
 		cardTotalMemGB := int(math.Round(float64(cardTotalMemKB) / (1024 * 1024)))
 		if numCards > 0 {
-			desc += fmt.Sprintf(", %dx %s @ %dGiB", numCards, r.Cards[0].Model, (r.Cards[0].Memory)/(1024*1024))
+			desc += fmt.Sprintf(", %dx %s @ %dGiB", numCards, r.cards[0].Model, (r.cards[0].Memory)/(1024*1024))
 		}
 		distances := ""
-		if r.Node.Distances != nil {
-			distances = fmt.Sprintf("%v", r.Node.Distances)
+		if r.node.Distances != nil {
+			distances = fmt.Sprintf("%v", r.node.Distances)
 		}
 		records[i] = &NodeData{
-			Timestamp:   r.Node.Time,
-			Hostname:    r.Node.Node,
+			Timestamp:   r.node.Time,
+			Hostname:    r.node.Node,
 			Description: desc,
 			CpuCores:    int(cores),
 			MemGB:       memGB,
 			GpuCards:    numCards,
 			GpuMemGB:    cardTotalMemGB,
 			Distances:   distances,
-			TopoSVG:     r.Node.TopoSVG,
-			TopoText:    r.Node.TopoText,
+			TopoSVG:     r.node.TopoSVG,
+			TopoText:    r.node.TopoText,
 		}
 	}
 	if qa.Query != nil {
