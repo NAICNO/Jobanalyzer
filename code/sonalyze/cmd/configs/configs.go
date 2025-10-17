@@ -18,11 +18,11 @@ import (
 	"slices"
 	"time"
 
-	"go-utils/config"
+	uconfig "go-utils/config"
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
-	nodes "sonalyze/data/config"
+	"sonalyze/data/config"
 	"sonalyze/db"
 	"sonalyze/db/special"
 	. "sonalyze/table"
@@ -140,14 +140,14 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 	then := now - (14 * 24 * 60 * 60) // 2 weeks ago
 
 	// `records` is always freshly allocated
-	var records []*config.NodeConfigRecord
+	var records []*uconfig.NodeConfigRecord
 	records = NodesDefinedInTimeWindow(meta, then, now, cc.Verbose)
 	if len(records) == 0 {
 		records = meta.NodesDefinedInConfigIfAny()
 	}
 
 	if !includeHosts.IsEmpty() {
-		records = slices.DeleteFunc(records, func(r *config.NodeConfigRecord) bool {
+		records = slices.DeleteFunc(records, func(r *uconfig.NodeConfigRecord) bool {
 			return !includeHosts.Match(r.Hostname)
 		})
 	}
@@ -158,7 +158,7 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 		return err
 	}
 
-	slices.SortFunc(records, func(a, b *config.NodeConfigRecord) int {
+	slices.SortFunc(records, func(a, b *uconfig.NodeConfigRecord) int {
 		return cmp.Compare(a.Hostname, b.Hostname)
 	})
 
@@ -177,7 +177,7 @@ func NodesDefinedInTimeWindow(
 	meta special.ClusterMeta,
 	from, to int64,
 	verbose bool,
-) (result []*config.NodeConfigRecord) {
+) (result []*uconfig.NodeConfigRecord) {
 	theLog, err := db.OpenReadOnlyDB(
 		meta,
 		db.FileListNodeData|db.FileListCardData,
@@ -185,9 +185,9 @@ func NodesDefinedInTimeWindow(
 	if err != nil {
 		return
 	}
-	ns, err := nodes.Query(
+	ns, err := config.Query(
 		theLog,
-		nodes.QueryArgs{
+		config.QueryArgs{
 			HaveFrom: true,
 			FromDate: time.Unix(from, 0),
 			HaveTo:   true,
@@ -199,7 +199,7 @@ func NodesDefinedInTimeWindow(
 	if err != nil {
 		return
 	}
-	result = make([]*config.NodeConfigRecord, 0, len(ns))
+	result = make([]*uconfig.NodeConfigRecord, 0, len(ns))
 	for _, n := range ns {
 		result = append(result, &n.NodeConfigRecord)
 	}
