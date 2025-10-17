@@ -142,7 +142,7 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 	// `records` is always freshly allocated
 	var records []*config.NodeConfigRecord
 	records = NodesDefinedInTimeWindow(meta, then, now, cc.Verbose)
-	if records == nil {
+	if len(records) == 0 {
 		records = meta.NodesDefinedInConfigIfAny()
 	}
 

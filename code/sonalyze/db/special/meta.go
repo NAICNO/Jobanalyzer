@@ -18,8 +18,10 @@ type ClusterMeta interface {
 	// yet.
 	ExcludedUsers() []string
 
-	// A fresh list of nodes present in a static config if we have a static config, otherwise nil.
-	// This API will likely go away; in the future, configs will not provide node data.
+	// A fresh list of nodes present in a static config if we have a static config, otherwise an
+	// empty slice.
+	//
+	// NOTE: This API will likely go away; in the future, configs will not provide node data.
 	NodesDefinedInConfigIfAny() []*config.NodeConfigRecord
 
 	// This can be nil.  We want the latest host information at or before the given time, which is
