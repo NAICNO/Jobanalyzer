@@ -316,7 +316,7 @@ func (uc *UptimeCommand) computeAlwaysDown(
 		hostGlobber := hosts.HostnameGlobber()
 		hs := make(map[Ustr]bool)
 		nodes := configs.NodesDefinedInTimeWindow(meta, fromIncl, toIncl, uc.Verbose)
-		if nodes == nil {
+		if len(nodes) == 0 {
 			nodes = meta.NodesDefinedInConfigIfAny()
 		}
 		for _, n := range nodes {

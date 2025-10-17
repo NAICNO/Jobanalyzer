@@ -54,7 +54,7 @@ func (tm *clusterMeta) NodesDefinedInConfigIfAny() []*config.NodeConfigRecord {
 	if tm.cluster.HaveConfig {
 		return slices.Clone(tm.cluster.Config.Hosts())
 	}
-	return nil
+	return make([]*config.NodeConfigRecord, 0)
 }
 
 func (tm *clusterMeta) DataDir() string {
