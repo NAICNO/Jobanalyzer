@@ -21,8 +21,8 @@ import (
 	"go-utils/config"
 
 	. "sonalyze/cmd"
-	"sonalyze/cmd/nodes"
 	. "sonalyze/common"
+	nodes "sonalyze/data/config"
 	"sonalyze/db"
 	"sonalyze/db/special"
 	. "sonalyze/table"
@@ -188,7 +188,7 @@ func NodesDefinedInTimeWindow(
 	}
 	ns, err := nodes.Query(
 		theLog,
-		nodes.NodeQueryArgs{
+		nodes.QueryArgs{
 			HaveFrom: true,
 			FromDate: time.Unix(from, 0),
 			HaveTo:   true,
