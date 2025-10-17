@@ -7,18 +7,17 @@ import (
 	"math"
 	"slices"
 
-	"go-utils/config"
-
 	. "sonalyze/common"
 	"sonalyze/data/sample"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
 func (pc *ProfileCommand) Perform(
 	out io.Writer,
-	_ *config.ClusterConfig,
+	_ special.ClusterMeta,
 	theDb db.SampleDataProvider,
 	filter sample.QueryFilter,
 	hosts *Hosts,

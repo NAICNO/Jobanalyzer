@@ -13,12 +13,13 @@ import (
 	"sonalyze/data/sample"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
 func (lc *LoadCommand) Perform(
 	out io.Writer,
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	theDb db.SampleDataProvider,
 	filter sample.QueryFilter,
 	hosts *Hosts,
@@ -55,7 +56,7 @@ func (lc *LoadCommand) Perform(
 
 	if NeedsConfig(loadFormatters, lc.PrintFields) {
 		var err error
-		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
+		streams, err = EnsureConfigForInputStreams(meta, streams, "relative format arguments")
 		if err != nil {
 			return err
 		}
@@ -94,21 +95,21 @@ func (lc *LoadCommand) Perform(
 	var theConf config.NodeConfigRecord
 	var mergedConf *config.NodeConfigRecord
 	if lc.Group {
-		if cfg != nil {
-			for _, stream := range mergedStreams {
-				// probe is non-nil by previous construction
-				probe := cfg.LookupHost(stream[0].Hostname.String())
-				if theConf.Description != "" {
-					theConf.Description += "|||" // JSON-compatible separator
-				}
-				theConf.Description += probe.Description
-				theConf.CpuCores += probe.CpuCores
-				theConf.MemGB += probe.MemGB
-				theConf.GpuCards += probe.GpuCards
-				theConf.GpuMemGB += probe.GpuMemGB
+		for _, stream := range mergedStreams {
+			probe := meta.LookupHostByTime(stream[0].Hostname.String(), stream[0].Timestamp)
+			if probe == nil {
+				continue
 			}
-			mergedConf = &theConf
+			if theConf.Description != "" {
+				theConf.Description += "|||" // JSON-compatible separator
+			}
+			theConf.Description += probe.Description
+			theConf.CpuCores += probe.CpuCores
+			theConf.MemGB += probe.MemGB
+			theConf.GpuCards += probe.GpuCards
+			theConf.GpuMemGB += probe.GpuMemGB
 		}
+		mergedConf = &theConf
 		mergedStreams = sample.MergeAcrossHostsByTime(mergedStreams)
 		if len(mergedStreams) > 1 {
 			panic("Too many results")
@@ -135,9 +136,10 @@ func (lc *LoadCommand) Perform(
 	reports := make([]LoadReport, 0)
 	for _, stream := range mergedStreams {
 		hostname := stream[0].Hostname.String()
+		ts := stream[0].Timestamp
 		conf := mergedConf
-		if conf == nil && cfg != nil {
-			conf = cfg.LookupHost(hostname)
+		if conf == nil {
+			conf = meta.LookupHostByTime(hostname, ts)
 		}
 		rs := generateReport(stream, time.Now().Unix(), conf)
 		if queryNeg != nil {

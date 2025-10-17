@@ -21,7 +21,7 @@ CHECK_ERR nocpu_host_config $exitcode "$output" "(Field 'cpu_cores' must be pres
 # Can't open file
 output=$($SONALYZE jobs --user - --fmt=csv,job,rcpu --config-file nonexistent-host-config.json -- dummy-data.csv 2>&1)
 exitcode=$?
-CHECK_ERR nocpu_host_config $exitcode "$output" "[Nn]o such file or directory"
+CHECK_ERR nocpu_host_config $exitcode "$output" "([Nn]o such file or directory)|(Bad -config-file file nonexistent-host-config)"
 
 # Bad field value for "cpu_cores"
 output=$($SONALYZE jobs --user - --fmt=csv,job,rcpu --config-file badcpu-host-config.json -- dummy-data.csv 2>&1)

@@ -9,6 +9,7 @@ import (
 	. "sonalyze/cmd"
 	"sonalyze/data/sample"
 	"sonalyze/db"
+	"sonalyze/db/special"
 )
 
 // Clearly, for `jobs` the file list thing is tricky b/c the list can be *either* sample data *or*
@@ -16,7 +17,12 @@ import (
 // anything requiring a join of two kinds of data will break down with a file list and will need the
 // disambiguation *unless* the data come from the same files.
 
-func LocalSampleOperation(command SampleAnalysisCommand, _ io.Reader, stdout, stderr io.Writer) error {
+func LocalSampleOperation(
+	meta special.ClusterMeta,
+	command SampleAnalysisCommand,
+	_ io.Reader,
+	stdout, stderr io.Writer,
+) error {
 	args := command.SampleAnalysisFlags()
 
 	var filter sample.QueryFilter
@@ -36,20 +42,17 @@ func LocalSampleOperation(command SampleAnalysisCommand, _ io.Reader, stdout, st
 	filter.ExcludeJob = args.RecordFilterArgs.ExcludeJob
 
 	theLog, err := db.OpenReadOnlyDB(
-		command.ConfigFile(),
-		args.DataDir,
+		meta,
 		db.FileListSampleData,
-		args.LogFiles,
 	)
 	if err != nil {
 		return err
 	}
 
-	cfg := theLog.Config()
-	hosts, recordFilter, err := sample.BuildSampleFilter(cfg, filter, args.Verbose)
+	hosts, recordFilter, err := sample.BuildSampleFilter(meta, filter, args.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
 
-	return command.Perform(stdout, cfg, theLog, filter, hosts, recordFilter)
+	return command.Perform(stdout, meta, theLog, filter, hosts, recordFilter)
 }

@@ -9,10 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"go-utils/config"
-
 	. "sonalyze/common"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 // About stream IDs
@@ -62,12 +61,12 @@ func streamId(e *repr.Sample) uint32 {
 // guarantees.
 //
 // For now, clean up the gpumem_pct and gpumem_gb fields based on system information.
-func standardSampleRectifier(xs []*repr.Sample, cfg *config.ClusterConfig) []*repr.Sample {
-	if cfg == nil || len(xs) == 0 {
+func standardSampleRectifier(xs []*repr.Sample, meta special.ClusterMeta) []*repr.Sample {
+	if len(xs) == 0 {
 		return xs
 	}
 
-	conf := cfg.LookupHost(xs[0].Hostname.String())
+	conf := meta.LookupHostByTime(xs[0].Hostname.String(), xs[0].Timestamp)
 	if conf == nil {
 		return xs
 	}
