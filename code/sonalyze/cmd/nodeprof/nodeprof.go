@@ -11,6 +11,7 @@ import (
 	"sonalyze/data/nodesample"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -63,7 +64,7 @@ type NodeProfCommand struct {
 	FormatArgs
 }
 
-var _ = (SimpleCommand)((*NodeProfCommand)(nil))
+var _ = SimpleCommand((*NodeProfCommand)(nil))
 
 func (nc *NodeProfCommand) Add(fs *CLI) {
 	nc.HostAnalysisArgs.Add(fs)
@@ -90,12 +91,10 @@ func (nc *NodeProfCommand) Validate() error {
 //
 // Processing
 
-func (nc *NodeProfCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
+func (nc *NodeProfCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
 	theLog, err := db.OpenReadOnlyDB(
-		nc.ConfigFile(),
-		nc.DataDir,
+		meta,
 		db.FileListNodeSampleData,
-		nc.LogFiles,
 	)
 	if err != nil {
 		return err

@@ -23,12 +23,15 @@ package special
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
 	"sync"
 
 	"go-utils/alias"
+	"go-utils/config"
+	umaps "go-utils/maps"
 )
 
 const (
@@ -63,44 +66,59 @@ var (
 
 	// The cache has a value if the clusterCache map is not nil.  The clusterAliases may be nil if
 	// there was no alias file.
+	dataStoreOpen  bool
 	clusterCache   map[string]*ClusterEntry
 	clusterAliases *alias.Aliases
 )
 
 // This data structure must be treated as completely read-only, including the Aliases slice.
-
 type ClusterEntry struct {
 	Name        string
 	Description string
 	Aliases     []string // Not sorted
+	ExcludeUser []string // Not sorted
+
+	// Misc implementation - semi-private, shared with ClusterMeta for now
+	HaveDataDir   bool
+	DataDir       string
+	HaveLogFiles  bool
+	LogFiles      []string
+	HaveReportDir bool
+	ReportDir     string
+	HaveConfig    bool
+	Config        *config.ClusterConfig
 }
 
-// The cluster table is returned as a pair: a shared immutable map from cluster name to cluster
-// information and (for historical reasons) a thread-safe alias resolver object.
-
-func ReadClusterData(
-	jobanalyzerDir string,
-) (clusters map[string]*ClusterEntry, aliases *alias.Aliases, err error) {
+func OpenFullDataStore(jobanalyzerDir string) error {
 	clusterCacheLock.Lock()
 	defer clusterCacheLock.Unlock()
 
-	if clusterCache != nil {
-		clusters = clusterCache
-		aliases = clusterAliases
-		return
+	if dataStoreOpen {
+		panic("Data store is already open")
 	}
+
+	var (
+		clusters map[string]*ClusterEntry
+		aliases  *alias.Aliases
+	)
 
 	clusters = make(map[string]*ClusterEntry)
 
 	// Find cluster names from the data directory
 	dirEntries, err := os.ReadDir(path.Join(jobanalyzerDir, dataDirName))
 	if err != nil {
-		return
+		return err
 	}
 	for _, e := range dirEntries {
 		if e.IsDir() {
-			n := e.Name()
-			clusters[n] = &ClusterEntry{Name: n}
+			name := e.Name()
+			clusters[name] = &ClusterEntry{
+				Name:          name,
+				HaveDataDir:   true,
+				DataDir:       MakeClusterDataPath(jobanalyzerDir, name),
+				HaveReportDir: true,
+				ReportDir:     MakeReportDirPath(jobanalyzerDir, name),
+			}
 		}
 	}
 
@@ -109,12 +127,11 @@ func ReadClusterData(
 	aliasesFile := path.Join(jobanalyzerDir, clusterConfigDirName, clusterAliasesFilename)
 	if info, bad := os.Stat(aliasesFile); bad == nil {
 		if info.Mode()&fs.ModeType != 0 {
-			err = errors.New("Cluster alias file is not a regular file")
-			return
+			return errors.New("Cluster alias file is not a regular file")
 		}
 		aliases, err = alias.ReadAliases(aliasesFile)
 		if err != nil {
-			return
+			return err
 		}
 	}
 	if aliases != nil {
@@ -129,20 +146,248 @@ func ReadClusterData(
 	for c, v := range clusters {
 		cfg, err := ReadConfigData(MakeConfigFilePath(jobanalyzerDir, c))
 		if err != nil {
+			// Arguably we could remove it, but this code will change anyway.
+			v.Description = "No configuration found"
 			continue
 		}
 		v.Description = cfg.Description
+		v.ExcludeUser = cfg.ExcludeUser
+		v.HaveConfig = true
+		v.Config = cfg
 	}
 
+	dataStoreOpen = true
 	clusterCache = clusters
 	clusterAliases = aliases
-	return
+	return nil
 }
 
-func InvalidateClusterCache() {
+// For the following, the cluster name will be set to "data.cluster", "report.cluster",
+// "logfiles.cluster", "config.cluster" if configFile is not provided or if the file does not
+// provide a cluster name.
+
+func OpenDataStoreFromDataDir(dataDir, configFile string) error {
 	clusterCacheLock.Lock()
 	defer clusterCacheLock.Unlock()
 
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	cfg, err := maybeGetConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
+	}
+	v := &ClusterEntry{HaveDataDir: true, DataDir: dataDir}
+	if cfg != nil {
+		v.Name = cfg.Name
+		v.Description = cfg.Description
+		v.HaveConfig = true
+		v.Config = cfg
+	}
+	if v.Name == "" {
+		v.Name = "data.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (data dir)"
+	}
+
+	dataStoreOpen = true
+	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	return nil
+}
+
+func OpenDataStoreFromReportDir(reportDir, configFile string) error {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	cfg, err := maybeGetConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
+	}
+	v := &ClusterEntry{HaveReportDir: true, ReportDir: reportDir}
+	if cfg != nil {
+		v.Name = cfg.Name
+		v.Description = cfg.Description
+		v.HaveConfig = true
+		v.Config = cfg
+	}
+	if v.Name == "" {
+		v.Name = "report.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (report dir)"
+	}
+
+	dataStoreOpen = true
+	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	return nil
+}
+
+func OpenDataStoreFromLogFiles(logFiles []string, configFile string) error {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	cfg, err := maybeGetConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
+	}
+	v := &ClusterEntry{HaveLogFiles: true, LogFiles: logFiles}
+	if cfg != nil {
+		v.Name = cfg.Name
+		v.Description = cfg.Description
+		v.HaveConfig = true
+		v.Config = cfg
+	}
+	if v.Name == "" {
+		v.Name = "logfiles.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (log files)"
+	}
+
+	dataStoreOpen = true
+	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	return nil
+}
+
+func OpenDataStoreFromConfigFile(configFile string) error {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	cfg, err := maybeGetConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
+	}
+	v := &ClusterEntry{
+		Name:        cfg.Name,
+		Description: cfg.Description,
+		HaveConfig:  true,
+		Config:      cfg,
+	}
+	if v.Name == "" {
+		v.Name = "config.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (config file)"
+	}
+
+	dataStoreOpen = true
+	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	return nil
+}
+
+func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	v := &ClusterEntry{
+		Name:        cfg.Name,
+		Description: cfg.Description,
+		HaveConfig:  true,
+		Config:      cfg,
+	}
+	if v.Name == "" {
+		v.Name = "config.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (config file)"
+	}
+
+	dataStoreOpen = true
+	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	return nil
+}
+
+func CloseDataStore() {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if !dataStoreOpen {
+		panic("Data store is not open")
+	}
+
+	dataStoreOpen = false
 	clusterCache = nil
 	clusterAliases = nil
+}
+
+func GetSingleCluster() *ClusterEntry {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if !dataStoreOpen {
+		panic("Data store is not open")
+	}
+
+	if len(clusterCache) == 1 {
+		for _, v := range clusterCache {
+			return v
+		}
+	}
+	return nil
+}
+
+func LookupCluster(name string) *ClusterEntry {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if !dataStoreOpen {
+		panic("Data store is not open")
+	}
+
+	if clusterAliases != nil {
+		name = clusterAliases.Resolve(name)
+	}
+	return clusterCache[name]
+}
+
+func ResolveClusterName(name string) string {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if !dataStoreOpen {
+		panic("Data store is not open")
+	}
+
+	if clusterAliases != nil {
+		name = clusterAliases.Resolve(name)
+	}
+	return name
+}
+
+// Return a fresh slice of immutable cluster values.
+func AllClusters() []*ClusterEntry {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if !dataStoreOpen {
+		panic("Data store is not open")
+	}
+
+	return umaps.Values(clusterCache)
+}
+
+// Read the config file if the file name is not empty.
+func maybeGetConfig(configFileName string) (*config.ClusterConfig, error) {
+	if configFileName == "" {
+		return nil, nil
+	}
+	return ReadConfigData(configFileName)
 }

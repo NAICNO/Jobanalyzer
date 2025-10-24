@@ -8,9 +8,11 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/data/cluster"
 	"sonalyze/db"
 	"sonalyze/db/parse"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 func TestRectifyGpuMem(t *testing.T) {
@@ -18,25 +20,28 @@ func TestRectifyGpuMem(t *testing.T) {
 	// should force the values in the record to something else.
 	memsize := 400
 	numcards := 1
-	cfg := config.NewClusterConfig(
-		2,
-		"Test",
-		"Test",
-		[]string{},
-		[]string{},
-		[]*config.NodeConfigRecord{
-			&config.NodeConfigRecord{
-				Timestamp: "2024-06-12T11:20:00+02.00",
-				Hostname:  "ml4.hpc.uio.no",
-				GpuMemPct: true,
-				GpuCards:  numcards,
-				GpuMemGB:  memsize,
+	special.OpenDataStoreFromConfig(
+		config.NewClusterConfig(
+			2,
+			"Test",
+			"Test",
+			[]string{},
+			[]string{},
+			[]*config.NodeConfigRecord{
+				&config.NodeConfigRecord{
+					Timestamp: "2024-06-12T11:20:00+02.00",
+					Hostname:  "ml4.hpc.uio.no",
+					GpuMemPct: true,
+					GpuCards:  numcards,
+					GpuMemGB:  memsize,
+				},
 			},
-		},
+		),
 	)
+	meta := cluster.NewMetaFromCluster(special.GetSingleCluster())
 	c, err := db.OpenFileListSampleDB(
+		meta,
 		[]string{"../../../tests/sonarlog/whitebox-logclean.csv"},
-		cfg,
 	)
 	if err != nil {
 		t.Fatal(err)

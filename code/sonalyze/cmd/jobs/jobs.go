@@ -255,7 +255,7 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	minRuntimeStr string
 }
 
-var _ SampleAnalysisCommand = (*JobsCommand)(nil)
+var _ = SampleAnalysisCommand((*JobsCommand)(nil))
 
 func (jc *JobsCommand) lookupUint(s string) uint {
 	if v, ok := jc.Uints[s]; ok {

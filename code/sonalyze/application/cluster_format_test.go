@@ -25,7 +25,7 @@ func testitCluster(t *testing.T, fields string) {
 		}
 	)
 	var cc clusters.ClusterCommand
-	cc.JobanalyzerDir = jobanalyzerDir
+	cc.DatabaseArgs.SetJobanalyzerDir(jobanalyzerDir, "")
 	cc.FormatArgs.Fmt = "csv,header," + fields
-	testSimpleCommand(t, &cc, fields, expect)
+	testPrimitiveCommand(t, &cc, fields, expect)
 }
