@@ -25,7 +25,11 @@ type ClusterMeta interface {
 	NodesDefinedInConfigIfAny() []*config.NodeConfigRecord
 
 	// This can be nil.  We want the latest host information at or before the given time, which is
-	// seconds since Unix epoch.
+	// seconds since Unix epoch.  If the database has to be queried, the query window into the past
+	// may be limited to 14 days.  The result is not necessarily stable, it may change if new data
+	// come in, but will never revert to older data.  New data that replace a prior non-nil result
+	// may or may not be honored in a timely manner.  A static cluster configuration, should it
+	// exist, will be consulted only if the information can't be found in the database.
 	LookupHostByTime(host string, time int64) *config.NodeConfigRecord
 
 	// Data for the underlying representation, used by various database implementations.
