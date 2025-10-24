@@ -2,21 +2,18 @@
  {
   "hostname": "c1-29.fox",
   "description": "2x64 intel, 987GB",
-  "cross_node_jobs": true,
   "cpu_cores": 128,
   "mem_gb": 987
  },
  {
   "hostname": "c1-[5-28].fox",
   "description": "2x64 intel, 483GB",
-  "cross_node_jobs": true,
   "cpu_cores": 128,
   "mem_gb": 483
  },
  {
   "hostname": "gpu-10.fox",
   "description": "2x48 intel (hyperthreaded), 987GB, 2x NVIDIA H100 PCIe @ 79GB",
-  "cross_node_jobs": true,
   "cpu_cores": 192,
   "mem_gb": 987,
   "gpu_cards": 2,
@@ -25,7 +22,6 @@
  {
   "hostname": "gpu-[1-2].fox",
   "description": "2x48 intel (hyperthreaded), 987GB, 4x NVIDIA A100-PCIE-40GB @ 40GB",
-  "cross_node_jobs": true,
   "cpu_cores": 192,
   "mem_gb": 987,
   "gpu_cards": 4,
@@ -34,7 +30,6 @@
  {
   "hostname": "gpu-[4-6]",
   "description": "2x32 intel (hyperthreaded), 483GB, 4x NVIDIA GeForce RTX 3090 @ 24GB",
-  "cross_node_jobs": true,
   "cpu_cores": 128,
   "mem_gb": 483,
   "gpu_cards": 4,
@@ -43,7 +38,6 @@
  {
   "hostname": "gpu-[7-8].fox",
   "description": "2x48 intel (hyperthreaded), 987GB, 4x NVIDIA A100 80GB PCIe @ 80GB",
-  "cross_node_jobs": true,
   "cpu_cores": 192,
   "mem_gb": 987,
   "gpu_cards": 4,

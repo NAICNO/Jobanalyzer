@@ -11,10 +11,10 @@ import (
 )
 
 func TestConfigs(t *testing.T) {
-	testitConfigs(t, "timestamp,host,desc,xnode,cores,mem,gpus,gpumem,gpumempct")
+	testitConfigs(t, "timestamp,host,desc,cores,mem,gpus,gpumem,gpumempct")
 	testitConfigs(
 		t,
-		"Timestamp,Hostname,Description,CrossNodeJobs,CpuCores,MemGB,GpuCards,GpuMemGB,GpuMemPct",
+		"Timestamp,Hostname,Description,CpuCores,MemGB,GpuCards,GpuMemGB,GpuMemPct",
 	)
 }
 
@@ -22,8 +22,8 @@ func testitConfigs(t *testing.T, fields string) {
 	var (
 		configFilename = "testdata/config_format_test/test-config.json"
 		expect         = []string{
-			`,n1,"2x14 Intel Xeon Gold 5120 (hyperthreaded), 128GB, 4x NVIDIA RTX 2080 Ti @ 11GB",no,56,128,4,44,no`,
-			`2024-10-31T12:00:00Z,n2,"1x14 Intel Xeon Gold 5120 (hyperthreaded), 256GB, 2x NVIDIA RTX 2080 Ti @ 11GB",yes,28,256,2,22,no`,
+			`,n1,"2x14 Intel Xeon Gold 5120 (hyperthreaded), 128GB, 4x NVIDIA RTX 2080 Ti @ 11GB",56,128,4,44,no`,
+			`2024-10-31T12:00:00Z,n2,"1x14 Intel Xeon Gold 5120 (hyperthreaded), 256GB, 2x NVIDIA RTX 2080 Ti @ 11GB",28,256,2,22,no`,
 			``,
 		}
 	)

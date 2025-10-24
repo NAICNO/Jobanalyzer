@@ -199,15 +199,10 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	bounds Timebounds,
 ) []*jobSummary {
 	var now = time.Now().UTC().Unix()
-	var anyMergeableNodes bool
-	if !jc.MergeNone && cfg != nil {
-		anyMergeableNodes = cfg.HasCrossNodeJobs()
-	}
-
 	var jobs sample.SampleStreams
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
-	} else if anyMergeableNodes {
+	} else if !jc.MergeNone {
 		jobs, bounds = mergeAcrossSomeNodes(cfg, streams, bounds)
 	} else {
 		jobs = sample.MergeByHostAndJob(streams)
@@ -428,9 +423,8 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	return summaries
 }
 
-// Look to the config to find nodes that have CrossNodeJobs set, and merge their streams as if by
-// --merge-all; the remaining streams are merged as if by --merge-none, and the two sets of merged
-// jobs are combined into one set.
+// Merge mergeable streams as if by --merge-all; the remaining streams are merged as if by
+// --merge-none, and the two sets of merged jobs are combined into one set.
 
 func mergeAcrossSomeNodes(
 	cfg *config.ClusterConfig,
@@ -443,7 +437,7 @@ func mergeAcrossSomeNodes(
 	sBounds := make(Timebounds)
 	for k, v := range streams {
 		bound := bounds[k.Host]
-		if sys := cfg.LookupHost(k.Host.String()); sys != nil && sys.CrossNodeJobs {
+		if (*v)[0].Epoch == 0 {
 			mBounds[k.Host] = bound
 			mergeable[k] = v
 		} else {

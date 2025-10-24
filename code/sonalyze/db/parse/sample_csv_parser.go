@@ -51,6 +51,9 @@ LineLoop:
 		// really required.  The sentinels are not zero because zeroes are valid values from the
 		// input.  Keep the sentinels in sync with the code below that inserts default values after
 		// parsing!
+		//
+		// The default epoch for CSV data is 1 to prevent erroneous merging of streams.  This will
+		// break some older data but we don't care.
 		var (
 			version                  = UstrEmpty
 			timestamp        int64   = math.MaxInt64
@@ -58,7 +61,7 @@ LineLoop:
 			numCores         uint32  = math.MaxUint32
 			memTotalKB       uint64  = math.MaxUint64
 			user                     = UstrEmpty
-			epoch            uint64  = 0
+			epoch            uint64  = 1
 			pid              uint32  = math.MaxUint32
 			ppid             uint32  = math.MaxUint32
 			jobId            uint32  = math.MaxUint32
