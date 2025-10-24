@@ -110,7 +110,10 @@ func Query(theLog db.DataProvider, qa QueryArgs) ([]*NodeConfig, error) {
 				MemGB:       memGB,
 				GpuCards:    numCards,
 				GpuMemGB:    cardTotalMemGB,
-				// `Metadata` is unused by sonalyze
+				// CrossNodeJobs is not being set here because it is ill-defined and will
+				// be removed from sonalyze.
+				//
+				// `Metadata` is unused by sonalyze.
 			},
 			Distances: distances,
 			TopoSVG:   r.node.TopoSVG,

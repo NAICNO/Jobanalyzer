@@ -24,16 +24,38 @@ func (tm *clusterMeta) ExcludedUsers() []string {
 }
 
 func (tm *clusterMeta) LookupHostByTime(host string, time int64) *config.NodeConfigRecord {
-
+	/*
+	cache := ...;
+	if cached := cache.LookupHostByTime(host, time); cached != nil {
+		return cached
+	}
+	theLog := ...;
+	configs, err := config.Query(theLog, config.QueryArgs{
+		HaveFrom: true,
+		FromDate: ...,
+		HaveTo: true,
+		ToDate: ...,
+		Host: []string{host},
+		Newest: true,
+		Brief: true,
+	})
+	if err == nil && len(configs) > 0 {
+		// should be just one
+		// should have the right host
+		// must add it to the cache, though CAS it - for semantics
+		// must return the inner record
+	}
+	*/
 	// TODO
 	//
 	// Basically, HaveConfig and Config disappear and are replaced by lazily computed and cached
 	// configurations for timespans.  If an explicit config file is provided and it has node data
 	// then we always use that, otherwise we will go to the data store and hope for the best.  In
-	// the data store, we get sysinfo as for node -newest and present that.  Then the object is
-	// cached globally under the triple (clusterName, fromDate, toDate).  When we have only a
-	// toDate, as in this case, we can use any cached value that has that toDate, suggesting we'll
-	// want a side structure of some kind for that.
+	// the data store, we get sysinfo as for node -newest and present that.  (A query on
+	// data/config.  Probably we add query parameters to avoid building eg description and
+	// distances.) Then the object is cached globally under the triple (clusterName, fromDate,
+	// toDate).  When we have only a toDate, as in this case, we can use any cached value that has
+	// that toDate, suggesting we'll want a side structure of some kind for that.
 	//
 	// Possibly we push the entire config management thing into the db layer since in principle
 	// the DB can cache the configs for a date.
