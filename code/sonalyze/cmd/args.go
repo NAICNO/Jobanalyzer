@@ -422,14 +422,28 @@ type SourceArgs struct {
 
 	FromDateStr string
 	ToDateStr   string
+
+	defaultDelta uint
 }
 
-func (s *SourceArgs) Add(fs *CLI) {
+func (s *SourceArgs) Add(fs *CLI, defaultDelta uint) {
+	if defaultDelta == 0 {
+		panic("Time delta must be nonzero")
+	}
 	s.DatabaseArgs.Add(fs, DBArgOptions{})
+	s.defaultDelta = defaultDelta
 	fs.Group("record-filter")
+	delta := "one day"
+	if defaultDelta > 1 {
+		delta = fmt.Sprintf("%d days", defaultDelta)
+	}
 	fs.StringVar(&s.FromDateStr, "from", "",
-		"Select records by this `time` and later.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
-			"signifying N days or weeks ago [default: 1d, ie 1 day ago]")
+		fmt.Sprintf(
+			"Select records by this `time` and later.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
+				"signifying N days or weeks ago [default: %dd, ie %s ago]",
+			defaultDelta,
+			delta,
+		))
 	fs.StringVar(&s.FromDateStr, "f", "", "Short for -from `time`")
 	fs.StringVar(&s.ToDateStr, "to", "",
 		"Select records by this `time` and earlier.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
@@ -460,7 +474,7 @@ func (s *SourceArgs) Validate() error {
 		}
 		s.HaveFrom = true
 	} else {
-		s.FromDate = now.AddDate(0, 0, -1)
+		s.FromDate = now.AddDate(0, 0, -int(s.defaultDelta))
 		s.HaveFrom = len(s.logFiles) == 0
 	}
 
@@ -787,7 +801,7 @@ func (sa *SampleAnalysisArgs) SampleAnalysisFlags() *SampleAnalysisArgs {
 
 func (s *SampleAnalysisArgs) Add(fs *CLI) {
 	s.DevArgs.Add(fs)
-	s.SourceArgs.Add(fs)
+	s.SourceArgs.Add(fs, 1)
 	s.QueryArgs.Add(fs)
 	s.RecordFilterArgs.Add(fs)
 	s.VerboseArgs.Add(fs)
@@ -834,7 +848,7 @@ func (sa *HostAnalysisArgs) HostAnalysisFlags() *HostAnalysisArgs {
 
 func (s *HostAnalysisArgs) Add(fs *CLI) {
 	s.DevArgs.Add(fs)
-	s.SourceArgs.Add(fs)
+	s.SourceArgs.Add(fs, 1)
 	s.QueryArgs.Add(fs)
 	s.HostArgs.Add(fs)
 	s.VerboseArgs.Add(fs)

@@ -78,7 +78,7 @@ ELBAT*/
 
 type ConfigCommand struct {
 	DevArgs
-	DatabaseArgs
+	SourceArgs
 	QueryArgs
 	HostArgs
 	VerboseArgs
@@ -89,7 +89,7 @@ var _ = SimpleCommand((*ConfigCommand)(nil))
 
 func (cc *ConfigCommand) Add(fs *CLI) {
 	cc.DevArgs.Add(fs)
-	cc.DatabaseArgs.Add(fs, DBArgOptions{})
+	cc.SourceArgs.Add(fs, 14)
 	cc.QueryArgs.Add(fs)
 	cc.HostArgs.Add(fs)
 	cc.VerboseArgs.Add(fs)
@@ -100,7 +100,7 @@ func (cc *ConfigCommand) ReifyForRemote(x *ArgReifier) error {
 	// As per normal, do not forward VerboseArgs.
 	return errors.Join(
 		cc.DevArgs.ReifyForRemote(x),
-		cc.DatabaseArgs.ReifyForRemote(x),
+		cc.SourceArgs.ReifyForRemote(x),
 		cc.QueryArgs.ReifyForRemote(x),
 		cc.HostArgs.ReifyForRemote(x),
 		cc.FormatArgs.ReifyForRemote(x),
@@ -110,7 +110,7 @@ func (cc *ConfigCommand) ReifyForRemote(x *ArgReifier) error {
 func (cc *ConfigCommand) Validate() error {
 	return errors.Join(
 		cc.DevArgs.Validate(),
-		cc.DatabaseArgs.Validate(),
+		cc.SourceArgs.Validate(),
 		cc.QueryArgs.Validate(),
 		cc.HostArgs.Validate(),
 		cc.VerboseArgs.Validate(),
@@ -130,18 +130,9 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 	}
 	includeHosts := hosts.HostnameGlobber()
 
-	// TODO: use from/to here for filtering?  Not obvious that it's a meaningful idea but
-	// the command line options allow it.  The default 'to' should be now and the default 'from'
-	// should be 2 weeks ago.
-	//
-	// TODO: don't we have a time abstraction for this we could use?
-
-	now := time.Now().Unix()
-	then := now - (14 * 24 * 60 * 60) // 2 weeks ago
-
 	// `records` is always freshly allocated
 	var records []*uconfig.NodeConfigRecord
-	records = NodesDefinedInTimeWindow(meta, then, now, cc.Verbose)
+	records = NodesDefinedInTimeWindow(meta, cc.FromDate, cc.ToDate, cc.Verbose)
 	if len(records) == 0 {
 		records = meta.NodesDefinedInConfigIfAny()
 	}
@@ -175,7 +166,7 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 
 func NodesDefinedInTimeWindow(
 	meta special.ClusterMeta,
-	from, to int64,
+	from, to time.Time,
 	verbose bool,
 ) (result []*uconfig.NodeConfigRecord) {
 	theLog, err := db.OpenReadOnlyDB(
@@ -189,9 +180,9 @@ func NodesDefinedInTimeWindow(
 		theLog,
 		config.QueryArgs{
 			HaveFrom: true,
-			FromDate: time.Unix(from, 0),
+			FromDate: from,
 			HaveTo:   true,
-			ToDate:   time.Unix(to, 0),
+			ToDate:   to,
 			Verbose:  verbose,
 			Newest:   true,
 		},
