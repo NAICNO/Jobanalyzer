@@ -15,33 +15,28 @@
 },
 {
  "hostname": "c1-[5-29]",
- "cross_node_jobs":true,
  "metadata":[{"k":"host-suffix","v":".fox"}]
 },
 {
  "hostname": "gpu-[1-2]",
- "cross_node_jobs":true,
  "gpu_cards": 4,
  "gpumem_gb": 160,
  "metadata":[{"k":"host-suffix","v":".fox"},{"k":"gpu","v":"NVIDIA A100-PCIE-40GB"}]
 },
 {
  "hostname": "gpu-[4-6]",
- "cross_node_jobs":true,
  "gpu_cards": 4,
  "gpumem_gb": 96,
  "metadata":[{"k":"gpu","v":"NVIDIA GeForce RTX 3090"}]
 },
 {
  "hostname": "gpu-[7,8]",
- "cross_node_jobs":true,
  "gpu_cards": 4,
  "gpumem_gb": 320,
  "metadata":[{"k":"host-suffix","v":".fox"},{"k":"gpu","v":"NVIDIA A100 80GB PCIe"}]
 },
 {
  "hostname": "gpu-10",
- "cross_node_jobs":true,
  "gpu_cards": 2,
  "gpumem_gb": 159,
  "metadata":[{"k":"host-suffix","v":".fox"},{"k":"gpu","v":"NVIDIA H100 PCIe"}]

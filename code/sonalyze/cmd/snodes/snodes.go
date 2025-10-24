@@ -23,9 +23,6 @@ package snodes
 
 FIELDS SnodeData
 
- # Note the CrossNodeJobs field is a config-level attribute, it does not appear in the raw sysinfo
- # data, and so it is not included here.
-
  Timestamp   string desc:"Full ISO timestamp of when the reading was taken" alias:"timestamp"
  Nodes       []string desc:"Node list" alias:"nodes"
  States      []string desc:"State list" alias:"states"

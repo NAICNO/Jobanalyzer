@@ -41,7 +41,6 @@ FIELDS *config.NodeConfigRecord
  Timestamp     string desc:"Full ISO timestamp of when the reading was taken" alias:"timestamp"
  Hostname      string desc:"Name that host is known by on the cluster" alias:"host"
  Description   string desc:"End-user description, not parseable" alias:"desc"
- CrossNodeJobs bool   desc:"True if jobs on this node can be multi-node" alias:"xnode"
  CpuCores      int    desc:"Total number of cores x threads" alias:"cores"
  MemGB         int    desc:"GB of installed main RAM" alias:"mem"
  GpuCards      int    desc:"Number of installed cards" alias:"gpus"
@@ -66,10 +65,10 @@ HELP ConfigCommand
 
 ALIASES
 
-  default  host,cores,mem,gpus,gpumem,xnode,desc
-  Default  Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,CrossNodeJobs,Description
-  all      timestamp,host,desc,xnode,cores,mem,gpus,gpumem,gpumempct
-  All      Timestamp,Hostname,Description,CrossNodeJobs,CpuCores,MemGB,GpuCards,GpuMemGB,GpuMemPct
+  default  host,cores,mem,gpus,gpumem,desc
+  Default  Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,Description
+  all      timestamp,host,desc,cores,mem,gpus,gpumem,gpumempct
+  All      Timestamp,Hostname,Description,CpuCores,MemGB,GpuCards,GpuMemGB,GpuMemPct
 
 DEFAULTS default
 

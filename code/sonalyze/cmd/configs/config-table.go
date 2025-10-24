@@ -41,12 +41,6 @@ var configFormatters = map[string]Formatter[*config.NodeConfigRecord]{
 		},
 		Help: "(string) End-user description, not parseable",
 	},
-	"CrossNodeJobs": {
-		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
-			return FormatBool((d.CrossNodeJobs), ctx)
-		},
-		Help: "(bool) True if jobs on this node can be multi-node",
-	},
 	"CpuCores": {
 		Fmt: func(d *config.NodeConfigRecord, ctx PrintMods) string {
 			return FormatInt((d.CpuCores), ctx)
@@ -83,7 +77,6 @@ func init() {
 	DefAlias(configFormatters, "Timestamp", "timestamp")
 	DefAlias(configFormatters, "Hostname", "host")
 	DefAlias(configFormatters, "Description", "desc")
-	DefAlias(configFormatters, "CrossNodeJobs", "xnode")
 	DefAlias(configFormatters, "CpuCores", "cores")
 	DefAlias(configFormatters, "MemGB", "mem")
 	DefAlias(configFormatters, "GpuCards", "gpus")
@@ -106,12 +99,6 @@ var configPredicates = map[string]Predicate[*config.NodeConfigRecord]{
 	"Description": Predicate[*config.NodeConfigRecord]{
 		Compare: func(d *config.NodeConfigRecord, v any) int {
 			return cmp.Compare((d.Description), v.(string))
-		},
-	},
-	"CrossNodeJobs": Predicate[*config.NodeConfigRecord]{
-		Convert: CvtString2Bool,
-		Compare: func(d *config.NodeConfigRecord, v any) int {
-			return CompareBool((d.CrossNodeJobs), v.(bool))
 		},
 	},
 	"CpuCores": Predicate[*config.NodeConfigRecord]{
@@ -170,10 +157,10 @@ func (c *ConfigCommand) MaybeFormatHelp() *FormatHelp {
 
 // MT: Constant after initialization; immutable
 var configAliases = map[string][]string{
-	"default": []string{"host", "cores", "mem", "gpus", "gpumem", "xnode", "desc"},
-	"Default": []string{"Hostname", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "CrossNodeJobs", "Description"},
-	"all":     []string{"timestamp", "host", "desc", "xnode", "cores", "mem", "gpus", "gpumem", "gpumempct"},
-	"All":     []string{"Timestamp", "Hostname", "Description", "CrossNodeJobs", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "GpuMemPct"},
+	"default": []string{"host", "cores", "mem", "gpus", "gpumem", "desc"},
+	"Default": []string{"Hostname", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "Description"},
+	"all":     []string{"timestamp", "host", "desc", "cores", "mem", "gpus", "gpumem", "gpumempct"},
+	"All":     []string{"Timestamp", "Hostname", "Description", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "GpuMemPct"},
 }
 
 const configDefaultFields = "default"

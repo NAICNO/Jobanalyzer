@@ -201,7 +201,8 @@ node
 
   Note that 'all' and 'All' do not include the topology data (toposvg, topotext), which
   are usually large if present.  The most practical extraction method would be with e.g.
-  "-from ... -host ... -newest -fmt noheader,csv,topotext" for whatever single node is desired.
+  "-from ... -host ... -newest -fmt noheader,fixed,topotext" for whatever single node
+  is desired.
 `
 
 func (c *NodeCommand) MaybeFormatHelp() *FormatHelp {
