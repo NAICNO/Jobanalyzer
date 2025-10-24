@@ -45,6 +45,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"time"
 
 	"go-utils/maps"
 	uslices "go-utils/slices"
@@ -315,7 +316,12 @@ func (uc *UptimeCommand) computeAlwaysDown(
 	if !uc.OnlyUp {
 		hostGlobber := hosts.HostnameGlobber()
 		hs := make(map[Ustr]bool)
-		nodes := configs.NodesDefinedInTimeWindow(meta, fromIncl, toIncl, uc.Verbose)
+		nodes := configs.NodesDefinedInTimeWindow(
+			meta,
+			time.Unix(fromIncl, 0).UTC(),
+			time.Unix(toIncl, 0).UTC(),
+			uc.Verbose,
+		)
 		if len(nodes) == 0 {
 			nodes = meta.NodesDefinedInConfigIfAny()
 		}
