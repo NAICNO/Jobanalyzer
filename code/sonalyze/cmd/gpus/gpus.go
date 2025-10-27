@@ -11,6 +11,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/data/gpusample"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -63,6 +64,7 @@ type GpuCommand struct /* implements AnalysisCommand */ {
 }
 
 var _ = AnalysisCommand((*GpuCommand)(nil))
+var _ = SimpleCommand((*GpuCommand)(nil))
 
 func (gc *GpuCommand) Add(fs *CLI) {
 	gc.HostAnalysisArgs.Add(fs)
@@ -96,8 +98,8 @@ type ReportLine struct {
 	*gpusample.PerGpuSample
 }
 
-func (gc *GpuCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(gc.ConfigFile(), gc.DataDir, db.FileListGpuSampleData, gc.LogFiles)
+func (gc *GpuCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListGpuSampleData)
 	if err != nil {
 		return err
 	}

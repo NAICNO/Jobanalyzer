@@ -3,10 +3,10 @@ package cmd
 import (
 	"io"
 
-	"go-utils/config"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	"sonalyze/table"
 )
 
@@ -24,6 +24,8 @@ type SetRestArgumentsAPI interface {
 	// Install any left-over arguments into the arguments object
 	SetRestArguments(args []string)
 }
+
+var _ = SetRestArgumentsAPI((*DatabaseArgs)(nil))
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -45,15 +47,22 @@ type Command interface {
 
 	// The -v flag
 	VerboseFlag() bool
-}
-
-type RemotableCommand interface {
-	Command
 
 	// Reify all arguments including shared arguments for remote execution, with checking
 	ReifyForRemote(x *ArgReifier) error
 
-	RemotingFlags() *RemotingArgsNoCluster
+	// DatabaseArgs API (evolving)
+	Dataless() bool
+	JobanalyzerDir() string
+	DataDir() string
+	ReportDir() string
+	LogFiles() []string
+	ConfigFile() string
+	CacheSize() int64
+	ClusterName() string
+	RemoteHost() string
+	Remoting() bool
+	AuthFile() string
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,19 +71,29 @@ type RemotableCommand interface {
 // are manipulated.
 
 type AnalysisCommand interface {
+	Command
 	SetRestArgumentsAPI
 	FormatHelpAPI
-	RemotableCommand
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Represents a simple command that handles its own logic completely
+// Represents a simple command that handles its own logic completely, on no cluster
+
+type PrimitiveCommand interface {
+	Command
+
+	Perform(in io.Reader, stdout, stderr io.Writer) error
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Represents a simple command that handles its own logic completely, but on one cluster
 
 type SimpleCommand interface {
 	Command
 
-	Perform(in io.Reader, stdout, stderr io.Writer) error
+	Perform(meta special.ClusterMeta, in io.Reader, stdout, stderr io.Writer) error
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,7 +115,7 @@ type SampleAnalysisCommand interface {
 	// Perform the operation.  The recordFilter has been compiled from the filter.
 	Perform(
 		out io.Writer,
-		cfg *config.ClusterConfig,
+		meta special.ClusterMeta,
 		theLog db.SampleDataProvider,
 		filter sample.QueryFilter,
 		hosts *Hosts,
@@ -107,31 +126,28 @@ type SampleAnalysisCommand interface {
 	ConfigFile() string
 }
 
-var _ = (RemotableCommand)((SampleAnalysisCommand)(nil))
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// This is a container for behavior.  It's probably important that it has no mutable state.  There
-// could be several.
-//
-// CommandLineHandler is a hack that's necessary to deal with Go's prohibition against circular
-// package dependencies.
+// This is a container for behavior.  There are two of these: one for the one-shot behavior and one
+// for the daemon behavior.  CommandLineHandler is a hack that's really only necessary to deal with
+// Go's prohibition against circular package dependencies: the daemon code calls indirect back up
+// to the application level, which can then call down to the engine again.
 
-type CommandLineHandler interface {
+type CommandLineHandler struct {
 	// Translate `maybeVerb` into a Command and return a normalized verb.  If the translation failed
 	// then `cmd` will be nil and `verb` will be "".  The `cmdName` is the name of the program
 	// (argv[0]).
-	ParseVerb(cmdName, maybeVerb string) (cmd Command, verb string)
+	ParseVerb func(cmdName, maybeVerb string) (cmd Command, verb string)
 
 	// Given a verb and command returned from ParseVerb, and a list of arguments and an empty but
 	// otherwise initialized flag set, set up argument parsing, perform it, and validate the result.
-	ParseArgs(verb string, args []string, cmd Command, fs *CLI) error
+	ParseArgs func(verb string, args []string, cmd Command, fs *CLI) error
 
 	// The `profileFile` should be the cpu profile file name in the DevArgs structure.  If not
 	// empty, this will start the profiler and return a stop function to be deferred until the end
 	// of the program.
-	StartCPUProfile(profileFile string) (func(), error)
+	StartCPUProfile func(profileFile string) (func(), error)
 
 	// Given a command initialized with parsed commands, and i/o streams, run the command.
-	HandleCommand(anyCmd Command, stdin io.Reader, stdout, stderr io.Writer) error
+	HandleCommand func(anyCmd Command, stdin io.Reader, stdout, stderr io.Writer) error
 }

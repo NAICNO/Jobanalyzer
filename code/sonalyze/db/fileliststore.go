@@ -6,12 +6,15 @@ package db
 import (
 	"errors"
 
-	"go-utils/config"
 	"sonalyze/db/filedb"
+	"sonalyze/db/special"
 )
 
 // The types can be OR'ed together if they are provided by the same file type.  This is sort of a
 // secret handshake for now.
+//
+// These type designators are used even for commands that don't operate on file lists.  This is a
+// little dumb but renaming can happen eventually.
 type FileListDataType int
 
 const (
@@ -32,12 +35,8 @@ type FileListDataProvider struct {
 	*filedb.TransientSysinfoCluster
 	*filedb.TransientSacctCluster
 	*filedb.TransientCluzterCluster
-	cfg      *config.ClusterConfig
+	meta     special.ClusterMeta
 	dataType FileListDataType
-}
-
-func (tdp *FileListDataProvider) Config() *config.ClusterConfig {
-	return tdp.cfg
 }
 
 func (tdb *FileListDataProvider) DataType() FileListDataType {
@@ -45,9 +44,8 @@ func (tdb *FileListDataProvider) DataType() FileListDataType {
 }
 
 func OpenFileListDB(
+	meta special.ClusterMeta,
 	dataType FileListDataType,
-	files []string,
-	cfg *config.ClusterConfig,
 ) (DataProvider, error) {
 	var transientSampleCluster *filedb.TransientSampleCluster
 	var transientSysinfoCluster *filedb.TransientSysinfoCluster
@@ -59,22 +57,22 @@ func OpenFileListDB(
 		if dataType&^(FileListSampleData|FileListNodeSampleData|FileListCpuSampleData|FileListGpuSampleData) != 0 {
 			panic("Incompatible type flags")
 		}
-		transientSampleCluster, err = OpenFileListSampleDB(files, cfg)
+		transientSampleCluster, err = OpenFileListSampleDB(meta, meta.LogFiles())
 	case dataType&(FileListNodeData|FileListCardData) != 0:
 		if dataType&^(FileListNodeData|FileListCardData) != 0 {
 			panic("Incompatible type flags")
 		}
-		transientSysinfoCluster, err = OpenFileListSysinfoDB(files, cfg)
+		transientSysinfoCluster, err = OpenFileListSysinfoDB(meta, meta.LogFiles())
 	case dataType&FileListSlurmJobData != 0:
 		if dataType&^FileListSlurmJobData != 0 {
 			panic("Incompatible type flags")
 		}
-		transientSacctCluster, err = OpenFileListSacctDB(files, cfg)
+		transientSacctCluster, err = OpenFileListSacctDB(meta, meta.LogFiles())
 	case dataType&(FileListSlurmNodeData|FileListSlurmPartitionData|FileListSlurmClusterData) != 0:
 		if dataType&^(FileListSlurmNodeData|FileListSlurmPartitionData|FileListSlurmClusterData) != 0 {
 			panic("Incompatible type flags")
 		}
-		transientCluzterCluster, err = OpenFileListCluzterDB(files, cfg)
+		transientCluzterCluster, err = OpenFileListCluzterDB(meta, meta.LogFiles())
 	default:
 		panic("NYI")
 	}
@@ -86,7 +84,7 @@ func OpenFileListDB(
 		transientSysinfoCluster,
 		transientSacctCluster,
 		transientCluzterCluster,
-		cfg,
+		meta,
 		dataType,
 	}, nil
 }
@@ -94,8 +92,8 @@ func OpenFileListDB(
 // The following are internal but are public for testing
 
 func OpenFileListSampleDB(
+	meta special.ClusterMeta,
 	files []string,
-	cfg *config.ClusterConfig,
 ) (*filedb.TransientSampleCluster, error) {
 	if len(files) == 0 {
 		return nil, errors.New("Empty list of files")
@@ -104,12 +102,12 @@ func OpenFileListSampleDB(
 	if err != nil {
 		return nil, err
 	}
-	return filedb.NewTransientSampleCluster(files, ty, cfg), nil
+	return filedb.NewTransientSampleCluster(meta, ty, files), nil
 }
 
 func OpenFileListSacctDB(
+	meta special.ClusterMeta,
 	files []string,
-	cfg *config.ClusterConfig,
 ) (*filedb.TransientSacctCluster, error) {
 	if len(files) == 0 {
 		return nil, errors.New("Empty list of files")
@@ -118,12 +116,12 @@ func OpenFileListSacctDB(
 	if err != nil {
 		return nil, err
 	}
-	return filedb.NewTransientSacctCluster(files, ty, cfg), nil
+	return filedb.NewTransientSacctCluster(meta, ty, files), nil
 }
 
 func OpenFileListSysinfoDB(
+	meta special.ClusterMeta,
 	files []string,
-	cfg *config.ClusterConfig,
 ) (*filedb.TransientSysinfoCluster, error) {
 	if len(files) == 0 {
 		return nil, errors.New("Empty list of files")
@@ -132,15 +130,15 @@ func OpenFileListSysinfoDB(
 	if err != nil {
 		return nil, err
 	}
-	return filedb.NewTransientSysinfoCluster(files, ty, cfg), nil
+	return filedb.NewTransientSysinfoCluster(meta, ty, files), nil
 }
 
 func OpenFileListCluzterDB(
+	meta special.ClusterMeta,
 	files []string,
-	cfg *config.ClusterConfig,
 ) (*filedb.TransientCluzterCluster, error) {
 	if len(files) == 0 {
 		return nil, errors.New("Empty list of files")
 	}
-	return filedb.NewTransientCluzterCluster(files, filedb.FileCluzterV0JSON, cfg), nil
+	return filedb.NewTransientCluzterCluster(meta, filedb.FileCluzterV0JSON, files), nil
 }

@@ -30,6 +30,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/data/cpusample"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -38,6 +39,7 @@ type TopCommand struct /* implements AnalysisCommand */ {
 }
 
 var _ = AnalysisCommand((*TopCommand)(nil))
+var _ = SimpleCommand((*TopCommand)(nil))
 
 //go:embed summary.txt
 var summary string
@@ -63,8 +65,8 @@ func (tc *TopCommand) MaybeFormatHelp() *FormatHelp {
 	return nil
 }
 
-func (tc *TopCommand) Perform(stdin io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(tc.ConfigFile(), tc.DataDir, db.FileListCpuSampleData, tc.LogFiles)
+func (tc *TopCommand) Perform(meta special.ClusterMeta, stdin io.Reader, stdout, stderr io.Writer) error {
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListCpuSampleData)
 	if err != nil {
 		return err
 	}

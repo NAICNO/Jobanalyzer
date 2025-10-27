@@ -7,16 +7,16 @@ import (
 )
 
 func TestCluster(t *testing.T) {
-	clusters, aliases, err := ReadClusterData("../filedb/testdata")
+	err := OpenFullDataStore("../filedb/testdata")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(clusters) != 2 {
-		t.Fatal("Cluster length", clusters)
+	if len(AllClusters()) != 2 {
+		t.Fatal("Cluster length", AllClusters())
 	}
 
-	c1, found := clusters["cluster1.uio.no"]
-	if !found {
+	c1 := LookupCluster("cluster1.uio.no")
+	if c1 == nil {
 		t.Fatal("cluster1")
 	}
 	if c1.Name != "cluster1.uio.no" {
@@ -26,8 +26,8 @@ func TestCluster(t *testing.T) {
 		t.Fatal("cluster1 desc", c1)
 	}
 
-	c2, found := clusters["cluster2.uio.no"]
-	if !found {
+	c2 := LookupCluster("cluster2.uio.no")
+	if c2 == nil {
 		t.Fatal("cluster2")
 	}
 	if c2.Name != "cluster2.uio.no" {
@@ -37,12 +37,12 @@ func TestCluster(t *testing.T) {
 		t.Fatal("cluster2 desc", c2)
 	}
 
-	r1 := aliases.Resolve("c1")
+	r1 := ResolveClusterName("c1")
 	if r1 != "cluster1.uio.no" {
 		t.Fatal("c1", r1)
 	}
 
-	r2 := aliases.Resolve("c2")
+	r2 := ResolveClusterName("c2")
 	if r2 != "cluster2.uio.no" {
 		t.Fatal("c2", r2)
 	}

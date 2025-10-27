@@ -7,9 +7,9 @@ import (
 	"path"
 	"sync"
 
-	"go-utils/config"
 	"sonalyze/db/errs"
 	"sonalyze/db/filedb"
+	"sonalyze/db/special"
 )
 
 type clusterStore struct {
@@ -43,18 +43,16 @@ func SetCacheSize(size int64) {
 
 // Open a date-keyed directory tree as a read-only persistent database.
 func OpenPersistentDirectoryDB(
-	dataDir string,
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 ) (PersistentDataProvider, error) {
-	return gClusterStore.openPersistentCluster(dataDir, cfg)
+	return gClusterStore.openPersistentCluster(meta, meta.DataDir())
 }
 
 // Open a date-keyed directory tree as a read-write persistent database.
 func OpenAppendablePersistentDirectoryDB(
-	dataDir string,
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 ) (AppendablePersistentDataProvider, error) {
-	return gClusterStore.openPersistentCluster(dataDir, cfg)
+	return gClusterStore.openPersistentCluster(meta, meta.DataDir())
 }
 
 // Drain all pending writes in the database, close all the attached Cluster nodes, and return when
@@ -68,8 +66,8 @@ func Close() {
 }
 
 // For testing use.
-func openPersistentCluster(dir string, cfg *config.ClusterConfig) (*filedb.PersistentCluster, error) {
-	return gClusterStore.openPersistentCluster(dir, cfg)
+func openPersistentCluster(meta special.ClusterMeta, dir string) (*filedb.PersistentCluster, error) {
+	return gClusterStore.openPersistentCluster(meta, dir)
 }
 
 func (s *clusterStore) setCacheSize(size int64) {
@@ -93,8 +91,8 @@ func (s *clusterStore) lazyInitLocked() {
 }
 
 func (ls *clusterStore) openPersistentCluster(
+	meta special.ClusterMeta,
 	clusterDir string,
-	cfg *config.ClusterConfig,
 ) (*filedb.PersistentCluster, error) {
 	ls.Lock()
 	defer ls.Unlock()
@@ -109,7 +107,7 @@ func (ls *clusterStore) openPersistentCluster(
 		return d, nil
 	}
 
-	d := filedb.NewPersistentCluster(clusterDir, cfg)
+	d := filedb.NewPersistentCluster(clusterDir, meta)
 	ls.clusters[clusterDir] = d
 	return d, nil
 }

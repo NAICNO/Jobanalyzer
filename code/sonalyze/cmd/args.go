@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"time"
 
+	"go-utils/options"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
@@ -73,93 +73,339 @@ func (va *VerboseArgs) VerboseFlag() bool {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Handle -data-dir
+// The data source.  This is fairly elaborate to cover multiple use cases.
+//
+// The data source can be "remote" or local.  If it is remote, then the command is forwarded to the
+// remote server and executed on a local data store there, ie, a "remote" source is just a REST
+// call.
+//
+// To specify a remote source, use -remote.  This optionally takes -auth-file and by default (for
+// historical reasons) requires -cluster, though commands can use option OmitCluster to the Add()
+// method to specify that -cluster should not be accepted.  Also for historical reasons, -cluster
+// implies -remote unless there is also a local data source argument.
+//
+// If the source is remote, then the env var SONALYZE_AUTH can specify the value for -auth-file,
+// this overrides anything specified elsewhere.
+//
+// If the source is remote, then values for the remote host and the auth file are fetched from
+// ~/.sonalyze if they are not specified on the command line.
+//
+// If the source is not remote then it is local.
+//
+// If a -jobanalyzer-dir argument is present then it specifies the root location of the database and
+// *all* data are found within that directory at known locations.  This precludes -data-dir,
+// -config-file, -report-dir, and a file list.
+//
+// Otherwise, if -data-dir is present then that is a directory for a single cluster's sample,
+// sysinfo, and slurm data store and the -config-file argument may provide cluster configuration
+// data.  This precludes -report-dir and a file list.
+//
+// Otherwise, if -report-dir is present then that is a directory for a single cluster's
+// generated-reports data store, and the -config-file argument may provide cluster configuration
+// data.  This precludes -data-dir and a file list.
+//
+// Otherwise, there may be a file list representing one kind of data for a single cluster, and the
+// -config-file argument may provide cluster configuration data for that cluster.
+//
+// Finally, if there are none of the above then a few commands (such as "version") allow there to be
+// no data source at all (expressing it with the option NoDatabase), but for all other commands it
+// is an error not to provide a data source.
+//
+// In principle, many of the sources could be combined, but currently that is not allowed.
+//
+// (In the past, there were environment-variable options for the data directory; these have been
+// retired.)
 
-type DataDirArgs struct {
-	DataDir string
+type DatabaseArgs struct {
+	// Shared arguments
+	clusterName string
+
+	// Remote arguments
+	remoteHost string
+	authFile   string
+	remoting   bool
+
+	// Local arguments
+	jobanalyzerDir string
+	dataDir        string
+	reportDir      string
+	configFile     string
+	logFiles       []string
+	cacheSize      int64
+
+	// Creation options, sometimes used during validation
+	options DBArgOptions
+
+	// Temporary
+	cache string
 }
 
-func (dd *DataDirArgs) Add(fs *CLI) {
+func (db *DatabaseArgs) JobanalyzerDir() string {
+	return db.jobanalyzerDir
+}
+
+// Test API
+func (db *DatabaseArgs) SetJobanalyzerDir(dir, cn string) {
+	db.jobanalyzerDir = dir
+	db.clusterName = cn
+}
+
+func (db *DatabaseArgs) DataDir() string {
+	return db.dataDir
+}
+
+// Test API
+func (db *DatabaseArgs) SetDataDir(dir, cn string) {
+	db.dataDir = dir
+	db.clusterName = cn
+}
+
+func (db *DatabaseArgs) ReportDir() string {
+	return db.reportDir
+}
+
+// Test API
+func (db *DatabaseArgs) SetReportDir(dir, cn string) {
+	db.reportDir = dir
+	db.clusterName = cn
+}
+
+func (db *DatabaseArgs) LogFiles() []string {
+	return db.logFiles
+}
+
+// Test API
+func (db *DatabaseArgs) SetLogFiles(files []string, cn string) {
+	db.logFiles = files
+	db.clusterName = cn
+}
+
+func (db *DatabaseArgs) ConfigFile() string {
+	return db.configFile
+}
+
+// Test API
+func (db *DatabaseArgs) SetConfigFile(f, cn string) {
+	db.configFile = f
+	db.clusterName = cn
+}
+
+func (db *DatabaseArgs) CacheSize() int64 {
+	return db.cacheSize
+}
+
+func (db *DatabaseArgs) ClusterName() string {
+	return db.clusterName
+}
+
+func (db *DatabaseArgs) AuthFile() string {
+	return db.authFile
+}
+
+func (db *DatabaseArgs) RemoteHost() string {
+	return db.remoteHost
+}
+
+func (db *DatabaseArgs) Remoting() bool {
+	return db.remoting
+}
+
+func (db *DatabaseArgs) Dataless() bool {
+	return db.options.NoDatabase
+}
+
+type DBArgOptions struct {
+	// Require -jobanalyzer-dir (typically for the daemon) and disable all other data source
+	// options.
+	RequireFullDatabase bool
+
+	// Do not accept -cluster, typically because the command is not cluster-specific.
+	OmitCluster bool
+
+	// Include -report-dir, and require or compute -report-dir for local execution.
+	IncludeReportDir bool
+
+	// There is no database.  Do not open any data source, but handle remote execution.
+	NoDatabase bool
+}
+
+func (db *DatabaseArgs) Add(fs *CLI, opts DBArgOptions) {
+	db.options = opts
+
+	if !opts.OmitCluster {
+		fs.Group("application-control")
+		fs.StringVar(&db.clusterName, "cluster", "",
+			"Select the cluster `name` for the operation is targeting [default: none].")
+	}
+
+	if !opts.RequireFullDatabase {
+		fs.Group("remote-data-source")
+		fs.StringVar(&db.remoteHost, "remote", "",
+			"Select a remote `url` to serve the query [default: none].")
+		fs.StringVar(&db.authFile, "auth-file", "",
+			"Provide a `file` on username:password or netrc format [default: none].  For use with -remote.")
+	}
+
 	fs.Group("local-data-source")
-	fs.StringVar(&dd.DataDir, "data-dir", "",
-		"Select the root `directory` for log files [default: $SONAR_ROOT or $HOME/sonar/data]")
-	fs.StringVar(&dd.DataDir, "data-path", "", "Alias for -data-dir `directory`")
-}
-
-// TODO: $SONAR_ROOT is a completely inappropriate name and $HOME/sonar/data is almost certainly the
-// wrong directory, because what we want is a *cluster* directory under some root directory.  And
-// the cluster name cannot be defaulted.  So this logic should be rethought or (probably) deleted.
-//
-// However, we could require that the directory exist, if the argument is not "", see eg the
-// `infiltrate` source.  This would be a useful service.
-
-func (dd *DataDirArgs) Validate() error {
-	if dd.DataDir != "" {
-		dd.DataDir = path.Clean(dd.DataDir)
-	} else if d := os.Getenv("SONAR_ROOT"); d != "" {
-		dd.DataDir = path.Clean(d)
-	} else if d := os.Getenv("HOME"); d != "" {
-		dd.DataDir = path.Clean(path.Join(d, "/sonar/data"))
-	}
-	return nil
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// RemotingArgs pertain to specifying a remote sonalyze service.  Note that the meaning of the
-// -auth-file depends on the operation: for `add` it would normally be `cluster:cluster-password`
-// pairs, not `user:password`.
-
-type RemotingArgsNoCluster struct {
-	Remote   string
-	AuthFile string
-
-	Remoting bool
-}
-
-func (ra *RemotingArgsNoCluster) Add(fs *CLI) {
-	fs.Group("remote-data-source")
-	fs.StringVar(&ra.Remote, "remote", "",
-		"Select a remote `url` to serve the query [default: none].")
-	fs.StringVar(&ra.AuthFile, "auth-file", "",
-		"Provide a `file` on username:password or netrc format [default: none].  For use with -remote.")
-}
-
-func (ra *RemotingArgsNoCluster) Validate() error {
-	if ra.Remote != "" {
-		ra.Remoting = true
-	}
-	return nil
-}
-
-func (va *RemotingArgsNoCluster) RemotingFlags() *RemotingArgsNoCluster {
-	return va
-}
-
-type RemotingArgs struct {
-	RemotingArgsNoCluster
-	Cluster string
-}
-
-func (ra *RemotingArgs) Add(fs *CLI) {
-	ra.RemotingArgsNoCluster.Add(fs)
-	fs.Group("remote-data-source")
-	fs.StringVar(&ra.Cluster, "cluster", "",
-		"Select the cluster `name` for which we want data [default: none].  For use with -remote.")
-}
-
-func (ra *RemotingArgs) Validate() error {
-	if ra.Remote != "" || ra.Cluster != "" {
-		if ra.Remote == "" || ra.Cluster == "" {
-			return errors.New("-remote and -cluster must be used together")
+	// Even for NoDatabase we allow jobanalyzer-dir since this makes life easier for everyone.
+	fs.StringVar(&db.jobanalyzerDir, "jobanalyzer-dir", "",
+		"Jobanalyzer root `directory`, precludes all other local data source arguments.")
+	if !opts.RequireFullDatabase {
+		fs.StringVar(&db.dataDir, "data-dir", "",
+			"Select the root `directory` for log files [default: none]")
+		fs.StringVar(&db.dataDir, "data-path", "", "Alias for -data-dir `directory`")
+		fs.StringVar(&db.configFile, "config-file", "",
+			"A `filename` for a file holding JSON data with system information, for when we\n"+
+				"want to print or use system-relative values [default: none]")
+		if opts.IncludeReportDir {
+			fs.StringVar(
+				&db.reportDir, "report-dir", "", "`directory-name` containing reports [default: none]")
 		}
-		ra.Remoting = true
 	}
-	return nil
+
+	fs.StringVar(&db.cache, "cache", "", "Enable data caching with this size (nM for megs, nG for gigs)")
 }
 
-func (va *RemotingArgs) RemotingFlags() *RemotingArgsNoCluster {
-	return &va.RemotingArgsNoCluster
+func (db *DatabaseArgs) SetRestArguments(args []string) {
+	db.logFiles = args
+}
+
+func (db *DatabaseArgs) Validate() error {
+	// The trigger for remote execution is one of:
+	//  - -remote
+	//  - -cluster without other args that indicate local execution
+	localData := db.jobanalyzerDir != "" || db.dataDir != "" || db.reportDir != "" ||
+		db.configFile != "" || len(db.logFiles) > 0
+	if db.remoteHost != "" || (db.clusterName != "" && !localData) {
+		db.remoting = true
+	}
+
+	// Basic validation of mutually exclusive situations
+	switch {
+	case db.remoting:
+		if db.jobanalyzerDir != "" {
+			return errors.New("Remote execution precludes -jobanalyzer-dir")
+		}
+		if db.dataDir != "" {
+			return errors.New("Remote execution precludes a -data-dir")
+		}
+		if db.reportDir != "" {
+			return errors.New("Remote execution precludes a -report-dir")
+		}
+		if db.configFile != "" {
+			return errors.New("Remote execution precludes a -config-file")
+		}
+		if len(db.logFiles) > 0 {
+			return errors.New("Remote execution precludes a file list")
+		}
+	case db.jobanalyzerDir != "":
+		if db.dataDir != "" {
+			return errors.New("A -jobanalyzer-dir precludes a -data-dir")
+		}
+		if db.reportDir != "" {
+			return errors.New("A -jobanalyzer-dir precludes a -report-dir")
+		}
+		if db.configFile != "" {
+			return errors.New("A -jobanalyzer-dir precludes a -config-file")
+		}
+		if len(db.logFiles) > 0 {
+			return errors.New("A -jobanalyzer-dir precludes a file list")
+		}
+	case db.dataDir != "":
+		if db.reportDir != "" {
+			return errors.New("A -data-dir a -report-dir")
+		}
+		if len(db.logFiles) > 0 {
+			return errors.New("A -data-dir precludes a file list")
+		}
+	case db.reportDir != "":
+		if len(db.logFiles) > 0 {
+			return errors.New("A -report-dir precludes a file list")
+		}
+	}
+
+	if !db.options.NoDatabase {
+		if !db.remoting &&
+			db.jobanalyzerDir == "" &&
+			db.dataDir == "" &&
+			db.reportDir == "" &&
+			db.configFile == "" &&
+			len(db.logFiles) == 0 {
+			return errors.New("No data source provided")
+		}
+	}
+
+	// Apply defaults for the remote data source
+	if db.remoting {
+		ApplyDefault(&db.remoteHost, DataSourceRemote)
+		if os.Getenv("SONALYZE_AUTH") == "" {
+			ApplyDefault(&db.authFile, DataSourceAuthFile)
+		}
+		ApplyDefault(&db.clusterName, DataSourceCluster)
+	}
+
+	var e1, e2, e3, e4, e5, e6, e7 error
+
+	// Clean all local names and check that they exist, for better error reporting.
+	if db.jobanalyzerDir != "" {
+		db.jobanalyzerDir, e1 = options.RequireDirectory(db.jobanalyzerDir, "-jobanalyzer-dir")
+	}
+
+	if db.dataDir != "" {
+		db.dataDir, e2 = options.RequireDirectory(db.dataDir, "-data-dir")
+	}
+
+	if db.reportDir != "" {
+		db.reportDir, e3 = options.RequireDirectory(db.reportDir, "-report-dir")
+	}
+
+	if db.configFile != "" {
+		db.configFile, e4 = options.RequireFile(db.configFile, "-config-file")
+	}
+
+	for i := range db.logFiles {
+		var e error
+		db.logFiles[i], e = options.RequireFile(db.logFiles[i], "")
+		if e != nil {
+			e5 = errors.New("No such input file: " + db.logFiles[i])
+			break
+		}
+	}
+
+	if db.authFile != "" {
+		db.authFile, e6 = options.RequireFile(db.authFile, "-auth-file")
+	}
+
+	if db.cache != "" {
+		var scale int64
+		var before string
+		var found bool
+		if before, found = strings.CutSuffix(db.cache, "M"); found {
+			scale = 1024 * 1024
+		} else if before, found = strings.CutSuffix(db.cache, "G"); found {
+			scale = 1024 * 1024 * 1024
+		} else {
+			e7 = errors.New("Bad -cache value: suffix")
+		}
+		if scale > 0 {
+			size, err := strconv.ParseInt(before, 10, 64)
+			if err == nil && size > 0 {
+				db.cacheSize = size * scale
+			} else {
+				e7 = errors.New("Bad -cache value")
+			}
+		}
+	}
+
+	return errors.Join(e1, e2, e3, e4, e5, e6, e7)
+}
+
+func (db *DatabaseArgs) ReifyForRemote(x *ArgReifier) error {
+	// Validate() has already checked that JobanalyzerDir, DataDir, ReportDir, LogFiles, Remote,
+	// Cluster, and AuthFile are consistent for remote and local execution.  None of those except
+	// Cluster is forwarded for remote execution.
+	x.String("cluster", db.clusterName)
+	return nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -168,25 +414,36 @@ func (va *RemotingArgs) RemotingFlags() *RemotingArgsNoCluster {
 // -from/-to arguments are also used to filter records.
 
 type SourceArgs struct {
-	DataDirArgs
-	RemotingArgs
+	DatabaseArgs
 	HaveFrom bool
 	FromDate time.Time
 	HaveTo   bool
 	ToDate   time.Time
-	LogFiles []string
 
 	FromDateStr string
 	ToDateStr   string
+
+	defaultDelta uint
 }
 
-func (s *SourceArgs) Add(fs *CLI) {
-	s.DataDirArgs.Add(fs)
-	s.RemotingArgs.Add(fs)
+func (s *SourceArgs) Add(fs *CLI, defaultDelta uint) {
+	if defaultDelta == 0 {
+		panic("Time delta must be nonzero")
+	}
+	s.DatabaseArgs.Add(fs, DBArgOptions{})
+	s.defaultDelta = defaultDelta
 	fs.Group("record-filter")
+	delta := "one day"
+	if defaultDelta > 1 {
+		delta = fmt.Sprintf("%d days", defaultDelta)
+	}
 	fs.StringVar(&s.FromDateStr, "from", "",
-		"Select records by this `time` and later.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
-			"signifying N days or weeks ago [default: 1d, ie 1 day ago]")
+		fmt.Sprintf(
+			"Select records by this `time` and later.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
+				"signifying N days or weeks ago [default: %dd, ie %s ago]",
+			defaultDelta,
+			delta,
+		))
 	fs.StringVar(&s.FromDateStr, "f", "", "Short for -from `time`")
 	fs.StringVar(&s.ToDateStr, "to", "",
 		"Select records by this `time` and earlier.  Format can be YYYY-MM-DD, or Nd or Nw\n"+
@@ -195,87 +452,18 @@ func (s *SourceArgs) Add(fs *CLI) {
 }
 
 func (s *SourceArgs) ReifyForRemote(x *ArgReifier) error {
-	// RemotingArgs don't have ReifyForRemote
-
-	// Validate() has already checked that DataDir, LogFiles, Remote, Cluster, and AuthFile are
-	// consistent for remote or local execution; none of those except Cluster is forwarded.
-	x.String("cluster", s.Cluster)
 	x.String("from", s.FromDateStr)
 	x.String("to", s.ToDateStr)
-	return nil
-}
-
-func (s *SourceArgs) SetRestArguments(args []string) {
-	s.LogFiles = args
+	return s.DatabaseArgs.ReifyForRemote(x)
 }
 
 func (s *SourceArgs) Validate() error {
-	env_auth := os.Getenv("SONALYZE_AUTH") != ""
-	switch {
-	case len(s.LogFiles) > 0 || s.DataDir != "":
-		// no action
-	case s.Remote != "" || s.Cluster != "" || (env_auth || s.AuthFile != ""):
-		ApplyDefault(&s.Remote, DataSourceRemote)
-		if !env_auth {
-			ApplyDefault(&s.AuthFile, DataSourceAuthFile)
-		}
-		ApplyDefault(&s.Cluster, DataSourceCluster)
-	default:
-		// There are no remoting args and no data dir args and no logfiles, so apply the ones we
-		// have but error out if we have defaults for both.
-		if (HasDefault(DataSourceRemote) ||
-			(env_auth || HasDefault(DataSourceAuthFile)) ||
-			HasDefault(DataSourceCluster)) &&
-			HasDefault(DataSourceDataDir) {
-			return errors.New("No data source, but defaults for both remoting and data directory")
-		}
-		if ApplyDefault(&s.DataDir, DataSourceDataDir) {
-			// no action
-		} else {
-			ApplyDefault(&s.Remote, DataSourceRemote)
-			if !env_auth {
-				ApplyDefault(&s.AuthFile, DataSourceAuthFile)
-			}
-			ApplyDefault(&s.Cluster, DataSourceCluster)
-		}
-	}
-	ApplyDefault(&s.FromDateStr, DataSourceFrom)
-	ApplyDefault(&s.ToDateStr, DataSourceTo)
-
-	err := s.RemotingArgs.Validate()
-	if err != nil {
-		return err
-	}
-
-	if s.Remoting {
-		// If remoting then no local data sources are allowed, so don't compute default data dirs by
-		// calling Validate(), it would confuse the matter - just disallow explicit values.  (This
-		// is a small abstraction leak.)
-		if s.DataDir != "" {
-			return errors.New("-data-dir may not be used with -remote or -cluster")
-		}
-		if len(s.LogFiles) > 0 {
-			return errors.New("-- logfile ... may not be used with -remote or -cluster")
-		}
-	} else {
-		// Compute and clean the dataDir and clean any logfiles.  If we have neither logfiles nor
-		// dataDir then signal an error.
-		err := s.DataDirArgs.Validate()
-		if err != nil {
-			return err
-		}
-		if len(s.LogFiles) > 0 {
-			for i := 0; i < len(s.LogFiles); i++ {
-				s.LogFiles[i] = path.Clean(s.LogFiles[i])
-			}
-		} else if s.DataDir == "" {
-			return errors.New("Required -data-dir or -- logfile ...")
-		}
-	}
-
 	// The song and dance with `HaveFrom` and `HaveTo` is this: when a list of files is present then
 	// `-from` and `-to` are inferred from the file contents, so long as they are not present on the
 	// command line.
+
+	ApplyDefault(&s.FromDateStr, DataSourceFrom)
+	ApplyDefault(&s.ToDateStr, DataSourceTo)
 
 	now := time.Now().UTC()
 	if s.FromDateStr != "" {
@@ -286,8 +474,8 @@ func (s *SourceArgs) Validate() error {
 		}
 		s.HaveFrom = true
 	} else {
-		s.FromDate = now.AddDate(0, 0, -1)
-		s.HaveFrom = len(s.LogFiles) == 0
+		s.FromDate = now.AddDate(0, 0, -int(s.defaultDelta))
+		s.HaveFrom = len(s.logFiles) == 0
 	}
 
 	if s.ToDateStr != "" {
@@ -299,14 +487,14 @@ func (s *SourceArgs) Validate() error {
 		s.HaveTo = true
 	} else {
 		s.ToDate = now
-		s.HaveFrom = len(s.LogFiles) == 0
+		s.HaveFrom = len(s.logFiles) == 0
 	}
 
 	if s.FromDate.After(s.ToDate) {
 		return errors.New("The -from time is greater than the -to time")
 	}
 
-	return nil
+	return s.DatabaseArgs.Validate()
 }
 
 // Grab FromDate and ToDate from args if available, otherwise infer from the bounds, otherwise use
@@ -443,39 +631,6 @@ func (qa *QueryArgs) Validate() (err error) {
 		qa.ParsedQuery, err = ParseQuery(qa.QueryStmt)
 	}
 	return
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Config file
-
-type ConfigFileArgs struct {
-	ConfigFilename string
-}
-
-func (cfa *ConfigFileArgs) Add(fs *CLI) {
-	fs.Group("local-data-source")
-	fs.StringVar(&cfa.ConfigFilename, "config-file", "",
-		"A `filename` for a file holding JSON data with system information, for when we\n"+
-			"want to print or use system-relative values [default: none]")
-}
-
-func (cfa *ConfigFileArgs) ReifyForRemote(x *ArgReifier) error {
-	if cfa.ConfigFilename != "" {
-		return errors.New("-config-file can't be specified remotely")
-	}
-	return nil
-}
-
-func (cfa *ConfigFileArgs) Validate() error {
-	if cfa.ConfigFilename != "" {
-		cfa.ConfigFilename = path.Clean(cfa.ConfigFilename)
-	}
-	return nil
-}
-
-func (cfa *ConfigFileArgs) ConfigFile() string {
-	return cfa.ConfigFilename
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -637,7 +792,6 @@ type SampleAnalysisArgs struct {
 	SourceArgs
 	QueryArgs
 	RecordFilterArgs
-	ConfigFileArgs
 	VerboseArgs
 }
 
@@ -647,10 +801,9 @@ func (sa *SampleAnalysisArgs) SampleAnalysisFlags() *SampleAnalysisArgs {
 
 func (s *SampleAnalysisArgs) Add(fs *CLI) {
 	s.DevArgs.Add(fs)
-	s.SourceArgs.Add(fs)
+	s.SourceArgs.Add(fs, 1)
 	s.QueryArgs.Add(fs)
 	s.RecordFilterArgs.Add(fs)
-	s.ConfigFileArgs.Add(fs)
 	s.VerboseArgs.Add(fs)
 }
 
@@ -662,7 +815,6 @@ func (s *SampleAnalysisArgs) ReifyForRemote(x *ArgReifier) error {
 		s.SourceArgs.ReifyForRemote(x),
 		s.QueryArgs.ReifyForRemote(x),
 		s.RecordFilterArgs.ReifyForRemote(x),
-		s.ConfigFileArgs.ReifyForRemote(x),
 	)
 }
 
@@ -672,7 +824,6 @@ func (s *SampleAnalysisArgs) Validate() error {
 		s.SourceArgs.Validate(),
 		s.QueryArgs.Validate(),
 		s.RecordFilterArgs.Validate(),
-		s.ConfigFileArgs.Validate(),
 		s.VerboseArgs.Validate(),
 	)
 }
@@ -688,7 +839,6 @@ type HostAnalysisArgs struct {
 	SourceArgs
 	QueryArgs
 	HostArgs
-	ConfigFileArgs
 	VerboseArgs
 }
 
@@ -698,10 +848,9 @@ func (sa *HostAnalysisArgs) HostAnalysisFlags() *HostAnalysisArgs {
 
 func (s *HostAnalysisArgs) Add(fs *CLI) {
 	s.DevArgs.Add(fs)
-	s.SourceArgs.Add(fs)
+	s.SourceArgs.Add(fs, 1)
 	s.QueryArgs.Add(fs)
 	s.HostArgs.Add(fs)
-	s.ConfigFileArgs.Add(fs)
 	s.VerboseArgs.Add(fs)
 }
 
@@ -713,7 +862,6 @@ func (s *HostAnalysisArgs) ReifyForRemote(x *ArgReifier) error {
 		s.SourceArgs.ReifyForRemote(x),
 		s.QueryArgs.ReifyForRemote(x),
 		s.HostArgs.ReifyForRemote(x),
-		s.ConfigFileArgs.ReifyForRemote(x),
 	)
 }
 
@@ -723,7 +871,6 @@ func (s *HostAnalysisArgs) Validate() error {
 		s.SourceArgs.Validate(),
 		s.QueryArgs.Validate(),
 		s.HostArgs.Validate(),
-		s.ConfigFileArgs.Validate(),
 		s.VerboseArgs.Validate(),
 	)
 }

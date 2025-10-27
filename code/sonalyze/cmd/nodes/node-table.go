@@ -2,6 +2,8 @@
 
 package nodes
 
+import "sonalyze/data/config"
+
 import (
 	"cmp"
 	"fmt"
@@ -20,69 +22,69 @@ var (
 )
 
 // MT: Constant after initialization; immutable
-var nodeFormatters = map[string]Formatter[*NodeData]{
+var nodeFormatters = map[string]Formatter[*config.NodeConfig]{
 	"Timestamp": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.Timestamp), ctx)
 		},
 		Help: "(string) Full ISO timestamp of when the reading was taken",
 	},
 	"Hostname": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.Hostname), ctx)
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
 	"Description": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.Description), ctx)
 		},
 		Help: "(string) End-user description, not parseable",
 	},
 	"CpuCores": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatInt((d.CpuCores), ctx)
 		},
 		Help: "(int) Total number of cores x threads",
 	},
 	"MemGB": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatInt((d.MemGB), ctx)
 		},
 		Help: "(int) GB of installed main RAM",
 	},
 	"GpuCards": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatInt((d.GpuCards), ctx)
 		},
 		Help: "(int) Number of installed cards",
 	},
 	"GpuMemGB": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatInt((d.GpuMemGB), ctx)
 		},
 		Help: "(int) Total GPU memory across all cards",
 	},
 	"GpuMemPct": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatBool((d.GpuMemPct), ctx)
 		},
 		Help: "(bool) True if GPUs report accurate memory usage in percent",
 	},
 	"Distances": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.Distances), ctx)
 		},
 		Help: "(string) NUMA distance matrix",
 	},
 	"TopoSVG": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.TopoSVG), ctx)
 		},
 		Help: "(string) SVG encoding of node topology",
 	},
 	"TopoText": {
-		Fmt: func(d *NodeData, ctx PrintMods) string {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.TopoText), ctx)
 		},
 		Help: "(string) Text encoding of node topology",
@@ -104,81 +106,67 @@ func init() {
 }
 
 // MT: Constant after initialization; immutable
-var nodePredicates = map[string]Predicate[*NodeData]{
-	"Timestamp": Predicate[*NodeData]{
-		Compare: func(d *NodeData, v any) int {
+var nodePredicates = map[string]Predicate[*config.NodeConfig]{
+	"Timestamp": Predicate[*config.NodeConfig]{
+		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.Timestamp), v.(string))
 		},
 	},
-	"Hostname": Predicate[*NodeData]{
-		Compare: func(d *NodeData, v any) int {
+	"Hostname": Predicate[*config.NodeConfig]{
+		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.Hostname), v.(string))
 		},
 	},
-	"Description": Predicate[*NodeData]{
-		Compare: func(d *NodeData, v any) int {
+	"Description": Predicate[*config.NodeConfig]{
+		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.Description), v.(string))
 		},
 	},
-	"CpuCores": Predicate[*NodeData]{
+	"CpuCores": Predicate[*config.NodeConfig]{
 		Convert: CvtString2Int,
-		Compare: func(d *NodeData, v any) int {
+		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.CpuCores), v.(int))
 		},
 	},
-	"MemGB": Predicate[*NodeData]{
+	"MemGB": Predicate[*config.NodeConfig]{
 		Convert: CvtString2Int,
-		Compare: func(d *NodeData, v any) int {
+		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.MemGB), v.(int))
 		},
 	},
-	"GpuCards": Predicate[*NodeData]{
+	"GpuCards": Predicate[*config.NodeConfig]{
 		Convert: CvtString2Int,
-		Compare: func(d *NodeData, v any) int {
+		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.GpuCards), v.(int))
 		},
 	},
-	"GpuMemGB": Predicate[*NodeData]{
+	"GpuMemGB": Predicate[*config.NodeConfig]{
 		Convert: CvtString2Int,
-		Compare: func(d *NodeData, v any) int {
+		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.GpuMemGB), v.(int))
 		},
 	},
-	"GpuMemPct": Predicate[*NodeData]{
+	"GpuMemPct": Predicate[*config.NodeConfig]{
 		Convert: CvtString2Bool,
-		Compare: func(d *NodeData, v any) int {
+		Compare: func(d *config.NodeConfig, v any) int {
 			return CompareBool((d.GpuMemPct), v.(bool))
 		},
 	},
-	"Distances": Predicate[*NodeData]{
-		Compare: func(d *NodeData, v any) int {
+	"Distances": Predicate[*config.NodeConfig]{
+		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.Distances), v.(string))
 		},
 	},
-	"TopoSVG": Predicate[*NodeData]{
-		Compare: func(d *NodeData, v any) int {
+	"TopoSVG": Predicate[*config.NodeConfig]{
+		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.TopoSVG), v.(string))
 		},
 	},
-	"TopoText": Predicate[*NodeData]{
-		Compare: func(d *NodeData, v any) int {
+	"TopoText": Predicate[*config.NodeConfig]{
+		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.TopoText), v.(string))
 		},
 	},
-}
-
-type NodeData struct {
-	Timestamp   string
-	Hostname    string
-	Description string
-	CpuCores    int
-	MemGB       int
-	GpuCards    int
-	GpuMemGB    int
-	GpuMemPct   bool
-	Distances   string
-	TopoSVG     string
-	TopoText    string
 }
 
 func (c *NodeCommand) Summary(out io.Writer) {
