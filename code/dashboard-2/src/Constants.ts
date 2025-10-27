@@ -1,6 +1,6 @@
 import { GrNodes } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
-import { LuBookOpen, LuGraduationCap } from 'react-icons/lu'
+import { LuBookOpen, LuGraduationCap, LuServer } from 'react-icons/lu'
 import { MdSearch } from 'react-icons/md'
 import * as yup from 'yup'
 
@@ -50,6 +50,7 @@ export const PAGE_TITLE_SUFFIX = ' | ' + APP_NAME
 export const APP_URL = 'https://naic-monitor.uio.no'
 export const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
 export const QUERY_API_ENDPOINT = import.meta.env.VITE_QUERY_API_ENDPOINT
+export const EX3_API_ENDPOINT = import.meta.env.VITE_EX3_API_ENDPOINT
 
 // The representation of "true" is a hack, but it's determined by the server, so live with it.
 export const TRUE_VAL = 'xxxxxtruexxxxx'
@@ -107,6 +108,21 @@ export const QueryKeys = {
 }
 
 export const SIDEBAR_ITEMS: SidebarItem[] = [
+  {
+    type: 'link',
+    path: '/dashboard/ex3',
+    matches: '/ex3',
+    text: 'EX3',
+    icon: LuServer,
+    subItems: [
+      { text: 'Overview', path: '/v2/ex3.simula.no/overview', matches: '/overview' },
+      { text: 'Partitions', path: '/v2/ex3.simula.no/partitions', matches: '/partitions' },
+      { text: 'Nodes', path: '/v2/ex3.simula.no/nodes', matches: '/nodes' },
+      { text: 'Jobs', path: '/v2/ex3.simula.no/jobs', matches: '/jobs' },
+      { text: 'Queries', path: 'v2/ex3.simula.no/queries', matches: '/queries' },
+      { text: 'Errors', path: 'dashboard/ex3/errors', matches: '/errors' }
+    ]
+  },
   {
     type: 'link',
     path: '/dashboard/ml',

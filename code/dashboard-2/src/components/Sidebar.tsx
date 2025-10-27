@@ -73,11 +73,11 @@ const SideBarContent = ({onCloseDrawer}: { onCloseDrawer: () => void }) => {
         if (item.type === 'separator') {
           return (
             <List.Item key={index}>
-              <Separator 
-                my={2} 
-                borderColor={separatorColor} 
-                opacity={0.8} 
-                width="100%" 
+              <Separator
+                my={2}
+                borderColor={separatorColor}
+                opacity={0.8}
+                width="100%"
               />
             </List.Item>
           )
@@ -93,20 +93,44 @@ const SideBarContent = ({onCloseDrawer}: { onCloseDrawer: () => void }) => {
           <List.Item
             key={index}
           >
-            <NavLink to={item.path} onClick={onCloseDrawer} style={{width: '100%', display: 'block'}}>
-              <Box
-                _hover={{bg: hoverBgColor}}
-                bg={isActive(item.matches) ? activeBgColor : 'transparent'}
-                px={{base: '12px', md: '10px'}}
-                py="6px"
-                borderRadius="md"
-              >
-                <List.Indicator asChild>
-                  {React.createElement(item.icon)}
-                </List.Indicator>
-                {item.text}
-              </Box>
-            </NavLink>
+            <VStack>
+              <NavLink to={item.path} onClick={onCloseDrawer} style={{width: '100%', display: 'block'}}>
+                <Box
+                  _hover={{bg: hoverBgColor}}
+                  bg={isActive(item.matches) ? activeBgColor : 'transparent'}
+                  px={{base: '12px', md: '10px'}}
+                  py="6px"
+                  borderRadius="md"
+                >
+
+                  <List.Indicator asChild>
+                    {React.createElement(item.icon)}
+                  </List.Indicator>
+                  <>
+                    {item.text}
+                  </>
+                </Box>
+              </NavLink>
+              {item.subItems && (
+                <List.Root variant={'plain'} fontSize={{base: '0.8em', md: '0.9em'}} gap="1" ml="20px" mt="2px">
+                  {item.subItems.map((subItem, subIndex) => (
+                    <List.Item key={subIndex}>
+                      <NavLink to={subItem.path} onClick={onCloseDrawer} style={{width: '100%', display: 'block'}}>
+                        <Box
+                          _hover={{bg: hoverBgColor}}
+                          bg={isActive(subItem.matches) ? activeBgColor : 'transparent'}
+                          px={{base: '12px', md: '10px'}}
+                          py="2px"
+                          borderRadius="md"
+                        >
+                          {subItem.text}
+                        </Box>
+                      </NavLink>
+                    </List.Item>
+                  ))}
+                </List.Root>
+              )}
+            </VStack>
           </List.Item>
         )
       })}
