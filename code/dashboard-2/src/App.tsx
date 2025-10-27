@@ -16,6 +16,12 @@ import SubclusterPage from './pages/SubclusterPage.tsx'
 import JobProfilePage from './pages/JobProfilePage.tsx'
 import JobProcessTreePage from './pages/JobProcessTreePage.tsx'
 
+import { ClusterOverview } from './pages/v2/ClusterOverview.tsx'
+import { NodesPage } from './pages/v2/NodesPage.tsx'
+import { PartitionsPage } from './pages/v2/PartitionsPage.tsx'
+import { JobsPage } from './pages/v2/JobsPage.tsx'
+import { QueriesPage } from './pages/v2/QueriesPage.tsx'
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -24,6 +30,43 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Navigate to="dashboard/ml" replace/>
+      },
+      {
+        path: 'v2',
+        children: [
+          {
+            path: ':clusterName/overview',
+            element: <ClusterOverview />,
+          },
+          {
+            path: ':clusterName/nodes',
+            element: <NodesPage/>,
+          },
+          {
+            path: ':clusterName/nodes/:nodename',
+            element: <NodesPage/>,
+          },
+          {
+            path: ':clusterName/partitions',
+            element: <PartitionsPage/>,
+          },
+          {
+            path: ':clusterName/partitions/:partitionName',
+            element: <PartitionsPage/>,
+          },
+          {
+            path: ':clusterName/jobs',
+            element: <JobsPage/>,
+          },
+          {
+            path: ':clusterName/jobs/:jobId',
+            element: <JobsPage/>,
+          },
+          {
+            path: ':clusterName/queries',
+            element: <QueriesPage/>,
+          }
+        ]
       },
       {
         path: 'dashboard',
@@ -39,7 +82,7 @@ const router = createBrowserRouter([
           {
             path: 'help/node-selection',
             element: <NodeSelectionHelpPage/>,
-          }
+          },
         ]
       },
       {
