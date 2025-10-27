@@ -8,7 +8,8 @@
     "dev": "vite --mode development",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "openapi-ts": "openapi-ts"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.30.0",
@@ -19,6 +20,7 @@
     "@tanstack/react-query-devtools": "^5.91.1",
     "@tanstack/react-table": "^8.21.3",
     "@xyflow/react": "^12.10.0",
+    "ag-grid-react": "^34.1.2",
     "axios": "1.13.2",
     "formik": "^2.4.9",
     "moment": "^2.30.1",
@@ -33,6 +35,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@hey-api/openapi-ts": "0.82.5",
     "@tanstack/eslint-plugin-query": "^5.91.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
