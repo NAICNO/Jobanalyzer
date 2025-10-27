@@ -1,3 +1,5 @@
+import { GrNodes } from 'react-icons/gr'
+import { GiFox } from 'react-icons/gi'
 import { LuBookOpen, LuGraduationCap } from 'react-icons/lu'
 import { MdSearch } from 'react-icons/md'
 import * as yup from 'yup'
@@ -48,6 +50,7 @@ export const PAGE_TITLE_SUFFIX = ' | ' + APP_NAME
 export const APP_URL = 'https://naic-monitor.uio.no'
 export const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
 export const QUERY_API_ENDPOINT = import.meta.env.VITE_QUERY_API_ENDPOINT
+export const EX3_API_ENDPOINT = import.meta.env.VITE_EX3_API_ENDPOINT
 
 // The representation of "true" is a hack, but it's determined by the server, so live with it.
 export const TRUE_VAL = 'xxxxxtruexxxxx'
@@ -107,6 +110,35 @@ export const QueryKeys = {
 export const SIDEBAR_ITEMS: SidebarItem[] = [
   {
     type: 'link',
+    path: '/dashboard/ex3',
+    matches: '/ex3',
+    text: 'EX3',
+    icon: LuServer,
+    subItems: [
+      { text: 'Overview', path: '/v2/ex3.simula.no/overview', matches: '/overview' },
+      { text: 'Partitions', path: '/v2/ex3.simula.no/partitions', matches: '/partitions' },
+      { text: 'Nodes', path: '/v2/ex3.simula.no/nodes', matches: '/nodes' },
+      { text: 'Jobs', path: '/v2/ex3.simula.no/jobs', matches: '/jobs' },
+      { text: 'Queries', path: 'v2/ex3.simula.no/queries', matches: '/queries' },
+      { text: 'Errors', path: 'dashboard/ex3/errors', matches: '/errors' }
+    ]
+  },
+  {
+    type: 'link',
+    path: '/dashboard/ml',
+    matches: '/ml',
+    text: 'ML Nodes',
+    icon: GrNodes,
+  },
+  {
+    type: 'link',
+    path: '/dashboard/fox',
+    matches: '/fox',
+    text: 'Fox',
+    icon: GiFox
+  },
+  {
+    type: 'link',
     path: '/dashboard/saga',
     matches: '/saga',
     text: 'Saga',
@@ -158,6 +190,39 @@ export const CELL_BACKGROUND_COLORS = {
 }
 
 export const CLUSTER_INFO: Record<string, Cluster> = {
+  'ml': {
+    cluster: 'ml',
+    canonical: 'mlx.hpc.uio.no',
+    subclusters: [{name: 'nvidia', nodes: 'ml[1-3,6-9]'}],
+    uptime: true,
+    violators: true,
+    deadweight: true,
+    defaultQuery: '*',
+    hasDowntime: true,
+    name: 'ML nodes',
+    description: 'UiO Machine Learning nodes',
+    prefix: 'ml-',
+    policy: 'Significant CPU usage without any GPU usage',
+  },
+  'fox': {
+    cluster: 'fox',
+    canonical: 'fox.educloud.no',
+    subclusters: [
+      {name: 'cpu', nodes: 'c*'},
+      {name: 'gpu', nodes: 'gpu*'},
+      {name: 'int', nodes: 'int*'},
+      {name: 'login', nodes: 'login*'},
+    ],
+    uptime: true,
+    violators: false,
+    deadweight: true,
+    defaultQuery: 'login* or int*',
+    name: 'Fox',
+    hasDowntime: true,
+    description: 'UiO \'Fox\' supercomputer',
+    prefix: 'fox-',
+    policy: '(To be determined)',
+  },
   'saga': {
     cluster: 'saga',
     canonical: 'saga.sigma2.no',
@@ -465,6 +530,14 @@ export const VIOLATING_JOB_SUMMARY_COLUMN: { [K in keyof ViolatingJob]: Violatin
 }
 
 export const POLICIES: Policies = {
+  'ml': [
+    {
+      name: 'ml-cpuhog',
+      trigger: 'Job uses more than 10% of system\'s CPU at peak, runs for at least 10 minutes, and uses no GPU at all',
+      problem: 'ML nodes are for GPU jobs.  Job is in the way of other jobs that need GPU',
+      remedy: 'Move your work to a GPU-less system such as Fox or Light-HPC',
+    }
+  ]
 }
 
 export const DEAD_WEIGHT_COLUMN: { [K in keyof DeadWeightTableItem]: DeadWeightTableColumnHeader } = {
