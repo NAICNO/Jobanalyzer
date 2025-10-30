@@ -25,21 +25,15 @@ If you are using yarn v2+, you need to create `.yarnrc.yml` file instead. Sample
     
 ```yaml
 nodeLinker: node-modules
-
-npmScopes:
-  naicno:
-    npmRegistryServer: "https://npm.pkg.github.com"
-
-npmRegistries:
-  "//npm.pkg.github.com":
-    npmAuthToken: "<github token>"
 ```
 
-4. Create a `.env.development` file in the root of the project and add the following content:
+4. Create a copy from `env.local` from root and rename it to `.env.development`:
+Update the API endpoint variables in the `.env.development` file to point to your local API server:
 
 ```env
 VITE_API_ENDPOINT=http://localhost:5173/api
 VITE_QUERY_API_ENDPOINT=http://localhost:5173/rest
+VITE_EX3_API_ENDPOINT=http://localhost:12200/api/v2
 ```
 
 5. Install the dependencies.
