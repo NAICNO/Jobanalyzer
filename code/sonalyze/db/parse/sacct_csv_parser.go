@@ -85,7 +85,7 @@ LineLoop:
 					}
 				case 'l':
 					if val, ok := match(tokenizer, start, lim, eqloc, "AllocTRES"); ok {
-						info.ReqGPUS, gputmp = ParseAllocTRES(val, ustrs, gputmp)
+						info.ReqGPUS, gputmp = ParseSlurmGPUResources(val, ustrs, gputmp)
 						matched = true
 					}
 				case 'v':

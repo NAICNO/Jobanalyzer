@@ -1,3 +1,5 @@
+.PHONY: TAGS
+
 TARGET=sonalyze
 SUBDIRS=application \
 	cmd cmd/add cmd/cards cmd/clusters cmd/configs cmd/gpus cmd/jobs cmd/load cmd/metadata \
@@ -11,3 +13,8 @@ SUBDIRS=application \
 	table
 
 include ../go-rules.mk
+
+# Run go install https://github.com/lars-t-hansen/gotags@latest
+# You'll also want (setq etags-program-name "gotags") in your .emacs
+TAGS:
+	gotags $$(find $$(pwd) -name '*.go' | grep -v '/testdata/')

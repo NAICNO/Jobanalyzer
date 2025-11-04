@@ -5,7 +5,7 @@ import (
 	. "sonalyze/common"
 )
 
-// The AllocTRES field will usually be present and nonzero and will have a lot of values, so
+// The Slurm resources strings will usually be present and nonzero and will have a lot of values, so
 // allocating the raw field is a bad idea, and allocating much during parsing is also bad.  Use a
 // temp buffer to hold the field during construction, and extract only the gres/gpu fields on the
 // form model=n with * being inserted for "any" model.  I'm a little uncertain about whether it's
@@ -17,7 +17,7 @@ var (
 	gresGpu = []byte("gres/gpu")
 )
 
-func ParseAllocTRES(val []byte, ustrs UstrAllocator, temp []byte) (Ustr, []byte) {
+func ParseSlurmGPUResources(val []byte, ustrs UstrAllocator, temp []byte) (Ustr, []byte) {
 	t := temp[:0]
 	for len(val) > 0 {
 		before, after, _ := bytes.Cut(val, comma)
