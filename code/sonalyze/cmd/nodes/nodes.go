@@ -6,18 +6,12 @@ package nodes
 import (
 	"cmp"
 	"errors"
-	"fmt"
 	"io"
-	"math"
 	"slices"
 
-	umaps "go-utils/maps"
-
 	. "sonalyze/cmd"
-	"sonalyze/data/card"
-	"sonalyze/data/node"
+	"sonalyze/data/config"
 	"sonalyze/db"
-	"sonalyze/db/repr"
 	. "sonalyze/table"
 )
 
@@ -27,9 +21,11 @@ import (
 
 package nodes
 
+import "sonalyze/data/config"
+
 %%
 
-FIELDS *NodeData
+FIELDS *config.NodeConfig
 
  Timestamp   string desc:"Full ISO timestamp of when the reading was taken" alias:"timestamp"
  Hostname    string desc:"Name that host is known by on the cluster" alias:"host"
@@ -42,8 +38,6 @@ FIELDS *NodeData
  Distances   string desc:"NUMA distance matrix" alias:"distances"
  TopoSVG     string desc:"SVG encoding of node topology" alias:"toposvg"
  TopoText    string desc:"Text encoding of node topology" alias:"topotext"
-
-GENERATE NodeData
 
 SUMMARY NodeCommand
 
@@ -126,123 +120,24 @@ func (nc *NodeCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	// Read and filter the raw sysinfo data.
-	//
-	// TODO: This is where we really want to lean on code in data/ and not use the repr directly, as
-	// we're computing a join and we'd like the database to do that for us if it is able to.
-	//
-	// What we want here is, for each point in time, join the cards on a host to the node data for
-	// the host, so that we can present at least some card information with the node.  Node names
-	// and time stamps are restricted strings so it's easy enough to use those as a key.  The logic
-	// that is here really belongs in data/sysinfo (or similar), but that does not exist yet.
-	//
-	// Join logic can be generalized by parameterizing by types and the key constructor, probably.
-	// Probably this would turn into a situation where we compute a list of data from both input
-	// sets.
-
-	nodes, err := node.Query(
-		theLog,
-		node.QueryFilter{
-			HaveFrom: nc.HaveFrom,
-			FromDate: nc.FromDate,
-			HaveTo:   nc.HaveTo,
-			ToDate:   nc.ToDate,
-			Host:     nc.HostArgs.Host,
+	records, err := config.Query(theLog, config.QueryArgs{
+		HaveFrom: nc.HaveFrom,
+		FromDate: nc.FromDate,
+		HaveTo:   nc.HaveTo,
+		ToDate:   nc.ToDate,
+		Host:     nc.HostArgs.Host,
+		Verbose:  nc.Verbose,
+		Newest:   nc.Newest,
+		Query: func(records []*config.NodeConfig) ([]*config.NodeConfig, error) {
+			return ApplyQuery(nc.ParsedQuery, nodeFormatters, nodePredicates, records)
 		},
-		nc.Verbose,
-	)
-	if err != nil {
-		return fmt.Errorf("Failed to read log records: %v", err)
-	}
-	cards, err := card.Query(
-		theLog,
-		card.QueryFilter{
-			HaveFrom: nc.HaveFrom,
-			FromDate: nc.FromDate,
-			HaveTo:   nc.HaveTo,
-			ToDate:   nc.ToDate,
-			Host:     nc.HostArgs.Host,
-		},
-		nc.Verbose,
-	)
-	if err != nil {
-		return fmt.Errorf("Failed to read log records: %v", err)
-	}
-
-	type joinedData struct {
-		// the time and host are given by node
-		node  *repr.SysinfoNodeData
-		cards []*repr.SysinfoCardData
-	}
-	joined := make(map[string]*joinedData)
-	for _, r := range nodes {
-		joined[r.Time+"|"+r.Node] = &joinedData{node: r}
-	}
-	for _, r := range cards {
-		if probe := joined[r.Time+"|"+r.Node]; probe != nil {
-			probe.cards = append(probe.cards, r)
-		}
-	}
-	rawRecords := umaps.Values(joined)
-
-	records := make([]*NodeData, len(rawRecords))
-	for i, r := range rawRecords {
-		ht := ""
-		if r.node.ThreadsPerCore > 1 {
-			ht = " (hyperthreaded)"
-		}
-		memGB := int(math.Round(float64(r.node.Memory) / (1024 * 1024)))
-		desc := fmt.Sprintf(
-			"%dx%d%s %s, %d GiB", r.node.Sockets, r.node.CoresPerSocket, ht, r.node.CpuModel, memGB)
-		cores := r.node.Sockets * r.node.CoresPerSocket * r.node.ThreadsPerCore
-		numCards := len(r.cards)
-		cardTotalMemKB := uint64(0)
-		for _, c := range r.cards {
-			cardTotalMemKB += c.Memory
-		}
-		cardTotalMemGB := int(math.Round(float64(cardTotalMemKB) / (1024 * 1024)))
-		if numCards > 0 {
-			desc += fmt.Sprintf(", %dx %s @ %dGiB", numCards, r.cards[0].Model, (r.cards[0].Memory)/(1024*1024))
-		}
-		distances := ""
-		if r.node.Distances != nil {
-			distances = fmt.Sprintf("%v", r.node.Distances)
-		}
-		records[i] = &NodeData{
-			Timestamp:   r.node.Time,
-			Hostname:    r.node.Node,
-			Description: desc,
-			CpuCores:    int(cores),
-			MemGB:       memGB,
-			GpuCards:    numCards,
-			GpuMemGB:    cardTotalMemGB,
-			Distances:   distances,
-			TopoSVG:     r.node.TopoSVG,
-			TopoText:    r.node.TopoText,
-		}
-	}
-
-	records, err = ApplyQuery(nc.ParsedQuery, nodeFormatters, nodePredicates, records)
+	})
 	if err != nil {
 		return err
 	}
 
-	if nc.Newest {
-		newr := make(map[string]*NodeData)
-		for _, r := range records {
-			if probe := newr[r.Hostname]; probe != nil {
-				if r.Timestamp > probe.Timestamp {
-					newr[r.Hostname] = r
-				}
-			} else {
-				newr[r.Hostname] = r
-			}
-		}
-		records = umaps.Values(newr)
-	}
-
 	// Sort by host name first and then by ascending time
-	slices.SortFunc(records, func(a, b *NodeData) int {
+	slices.SortFunc(records, func(a, b *config.NodeConfig) int {
 		if h := cmp.Compare(a.Hostname, b.Hostname); h != 0 {
 			return h
 		}
