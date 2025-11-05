@@ -22,7 +22,7 @@ type ReportCommand struct {
 	ReportName string // This must be a plain filename
 }
 
-var _ = (SimpleCommand)((*ReportCommand)(nil))
+var _ = SimpleCommand((*ReportCommand)(nil))
 
 //go:embed summary.txt
 var summary string

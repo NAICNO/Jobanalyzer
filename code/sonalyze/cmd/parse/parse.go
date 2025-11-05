@@ -100,7 +100,7 @@ type ParseCommand struct /* implements SampleAnalysisCommand */ {
 	LastN             uint
 }
 
-var _ SampleAnalysisCommand = (*ParseCommand)(nil)
+var _ = SampleAnalysisCommand((*ParseCommand)(nil))
 
 func (pc *ParseCommand) Add(fs *CLI) {
 	pc.SampleAnalysisArgs.Add(fs)

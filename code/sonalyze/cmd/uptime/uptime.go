@@ -22,7 +22,7 @@ type UptimeCommand struct /* implements SampleAnalysisCommand */ {
 	OnlyDown bool
 }
 
-var _ SampleAnalysisCommand = (*UptimeCommand)(nil)
+var _ = SampleAnalysisCommand((*UptimeCommand)(nil))
 
 func (uc *UptimeCommand) Add(fs *CLI) {
 	uc.SampleAnalysisArgs.Add(fs)

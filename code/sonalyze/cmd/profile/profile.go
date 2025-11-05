@@ -20,7 +20,7 @@ type ProfileCommand struct /* implements SampleAnalysisCommand */ {
 	testNoMemory bool
 }
 
-var _ SampleAnalysisCommand = (*ProfileCommand)(nil)
+var _ = SampleAnalysisCommand((*ProfileCommand)(nil))
 
 func (pc *ProfileCommand) Add(fs *CLI) {
 	pc.SampleAnalysisArgs.Add(fs)

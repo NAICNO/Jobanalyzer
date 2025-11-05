@@ -63,7 +63,7 @@ type NodeProfCommand struct {
 	FormatArgs
 }
 
-var _ = (SimpleCommand)((*NodeProfCommand)(nil))
+var _ = SimpleCommand((*NodeProfCommand)(nil))
 
 func (nc *NodeProfCommand) Add(fs *CLI) {
 	nc.HostAnalysisArgs.Add(fs)

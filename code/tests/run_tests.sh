@@ -54,9 +54,11 @@ for dir in $TEST_DIRECTORIES ; do
 	    echod=1
 	fi
 	export TEST_NAME=$test
+	# echo TESTING $test
 	( cd $(dirname $test);
 	  bash -c "source $TEST_ROOT/prefix.sh; source $(basename $test); source $TEST_ROOT/suffix.sh "	)
 	exitcode=$?
+	# echo DONE $test
 	if (( exitcode != 0 )); then
 	    if (( exitcode == 2 )); then
 		soft_failed=$((soft_failed+1))

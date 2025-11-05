@@ -43,6 +43,7 @@ type SacctCommand struct /* implements AnalysisCommand */ {
 }
 
 var _ = AnalysisCommand((*SacctCommand)(nil))
+var _ = SimpleCommand((*SacctCommand)(nil))
 
 func (sc *SacctCommand) Add(fs *CLI) {
 	sc.HostAnalysisArgs.Add(fs)

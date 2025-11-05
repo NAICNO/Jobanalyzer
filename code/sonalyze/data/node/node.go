@@ -1,3 +1,5 @@
+// Query raw node static configuration data without any GPU cards: CPU, RAM, topology, etc.  Also
+// see "card".
 package node
 
 import (

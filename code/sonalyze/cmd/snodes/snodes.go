@@ -55,7 +55,7 @@ type SnodeCommand struct {
 	FormatArgs
 }
 
-var _ = (SimpleCommand)((*SnodeCommand)(nil))
+var _ = SimpleCommand((*SnodeCommand)(nil))
 
 func (nc *SnodeCommand) Add(fs *CLI) {
 	nc.HostAnalysisArgs.Add(fs)

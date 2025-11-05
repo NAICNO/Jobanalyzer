@@ -57,7 +57,7 @@ type SpartCommand struct {
 	FormatArgs
 }
 
-var _ = (SimpleCommand)((*SpartCommand)(nil))
+var _ = SimpleCommand((*SpartCommand)(nil))
 
 func (nc *SpartCommand) Add(fs *CLI) {
 	nc.HostAnalysisArgs.Add(fs)

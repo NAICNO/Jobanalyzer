@@ -68,7 +68,7 @@ type CardCommand struct {
 	FormatArgs
 }
 
-var _ = (SimpleCommand)((*CardCommand)(nil))
+var _ = SimpleCommand((*CardCommand)(nil))
 
 func (nc *CardCommand) Add(fs *CLI) {
 	nc.HostAnalysisArgs.Add(fs)

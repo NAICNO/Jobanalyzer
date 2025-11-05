@@ -84,7 +84,7 @@ type NodeCommand struct {
 	Newest bool
 }
 
-var _ = (SimpleCommand)((*NodeCommand)(nil))
+var _ = SimpleCommand((*NodeCommand)(nil))
 
 func (nc *NodeCommand) Add(fs *CLI) {
 	nc.HostAnalysisArgs.Add(fs)

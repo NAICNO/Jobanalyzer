@@ -17,4 +17,4 @@ include ../go-rules.mk
 # Run go install https://github.com/lars-t-hansen/gotags@latest
 # You'll also want (setq etags-program-name "gotags") in your .emacs
 TAGS:
-	gotags $$(find $$(pwd) -name '*.go' | grep -v '/testdata/')
+	find $$(pwd) -name '*.go' | grep -v '/testdata/' | gotags -

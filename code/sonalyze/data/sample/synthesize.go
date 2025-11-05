@@ -194,7 +194,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 				earliest = min(earliest, probe.Earliest)
 				latest = max(latest, probe.Latest)
 			}
-			newBounds[hostname] = Timebound{earliest, latest}
+			newBounds[hostname] = Timebound{Earliest: earliest, Latest: latest}
 		}
 		commands := maps.Keys(jobData.commands)
 		UstrSortAscending(commands)

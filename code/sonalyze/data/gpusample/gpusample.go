@@ -89,7 +89,7 @@ func rectifyGpuSamplesByHost(dataBlobs [][]*repr.GpuSamples) (streams GpuSamples
 	bounds = make(Timebounds)
 	for k, v := range streams {
 		// By construction, v.Data is never empty here
-		bounds[k] = Timebound{v.Data[0].Time, v.Data[len(v.Data)-1].Time}
+		bounds[k] = Timebound{Earliest: v.Data[0].Time, Latest: v.Data[len(v.Data)-1].Time}
 	}
 
 	// Remove duplicates in each per-host list

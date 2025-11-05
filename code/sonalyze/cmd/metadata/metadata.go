@@ -69,7 +69,7 @@ type MetadataCommand struct /* implements SampleAnalysisCommand */ {
 	Bounds            bool
 }
 
-var _ SampleAnalysisCommand = (*MetadataCommand)(nil)
+var _ = SampleAnalysisCommand((*MetadataCommand)(nil))
 
 func (mdc *MetadataCommand) Add(fs *CLI) {
 	mdc.SampleAnalysisArgs.Add(fs)

@@ -42,7 +42,7 @@ type LoadCommand struct /* implements SampleAnalysisCommand */ {
 	bucketing bucketTy
 }
 
-var _ SampleAnalysisCommand = (*LoadCommand)(nil)
+var _ = SampleAnalysisCommand((*LoadCommand)(nil))
 
 func (lc *LoadCommand) Add(fs *CLI) {
 	lc.SampleAnalysisArgs.Add(fs)

@@ -1,3 +1,4 @@
+// Query raw GPU card static configuration data. Also see "node".
 package card
 
 import (
