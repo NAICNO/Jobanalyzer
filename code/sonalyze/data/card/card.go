@@ -8,12 +8,24 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
+
+type CardDataProvider struct {
+	theLog db.SysinfoDataProvider
+}
+
+func OpenCardDataProvider(meta special.ClusterMeta) (*CardDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, special.CardData)
+	if err != nil {
+		return nil, err
+	}
+	return &CardDataProvider{theLog}, nil
+}
 
 type QueryFilter = common.QueryFilter
 
-func Query(
-	theLog db.SysinfoDataProvider,
+func (cdp *CardDataProvider) Query(
 	filter QueryFilter,
 	verbose bool,
 ) ([]*repr.SysinfoCardData, error) {
@@ -21,7 +33,7 @@ func Query(
 	if err != nil {
 		return nil, err
 	}
-	recordBlobs, _, err := theLog.ReadSysinfoCardData(
+	recordBlobs, _, err := cdp.theLog.ReadSysinfoCardData(
 		filter.FromDate,
 		filter.ToDate,
 		f.HostFilter(),

@@ -7,12 +7,24 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
+
+type NodeSampleDataProvider struct {
+	theLog db.NodeSampleDataProvider
+}
+
+func OpenNodeSampleDataProvider(meta special.ClusterMeta) (*NodeSampleDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, special.NodeSampleData)
+	if err != nil {
+		return nil, err
+	}
+	return &NodeSampleDataProvider{theLog}, nil
+}
 
 type QueryFilter = common.QueryFilter
 
-func Query(
-	theLog db.NodeSampleDataProvider,
+func (nsp *NodeSampleDataProvider) Query(
 	filter QueryFilter,
 	verbose bool,
 ) ([]*repr.NodeSample, error) {
@@ -20,7 +32,7 @@ func Query(
 	if err != nil {
 		return nil, err
 	}
-	recordBlobs, _, err := theLog.ReadNodeSamples(
+	recordBlobs, _, err := nsp.theLog.ReadNodeSamples(
 		filter.FromDate,
 		filter.ToDate,
 		f.HostFilter(),

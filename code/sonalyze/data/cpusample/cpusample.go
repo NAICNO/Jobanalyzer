@@ -8,6 +8,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 // Per-cpu load data, expanded.
@@ -20,6 +21,18 @@ type CpuSamplesByHost struct {
 type CpuSamples struct {
 	Time    int64    // seconds since epoch UTC
 	Decoded []uint64 // since-boot cpu time values for cores in core order
+}
+
+type CpuSampleDataProvider struct {
+	theLog db.CpuSampleDataProvider
+}
+
+func OpenCpuSampleDataProvider(meta special.ClusterMeta) (*CpuSampleDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, special.CpuSampleData)
+	if err != nil {
+		return nil, err
+	}
+	return &CpuSampleDataProvider{theLog}, nil
 }
 
 func CpuSamplesLessByTime(a, b CpuSamples) int {
@@ -43,8 +56,7 @@ func CpuSamplesLessByTime(a, b CpuSamples) int {
 
 type CpuSampleSet map[Ustr]*CpuSamplesByHost
 
-func ReadCpuSamplesByHost(
-	c db.CpuSampleDataProvider,
+func (cdp *CpuSampleDataProvider) Query(
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
 	verbose bool,
@@ -56,7 +68,7 @@ func ReadCpuSamplesByHost(
 ) {
 	// Read and establish invariants
 
-	dataBlobs, dropped, err := c.ReadCpuSamples(fromDate, toDate, hostGlobber, verbose)
+	dataBlobs, dropped, err := cdp.theLog.ReadCpuSamples(fromDate, toDate, hostGlobber, verbose)
 	if err != nil {
 		return
 	}

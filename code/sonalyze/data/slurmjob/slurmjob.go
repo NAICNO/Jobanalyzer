@@ -3,19 +3,20 @@ package slurmjob
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"go-utils/hostglob"
 	umaps "go-utils/maps"
 	uslices "go-utils/slices"
 
 	. "sonalyze/common"
+	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 type QueryFilter struct {
-	Host        []string
+	common.QueryFilter
 	State       []string // COMPLETED, TIMEOUT etc - "or" these, except "" for all
 	User        []string
 	Account     []string
@@ -37,17 +38,25 @@ type SlurmJob struct {
 	Steps []*repr.SacctInfo
 }
 
-func Query(
-	theLog db.SacctDataProvider,
-	fromDate, toDate time.Time,
+type SlurmjobDataProvider struct {
+	theLog db.SacctDataProvider
+}
+
+func OpenSlurmjobDataProvider(meta special.ClusterMeta) (*SlurmjobDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, special.SlurmJobData)
+	if err != nil {
+		return nil, err
+	}
+	return &SlurmjobDataProvider{theLog}, nil
+}
+
+func (sdp *SlurmjobDataProvider) Query(
 	filter QueryFilter,
 	verbose bool,
 ) ([]*SlurmJob, error) {
-	// Read the raw sacct data.
-
-	recordBlobs, dropped, err := theLog.ReadSacctData(
-		fromDate,
-		toDate,
+	recordBlobs, dropped, err := sdp.theLog.ReadSacctData(
+		filter.FromDate,
+		filter.ToDate,
 		verbose,
 	)
 	if err != nil {

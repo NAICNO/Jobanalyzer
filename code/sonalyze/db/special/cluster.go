@@ -83,6 +83,7 @@ type ClusterEntry struct {
 	DataDir       string
 	HaveLogFiles  bool
 	LogFiles      []string
+	LogFileType   DataType
 	HaveReportDir bool
 	ReportDir     string
 	HaveConfig    bool
