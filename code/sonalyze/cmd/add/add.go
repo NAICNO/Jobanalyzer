@@ -22,15 +22,13 @@ import (
 type AddCommand struct {
 	DevArgs
 	VerboseArgs
-	DataDirArgs
-	RemotingArgs
-	ConfigFileArgs
+	DatabaseArgs
 	Sample     bool
 	Sysinfo    bool
 	SlurmSacct bool
 }
 
-var _ = (RemotableCommand)((*AddCommand)(nil))
+var _ = SimpleCommand((*AddCommand)(nil))
 
 //go:embed summary.txt
 var summary string
@@ -42,9 +40,7 @@ func (ac *AddCommand) Summary(out io.Writer) {
 func (ac *AddCommand) Add(fs *CLI) {
 	ac.DevArgs.Add(fs)
 	ac.VerboseArgs.Add(fs)
-	ac.DataDirArgs.Add(fs)
-	ac.RemotingArgs.Add(fs)
-	ac.ConfigFileArgs.Add(fs)
+	ac.DatabaseArgs.Add(fs, DBArgOptions{})
 
 	fs.Group("data-target")
 	fs.BoolVar(&ac.Sample, "sample", false,
@@ -56,21 +52,10 @@ func (ac *AddCommand) Add(fs *CLI) {
 }
 
 func (ac *AddCommand) Validate() error {
-	var e1, e2, e3, e4, e5, e6 error
+	var e1, e2, e3, e4 error
 	e1 = ac.DevArgs.Validate()
-	e4 = ac.VerboseArgs.Validate()
-	e2 = ac.RemotingArgs.Validate()
-	e6 = ac.ConfigFileArgs.Validate()
-	if ac.Remoting {
-		if ac.DataDir != "" {
-			e3 = errors.New("-data-dir may not be used with -remote or -cluster")
-		}
-	} else {
-		e3 = ac.DataDirArgs.Validate()
-		if ac.DataDir == "" {
-			e3 = errors.Join(e3, errors.New("Required -data-dir argument is absent"))
-		}
-	}
+	e2 = ac.VerboseArgs.Validate()
+	e3 = ac.DatabaseArgs.Validate()
 	opts := 0
 	if ac.Sample {
 		opts++
@@ -82,40 +67,38 @@ func (ac *AddCommand) Validate() error {
 		opts++
 	}
 	if opts != 1 {
-		e5 = errors.New("Exactly one of -sample, -sysinfo, -slurm-sacct must be requested")
+		e4 = errors.New("Exactly one of -sample, -sysinfo, -slurm-sacct must be requested")
 	}
-	return errors.Join(e1, e2, e3, e4, e5, e6)
+	return errors.Join(e1, e2, e3, e4)
 }
 
 func (ac *AddCommand) ReifyForRemote(x *ArgReifier) error {
 	e1 := ac.DevArgs.ReifyForRemote(x)
-	// VerboseArgs, DataDirArgs, and RemotingArgs aren't used in remoting and all error checking has
-	// already been performed.
-	x.String("cluster", ac.Cluster)
+	e2 := ac.DatabaseArgs.ReifyForRemote(x)
 	x.Bool("sample", ac.Sample)
 	x.Bool("sysinfo", ac.Sysinfo)
 	x.Bool("slurm-sacct", ac.SlurmSacct)
-	return e1
+	return errors.Join(e1, e2)
 }
 
-func (ac *AddCommand) Perform(stdin io.Reader, _, _ io.Writer) error {
+func (ac *AddCommand) Perform(meta special.ClusterMeta, stdin io.Reader, _, _ io.Writer) error {
 	data, err := io.ReadAll(stdin)
 	if err != nil {
 		return err
 	}
 	switch {
 	case ac.Sample:
-		return ac.addSonarFreeCsv(data)
+		return ac.addSonarFreeCsv(meta, data)
 	case ac.Sysinfo:
-		return ac.addSysinfo(data)
+		return ac.addSysinfo(meta, data)
 	case ac.SlurmSacct:
-		return ac.addSlurmSacctFreeCsv(data)
+		return ac.addSlurmSacctFreeCsv(meta, data)
 	default:
 		panic("Unexpected")
 	}
 }
 
-func (ac *AddCommand) addSysinfo(payload []byte) error {
+func (ac *AddCommand) addSysinfo(meta special.ClusterMeta, payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sysinfo record %d bytes", len(payload))
 	}
@@ -129,11 +112,7 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 		// TODO: IMPROVEME: Benign if timestamp missing?
 		return errors.New("Missing timestamp or host in Sonar sysinfo data")
 	}
-	cfg, err := special.MaybeGetConfig(ac.ConfigFile())
-	if err != nil {
-		return err
-	}
-	ds, err := db.OpenAppendablePersistentDirectoryDB(ac.DataDir, cfg)
+	ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
 	if err != nil {
 		return err
 	}
@@ -145,15 +124,11 @@ func (ac *AddCommand) addSysinfo(payload []byte) error {
 	return err
 }
 
-func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
+func (ac *AddCommand) addSonarFreeCsv(meta special.ClusterMeta, payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sample records %d bytes", len(payload))
 	}
-	cfg, err := special.MaybeGetConfig(ac.ConfigFile())
-	if err != nil {
-		return err
-	}
-	ds, err := db.OpenAppendablePersistentDirectoryDB(ac.DataDir, cfg)
+	ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
 	if err != nil {
 		return err
 	}
@@ -185,15 +160,11 @@ func (ac *AddCommand) addSonarFreeCsv(payload []byte) error {
 	return result
 }
 
-func (ac *AddCommand) addSlurmSacctFreeCsv(payload []byte) error {
+func (ac *AddCommand) addSlurmSacctFreeCsv(meta special.ClusterMeta, payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sacct records %d bytes", len(payload))
 	}
-	cfg, err := special.MaybeGetConfig(ac.ConfigFile())
-	if err != nil {
-		return err
-	}
-	ds, err := db.OpenAppendablePersistentDirectoryDB(ac.DataDir, cfg)
+	ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
 	if err != nil {
 		return err
 	}

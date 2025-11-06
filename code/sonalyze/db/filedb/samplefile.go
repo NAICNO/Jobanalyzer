@@ -4,10 +4,10 @@ import (
 	"io"
 	"unsafe"
 
-	"go-utils/config"
 	. "sonalyze/common"
 	"sonalyze/db/parse"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 type SampleDataNeeded int
@@ -24,7 +24,7 @@ type sampleFileReadSyncMethods struct {
 	dataNeeded SampleDataNeeded
 
 	// The config is passed to the rectifiers, if they are not nil
-	cfg *config.ClusterConfig
+	meta special.ClusterMeta
 }
 
 var _ = ReadSyncMethods((*sampleFileReadSyncMethods)(nil))
@@ -38,16 +38,16 @@ const (
 	SampleFileKindGpuSamples
 )
 
-func NewSampleFileMethods(cfg *config.ClusterConfig, kind SampleFileKind) *sampleFileReadSyncMethods {
+func NewSampleFileMethods(meta special.ClusterMeta, kind SampleFileKind) *sampleFileReadSyncMethods {
 	switch kind {
 	case SampleFileKindSample:
-		return &sampleFileReadSyncMethods{DataNeedSamples, cfg}
+		return &sampleFileReadSyncMethods{DataNeedSamples, meta}
 	case SampleFileKindNodeSample:
-		return &sampleFileReadSyncMethods{DataNeedNodeSamples, cfg}
+		return &sampleFileReadSyncMethods{DataNeedNodeSamples, meta}
 	case SampleFileKindCpuSamples:
-		return &sampleFileReadSyncMethods{DataNeedCpuSamples, cfg}
+		return &sampleFileReadSyncMethods{DataNeedCpuSamples, meta}
 	case SampleFileKindGpuSamples:
-		return &sampleFileReadSyncMethods{DataNeedGpuSamples, cfg}
+		return &sampleFileReadSyncMethods{DataNeedGpuSamples, meta}
 	default:
 		panic("Unexpected")
 	}
@@ -111,13 +111,13 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLockedAndRectify(
 	// config are fairly benign, and also that so much else depends on having a
 	// config that we'll get a more thorough check in other ways.
 	if SampleRectifier != nil {
-		samples = SampleRectifier(samples, sfr.cfg)
+		samples = SampleRectifier(samples, sfr.meta)
 	}
 	if CpuSamplesRectifier != nil {
-		cpuSamples = CpuSamplesRectifier(cpuSamples, sfr.cfg)
+		cpuSamples = CpuSamplesRectifier(cpuSamples, sfr.meta)
 	}
 	if GpuSamplesRectifier != nil {
-		gpuSamples = GpuSamplesRectifier(gpuSamples, sfr.cfg)
+		gpuSamples = GpuSamplesRectifier(gpuSamples, sfr.meta)
 	}
 	// TODO: Ideally, nodeSample rectifier?  We're not using the rectifiers for anything except
 	// samples at the moment.

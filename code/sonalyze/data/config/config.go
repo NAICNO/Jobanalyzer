@@ -7,7 +7,6 @@ import (
 	"math"
 	"time"
 
-	uconfig "go-utils/config"
 	umaps "go-utils/maps"
 
 	"sonalyze/data/card"
@@ -17,7 +16,7 @@ import (
 )
 
 type NodeConfig struct {
-	uconfig.NodeConfigRecord
+	repr.NodeSummary
 	Distances string
 	TopoSVG   string
 	TopoText  string
@@ -104,7 +103,7 @@ func Query(theLog db.DataProvider, qa QueryArgs) ([]*NodeConfig, error) {
 			distances = fmt.Sprintf("%v", r.node.Distances)
 		}
 		records[i] = &NodeConfig{
-			NodeConfigRecord: uconfig.NodeConfigRecord{
+			NodeSummary: repr.NodeSummary{
 				Timestamp:   r.node.Time,
 				Hostname:    r.node.Node,
 				Description: desc,

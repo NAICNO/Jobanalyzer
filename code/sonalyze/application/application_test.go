@@ -5,15 +5,39 @@ import (
 	"testing"
 
 	"sonalyze/cmd"
+	"sonalyze/db/special"
 )
+
+func testPrimitiveCommand(t *testing.T, command cmd.PrimitiveCommand, fields string, expect []string) {
+	err := command.Validate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.OpenDataStoreFromCommand(command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer special.CloseDataStore()
+	var stdout strings.Builder
+	err = command.Perform(nil, &stdout, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkTestOutput(t, stdout.String(), fields, expect)
+}
 
 func testSimpleCommand(t *testing.T, command cmd.SimpleCommand, fields string, expect []string) {
 	err := command.Validate()
 	if err != nil {
 		t.Fatal(err)
 	}
+	err = cmd.OpenDataStoreFromCommand(command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer special.CloseDataStore()
 	var stdout strings.Builder
-	err = command.Perform(nil, &stdout, nil)
+	err = command.Perform(cmd.NewMetaFromCommand(command), nil, &stdout, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,8 +49,13 @@ func testSampleAnalysisCommand(t *testing.T, command cmd.SampleAnalysisCommand, 
 	if err != nil {
 		t.Fatal(err)
 	}
+	err = cmd.OpenDataStoreFromCommand(command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer special.CloseDataStore()
 	var stdout, stderr strings.Builder
-	err = LocalSampleOperation(command, nil, &stdout, &stderr)
+	err = LocalSampleOperation(cmd.NewMetaFromCommand(command), command, nil, &stdout, &stderr)
 	if err != nil {
 		t.Fatal(err)
 	}

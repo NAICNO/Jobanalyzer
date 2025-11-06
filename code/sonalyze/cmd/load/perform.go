@@ -7,18 +7,18 @@ import (
 	"slices"
 	"time"
 
-	"go-utils/config"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
 func (lc *LoadCommand) Perform(
 	out io.Writer,
-	cfg *config.ClusterConfig,
+	meta special.ClusterMeta,
 	theDb db.SampleDataProvider,
 	filter sample.QueryFilter,
 	hosts *Hosts,
@@ -55,7 +55,7 @@ func (lc *LoadCommand) Perform(
 
 	if NeedsConfig(loadFormatters, lc.PrintFields) {
 		var err error
-		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
+		streams, err = EnsureConfigForInputStreams(meta, streams, "relative format arguments")
 		if err != nil {
 			return err
 		}
@@ -91,24 +91,24 @@ func (lc *LoadCommand) Perform(
 
 	// If grouping, merge the streams across hosts and compute a system config that represents the
 	// sum of the hosts in the group.
-	var theConf config.NodeConfigRecord
-	var mergedConf *config.NodeConfigRecord
+	var theConf repr.NodeSummary
+	var mergedConf *repr.NodeSummary
 	if lc.Group {
-		if cfg != nil {
-			for _, stream := range mergedStreams {
-				// probe is non-nil by previous construction
-				probe := cfg.LookupHost(stream[0].Hostname.String())
-				if theConf.Description != "" {
-					theConf.Description += "|||" // JSON-compatible separator
-				}
-				theConf.Description += probe.Description
-				theConf.CpuCores += probe.CpuCores
-				theConf.MemGB += probe.MemGB
-				theConf.GpuCards += probe.GpuCards
-				theConf.GpuMemGB += probe.GpuMemGB
+		for _, stream := range mergedStreams {
+			probe := meta.LookupHostByTime(stream[0].Hostname, stream[0].Timestamp)
+			if probe == nil {
+				continue
 			}
-			mergedConf = &theConf
+			if theConf.Description != "" {
+				theConf.Description += "|||" // JSON-compatible separator
+			}
+			theConf.Description += probe.Description
+			theConf.CpuCores += probe.CpuCores
+			theConf.MemGB += probe.MemGB
+			theConf.GpuCards += probe.GpuCards
+			theConf.GpuMemGB += probe.GpuMemGB
 		}
+		mergedConf = &theConf
 		mergedStreams = sample.MergeAcrossHostsByTime(mergedStreams)
 		if len(mergedStreams) > 1 {
 			panic("Too many results")
@@ -134,17 +134,18 @@ func (lc *LoadCommand) Perform(
 	// Generate data to be printed
 	reports := make([]LoadReport, 0)
 	for _, stream := range mergedStreams {
-		hostname := stream[0].Hostname.String()
+		hn := stream[0].Hostname
+		ts := stream[0].Timestamp
 		conf := mergedConf
-		if conf == nil && cfg != nil {
-			conf = cfg.LookupHost(hostname)
+		if conf == nil {
+			conf = meta.LookupHostByTime(hn, ts)
 		}
 		rs := generateReport(stream, time.Now().Unix(), conf)
 		if queryNeg != nil {
 			rs = slices.DeleteFunc(rs, queryNeg)
 		}
 		reports = append(reports, LoadReport{
-			hostname: hostname,
+			hostname: hn.String(),
 			records:  rs,
 			conf:     conf,
 		})
@@ -204,7 +205,7 @@ func (lc *LoadCommand) insertMissingRecords(ss sample.SampleStream, fromIncl, to
 func generateReport(
 	input []sample.Sample,
 	now int64,
-	sys *config.NodeConfigRecord,
+	sys *repr.NodeSummary,
 ) (result []*ReportRecord) {
 	result = make([]*ReportRecord, 0, len(input))
 	for _, d := range input {

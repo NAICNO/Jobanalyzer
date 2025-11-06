@@ -4,7 +4,11 @@ package repr
 
 import (
 	"unsafe"
+
+	"go-utils/config"
 )
+
+type NodeSummary = config.NodeConfigRecord
 
 // SysinfoNodeData is basically a view on newfmt.SysinfoAttributes where
 // newfmt=github.com/NordicHPC/sonar/util/formats/newfmt.  The reason it is a separate view is that

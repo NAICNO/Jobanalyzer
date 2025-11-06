@@ -12,16 +12,15 @@ import (
 
 type VersionCommand struct {
 	// Add these to make this into a SimpleCommand
-	RemotingArgsNoCluster
+	DatabaseArgs
 	DevArgs
 	VerboseArgs
 }
 
-var _ = (SimpleCommand)((*VersionCommand)(nil))
-var _ = (RemotableCommand)((*VersionCommand)(nil))
+var _ = PrimitiveCommand((*VersionCommand)(nil))
 
 func (vc *VersionCommand) Add(fs *CLI) {
-	vc.RemotingArgsNoCluster.Add(fs)
+	vc.DatabaseArgs.Add(fs, DBArgOptions{NoDatabase: true})
 	vc.DevArgs.Add(fs)
 	vc.VerboseArgs.Add(fs)
 }
@@ -31,7 +30,7 @@ func (vc *VersionCommand) ReifyForRemote(x *ArgReifier) error {
 }
 
 func (vc *VersionCommand) Validate() error {
-	return vc.RemotingArgsNoCluster.Validate()
+	return vc.DatabaseArgs.Validate()
 }
 
 func (vc *VersionCommand) Summary(out io.Writer) {

@@ -11,6 +11,7 @@ import (
 	"sonalyze/data/card"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -91,8 +92,8 @@ func (nc *CardCommand) ReifyForRemote(x *ArgReifier) error {
 	)
 }
 
-func (nc *CardCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(nc.ConfigFile(), nc.DataDir, db.FileListCardData, nc.LogFiles)
+func (nc *CardCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+	theLog, err := db.OpenReadOnlyDB(meta, db.FileListCardData)
 	if err != nil {
 		return err
 	}

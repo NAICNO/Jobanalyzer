@@ -30,6 +30,7 @@ import (
 	"go-utils/process"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/cluster"
 	"sonalyze/db"
 	"sonalyze/db/special"
 )
@@ -44,34 +45,20 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	}
 	Log.SetUnderlying(logger)
 
-	db.SetCacheSize(dc.cacheSize)
-
 	if dc.kafkaBroker != "" {
-		clusters, _, err := special.ReadClusterData(dc.jobanalyzerDir)
-		if err != nil {
-			return fmt.Errorf("Could not initialize cluster names: %v", err)
-		}
-		for clusterName, _ := range clusters {
-			cfgPath := special.MakeConfigFilePath(dc.jobanalyzerDir, clusterName)
-			cfg, err := special.MaybeGetConfig(cfgPath)
+		for _, cl := range special.AllClusters() {
+			meta := cluster.NewMetaFromCluster(cl)
+			ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
 			if err != nil {
 				if dc.Verbose {
-					Log.Warningf("Failed to find config file for %s: %s %v", clusterName, cfgPath, err)
-				}
-				continue
-			}
-			dataDir := special.MakeClusterDataPath(dc.jobanalyzerDir, clusterName)
-			ds, err := db.OpenAppendablePersistentDirectoryDB(dataDir, cfg)
-			if err != nil {
-				if dc.Verbose {
-					Log.Warningf("Failed to open data store for %s", clusterName)
+					Log.Warningf("Failed to open data store for %s", cl.Name)
 				}
 				continue
 			}
 			if dc.Verbose {
-				Log.Infof("Starting listener for %s", clusterName)
+				Log.Infof("Starting listener for %s", cl.Name)
 			}
-			go runKafka(dc.kafkaBroker, clusterName, ds, dc.Verbose)
+			go runKafka(dc.kafkaBroker, cl.Name, ds, dc.Verbose)
 		}
 	}
 
@@ -142,42 +129,19 @@ func httpGetHandler(
 	command string,
 ) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, _, clusterName, ok :=
+		_, _, _, ok :=
 			requestPreamble(dc, command, w, r, "GET", dc.getAuthenticator, authRealm, "")
 		if !ok {
 			return
 		}
 
 		verb := command
-		arguments := []string{}
-
-		// For `cluster` we want only the jobanalyzerDir
-		switch command {
-		case "cluster":
-			arguments = append(arguments, "--jobanalyzer-dir", dc.jobanalyzerDir)
-		case "report":
-			arguments = append(
-				arguments,
-				"--report-dir",
-				special.MakeReportDirPath(dc.jobanalyzerDir, clusterName),
-			)
-		case "config":
-			// Nothing, we add the config-file below
-		case "version":
-			// Nothing at all
-		default:
-			arguments = append(
-				arguments,
-				"--data-path",
-				special.MakeClusterDataPath(dc.jobanalyzerDir, clusterName),
-			)
+		arguments := []string{
+			"-jobanalyzer-dir",
+			dc.JobanalyzerDir(),
 		}
 
 		for name, vs := range r.URL.Query() {
-			if name == "cluster" {
-				continue
-			}
-
 			if why := argOk(command, name); why != "" {
 				w.WriteHeader(400)
 				fmt.Fprintf(w, "Bad parameter %s: %s", name, why)
@@ -199,18 +163,8 @@ func httpGetHandler(
 				}
 				// Go requires "=" between parameter and name for boolean params, but allows it for
 				// every type, so do it uniformly.
-				arguments = append(arguments, "--"+name+"="+v)
+				arguments = append(arguments, "-"+name+"="+v)
 			}
-		}
-
-		// Everyone except `cluster` and `report` gets a config, which they will need for caching
-		// things properly.
-		if command != "cluster" && command != "report" && command != "version" {
-			arguments = append(
-				arguments,
-				"--config-file",
-				special.MakeConfigFilePath(dc.jobanalyzerDir, clusterName),
-			)
 		}
 
 		stdout, ok := runSonalyze(dc, w, verb, arguments, []byte{})
@@ -308,9 +262,11 @@ func httpPostHandler(
 
 		verb := "add"
 		arguments := []string{
-			"--" + dataType,
-			"--data-path",
-			special.MakeClusterDataPath(dc.jobanalyzerDir, clusterName),
+			"-" + dataType,
+			"-jobanalyzer-dir",
+			dc.JobanalyzerDir(),
+			"-cluster",
+			clusterName,
 		}
 
 		stdout, ok := runSonalyze(dc, w, verb, arguments, payload)
@@ -368,11 +324,7 @@ func requestPreamble(
 			}
 			return
 		}
-
-		clusterName = clusterValues[0]
-		if dc.aliasResolver != nil {
-			clusterName = dc.aliasResolver.Resolve(clusterName)
-		}
+		clusterName = special.ResolveClusterName(clusterValues[0])
 	} else {
 		if found {
 			w.WriteHeader(400)
@@ -395,6 +347,7 @@ func runSonalyze(
 	arguments []string,
 	input []byte,
 ) (stdout string, ok bool) {
+	//Log.Warningf("%s %v", verb, arguments)
 	cmdName := "<sonalyze>"
 
 	// Run the command and report the result
@@ -402,7 +355,7 @@ func runSonalyze(
 	if dc.Verbose {
 		Log.Infof(
 			"Command: %s %s",
-			path.Join(dc.jobanalyzerDir, cmdName),
+			path.Join(dc.JobanalyzerDir(), cmdName),
 			verb+" "+strings.Join(arguments, " "),
 		)
 	}
@@ -479,7 +432,7 @@ func argOk(command, arg string) string {
 	case "data-path", "data-dir":
 		// SourceArgs (rust), DataDirArgs (go)
 		return "Local arg"
-	case "cluster", "remote", "auth-file":
+	case "remote", "auth-file":
 		// SourceArgs
 		return "Source arg"
 	case "config-file":

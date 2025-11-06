@@ -4,10 +4,10 @@ import (
 	"io"
 	"unsafe"
 
-	"go-utils/config"
 	. "sonalyze/common"
 	"sonalyze/db/parse"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 type SysinfoDataNeeded int
@@ -37,7 +37,7 @@ const (
 	SysinfoFileKindCardData
 )
 
-func NewSysinfoFileMethods(_ *config.ClusterConfig, kind SysinfoFileKind) *sysinfoFileReadSyncMethods {
+func NewSysinfoFileMethods(_ special.ClusterMeta, kind SysinfoFileKind) *sysinfoFileReadSyncMethods {
 	switch kind {
 	case SysinfoFileKindNodeData:
 		return &sysinfoFileReadSyncMethods{DataNeedNodeData}

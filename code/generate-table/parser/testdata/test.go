@@ -7,13 +7,13 @@ package main
 package nodes
 
 import (
-	"go-utils/config"
 	. "sonalyze/table"
+    "sonalyze/db/repr"
 )
 
 %%
 
-FIELDS *config.NodeConfigRecord
+FIELDS *repr.NodeSummary
 
  # Note the CrossNodeJobs field is a config-level attribute, it does not appear in the raw sysinfo
  # data, and so it is not included here.

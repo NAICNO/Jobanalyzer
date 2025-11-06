@@ -23,7 +23,7 @@ func TestParser(t *testing.T) {
 		t.Fatal("table name")
 	}
 
-	if b.Fields.Type != "*config.NodeConfigRecord" {
+	if b.Fields.Type != "*repr.NodeSummary" {
 		t.Fatal("type name")
 	}
 	if len(b.Fields.Fields) != 8 {

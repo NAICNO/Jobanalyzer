@@ -8,12 +8,11 @@ import (
 	"slices"
 	"time"
 
-	"go-utils/config"
-
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
 	"sonalyze/db"
+	"sonalyze/db/special"
 	. "sonalyze/table"
 )
 
@@ -128,7 +127,7 @@ func (mdc *MetadataCommand) DefaultRecordFilters() (
 
 func (mdc *MetadataCommand) Perform(
 	out io.Writer,
-	_ *config.ClusterConfig,
+	_ special.ClusterMeta,
 	theDb db.SampleDataProvider,
 	filter sample.QueryFilter,
 	hosts *Hosts,
