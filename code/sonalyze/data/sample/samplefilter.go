@@ -485,7 +485,7 @@ func BuildSampleFilter(
 			Log.Infof("Including records ending on or before %s", filter.ToDate)
 		}
 		if len(includeUsers) > 0 {
-			Log.Infof("Including records with users %s", umaps.Values(includeUsers))
+			Log.Infof("Including records with users %v", umaps.Keys(includeUsers))
 		}
 		if !includeHosts.IsEmpty() {
 			Log.Infof("Including records with hosts matching %s", includeHosts)
