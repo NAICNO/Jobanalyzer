@@ -19,6 +19,9 @@
 //  -- filename ...
 //    Test input files - these must be sysinfo-*.json type files.
 //
+//  -to date
+//    For testing, set the date (the from date is implicitly 14 days earlier)
+//
 //  -v
 //    Print various (verbose) debugging output
 
@@ -32,6 +35,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"go-utils/options"
 	"go-utils/process"
@@ -43,6 +47,7 @@ func Hostnames(progname string, args []string) (err error) {
 	opts := flag.NewFlagSet(progname+" hostnames", flag.ContinueOnError)
 	sonalyzePath := opts.String("sonalyze", "", "Sonalyze executable `filename` (required)")
 	remoteOpts := util.AddRemoteOptions(opts)
+	toDateStr := opts.String("to", "", "Set today's date (for testing)")
 	verbose := opts.Bool("v", false, "Verbose (debugging) output")
 	err = opts.Parse(os.Args[2:])
 	if err == flag.ErrHelp {
@@ -71,7 +76,21 @@ func Hostnames(progname string, args []string) (err error) {
 		return
 	}
 
-	nodeArgs := []string{"node", "-from", "14d", "-newest", "-fmt", "csv,host"}
+	nodeArgs := []string{"node", "-newest", "-fmt", "csv,host"}
+	if *toDateStr == "" {
+		nodeArgs = append(nodeArgs, "-from", "14d")
+	} else {
+		var toDate time.Time
+		toDate, err = time.Parse(time.DateOnly, *toDateStr)
+		if err != nil {
+			return
+		}
+		nodeArgs = append(
+			nodeArgs,
+			"-from", toDate.AddDate(0, 0, -14).Format(time.DateOnly),
+			"-to", toDate.Format(time.DateOnly),
+		)
+	}
 	if *verbose {
 		nodeArgs = append(nodeArgs, "-v")
 	}
