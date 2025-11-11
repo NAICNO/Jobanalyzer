@@ -8,28 +8,10 @@ import (
 	"strings"
 
 	. "sonalyze/common"
-	"sonalyze/db/repr"
-	"sonalyze/db/special"
 )
 
 const (
 	filePermissions = 0644
-)
-
-// These rectifiers are specifically for data read from files.  This represents a hole in the
-// abstraction boundary, but so be it.
-var (
-	// This is applied to a set of samples newly read from a file, before caching.
-	// MT: Constant after initialization; immutable
-	SampleRectifier func([]*repr.Sample, special.ClusterMeta) []*repr.Sample
-
-	// This is applied to a set of load data newly read from a file, before caching.
-	// MT: Constant after initialization; immutable
-	CpuSamplesRectifier func([]*repr.CpuSamples, special.ClusterMeta) []*repr.CpuSamples
-
-	// This is applied to a set of GPU data newly read from a file, before caching.
-	// MT: Constant after initialization; immutable
-	GpuSamplesRectifier func([]*repr.GpuSamples, special.ClusterMeta) []*repr.GpuSamples
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

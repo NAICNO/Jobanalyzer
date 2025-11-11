@@ -32,7 +32,7 @@ func (sfr *sacctFileReadSyncMethods) SelectDataFromPayload(payload any) (data an
 	return payload
 }
 
-func (sfr *sacctFileReadSyncMethods) ReadDataLockedAndRectify(
+func (sfr *sacctFileReadSyncMethods) ReadDataLocked(
 	attr FileAttr,
 	inputFile io.Reader,
 	uf *UstrCache,

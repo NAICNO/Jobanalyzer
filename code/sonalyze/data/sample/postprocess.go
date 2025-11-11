@@ -11,7 +11,6 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
 )
 
 // About stream IDs
@@ -53,42 +52,6 @@ func streamId(e *repr.Sample) uint32 {
 		syntheticPid = JobIdTag + e.Job
 	}
 	return syntheticPid
-}
-
-// The SampleRectifier is applied to samples when they are read from a file, before caching, and can
-// also (eventually) be applied to samples that are read from in-memory records to be appended to a
-// file.  All samples are from the same host and the same date (UTC), but otherwise there are few
-// guarantees: the node could be taken down in the middle of the day, reconfigured, and rebooted,
-// and samples from before the reboot would see a different configuration from samples after the
-// reboot.
-//
-// For now, clean up the GpuMemPct and GpuKB fields based on system information.
-//
-// This really should go away: our new GPU layer never returns GPU usage as a percentage of some
-// unknown whole.  Only very old data had that issue, and we can ignore them.
-func standardSampleRectifier(xs []*repr.Sample, meta special.ClusterMeta) []*repr.Sample {
-	if len(xs) == 0 {
-		return xs
-	}
-
-	// Since we want to remove this code, ignore the fact that the config can change between any two
-	// samples.  If we move this call into the loop the function will become very hot and will need
-	// to be optimized in a whole new way.  See comments at the function.
-	conf := meta.LookupHostByTime(xs[0].Hostname, xs[0].Timestamp)
-	if conf == nil {
-		return xs
-	}
-
-	cardsizeKB := float64(conf.GpuMemGB) * 1024 * 1024 / float64(conf.GpuCards)
-	for _, x := range xs {
-		if conf.GpuMemPct {
-			x.GpuKB = uint64(float64(x.GpuMemPct) / 100 * cardsizeKB)
-		} else {
-			x.GpuMemPct = float32(float64(x.GpuKB) / cardsizeKB * 100)
-		}
-	}
-
-	return xs
 }
 
 // Given a set of records, reconstruct individual sample streams, sort them, drop duplicates, and

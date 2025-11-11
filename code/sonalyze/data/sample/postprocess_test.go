@@ -4,72 +4,11 @@ import (
 	"math"
 	"os"
 	"testing"
-	"time"
 
-	"go-utils/config"
 	. "sonalyze/common"
-	"sonalyze/data/cluster"
-	"sonalyze/db"
 	"sonalyze/db/parse"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
 )
-
-func TestRectifyGpuMem(t *testing.T) {
-	// The input file has gpukib fields, but by using a config that says to use gpumem% instead we
-	// should force the values in the record to something else.
-	memsize := 400
-	numcards := 1
-	special.OpenDataStoreFromConfig(
-		config.NewClusterConfig(
-			2,
-			"Test",
-			"Test",
-			[]string{},
-			[]string{},
-			[]*config.NodeConfigRecord{
-				&config.NodeConfigRecord{
-					Timestamp: "2024-06-12T11:20:00+02.00",
-					Hostname:  "ml4.hpc.uio.no",
-					GpuMemPct: true,
-					GpuCards:  numcards,
-					GpuMemGB:  memsize,
-				},
-			},
-		),
-	)
-	meta := cluster.NewMetaFromCluster(special.GetSingleCluster())
-	c, err := db.OpenFileListSampleDB(
-		meta,
-		[]string{"../../../tests/sonarlog/whitebox-logclean.csv"},
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Reading the file applies the gpu memory rectification.  The records for job 1249151 all say
-	// gpumem%=12 so we should see a computed value for gpukib which is different from the gpukib
-	// figure in the data.
-	var notime time.Time
-	sampleBlobs, _, err := c.ReadProcessSamples(notime, notime, nil, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	found := 0
-	expect := uint64((memsize * 12) / 100 * 1024 * 1024)
-	for _, samples := range sampleBlobs {
-		for _, s := range samples {
-			if s.Job == 1249151 {
-				found++
-				if s.GpuKB != expect {
-					t.Errorf("GpuKB %v expected %v (%v %v)", s.GpuKB, expect, s.GpuPct, s.GpuMemPct)
-				}
-			}
-		}
-	}
-	if found == 0 {
-		t.Fatalf("No records")
-	}
-}
 
 func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	// This file has field names, cputime_sec, pid, and rolledup.  There are two hosts.  One of the

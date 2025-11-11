@@ -63,7 +63,7 @@ func (sfr *sysinfoFileReadSyncMethods) SelectDataFromPayload(payload any) (data 
 	}
 }
 
-func (sfr *sysinfoFileReadSyncMethods) ReadDataLockedAndRectify(
+func (sfr *sysinfoFileReadSyncMethods) ReadDataLocked(
 	attr FileAttr,
 	inputFile io.Reader,
 	uf *UstrCache,

@@ -5,15 +5,7 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/db"
-	"sonalyze/db/filedb"
 )
-
-func init() {
-	// Set up postprocessing of samples as they are read from file, before caching them.  This is
-	// currently very basic, just enough to ensure that the db.Samples are read-only after reading.
-	// Note the rectifier is not applied to data coming from non-file sources.
-	filedb.SampleRectifier = standardSampleRectifier
-}
 
 // Read data and bucket them in InputStreams.  The caller receives ownership of the InputStreamSet.
 // The spines of the data structures may be modified, but the ultimate repr.Sample value is owned by
