@@ -13,9 +13,10 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/common"
+	"sonalyze/data/config"
 	"sonalyze/data/sample"
 	"sonalyze/data/slurmjob"
-	"sonalyze/db"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
 	. "sonalyze/table"
@@ -105,14 +106,16 @@ type jobAggregate struct {
 func (jc *JobsCommand) Perform(
 	out io.Writer,
 	meta special.ClusterMeta,
-	theDb db.SampleDataProvider,
 	filter sample.QueryFilter,
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
+	sdp, err := sample.OpenSampleDataProvider(meta)
+	if err != nil {
+		return err
+	}
 	streams, bounds, read, dropped, err :=
-		sample.ReadSampleStreamsAndMaybeBounds(
-			theDb,
+		sdp.Query(
 			filter.FromDate,
 			filter.ToDate,
 			hosts,
@@ -137,15 +140,17 @@ func (jc *JobsCommand) Perform(
 		Log.Infof("Samples retained after filtering: %d", numSamples)
 	}
 
+	cfg := config.MaybeOpenConfigDataProvider(meta)
+
 	if NeedsConfig(jobsFormatters, jc.PrintFields) {
 		var err error
-		streams, err = EnsureConfigForInputStreams(meta, streams, "relative format arguments")
+		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
 		if err != nil {
 			return err
 		}
 	}
 
-	summaries := jc.aggregateAndFilterJobs(meta, theDb, streams, bounds)
+	summaries := jc.aggregateAndFilterJobs(meta, cfg, streams, bounds)
 	if jc.Verbose {
 		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
@@ -194,7 +199,7 @@ func (nt *nameTester) testName(name string) {
 
 func (jc *JobsCommand) aggregateAndFilterJobs(
 	meta special.ClusterMeta,
-	theDb db.SampleDataProvider,
+	cfg *config.ConfigDataProvider,
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) []*jobSummary {
@@ -203,7 +208,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
 	} else if !jc.MergeNone {
-		jobs, bounds = mergeAcrossSomeNodes(meta, streams, bounds)
+		jobs, bounds = mergeAcrossSomeNodes(streams, bounds)
 	} else {
 		jobs = sample.MergeByHostAndJob(streams)
 	}
@@ -240,7 +245,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 			first := job[0].Timestamp
 			last := job[len(job)-1].Timestamp
 			duration := last - first
-			aggregate := jc.aggregateJob(meta, host, job, nt.needCmd, nt.needHosts, jc.Zombie)
+			aggregate := jc.aggregateJob(cfg, host, job, nt.needCmd, nt.needHosts, jc.Zombie)
 			aggregate.computed[kDuration] = float64(duration)
 			usesGpu := !aggregate.Gpus.IsEmpty()
 			flags := 0
@@ -321,8 +326,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		// fields here and we might use them instead.  If so, do so here and not in printing, to
 		// avoid messiness vis-a-vis filtering.
 
-		if slurmDb, ok := theDb.(db.SacctDataProvider); ok {
-
+		if sdp, err := slurmjob.OpenSlurmjobDataProvider(meta); err == nil {
 			var err error
 
 			// Two things happen here:
@@ -352,11 +356,14 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 				aJobs, bJobs []*slurmjob.SlurmJob
 				bMap         map[uint32]*slurmjob.SlurmJob
 			)
-			aJobs, err = slurmjob.Query(
-				slurmDb,
-				jc.FromDate,
-				jc.ToDate,
+			aJobs, err = sdp.Query(
 				slurmjob.QueryFilter{
+					QueryFilter: common.QueryFilter{
+						HaveFrom: jc.HaveFrom,
+						FromDate: jc.FromDate,
+						HaveTo:   jc.HaveTo,
+						ToDate:   jc.ToDate,
+					},
 					Job: jobIds,
 				},
 				jc.Verbose,
@@ -427,7 +434,6 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 // --merge-none, and the two sets of merged jobs are combined into one set.
 
 func mergeAcrossSomeNodes(
-	meta special.ClusterMeta,
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) (sample.SampleStreams, Timebounds) {
@@ -459,7 +465,7 @@ func mergeAcrossSomeNodes(
 // entries.
 
 func (jc *JobsCommand) aggregateJob(
-	meta special.ClusterMeta,
+	cfg *config.ConfigDataProvider,
 	host Ustr,
 	job sample.SampleStream,
 	needCmd, needHosts, needZombie bool,
@@ -507,7 +513,7 @@ func (jc *JobsCommand) aggregateJob(
 	}
 	usesGpu := !gpus.IsEmpty()
 
-	if sys := meta.LookupHostByTime(host, job[0].Timestamp); sys != nil {
+	if sys := cfg.LookupHostByTime(host, job[0].Timestamp); sys != nil {
 		// Quantities can be zero in surprising ways, so always guard divisions
 		if cores := float64(sys.CpuCores); cores > 0 {
 			rCpuPctAvg = cpuPctAvg / cores

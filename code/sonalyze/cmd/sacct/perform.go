@@ -5,8 +5,8 @@ import (
 	"io"
 
 	. "sonalyze/common"
+	"sonalyze/data/common"
 	"sonalyze/data/slurmjob"
-	"sonalyze/db"
 	"sonalyze/db/special"
 )
 
@@ -18,17 +18,20 @@ type sacctSummary struct {
 }
 
 func (sc *SacctCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, db.FileListSlurmJobData)
+	sdp, err := slurmjob.OpenSlurmjobDataProvider(meta)
 	if err != nil {
 		return err
 	}
 
-	jobs, err := slurmjob.Query(
-		theLog,
-		sc.FromDate,
-		sc.ToDate,
+	jobs, err := sdp.Query(
 		slurmjob.QueryFilter{
-			Host:       sc.Host,
+			QueryFilter: common.QueryFilter{
+				HaveFrom: sc.HaveFrom,
+				FromDate: sc.FromDate,
+				HaveTo:   sc.HaveTo,
+				ToDate:   sc.ToDate,
+				Host:     sc.Host,
+			},
 			State:      sc.State,
 			User:       sc.User,
 			Account:    sc.Account,

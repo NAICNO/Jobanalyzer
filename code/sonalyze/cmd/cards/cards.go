@@ -9,7 +9,6 @@ import (
 
 	. "sonalyze/cmd"
 	"sonalyze/data/card"
-	"sonalyze/db"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
 	. "sonalyze/table"
@@ -93,14 +92,13 @@ func (nc *CardCommand) ReifyForRemote(x *ArgReifier) error {
 }
 
 func (nc *CardCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, db.FileListCardData)
+	cdp, err := card.OpenCardDataProvider(meta)
 	if err != nil {
 		return err
 	}
 
 	records, err :=
-		card.Query(
-			theLog,
+		cdp.Query(
 			card.QueryFilter{
 				HaveFrom: nc.HaveFrom,
 				FromDate: nc.FromDate,

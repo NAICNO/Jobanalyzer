@@ -9,7 +9,6 @@ import (
 
 	. "sonalyze/cmd"
 	"sonalyze/data/nodesample"
-	"sonalyze/db"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
 	. "sonalyze/table"
@@ -92,16 +91,12 @@ func (nc *NodeProfCommand) Validate() error {
 // Processing
 
 func (nc *NodeProfCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(
-		meta,
-		db.FileListNodeSampleData,
-	)
+	nsd, err := nodesample.OpenNodeSampleDataProvider(meta)
 	if err != nil {
 		return err
 	}
 
-	records, err := nodesample.Query(
-		theLog,
+	records, err := nsd.Query(
 		nodesample.QueryFilter{
 			HaveFrom: nc.HaveFrom,
 			FromDate: nc.FromDate,

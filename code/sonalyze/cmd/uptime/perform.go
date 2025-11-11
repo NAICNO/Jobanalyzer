@@ -44,16 +44,16 @@ import (
 	"cmp"
 	"fmt"
 	"io"
+	"os"
 	"slices"
 	"time"
 
 	"go-utils/maps"
 	uslices "go-utils/slices"
 
-	"sonalyze/cmd/configs"
 	. "sonalyze/common"
+	"sonalyze/data/config"
 	"sonalyze/data/sample"
-	"sonalyze/db"
 	"sonalyze/db/special"
 	. "sonalyze/table"
 )
@@ -66,14 +66,16 @@ type window struct {
 func (uc *UptimeCommand) Perform(
 	out io.Writer,
 	meta special.ClusterMeta,
-	theDb db.SampleDataProvider,
 	filter sample.QueryFilter,
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
+	sdp, err := sample.OpenSampleDataProvider(meta)
+	if err != nil {
+		return err
+	}
 	streams, bounds, read, dropped, err :=
-		sample.ReadSampleStreamsAndMaybeBounds(
-			theDb,
+		sdp.Query(
 			filter.FromDate,
 			filter.ToDate,
 			hosts,
@@ -314,19 +316,31 @@ func (uc *UptimeCommand) computeAlwaysDown(
 	fromIncl, toIncl int64,
 ) {
 	if !uc.OnlyUp {
+		if os.Getenv("SONALYZE_LOG") != "" {
+			fmt.Fprintf(os.Stderr, "Always down\n")
+		}
 		hostGlobber := hosts.HostnameGlobber()
-		hs := make(map[Ustr]bool)
-		nodes := configs.NodesDefinedInTimeWindow(
-			meta,
+		cdp, err := config.OpenConfigDataProvider(meta)
+		if err != nil {
+			return
+		}
+		nodes, err := cdp.AvailableHosts(
 			time.Unix(fromIncl, 0).UTC(),
 			time.Unix(toIncl, 0).UTC(),
-			uc.Verbose,
 		)
-		if len(nodes) == 0 {
-			nodes = meta.NodesDefinedInConfigIfAny()
+		if err != nil {
+			if os.Getenv("SONALYZE_LOG") != "" {
+				fmt.Fprintf(os.Stderr, "Available hosts failed %v\n", err)
+			}
+			return
 		}
-		for _, n := range nodes {
-			hs[StringToUstr(n.Hostname)] = true
+		if os.Getenv("SONALYZE_LOG") != "" {
+			fmt.Fprintf(os.Stderr, "Available hosts %v\n", nodes)
+		}
+
+		hs := make(map[Ustr]bool)
+		for hostname := range nodes {
+			hs[StringToUstr(hostname)] = true
 		}
 		if len(hs) == 0 {
 			return
