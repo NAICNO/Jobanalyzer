@@ -72,7 +72,7 @@ func (sfr *cluzterFileReadSyncMethods) SelectDataFromPayload(payload any) (data 
 	}
 }
 
-func (sfr *cluzterFileReadSyncMethods) ReadDataLockedAndRectify(
+func (sfr *cluzterFileReadSyncMethods) ReadDataLocked(
 	_ FileAttr,
 	inputFile io.Reader,
 	_ *UstrCache,

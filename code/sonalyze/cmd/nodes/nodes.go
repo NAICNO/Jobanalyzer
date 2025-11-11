@@ -10,8 +10,8 @@ import (
 	"slices"
 
 	. "sonalyze/cmd"
+	"sonalyze/data/common"
 	"sonalyze/data/config"
-	"sonalyze/db"
 	"sonalyze/db/special"
 	. "sonalyze/table"
 )
@@ -111,22 +111,20 @@ func (nc *NodeCommand) Validate() error {
 // Processing
 
 func (nc *NodeCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(
-		meta,
-		db.FileListNodeData|db.FileListCardData,
-	)
+	cdp, err := config.OpenConfigDataProvider(meta)
 	if err != nil {
 		return err
 	}
-
-	records, err := config.Query(theLog, config.QueryArgs{
-		HaveFrom: nc.HaveFrom,
-		FromDate: nc.FromDate,
-		HaveTo:   nc.HaveTo,
-		ToDate:   nc.ToDate,
-		Host:     nc.HostArgs.Host,
-		Verbose:  nc.Verbose,
-		Newest:   nc.Newest,
+	records, err := cdp.Query(config.QueryArgs{
+		QueryFilter: common.QueryFilter{
+			HaveFrom: nc.HaveFrom,
+			FromDate: nc.FromDate,
+			HaveTo:   nc.HaveTo,
+			ToDate:   nc.ToDate,
+			Host:     nc.Host,
+		},
+		Verbose: nc.Verbose,
+		Newest:  nc.Newest,
 		Query: func(records []*config.NodeConfig) ([]*config.NodeConfig, error) {
 			return ApplyQuery(nc.ParsedQuery, nodeFormatters, nodePredicates, records)
 		},

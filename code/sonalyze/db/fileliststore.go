@@ -10,42 +10,22 @@ import (
 	"sonalyze/db/special"
 )
 
-// The types can be OR'ed together if they are provided by the same file type.  This is sort of a
-// secret handshake for now.
-//
-// These type designators are used even for commands that don't operate on file lists.  This is a
-// little dumb but renaming can happen eventually.
-type FileListDataType int
-
-const (
-	FileListSampleData FileListDataType = 1 << iota
-	FileListNodeSampleData
-	FileListCpuSampleData
-	FileListGpuSampleData
-	FileListNodeData
-	FileListCardData
-	FileListSlurmJobData
-	FileListSlurmNodeData
-	FileListSlurmPartitionData
-	FileListSlurmClusterData
-)
-
 type FileListDataProvider struct {
 	*filedb.TransientSampleCluster
 	*filedb.TransientSysinfoCluster
 	*filedb.TransientSacctCluster
 	*filedb.TransientCluzterCluster
 	meta     special.ClusterMeta
-	dataType FileListDataType
+	dataType special.DataType
 }
 
-func (tdb *FileListDataProvider) DataType() FileListDataType {
+func (tdb *FileListDataProvider) DataType() special.DataType {
 	return tdb.dataType
 }
 
 func OpenFileListDB(
 	meta special.ClusterMeta,
-	dataType FileListDataType,
+	dataType special.DataType,
 ) (DataProvider, error) {
 	var transientSampleCluster *filedb.TransientSampleCluster
 	var transientSysinfoCluster *filedb.TransientSysinfoCluster
@@ -53,26 +33,26 @@ func OpenFileListDB(
 	var transientCluzterCluster *filedb.TransientCluzterCluster
 	var err error
 	switch {
-	case dataType&(FileListSampleData|FileListNodeSampleData|FileListCpuSampleData|FileListGpuSampleData) != 0:
-		if dataType&^(FileListSampleData|FileListNodeSampleData|FileListCpuSampleData|FileListGpuSampleData) != 0 {
+	case dataType&special.ProcessSampleData != 0:
+		if dataType&^special.ProcessSampleData != 0 {
 			panic("Incompatible type flags")
 		}
-		transientSampleCluster, err = OpenFileListSampleDB(meta, meta.LogFiles())
-	case dataType&(FileListNodeData|FileListCardData) != 0:
-		if dataType&^(FileListNodeData|FileListCardData) != 0 {
+		transientSampleCluster, err = OpenFileListSampleDB(meta, meta.LogFiles(special.ProcessSampleData))
+	case dataType&special.SysinfoData != 0:
+		if dataType&^special.SysinfoData != 0 {
 			panic("Incompatible type flags")
 		}
-		transientSysinfoCluster, err = OpenFileListSysinfoDB(meta, meta.LogFiles())
-	case dataType&FileListSlurmJobData != 0:
-		if dataType&^FileListSlurmJobData != 0 {
+		transientSysinfoCluster, err = OpenFileListSysinfoDB(meta, meta.LogFiles(special.SysinfoData))
+	case dataType&special.SlurmJobData != 0:
+		if dataType&^special.SlurmJobData != 0 {
 			panic("Incompatible type flags")
 		}
-		transientSacctCluster, err = OpenFileListSacctDB(meta, meta.LogFiles())
-	case dataType&(FileListSlurmNodeData|FileListSlurmPartitionData|FileListSlurmClusterData) != 0:
-		if dataType&^(FileListSlurmNodeData|FileListSlurmPartitionData|FileListSlurmClusterData) != 0 {
+		transientSacctCluster, err = OpenFileListSacctDB(meta, meta.LogFiles(special.SlurmJobData))
+	case dataType&special.SlurmSystemData != 0:
+		if dataType&^special.SlurmSystemData != 0 {
 			panic("Incompatible type flags")
 		}
-		transientCluzterCluster, err = OpenFileListCluzterDB(meta, meta.LogFiles())
+		transientCluzterCluster, err = OpenFileListCluzterDB(meta, meta.LogFiles(special.SlurmSystemData))
 	default:
 		panic("NYI")
 	}

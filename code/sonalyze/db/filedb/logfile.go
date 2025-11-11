@@ -75,21 +75,20 @@ type ReadSyncMethods interface {
 	SelectDataFromPayload(payload any) (data any)
 
 	// Actually read the file and returns a container for all the data streams in it, along with a
-	// count of soft errors and any hard errors.  All returned records of all streams have been
-	// rectified as necessary - the rectified records will be stored in cache, if applicable.  The
-	// LogFile attrs are passed as a parameter to allow the reader to customize the reading method
-	// to the data.
-	ReadDataLockedAndRectify(
+	// count of soft errors and any hard errors.  All returned records will be stored in cache, if
+	// applicable.  The LogFile attrs are passed as a parameter to allow the reader to customize the
+	// reading method to the data.
+	ReadDataLocked(
 		attr FileAttr,
 		input io.Reader,
 		uf *UstrCache,
 		verbose bool,
 	) (payload any, softErrors int, err error)
 
-	// Given rectified data just read from the file, compute their nominal cache occupancy.  It is
-	// unspecified for now whether this is the "ideal" occupancy (using len(), say) or the "actual"
-	// occupancy (using cap(), say).  This does not have to be super fast, it is only used in
-	// connection with I/O.  The data will tend to be in the CPU cache.
+	// Given data just read from the file, compute their nominal cache occupancy.  It is unspecified
+	// for now whether this is the "ideal" occupancy (using len(), say) or the "actual" occupancy
+	// (using cap(), say).  This does not have to be super fast, it is only used in connection with
+	// I/O.  The data will tend to be in the CPU cache.
 	CachedSizeOfPayload(payload any) uintptr
 }
 
@@ -127,7 +126,7 @@ func (fn Fullname) String() string {
 
 type cachePayload struct {
 	payload    any // specific to the file type
-	softErrors int // number of soft errors encountered during read/rectifiy
+	softErrors int // number of soft errors encountered during reading
 }
 
 type LogFile struct {
@@ -224,7 +223,7 @@ func (lf *LogFile) ReadSync(
 			return
 		}
 		defer inputFile.Close()
-		payload, softErrors, err = reader.ReadDataLockedAndRectify(lf.attrs, inputFile, uf, verbose)
+		payload, softErrors, err = reader.ReadDataLocked(lf.attrs, inputFile, uf, verbose)
 		if err != nil {
 			return
 		}

@@ -9,6 +9,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
 
 // Ditto for GPU data
@@ -27,8 +28,19 @@ type GpuSamples struct {
 
 type GpuSamplesByHostSet map[Ustr]*GpuSamplesByHost
 
-func ReadGpuSamplesByHost(
-	c db.GpuSampleDataProvider,
+type GpuSampleDataProvider struct {
+	theLog db.GpuSampleDataProvider
+}
+
+func OpenGpuSampleDataProvider(meta special.ClusterMeta) (*GpuSampleDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, special.GpuSampleData)
+	if err != nil {
+		return nil, err
+	}
+	return &GpuSampleDataProvider{theLog}, nil
+}
+
+func (gsd *GpuSampleDataProvider) Query(
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
 	verbose bool,
@@ -40,7 +52,7 @@ func ReadGpuSamplesByHost(
 ) {
 	// Read and establish invariants
 
-	dataBlobs, dropped, err := c.ReadGpuSamples(fromDate, toDate, hostGlobber, verbose)
+	dataBlobs, dropped, err := gsd.theLog.ReadGpuSamples(fromDate, toDate, hostGlobber, verbose)
 	if err != nil {
 		return
 	}

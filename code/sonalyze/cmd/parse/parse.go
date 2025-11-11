@@ -11,7 +11,6 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
-	"sonalyze/db"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
 	. "sonalyze/table"
@@ -164,19 +163,21 @@ func (pc *ParseCommand) ConfigFile() string {
 
 func (pc *ParseCommand) Perform(
 	out io.Writer,
-	_ special.ClusterMeta,
-	theDb db.SampleDataProvider,
+	meta special.ClusterMeta,
 	filter sample.QueryFilter,
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
+	sdp, err := sample.OpenSampleDataProvider(meta)
+	if err != nil {
+		return err
+	}
 	var mergedSamples []sample.SampleStream
 	var samples sample.SampleStream
 
 	if pc.Clean || pc.MergeByJob || pc.MergeByHostAndJob {
 		streams, bounds, read, dropped, err :=
-			sample.ReadSampleStreamsAndMaybeBounds(
-				theDb,
+			sdp.Query(
 				filter.FromDate,
 				filter.ToDate,
 				hosts,
@@ -215,7 +216,7 @@ func (pc *ParseCommand) Perform(
 		}
 	} else {
 		// Bypass postprocessing to get the expected raw values.
-		recordBlobs, dropped, err := theDb.ReadProcessSamples(pc.FromDate, pc.ToDate, hosts, pc.Verbose)
+		recordBlobs, dropped, err := sdp.QueryRaw(pc.FromDate, pc.ToDate, hosts, pc.Verbose)
 		if err != nil {
 			return fmt.Errorf("Failed to read log records: %v", err)
 		}

@@ -7,12 +7,24 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
+
+type SlurmPartitionDataProvider struct {
+	theLog db.CluzterDataProvider
+}
+
+func OpenSlurmPartitionDataProvider(meta special.ClusterMeta) (*SlurmPartitionDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, special.SlurmPartitionData)
+	if err != nil {
+		return nil, err
+	}
+	return &SlurmPartitionDataProvider{theLog}, nil
+}
 
 type QueryFilter = common.QueryFilter
 
-func Query(
-	theLog db.CluzterDataProvider,
+func (spd *SlurmPartitionDataProvider) Query(
 	filter QueryFilter,
 	verbose bool,
 ) ([]*repr.CluzterPartitions, error) {
@@ -20,7 +32,7 @@ func Query(
 	if err != nil {
 		return nil, err
 	}
-	recordBlobs, _, err := theLog.ReadCluzterPartitionData(
+	recordBlobs, _, err := spd.theLog.ReadCluzterPartitionData(
 		filter.FromDate,
 		filter.ToDate,
 		verbose,

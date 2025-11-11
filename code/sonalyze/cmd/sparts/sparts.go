@@ -9,7 +9,6 @@ import (
 
 	. "sonalyze/cmd"
 	"sonalyze/data/slurmpart"
-	"sonalyze/db"
 	"sonalyze/db/special"
 	. "sonalyze/table"
 )
@@ -82,14 +81,13 @@ func (nc *SpartCommand) ReifyForRemote(x *ArgReifier) error {
 }
 
 func (nc *SpartCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, db.FileListSlurmPartitionData)
+	spd, err := slurmpart.OpenSlurmPartitionDataProvider(meta)
 	if err != nil {
 		return err
 	}
 
 	records, err :=
-		slurmpart.Query(
-			theLog,
+		spd.Query(
 			slurmpart.QueryFilter{
 				HaveFrom: nc.HaveFrom,
 				FromDate: nc.FromDate,

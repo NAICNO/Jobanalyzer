@@ -8,7 +8,6 @@ import (
 
 	. "sonalyze/cmd"
 	"sonalyze/data/sample"
-	"sonalyze/db"
 	"sonalyze/db/special"
 )
 
@@ -41,18 +40,10 @@ func LocalSampleOperation(
 	filter.Job = args.RecordFilterArgs.Job
 	filter.ExcludeJob = args.RecordFilterArgs.ExcludeJob
 
-	theLog, err := db.OpenReadOnlyDB(
-		meta,
-		db.FileListSampleData,
-	)
-	if err != nil {
-		return err
-	}
-
 	hosts, recordFilter, err := sample.BuildSampleFilter(meta, filter, args.Verbose)
 	if err != nil {
 		return fmt.Errorf("Failed to create record filter: %v", err)
 	}
 
-	return command.Perform(stdout, meta, theLog, filter, hosts, recordFilter)
+	return command.Perform(stdout, meta, filter, hosts, recordFilter)
 }

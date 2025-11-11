@@ -5,7 +5,6 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/data/sample"
-	"sonalyze/db"
 	"sonalyze/db/special"
 	"sonalyze/table"
 )
@@ -116,7 +115,6 @@ type SampleAnalysisCommand interface {
 	Perform(
 		out io.Writer,
 		meta special.ClusterMeta,
-		theLog db.SampleDataProvider,
 		filter sample.QueryFilter,
 		hosts *Hosts,
 		recordFilter *sample.SampleFilter,

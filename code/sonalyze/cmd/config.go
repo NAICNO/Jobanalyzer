@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	. "sonalyze/common"
+	"sonalyze/data/config"
 	"sonalyze/data/sample"
-	"sonalyze/db/special"
 )
 
 // Standard method for cleaning an InputStreamSet relative to a config: the config must have a
@@ -14,7 +14,7 @@ import (
 //
 // Over time this may become more complicated, as the config becomes time-dependent.
 func EnsureConfigForInputStreams(
-	meta special.ClusterMeta,
+	cfg *config.ConfigDataProvider,
 	streams sample.InputStreamSet,
 	reason string,
 ) (sample.InputStreamSet, error) {
@@ -23,7 +23,7 @@ func EnsureConfigForInputStreams(
 	for key, stream := range streams {
 		hn := (*stream)[0].Hostname
 		ts := (*stream)[0].Timestamp
-		if meta.LookupHostByTime(hn, ts) == nil {
+		if cfg.LookupHostByTime(hn, ts) == nil {
 			bad[key] = true
 			Log.Infof("Warning: Missing host configuration for %s", hn.String())
 		}

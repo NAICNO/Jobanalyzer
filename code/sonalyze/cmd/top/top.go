@@ -29,7 +29,6 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/cpusample"
-	"sonalyze/db"
 	"sonalyze/db/special"
 	. "sonalyze/table"
 )
@@ -66,19 +65,16 @@ func (tc *TopCommand) MaybeFormatHelp() *FormatHelp {
 }
 
 func (tc *TopCommand) Perform(meta special.ClusterMeta, stdin io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, db.FileListCpuSampleData)
-	if err != nil {
-		return err
-	}
+	cdp, err := cpusample.OpenCpuSampleDataProvider(meta)
+
+	// TODO: Use standard query interface with standard QueryFilter here.
 
 	hostGlobber, err := NewHosts(true, tc.Host)
 	if err != nil {
 		return err
 	}
-
 	streams, _, read, dropped, err :=
-		cpusample.ReadCpuSamplesByHost(
-			theLog,
+		cdp.Query(
 			tc.FromDate,
 			tc.ToDate,
 			hostGlobber,

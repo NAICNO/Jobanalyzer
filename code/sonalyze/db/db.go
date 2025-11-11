@@ -6,16 +6,10 @@ import (
 )
 
 // Utility to open a database from a set of parameters.  We must have dataDir xor logFiles.
-func OpenReadOnlyDB(
-	meta special.ClusterMeta,
-	dataType FileListDataType,
-) (
-	DataProvider,
-	error,
-) {
+func OpenReadOnlyDB(meta special.ClusterMeta, dataType special.DataType) (DataProvider, error) {
 	var theLog DataProvider
 	var err error
-	if len(meta.LogFiles()) > 0 {
+	if meta.HaveLogFilesOfType(dataType) {
 		theLog, err = OpenFileListDB(meta, dataType)
 	} else {
 		theLog, err = OpenPersistentDirectoryDB(meta)

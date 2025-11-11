@@ -9,7 +9,6 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/data/sample"
-	"sonalyze/db"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
 	. "sonalyze/table"
@@ -17,15 +16,17 @@ import (
 
 func (pc *ProfileCommand) Perform(
 	out io.Writer,
-	_ special.ClusterMeta,
-	theDb db.SampleDataProvider,
+	meta special.ClusterMeta,
 	filter sample.QueryFilter,
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
+	sdp, err := sample.OpenSampleDataProvider(meta)
+	if err != nil {
+		return err
+	}
 	streams, _, read, dropped, err :=
-		sample.ReadSampleStreamsAndMaybeBounds(
-			theDb,
+		sdp.Query(
 			filter.FromDate,
 			filter.ToDate,
 			hosts,

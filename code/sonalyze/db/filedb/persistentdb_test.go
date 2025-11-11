@@ -22,6 +22,10 @@ type stubMeta struct {
 	cfg     *config.ClusterConfig
 }
 
+func (mm *stubMeta) Cluster() *special.ClusterEntry {
+	return nil
+}
+
 func (mm *stubMeta) ClusterName() string {
 	return "mlx.hpc.uio.no"
 }
@@ -34,15 +38,15 @@ func (mm *stubMeta) NodesDefinedInConfigIfAny() []*repr.NodeSummary {
 	return slices.Clone(mm.cfg.Hosts())
 }
 
-func (mm *stubMeta) LookupHostByTime(host Ustr, time int64) *repr.NodeSummary {
-	return mm.cfg.LookupHost(host.String())
-}
-
 func (mm *stubMeta) DataDir() string {
 	return mm.dataDir
 }
 
-func (mm *stubMeta) LogFiles() []string {
+func (mm *stubMeta) HaveLogFilesOfType(_ special.DataType) bool {
+	return false
+}
+
+func (mm *stubMeta) LogFiles(_ special.DataType) []string {
 	return nil
 }
 

@@ -9,8 +9,8 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/config"
 	"sonalyze/data/sample"
-	"sonalyze/db"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
 	. "sonalyze/table"
@@ -19,14 +19,16 @@ import (
 func (lc *LoadCommand) Perform(
 	out io.Writer,
 	meta special.ClusterMeta,
-	theDb db.SampleDataProvider,
 	filter sample.QueryFilter,
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
+	sdp, err := sample.OpenSampleDataProvider(meta)
+	if err != nil {
+		return err
+	}
 	streams, bounds, read, dropped, err :=
-		sample.ReadSampleStreamsAndMaybeBounds(
-			theDb,
+		sdp.Query(
 			filter.FromDate,
 			filter.ToDate,
 			hosts,
@@ -52,10 +54,11 @@ func (lc *LoadCommand) Perform(
 	}
 
 	fromIncl, toIncl := lc.InterpretFromToWithBounds(bounds)
+	cfg := config.MaybeOpenConfigDataProvider(meta)
 
 	if NeedsConfig(loadFormatters, lc.PrintFields) {
 		var err error
-		streams, err = EnsureConfigForInputStreams(meta, streams, "relative format arguments")
+		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
 		if err != nil {
 			return err
 		}
@@ -95,7 +98,7 @@ func (lc *LoadCommand) Perform(
 	var mergedConf *repr.NodeSummary
 	if lc.Group {
 		for _, stream := range mergedStreams {
-			probe := meta.LookupHostByTime(stream[0].Hostname, stream[0].Timestamp)
+			probe := cfg.LookupHostByTime(stream[0].Hostname, stream[0].Timestamp)
 			if probe == nil {
 				continue
 			}
@@ -138,7 +141,7 @@ func (lc *LoadCommand) Perform(
 		ts := stream[0].Timestamp
 		conf := mergedConf
 		if conf == nil {
-			conf = meta.LookupHostByTime(hn, ts)
+			conf = cfg.LookupHostByTime(hn, ts)
 		}
 		rs := generateReport(stream, time.Now().Unix(), conf)
 		if queryNeg != nil {

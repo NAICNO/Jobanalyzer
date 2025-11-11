@@ -11,7 +11,6 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
-	"sonalyze/db"
 	"sonalyze/db/special"
 	. "sonalyze/table"
 )
@@ -127,15 +126,17 @@ func (mdc *MetadataCommand) DefaultRecordFilters() (
 
 func (mdc *MetadataCommand) Perform(
 	out io.Writer,
-	_ special.ClusterMeta,
-	theDb db.SampleDataProvider,
+	meta special.ClusterMeta,
 	filter sample.QueryFilter,
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
+	sdp, err := sample.OpenSampleDataProvider(meta)
+	if err != nil {
+		return err
+	}
 	streams, bounds, read, dropped, err :=
-		sample.ReadSampleStreamsAndMaybeBounds(
-			theDb,
+		sdp.Query(
 			filter.FromDate,
 			filter.ToDate,
 			hosts,
@@ -165,17 +166,13 @@ func (mdc *MetadataCommand) Perform(
 	}
 
 	if mdc.Files {
-		if sampleDir, ok := theDb.(db.SampleFilenameProvider); ok {
-			// For -files, print the full paths all the input files as presented to os.Open.
-			files, err := sampleDir.SampleFilenames(mdc.FromDate, mdc.ToDate, hosts)
-			if err != nil {
-				return err
-			}
-			for _, name := range files {
-				fmt.Fprintln(out, name)
-			}
-		} else {
-			panic("Bad cluster type")
+		// For -files, print the full paths all the input files as presented to os.Open.
+		files, err := sdp.Filenames(mdc.FromDate, mdc.ToDate, hosts)
+		if err != nil {
+			return err
+		}
+		for _, name := range files {
+			fmt.Fprintln(out, name)
 		}
 	}
 

@@ -16,12 +16,11 @@ import (
 	"errors"
 	"io"
 	"slices"
-	"time"
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/common"
 	"sonalyze/data/config"
-	"sonalyze/db"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
 	. "sonalyze/table"
@@ -129,21 +128,37 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 	}
 	includeHosts := hosts.HostnameGlobber()
 
-	// `records` is always freshly allocated
-	var records []*repr.NodeSummary
-	records = NodesDefinedInTimeWindow(meta, cc.FromDate, cc.ToDate, cc.Verbose)
-	if len(records) == 0 {
-		records = meta.NodesDefinedInConfigIfAny()
+	cdp, err := config.OpenConfigDataProvider(meta)
+	if err != nil {
+		return err
 	}
-
+	ns, err := cdp.Query(
+		config.QueryArgs{
+			QueryFilter: common.QueryFilter{
+				HaveFrom: cc.HaveFrom,
+				FromDate: cc.FromDate,
+				HaveTo:   cc.HaveTo,
+				ToDate:   cc.ToDate,
+			},
+			Verbose: cc.Verbose,
+			Newest:  true,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	records := make([]*repr.NodeSummary, 0, len(ns))
+	for _, n := range ns {
+		records = append(records, &n.NodeSummary)
+	}
+	// TODO: Why would this not be included in the query?  It would make the most sense.  Probably
+	// old code.
 	if !includeHosts.IsEmpty() {
 		records = slices.DeleteFunc(records, func(r *repr.NodeSummary) bool {
 			return !includeHosts.Match(r.Hostname)
 		})
 	}
-
-	records, err = ApplyQuery(
-		cc.ParsedQuery, configFormatters, configPredicates, records)
+	records, err = ApplyQuery(cc.ParsedQuery, configFormatters, configPredicates, records)
 	if err != nil {
 		return err
 	}
@@ -161,37 +176,4 @@ func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, 
 	)
 
 	return nil
-}
-
-func NodesDefinedInTimeWindow(
-	meta special.ClusterMeta,
-	from, to time.Time,
-	verbose bool,
-) (result []*repr.NodeSummary) {
-	theLog, err := db.OpenReadOnlyDB(
-		meta,
-		db.FileListNodeData|db.FileListCardData,
-	)
-	if err != nil {
-		return
-	}
-	ns, err := config.Query(
-		theLog,
-		config.QueryArgs{
-			HaveFrom: true,
-			FromDate: from,
-			HaveTo:   true,
-			ToDate:   to,
-			Verbose:  verbose,
-			Newest:   true,
-		},
-	)
-	if err != nil {
-		return
-	}
-	result = make([]*repr.NodeSummary, 0, len(ns))
-	for _, n := range ns {
-		result = append(result, &n.NodeSummary)
-	}
-	return
 }

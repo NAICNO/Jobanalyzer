@@ -2,11 +2,7 @@ package cluster
 
 import (
 	"slices"
-	_ "time"
 
-	. "sonalyze/common"
-	_ "sonalyze/data/config"
-	_ "sonalyze/db"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
 )
@@ -19,19 +15,16 @@ func NewMetaFromCluster(cluster *special.ClusterEntry) special.ClusterMeta {
 	return &clusterMeta { cluster }
 }
 
+func (tm *clusterMeta) Cluster() *special.ClusterEntry {
+	return tm.cluster
+}
+
 func (tm *clusterMeta) ClusterName() string {
 	return tm.cluster.Name
 }
 
 func (tm *clusterMeta) ExcludedUsers() []string {
 	return tm.cluster.ExcludeUser
-}
-
-func (tm *clusterMeta) LookupHostByTime(host Ustr, t int64) *repr.NodeSummary {
-	if tm.cluster.HaveConfig {
-		return tm.cluster.Config.LookupHost(host.String())
-	}
-	return nil
 }
 
 func (tm *clusterMeta) NodesDefinedInConfigIfAny() []*repr.NodeSummary {
@@ -48,9 +41,21 @@ func (tm *clusterMeta) DataDir() string {
 	return ""
 }
 
-func (tm *clusterMeta) LogFiles() []string {
+func (tm *clusterMeta) HaveLogFilesOfType(dataType special.DataType) bool {
+	return tm.cluster.HaveLogFiles && (tm.cluster.LogFileType == 0 || (dataType & tm.cluster.LogFileType) != 0)
+}
+
+func (tm *clusterMeta) LogFiles(dataType special.DataType) []string {
 	if tm.cluster.HaveLogFiles {
-		return tm.cluster.LogFiles
+		if dataType == 0 {
+			panic("Zero data type")
+		}
+		if tm.cluster.LogFileType == 0 {
+			tm.cluster.LogFileType = dataType
+		}
+		if tm.cluster.LogFileType == dataType {
+			return tm.cluster.LogFiles
+		}
 	}
 	return nil
 }

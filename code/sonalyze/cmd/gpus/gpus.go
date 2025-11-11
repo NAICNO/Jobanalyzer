@@ -10,7 +10,6 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/gpusample"
-	"sonalyze/db"
 	"sonalyze/db/special"
 	. "sonalyze/table"
 )
@@ -99,18 +98,18 @@ type ReportLine struct {
 }
 
 func (gc *GpuCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
-	theLog, err := db.OpenReadOnlyDB(meta, db.FileListGpuSampleData)
-	if err != nil {
-		return err
-	}
-	hostGlobber, err := NewHosts(true, gc.Host)
+	gsd, err := gpusample.OpenGpuSampleDataProvider(meta)
 	if err != nil {
 		return err
 	}
 
+	// TODO: Use standard query interface
+	hostGlobber, err := NewHosts(true, gc.Host)
+	if err != nil {
+		return err
+	}
 	streams, _, read, dropped, err :=
-		gpusample.ReadGpuSamplesByHost(
-			theLog,
+		gsd.Query(
 			gc.FromDate,
 			gc.ToDate,
 			hostGlobber,

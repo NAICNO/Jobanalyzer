@@ -7,7 +7,20 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
+	"sonalyze/db/special"
 )
+
+type SlurmNodeDataProvider struct {
+	theLog db.CluzterDataProvider
+}
+
+func OpenSlurmNodeDataProvider(meta special.ClusterMeta) (*SlurmNodeDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, special.SlurmNodeData)
+	if err != nil {
+		return nil, err
+	}
+	return &SlurmNodeDataProvider{theLog}, nil
+}
 
 // TODO: Various fields here, TBD
 //
@@ -21,8 +34,7 @@ import (
 
 type QueryFilter = common.QueryFilter
 
-func Query(
-	theLog db.CluzterDataProvider,
+func (sdp *SlurmNodeDataProvider) Query(
 	filter QueryFilter,
 	verbose bool,
 ) ([]*repr.CluzterNodes, error) {
@@ -30,7 +42,7 @@ func Query(
 	if err != nil {
 		return nil, err
 	}
-	recordBlobs, _, err := theLog.ReadCluzterNodeData(
+	recordBlobs, _, err := sdp.theLog.ReadCluzterNodeData(
 		filter.FromDate,
 		filter.ToDate,
 		verbose,
