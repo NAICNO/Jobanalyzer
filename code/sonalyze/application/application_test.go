@@ -23,10 +23,10 @@ func testPrimitiveCommand(t *testing.T, command cmd.PrimitiveCommand, fields str
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkTestOutput(t, stdout.String(), fields, expect)
+	checkTestOutput(t, "primitive", stdout.String(), fields, expect)
 }
 
-func testSimpleCommand(t *testing.T, command cmd.SimpleCommand, fields string, expect []string) {
+func testSimpleCommand(t *testing.T, tag string, command cmd.SimpleCommand, fields string, expect []string) {
 	err := command.Validate()
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +41,7 @@ func testSimpleCommand(t *testing.T, command cmd.SimpleCommand, fields string, e
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkTestOutput(t, stdout.String(), fields, expect)
+	checkTestOutput(t, tag+"/simple", stdout.String(), fields, expect)
 }
 
 func testSampleAnalysisCommand(t *testing.T, command cmd.SampleAnalysisCommand, fields string, expect []string) {
@@ -59,20 +59,20 @@ func testSampleAnalysisCommand(t *testing.T, command cmd.SampleAnalysisCommand, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkTestOutput(t, stdout.String(), fields, expect)
+	checkTestOutput(t, "sampleAnalysis", stdout.String(), fields, expect)
 }
 
-func checkTestOutput(t *testing.T, stdout, fields string, expect []string) {
+func checkTestOutput(t *testing.T, tag, stdout, fields string, expect []string) {
 	lines := strings.Split(stdout, "\n")
 	if lines[0] != fields {
-		t.Fatalf("Header: got %s wanted %s", lines[0], fields)
+		t.Fatalf("%s Header: got %s wanted %s", tag, lines[0], fields)
 	}
 	if len(lines) != len(expect)+1 {
-		t.Fatalf("Length: got %d", len(lines))
+		t.Fatalf("%s Length: got %d wanted %d", tag, len(lines), len(expect)+1)
 	}
 	for i, e := range expect {
 		if lines[i+1] != e {
-			t.Fatalf("Line %d:\ngot    %s\nexpect %s", i+1, lines[i+1], e)
+			t.Fatalf("%s Line %d:\ngot    %s\nexpect %s", tag, i+1, lines[i+1], e)
 		}
 	}
 }

@@ -30,5 +30,5 @@ func testitConfigs(t *testing.T, fields string) {
 	var cc configs.ConfigCommand
 	cc.DatabaseArgs.SetConfigFile(configFilename, "cluster1")
 	cc.FormatArgs.Fmt = "csv,header," + fields
-	testSimpleCommand(t, &cc, fields, expect)
+	testSimpleCommand(t, "configs", &cc, fields, expect)
 }
