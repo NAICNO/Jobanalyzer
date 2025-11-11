@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"fmt"
-	"os"
 	"slices"
 
 	"sonalyze/db/repr"
@@ -53,9 +51,6 @@ func (tm *clusterMeta) LogFiles(dataType special.DataType) []string {
 			panic("Zero data type")
 		}
 		if tm.cluster.LogFileType == 0 {
-			if os.Getenv("SONALYZE_LOG") != "" {
-				fmt.Fprintf(os.Stderr, "Setting type to %d\n", dataType)
-			}
 			tm.cluster.LogFileType = dataType
 		}
 		if tm.cluster.LogFileType == dataType {

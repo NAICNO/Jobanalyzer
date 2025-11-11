@@ -218,18 +218,12 @@ func (lf *LogFile) ReadSync(
 
 	if !gotCachedData {
 		var inputFile *os.File
-		if os.Getenv("SONALYZE_LOG") != "" {
-			fmt.Fprintf(os.Stderr, "  Actually reading %s\n", lf.Fullname.String())
-		}
 		inputFile, err = os.Open(lf.Fullname.String())
 		if err != nil {
 			return
 		}
 		defer inputFile.Close()
 		payload, softErrors, err = reader.ReadDataLocked(lf.attrs, inputFile, uf, verbose)
-		if err != nil && os.Getenv("SONALYZE_LOG") != "" {
-			fmt.Fprintf(os.Stderr, "   %s -> %v %v\n", lf.Fullname.String(), err, lf.attrs)
-		}
 		if err != nil {
 			return
 		}

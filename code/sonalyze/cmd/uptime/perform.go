@@ -44,7 +44,6 @@ import (
 	"cmp"
 	"fmt"
 	"io"
-	"os"
 	"slices"
 	"time"
 
@@ -316,9 +315,6 @@ func (uc *UptimeCommand) computeAlwaysDown(
 	fromIncl, toIncl int64,
 ) {
 	if !uc.OnlyUp {
-		if os.Getenv("SONALYZE_LOG") != "" {
-			fmt.Fprintf(os.Stderr, "Always down\n")
-		}
 		hostGlobber := hosts.HostnameGlobber()
 		cdp, err := config.OpenConfigDataProvider(meta)
 		if err != nil {
@@ -329,13 +325,7 @@ func (uc *UptimeCommand) computeAlwaysDown(
 			time.Unix(toIncl, 0).UTC(),
 		)
 		if err != nil {
-			if os.Getenv("SONALYZE_LOG") != "" {
-				fmt.Fprintf(os.Stderr, "Available hosts failed %v\n", err)
-			}
 			return
-		}
-		if os.Getenv("SONALYZE_LOG") != "" {
-			fmt.Fprintf(os.Stderr, "Available hosts %v\n", nodes)
 		}
 
 		hs := make(map[Ustr]bool)

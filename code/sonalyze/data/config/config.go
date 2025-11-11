@@ -5,7 +5,6 @@ package config
 import (
 	"fmt"
 	"math"
-	"os"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -100,10 +99,6 @@ func MaybeOpenConfigDataProvider(meta special.ClusterMeta) *ConfigDataProvider {
 // not be honored in a timely manner.  A static cluster configuration, should it exist, will be
 // consulted only if the information can't be found in the database.
 func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSummary {
-	if os.Getenv("SONALYZE_LOG") != "" {
-		fmt.Fprintf(os.Stderr, "Lookup %v %v\n", host.String(), time.Unix(t, 0).UTC())
-	}
-
 	if !cdp.valid {
 		return nil
 	}
@@ -188,10 +183,6 @@ type QueryArgs struct {
 // hosts that have data in the time range.
 
 func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
-	if os.Getenv("SONALYZE_LOG") != "" {
-		fmt.Fprintf(os.Stderr, "Query %v %v %v\n", qa.Host, qa.FromDate, qa.ToDate)
-	}
-
 	if len(qa.Host) == 0 {
 		hosts, err := cdp.AvailableHosts(qa.FromDate, qa.ToDate)
 		if err != nil {
@@ -250,9 +241,6 @@ func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
 // materialize() is run for each host.
 
 func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) {
-	if os.Getenv("SONALYZE_LOG") != "" {
-		fmt.Fprintf(os.Stderr, "Materialize %v %v %v\n", qa.Host, qa.FromDate, qa.ToDate)
-	}
 	nodes, err := cdp.nodes.Query(
 		node.QueryFilter{
 			HaveFrom: qa.HaveFrom,
@@ -266,9 +254,6 @@ func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)
 	}
-	if os.Getenv("SONALYZE_LOG") != "" {
-		fmt.Fprintf(os.Stderr, " Got nodes %d\n", len(nodes))
-	}
 	cards, err := cdp.cards.Query(
 		card.QueryFilter{
 			HaveFrom: qa.HaveFrom,
@@ -281,9 +266,6 @@ func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) 
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)
-	}
-	if os.Getenv("SONALYZE_LOG") != "" {
-		fmt.Fprintf(os.Stderr, " Got cards %d\n", len(cards))
 	}
 	type joinedData struct {
 		// the time and host are given by node
@@ -347,9 +329,6 @@ func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) 
 			TopoSVG:   r.node.TopoSVG,
 			TopoText:  r.node.TopoText,
 		}
-	}
-	if os.Getenv("SONALYZE_LOG") != "" {
-		fmt.Fprintf(os.Stderr, "  Materialize COMPLETED %v %v %v\n", qa.Host, qa.FromDate, qa.ToDate)
 	}
 	return records, nil
 }
@@ -436,13 +415,6 @@ func (hr *hostInfo) insertLocked(r *NodeConfig) (inserted bool) {
 }
 
 func (hr *hostInfo) getLocked(from int64, to int64) []*NodeConfig {
-	if os.Getenv("SONALYZE_LOG") != "" {
-		fmt.Fprintf(
-			os.Stderr, "getLocked %d %s %d %s\n", from, time.Unix(from, 0), to, time.Unix(to, 0))
-		for _, r := range hr.records {
-			fmt.Fprintf(os.Stderr, "  %d\n", r.Time)
-		}
-	}
 	low := 0
 	for low < len(hr.records) && hr.records[low].Time < from {
 		low++
@@ -465,16 +437,9 @@ func (cdp *ConfigDataProvider) populateCache(qa QueryArgs) error {
 
 	chunks := make([]chunk, 0)
 	for _, workItem := range cdp.computeWorklist(qa) {
-		if os.Getenv("SONALYZE_LOG") != "" {
-			fmt.Fprintf(os.Stderr, "Work item %v %v %v\n", qa.Host, qa.FromDate, qa.ToDate)
-		}
 		records, err := cdp.materialize(workItem)
-		if os.Getenv("SONALYZE_LOG") != "" {
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "  -> failed %v\n", err)
-				return err
-			}
-			fmt.Fprintf(os.Stderr, "  -> %d records\n", len(records))
+		if err != nil {
+			return err
 		}
 		chunks = append(chunks, chunk{workItem, records})
 	}
@@ -498,13 +463,6 @@ func (cdp *ConfigDataProvider) populateCache(qa QueryArgs) error {
 			if perHost.insertLocked(r) {
 				globalOccupancy.Add(1)
 			}
-		}
-	}
-
-	if os.Getenv("SONALYZE_LOG") != "" {
-		fmt.Fprintf(os.Stderr, "Cache occupancy now %d\n", globalOccupancy.Load())
-		for hn, hvs := range perCluster.hostTable {
-			fmt.Fprintf(os.Stderr, "  %s %v\n", hn, hvs)
 		}
 	}
 	return nil
@@ -539,10 +497,6 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 		}
 
 		if fromTime < perHost.oldestScannedTime {
-			if os.Getenv("SONALYZE_LOG") != "" {
-				fmt.Fprintf(os.Stderr, "Adding to worklist for %s because fromTime %v before oldest scanned %v\n",
-					hn, fromTime, perHost.oldestScannedTime)
-			}
 			worklist = append(worklist, QueryArgs{
 				QueryFilter: common.QueryFilter{
 					HaveFrom: true,
@@ -554,10 +508,6 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 			})
 		}
 		if !newRecord && toTime > perHost.youngestRecord && now-perHost.lastScan > oneHour {
-			if os.Getenv("SONALYZE_LOG") != "" {
-				fmt.Fprintf(os.Stderr, "Adding to worklist for %s because toTime %v after youngest %v and one hour passed\n",
-					hn, fromTime, perHost.youngestRecord)
-			}
 			worklist = append(worklist, QueryArgs{
 				QueryFilter: common.QueryFilter{
 					HaveFrom: true,
