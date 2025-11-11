@@ -10,6 +10,14 @@ import (
 	"sonalyze/db/repr"
 )
 
+// Common semantics:
+//
+// - FromDate and ToDate are always valid, defaulted if necessary, as appropriate for each command
+// - HaveFrom and HaveTo are informational and are set iff the dates were provided explicitly
+// - Hosts may be empty, and if so it always means "all hosts"
+//
+// Also see comment block below.
+
 type QueryFilter struct {
 	HaveFrom bool // FromDate was user input, not default; see below
 	FromDate time.Time
@@ -34,7 +42,7 @@ func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
 	// ingested in the window may be timestamped outside the window).  If the from/to dates are not
 	// given explicitly, then we do not filter by date *except* we discard records whose timestamp
 	// is invalid.  Also see application/local.go, which has a private copy of the same (ancient)
-	// code.
+	// code.  Also see common invariants above.
 
 	var scanFrom int64 = 0
 	if filter.HaveFrom {
