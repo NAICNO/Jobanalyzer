@@ -3,7 +3,7 @@ This is a small program that runs sonar repeatedly with sensible options for a g
 There is some documentation about how to use this in [the sonalyze manual](../sonalyze/MANUAL.md),
 look for the section "CRUDE, HIGH-LEVEL PROFILING".
 
-Additionally, an email sent to a colleague:
+Additionally, an email sent to a colleague, slightly updated:
 
 De verktøyene vi har er bygget rundt en sampler (sonar, opprinnelig fra Radovan Bast ved UiT) og en
 analysepakke (jobanalyzer, fra NAIC).  Normalt kjøres sonar via cron eller systemd på hver node ca
@@ -39,10 +39,10 @@ Det du skal gjøre er å kjøre `sonard` i bakgrunnen mens du kjører applikasjo
 kjøre sonar og vil lagre sample-data i en fil du spesifiserer.  Du kan deretter analysere de dataene
 med `sonalyze`.
 
-I utganspunktet (sample hvert sekund):
+I utgangspunktet (sample hvert sekund), merk at det er VIKTIG at filnavnet begynner med "0+sample-":
 
 ```
-  $ sonard/sonard -i 1 -m 0 -s ../../sonar/target/release/sonar my-samples.csv &
+  $ sonard/sonard -i 1 -m 0 -s ../../sonar/target/release/sonar 0+sample-my-samples.json &
 ```
 
 og deretter kjører du programmet ditt
@@ -60,7 +60,7 @@ og til slutt kan du avslutte samplingen:
 og deretter kjøre analyse av loggen, fx
 
 ```
-  $ sonalyze/sonalyze jobs -- my-samples.csv
+  $ sonalyze/sonalyze jobs -- 0+sample-my-samples.json
 ```
 
 Sonalyze har mange muligheter for spørring og formattering og datautvalk, du kan fx få en profil av

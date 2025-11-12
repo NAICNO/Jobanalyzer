@@ -695,11 +695,12 @@ a cloud platform or VM, perhaps) or sonar ran with insufficient resolution to al
 diagnosed.
 
 In this case, we run sonar in the background while the job is running to collect appropriate
-samples, here the interval (`-i`) is 30s instead of the sonar default of 5m and we tell the script where
-to find sonar and where to store the output:
+samples, here the interval (`-i`) is 30s instead of the sonar default of 5m and we tell the script
+where to find sonar and where to store the output, note it is **IMPORTANT** that the file name start
+with "0+sample-" as the content type is sniffed from the name:
 
 ```
-$ .../Jobanalyzer/sonard/sonard -i 30 -s .../sonar/target/release/sonar my-logfile.csv &
+$ .../Jobanalyzer/sonard/sonard -i 30 -s .../sonar/target/release/sonar 0+sample-my-logfile.json &
 ```
 
 While that is running, run the job:
@@ -714,7 +715,7 @@ $ pkill sonard
 
 Now analyze that log:
 ```
-$ sonalyze profile -j <job-number> -- my-logfile.csv
+$ sonalyze profile -j <job-number> -- 0+sample-my-logfile.json
 ```
 
 Sonar runs in about 100ms; the smallest sensible interval is probably in the vicinity of 5s, but in
