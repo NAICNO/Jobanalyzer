@@ -26,7 +26,7 @@ const jobResponseSchemaResponseTransformer = (data: any) => {
   return data
 }
 
-const partitionResponseOutputSchemaResponseTransformer = (data: any) => {
+const partitionResponseSchemaResponseTransformer = (data: any) => {
   data.time = new Date(data.time)
   data.jobs_pending = data.jobs_pending.map((item: any) => {
     return jobResponseSchemaResponseTransformer(item)
@@ -40,7 +40,7 @@ const partitionResponseOutputSchemaResponseTransformer = (data: any) => {
 
 export const getClusterByClusterPartitionsResponseTransformer = async (data: any): Promise<GetClusterByClusterPartitionsResponse> => {
   data = data.map((item: any) => {
-    return partitionResponseOutputSchemaResponseTransformer(item)
+    return partitionResponseSchemaResponseTransformer(item)
   })
   return data
 }
