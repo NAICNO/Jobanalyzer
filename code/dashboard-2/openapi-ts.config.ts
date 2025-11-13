@@ -15,6 +15,7 @@ export default defineConfig({
       name: '@hey-api/sdk',
       // Use operationId to drive function names
       operationId: false,
+      transformer: true,
     },
     '@hey-api/client-axios',
     {
