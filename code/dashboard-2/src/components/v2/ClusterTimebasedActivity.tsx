@@ -9,48 +9,63 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import type { SampleGpuTimeseriesResponse, SampleProcessAccResponse } from '../../client'
 
+// Time configuration constants (in seconds)
+const TIME_WINDOW = 24 * 60 * 60 // 24 hours
+const DATA_RESOLUTION = 3600 // 1 hour
+const QUERY_REFRESH_INTERVAL = 5 * 60 // 5 minutes
+const STALE_TIME_MS = 5 * 60 * 1000 // 5 minutes in milliseconds
+const GC_TIME_MS = 10 * 60 * 1000 // 10 minutes in milliseconds
+
 interface Props {
   cluster: string
 }
 
 export const ClusterTimebasedActivity = ({cluster}: Props) => {
-  const now = Math.floor(Date.now() / 1000)
-  const last24h = now - (24 * 60 * 60)
+  // Round to nearest QUERY_REFRESH_INTERVAL to prevent constant refetching
+  // This creates stable query keys while still keeping data relatively fresh
+  const now = Math.floor(Date.now() / 1000 / QUERY_REFRESH_INTERVAL) * QUERY_REFRESH_INTERVAL
+  const startTime = now - TIME_WINDOW
 
   const gpuTimeseriesQ = useQuery({
     ...getClusterByClusterNodesGpuTimeseriesOptions({
       path: {cluster},
       query: {
-        start_time_in_s: last24h,
+        start_time_in_s: startTime,
         end_time_in_s: now,
-        resolution_in_s: 3600, // 1 hour resolution
+        resolution_in_s: DATA_RESOLUTION,
       },
     }),
     enabled: !!cluster,
+    staleTime: STALE_TIME_MS,
+    gcTime: GC_TIME_MS,
   })
 
   const cpuTimeseriesQ = useQuery({
     ...getClusterByClusterNodesCpuTimeseriesOptions({
       path: {cluster},
       query: {
-        start_time_in_s: last24h,
+        start_time_in_s: startTime,
         end_time_in_s: now,
-        resolution_in_s: 3600,
+        resolution_in_s: DATA_RESOLUTION,
       },
     }),
     enabled: !!cluster,
+    staleTime: STALE_TIME_MS,
+    gcTime: GC_TIME_MS,
   })
 
   const memoryTimeseriesQ = useQuery({
     ...getClusterByClusterNodesMemoryTimeseriesOptions({
       path: {cluster},
       query: {
-        start_time_in_s: last24h,
+        start_time_in_s: startTime,
         end_time_in_s: now,
-        resolution_in_s: 3600,
+        resolution_in_s: DATA_RESOLUTION,
       },
     }),
     enabled: !!cluster,
+    staleTime: STALE_TIME_MS,
+    gcTime: GC_TIME_MS,
   })
 
   const gpuData = (gpuTimeseriesQ.data ?? {}) as Record<string, Array<SampleGpuTimeseriesResponse>>
@@ -87,7 +102,8 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
       for (const gpuTimeseries of gpuArrays) {
         if (Array.isArray(gpuTimeseries.data)) {
           for (const sample of gpuTimeseries.data) {
-            const ts = sample.time.getTime() / 1000
+            // Convert ISO 8601 string to timestamp
+            const ts = new Date(sample.time).getTime() / 1000
             const util = sample.ce_util ?? 0
 
             if (!gpuTimestampMap.has(ts)) {
@@ -104,25 +120,49 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
     }
   }
 
+  // Convert GPU data to chart data
+  for (const [ts, data] of Array.from(gpuTimestampMap.entries()).sort((a, b) => a[0] - b[0])) {
+    const date = new Date(ts * 1000)
+    gpuTimeSeriesData.push({
+      time: date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
+      avgUtil: Math.round(data.totalUtil / data.count),
+      maxUtil: Math.round(data.maxUtil),
+      gpuCount: data.count,
+    })
+  }
+
   // Aggregate CPU by timestamp
-  const cpuTimestampMap = new Map<number, { totalUtil: number; maxUtil: number; count: number }>()
+  const cpuTimestampMap = new Map<number, { sumUtil: number; maxUtil: number; count: number }>()
 
   for (const samples of Object.values(cpuData)) {
     if (Array.isArray(samples)) {
       for (const sample of samples) {
-        const ts = sample.time.getTime() / 1000
-        const util = sample.cpu_util ?? 0
+        // Convert ISO 8601 string to timestamp
+        const ts = new Date(sample.time).getTime() / 1000
+        // cpu_util represents total CPU usage across all cores (e.g., 35737% = 357 full CPUs)
+        // Divide by 100 to get "equivalent full CPUs" as a more readable metric
+        const util = (sample.cpu_util ?? 0) / 100
 
         if (!cpuTimestampMap.has(ts)) {
-          cpuTimestampMap.set(ts, {totalUtil: 0, maxUtil: 0, count: 0})
+          cpuTimestampMap.set(ts, {sumUtil: 0, maxUtil: 0, count: 0})
         }
 
         const entry = cpuTimestampMap.get(ts)!
-        entry.totalUtil += util
+        entry.sumUtil += util
         entry.maxUtil = Math.max(entry.maxUtil, util)
         entry.count++
       }
     }
+  }
+
+  // Convert CPU data to chart data
+  for (const [ts, data] of Array.from(cpuTimestampMap.entries()).sort((a, b) => a[0] - b[0])) {
+    const date = new Date(ts * 1000)
+    cpuTimeSeriesData.push({
+      time: date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
+      avgUtil: data.count > 0 ? Math.round((data.sumUtil / data.count) * 10) / 10 : 0,
+      maxUtil: Math.round(data.maxUtil * 10) / 10,
+    })
   }
 
   // Aggregate Memory by timestamp
@@ -131,7 +171,8 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
   for (const samples of Object.values(memoryData)) {
     if (Array.isArray(samples)) {
       for (const sample of samples) {
-        const ts = sample.time.getTime() / 1000
+        // Convert ISO 8601 string to timestamp
+        const ts = new Date(sample.time).getTime() / 1000
         const util = sample.memory_util ?? 0
 
         if (!memoryTimestampMap.has(ts)) {
@@ -146,26 +187,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
     }
   }
 
-  // Convert to chart data
-  for (const [ts, data] of Array.from(gpuTimestampMap.entries()).sort((a, b) => a[0] - b[0])) {
-    const date = new Date(ts * 1000)
-    gpuTimeSeriesData.push({
-      time: date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
-      avgUtil: Math.round(data.totalUtil / data.count),
-      maxUtil: Math.round(data.maxUtil),
-      gpuCount: data.count,
-    })
-  }
-
-  for (const [ts, data] of Array.from(cpuTimestampMap.entries()).sort((a, b) => a[0] - b[0])) {
-    const date = new Date(ts * 1000)
-    cpuTimeSeriesData.push({
-      time: date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
-      avgUtil: Math.round(data.totalUtil / data.count),
-      maxUtil: Math.round(data.maxUtil),
-    })
-  }
-
+  // Convert Memory data to chart data
   for (const [ts, data] of Array.from(memoryTimestampMap.entries()).sort((a, b) => a[0] - b[0])) {
     const date = new Date(ts * 1000)
     memoryTimeSeriesData.push({
@@ -260,9 +282,9 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
                     interval="preserveStartEnd"
                   />
                   <YAxis
-                    domain={[0, 100]}
+                    domain={[0, 'auto']}
                     tick={{fontSize: 10}}
-                    label={{value: 'CPU Util %', angle: -90, position: 'insideLeft', style: {fontSize: 10}}}
+                    label={{value: 'CPU (Full Cores)', angle: -90, position: 'insideLeft', style: {fontSize: 10}}}
                   />
                   <Tooltip
                     contentStyle={{fontSize: 12}}

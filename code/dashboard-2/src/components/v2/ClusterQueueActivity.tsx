@@ -1,8 +1,11 @@
-import { VStack, HStack, Text, SimpleGrid, Box, Table, Tag, Stat, Badge } from '@chakra-ui/react'
+import { VStack, HStack, Text, SimpleGrid, Box, Stat, Badge } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
+import { AgGridReact } from 'ag-grid-react'
+import type { ColDef, ICellRendererParams } from 'ag-grid-community'
+import { themeQuartz } from 'ag-grid-community'
 
 import { getClusterByClusterPartitionsOptions } from '../../client/@tanstack/react-query.gen'
-import type { PartitionResponseOutput } from '../../client'
+import type { PartitionResponse } from '../../client'
 
 interface Props {
   cluster: string
@@ -14,8 +17,7 @@ export const ClusterQueueActivity = ({ cluster }: Props) => {
     enabled: !!cluster,
   })
 
-  const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponseOutput>
-  const partitions = Object.values(partitionsMap)
+  const partitions = (partitionsQ.data ?? []) as PartitionResponse[]
 
   // Aggregate job counts across all partitions
   let totalRunning = 0
@@ -26,7 +28,7 @@ export const ClusterQueueActivity = ({ cluster }: Props) => {
   for (const partition of partitions) {
     const runningJobs = partition.jobs_running ?? []
     const pendingJobs = partition.jobs_pending ?? []
-    
+
     totalRunning += runningJobs.length
     totalPending += pendingJobs.length
 
@@ -63,17 +65,131 @@ export const ClusterQueueActivity = ({ cluster }: Props) => {
       total: counts.running + counts.pending
     }))
     .sort((a, b) => b.total - a.total)
-    .slice(0, 10)
 
   // Sort partitions by total jobs
   const sortedPartitions = jobsByPartition
     .map(p => ({ ...p, total: p.running + p.pending }))
     .sort((a, b) => b.total - a.total)
-    .slice(0, 10)
 
   // Calculate trends (mock for now - would need historical data)
   const runningTrend = totalRunning > 0 ? 'up' : 'neutral'
   const pendingTrend = totalPending > 10 ? 'up' : totalPending > 0 ? 'neutral' : 'down'
+
+  // Cell renderer for running jobs (green badge)
+  const runningCellRenderer = (params: ICellRendererParams) => {
+    return (
+      <span style={{
+        display: 'inline-block',
+        padding: '0.5px 8px',
+        backgroundColor: '#22c55e',
+        color: 'white',
+        borderRadius: '4px',
+        fontSize: '12px',
+        fontWeight: '500'
+      }}>
+        {params.value}
+      </span>
+    )
+  }
+
+  // Cell renderer for pending jobs (orange badge)
+  const pendingCellRenderer = (params: ICellRendererParams) => {
+    return (
+      <span style={{
+        display: 'inline-block',
+        padding: '0.5px 8px',
+        backgroundColor: '#f97316',
+        color: 'white',
+        borderRadius: '4px',
+        fontSize: '12px',
+        fontWeight: '500'
+      }}>
+        {params.value}
+      </span>
+    )
+  }
+
+  // Cell renderer for total (bold)
+  const totalCellRenderer = (params: ICellRendererParams) => {
+    return <span style={{ fontWeight: '600' }}>{params.value}</span>
+  }
+
+  // AG Grid column definitions
+  const partitionColumns: ColDef[] = [
+    {
+      field: 'partition',
+      headerName: 'Partition',
+      flex: 2,
+      sortable: true,
+      filter: true,
+      cellStyle: { fontWeight: '500' }
+    },
+    { 
+      field: 'running', 
+      headerName: 'Running', 
+      flex: 1, 
+      sortable: true, 
+      type: 'numericColumn',
+      cellRenderer: runningCellRenderer,
+      cellStyle: { textAlign: 'center' }
+    },
+    { 
+      field: 'pending', 
+      headerName: 'Pending', 
+      flex: 1, 
+      sortable: true, 
+      type: 'numericColumn',
+      cellRenderer: pendingCellRenderer,
+      cellStyle: { textAlign: 'center' }
+    },
+    { 
+      field: 'total', 
+      headerName: 'Total', 
+      flex: 1, 
+      sortable: true, 
+      type: 'numericColumn',
+      cellRenderer: totalCellRenderer,
+      cellStyle: { textAlign: 'center' }
+    }
+  ]
+
+  const userColumns: ColDef[] = [
+    { 
+      field: 'user', 
+      headerName: 'User', 
+      flex: 2, 
+      sortable: true, 
+      filter: true,
+      cellStyle: { fontWeight: '500' }
+    },
+    { 
+      field: 'running', 
+      headerName: 'Running', 
+      flex: 1, 
+      sortable: true, 
+      type: 'numericColumn',
+      cellRenderer: runningCellRenderer,
+      cellStyle: { textAlign: 'center' }
+    },
+    { 
+      field: 'pending', 
+      headerName: 'Pending', 
+      flex: 1, 
+      sortable: true, 
+      type: 'numericColumn',
+      cellRenderer: pendingCellRenderer,
+      cellStyle: { textAlign: 'center' }
+    },
+    { 
+      field: 'total', 
+      headerName: 'Total', 
+      flex: 1, 
+      sortable: true, 
+      type: 'numericColumn',
+      cellRenderer: totalCellRenderer,
+      cellStyle: { textAlign: 'center' }
+    }
+  ]
 
   return (
     <VStack w="100%" align="start" gap={4}>
@@ -138,45 +254,18 @@ export const ClusterQueueActivity = ({ cluster }: Props) => {
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <VStack align="start" gap={2} w="100%">
             <Text fontSize="sm" fontWeight="semibold" color="gray.700">Jobs by Partition</Text>
-            <Box w="100%" maxH="300px" overflowY="auto">
-              <Table.Root size="sm" variant="outline">
-                <Table.Header>
-                  <Table.Row bg="gray.50">
-                    <Table.ColumnHeader fontSize="xs">Partition</Table.ColumnHeader>
-                    <Table.ColumnHeader fontSize="xs" textAlign="center">Running</Table.ColumnHeader>
-                    <Table.ColumnHeader fontSize="xs" textAlign="center">Pending</Table.ColumnHeader>
-                    <Table.ColumnHeader fontSize="xs" textAlign="center">Total</Table.ColumnHeader>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {sortedPartitions.length === 0 ? (
-                    <Table.Row>
-                      <Table.Cell colSpan={4}>
-                        <Text fontSize="xs" color="gray.500" textAlign="center">No partition data</Text>
-                      </Table.Cell>
-                    </Table.Row>
-                  ) : (
-                    sortedPartitions.map((p) => (
-                      <Table.Row key={p.partition}>
-                        <Table.Cell fontSize="xs" fontWeight="medium">{p.partition}</Table.Cell>
-                        <Table.Cell fontSize="xs" textAlign="center">
-                          <Tag.Root size="sm" colorPalette="green">
-                            <Tag.Label>{p.running}</Tag.Label>
-                          </Tag.Root>
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs" textAlign="center">
-                          <Tag.Root size="sm" colorPalette="orange">
-                            <Tag.Label>{p.pending}</Tag.Label>
-                          </Tag.Root>
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs" textAlign="center" fontWeight="semibold">
-                          {p.total}
-                        </Table.Cell>
-                      </Table.Row>
-                    ))
-                  )}
-                </Table.Body>
-              </Table.Root>
+            <Box w="100%" h="300px">
+              <AgGridReact
+                theme={themeQuartz}
+                rowData={sortedPartitions}
+                columnDefs={partitionColumns}
+                defaultColDef={{
+                  resizable: true,
+                  sortable: true,
+                }}
+                domLayout="normal"
+                suppressCellFocus
+              />
             </Box>
           </VStack>
         </Box>
@@ -185,45 +274,18 @@ export const ClusterQueueActivity = ({ cluster }: Props) => {
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <VStack align="start" gap={2} w="100%">
             <Text fontSize="sm" fontWeight="semibold" color="gray.700">Top Users (by total jobs)</Text>
-            <Box w="100%" maxH="300px" overflowY="auto">
-              <Table.Root size="sm" variant="outline">
-                <Table.Header>
-                  <Table.Row bg="gray.50">
-                    <Table.ColumnHeader fontSize="xs">User</Table.ColumnHeader>
-                    <Table.ColumnHeader fontSize="xs" textAlign="center">Running</Table.ColumnHeader>
-                    <Table.ColumnHeader fontSize="xs" textAlign="center">Pending</Table.ColumnHeader>
-                    <Table.ColumnHeader fontSize="xs" textAlign="center">Total</Table.ColumnHeader>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {topUsers.length === 0 ? (
-                    <Table.Row>
-                      <Table.Cell colSpan={4}>
-                        <Text fontSize="xs" color="gray.500" textAlign="center">No user data</Text>
-                      </Table.Cell>
-                    </Table.Row>
-                  ) : (
-                    topUsers.map((u) => (
-                      <Table.Row key={u.user}>
-                        <Table.Cell fontSize="xs" fontWeight="medium">{u.user}</Table.Cell>
-                        <Table.Cell fontSize="xs" textAlign="center">
-                          <Tag.Root size="sm" colorPalette="green">
-                            <Tag.Label>{u.running}</Tag.Label>
-                          </Tag.Root>
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs" textAlign="center">
-                          <Tag.Root size="sm" colorPalette="orange">
-                            <Tag.Label>{u.pending}</Tag.Label>
-                          </Tag.Root>
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs" textAlign="center" fontWeight="semibold">
-                          {u.total}
-                        </Table.Cell>
-                      </Table.Row>
-                    ))
-                  )}
-                </Table.Body>
-              </Table.Root>
+            <Box w="100%" h="300px">
+              <AgGridReact
+                theme={themeQuartz}
+                rowData={topUsers}
+                columnDefs={userColumns}
+                defaultColDef={{
+                  resizable: true,
+                  sortable: true,
+                }}
+                domLayout="normal"
+                suppressCellFocus
+              />
             </Box>
           </VStack>
         </Box>

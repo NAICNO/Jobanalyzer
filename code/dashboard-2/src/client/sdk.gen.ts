@@ -3,6 +3,7 @@
 import type { Options as ClientOptions, TDataShape, Client } from './client'
 import type { GetData, GetResponses, GetClearCacheData, GetClearCacheResponses, GetClusterData, GetClusterResponses, GetClusterErrors, GetClusterByClusterPartitionsData, GetClusterByClusterPartitionsResponses, GetClusterByClusterPartitionsErrors, GetClusterByClusterNodesData, GetClusterByClusterNodesResponses, GetClusterByClusterNodesErrors, GetClusterByClusterNodesByNodenameErrorMessagesData, GetClusterByClusterNodesByNodenameErrorMessagesResponses, GetClusterByClusterNodesByNodenameErrorMessagesErrors, GetClusterByClusterErrorMessagesData, GetClusterByClusterErrorMessagesResponses, GetClusterByClusterErrorMessagesErrors, GetClusterByClusterNodesByNodenameInfoData, GetClusterByClusterNodesByNodenameInfoResponses, GetClusterByClusterNodesByNodenameInfoErrors, GetClusterByClusterNodesInfoData, GetClusterByClusterNodesInfoResponses, GetClusterByClusterNodesInfoErrors, GetClusterByClusterNodesByNodenameStatesData, GetClusterByClusterNodesByNodenameStatesResponses, GetClusterByClusterNodesByNodenameStatesErrors, GetClusterByClusterNodesStatesData, GetClusterByClusterNodesStatesResponses, GetClusterByClusterNodesStatesErrors, GetClusterByClusterNodesByNodenameTopologyData, GetClusterByClusterNodesByNodenameTopologyResponses, GetClusterByClusterNodesByNodenameTopologyErrors, GetClusterByClusterNodesLastProbeTimestampData, GetClusterByClusterNodesLastProbeTimestampResponses, GetClusterByClusterNodesLastProbeTimestampErrors, GetClusterByClusterNodesProcessGpuUtilData, GetClusterByClusterNodesProcessGpuUtilResponses, GetClusterByClusterNodesProcessGpuUtilErrors, GetClusterByClusterNodesByNodenameProcessGpuUtilData, GetClusterByClusterNodesByNodenameProcessGpuUtilResponses, GetClusterByClusterNodesByNodenameProcessGpuUtilErrors, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesErrors, GetClusterByClusterNodesProcessGpuTimeseriesData, GetClusterByClusterNodesProcessGpuTimeseriesResponses, GetClusterByClusterNodesProcessGpuTimeseriesErrors, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesErrors, GetClusterByClusterJobsByJobIdProcessTimeseriesData, GetClusterByClusterJobsByJobIdProcessTimeseriesResponses, GetClusterByClusterJobsByJobIdProcessTimeseriesErrors, GetClusterByClusterJobsProcessTimeseriesData, GetClusterByClusterJobsProcessTimeseriesResponses, GetClusterByClusterJobsProcessTimeseriesErrors, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors, GetClusterByClusterJobsProcessGpuTimeseriesData, GetClusterByClusterJobsProcessGpuTimeseriesResponses, GetClusterByClusterJobsProcessGpuTimeseriesErrors, GetClusterByClusterNodesMemoryTimeseriesData, GetClusterByClusterNodesMemoryTimeseriesResponses, GetClusterByClusterNodesMemoryTimeseriesErrors, GetClusterByClusterNodesByNodenameMemoryTimeseriesData, GetClusterByClusterNodesByNodenameMemoryTimeseriesResponses, GetClusterByClusterNodesByNodenameMemoryTimeseriesErrors, GetClusterByClusterNodesCpuTimeseriesData, GetClusterByClusterNodesCpuTimeseriesResponses, GetClusterByClusterNodesCpuTimeseriesErrors, GetClusterByClusterNodesByNodenameCpuTimeseriesData, GetClusterByClusterNodesByNodenameCpuTimeseriesResponses, GetClusterByClusterNodesByNodenameCpuTimeseriesErrors, GetClusterByClusterNodesGpuTimeseriesData, GetClusterByClusterNodesGpuTimeseriesResponses, GetClusterByClusterNodesGpuTimeseriesErrors, GetClusterByClusterNodesByNodenameGpuTimeseriesData, GetClusterByClusterNodesByNodenameGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameGpuTimeseriesErrors, GetClusterByClusterJobsData, GetClusterByClusterJobsResponses, GetClusterByClusterJobsErrors, GetClusterByClusterJobsByJobIdEpochByEpochInfoData, GetClusterByClusterJobsByJobIdEpochByEpochInfoResponses, GetClusterByClusterJobsByJobIdEpochByEpochInfoErrors, GetClusterByClusterJobsByJobIdEpochByEpochData, GetClusterByClusterJobsByJobIdEpochByEpochResponses, GetClusterByClusterJobsByJobIdEpochByEpochErrors, GetClusterByClusterJobsByJobIdInfoData, GetClusterByClusterJobsByJobIdInfoResponses, GetClusterByClusterJobsByJobIdInfoErrors, GetClusterByClusterJobsByJobIdData, GetClusterByClusterJobsByJobIdResponses, GetClusterByClusterJobsByJobIdErrors, GetClusterByClusterJobsQueryData, GetClusterByClusterJobsQueryResponses, GetClusterByClusterJobsQueryErrors, GetJobqueryData, GetJobqueryResponses, GetJobqueryErrors, GetJobprofileData, GetJobprofileResponses, GetJobprofileErrors, GetClusterByClusterQueriesData, GetClusterByClusterQueriesResponses, GetClusterByClusterQueriesErrors, GetClusterByClusterQueriesByQueryNameData, GetClusterByClusterQueriesByQueryNameResponses, GetClusterByClusterQueriesByQueryNameErrors, GetClusterByClusterBenchmarksByBenchmarkNameData, GetClusterByClusterBenchmarksByBenchmarkNameResponses, GetClusterByClusterBenchmarksByBenchmarkNameErrors } from './types.gen'
 import { client as _heyApiClient } from './client.gen'
+import { getClusterResponseTransformer, getClusterByClusterPartitionsResponseTransformer, getClusterByClusterNodesByNodenameStatesResponseTransformer, getClusterByClusterNodesStatesResponseTransformer, getClusterByClusterJobsResponseTransformer, getClusterByClusterJobsByJobIdEpochByEpochInfoResponseTransformer, getClusterByClusterJobsByJobIdEpochByEpochResponseTransformer, getClusterByClusterJobsByJobIdInfoResponseTransformer, getClusterByClusterJobsByJobIdResponseTransformer } from './transformers.gen'
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = ClientOptions<TData, ThrowOnError> & {
     /**
@@ -46,6 +47,7 @@ export const getClearCache = <ThrowOnError extends boolean = false>(options?: Op
  */
 export const getCluster = <ThrowOnError extends boolean = false>(options?: Options<GetClusterData, ThrowOnError>) => {
   return (options?.client ?? _heyApiClient).get<GetClusterResponses, GetClusterErrors, ThrowOnError>({
+    responseTransformer: getClusterResponseTransformer,
     responseType: 'json',
     url: '/cluster',
     ...options
@@ -58,6 +60,7 @@ export const getCluster = <ThrowOnError extends boolean = false>(options?: Optio
  */
 export const getClusterByClusterPartitions = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterPartitionsData, ThrowOnError>) => {
   return (options.client ?? _heyApiClient).get<GetClusterByClusterPartitionsResponses, GetClusterByClusterPartitionsErrors, ThrowOnError>({
+    responseTransformer: getClusterByClusterPartitionsResponseTransformer,
     responseType: 'json',
     url: '/cluster/{cluster}/partitions',
     ...options
@@ -138,6 +141,7 @@ export const getClusterByClusterNodesInfo = <ThrowOnError extends boolean = fals
  */
 export const getClusterByClusterNodesByNodenameStates = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameStatesData, ThrowOnError>) => {
   return (options.client ?? _heyApiClient).get<GetClusterByClusterNodesByNodenameStatesResponses, GetClusterByClusterNodesByNodenameStatesErrors, ThrowOnError>({
+    responseTransformer: getClusterByClusterNodesByNodenameStatesResponseTransformer,
     responseType: 'json',
     url: '/cluster/{cluster}/nodes/{nodename}/states',
     ...options
@@ -150,6 +154,7 @@ export const getClusterByClusterNodesByNodenameStates = <ThrowOnError extends bo
  */
 export const getClusterByClusterNodesStates = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesStatesData, ThrowOnError>) => {
   return (options.client ?? _heyApiClient).get<GetClusterByClusterNodesStatesResponses, GetClusterByClusterNodesStatesErrors, ThrowOnError>({
+    responseTransformer: getClusterByClusterNodesStatesResponseTransformer,
     responseType: 'json',
     url: '/cluster/{cluster}/nodes/states',
     ...options
@@ -429,6 +434,7 @@ export const getClusterByClusterNodesByNodenameGpuTimeseries = <ThrowOnError ext
  */
 export const getClusterByClusterJobs = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsData, ThrowOnError>) => {
   return (options.client ?? _heyApiClient).get<GetClusterByClusterJobsResponses, GetClusterByClusterJobsErrors, ThrowOnError>({
+    responseTransformer: getClusterByClusterJobsResponseTransformer,
     responseType: 'json',
     url: '/cluster/{cluster}/jobs',
     ...options
@@ -441,6 +447,7 @@ export const getClusterByClusterJobs = <ThrowOnError extends boolean = false>(op
  */
 export const getClusterByClusterJobsByJobIdEpochByEpochInfo = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdEpochByEpochInfoData, ThrowOnError>) => {
   return (options.client ?? _heyApiClient).get<GetClusterByClusterJobsByJobIdEpochByEpochInfoResponses, GetClusterByClusterJobsByJobIdEpochByEpochInfoErrors, ThrowOnError>({
+    responseTransformer: getClusterByClusterJobsByJobIdEpochByEpochInfoResponseTransformer,
     responseType: 'json',
     url: '/cluster/{cluster}/jobs/{job_id}/epoch/{epoch}/info',
     ...options,
@@ -457,6 +464,7 @@ export const getClusterByClusterJobsByJobIdEpochByEpochInfo = <ThrowOnError exte
  */
 export const getClusterByClusterJobsByJobIdEpochByEpoch = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdEpochByEpochData, ThrowOnError>) => {
   return (options.client ?? _heyApiClient).get<GetClusterByClusterJobsByJobIdEpochByEpochResponses, GetClusterByClusterJobsByJobIdEpochByEpochErrors, ThrowOnError>({
+    responseTransformer: getClusterByClusterJobsByJobIdEpochByEpochResponseTransformer,
     responseType: 'json',
     url: '/cluster/{cluster}/jobs/{job_id}/epoch/{epoch}',
     ...options,
@@ -473,6 +481,7 @@ export const getClusterByClusterJobsByJobIdEpochByEpoch = <ThrowOnError extends 
  */
 export const getClusterByClusterJobsByJobIdInfo = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdInfoData, ThrowOnError>) => {
   return (options.client ?? _heyApiClient).get<GetClusterByClusterJobsByJobIdInfoResponses, GetClusterByClusterJobsByJobIdInfoErrors, ThrowOnError>({
+    responseTransformer: getClusterByClusterJobsByJobIdInfoResponseTransformer,
     responseType: 'json',
     url: '/cluster/{cluster}/jobs/{job_id}/info',
     ...options,
@@ -489,6 +498,7 @@ export const getClusterByClusterJobsByJobIdInfo = <ThrowOnError extends boolean 
  */
 export const getClusterByClusterJobsByJobId = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdData, ThrowOnError>) => {
   return (options.client ?? _heyApiClient).get<GetClusterByClusterJobsByJobIdResponses, GetClusterByClusterJobsByJobIdErrors, ThrowOnError>({
+    responseTransformer: getClusterByClusterJobsByJobIdResponseTransformer,
     responseType: 'json',
     url: '/cluster/{cluster}/jobs/{job_id}',
     ...options,
