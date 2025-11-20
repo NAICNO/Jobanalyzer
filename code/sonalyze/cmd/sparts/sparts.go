@@ -9,7 +9,7 @@ import (
 
 	. "sonalyze/cmd"
 	"sonalyze/data/slurmpart"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -80,7 +80,7 @@ func (nc *SpartCommand) ReifyForRemote(x *ArgReifier) error {
 	)
 }
 
-func (nc *SpartCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+func (nc *SpartCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io.Writer) error {
 	spd, err := slurmpart.OpenSlurmPartitionDataProvider(meta)
 	if err != nil {
 		return err

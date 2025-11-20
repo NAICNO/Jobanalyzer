@@ -6,7 +6,7 @@ import (
 
 	"sonalyze/cmd"
 	"sonalyze/cmd/parse"
-	"sonalyze/db/special"
+	"sonalyze/db"
 )
 
 // Basic unit test that all field names are working in the printer.  The input record has all the
@@ -62,9 +62,9 @@ func mockitParse(t *testing.T, fields string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer special.CloseDataStore()
+	defer db.CloseDataStore()
 	var stdout, stderr strings.Builder
-	err = LocalSampleOperation(cmd.NewMetaFromCommand(&pc), &pc, nil, &stdout, &stderr)
+	err = LocalSampleOperation(cmd.NewContextFromCommand(&pc), &pc, nil, &stdout, &stderr)
 	if err != nil {
 		t.Fatal(err)
 	}

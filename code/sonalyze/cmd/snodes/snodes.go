@@ -9,7 +9,7 @@ import (
 
 	. "sonalyze/cmd"
 	"sonalyze/data/slurmnode"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -78,7 +78,7 @@ func (nc *SnodeCommand) ReifyForRemote(x *ArgReifier) error {
 	)
 }
 
-func (nc *SnodeCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+func (nc *SnodeCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io.Writer) error {
 	sdp, err := slurmnode.OpenSlurmNodeDataProvider(meta)
 	if err != nil {
 		return err

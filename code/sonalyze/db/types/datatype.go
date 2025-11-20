@@ -1,4 +1,4 @@
-package special
+package types
 
 // Since the database can be opened on various storage media (a proper database, a directory tree, a
 // file list) and not all media can supply all data types (for example a file list supplies only a
@@ -12,7 +12,7 @@ package special
 // node, and partition data.
 //
 // The data type is independent of the representation of the data (CSV, JSON, whatever), which is
-// why the special.DataType bits are not the same as the filedb.FileAttr bits.
+// why the types.DataType bits are not the same as the filedb.FileAttr bits.
 
 type DataType int
 

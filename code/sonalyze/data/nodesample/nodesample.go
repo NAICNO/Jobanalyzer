@@ -7,15 +7,15 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type NodeSampleDataProvider struct {
 	theLog db.NodeSampleDataProvider
 }
 
-func OpenNodeSampleDataProvider(meta special.ClusterMeta) (*NodeSampleDataProvider, error) {
-	theLog, err := db.OpenReadOnlyDB(meta, special.NodeSampleData)
+func OpenNodeSampleDataProvider(meta types.Context) (*NodeSampleDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, types.NodeSampleData)
 	if err != nil {
 		return nil, err
 	}

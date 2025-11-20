@@ -1,21 +1,20 @@
-// Simple test cases for the "table" cluster
-
-package special
+package db
 
 import (
+	"sonalyze/db/special"
 	"testing"
 )
 
-func TestCluster(t *testing.T) {
-	err := OpenFullDataStore("../filedb/testdata")
+func TestClusterCache(t *testing.T) {
+	err := OpenFullDataStore("filedb/testdata", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(AllClusters()) != 2 {
-		t.Fatal("Cluster length", AllClusters())
+	if len(special.AllClusters()) != 2 {
+		t.Fatal("Cluster length", special.AllClusters())
 	}
 
-	c1 := LookupCluster("cluster1.uio.no")
+	c1 := special.LookupCluster("cluster1.uio.no")
 	if c1 == nil {
 		t.Fatal("cluster1")
 	}
@@ -26,7 +25,7 @@ func TestCluster(t *testing.T) {
 		t.Fatal("cluster1 desc", c1)
 	}
 
-	c2 := LookupCluster("cluster2.uio.no")
+	c2 := special.LookupCluster("cluster2.uio.no")
 	if c2 == nil {
 		t.Fatal("cluster2")
 	}
@@ -37,12 +36,12 @@ func TestCluster(t *testing.T) {
 		t.Fatal("cluster2 desc", c2)
 	}
 
-	r1 := ResolveClusterName("c1")
+	r1 := special.ResolveClusterName("c1")
 	if r1 != "cluster1.uio.no" {
 		t.Fatal("c1", r1)
 	}
 
-	r2 := ResolveClusterName("c2")
+	r2 := special.ResolveClusterName("c2")
 	if r2 != "cluster2.uio.no" {
 		t.Fatal("c2", r2)
 	}

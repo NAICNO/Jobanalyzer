@@ -10,7 +10,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/gpusample"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -97,7 +97,7 @@ type ReportLine struct {
 	*gpusample.PerGpuSample
 }
 
-func (gc *GpuCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+func (gc *GpuCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io.Writer) error {
 	gsd, err := gpusample.OpenGpuSampleDataProvider(meta)
 	if err != nil {
 		return err

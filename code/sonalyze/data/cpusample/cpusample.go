@@ -8,7 +8,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 // Per-cpu load data, expanded.
@@ -27,8 +27,8 @@ type CpuSampleDataProvider struct {
 	theLog db.CpuSampleDataProvider
 }
 
-func OpenCpuSampleDataProvider(meta special.ClusterMeta) (*CpuSampleDataProvider, error) {
-	theLog, err := db.OpenReadOnlyDB(meta, special.CpuSampleData)
+func OpenCpuSampleDataProvider(meta types.Context) (*CpuSampleDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, types.CpuSampleData)
 	if err != nil {
 		return nil, err
 	}

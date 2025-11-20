@@ -22,15 +22,20 @@
 //
 //  This is a required argument.  In the named directory there shall be:
 //
-//   - subdirectories `data` and `cluster-config`
+//   - subdirectories `data` and `cluster-config` (though see -database-uri below)
 //   - for each cluster CLUSTERNAME, a subdirectory `data/CLUSTERNAME` that has the sonar data
-//     tree for the cluster
+//     tree for the cluster (ditto)
 //   - for each cluster CLUSTERNAME, a file `cluster-config/CLUSTERNAME-config.json, which holds
 //     the cluster description (machine configuration) for the cluster
 //   - optionally a file `cluster-config/cluster-aliases.json`
 //
 //  The CLUSTERNAME is always the canonical cluster name.  Cluster names and the the json files are
 //  described in production/jobanalyzer-server/cluster-config/README.md.
+//
+// -database-uri <uri>
+//
+//  If present, this specifies a database access point.  The database is used for data access rather
+//  than the data/ subdirectory of the jobanalyzer directory.
 //
 // -port <port-number>
 //

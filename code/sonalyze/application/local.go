@@ -8,7 +8,7 @@ import (
 
 	. "sonalyze/cmd"
 	"sonalyze/data/sample"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 // Clearly, for `jobs` the file list thing is tricky b/c the list can be *either* sample data *or*
@@ -17,7 +17,7 @@ import (
 // disambiguation *unless* the data come from the same files.
 
 func LocalSampleOperation(
-	meta special.ClusterMeta,
+	meta types.Context,
 	command SampleAnalysisCommand,
 	_ io.Reader,
 	stdout, stderr io.Writer,

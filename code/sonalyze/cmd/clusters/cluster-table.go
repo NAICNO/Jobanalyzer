@@ -2,7 +2,7 @@
 
 package clusters
 
-import "sonalyze/db/special"
+import "sonalyze/db/repr"
 
 import (
 	"cmp"
@@ -22,21 +22,21 @@ var (
 )
 
 // MT: Constant after initialization; immutable
-var clusterFormatters = map[string]Formatter[*special.ClusterEntry]{
+var clusterFormatters = map[string]Formatter[*repr.Cluster]{
 	"Name": {
-		Fmt: func(d *special.ClusterEntry, ctx PrintMods) string {
+		Fmt: func(d *repr.Cluster, ctx PrintMods) string {
 			return FormatString((d.Name), ctx)
 		},
 		Help: "(string) Cluster name",
 	},
 	"Description": {
-		Fmt: func(d *special.ClusterEntry, ctx PrintMods) string {
+		Fmt: func(d *repr.Cluster, ctx PrintMods) string {
 			return FormatString((d.Description), ctx)
 		},
 		Help: "(string) Human-consumable cluster summary",
 	},
 	"Aliases": {
-		Fmt: func(d *special.ClusterEntry, ctx PrintMods) string {
+		Fmt: func(d *repr.Cluster, ctx PrintMods) string {
 			return FormatStrings((d.Aliases), ctx)
 		},
 		Help: "(string list) Aliases of cluster",
@@ -50,20 +50,20 @@ func init() {
 }
 
 // MT: Constant after initialization; immutable
-var clusterPredicates = map[string]Predicate[*special.ClusterEntry]{
-	"Name": Predicate[*special.ClusterEntry]{
-		Compare: func(d *special.ClusterEntry, v any) int {
+var clusterPredicates = map[string]Predicate[*repr.Cluster]{
+	"Name": Predicate[*repr.Cluster]{
+		Compare: func(d *repr.Cluster, v any) int {
 			return cmp.Compare((d.Name), v.(string))
 		},
 	},
-	"Description": Predicate[*special.ClusterEntry]{
-		Compare: func(d *special.ClusterEntry, v any) int {
+	"Description": Predicate[*repr.Cluster]{
+		Compare: func(d *repr.Cluster, v any) int {
 			return cmp.Compare((d.Description), v.(string))
 		},
 	},
-	"Aliases": Predicate[*special.ClusterEntry]{
+	"Aliases": Predicate[*repr.Cluster]{
 		Convert: CvtString2Strings,
-		SetCompare: func(d *special.ClusterEntry, v any, op int) bool {
+		SetCompare: func(d *repr.Cluster, v any, op int) bool {
 			return SetCompareStrings((d.Aliases), v.([]string), op)
 		},
 	},

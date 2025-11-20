@@ -3,23 +3,23 @@ package cmd
 import (
 	"errors"
 
-	"sonalyze/data/cluster"
 	"sonalyze/db"
 	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 func OpenDataStoreFromCommand(anyCmd Command) (err error) {
 	db.SetCacheSize(anyCmd.CacheSize())
 	if jd := anyCmd.JobanalyzerDir(); jd != "" {
-		err = special.OpenFullDataStore(jd)
+		err = db.OpenFullDataStore(jd, anyCmd.DatabaseURI())
 	} else if dd := anyCmd.DataDir(); dd != "" {
-		err = special.OpenDataStoreFromDataDir(dd, anyCmd.ConfigFile())
+		err = db.OpenDataStoreFromDataDir(dd, anyCmd.ConfigFile())
 	} else if rd := anyCmd.ReportDir(); rd != "" {
-		err = special.OpenDataStoreFromReportDir(rd, anyCmd.ConfigFile())
+		err = db.OpenDataStoreFromReportDir(rd, anyCmd.ConfigFile())
 	} else if fl := anyCmd.LogFiles(); len(fl) > 0 {
-		err = special.OpenDataStoreFromLogFiles(fl, anyCmd.ConfigFile())
+		err = db.OpenDataStoreFromLogFiles(fl, anyCmd.ConfigFile())
 	} else if cf := anyCmd.ConfigFile(); cf != "" {
-		err = special.OpenDataStoreFromConfigFile(cf)
+		err = db.OpenDataStoreFromConfigFile(cf)
 	} else if anyCmd.Dataless() {
 	} else {
 		err = errors.New("No data source")
@@ -27,10 +27,10 @@ func OpenDataStoreFromCommand(anyCmd Command) (err error) {
 	return
 }
 
-func NewMetaFromCommand(anyCmd Command) special.ClusterMeta {
+func NewContextFromCommand(anyCmd Command) types.Context {
 	c := special.LookupCluster(anyCmd.ClusterName())
 	if c == nil {
-		panic("Cluster name must be defined at this point, could not find '" + anyCmd.ClusterName() + "'")
+		panic("Cluster must be defined at this point, could not find '" + anyCmd.ClusterName() + "'")
 	}
-	return cluster.NewMetaFromCluster(c)
+	return db.NewContextFromCluster(c)
 }

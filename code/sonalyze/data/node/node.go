@@ -11,15 +11,15 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type NodeDataProvider struct {
 	theLog db.SysinfoDataProvider
 }
 
-func OpenNodeDataProvider(meta special.ClusterMeta) (*NodeDataProvider, error) {
-	theLog, err := db.OpenReadOnlyDB(meta, special.NodeData)
+func OpenNodeDataProvider(meta types.Context) (*NodeDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, types.NodeData)
 	if err != nil {
 		return nil, err
 	}

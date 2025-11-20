@@ -22,7 +22,7 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/data/config"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -121,7 +121,7 @@ func (cc *ConfigCommand) Validate() error {
 //
 // Analysis
 
-func (cc *ConfigCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, _ io.Writer) error {
+func (cc *ConfigCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.Writer) error {
 	hosts, err := NewHosts(true, cc.HostArgs.Host)
 	if err != nil {
 		return err
