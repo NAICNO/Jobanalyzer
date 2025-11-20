@@ -95,7 +95,7 @@ func newClusterEntry() *ClusterEntry {
 	return new(ClusterEntry)
 }
 
-func OpenFullDataStore(jobanalyzerDir string) error {
+func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 	clusterCacheLock.Lock()
 	defer clusterCacheLock.Unlock()
 
@@ -110,20 +110,38 @@ func OpenFullDataStore(jobanalyzerDir string) error {
 
 	clusters = make(map[string]*ClusterEntry)
 
-	// Find cluster names from the data directory
-	dirEntries, err := os.ReadDir(path.Join(jobanalyzerDir, dataDirName))
-	if err != nil {
-		return err
-	}
-	for _, e := range dirEntries {
-		if e.IsDir() {
+	if databaseURI != "" {
+		theDB, err := OpenDatabaseURI(databaseURI)
+		if err != nil {
+			return err
+		}
+		clusterNames, err := theDB.Exec("select cluster from cluster_attributes")
+		if err != nil {
+			return err
+		}
+		for _, name := range clusterNames {
 			c := newClusterEntry()
 			c.Name = e.Name()
-			c.HaveDataDir = true
-			c.DataDir = MakeClusterDataPath(jobanalyzerDir, c.Name)
-			c.HaveReportDir = true
-			c.ReportDir = MakeReportDirPath(jobanalyzerDir, c.Name)
+			c.HaveDatabase = true
+			c.DatabaseConnection = theDB
 			clusters[c.Name] = c
+		}
+	} else {
+		// Find cluster names from the data directory
+		dirEntries, err := os.ReadDir(path.Join(jobanalyzerDir, dataDirName))
+		if err != nil {
+			return err
+		}
+		for _, e := range dirEntries {
+			if e.IsDir() {
+				c := newClusterEntry()
+				c.Name = e.Name()
+				c.HaveDataDir = true
+				c.DataDir = MakeClusterDataPath(jobanalyzerDir, c.Name)
+				c.HaveReportDir = true
+				c.ReportDir = MakeReportDirPath(jobanalyzerDir, c.Name)
+				clusters[c.Name] = c
+			}
 		}
 	}
 

@@ -11,6 +11,8 @@ func OpenReadOnlyDB(meta special.ClusterMeta, dataType special.DataType) (DataPr
 	var err error
 	if meta.HaveLogFilesOfType(dataType) {
 		theLog, err = OpenFileListDB(meta, dataType)
+	} else if meta.HasDatabaseConnection() {
+		theLog, err = OpenConnectedDB(meta)
 	} else {
 		theLog, err = OpenPersistentDirectoryDB(meta)
 	}
