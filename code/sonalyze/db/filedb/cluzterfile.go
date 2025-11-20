@@ -9,7 +9,6 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db/parse"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
 )
 
 type CluzterDataNeeded int
@@ -42,7 +41,7 @@ const (
 	CluzterFileKindNodeData
 )
 
-func NewCluzterFileMethods(_ special.ClusterMeta, kind CluzterFileKind) *cluzterFileReadSyncMethods {
+func NewCluzterFileMethods(kind CluzterFileKind) *cluzterFileReadSyncMethods {
 	switch kind {
 	case CluzterFileKindAttributeData:
 		return &cluzterFileReadSyncMethods{DataNeedAttributesData}

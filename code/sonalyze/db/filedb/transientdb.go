@@ -59,10 +59,10 @@ func NewTransientSampleCluster(
 	fileNames []string,
 ) *TransientSampleCluster {
 	return &TransientSampleCluster{
-		samplesMethods:     NewSampleFileMethods(meta, SampleFileKindSample),
-		nodeSamplesMethods: NewSampleFileMethods(meta, SampleFileKindNodeSample),
-		loadDataMethods:    NewSampleFileMethods(meta, SampleFileKindCpuSamples),
-		gpuDataMethods:     NewSampleFileMethods(meta, SampleFileKindGpuSamples),
+		samplesMethods:     NewSampleFileMethods(SampleFileKindSample),
+		nodeSamplesMethods: NewSampleFileMethods(SampleFileKindNodeSample),
+		loadDataMethods:    NewSampleFileMethods(SampleFileKindCpuSamples),
+		gpuDataMethods:     NewSampleFileMethods(SampleFileKindGpuSamples),
 		TransientCluster: TransientCluster{
 			meta:  meta,
 			files: processTransientFiles(fileNames, ty),
@@ -122,7 +122,7 @@ func NewTransientSacctCluster(
 	fileNames []string,
 ) *TransientSacctCluster {
 	return &TransientSacctCluster{
-		methods: NewSacctFileMethods(meta),
+		methods: NewSacctFileMethods(),
 		TransientCluster: TransientCluster{
 			meta:  meta,
 			files: processTransientFiles(fileNames, ty),
@@ -155,8 +155,8 @@ func NewTransientSysinfoCluster(
 	fileNames []string,
 ) *TransientSysinfoCluster {
 	return &TransientSysinfoCluster{
-		nodeDataMethods: NewSysinfoFileMethods(meta, SysinfoFileKindNodeData),
-		cardDataMethods: NewSysinfoFileMethods(meta, SysinfoFileKindCardData),
+		nodeDataMethods: NewSysinfoFileMethods(SysinfoFileKindNodeData),
+		cardDataMethods: NewSysinfoFileMethods(SysinfoFileKindCardData),
 		TransientCluster: TransientCluster{
 			meta:  meta,
 			files: processTransientFiles(fileNames, ty),
@@ -203,9 +203,9 @@ func NewTransientCluzterCluster(
 	fileNames []string,
 ) *TransientCluzterCluster {
 	return &TransientCluzterCluster{
-		attributeMethods: NewCluzterFileMethods(meta, CluzterFileKindAttributeData),
-		partitionMethods: NewCluzterFileMethods(meta, CluzterFileKindPartitionData),
-		nodeMethods:      NewCluzterFileMethods(meta, CluzterFileKindNodeData),
+		attributeMethods: NewCluzterFileMethods(CluzterFileKindAttributeData),
+		partitionMethods: NewCluzterFileMethods(CluzterFileKindPartitionData),
+		nodeMethods:      NewCluzterFileMethods(CluzterFileKindNodeData),
 		TransientCluster: TransientCluster{
 			meta:  meta,
 			files: processTransientFiles(fileNames, ty),

@@ -9,7 +9,6 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db/parse"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
 )
 
 type sacctPayloadType = []*repr.SacctInfo
@@ -19,7 +18,7 @@ type sacctFileReadSyncMethods struct {
 
 var _ = ReadSyncMethods((*sacctFileReadSyncMethods)(nil))
 
-func NewSacctFileMethods(_ special.ClusterMeta) *sacctFileReadSyncMethods {
+func NewSacctFileMethods() *sacctFileReadSyncMethods {
 	return &sacctFileReadSyncMethods{}
 }
 

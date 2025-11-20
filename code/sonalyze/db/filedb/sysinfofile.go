@@ -7,7 +7,6 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db/parse"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
 )
 
 type SysinfoDataNeeded int
@@ -37,7 +36,7 @@ const (
 	SysinfoFileKindCardData
 )
 
-func NewSysinfoFileMethods(_ special.ClusterMeta, kind SysinfoFileKind) *sysinfoFileReadSyncMethods {
+func NewSysinfoFileMethods(kind SysinfoFileKind) *sysinfoFileReadSyncMethods {
 	switch kind {
 	case SysinfoFileKindNodeData:
 		return &sysinfoFileReadSyncMethods{DataNeedNodeData}

@@ -7,7 +7,6 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db/parse"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
 )
 
 type SampleDataNeeded int
@@ -22,9 +21,6 @@ const (
 type sampleFileReadSyncMethods struct {
 	// The payload is a *SampleData always.
 	dataNeeded SampleDataNeeded
-
-	// TODO: Obsolete?  This was used with rectification
-	meta special.ClusterMeta
 }
 
 var _ = ReadSyncMethods((*sampleFileReadSyncMethods)(nil))
@@ -38,16 +34,16 @@ const (
 	SampleFileKindGpuSamples
 )
 
-func NewSampleFileMethods(meta special.ClusterMeta, kind SampleFileKind) *sampleFileReadSyncMethods {
+func NewSampleFileMethods(kind SampleFileKind) *sampleFileReadSyncMethods {
 	switch kind {
 	case SampleFileKindSample:
-		return &sampleFileReadSyncMethods{DataNeedSamples, meta}
+		return &sampleFileReadSyncMethods{DataNeedSamples}
 	case SampleFileKindNodeSample:
-		return &sampleFileReadSyncMethods{DataNeedNodeSamples, meta}
+		return &sampleFileReadSyncMethods{DataNeedNodeSamples}
 	case SampleFileKindCpuSamples:
-		return &sampleFileReadSyncMethods{DataNeedCpuSamples, meta}
+		return &sampleFileReadSyncMethods{DataNeedCpuSamples}
 	case SampleFileKindGpuSamples:
-		return &sampleFileReadSyncMethods{DataNeedGpuSamples, meta}
+		return &sampleFileReadSyncMethods{DataNeedGpuSamples}
 	default:
 		panic("Unexpected")
 	}
