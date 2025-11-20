@@ -9,7 +9,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 // Ditto for GPU data
@@ -32,8 +32,8 @@ type GpuSampleDataProvider struct {
 	theLog db.GpuSampleDataProvider
 }
 
-func OpenGpuSampleDataProvider(meta special.ClusterMeta) (*GpuSampleDataProvider, error) {
-	theLog, err := db.OpenReadOnlyDB(meta, special.GpuSampleData)
+func OpenGpuSampleDataProvider(meta types.Context) (*GpuSampleDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, types.GpuSampleData)
 	if err != nil {
 		return nil, err
 	}

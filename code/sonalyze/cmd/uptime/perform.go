@@ -53,7 +53,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/data/config"
 	"sonalyze/data/sample"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -64,7 +64,7 @@ type window struct {
 
 func (uc *UptimeCommand) Perform(
 	out io.Writer,
-	meta special.ClusterMeta,
+	meta types.Context,
 	filter sample.QueryFilter,
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
@@ -112,7 +112,7 @@ func (uc *UptimeCommand) Perform(
 func (uc *UptimeCommand) computeReports(
 	samples sample.SampleStream,
 	bounds Timebounds,
-	meta special.ClusterMeta,
+	meta types.Context,
 	hostGlobber *Hosts,
 ) []*UptimeLine {
 	reports := make([]*UptimeLine, 0)
@@ -310,7 +310,7 @@ func (uc *UptimeCommand) computeHostWindows(
 func (uc *UptimeCommand) computeAlwaysDown(
 	reports *[]*UptimeLine,
 	samples sample.SampleStream,
-	meta special.ClusterMeta,
+	meta types.Context,
 	hosts *Hosts,
 	fromIncl, toIncl int64,
 ) {

@@ -7,15 +7,15 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type SlurmNodeDataProvider struct {
 	theLog db.CluzterDataProvider
 }
 
-func OpenSlurmNodeDataProvider(meta special.ClusterMeta) (*SlurmNodeDataProvider, error) {
-	theLog, err := db.OpenReadOnlyDB(meta, special.SlurmNodeData)
+func OpenSlurmNodeDataProvider(meta types.Context) (*SlurmNodeDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, types.SlurmNodeData)
 	if err != nil {
 		return nil, err
 	}

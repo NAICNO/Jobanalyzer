@@ -1,7 +1,4 @@
-// The "config" table.  This is independent of any underlying database engine, the config file is
-// currently always a real file (one per cluster), and does not live in the database per se.
-//
-// The config objects are cached; only explicit invalidation will flush the cache.
+// Cache for static config data.
 
 package special
 
@@ -16,6 +13,14 @@ var (
 	configCacheLock sync.Mutex
 	configCache     = make(map[string]*config.ClusterConfig)
 )
+
+// Read the config file if the file name is not empty.
+func MaybeGetConfig(configFileName string) (*config.ClusterConfig, error) {
+	if configFileName == "" {
+		return nil, nil
+	}
+	return ReadConfigData(configFileName)
+}
 
 // ReadConfigData reads or returns the cached config, which is a shared object that will not be
 // modified subsequently and must not be modified by the caller.  (Cache invalidation will never

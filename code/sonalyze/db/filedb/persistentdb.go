@@ -65,7 +65,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db/errs"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 const (
@@ -105,7 +105,7 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	dataDir string
 
 	// MT: Immutable after initialization
-	meta special.ClusterMeta
+	meta types.Context
 
 	sync.Mutex
 	closed bool
@@ -139,7 +139,7 @@ type persistentDir struct {
 	cluzterFiles map[string]*LogFile
 }
 
-func NewPersistentCluster(dataDir string, meta special.ClusterMeta) *PersistentCluster {
+func NewPersistentCluster(dataDir string, meta types.Context) *PersistentCluster {
 	// Initially, populate for today's date.
 	fromDate := ThisDay(time.Now().UTC())
 	toDate := fromDate.AddDate(0, 0, 1)
