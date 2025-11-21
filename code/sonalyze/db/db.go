@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path"
 
 	"go-utils/alias"
 	"go-utils/config"
+	"sonalyze/db/filesys"
 	"sonalyze/db/special"
 	"sonalyze/db/types"
 )
@@ -29,12 +29,6 @@ func OpenReadOnlyDB(meta types.Context, dataType types.DataType) (DataProvider, 
 	}
 	return theLog, nil
 }
-
-const (
-	dataDirName            = "data"
-	clusterConfigDirName   = "cluster-config" // FIXME: duplicated, should abstract it
-	clusterAliasesFilename = "cluster-aliases.json"
-)
 
 func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 	var (
@@ -62,7 +56,7 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 		}
 	} else {
 		// Find cluster names from the data directory
-		dirEntries, err := os.ReadDir(path.Join(jobanalyzerDir, dataDirName))
+		dirEntries, err := os.ReadDir(filesys.MakeClusterDataDirPath(jobanalyzerDir))
 		if err != nil {
 			return err
 		}
@@ -71,17 +65,20 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 				c := special.NewClusterEntry()
 				c.Name = e.Name()
 				c.HaveDataDir = true
-				c.DataDir = special.MakeClusterDataPath(jobanalyzerDir, c.Name)
+				c.DataDir = filesys.MakeClusterDataPath(jobanalyzerDir, c.Name)
 				c.HaveReportDir = true
-				c.ReportDir = special.MakeReportDirPath(jobanalyzerDir, c.Name)
+				c.ReportDir = filesys.MakeReportDirPath(jobanalyzerDir, c.Name)
 				clusters[c.Name] = c
 			}
 		}
 	}
 
+	// We do these operations even for a true database connection, because currently the database
+	// does not supply these data.
+
 	// Add aliases to known clusters.  The aliases file is optional, but if something with that name
 	// is there it is an error to fail to open it.
-	aliasesFile := path.Join(jobanalyzerDir, clusterConfigDirName, clusterAliasesFilename)
+	aliasesFile := filesys.MakeClusterAliasesPath(jobanalyzerDir)
 	if info, bad := os.Stat(aliasesFile); bad == nil {
 		if info.Mode()&fs.ModeType != 0 {
 			return errors.New("Cluster alias file is not a regular file")
@@ -102,7 +99,7 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 
 	// Find descriptions for known clusters.
 	for c, v := range clusters {
-		cfg, err := special.ReadConfigData(special.MakeConfigFilePath(jobanalyzerDir, c))
+		cfg, err := special.ReadConfigData(filesys.MakeConfigFilePath(jobanalyzerDir, c))
 		if err != nil {
 			// Arguably we could remove it, but this code will change anyway.
 			v.Description = "No configuration found"
@@ -114,7 +111,7 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 		v.Config = cfg
 	}
 
-	special.InitializeDataStore(clusters, aliases)
+	special.DefineClusters(clusters, aliases)
 	return nil
 }
 
@@ -144,7 +141,7 @@ func OpenDataStoreFromDataDir(dataDir, configFile string) error {
 	}
 	clusters := map[string]*special.ClusterEntry{v.Name: v}
 
-	special.InitializeDataStore(clusters, nil)
+	special.DefineClusters(clusters, nil)
 	return nil
 }
 
@@ -170,7 +167,7 @@ func OpenDataStoreFromReportDir(reportDir, configFile string) error {
 	}
 	clusters := map[string]*special.ClusterEntry{v.Name: v}
 
-	special.InitializeDataStore(clusters, nil)
+	special.DefineClusters(clusters, nil)
 	return nil
 }
 
@@ -196,7 +193,7 @@ func OpenDataStoreFromLogFiles(logFiles []string, configFile string) error {
 	}
 	clusters := map[string]*special.ClusterEntry{v.Name: v}
 
-	special.InitializeDataStore(clusters, nil)
+	special.DefineClusters(clusters, nil)
 	return nil
 }
 
@@ -218,7 +215,7 @@ func OpenDataStoreFromConfigFile(configFile string) error {
 	}
 	clusters := map[string]*special.ClusterEntry{v.Name: v}
 
-	special.InitializeDataStore(clusters, nil)
+	special.DefineClusters(clusters, nil)
 	return nil
 }
 
@@ -236,6 +233,6 @@ func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
 	}
 	clusters := map[string]*special.ClusterEntry{v.Name: v}
 
-	special.InitializeDataStore(clusters, nil)
+	special.DefineClusters(clusters, nil)
 	return nil
 }
