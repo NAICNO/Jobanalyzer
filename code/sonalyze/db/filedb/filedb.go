@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"runtime"
 	"strings"
 
@@ -21,7 +22,7 @@ const (
 func SniffTypeFromFilenames(names []string, oldType, newType FileAttr) (FileAttr, error) {
 	var oldCount, newCount int
 	for _, name := range names {
-		if strings.HasPrefix(name, "0+") {
+		if strings.HasPrefix(path.Base(name), "0+") {
 			newCount++
 		} else {
 			oldCount++
