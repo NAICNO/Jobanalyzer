@@ -13,12 +13,8 @@ type dbContext struct {
 	cluster        *special.ClusterEntry
 }
 
-func NewMetaFromCluster(cluster *special.ClusterEntry) types.Context {
+func NewContextFromCluster(cluster *special.ClusterEntry) types.Context {
 	return &dbContext { cluster }
-}
-
-func (tm *dbContext) Cluster() *special.ClusterEntry {
-	return tm.cluster
 }
 
 func (tm *dbContext) ClusterName() string {

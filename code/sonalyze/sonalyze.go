@@ -267,19 +267,19 @@ func OneShotHandleSingleCommand(
 		return command.Perform(stdin, stdout, stderr)
 	}
 
-	var cluzter *special.ClusterEntry
+	var ce *special.ClusterEntry
 	if anyCmd.ClusterName() != "" {
-		cluzter = special.LookupCluster(anyCmd.ClusterName())
-		if cluzter == nil {
+		ce = special.LookupCluster(anyCmd.ClusterName())
+		if ce == nil {
 			return errors.New("Cluster " + anyCmd.ClusterName() + " not found")
 		}
 	} else {
-		cluzter = special.GetSingleCluster()
-		if cluzter == nil {
+		ce = special.GetSingleCluster()
+		if ce == nil {
 			return errors.New("No cluster target, and multiple clusters defined")
 		}
 	}
-	meta := cluster.NewMetaFromCluster(cluzter)
+	meta := cluster.NewContextFromCluster(ce)
 	switch command := anyCmd.(type) {
 	case cmd.SampleAnalysisCommand:
 		return application.LocalSampleOperation(meta, command, stdin, stdout, stderr)

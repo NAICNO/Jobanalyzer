@@ -26,7 +26,8 @@ var (
 type ClusterEntry struct {
 	repr.Cluster
 
-	// Semi-private implementation bits, should be accessed only by dbContext methods.
+	// Semi-private implementation bits, should be initialized by setup code in sonalyze/db and
+	// accessed only by dbContext methods in sonalyze/data/cluster.
 	HaveDatabase       bool
 	DatabaseConnection any
 	HaveDataDir        bool

@@ -37,7 +37,7 @@ func testSimpleCommand(t *testing.T, tag string, command cmd.SimpleCommand, fiel
 	}
 	defer special.CloseDataStore()
 	var stdout strings.Builder
-	err = command.Perform(cmd.NewMetaFromCommand(command), nil, &stdout, nil)
+	err = command.Perform(cmd.NewContextFromCommand(command), nil, &stdout, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func testSampleAnalysisCommand(t *testing.T, command cmd.SampleAnalysisCommand, 
 	}
 	defer special.CloseDataStore()
 	var stdout, stderr strings.Builder
-	err = LocalSampleOperation(cmd.NewMetaFromCommand(command), command, nil, &stdout, &stderr)
+	err = LocalSampleOperation(cmd.NewContextFromCommand(command), command, nil, &stdout, &stderr)
 	if err != nil {
 		t.Fatal(err)
 	}
