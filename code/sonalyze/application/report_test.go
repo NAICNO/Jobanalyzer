@@ -27,7 +27,7 @@ func TestReport(t *testing.T) {
 	}
 	defer special.CloseDataStore()
 	var stdout strings.Builder
-	err = rc.Perform(cmd.NewMetaFromCommand(&rc), nil, &stdout, nil)
+	err = rc.Perform(cmd.NewContextFromCommand(&rc), nil, &stdout, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

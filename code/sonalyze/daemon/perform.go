@@ -47,7 +47,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 
 	if dc.kafkaBroker != "" {
 		for _, cl := range special.AllClusters() {
-			meta := cluster.NewMetaFromCluster(cl)
+			meta := cluster.NewContextFromCluster(cl)
 			ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
 			if err != nil {
 				if dc.Verbose {
