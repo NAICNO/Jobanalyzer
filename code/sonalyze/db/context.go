@@ -64,6 +64,10 @@ func (tm *dbContext) HaveDatabaseConnection() bool {
 	return tm.cluster.HaveDatabase
 }
 
+func (tm *dbContext) ConnectedDB() any {
+	return tm.cluster.DatabaseConnection
+}
+
 func (tm *dbContext) ReportDir() string {
 	if tm.cluster.HaveReportDir {
 		return tm.cluster.ReportDir
