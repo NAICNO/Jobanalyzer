@@ -7,7 +7,7 @@ import (
 )
 
 func TestCluster(t *testing.T) {
-	err := OpenFullDataStore("../filedb/testdata")
+	err := OpenFullDataStore("../filedb/testdata", "")
 	if err != nil {
 		t.Fatal(err)
 	}
