@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+
+	"go-utils/config"
 	"sonalyze/db/special"
 )
 
@@ -21,3 +23,29 @@ func OpenReadOnlyDB(meta special.ClusterMeta, dataType special.DataType) (DataPr
 	}
 	return theLog, nil
 }
+
+func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
+	return special.OpenFullDataStore(jobanalyzerDir, databaseURI)
+}
+
+func OpenDataStoreFromDataDir(dataDir, configFile string) error {
+	return special.OpenDataStoreFromDataDir(dataDir, configFile)
+}
+
+func OpenDataStoreFromReportDir(reportDir, configFile string) error {
+	return special.OpenDataStoreFromReportDir(reportDir, configFile)
+}
+
+func OpenDataStoreFromLogFiles(logFiles []string, configFile string) error {
+	return special.OpenDataStoreFromLogFiles(logFiles, configFile)
+}
+
+func OpenDataStoreFromConfigFile(configFile string) error {
+	return special.OpenDataStoreFromConfigFile(configFile)
+}
+
+func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
+	return OpenDataStoreFromConfig(cfg)
+}
+
+

@@ -11,15 +11,15 @@ import (
 func OpenDataStoreFromCommand(anyCmd Command) (err error) {
 	db.SetCacheSize(anyCmd.CacheSize())
 	if jd := anyCmd.JobanalyzerDir(); jd != "" {
-		err = special.OpenFullDataStore(jd, anyCmd.DatabaseURI())
+		err = db.OpenFullDataStore(jd, anyCmd.DatabaseURI())
 	} else if dd := anyCmd.DataDir(); dd != "" {
-		err = special.OpenDataStoreFromDataDir(dd, anyCmd.ConfigFile())
+		err = db.OpenDataStoreFromDataDir(dd, anyCmd.ConfigFile())
 	} else if rd := anyCmd.ReportDir(); rd != "" {
-		err = special.OpenDataStoreFromReportDir(rd, anyCmd.ConfigFile())
+		err = db.OpenDataStoreFromReportDir(rd, anyCmd.ConfigFile())
 	} else if fl := anyCmd.LogFiles(); len(fl) > 0 {
-		err = special.OpenDataStoreFromLogFiles(fl, anyCmd.ConfigFile())
+		err = db.OpenDataStoreFromLogFiles(fl, anyCmd.ConfigFile())
 	} else if cf := anyCmd.ConfigFile(); cf != "" {
-		err = special.OpenDataStoreFromConfigFile(cf)
+		err = db.OpenDataStoreFromConfigFile(cf)
 	} else if anyCmd.Dataless() {
 	} else {
 		err = errors.New("No data source")

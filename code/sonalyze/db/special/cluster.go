@@ -32,6 +32,7 @@ import (
 	"go-utils/alias"
 	"go-utils/config"
 	umaps "go-utils/maps"
+	"sonalyze/db/repr"
 )
 
 const (
@@ -95,11 +96,7 @@ func (cdb *ConnectedDB) EnumerateClusters() ([]string, error) {
 }
 
 type ClusterEntry struct {
-	// These fields must never be modified.
-	Name        string
-	Description string
-	Aliases     []string // Not sorted
-	ExcludeUser []string // Not sorted
+	repr.Cluster
 
 	// Misc implementation - semi-private, shared with ClusterMeta for now.
 	HaveDatabase  bool
