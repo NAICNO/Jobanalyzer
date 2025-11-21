@@ -50,7 +50,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 			var ds db.AppendablePersistentDataProvider
 			var err error
 			if meta.HaveDatabaseConnection() {
-				ds, err = db.OpenConnectedDB(meta)
+				ds = db.OpenConnectedDB(meta)
 			} else {
 				ds, err = db.OpenAppendablePersistentDirectoryDB(meta)
 			}
