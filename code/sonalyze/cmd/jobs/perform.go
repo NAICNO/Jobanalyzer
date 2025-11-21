@@ -18,7 +18,7 @@ import (
 	"sonalyze/data/sample"
 	"sonalyze/data/slurmjob"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -105,7 +105,7 @@ type jobAggregate struct {
 
 func (jc *JobsCommand) Perform(
 	out io.Writer,
-	meta special.ClusterMeta,
+	meta types.Context,
 	filter sample.QueryFilter,
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
@@ -198,7 +198,7 @@ func (nt *nameTester) testName(name string) {
 // otherwise if there is no config we do not merge.
 
 func (jc *JobsCommand) aggregateAndFilterJobs(
-	meta special.ClusterMeta,
+	meta types.Context,
 	cfg *config.ConfigDataProvider,
 	streams sample.InputStreamSet,
 	bounds Timebounds,

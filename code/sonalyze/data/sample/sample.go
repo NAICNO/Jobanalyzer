@@ -6,15 +6,15 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type SampleDataProvider struct {
 	theLog db.ProcessSampleDataProvider
 }
 
-func OpenSampleDataProvider(meta special.ClusterMeta) (*SampleDataProvider, error) {
-	theLog, err := db.OpenReadOnlyDB(meta, special.SampleData)
+func OpenSampleDataProvider(meta types.Context) (*SampleDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, types.SampleData)
 	if err != nil {
 		return nil, err
 	}

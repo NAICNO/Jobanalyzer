@@ -13,6 +13,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 var theDB *PersistentCluster
@@ -20,10 +21,6 @@ var theDB *PersistentCluster
 type stubMeta struct {
 	dataDir string
 	cfg     *config.ClusterConfig
-}
-
-func (mm *stubMeta) Cluster() *special.ClusterEntry {
-	return nil
 }
 
 func (mm *stubMeta) ClusterName() string {
@@ -42,11 +39,11 @@ func (mm *stubMeta) DataDir() string {
 	return mm.dataDir
 }
 
-func (mm *stubMeta) HaveLogFilesOfType(_ special.DataType) bool {
+func (mm *stubMeta) HaveLogFilesOfType(_ types.DataType) bool {
 	return false
 }
 
-func (mm *stubMeta) LogFiles(_ special.DataType) []string {
+func (mm *stubMeta) LogFiles(_ types.DataType) []string {
 	return nil
 }
 
@@ -56,6 +53,14 @@ func (mm *stubMeta) HasDatabaseConnection() bool {
 
 func (mm *stubMeta) ReportDir() string {
 	return ""
+}
+
+func (mm *stubMeta) HaveConfig() bool {
+	return mm.cfg != nil
+}
+
+func (mm *stubMeta) Config() *config.ClusterConfig {
+	return mm.cfg
 }
 
 func getPersistentDB(t *testing.T, cluster string) *PersistentCluster {

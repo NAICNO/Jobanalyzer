@@ -6,6 +6,7 @@ import (
 	"sonalyze/data/cluster"
 	"sonalyze/db"
 	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 func OpenDataStoreFromCommand(anyCmd Command) (err error) {
@@ -27,7 +28,7 @@ func OpenDataStoreFromCommand(anyCmd Command) (err error) {
 	return
 }
 
-func NewMetaFromCommand(anyCmd Command) special.ClusterMeta {
+func NewMetaFromCommand(anyCmd Command) types.Context {
 	c := special.LookupCluster(anyCmd.ClusterName())
 	if c == nil {
 		panic("Cluster name must be defined at this point, could not find '" + anyCmd.ClusterName() + "'")

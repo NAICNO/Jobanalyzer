@@ -1,19 +1,20 @@
 package db
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"io/fs"
-	"path"
 	"os"
+	"path"
 
 	"go-utils/alias"
 	"go-utils/config"
 	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 // Utility to open a database from a set of parameters.  We must have dataDir xor logFiles.
-func OpenReadOnlyDB(meta special.ClusterMeta, dataType special.DataType) (DataProvider, error) {
+func OpenReadOnlyDB(meta types.Context, dataType types.DataType) (DataProvider, error) {
 	var theLog DataProvider
 	var err error
 	if meta.HaveLogFilesOfType(dataType) {
@@ -238,5 +239,3 @@ func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
 	special.InitializeDataStore(clusters, nil)
 	return nil
 }
-
-

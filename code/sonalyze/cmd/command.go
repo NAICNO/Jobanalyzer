@@ -5,7 +5,7 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/data/sample"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	"sonalyze/table"
 )
 
@@ -93,7 +93,7 @@ type PrimitiveCommand interface {
 type SimpleCommand interface {
 	Command
 
-	Perform(meta special.ClusterMeta, in io.Reader, stdout, stderr io.Writer) error
+	Perform(meta types.Context, in io.Reader, stdout, stderr io.Writer) error
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,7 +115,7 @@ type SampleAnalysisCommand interface {
 	// Perform the operation.  The recordFilter has been compiled from the filter.
 	Perform(
 		out io.Writer,
-		meta special.ClusterMeta,
+		meta types.Context,
 		filter sample.QueryFilter,
 		hosts *Hosts,
 		recordFilter *sample.SampleFilter,
