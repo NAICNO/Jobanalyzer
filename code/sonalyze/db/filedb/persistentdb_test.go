@@ -50,6 +50,10 @@ func (mm *stubMeta) LogFiles(_ special.DataType) []string {
 	return nil
 }
 
+func (mm *stubMeta) HasDatabaseConnection() bool {
+	return false
+}
+
 func (mm *stubMeta) ReportDir() string {
 	return ""
 }

@@ -71,6 +71,19 @@ var (
 	clusterAliases *alias.Aliases
 )
 
+func InitializeDataStore(clusters map[string]*ClusterEntry, aliases *alias.Aliases) {
+	clusterCacheLock.Lock()
+	defer clusterCacheLock.Unlock()
+
+	if dataStoreOpen {
+		panic("Data store is already open")
+	}
+
+	dataStoreOpen = true
+	clusterCache = clusters
+	clusterAliases = aliases
+}
+
 type ConnectedDB struct {}
 
 func OpenDatabaseURI(databaseURI string) (*ConnectedDB, error) {
@@ -102,19 +115,12 @@ type ClusterEntry struct {
 	Config        *config.ClusterConfig
 }
 
-func newClusterEntry() *ClusterEntry {
+func NewClusterEntry() *ClusterEntry {
 	// This will become more elaborate
 	return new(ClusterEntry)
 }
 
 func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
-	clusterCacheLock.Lock()
-	defer clusterCacheLock.Unlock()
-
-	if dataStoreOpen {
-		panic("Data store is already open")
-	}
-
 	var (
 		clusters map[string]*ClusterEntry
 		aliases  *alias.Aliases
@@ -132,7 +138,7 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 			return err
 		}
 		for _, name := range clusterNames {
-			c := newClusterEntry()
+			c := NewClusterEntry()
 			c.Name = name
 			c.HaveDatabase = true
 			c.DatabaseConnection = theDB
@@ -146,7 +152,7 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 		}
 		for _, e := range dirEntries {
 			if e.IsDir() {
-				c := newClusterEntry()
+				c := NewClusterEntry()
 				c.Name = e.Name()
 				c.HaveDataDir = true
 				c.DataDir = MakeClusterDataPath(jobanalyzerDir, c.Name)
@@ -192,9 +198,7 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 		v.Config = cfg
 	}
 
-	dataStoreOpen = true
-	clusterCache = clusters
-	clusterAliases = aliases
+	InitializeDataStore(clusters, aliases)
 	return nil
 }
 
@@ -203,18 +207,11 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 // provide a cluster name.
 
 func OpenDataStoreFromDataDir(dataDir, configFile string) error {
-	clusterCacheLock.Lock()
-	defer clusterCacheLock.Unlock()
-
-	if dataStoreOpen {
-		panic("Data store is already open")
-	}
-
 	cfg, err := maybeGetConfig(configFile)
 	if err != nil {
 		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
 	}
-	v := newClusterEntry()
+	v := NewClusterEntry()
 	v.HaveDataDir = true
 	v.DataDir = dataDir
 	if cfg != nil {
@@ -230,24 +227,16 @@ func OpenDataStoreFromDataDir(dataDir, configFile string) error {
 		v.Description = "anonymous cluster (data dir)"
 	}
 
-	dataStoreOpen = true
-	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	InitializeDataStore(map[string]*ClusterEntry{v.Name: v}, nil)
 	return nil
 }
 
 func OpenDataStoreFromReportDir(reportDir, configFile string) error {
-	clusterCacheLock.Lock()
-	defer clusterCacheLock.Unlock()
-
-	if dataStoreOpen {
-		panic("Data store is already open")
-	}
-
 	cfg, err := maybeGetConfig(configFile)
 	if err != nil {
 		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
 	}
-	v := newClusterEntry()
+	v := NewClusterEntry()
 	v.HaveReportDir = true
 	v.ReportDir = reportDir
 	if cfg != nil {
@@ -263,24 +252,16 @@ func OpenDataStoreFromReportDir(reportDir, configFile string) error {
 		v.Description = "anonymous cluster (report dir)"
 	}
 
-	dataStoreOpen = true
-	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	InitializeDataStore(map[string]*ClusterEntry{v.Name: v}, nil)
 	return nil
 }
 
 func OpenDataStoreFromLogFiles(logFiles []string, configFile string) error {
-	clusterCacheLock.Lock()
-	defer clusterCacheLock.Unlock()
-
-	if dataStoreOpen {
-		panic("Data store is already open")
-	}
-
 	cfg, err := maybeGetConfig(configFile)
 	if err != nil {
 		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
 	}
-	v := newClusterEntry()
+	v := NewClusterEntry()
 	v.HaveLogFiles = true
 	v.LogFiles = logFiles
 	if cfg != nil {
@@ -296,24 +277,16 @@ func OpenDataStoreFromLogFiles(logFiles []string, configFile string) error {
 		v.Description = "anonymous cluster (log files)"
 	}
 
-	dataStoreOpen = true
-	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	InitializeDataStore(map[string]*ClusterEntry{v.Name: v}, nil)
 	return nil
 }
 
 func OpenDataStoreFromConfigFile(configFile string) error {
-	clusterCacheLock.Lock()
-	defer clusterCacheLock.Unlock()
-
-	if dataStoreOpen {
-		panic("Data store is already open")
-	}
-
 	cfg, err := maybeGetConfig(configFile)
 	if err != nil {
 		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
 	}
-	v := newClusterEntry()
+	v := NewClusterEntry()
 	v.Name = cfg.Name
 	v.Description = cfg.Description
 	v.HaveConfig = true
@@ -325,20 +298,12 @@ func OpenDataStoreFromConfigFile(configFile string) error {
 		v.Description = "anonymous cluster (config file)"
 	}
 
-	dataStoreOpen = true
-	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	InitializeDataStore(map[string]*ClusterEntry{v.Name: v}, nil)
 	return nil
 }
 
 func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
-	clusterCacheLock.Lock()
-	defer clusterCacheLock.Unlock()
-
-	if dataStoreOpen {
-		panic("Data store is already open")
-	}
-
-	v := newClusterEntry()
+	v := NewClusterEntry()
 	v.Name = cfg.Name
 	v.Description = cfg.Description
 	v.HaveConfig = true
@@ -350,8 +315,7 @@ func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
 		v.Description = "anonymous cluster (config file)"
 	}
 
-	dataStoreOpen = true
-	clusterCache = map[string]*ClusterEntry{v.Name: v}
+	InitializeDataStore(map[string]*ClusterEntry{v.Name: v}, nil)
 	return nil
 }
 
