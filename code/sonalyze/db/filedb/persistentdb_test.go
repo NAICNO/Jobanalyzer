@@ -48,7 +48,7 @@ func (mm *stubMeta) LogFiles(_ types.DataType) []string {
 	return nil
 }
 
-func (mm *stubMeta) HasDatabaseConnection() bool {
+func (mm *stubMeta) HaveDatabaseConnection() bool {
 	return false
 }
 

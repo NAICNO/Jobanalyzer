@@ -58,7 +58,7 @@ func (tm *dbContext) LogFiles(dataType types.DataType) []string {
 	return nil
 }
 
-func (tm *dbContext) HasDatabaseConnection() bool {
+func (tm *dbContext) HaveDatabaseConnection() bool {
 	return tm.cluster.HaveDatabase
 }
 
