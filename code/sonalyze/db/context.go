@@ -1,4 +1,6 @@
-package cluster
+// Default implementation of sonalyze/db/types.Context
+
+package db
 
 import (
 	"slices"

@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 
-	"sonalyze/data/cluster"
 	"sonalyze/db"
 	"sonalyze/db/special"
 	"sonalyze/db/types"
@@ -33,5 +32,5 @@ func NewContextFromCommand(anyCmd Command) types.Context {
 	if c == nil {
 		panic("Cluster must be defined at this point, could not find '" + anyCmd.ClusterName() + "'")
 	}
-	return cluster.NewContextFromCluster(c)
+	return db.NewContextFromCluster(c)
 }
