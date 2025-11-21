@@ -59,7 +59,7 @@ func NewClusterEntry() *ClusterEntry {
 	return new(ClusterEntry)
 }
 
-func CloseDataStore() {
+func ClearClusters() {
 	clusterCacheLock.Lock()
 	defer clusterCacheLock.Unlock()
 

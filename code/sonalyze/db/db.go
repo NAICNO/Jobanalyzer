@@ -236,3 +236,7 @@ func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
 	special.DefineClusters(clusters, nil)
 	return nil
 }
+
+func CloseDataStore() {
+	special.ClearClusters()
+}

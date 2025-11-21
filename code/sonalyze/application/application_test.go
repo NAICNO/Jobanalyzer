@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"sonalyze/cmd"
-	"sonalyze/db/special"
+	"sonalyze/db"
 )
 
 func testPrimitiveCommand(t *testing.T, command cmd.PrimitiveCommand, fields string, expect []string) {
@@ -17,7 +17,7 @@ func testPrimitiveCommand(t *testing.T, command cmd.PrimitiveCommand, fields str
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer special.CloseDataStore()
+	defer db.CloseDataStore()
 	var stdout strings.Builder
 	err = command.Perform(nil, &stdout, nil)
 	if err != nil {
@@ -35,7 +35,7 @@ func testSimpleCommand(t *testing.T, tag string, command cmd.SimpleCommand, fiel
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer special.CloseDataStore()
+	defer db.CloseDataStore()
 	var stdout strings.Builder
 	err = command.Perform(cmd.NewContextFromCommand(command), nil, &stdout, nil)
 	if err != nil {
@@ -53,7 +53,7 @@ func testSampleAnalysisCommand(t *testing.T, command cmd.SampleAnalysisCommand, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer special.CloseDataStore()
+	defer db.CloseDataStore()
 	var stdout, stderr strings.Builder
 	err = LocalSampleOperation(cmd.NewContextFromCommand(command), command, nil, &stdout, &stderr)
 	if err != nil {

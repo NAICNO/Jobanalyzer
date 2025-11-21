@@ -12,11 +12,11 @@ import (
 )
 
 type dbContext struct {
-	cluster        *special.ClusterEntry
+	cluster *special.ClusterEntry
 }
 
 func NewContextFromCluster(cluster *special.ClusterEntry) types.Context {
-	return &dbContext { cluster }
+	return &dbContext{cluster}
 }
 
 func (tm *dbContext) ClusterName() string {
@@ -42,7 +42,7 @@ func (tm *dbContext) DataDir() string {
 }
 
 func (tm *dbContext) HaveLogFilesOfType(dataType types.DataType) bool {
-	return tm.cluster.HaveLogFiles && (tm.cluster.LogFileType == 0 || (dataType & tm.cluster.LogFileType) != 0)
+	return tm.cluster.HaveLogFiles && (tm.cluster.LogFileType == 0 || (dataType&tm.cluster.LogFileType) != 0)
 }
 
 func (tm *dbContext) LogFiles(dataType types.DataType) []string {
