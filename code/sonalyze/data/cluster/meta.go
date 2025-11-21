@@ -3,15 +3,17 @@ package cluster
 import (
 	"slices"
 
+	"go-utils/config"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type clusterMeta struct {
 	cluster        *special.ClusterEntry
 }
 
-func NewMetaFromCluster(cluster *special.ClusterEntry) special.ClusterMeta {
+func NewMetaFromCluster(cluster *special.ClusterEntry) types.Context {
 	return &clusterMeta { cluster }
 }
 
@@ -41,11 +43,11 @@ func (tm *clusterMeta) DataDir() string {
 	return ""
 }
 
-func (tm *clusterMeta) HaveLogFilesOfType(dataType special.DataType) bool {
+func (tm *clusterMeta) HaveLogFilesOfType(dataType types.DataType) bool {
 	return tm.cluster.HaveLogFiles && (tm.cluster.LogFileType == 0 || (dataType & tm.cluster.LogFileType) != 0)
 }
 
-func (tm *clusterMeta) LogFiles(dataType special.DataType) []string {
+func (tm *clusterMeta) LogFiles(dataType types.DataType) []string {
 	if tm.cluster.HaveLogFiles {
 		if dataType == 0 {
 			panic("Zero data type")
@@ -69,4 +71,12 @@ func (tm *clusterMeta) ReportDir() string {
 		return tm.cluster.ReportDir
 	}
 	return ""
+}
+
+func (tm *clusterMeta) HaveConfig() bool {
+	return tm.cluster.HaveConfig
+}
+
+func (tm *clusterMeta) Config() *config.ClusterConfig {
+	return tm.cluster.Config
 }

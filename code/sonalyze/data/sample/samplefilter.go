@@ -15,7 +15,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/data/common"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 // The sample.SampleFilter will be applied to individual records and must be true for records to be
@@ -335,7 +335,7 @@ type QueryFilter struct {
 }
 
 func BuildSampleFilter(
-	meta special.ClusterMeta,
+	meta types.Context,
 	filter QueryFilter,
 	verbose bool,
 ) (

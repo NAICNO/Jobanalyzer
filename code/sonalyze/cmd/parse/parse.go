@@ -12,7 +12,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/data/sample"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -163,7 +163,7 @@ func (pc *ParseCommand) ConfigFile() string {
 
 func (pc *ParseCommand) Perform(
 	out io.Writer,
-	meta special.ClusterMeta,
+	meta types.Context,
 	filter sample.QueryFilter,
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,

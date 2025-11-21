@@ -31,12 +31,13 @@ import (
 	"go-utils/config"
 	umaps "go-utils/maps"
 	"sonalyze/db/repr"
+	"sonalyze/db/types"
 )
 
 const (
-	dataDirName            = "data"
-	reportDirName          = "reports"
-	clusterConfigDirName   = "cluster-config"
+	dataDirName          = "data"
+	reportDirName        = "reports"
+	clusterConfigDirName = "cluster-config"
 )
 
 // Name of the cluster's config file
@@ -56,6 +57,14 @@ func MakeClusterDataPath(jobanalyzerDir, clusterName string) string {
 // Name of the cluster's reports directory
 func MakeReportDirPath(jobanalyzerDir, clusterName string) string {
 	return path.Join(jobanalyzerDir, reportDirName, clusterName)
+}
+
+// Read the config file if the file name is not empty.
+func MaybeGetConfig(configFileName string) (*config.ClusterConfig, error) {
+	if configFileName == "" {
+		return nil, nil
+	}
+	return ReadConfigData(configFileName)
 }
 
 var (
@@ -86,17 +95,17 @@ type ClusterEntry struct {
 	repr.Cluster
 
 	// Misc implementation - semi-private, shared with ClusterMeta for now.
-	HaveDatabase  bool
+	HaveDatabase       bool
 	DatabaseConnection any
-	HaveDataDir   bool
-	DataDir       string
-	HaveLogFiles  bool
-	LogFiles      []string
-	LogFileType   DataType
-	HaveReportDir bool
-	ReportDir     string
-	HaveConfig    bool
-	Config        *config.ClusterConfig
+	HaveDataDir        bool
+	DataDir            string
+	HaveLogFiles       bool
+	LogFiles           []string
+	LogFileType        types.DataType
+	HaveReportDir      bool
+	ReportDir          string
+	HaveConfig         bool
+	Config             *config.ClusterConfig
 }
 
 func NewClusterEntry() *ClusterEntry {
@@ -171,12 +180,4 @@ func AllClusters() []*ClusterEntry {
 	}
 
 	return umaps.Values(clusterCache)
-}
-
-// Read the config file if the file name is not empty.
-func MaybeGetConfig(configFileName string) (*config.ClusterConfig, error) {
-	if configFileName == "" {
-		return nil, nil
-	}
-	return ReadConfigData(configFileName)
 }
