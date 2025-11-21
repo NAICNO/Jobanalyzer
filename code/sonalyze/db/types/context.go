@@ -28,7 +28,7 @@ type Context interface {
 	LogFiles(dataType DataType) []string
 
 	// Return true if the underlying database is a real database that we're connected to
-	HasDatabaseConnection() bool
+	HaveDatabaseConnection() bool
 
 	// Return a data directory either from -data-dir or computed from -jobanalyzer-dir, otherwise ""
 	DataDir() string

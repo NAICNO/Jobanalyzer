@@ -19,7 +19,7 @@ func OpenReadOnlyDB(meta types.Context, dataType types.DataType) (DataProvider, 
 	var err error
 	if meta.HaveLogFilesOfType(dataType) {
 		theLog, err = OpenFileListDB(meta, dataType)
-	} else if meta.HasDatabaseConnection() {
+	} else if meta.HaveDatabaseConnection() {
 		theLog, err = OpenConnectedDB(meta)
 	} else {
 		theLog, err = OpenPersistentDirectoryDB(meta)
