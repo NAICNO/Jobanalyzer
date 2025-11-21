@@ -152,6 +152,10 @@ func (db *DatabaseArgs) SetJobanalyzerDir(dir, cn string) {
 	db.clusterName = cn
 }
 
+func (db *DatabaseArgs) DatabaseURI() string {
+	return db.databaseUri
+}
+
 func (db *DatabaseArgs) DataDir() string {
 	return db.dataDir
 }

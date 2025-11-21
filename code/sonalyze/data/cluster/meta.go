@@ -60,6 +60,10 @@ func (tm *clusterMeta) LogFiles(dataType special.DataType) []string {
 	return nil
 }
 
+func (tm *clusterMeta) HasDatabaseConnection() bool {
+	return tm.cluster.HaveDatabase
+}
+
 func (tm *clusterMeta) ReportDir() string {
 	if tm.cluster.HaveReportDir {
 		return tm.cluster.ReportDir

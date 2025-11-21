@@ -71,6 +71,16 @@ var (
 	clusterAliases *alias.Aliases
 )
 
+type ConnectedDB struct {}
+
+func OpenDatabaseURI(databaseURI string) (*ConnectedDB, error) {
+	return nil, errors.New("No database connection yet")
+}
+
+func (cdb *ConnectedDB) EnumerateClusters() ([]string, error) {
+	return nil, errors.New("Database connection not open")
+}
+
 type ClusterEntry struct {
 	// These fields must never be modified.
 	Name        string
@@ -79,6 +89,8 @@ type ClusterEntry struct {
 	ExcludeUser []string // Not sorted
 
 	// Misc implementation - semi-private, shared with ClusterMeta for now.
+	HaveDatabase  bool
+	DatabaseConnection *ConnectedDB
 	HaveDataDir   bool
 	DataDir       string
 	HaveLogFiles  bool
@@ -115,13 +127,13 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 		if err != nil {
 			return err
 		}
-		clusterNames, err := theDB.Exec("select cluster from cluster_attributes")
+		clusterNames, err := theDB.EnumerateClusters()
 		if err != nil {
 			return err
 		}
 		for _, name := range clusterNames {
 			c := newClusterEntry()
-			c.Name = e.Name()
+			c.Name = name
 			c.HaveDatabase = true
 			c.DatabaseConnection = theDB
 			clusters[c.Name] = c
@@ -152,6 +164,7 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 		if info.Mode()&fs.ModeType != 0 {
 			return errors.New("Cluster alias file is not a regular file")
 		}
+		var err error
 		aliases, err = alias.ReadAliases(aliasesFile)
 		if err != nil {
 			return err
