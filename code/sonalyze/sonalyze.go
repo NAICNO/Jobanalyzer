@@ -31,7 +31,6 @@ import (
 	"sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/daemon"
-	"sonalyze/data/cluster"
 	"sonalyze/db"
 	"sonalyze/db/special"
 	. "sonalyze/table"
@@ -279,7 +278,7 @@ func OneShotHandleSingleCommand(
 			return errors.New("No cluster target, and multiple clusters defined")
 		}
 	}
-	meta := cluster.NewContextFromCluster(ce)
+	meta := db.NewContextFromCluster(ce)
 	switch command := anyCmd.(type) {
 	case cmd.SampleAnalysisCommand:
 		return application.LocalSampleOperation(meta, command, stdin, stdout, stderr)

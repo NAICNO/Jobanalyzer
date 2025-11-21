@@ -30,7 +30,6 @@ import (
 	"go-utils/process"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
-	"sonalyze/data/cluster"
 	"sonalyze/db"
 	"sonalyze/db/special"
 )
@@ -47,7 +46,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 
 	if dc.kafkaBroker != "" {
 		for _, cl := range special.AllClusters() {
-			meta := cluster.NewContextFromCluster(cl)
+			meta := db.NewContextFromCluster(cl)
 			ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
 			if err != nil {
 				if dc.Verbose {
