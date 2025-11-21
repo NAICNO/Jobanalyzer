@@ -1,3 +1,5 @@
+// This is a mess.  It's now mostly cluster cache plus ClusterEntry.  How much can we move one level up?
+//
 // The "cluster" table
 //
 // This is a weird one, for historical reasons - the cluster table is not terribly well-defined but
@@ -22,10 +24,6 @@
 package special
 
 import (
-	"errors"
-	"fmt"
-	"io/fs"
-	"os"
 	"path"
 	"sync"
 
@@ -39,7 +37,6 @@ const (
 	dataDirName            = "data"
 	reportDirName          = "reports"
 	clusterConfigDirName   = "cluster-config"
-	clusterAliasesFilename = "cluster-aliases.json"
 )
 
 // Name of the cluster's config file
@@ -85,22 +82,12 @@ func InitializeDataStore(clusters map[string]*ClusterEntry, aliases *alias.Alias
 	clusterAliases = aliases
 }
 
-type ConnectedDB struct {}
-
-func OpenDatabaseURI(databaseURI string) (*ConnectedDB, error) {
-	return nil, errors.New("No database connection yet")
-}
-
-func (cdb *ConnectedDB) EnumerateClusters() ([]string, error) {
-	return nil, errors.New("Database connection not open")
-}
-
 type ClusterEntry struct {
 	repr.Cluster
 
 	// Misc implementation - semi-private, shared with ClusterMeta for now.
 	HaveDatabase  bool
-	DatabaseConnection *ConnectedDB
+	DatabaseConnection any
 	HaveDataDir   bool
 	DataDir       string
 	HaveLogFiles  bool
@@ -115,205 +102,6 @@ type ClusterEntry struct {
 func NewClusterEntry() *ClusterEntry {
 	// This will become more elaborate
 	return new(ClusterEntry)
-}
-
-func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
-	var (
-		clusters map[string]*ClusterEntry
-		aliases  *alias.Aliases
-	)
-
-	clusters = make(map[string]*ClusterEntry)
-
-	if databaseURI != "" {
-		theDB, err := OpenDatabaseURI(databaseURI)
-		if err != nil {
-			return err
-		}
-		clusterNames, err := theDB.EnumerateClusters()
-		if err != nil {
-			return err
-		}
-		for _, name := range clusterNames {
-			c := NewClusterEntry()
-			c.Name = name
-			c.HaveDatabase = true
-			c.DatabaseConnection = theDB
-			clusters[c.Name] = c
-		}
-	} else {
-		// Find cluster names from the data directory
-		dirEntries, err := os.ReadDir(path.Join(jobanalyzerDir, dataDirName))
-		if err != nil {
-			return err
-		}
-		for _, e := range dirEntries {
-			if e.IsDir() {
-				c := NewClusterEntry()
-				c.Name = e.Name()
-				c.HaveDataDir = true
-				c.DataDir = MakeClusterDataPath(jobanalyzerDir, c.Name)
-				c.HaveReportDir = true
-				c.ReportDir = MakeReportDirPath(jobanalyzerDir, c.Name)
-				clusters[c.Name] = c
-			}
-		}
-	}
-
-	// Add aliases to known clusters.  The aliases file is optional, but if something with that name
-	// is there it is an error to fail to open it.
-	aliasesFile := path.Join(jobanalyzerDir, clusterConfigDirName, clusterAliasesFilename)
-	if info, bad := os.Stat(aliasesFile); bad == nil {
-		if info.Mode()&fs.ModeType != 0 {
-			return errors.New("Cluster alias file is not a regular file")
-		}
-		var err error
-		aliases, err = alias.ReadAliases(aliasesFile)
-		if err != nil {
-			return err
-		}
-	}
-	if aliases != nil {
-		for c, as := range aliases.ReverseExpand() {
-			if probe, found := clusters[c]; found {
-				probe.Aliases = as
-			}
-		}
-	}
-
-	// Find descriptions for known clusters.
-	for c, v := range clusters {
-		cfg, err := ReadConfigData(MakeConfigFilePath(jobanalyzerDir, c))
-		if err != nil {
-			// Arguably we could remove it, but this code will change anyway.
-			v.Description = "No configuration found"
-			continue
-		}
-		v.Description = cfg.Description
-		v.ExcludeUser = cfg.ExcludeUser
-		v.HaveConfig = true
-		v.Config = cfg
-	}
-
-	InitializeDataStore(clusters, aliases)
-	return nil
-}
-
-// For the following, the cluster name will be set to "data.cluster", "report.cluster",
-// "logfiles.cluster", "config.cluster" if configFile is not provided or if the file does not
-// provide a cluster name.
-
-func OpenDataStoreFromDataDir(dataDir, configFile string) error {
-	cfg, err := maybeGetConfig(configFile)
-	if err != nil {
-		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
-	}
-	v := NewClusterEntry()
-	v.HaveDataDir = true
-	v.DataDir = dataDir
-	if cfg != nil {
-		v.Name = cfg.Name
-		v.Description = cfg.Description
-		v.HaveConfig = true
-		v.Config = cfg
-	}
-	if v.Name == "" {
-		v.Name = "data.cluster"
-	}
-	if v.Description == "" {
-		v.Description = "anonymous cluster (data dir)"
-	}
-
-	InitializeDataStore(map[string]*ClusterEntry{v.Name: v}, nil)
-	return nil
-}
-
-func OpenDataStoreFromReportDir(reportDir, configFile string) error {
-	cfg, err := maybeGetConfig(configFile)
-	if err != nil {
-		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
-	}
-	v := NewClusterEntry()
-	v.HaveReportDir = true
-	v.ReportDir = reportDir
-	if cfg != nil {
-		v.Name = cfg.Name
-		v.Description = cfg.Description
-		v.HaveConfig = true
-		v.Config = cfg
-	}
-	if v.Name == "" {
-		v.Name = "report.cluster"
-	}
-	if v.Description == "" {
-		v.Description = "anonymous cluster (report dir)"
-	}
-
-	InitializeDataStore(map[string]*ClusterEntry{v.Name: v}, nil)
-	return nil
-}
-
-func OpenDataStoreFromLogFiles(logFiles []string, configFile string) error {
-	cfg, err := maybeGetConfig(configFile)
-	if err != nil {
-		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
-	}
-	v := NewClusterEntry()
-	v.HaveLogFiles = true
-	v.LogFiles = logFiles
-	if cfg != nil {
-		v.Name = cfg.Name
-		v.Description = cfg.Description
-		v.HaveConfig = true
-		v.Config = cfg
-	}
-	if v.Name == "" {
-		v.Name = "logfiles.cluster"
-	}
-	if v.Description == "" {
-		v.Description = "anonymous cluster (log files)"
-	}
-
-	InitializeDataStore(map[string]*ClusterEntry{v.Name: v}, nil)
-	return nil
-}
-
-func OpenDataStoreFromConfigFile(configFile string) error {
-	cfg, err := maybeGetConfig(configFile)
-	if err != nil {
-		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
-	}
-	v := NewClusterEntry()
-	v.Name = cfg.Name
-	v.Description = cfg.Description
-	v.HaveConfig = true
-	v.Config = cfg
-	if v.Name == "" {
-		v.Name = "config.cluster"
-	}
-	if v.Description == "" {
-		v.Description = "anonymous cluster (config file)"
-	}
-
-	InitializeDataStore(map[string]*ClusterEntry{v.Name: v}, nil)
-	return nil
-}
-
-func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
-	v := NewClusterEntry()
-	v.Name = cfg.Name
-	v.Description = cfg.Description
-	v.HaveConfig = true
-	v.Config = cfg
-	if v.Name == "" {
-		v.Name = "config.cluster"
-	}
-	if v.Description == "" {
-		v.Description = "anonymous cluster (config file)"
-	}
-
-	InitializeDataStore(map[string]*ClusterEntry{v.Name: v}, nil)
-	return nil
 }
 
 func CloseDataStore() {
@@ -386,7 +174,7 @@ func AllClusters() []*ClusterEntry {
 }
 
 // Read the config file if the file name is not empty.
-func maybeGetConfig(configFileName string) (*config.ClusterConfig, error) {
+func MaybeGetConfig(configFileName string) (*config.ClusterConfig, error) {
 	if configFileName == "" {
 		return nil, nil
 	}
