@@ -53,6 +53,7 @@ type Command interface {
 	// DatabaseArgs API (evolving)
 	Dataless() bool
 	JobanalyzerDir() string
+	DatabaseURI() string
 	DataDir() string
 	ReportDir() string
 	LogFiles() []string

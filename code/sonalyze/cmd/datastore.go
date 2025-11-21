@@ -11,7 +11,7 @@ import (
 func OpenDataStoreFromCommand(anyCmd Command) (err error) {
 	db.SetCacheSize(anyCmd.CacheSize())
 	if jd := anyCmd.JobanalyzerDir(); jd != "" {
-		err = special.OpenFullDataStore(jd, jd.DatabaseURI())
+		err = special.OpenFullDataStore(jd, anyCmd.DatabaseURI())
 	} else if dd := anyCmd.DataDir(); dd != "" {
 		err = special.OpenDataStoreFromDataDir(dd, anyCmd.ConfigFile())
 	} else if rd := anyCmd.ReportDir(); rd != "" {
