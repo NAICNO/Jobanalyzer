@@ -2,7 +2,12 @@ package db
 
 import (
 	"fmt"
+	"errors"
+	"io/fs"
+	"path"
+	"os"
 
+	"go-utils/alias"
 	"go-utils/config"
 	"sonalyze/db/special"
 )
@@ -24,28 +29,214 @@ func OpenReadOnlyDB(meta special.ClusterMeta, dataType special.DataType) (DataPr
 	return theLog, nil
 }
 
+const (
+	dataDirName            = "data"
+	clusterConfigDirName   = "cluster-config" // FIXME: duplicated, should abstract it
+	clusterAliasesFilename = "cluster-aliases.json"
+)
+
 func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
-	return special.OpenFullDataStore(jobanalyzerDir, databaseURI)
+	var (
+		clusters map[string]*special.ClusterEntry
+		aliases  *alias.Aliases
+	)
+
+	clusters = make(map[string]*special.ClusterEntry)
+
+	if databaseURI != "" {
+		theDB, err := OpenDatabaseURI(databaseURI)
+		if err != nil {
+			return err
+		}
+		clusterNames, err := theDB.EnumerateClusters()
+		if err != nil {
+			return err
+		}
+		for _, name := range clusterNames {
+			c := special.NewClusterEntry()
+			c.Name = name
+			c.HaveDatabase = true
+			c.DatabaseConnection = theDB
+			clusters[c.Name] = c
+		}
+	} else {
+		// Find cluster names from the data directory
+		dirEntries, err := os.ReadDir(path.Join(jobanalyzerDir, dataDirName))
+		if err != nil {
+			return err
+		}
+		for _, e := range dirEntries {
+			if e.IsDir() {
+				c := special.NewClusterEntry()
+				c.Name = e.Name()
+				c.HaveDataDir = true
+				c.DataDir = special.MakeClusterDataPath(jobanalyzerDir, c.Name)
+				c.HaveReportDir = true
+				c.ReportDir = special.MakeReportDirPath(jobanalyzerDir, c.Name)
+				clusters[c.Name] = c
+			}
+		}
+	}
+
+	// Add aliases to known clusters.  The aliases file is optional, but if something with that name
+	// is there it is an error to fail to open it.
+	aliasesFile := path.Join(jobanalyzerDir, clusterConfigDirName, clusterAliasesFilename)
+	if info, bad := os.Stat(aliasesFile); bad == nil {
+		if info.Mode()&fs.ModeType != 0 {
+			return errors.New("Cluster alias file is not a regular file")
+		}
+		var err error
+		aliases, err = alias.ReadAliases(aliasesFile)
+		if err != nil {
+			return err
+		}
+	}
+	if aliases != nil {
+		for c, as := range aliases.ReverseExpand() {
+			if probe, found := clusters[c]; found {
+				probe.Aliases = as
+			}
+		}
+	}
+
+	// Find descriptions for known clusters.
+	for c, v := range clusters {
+		cfg, err := special.ReadConfigData(special.MakeConfigFilePath(jobanalyzerDir, c))
+		if err != nil {
+			// Arguably we could remove it, but this code will change anyway.
+			v.Description = "No configuration found"
+			continue
+		}
+		v.Description = cfg.Description
+		v.ExcludeUser = cfg.ExcludeUser
+		v.HaveConfig = true
+		v.Config = cfg
+	}
+
+	special.InitializeDataStore(clusters, aliases)
+	return nil
 }
 
+// For the following, the cluster name will be set to "data.cluster", "report.cluster",
+// "logfiles.cluster", "config.cluster" if configFile is not provided or if the file does not
+// provide a cluster name.
+
 func OpenDataStoreFromDataDir(dataDir, configFile string) error {
-	return special.OpenDataStoreFromDataDir(dataDir, configFile)
+	cfg, err := special.MaybeGetConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
+	}
+	v := special.NewClusterEntry()
+	v.HaveDataDir = true
+	v.DataDir = dataDir
+	if cfg != nil {
+		v.Name = cfg.Name
+		v.Description = cfg.Description
+		v.HaveConfig = true
+		v.Config = cfg
+	}
+	if v.Name == "" {
+		v.Name = "data.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (data dir)"
+	}
+	clusters := map[string]*special.ClusterEntry{v.Name: v}
+
+	special.InitializeDataStore(clusters, nil)
+	return nil
 }
 
 func OpenDataStoreFromReportDir(reportDir, configFile string) error {
-	return special.OpenDataStoreFromReportDir(reportDir, configFile)
+	cfg, err := special.MaybeGetConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
+	}
+	v := special.NewClusterEntry()
+	v.HaveReportDir = true
+	v.ReportDir = reportDir
+	if cfg != nil {
+		v.Name = cfg.Name
+		v.Description = cfg.Description
+		v.HaveConfig = true
+		v.Config = cfg
+	}
+	if v.Name == "" {
+		v.Name = "report.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (report dir)"
+	}
+	clusters := map[string]*special.ClusterEntry{v.Name: v}
+
+	special.InitializeDataStore(clusters, nil)
+	return nil
 }
 
 func OpenDataStoreFromLogFiles(logFiles []string, configFile string) error {
-	return special.OpenDataStoreFromLogFiles(logFiles, configFile)
+	cfg, err := special.MaybeGetConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
+	}
+	v := special.NewClusterEntry()
+	v.HaveLogFiles = true
+	v.LogFiles = logFiles
+	if cfg != nil {
+		v.Name = cfg.Name
+		v.Description = cfg.Description
+		v.HaveConfig = true
+		v.Config = cfg
+	}
+	if v.Name == "" {
+		v.Name = "logfiles.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (log files)"
+	}
+	clusters := map[string]*special.ClusterEntry{v.Name: v}
+
+	special.InitializeDataStore(clusters, nil)
+	return nil
 }
 
 func OpenDataStoreFromConfigFile(configFile string) error {
-	return special.OpenDataStoreFromConfigFile(configFile)
+	cfg, err := special.MaybeGetConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
+	}
+	v := special.NewClusterEntry()
+	v.Name = cfg.Name
+	v.Description = cfg.Description
+	v.HaveConfig = true
+	v.Config = cfg
+	if v.Name == "" {
+		v.Name = "config.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (config file)"
+	}
+	clusters := map[string]*special.ClusterEntry{v.Name: v}
+
+	special.InitializeDataStore(clusters, nil)
+	return nil
 }
 
 func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
-	return OpenDataStoreFromConfig(cfg)
+	v := special.NewClusterEntry()
+	v.Name = cfg.Name
+	v.Description = cfg.Description
+	v.HaveConfig = true
+	v.Config = cfg
+	if v.Name == "" {
+		v.Name = "config.cluster"
+	}
+	if v.Description == "" {
+		v.Description = "anonymous cluster (config file)"
+	}
+	clusters := map[string]*special.ClusterEntry{v.Name: v}
+
+	special.InitializeDataStore(clusters, nil)
+	return nil
 }
 
 
