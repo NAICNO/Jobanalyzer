@@ -5,10 +5,6 @@ import (
 	"sonalyze/db/types"
 )
 
-func OpenConnectedDB(meta types.Context) (DataProvider, error) {
-	return nil, errors.New("Don't know how to open a database yet")
-}
-
 type ConnectedDB struct{}
 
 func OpenDatabaseURI(databaseURI string) (*ConnectedDB, error) {
@@ -17,4 +13,10 @@ func OpenDatabaseURI(databaseURI string) (*ConnectedDB, error) {
 
 func (cdb *ConnectedDB) EnumerateClusters() ([]string, error) {
 	return nil, errors.New("Database connection not open")
+}
+
+func OpenConnectedDB(meta types.Context) (AppendablePersistentDataProvider, error) {
+	db := meta.ConnectedDB().(*ConnectedDB)
+	_ = db
+	return nil, errors.New("Don't know how to open a database yet")
 }

@@ -52,6 +52,10 @@ func (mm *stubMeta) HaveDatabaseConnection() bool {
 	return false
 }
 
+func (mm *stubMeta) ConnectedDB() any {
+	return nil
+}
+
 func (mm *stubMeta) ReportDir() string {
 	return ""
 }

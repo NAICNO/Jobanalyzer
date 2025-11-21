@@ -30,6 +30,9 @@ type Context interface {
 	// Return true if the underlying database is a real database that we're connected to
 	HaveDatabaseConnection() bool
 
+	// Return the underlying connected database.  (The type is regrettably `any` for now.)
+	ConnectedDB() any
+
 	// Return a data directory either from -data-dir or computed from -jobanalyzer-dir, otherwise ""
 	DataDir() string
 

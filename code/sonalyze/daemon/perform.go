@@ -47,7 +47,13 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	if dc.kafkaBroker != "" {
 		for _, cl := range special.AllClusters() {
 			meta := db.NewContextFromCluster(cl)
-			ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
+			var ds db.AppendablePersistentDataProvider
+			var err error
+			if meta.HaveDatabaseConnection() {
+				ds, err = db.OpenConnectedDB(meta)
+			} else {
+				ds, err = db.OpenAppendablePersistentDirectoryDB(meta)
+			}
 			if err != nil {
 				if dc.Verbose {
 					Log.Warningf("Failed to open data store for %s", cl.Name)
