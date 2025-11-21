@@ -11,6 +11,7 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/filesys"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
 	"sonalyze/db/types"
@@ -69,14 +70,14 @@ func getPersistentDB(t *testing.T, cluster string) *PersistentCluster {
 	}
 	var err error
 	// Do not change this.
-	theCfg, err := special.ReadConfigData(special.MakeConfigFilePath("testdata", cluster))
+	theCfg, err := special.ReadConfigData(filesys.MakeConfigFilePath("testdata", cluster))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if theCfg == nil {
 		t.Fatal("nil config")
 	}
-	dataDir := special.MakeClusterDataPath("testdata", cluster)
+	dataDir := filesys.MakeClusterDataPath("testdata", cluster)
 	theDB = NewPersistentCluster(dataDir, &stubMeta{dataDir: dataDir, cfg: theCfg})
 	return theDB
 }

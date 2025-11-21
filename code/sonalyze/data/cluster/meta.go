@@ -9,45 +9,45 @@ import (
 	"sonalyze/db/types"
 )
 
-type clusterMeta struct {
+type dbContext struct {
 	cluster        *special.ClusterEntry
 }
 
 func NewMetaFromCluster(cluster *special.ClusterEntry) types.Context {
-	return &clusterMeta { cluster }
+	return &dbContext { cluster }
 }
 
-func (tm *clusterMeta) Cluster() *special.ClusterEntry {
+func (tm *dbContext) Cluster() *special.ClusterEntry {
 	return tm.cluster
 }
 
-func (tm *clusterMeta) ClusterName() string {
+func (tm *dbContext) ClusterName() string {
 	return tm.cluster.Name
 }
 
-func (tm *clusterMeta) ExcludedUsers() []string {
+func (tm *dbContext) ExcludedUsers() []string {
 	return tm.cluster.ExcludeUser
 }
 
-func (tm *clusterMeta) NodesDefinedInConfigIfAny() []*repr.NodeSummary {
+func (tm *dbContext) NodesDefinedInConfigIfAny() []*repr.NodeSummary {
 	if tm.cluster.HaveConfig {
 		return slices.Clone(tm.cluster.Config.Hosts())
 	}
 	return make([]*repr.NodeSummary, 0)
 }
 
-func (tm *clusterMeta) DataDir() string {
+func (tm *dbContext) DataDir() string {
 	if tm.cluster.HaveDataDir {
 		return tm.cluster.DataDir
 	}
 	return ""
 }
 
-func (tm *clusterMeta) HaveLogFilesOfType(dataType types.DataType) bool {
+func (tm *dbContext) HaveLogFilesOfType(dataType types.DataType) bool {
 	return tm.cluster.HaveLogFiles && (tm.cluster.LogFileType == 0 || (dataType & tm.cluster.LogFileType) != 0)
 }
 
-func (tm *clusterMeta) LogFiles(dataType types.DataType) []string {
+func (tm *dbContext) LogFiles(dataType types.DataType) []string {
 	if tm.cluster.HaveLogFiles {
 		if dataType == 0 {
 			panic("Zero data type")
@@ -62,21 +62,21 @@ func (tm *clusterMeta) LogFiles(dataType types.DataType) []string {
 	return nil
 }
 
-func (tm *clusterMeta) HasDatabaseConnection() bool {
+func (tm *dbContext) HasDatabaseConnection() bool {
 	return tm.cluster.HaveDatabase
 }
 
-func (tm *clusterMeta) ReportDir() string {
+func (tm *dbContext) ReportDir() string {
 	if tm.cluster.HaveReportDir {
 		return tm.cluster.ReportDir
 	}
 	return ""
 }
 
-func (tm *clusterMeta) HaveConfig() bool {
+func (tm *dbContext) HaveConfig() bool {
 	return tm.cluster.HaveConfig
 }
 
-func (tm *clusterMeta) Config() *config.ClusterConfig {
+func (tm *dbContext) Config() *config.ClusterConfig {
 	return tm.cluster.Config
 }
