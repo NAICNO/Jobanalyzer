@@ -77,7 +77,43 @@ func (cdb *connectedDB) ReadProcessSamples(
 	hosts *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, softErrors int, err error) {
-	panic("NYI")
+	var cmd, node, user string
+	var cpuTime, epoch, job, numThreads, pid, ppid, residentMemory, virtualMemory pgtype.Int8
+	var cpuAvg float64
+	var rolledup int
+	var timestamp time.Time
+	fields := "cmd, cpu_avg, cpu_time, epoch, job, node, num_threads, pid, ppid, " +
+		"resident_memory, rolledup, time, user, virtual_memory"
+	boxes := []any{
+		&cmd, &cpuAvg, &cpuTime, &epoch, &job, &node, &numThreads, &pid, &ppid,
+		&residentMemory, &rolledup, &timestamp, &user, &virtualMemory,
+	}
+	cluster := StringToUstr(cdb.cx.ClusterName())
+	// Reference: ParseSamplesV0JSON()
+	unbox := func() *repr.Sample {
+		return &repr.Sample{
+			// TODO: Sonar version - info may be lost in DB
+			// TODO: Gpus, GpuPct, GpuMemPct, GpuFail - requires some kind of join
+			// TODO: Cores - ditto
+			Cluster:    cluster,
+			Cmd:        StringToUstr(cmd),
+			CpuPct:     float32(cpuAvg),
+			CpuTimeSec: uint64(cpuTime.Int),
+			Epoch:      uint64(epoch.Int),
+			Job:        uint32(job.Int),
+			Hostname:   StringToUstr(node),
+			Threads:    uint32(numThreads.Int) + 1,
+			Pid:        uint32(pid.Int),
+			Ppid:       uint32(ppid.Int),
+			RssAnonKB:  uint64(residentMemory.Int),
+			Rolledup:   uint32(rolledup),
+			Timestamp:  timestamp.UTC().Unix(),
+			User:       StringToUstr(user),
+			CpuKB:      uint64(virtualMemory.Int),
+		}
+	}
+	return querySlice[repr.Sample](
+		cdb, fromDate, toDate, hosts, verbose, boxes, unbox, "sample_process", fields)
 }
 
 func (cdb *connectedDB) ReadNodeSamples(
@@ -186,6 +222,9 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error) {
+	// TODO: This is more complicated!  The DB stores what it perceives to be static card info in a
+	// separate table, sysinfo_gpu_card.  That will need to be joined to sysinfo_gpu_card_config
+	// here (by UUID) to get the full story.
 	var address, driver, firmware, node, uuid string
 	var index int
 	var maxCeClock, maxMemoryClock, maxPowerLimit, minPowerLimit, powerLimit pgtype.Int8
