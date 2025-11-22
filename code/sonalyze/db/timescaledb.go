@@ -8,6 +8,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/NordicHPC/sonar/util/formats/newfmt"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v5"
 	. "sonalyze/common"
@@ -112,14 +113,14 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
 	// TODO: topo_svg, topo_text
+	// TODO: add cards to SysinfoNodeData, then here, then also to std decode
 	var architecture, cluster, cpuModel, node, osName, osRelease string
 	var coresPerSocket, memory, sockets, threadsPerCore pgtype.Int8
 	var timestamp time.Time
 	var distances []int
 
 	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields :=
-		"architecture, cluster, cores_per_socket, cpu_model, distances, memory, " +
+	fields := "architecture, cluster, cores_per_socket, cpu_model, distances, memory, " +
 		"node, os_name, os_release, sockets, threads_per_core, time"
 	boxes := []any{
 		&architecture, &cluster, &coresPerSocket, &cpuModel, &distances, &memory,
@@ -164,8 +165,37 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error) {
-	return
-	//panic("NYI")
+	var address, driver, firmware, node, uuid string
+	var index int
+	var maxCeClock, maxMemoryClock, maxPowerLimit, minPowerLimit, powerLimit pgtype.Int8
+	var timestamp time.Time
+	fields := "address, driver, firmware, index, max_ce_clock, max_memory_clock, " +
+		"max_power_limit, min_power_limit, node, power_limit, time, uuid"
+	boxes := []any{
+		&address, &driver, &firmware, &index, &maxCeClock, &maxMemoryClock,
+		&maxPowerLimit, &minPowerLimit, &node, &powerLimit, &timestamp, &uuid,
+	}
+	unbox := func() *repr.SysinfoCardData {
+		return &repr.SysinfoCardData{
+			Time: timestamp.Format(time.RFC3339),
+			Node: node,
+			SysinfoGpuCard: &newfmt.SysinfoGpuCard{
+				Address:        address,
+				Driver:         driver,
+				Firmware:       firmware,
+				Index:          uint64(index),
+				MaxCEClock:     uint64(maxCeClock.Int),
+				MaxMemoryClock: uint64(maxMemoryClock.Int),
+				MaxPowerLimit:  uint64(maxPowerLimit.Int),
+				MinPowerLimit:  uint64(minPowerLimit.Int),
+				PowerLimit:     uint64(powerLimit.Int),
+				UUID:           uuid,
+			},
+		}
+	}
+
+	return querySlice[repr.SysinfoCardData](
+		cdb, fromDate, toDate, hosts, verbose, boxes, unbox, "sysinfo_gpu_card_config", fields)
 }
 
 func (cdb *connectedDB) ReadSacctData(
@@ -202,17 +232,15 @@ func querySlice[T any](
 	hosts *Hosts,
 	verbose bool,
 	boxes []any,
-	unbox func () *T,
+	unbox func() *T,
 	table, fields string,
 ) (finalRows [][]*T, softErrors int, err error) {
 	// TODO: time span and hosts obviously
 	// TODO: what about quoting the cluster name?
 	// TODO: literal sql is an antipattern, there must be something better?  Is quoting automatic?
-	rows, err := cdb.theDB.connection.Query(
-		context.Background(),
-		"SELECT "+fields+" FROM "+table+" WHERE cluster=$1",
-		cdb.cx.ClusterName(),
-	)
+	qstr := "SELECT "+fields+" FROM "+table+" WHERE cluster=$1"
+	qarg := []any{cdb.cx.ClusterName()}
+	rows, err := cdb.theDB.connection.Query(context.Background(), qstr, qarg...)
 	if err != nil {
 		return
 	}
