@@ -155,27 +155,8 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 		}
 	}
 
-	// TODO: time span and hosts obviously
-	// TODO: what about quoting the cluster name?
-	// TODO: literal sql is an antipattern, there must be something better?  Is quoting automatic?
-	rows, err := cdb.theDB.connection.Query(
-		context.Background(),
-		"SELECT "+fields+" FROM sysinfo_attributes WHERE cluster=$1",
-		cdb.cx.ClusterName(),
-	)
-	if err != nil {
-		return
-	}
-	nodeData := make([]*repr.SysinfoNodeData, 0)
-	_, err = pgx.ForEachRow(rows, boxes, func() error {
-		nodeData = append(nodeData, unbox())
-		return nil
-	})
-	if err != nil {
-		return
-	}
-	sysinfoBlobs = [][]*repr.SysinfoNodeData{nodeData}
-	return
+	return querySlice[repr.SysinfoNodeData](
+		cdb, fromDate, toDate, hosts, verbose, boxes, unbox, "sysinfo_attributes", fields)
 }
 
 func (cdb *connectedDB) ReadSysinfoCardData(
@@ -213,6 +194,38 @@ func (cdb *connectedDB) ReadCluzterNodeData(
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterNodes, softErrors int, err error) {
 	panic("NYI")
+}
+
+func querySlice[T any](
+	cdb *connectedDB,
+	fromDate, toDate time.Time,
+	hosts *Hosts,
+	verbose bool,
+	boxes []any,
+	unbox func () *T,
+	table, fields string,
+) (finalRows [][]*T, softErrors int, err error) {
+	// TODO: time span and hosts obviously
+	// TODO: what about quoting the cluster name?
+	// TODO: literal sql is an antipattern, there must be something better?  Is quoting automatic?
+	rows, err := cdb.theDB.connection.Query(
+		context.Background(),
+		"SELECT "+fields+" FROM "+table+" WHERE cluster=$1",
+		cdb.cx.ClusterName(),
+	)
+	if err != nil {
+		return
+	}
+	dataRows := make([]*T, 0)
+	_, err = pgx.ForEachRow(rows, boxes, func() error {
+		dataRows = append(dataRows, unbox())
+		return nil
+	})
+	if err != nil {
+		return
+	}
+	finalRows = [][]*T{dataRows}
+	return
 }
 
 func (cdb *connectedDB) AppendSamplesAsync(ty DataReprType, host, timestamp string, payload any) error {
