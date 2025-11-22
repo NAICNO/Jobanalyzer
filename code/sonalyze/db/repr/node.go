@@ -29,6 +29,7 @@ type SysinfoNodeData struct {
 	TopoSVG        string // decoded if present
 	TopoText       string // decoded if present
 	Distances      [][]uint64
+	Cards          []string // uuids, may be nil
 }
 
 func (n *SysinfoNodeData) TimeAndNode() (any, string) {
@@ -47,5 +48,6 @@ func (d *SysinfoNodeData) Size() uintptr {
 	size += uintptr(len(d.TopoSVG))
 	size += uintptr(len(d.TopoText))
 	size += unsafe.Sizeof(d.Distances[0][0]) * uintptr(len(d.Distances)*len(d.Distances[0]))
+	size += StringSize * uintptr(cap(d.Cards))
 	return size
 }

@@ -30,6 +30,10 @@ func ParseSysinfoV0JSON(
 			if distances == nil {
 				distances = defaultDistances
 			}
+			uuids := make([]string, 0)
+			for _, card := range d.Cards {
+				uuids = append(uuids, card.UUID)
+			}
 			var topoSvg, topoText string
 			if d.TopoSVG != "" {
 				dst := make([]byte, base64.StdEncoding.DecodedLen(len(d.TopoSVG)))
@@ -62,6 +66,7 @@ func ParseSysinfoV0JSON(
 				TopoSVG:        topoSvg,
 				TopoText:       topoText,
 				Distances:      distances,
+				Cards:          uuids,
 			})
 			for i := range d.Cards {
 				cardData = append(cardData, &repr.SysinfoCardData{
