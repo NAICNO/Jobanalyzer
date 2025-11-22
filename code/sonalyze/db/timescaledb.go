@@ -1,9 +1,14 @@
 package db
 
 import (
-	"errors"
+	"context"
+	"fmt"
+	"maps"
+	"slices"
 	"time"
 
+	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v5"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
@@ -26,16 +31,34 @@ import (
 //   something going (maybe need to return empty sets from ReadSysinfoCardData to avoid panic).
 
 type databaseConnection struct {
-	// stuff
+	connection *pgx.Conn
 }
 
 func OpenDatabaseURI(databaseURI string) (*databaseConnection, error) {
-	return nil, errors.New("No database connection yet")
+	connection, err := pgx.Connect(context.Background(), databaseURI)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to connect to database: %v\n", err)
+	}
+	//defer conn.Close(context.Background())
+	return &databaseConnection{connection}, nil
 }
 
 func (cdb *databaseConnection) EnumerateClusters() ([]string, error) {
-	// SELECT cluster FROM cluster_attributes ;
-	return nil, errors.New("Database connection not open")
+	rows, err := cdb.connection.Query(context.Background(), "SELECT cluster FROM cluster_attributes")
+	if err != nil {
+		return nil, err
+	}
+	rawClusters, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, err
+	}
+	// Workaround for https://github.com/2maz/slurm-monitor/issues/17 which we can remove soon:
+	// cluster names can be duplicated.
+	uniqueClusters := make(map[string]bool)
+	for _, c := range rawClusters {
+		uniqueClusters[c] = true
+	}
+	return slices.Collect(maps.Keys(uniqueClusters)), nil
 }
 
 type connectedDB struct {
@@ -87,10 +110,55 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
-	// clusterName := cdb.cx.ClusterName()
-	// SELECT * FROM sysinfo_attributes WHERE cluster = ${clusterName} AND time >= ${fromDate} AND time <= ${toDate} ;
-	// Oh boy, filtering by hosts will be interesting
-	panic("NYI")
+	clusterName := cdb.cx.ClusterName()
+
+	// TODO: cards, distances, topo_svg, topo_text
+	var architecture, cluster, cpuModel, node, osName, osRelease string
+	var coresPerSocket, memory, sockets, threadsPerCore pgtype.Int8
+	var timestamp time.Time
+
+	// Alpha order and KEEP THESE TWO LISTS IN SYNC!
+	fields := "architecture, cluster, cores_per_socket, cpu_model, memory, node, os_name, os_release, sockets, threads_per_core, time"
+	boxes := []any{&architecture, &cluster, &coresPerSocket, &cpuModel, &memory, &node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp}
+
+	unbox := func() *repr.SysinfoNodeData {
+		return &repr.SysinfoNodeData{
+			// Useful to keep this in the same order as the ones above
+			Architecture:   architecture,
+			Cluster:        cluster,
+			CoresPerSocket: uint64(coresPerSocket.Int),
+			CpuModel:       cpuModel,
+			Memory:         uint64(memory.Int),
+			Node:           node,
+			OsName:         osName,
+			OsRelease:      osRelease,
+			Sockets:        uint64(sockets.Int),
+			ThreadsPerCore: uint64(threadsPerCore.Int),
+			Time:           timestamp.Format(time.RFC3339),
+		}
+	}
+
+	// TODO: time span and hosts obviously
+	// TODO: what about quoting the cluster name?
+	// TODO: literal sql is an antipattern, there must be something better?  Is quoting automatic?
+	rows, err := cdb.theDB.connection.Query(
+		context.Background(),
+		"SELECT "+fields+" FROM sysinfo_attributes WHERE cluster=$1",
+		clusterName,
+	)
+	if err != nil {
+		return
+	}
+	nodeData := make([]*repr.SysinfoNodeData, 0)
+	_, err = pgx.ForEachRow(rows, boxes, func() error {
+		nodeData = append(nodeData, unbox())
+		return nil
+	})
+	if err != nil {
+		return
+	}
+	sysinfoBlobs = [][]*repr.SysinfoNodeData{nodeData}
+	return
 }
 
 func (cdb *connectedDB) ReadSysinfoCardData(
@@ -98,7 +166,8 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error) {
-	panic("NYI")
+	return
+	//panic("NYI")
 }
 
 func (cdb *connectedDB) ReadSacctData(
