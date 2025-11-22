@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"math"
 	"slices"
 	"time"
 
@@ -110,24 +111,40 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
-	clusterName := cdb.cx.ClusterName()
-
-	// TODO: cards, distances, topo_svg, topo_text
+	// TODO: topo_svg, topo_text
 	var architecture, cluster, cpuModel, node, osName, osRelease string
 	var coresPerSocket, memory, sockets, threadsPerCore pgtype.Int8
 	var timestamp time.Time
+	var distances []int
 
-	// Alpha order and KEEP THESE TWO LISTS IN SYNC!
-	fields := "architecture, cluster, cores_per_socket, cpu_model, memory, node, os_name, os_release, sockets, threads_per_core, time"
-	boxes := []any{&architecture, &cluster, &coresPerSocket, &cpuModel, &memory, &node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp}
+	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+	fields :=
+		"architecture, cluster, cores_per_socket, cpu_model, distances, memory, " +
+		"node, os_name, os_release, sockets, threads_per_core, time"
+	boxes := []any{
+		&architecture, &cluster, &coresPerSocket, &cpuModel, &distances, &memory,
+		&node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp,
+	}
 
 	unbox := func() *repr.SysinfoNodeData {
+		dside := int(math.Sqrt(float64(len(distances))))
+		ds := make([][]uint64, dside)
+		k := 0
+		for i := range dside {
+			ds[i] = make([]uint64, dside)
+			for j := range dside {
+				ds[i][j] = uint64(distances[k])
+				j++
+				k++
+			}
+		}
 		return &repr.SysinfoNodeData{
 			// Useful to keep this in the same order as the ones above
 			Architecture:   architecture,
 			Cluster:        cluster,
 			CoresPerSocket: uint64(coresPerSocket.Int),
 			CpuModel:       cpuModel,
+			Distances:      ds,
 			Memory:         uint64(memory.Int),
 			Node:           node,
 			OsName:         osName,
@@ -144,7 +161,7 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	rows, err := cdb.theDB.connection.Query(
 		context.Background(),
 		"SELECT "+fields+" FROM sysinfo_attributes WHERE cluster=$1",
-		clusterName,
+		cdb.cx.ClusterName(),
 	)
 	if err != nil {
 		return
