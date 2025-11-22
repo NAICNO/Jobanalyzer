@@ -28,9 +28,6 @@ import (
 //
 // - For the initial cut, we will read raw data from the database every time, no caching in
 //   Sonalyze.  Only if this is a performance issue will we add caching.
-//
-// - Initial implementation should emphasize EnumerateClusters() and ReadSysinfoNodeData(), to get
-//   something going (maybe need to return empty sets from ReadSysinfoCardData to avoid panic).
 
 type databaseConnection struct {
 	connection *pgx.Conn
@@ -88,7 +85,30 @@ func (cdb *connectedDB) ReadNodeSamples(
 	hosts *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*repr.NodeSample, softErrors int, err error) {
-	panic("NYI")
+	var existingEntities, runnableEntities, usedMemory pgtype.Int8
+	var load1, load15, load5 float64
+	var node string
+	var timestamp time.Time
+	fields := "existing_entities, load1, load15, load5, node, " +
+		"runnable_entities, time, used_memory"
+	boxes := []any{
+		&existingEntities, &load1, &load15, &load5, &node,
+		&runnableEntities, &timestamp, &usedMemory,
+	}
+	unbox := func() *repr.NodeSample {
+		return &repr.NodeSample{
+			ExistingEntities: uint64(existingEntities.Int),
+			Hostname:         StringToUstr(node),
+			Load1:            load1,
+			Load5:            load5,
+			Load15:           load15,
+			RunnableEntities: uint64(runnableEntities.Int),
+			Timestamp:        timestamp.UTC().Unix(),
+			UsedMemory:       uint64(usedMemory.Int),
+		}
+	}
+	return querySlice[repr.NodeSample](
+		cdb, fromDate, toDate, hosts, verbose, boxes, unbox, "sample_system", fields)
 }
 
 func (cdb *connectedDB) ReadCpuSamples(
@@ -113,17 +133,17 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
 	// TODO: topo_svg, topo_text
-	// TODO: add cards to SysinfoNodeData, then here, then also to std decode
 	var architecture, cluster, cpuModel, node, osName, osRelease string
 	var coresPerSocket, memory, sockets, threadsPerCore pgtype.Int8
 	var timestamp time.Time
 	var distances []int
+	var cards []string
 
 	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields := "architecture, cluster, cores_per_socket, cpu_model, distances, memory, " +
+	fields := "architecture, cards, cluster, cores_per_socket, cpu_model, distances, memory, " +
 		"node, os_name, os_release, sockets, threads_per_core, time"
 	boxes := []any{
-		&architecture, &cluster, &coresPerSocket, &cpuModel, &distances, &memory,
+		&architecture, &cards, &cluster, &coresPerSocket, &cpuModel, &distances, &memory,
 		&node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp,
 	}
 
@@ -142,6 +162,7 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 		return &repr.SysinfoNodeData{
 			// Useful to keep this in the same order as the ones above
 			Architecture:   architecture,
+			Cards:          cards,
 			Cluster:        cluster,
 			CoresPerSocket: uint64(coresPerSocket.Int),
 			CpuModel:       cpuModel,
@@ -238,7 +259,7 @@ func querySlice[T any](
 	// TODO: time span and hosts obviously
 	// TODO: what about quoting the cluster name?
 	// TODO: literal sql is an antipattern, there must be something better?  Is quoting automatic?
-	qstr := "SELECT "+fields+" FROM "+table+" WHERE cluster=$1"
+	qstr := "SELECT " + fields + " FROM " + table + " WHERE cluster=$1"
 	qarg := []any{cdb.cx.ClusterName()}
 	rows, err := cdb.theDB.connection.Query(context.Background(), qstr, qarg...)
 	if err != nil {
