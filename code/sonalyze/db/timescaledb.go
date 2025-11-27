@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/base64"
 	"context"
 	"fmt"
 	"maps"
@@ -82,19 +83,24 @@ func (cdb *connectedDB) ReadProcessSamples(
 	var cpuAvg float64
 	var rolledup int
 	var timestamp time.Time
+
+	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 	fields := "cmd, cpu_avg, cpu_time, epoch, job, node, num_threads, pid, ppid, " +
 		"resident_memory, rolledup, time, user, virtual_memory"
 	boxes := []any{
 		&cmd, &cpuAvg, &cpuTime, &epoch, &job, &node, &numThreads, &pid, &ppid,
 		&residentMemory, &rolledup, &timestamp, &user, &virtualMemory,
 	}
-	cluster := StringToUstr(cdb.cx.ClusterName())
+
 	// Reference: ParseSamplesV0JSON()
+	cluster := StringToUstr(cdb.cx.ClusterName())
+	// The sonar version is currently lost in the timescaledb
+	v0 := StringToUstr("0.0.0")
 	unbox := func() *repr.Sample {
 		return &repr.Sample{
-			// TODO: Sonar version - info may be lost in DB
 			// TODO: Gpus, GpuPct, GpuMemPct, GpuFail - requires some kind of join
 			// TODO: Cores - ditto
+			Version:    v0,
 			Cluster:    cluster,
 			Cmd:        StringToUstr(cmd),
 			CpuPct:     float32(cpuAvg),
@@ -125,12 +131,16 @@ func (cdb *connectedDB) ReadNodeSamples(
 	var load1, load15, load5 float64
 	var node string
 	var timestamp time.Time
+
+	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 	fields := "existing_entities, load1, load15, load5, node, " +
 		"runnable_entities, time, used_memory"
 	boxes := []any{
 		&existingEntities, &load1, &load15, &load5, &node,
 		&runnableEntities, &timestamp, &usedMemory,
 	}
+
+	// Reference: ParseSamplesV0JSON
 	unbox := func() *repr.NodeSample {
 		return &repr.NodeSample{
 			ExistingEntities: uint64(existingEntities.Int),
@@ -152,7 +162,28 @@ func (cdb *connectedDB) ReadCpuSamples(
 	hosts *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*repr.CpuSamples, softErrors int, err error) {
-	panic("NYI")
+	var cpus []pgtype.Int8
+	var node string
+	var timestamp time.Time
+
+	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+	fields := "cpus, node, time"
+	boxes := []any{&cpus, &node, &timestamp}
+
+	// Reference: ParseSamplesV0JSON
+	unbox := func() *repr.CpuSamples {
+		cpuLoad := make([]uint64, len(cpus))
+		for i, n := range cpus {
+			cpuLoad[i] = uint64(n.Int)
+		}
+		return &repr.CpuSamples{
+			Hostname:  StringToUstr(node),
+			Timestamp: timestamp.UTC().Unix(),
+			Encoded:   repr.EncodedCpuSamplesFromValues(cpuLoad),
+		}
+	}
+	return querySlice[repr.CpuSamples](
+		cdb, fromDate, toDate, hosts, verbose, boxes, unbox, "sample_system", fields)
 }
 
 func (cdb *connectedDB) ReadGpuSamples(
@@ -160,7 +191,17 @@ func (cdb *connectedDB) ReadGpuSamples(
 	hosts *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*repr.GpuSamples, softErrors int, err error) {
-	panic("NYI")
+	// This is a mess, because the timescaledb representation of a GPU sample does not contain the
+	// node that the card was on at the time (nor the node's cluster), so we're going to have to
+	// look that up somehow.  (The connectedDB has the cluster of course.)  I have filed a bug for
+	// this weirdness in the data model.  It also means that we can't query the DB by cluster so the
+	// standard query mechanism will not work in any case.  It may be that this API is not workable
+	// for timescaledb because the assumption there is that you go cluster -> host -> card_uuid and
+	// then lookup cards.  We have a host set here but it could be open... and then we'd have to
+	// enumerate all cards for all hosts for the entire time period, I don't see that happening.
+	// I'm guessing that the consumers could branch based on the DB type, and/or branch on the
+	// distinguished error that says that the API operation is unsupported.
+	return nil, 0, NewAPINotSupportedError("GPU samples")
 }
 
 func (cdb *connectedDB) ReadSysinfoNodeData(
@@ -168,8 +209,7 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
-	// TODO: topo_svg, topo_text
-	var architecture, cluster, cpuModel, node, osName, osRelease string
+	var architecture, cluster, cpuModel, node, osName, osRelease, topoSvg, topoText string
 	var coresPerSocket, memory, sockets, threadsPerCore pgtype.Int8
 	var timestamp time.Time
 	var distances []int
@@ -177,12 +217,13 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 
 	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 	fields := "architecture, cards, cluster, cores_per_socket, cpu_model, distances, memory, " +
-		"node, os_name, os_release, sockets, threads_per_core, time"
+		"node, os_name, os_release, sockets, threads_per_core, time, topo_svg, topo_text"
 	boxes := []any{
 		&architecture, &cards, &cluster, &coresPerSocket, &cpuModel, &distances, &memory,
-		&node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp,
+		&node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp, &topoSvg, &topoText,
 	}
 
+	// Reference: ParseSysinfoV0JSON
 	unbox := func() *repr.SysinfoNodeData {
 		dside := int(math.Sqrt(float64(len(distances))))
 		ds := make([][]uint64, dside)
@@ -193,6 +234,27 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 				ds[i][j] = uint64(distances[k])
 				j++
 				k++
+			}
+		}
+		// Arguably a database bug that these are kept encoded in the database.
+		if topoSvg != "" {
+			dst := make([]byte, base64.StdEncoding.DecodedLen(len(topoSvg)))
+			n, err := base64.StdEncoding.Decode(dst, []byte(topoSvg))
+			if err != nil {
+				softErrors++
+				topoSvg = ""
+			} else {
+				topoSvg = string(dst[:n])
+			}
+		}
+		if topoText != "" {
+			dst := make([]byte, base64.StdEncoding.DecodedLen(len(topoText)))
+			n, err := base64.StdEncoding.Decode(dst, []byte(topoText))
+			if err != nil {
+				softErrors++
+				topoText = ""
+			} else {
+				topoText = string(dst[:n])
 			}
 		}
 		return &repr.SysinfoNodeData{
@@ -210,6 +272,8 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 			Sockets:        uint64(sockets.Int),
 			ThreadsPerCore: uint64(threadsPerCore.Int),
 			Time:           timestamp.Format(time.RFC3339),
+			TopoSVG:        topoSvg,
+			TopoText:       topoText,
 		}
 	}
 
@@ -229,12 +293,16 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 	var index int
 	var maxCeClock, maxMemoryClock, maxPowerLimit, minPowerLimit, powerLimit pgtype.Int8
 	var timestamp time.Time
+
+	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 	fields := "address, driver, firmware, index, max_ce_clock, max_memory_clock, " +
 		"max_power_limit, min_power_limit, node, power_limit, time, uuid"
 	boxes := []any{
 		&address, &driver, &firmware, &index, &maxCeClock, &maxMemoryClock,
 		&maxPowerLimit, &minPowerLimit, &node, &powerLimit, &timestamp, &uuid,
 	}
+
+	// Reference: ParseSysinfoV0JSON
 	unbox := func() *repr.SysinfoCardData {
 		return &repr.SysinfoCardData{
 			Time: timestamp.Format(time.RFC3339),
