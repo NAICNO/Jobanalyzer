@@ -11,9 +11,8 @@ import { getUrl } from '../core/utils.gen'
 import type { Client, ClientOptions, Config, RequestOptions } from './types.gen'
 
 export const createQuerySerializer = <T = unknown>({
-  allowReserved,
-  array,
-  object,
+  parameters = {},
+  ...args
 }: QuerySerializerOptions = {}) => {
   const querySerializer = (queryParams: T) => {
     const search: string[] = []
@@ -25,29 +24,31 @@ export const createQuerySerializer = <T = unknown>({
           continue
         }
 
+        const options = parameters[name] || args
+
         if (Array.isArray(value)) {
           const serializedArray = serializeArrayParam({
-            allowReserved,
+            allowReserved: options.allowReserved,
             explode: true,
             name,
             style: 'form',
             value,
-            ...array,
+            ...options.array,
           })
           if (serializedArray) search.push(serializedArray)
         } else if (typeof value === 'object') {
           const serializedObject = serializeObjectParam({
-            allowReserved,
+            allowReserved: options.allowReserved,
             explode: true,
             name,
             style: 'deepObject',
             value: value as Record<string, unknown>,
-            ...object,
+            ...options.object,
           })
           if (serializedObject) search.push(serializedObject)
         } else {
           const serializedPrimitive = serializePrimitiveParam({
-            allowReserved,
+            allowReserved: options.allowReserved,
             name,
             value: value as string,
           })
@@ -125,9 +126,16 @@ export const setAuthParams = async ({
   }
 }
 
-export const buildUrl: Client['buildUrl'] = (options) =>
-  getUrl({
-    baseUrl: options.baseURL as string,
+export const buildUrl: Client['buildUrl'] = (options) => {
+  const instanceBaseUrl = options.axios?.defaults?.baseURL
+
+  const baseUrl =
+    !!options.baseURL && typeof options.baseURL === 'string'
+      ? options.baseURL
+      : instanceBaseUrl
+
+  return getUrl({
+    baseUrl: baseUrl as string,
     path: options.path,
     // let `paramsSerializer()` handle query params if it exists
     query: !options.paramsSerializer ? options.query : undefined,
@@ -137,6 +145,7 @@ export const buildUrl: Client['buildUrl'] = (options) =>
         : createQuerySerializer(options.querySerializer),
     url: options.url,
   })
+}
 
 export const mergeConfigs = (a: Config, b: Config): Config => {
   const config = { ...a, ...b }
