@@ -1,6 +1,6 @@
 import { GrNodes } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
-import { LuBookOpen, LuGraduationCap, LuShip } from 'react-icons/lu'
+import { LuBookOpen, LuGraduationCap } from 'react-icons/lu'
 import { MdSearch } from 'react-icons/md'
 import * as yup from 'yup'
 
@@ -130,13 +130,6 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
   },
   {
     type: 'link',
-    path: '/dashboard/fram',
-    matches: '/fram',
-    text: 'Fram',
-    icon: LuShip
-  },
-  {
-    type: 'link',
     path: '/dashboard/betzy',
     matches: '/betzy',
     text: 'Betzy',
@@ -226,20 +219,6 @@ export const CLUSTER_INFO: Record<string, Cluster> = {
     hasDowntime: false,
     description: 'Sigma2 \'Saga\' supercomputer',
     prefix: 'saga-',
-    policy: '(To be determined)',
-  },
-  'fram': {
-    cluster: 'fram',
-    canonical: 'fram.sigma2.no',
-    subclusters: [],
-    uptime: false,
-    violators: false,
-    deadweight: false,
-    defaultQuery: 'c*-1',
-    name: 'Fram',
-    hasDowntime: false,
-    description: 'Sigma2 \'Fram\' supercomputer',
-    prefix: 'fram-',
     policy: '(To be determined)',
   },
   'betzy': {
