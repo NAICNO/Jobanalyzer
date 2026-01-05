@@ -37,7 +37,8 @@ export type AllocTres = {
      *
      * The actual billing count
      */
-    billing?: number;
+    billing?: number | number;
+    [key: string]: unknown | number | number | number | undefined;
 };
 
 /**

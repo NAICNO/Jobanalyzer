@@ -1,139 +1,145 @@
 import React from 'react'
 import {
-  Box,
-  Drawer,
-  HStack,
-  List,
-  Separator,
-  Spacer,
-  VStack,
-  useBreakpointValue, DrawerOpenChangeDetails,
+  createTreeCollection,
+  TreeView,
 } from '@chakra-ui/react'
 import { NavLink, useLocation } from 'react-router'
+import { LuChevronRight } from 'react-icons/lu'
 
-import { LightDarkModeButton } from './LightDarkModeButton.tsx'
 import { SIDEBAR_ITEMS } from '../Constants.ts'
-import { useColorMode } from './ui/color-mode.tsx'
 
-interface SidebarProps {
-  onCloseDrawer: () => void
-  isDrawerOpen: boolean
+export const Sidebar = () => {
+  return <SideBarContent />
 }
 
-export const Sidebar = ({onCloseDrawer, isDrawerOpen}: SidebarProps) => {
+// Sidebar items in tree collection format
+interface TreeNode {
+  id: string
+  name: string
+  path?: string
+  matches?: string
+  icon?: React.ComponentType
+  children?: TreeNode[]
+}
 
-  const isDrawer = useBreakpointValue({base: true, md: false})
+const transformSidebarItemsToTree = () => {
+  const nodes: TreeNode[] = []
 
-  const handleOnOpenChange = (details: DrawerOpenChangeDetails) => {
-    if (!details.open) {
-      onCloseDrawer()
+  SIDEBAR_ITEMS.forEach((item, index) => {
+    if (item.type === 'separator') {
+      return
     }
+
+    const node: TreeNode = {
+      id: `item-${index}`,
+      name: item.text || '',
+      path: item.path,
+      matches: item.matches,
+      icon: item.icon,
+    }
+
+    if (item.subItems && item.subItems.length > 0) {
+      node.children = item.subItems.map((subItem, subIndex) => ({
+        id: `item-${index}-sub-${subIndex}`,
+        name: subItem.text,
+        path: subItem.path,
+        matches: subItem.matches,
+      }))
+    }
+
+    nodes.push(node)
+  })
+
+  return createTreeCollection<TreeNode>({
+    nodeToValue: (node) => node.id,
+    nodeToString: (node) => node.name,
+    rootNode: {
+      id: 'ROOT',
+      name: '',
+      children: nodes,
+    },
+  })
+}
+
+const SideBarContent = () => {
+  const location = useLocation()
+  const {pathname} = location
+
+  const collection = transformSidebarItemsToTree()
+
+  const getSelectedValue = () => {
+    let selected: string[] = []
+    let parentId: string | null = null
+    let bestMatchLength = 0
+
+    // Find all nodes and check for matches - prioritize longer matches
+    const findSelected = (nodes: TreeNode[], parentNodeId?: string): void => {
+      for (const node of nodes) {
+        if (node.matches && pathname.includes(node.matches)) {
+          // Select the node with the longest match for better specificity
+          if (node.matches.length > bestMatchLength) {
+            selected = [node.id]
+            parentId = parentNodeId || null
+            bestMatchLength = node.matches.length
+          }
+        }
+        if (node.children) {
+          findSelected(node.children, node.id)
+        }
+      }
+    }
+
+    // Get root node and search through children
+    const rootNode = collection.rootNode as TreeNode
+    if (rootNode.children) {
+      findSelected(rootNode.children)
+    }
+
+    // If a child is selected, also include its parent
+    if (parentId && selected.length > 0) {
+      return [parentId, ...selected]
+    }
+
+    return selected
   }
 
   return (
-    <>
-      {isDrawer ?
-        <Drawer.Root open={isDrawerOpen} placement="end" onOpenChange={handleOnOpenChange}>
-          <Drawer.Backdrop/>
-          <Drawer.Content>
-            <Drawer.CloseTrigger/>
-            <Drawer.Header>Menu</Drawer.Header>
-            <Drawer.Body>
-              <SideBarContent onCloseDrawer={onCloseDrawer}/>
-              <VStack
-                pt="50px"
-                gap={{base: '10px', md: '10px', lg: '20px'}}
-                alignItems={'start'}
+    <TreeView.Root
+      collection={collection}
+      variant="subtle"
+      size="md"
+      colorPalette="blue"
+      selectionMode="multiple"
+      selectedValue={getSelectedValue()}
+      defaultExpandedValue={collection.getBranchValues()}
+      animateContent
+    >
+      <TreeView.Tree>
+        <TreeView.Node
+          indentGuide={<TreeView.BranchIndentGuide />}
+          render={({ node, nodeState }) => {
+            const treeNode = node as TreeNode
+
+            return nodeState.isBranch ? (
+              <TreeView.BranchControl
+                fontWeight={nodeState.selected ? 'bold' : 'semibold'}
               >
-                <HStack w={'100%'} pt="10px">
-                  <Spacer/>
-                  <LightDarkModeButton/>
-                </HStack>
-              </VStack>
-            </Drawer.Body>
-          </Drawer.Content>
-        </Drawer.Root>
-        :
-        <SideBarContent onCloseDrawer={onCloseDrawer}/>
-      }
-    </>
-  )
-}
-
-const SideBarContent = ({onCloseDrawer}: { onCloseDrawer: () => void }) => {
-
-  const {colorMode} = useColorMode()
-  const hoverBgColor = colorMode === 'light' ? 'gray.200' : 'blue.500'
-  const activeBgColor = colorMode === 'light' ? 'gray.300' : 'blue.600'
-  const separatorColor = colorMode === 'light' ? 'gray.300' : 'gray.600'
-
-  return (
-    <List.Root variant={'plain'} fontSize={{base: '1em', md: '1.2em'}} gap="1">
-      {SIDEBAR_ITEMS.map((item, index) => {
-        if (item.type === 'separator') {
-          return (
-            <List.Item key={index}>
-              <Separator
-                my={2}
-                borderColor={separatorColor}
-                opacity={0.8}
-                width="100%"
-              />
-            </List.Item>
-          )
-        }
-
-        const location = useLocation()
-        const {pathname} = location
-
-        const isActive = (path: string) => {
-          return pathname.includes(path)
-        }
-        return (
-          <List.Item
-            key={index}
-          >
-            <VStack>
-              <NavLink to={item.path} onClick={onCloseDrawer} style={{width: '100%', display: 'block'}}>
-                <Box
-                  _hover={{bg: hoverBgColor}}
-                  bg={isActive(item.matches) ? activeBgColor : 'transparent'}
-                  px={{base: '12px', md: '10px'}}
-                  py="6px"
-                  borderRadius="md"
-                >
-
-                  <List.Indicator asChild>
-                    {React.createElement(item.icon)}
-                  </List.Indicator>
-                  <>
-                    {item.text}
-                  </>
-                </Box>
-              </NavLink>
-              {item.subItems && (
-                <List.Root variant={'plain'} fontSize={{base: '0.8em', md: '0.9em'}} gap="1" ml="20px" mt="2px">
-                  {item.subItems.map((subItem, subIndex) => (
-                    <List.Item key={subIndex}>
-                      <NavLink to={subItem.path} onClick={onCloseDrawer} style={{width: '100%', display: 'block'}}>
-                        <Box
-                          _hover={{bg: hoverBgColor}}
-                          bg={isActive(subItem.matches) ? activeBgColor : 'transparent'}
-                          px={{base: '12px', md: '10px'}}
-                          py="2px"
-                          borderRadius="md"
-                        >
-                          {subItem.text}
-                        </Box>
-                      </NavLink>
-                    </List.Item>
-                  ))}
-                </List.Root>
-              )}
-            </VStack>
-          </List.Item>
-        )
-      })}
-    </List.Root>
+                <TreeView.BranchIndicator asChild>
+                  <LuChevronRight />
+                </TreeView.BranchIndicator>
+                {treeNode.icon && React.createElement(treeNode.icon)}
+                <TreeView.BranchText>{treeNode.name}</TreeView.BranchText>
+              </TreeView.BranchControl>
+            ) : (
+              <TreeView.Item asChild>
+                <NavLink to={treeNode.path || '#'}>
+                  <TreeView.ItemText>{treeNode.name}</TreeView.ItemText>
+                </NavLink>
+              </TreeView.Item>
+            )
+          }}
+        />
+      </TreeView.Tree>
+    </TreeView.Root>
   )
 }
