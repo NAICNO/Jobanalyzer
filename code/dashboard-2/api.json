@@ -4163,12 +4163,20 @@
             "default": 0
           },
           "billing": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ],
             "title": "Billing",
             "description": "The actual billing count",
             "default": 0
           }
         },
+        "additionalProperties": true,
         "type": "object",
         "title": "AllocTRES"
       },
@@ -4312,7 +4320,7 @@
           "uri": {
             "type": "string",
             "title": "Uri",
-            "default": "sqlite:////home/roehr/.slurm-monitor/slurm-monitor-db.sqlite"
+            "default": "sqlite:////home/slurmmon/.slurm-monitor/slurm-monitor-db.sqlite"
           },
           "create_missing": {
             "type": "boolean",

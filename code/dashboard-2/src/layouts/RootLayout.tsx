@@ -1,13 +1,10 @@
 import { Outlet } from 'react-router'
-import { Grid, GridItem, useDisclosure } from '@chakra-ui/react'
+import { Grid, GridItem } from '@chakra-ui/react'
 
 import { AppHeader, Sidebar } from '../components'
 import { useColorMode } from '../components/ui/color-mode.tsx'
 
 export default function RootLayout() {
-
-  const {open: isDrawerOpen, onOpen: onOpenDrawer, onClose: onCloseDrawer} = useDisclosure()
-
   const colorMode = useColorMode()
 
   const mainGridItemBackgroundColor = colorMode.colorMode === 'light' ? 'white' : 'gray.800'
@@ -36,16 +33,17 @@ export default function RootLayout() {
         area={'header'}
         boxShadow={'md'}
       >
-        <AppHeader opOpenSidebarDrawer={onOpenDrawer}/>
+        <AppHeader />
       </GridItem>
       <GridItem
         px="10px"
         pt="10px"
         area={'nav'}
         bg={sidebarBackgroundColor}
-        display={{base: isDrawerOpen ? 'block' : 'none', md: 'block'}}
+        overflowY="auto"
+        overflowX="hidden"
       >
-        <Sidebar isDrawerOpen={isDrawerOpen} onCloseDrawer={onCloseDrawer}/>
+        <Sidebar />
       </GridItem>
       <GridItem
         paddingX="20px"
