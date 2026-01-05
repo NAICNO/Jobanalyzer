@@ -14,14 +14,14 @@ import App from './App.tsx'
 import { system } from './theme.ts'
 import { ColorModeProvider } from './components/ui/color-mode.tsx'
 import { client } from './client/client.gen.ts'
-import { EX3_API_ENDPOINT } from './Constants.ts'
+import { EX3_API_ENDPOINT, UIO_API_ENDPOINT, } from './Constants.ts'
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
 const queryClient = new QueryClient()
 
 client.setConfig({
-  baseURL: EX3_API_ENDPOINT,
+  baseURL: UIO_API_ENDPOINT,
 })
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

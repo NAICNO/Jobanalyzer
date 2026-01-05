@@ -20,7 +20,7 @@ function toSeries(data: GetClusterByClusterNodesByNodenameCpuTimeseriesResponse 
   const arr = map[nodename] ?? map[Object.keys(map)[0]] ?? []
   return arr
     .filter((s) => s && s.time)
-    .map((s) => ({ time: s.time, cpu_util: s.cpu_util, cpu_avg: s.cpu_avg }))
+    .map((s) => ({ time: new Date(s.time), cpu_util: s.cpu_util, cpu_avg: s.cpu_avg }))
     .sort((a, b) => a.time.getTime() - b.time.getTime())
 }
 

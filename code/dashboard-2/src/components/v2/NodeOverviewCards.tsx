@@ -1,8 +1,11 @@
 import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
+import { TbBroadcast, TbBroadcastOff } from 'react-icons/tb'
 
-import { getClusterByClusterNodesOptions, getClusterByClusterNodesInfoOptions, getClusterByClusterNodesStatesOptions, getClusterByClusterNodesProcessGpuUtilOptions } from '../../client/@tanstack/react-query.gen'
+import { getClusterByClusterNodesOptions, getClusterByClusterNodesInfoOptions, getClusterByClusterNodesStatesOptions, getClusterByClusterNodesProcessGpuUtilOptions, getClusterByClusterNodesLastProbeTimestampOptions } from '../../client/@tanstack/react-query.gen'
 import type { NodeInfoResponse, NodeStateResponse, NodeSampleProcessGpuAccResponse } from '../../client'
+import { getLivenessStats, LIVENESS_COLORS } from '../../utils/nodeLiveness'
+import { getUtilizationColorPalette, calculateUtilization } from '../../utils/utilizationColors'
 
 interface Props {
   cluster: string
@@ -25,16 +28,22 @@ export const NodeOverviewCards = ({ cluster }: Props) => {
     ...getClusterByClusterNodesProcessGpuUtilOptions({ path: { cluster } }),
     enabled: !!cluster,
   })
+  const lastProbeQ = useQuery({
+    ...getClusterByClusterNodesLastProbeTimestampOptions({ path: { cluster } }),
+    enabled: !!cluster,
+  })
 
   const nodes = (nodesQ.data ?? []) as string[]
   const infoMap = (infoQ.data ?? {}) as Record<string, NodeInfoResponse>
   const statesArr = (statesQ.data ?? []) as NodeStateResponse[]
+  const lastProbeMap = (lastProbeQ.data ?? {}) as Record<string, Date | null>
 
   const totalNodes = nodes.length
-  const reportingNodes = Object.keys(infoMap).length
   const totalGpus = Object.values(infoMap).reduce((sum, n) => sum + (Array.isArray(n.cards) ? n.cards.length : 0), 0)
   const idleNodes = statesArr.reduce((acc, s) => acc + (Array.isArray(s.states) && s.states.includes('IDLE') ? 1 : 0), 0)
-  const nonReportingNodes = Math.max(0, totalNodes - reportingNodes)
+
+  // Calculate liveness stats using utility
+  const { liveNodes, staleNodes, offlineNodes } = getLivenessStats(lastProbeMap)
 
   // GPUs in use derived from latest process GPU util samples (> 0%)
   const utilData = (gpuUtilQ.data ?? undefined) as NodeSampleProcessGpuAccResponse | undefined
@@ -48,8 +57,8 @@ export const NodeOverviewCards = ({ cluster }: Props) => {
       }
     }
   }
-  const gpuUtilPct = totalGpus > 0 ? Math.round((gpusInUse / totalGpus) * 100) : 0
-  const gpuColor = totalGpus === 0 ? 'gray' : gpuUtilPct > 90 ? 'red' : gpuUtilPct > 50 ? 'yellow' : 'green'
+  const gpuUtilPct = calculateUtilization(gpusInUse, totalGpus)
+  const gpuColor = totalGpus === 0 ? 'gray' : getUtilizationColorPalette(gpuUtilPct)
 
   const getErrMsg = (e: unknown): string => {
     if (!e) return 'Unknown error'
@@ -91,14 +100,44 @@ export const NodeOverviewCards = ({ cluster }: Props) => {
   return (
     <VStack w="100%" align="start" gap={2}>
       <Text fontSize="lg" fontWeight="semibold">Cluster overview</Text>
-      <SimpleGrid columns={{ base: 1, sm: 3, lg: 6 }} gap={3} w="100%">
+      <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} gap={3} w="100%">
         <Card label="Total Nodes" value={totalNodes} loading={nodesQ.isLoading} errors={nodesQ.isError ? [getErrMsg(nodesQ.error)] : []} />
-        <Card label="Reporting Nodes" value={reportingNodes} loading={infoQ.isLoading} errors={infoQ.isError ? [getErrMsg(infoQ.error)] : []} />
-        <Card label="Non-reporting Nodes" value={nonReportingNodes} loading={nodesQ.isLoading || infoQ.isLoading} errors={[
-          ...(nodesQ.isError ? [getErrMsg(nodesQ.error)] : []),
-          ...(infoQ.isError ? [getErrMsg(infoQ.error)] : []),
-        ]} />
-        <Card label="Total GPUs" value={totalGpus} loading={infoQ.isLoading} errors={infoQ.isError ? [getErrMsg(infoQ.error)] : []} />
+        {/* Node Health Card with Live/Stale/Offline breakdown */}
+        <Stat.Root borderWidth="1px" borderColor="gray.200" rounded="md" p={2} bg="white">
+          <HStack gap={1} justify="space-between">
+            <Stat.Label fontSize="sm" color="gray.600">Node Health</Stat.Label>
+            {lastProbeQ.isError && (
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <Badge colorPalette="red" variant="solid" size="xs" cursor="pointer">!</Badge>
+                </Tooltip.Trigger>
+                <Tooltip.Positioner>
+                  <Tooltip.Content>{getErrMsg(lastProbeQ.error)}</Tooltip.Content>
+                </Tooltip.Positioner>
+              </Tooltip.Root>
+            )}
+          </HStack>
+          {lastProbeQ.isLoading && (
+            <Badge colorPalette="blue" size="xs" mb={1}>updating</Badge>
+          )}
+          <VStack align="start" gap={0.5} mt={1}>
+            <HStack gap={1.5}>
+              <TbBroadcast style={{ color: LIVENESS_COLORS.LIVE, fontSize: '1.1em' }} />
+              <Text fontSize="md" color="green.600" fontWeight="semibold">{liveNodes}</Text>
+              <Text fontSize="sm" color="gray.600">Live (&lt;5m)</Text>
+            </HStack>
+            <HStack gap={1.5}>
+              <TbBroadcast style={{ color: LIVENESS_COLORS.STALE, fontSize: '1.1em' }} />
+              <Text fontSize="md" color="yellow.600" fontWeight="semibold">{staleNodes}</Text>
+              <Text fontSize="sm" color="gray.600">Stale (5-15m)</Text>
+            </HStack>
+            <HStack gap={1.5}>
+              <TbBroadcastOff style={{ color: LIVENESS_COLORS.OFFLINE, fontSize: '1.1em' }} />
+              <Text fontSize="md" color="red.600" fontWeight="semibold">{offlineNodes}</Text>
+              <Text fontSize="sm" color="gray.600">Offline (&gt;15m)</Text>
+            </HStack>
+          </VStack>
+        </Stat.Root>
         <Card label="Idle Nodes" value={idleNodes} loading={statesQ.isLoading} errors={statesQ.isError ? [getErrMsg(statesQ.error)] : []} />
         {/* GPU Utilization Card */}
         <Stat.Root borderWidth="1px" borderColor="gray.200" rounded="md" p={2} bg="white">

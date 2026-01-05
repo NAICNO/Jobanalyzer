@@ -1,7 +1,6 @@
 import { GrNodes } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
-import { LuBookOpen, LuGraduationCap, LuServer } from 'react-icons/lu'
-import { MdSearch } from 'react-icons/md'
+import { LuServer } from 'react-icons/lu'
 import * as yup from 'yup'
 
 import {
@@ -51,6 +50,7 @@ export const APP_URL = 'https://naic-monitor.uio.no'
 export const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
 export const QUERY_API_ENDPOINT = import.meta.env.VITE_QUERY_API_ENDPOINT
 export const EX3_API_ENDPOINT = import.meta.env.VITE_EX3_API_ENDPOINT
+export const UIO_API_ENDPOINT = import.meta.env.VITE_UIO_API_ENDPOINT
 
 // The representation of "true" is a hack, but it's determined by the server, so live with it.
 export const TRUE_VAL = 'xxxxxtruexxxxx'
@@ -60,6 +60,81 @@ export const EMPTY_ARRAY: any[] = []
 export const DURATION_REGEX = /^(.*)d(.*)h(.*)m$/
 
 export const JOB_QUERY_BASE_PATH = '/jobquery'
+
+// Cluster definitions for dynamic dashboard configuration
+export const CLUSTERS = {
+  ex3: {
+    id: 'ex3',
+    name: 'EX3',
+    basePath: '/v2/ex3.simula.no',
+    icon: LuServer,
+  },
+  mlx: {
+    id: 'mlx',
+    name: 'ML Nodes',
+    basePath: '/v2/mlx.hpc.uio.no',
+    icon: GrNodes,
+  },
+  fox: {
+    id: 'fox',
+    name: 'Fox',
+    basePath: '/v2/fox.educloud.no',
+    icon: GiFox,
+  }
+}
+
+// Common sub-routes for cluster dashboards
+const CLUSTER_ROUTES = [
+  { text: 'Overview', route: '/overview' },
+  { text: 'Partitions', route: '/partitions' },
+  { text: 'Nodes', route: '/nodes' },
+  { text: 'Jobs', route: '/jobs' },
+  { text: 'Queries', route: '/queries' },
+  { text: 'Errors', route: '/errors' },
+]
+
+// Build sidebar items dynamically from clusters
+const buildClusterSidebarItems = () => {
+  return Object.values(CLUSTERS).map((cluster) => {
+    // Extract cluster name from basePath (e.g., 'mlx.hpc.uio.no' from '/v2/mlx.hpc.uio.no')
+    const clusterName = cluster.basePath.split('/').pop() || cluster.id
+    return {
+      type: 'link' as const,
+      path: `/dashboard/${cluster.id}`,
+      matches: clusterName,
+      text: cluster.name,
+      icon: cluster.icon,
+      subItems: CLUSTER_ROUTES.map((route) => ({
+        text: route.text,
+        path: cluster.basePath + route.route,
+        matches: clusterName + route.route,
+      })),
+    }
+  })
+}
+
+export const SIDEBAR_ITEMS: SidebarItem[] = buildClusterSidebarItems()
+
+export const QueryKeys = {
+  DASHBOARD_TABLE: 'DASHBOARD_TABLE',
+  VIOLATIONS: 'VIOLATIONS',
+  VIOLATOR: 'VIOLATOR',
+  DEAD_WEIGHT: 'DEAD_WEIGHT',
+  HOSTNAME_LIST: 'HOSTNAME_LIST',
+  HOSTNAME: 'HOSTNAME',
+  JOB_QUERY: 'JOB_QUERY',
+  EXPORT_JOB_QUERY: 'EXPORT_JOB_QUERY',
+  JOB_PROFILE: 'JOB_PROFILE',
+  JOB_PROCESS_TREE: 'JOB_PROCESS_TREE',
+}
+
+export const FETCH_FREQUENCIES = [
+  {text: 'Moment-to-moment (last 24h)', value: 'minutely'},
+  {text: 'Daily, by hour', value: 'daily'},
+  {text: 'Weekly, by hour', value: 'weekly'},
+  {text: 'Monthly, by day', value: 'monthly'},
+  {text: 'Quarterly, by day', value: 'quarterly'},
+]
 
 export const PROFILING_INFO: ProfileInfo[] = [
   {
@@ -93,84 +168,6 @@ export const PROFILING_INFO: ProfileInfo[] = [
     xAxisLabel: 'Time (UTC)',
   },
 ]
-
-export const QueryKeys = {
-  DASHBOARD_TABLE: 'DASHBOARD_TABLE',
-  VIOLATIONS: 'VIOLATIONS',
-  VIOLATOR: 'VIOLATOR',
-  DEAD_WEIGHT: 'DEAD_WEIGHT',
-  HOSTNAME_LIST: 'HOSTNAME_LIST',
-  HOSTNAME: 'HOSTNAME',
-  JOB_QUERY: 'JOB_QUERY',
-  EXPORT_JOB_QUERY: 'EXPORT_JOB_QUERY',
-  JOB_PROFILE: 'JOB_PROFILE',
-  JOB_PROCESS_TREE: 'JOB_PROCESS_TREE',
-}
-
-export const SIDEBAR_ITEMS: SidebarItem[] = [
-  {
-    type: 'link',
-    path: '/dashboard/ex3',
-    matches: '/ex3',
-    text: 'EX3',
-    icon: LuServer,
-    subItems: [
-      { text: 'Overview', path: '/v2/ex3.simula.no/overview', matches: '/overview' },
-      { text: 'Partitions', path: '/v2/ex3.simula.no/partitions', matches: '/partitions' },
-      { text: 'Nodes', path: '/v2/ex3.simula.no/nodes', matches: '/nodes' },
-      { text: 'Jobs', path: '/v2/ex3.simula.no/jobs', matches: '/jobs' },
-      { text: 'Queries', path: 'v2/ex3.simula.no/queries', matches: '/queries' },
-      { text: 'Errors', path: 'dashboard/ex3/errors', matches: '/errors' }
-    ]
-  },
-  {
-    type: 'link',
-    path: '/dashboard/ml',
-    matches: '/ml',
-    text: 'ML Nodes',
-    icon: GrNodes,
-  },
-  {
-    type: 'link',
-    path: '/dashboard/fox',
-    matches: '/fox',
-    text: 'Fox',
-    icon: GiFox
-  },
-  {
-    type: 'link',
-    path: '/dashboard/saga',
-    matches: '/saga',
-    text: 'Saga',
-    icon: LuBookOpen
-  },
-  {
-    type: 'link',
-    path: '/dashboard/betzy',
-    matches: '/betzy',
-    text: 'Betzy',
-    icon: LuGraduationCap
-  },
-  {
-    type: 'separator',
-  },
-  {
-    type: 'link',
-    path: JOB_QUERY_BASE_PATH,
-    matches: JOB_QUERY_BASE_PATH,
-    text: 'Job Query',
-    icon: MdSearch,
-  }
-]
-
-export const FETCH_FREQUENCIES = [
-  {text: 'Moment-to-moment (last 24h)', value: 'minutely'},
-  {text: 'Daily, by hour', value: 'daily'},
-  {text: 'Weekly, by hour', value: 'weekly'},
-  {text: 'Monthly, by day', value: 'monthly'},
-  {text: 'Quarterly, by day', value: 'quarterly'},
-]
-
 
 export const CELL_BACKGROUND_COLORS = {
   LIGHT: {

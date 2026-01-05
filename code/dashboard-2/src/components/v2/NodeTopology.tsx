@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { VStack, Text, HStack, Spinner, Alert, Box, Accordion } from '@chakra-ui/react'
+import { VStack, Text, HStack, Spinner, Alert, Box, Accordion, IconButton } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
+import { LuExternalLink } from 'react-icons/lu'
 
 import { getClusterByClusterNodesByNodenameTopologyOptions } from '../../client/@tanstack/react-query.gen'
 
@@ -49,6 +50,18 @@ export const NodeTopology = ({ cluster, nodename, initialCollapsed = true }: Pro
             <Accordion.ItemTrigger px={3} py={2} _hover={{ bg: 'gray.50' }}>
               <HStack flex="1" justify="space-between" align="center">
                 <Text fontWeight="semibold">Topology</Text>
+                <IconButton
+                  aria-label="Open topology in new tab"
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const url = `/v2/${cluster}/nodes/${nodename}/topology`
+                    window.open(url, '_blank')
+                  }}
+                >
+                  <LuExternalLink />
+                </IconButton>
               </HStack>
               <Accordion.ItemIndicator />
             </Accordion.ItemTrigger>

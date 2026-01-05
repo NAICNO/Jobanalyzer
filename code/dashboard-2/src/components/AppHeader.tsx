@@ -8,15 +8,9 @@ import { NavLink } from 'react-router'
 
 import { APP_NAME } from '../Constants.ts'
 import { LightDarkModeButton } from './LightDarkModeButton.tsx'
-import { HamburgerButton } from './HamburgerButton.tsx'
 import { useColorMode } from './ui/color-mode.tsx'
 
-interface AppHeaderProps {
-  opOpenSidebarDrawer: () => void
-}
-
-export const AppHeader = ({opOpenSidebarDrawer}: AppHeaderProps) => {
-
+export const AppHeader = () => {
   const {colorMode} = useColorMode()
 
   const naicLogo = colorMode === 'light' ? '/images/naic/naic_dark.svg' : '/images/naic/naic_light.svg'
@@ -27,7 +21,6 @@ export const AppHeader = ({opOpenSidebarDrawer}: AppHeaderProps) => {
       align="center"
       wrap="wrap"
     >
-      <HamburgerButton opOpenSidebarDrawer={opOpenSidebarDrawer}/>
       <NavLink to={'/'}>
         <Flex alignItems={'center'}>
           <Image
