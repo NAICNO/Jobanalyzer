@@ -21,6 +21,7 @@ import { NodesPage } from './pages/v2/NodesPage.tsx'
 import { PartitionsPage } from './pages/v2/PartitionsPage.tsx'
 import { JobsPage } from './pages/v2/JobsPage.tsx'
 import { QueriesPage } from './pages/v2/QueriesPage.tsx'
+import { NodeTopologyPage } from './pages/v2/NodeTopologyPage.tsx'
 
 const router = createBrowserRouter([
   {
@@ -45,6 +46,10 @@ const router = createBrowserRouter([
           {
             path: ':clusterName/nodes/:nodename',
             element: <NodesPage/>,
+          },
+          {
+            path: ':clusterName/nodes/:nodename/topology',
+            element: <NodeTopologyPage/>,
           },
           {
             path: ':clusterName/partitions',

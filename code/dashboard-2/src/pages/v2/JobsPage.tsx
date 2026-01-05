@@ -15,6 +15,9 @@ import {
   Spinner,
   Alert,
   Field,
+  Select,
+  createListCollection,
+  Portal,
 } from '@chakra-ui/react'
 
 import { getClusterByClusterJobsQueryOptions } from '../../client/@tanstack/react-query.gen'
@@ -36,6 +39,29 @@ interface JobQueryFormValues {
   maxDuration: string
 }
 
+const statesCollection = createListCollection({
+  items: [
+    { label: 'COMPLETED', value: 'COMPLETED' },
+    { label: 'FAILED', value: 'FAILED' },
+    { label: 'TIMEOUT', value: 'TIMEOUT' },
+    { label: 'CANCELLED', value: 'CANCELLED' },
+    { label: 'RUNNING', value: 'RUNNING' },
+    { label: 'PENDING', value: 'PENDING' },
+  ],
+})
+
+const limitCollection = createListCollection({
+  items: [
+    { label: 'All', value: 'all' },
+    { label: '10', value: '10' },
+    { label: '25', value: '25' },
+    { label: '50', value: '50' },
+    { label: '100', value: '100' },
+    { label: '500', value: '500' },
+    { label: '1000', value: '1000' },
+  ],
+})
+
 export const JobsPage = () => {
   const {clusterName} = useParams<{ clusterName: string }>()
 
@@ -48,7 +74,7 @@ export const JobsPage = () => {
       userId: '',
       jobId: '',
       states: '',
-      limit: '100',
+      limit: 'all',
       startAfter: '',
       startBefore: '',
       endAfter: '',
@@ -65,7 +91,7 @@ export const JobsPage = () => {
       if (values.userId) params.user_id = parseInt(values.userId)
       if (values.jobId) params.job_id = parseInt(values.jobId)
       if (values.states) params.states = values.states
-      if (values.limit) params.limit = parseInt(values.limit)
+      if (values.limit && values.limit !== 'all') params.limit = parseInt(values.limit)
 
       // Convert date strings to timestamps (seconds)
       if (values.startAfter) {
@@ -156,12 +182,12 @@ export const JobsPage = () => {
       </Text>
 
       {/* Search Form */}
-      <Box w="100%" borderWidth="1px" borderColor="gray.200" rounded="md" p={4} bg="white">
+      <Box w="100%" borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
         <form onSubmit={formik.handleSubmit}>
-          <VStack align="start" gap={4} w="100%">
+          <VStack align="start" gap={2} w="100%">
             <Text fontSize="lg" fontWeight="semibold">Search Criteria</Text>
 
-            <SimpleGrid columns={{base: 1, md: 2, lg: 3}} gap={4} w="100%">
+            <SimpleGrid columns={{base: 1, md: 3, lg: 4}} gap={2} w="100%">
               {/* Basic Filters */}
               <Field.Root>
                 <Field.Label fontSize="sm">User</Field.Label>
@@ -199,32 +225,44 @@ export const JobsPage = () => {
               </Field.Root>
 
               <Field.Root>
-                <Field.Label fontSize="sm">States (comma-separated)</Field.Label>
-                <Input
-                  name="states"
-                  value={formik.values.states}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., COMPLETED,FAILED"
+                <Field.Label fontSize="sm">States</Field.Label>
+                <Select.Root
+                  multiple
+                  collection={statesCollection}
+                  value={formik.values.states ? formik.values.states.split(',') : []}
+                  onValueChange={(details) => {
+                    formik.setFieldValue('states', details.value.join(','))
+                  }}
                   size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">Result Limit</Field.Label>
-                <Input
-                  name="limit"
-                  type="number"
-                  value={formik.values.limit}
-                  onChange={formik.handleChange}
-                  placeholder="Default: 100"
-                  size="sm"
-                />
+                >
+                  <Select.HiddenSelect />
+                  <Select.Control>
+                    <Select.Trigger>
+                      <Select.ValueText placeholder="Select job states" />
+                    </Select.Trigger>
+                    <Select.IndicatorGroup>
+                      <Select.Indicator />
+                    </Select.IndicatorGroup>
+                  </Select.Control>
+                  <Portal>
+                    <Select.Positioner>
+                      <Select.Content>
+                        {statesCollection.items.map((state) => (
+                          <Select.Item item={state} key={state.value}>
+                            {state.label}
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Positioner>
+                  </Portal>
+                </Select.Root>
               </Field.Root>
             </SimpleGrid>
 
-            {/* Date Filters */}
-            <Text fontSize="md" fontWeight="semibold" mt={2}>Start Time Range</Text>
-            <SimpleGrid columns={{base: 1, md: 2}} gap={4} w="100%">
+            {/* Time Range Filters */}
+            <Text fontSize="md" fontWeight="semibold" mt={1}>Time Ranges</Text>
+            <SimpleGrid columns={{base: 1, md: 3, lg: 6}} gap={2} w="100%">
               <Field.Root>
                 <Field.Label fontSize="sm">Start After</Field.Label>
                 <Input
@@ -246,10 +284,7 @@ export const JobsPage = () => {
                   size="sm"
                 />
               </Field.Root>
-            </SimpleGrid>
 
-            <Text fontSize="md" fontWeight="semibold" mt={2}>End Time Range</Text>
-            <SimpleGrid columns={{base: 1, md: 2}} gap={4} w="100%">
               <Field.Root>
                 <Field.Label fontSize="sm">End After</Field.Label>
                 <Input
@@ -271,10 +306,7 @@ export const JobsPage = () => {
                   size="sm"
                 />
               </Field.Root>
-            </SimpleGrid>
 
-            <Text fontSize="md" fontWeight="semibold" mt={2}>Submit Time Range</Text>
-            <SimpleGrid columns={{base: 1, md: 2}} gap={4} w="100%">
               <Field.Root>
                 <Field.Label fontSize="sm">Submit After</Field.Label>
                 <Input
@@ -299,8 +331,8 @@ export const JobsPage = () => {
             </SimpleGrid>
 
             {/* Duration Filters */}
-            <Text fontSize="md" fontWeight="semibold" mt={2}>Duration (seconds)</Text>
-            <SimpleGrid columns={{base: 1, md: 2}} gap={4} w="100%">
+            <Text fontSize="md" fontWeight="semibold" mt={1}>Duration (seconds)</Text>
+            <SimpleGrid columns={{base: 1, md: 2}} gap={2} w="100%">
               <Field.Root>
                 <Field.Label fontSize="sm">Min Duration (s)</Field.Label>
                 <Input
@@ -327,21 +359,56 @@ export const JobsPage = () => {
             </SimpleGrid>
 
             {/* Action Buttons */}
-            <HStack gap={3} mt={4}>
-              <Button type="submit" colorPalette="blue">
-                Search Jobs
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  formik.resetForm()
-                  setHasSearched(false)
-                  setQueryParams({})
-                }}
-              >
-                Reset
-              </Button>
+            <HStack gap={3} mt={4} w="100%" justify="space-between">
+              <HStack gap={3}>
+                <Button type="submit" colorPalette="blue">
+                  Search Jobs
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    formik.resetForm()
+                    setHasSearched(false)
+                    setQueryParams({})
+                  }}
+                >
+                  Reset
+                </Button>
+              </HStack>
+              <Field.Root maxW="120px">
+                <Field.Label fontSize="sm">Result Limit</Field.Label>
+                <Select.Root
+                  collection={limitCollection}
+                  value={[formik.values.limit]}
+                  onValueChange={(details) => {
+                    formik.setFieldValue('limit', details.value[0])
+                  }}
+                  size="sm"
+                >
+                  <Select.HiddenSelect />
+                  <Select.Control>
+                    <Select.Trigger>
+                      <Select.ValueText />
+                    </Select.Trigger>
+                    <Select.IndicatorGroup>
+                      <Select.Indicator />
+                    </Select.IndicatorGroup>
+                  </Select.Control>
+                  <Portal>
+                    <Select.Positioner>
+                      <Select.Content>
+                        {limitCollection.items.map((item) => (
+                          <Select.Item item={item} key={item.value}>
+                            {item.label}
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Positioner>
+                  </Portal>
+                </Select.Root>
+              </Field.Root>
             </HStack>
           </VStack>
         </form>

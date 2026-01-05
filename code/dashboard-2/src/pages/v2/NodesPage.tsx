@@ -1,4 +1,4 @@
-import { VStack, Text, Heading, Listbox, Input, useFilter, Spinner, Alert, createListCollection, Box } from '@chakra-ui/react'
+import { VStack, Text, Heading, Listbox, Input, useFilter, Spinner, Alert, createListCollection, Box, Tabs } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
@@ -11,6 +11,7 @@ import { NodeStates } from '../../components/v2/NodeStates'
 import { NodeCpuTimeseries } from '../../components/v2/NodeCpuTimeseries'
 import { ResizableColumns } from '../../components/v2/ResizableColumns'
 import { NodeOverviewCards } from '../../components/v2/NodeOverviewCards'
+import { NodesTable } from '../../components/v2/NodesTable'
 
 export const NodesPage = () => {
   const { clusterName, nodename } = useParams()
@@ -77,83 +78,120 @@ export const NodesPage = () => {
   }
 
   return (
-      <>
-        {clusterName ? (
-          <VStack align="start" w="100%" p={4} pt={2} mb={4} gap={4}>
-            <NodeOverviewCards cluster={clusterName} />
-          </VStack>
-        ) : null}
-    <ResizableColumns
-      height="calc(100vh - 200px)"
-      initialLeftWidth={320}
-      minLeftWidth={minLeftWidth}
-      maxLeftWidth={maxLeftWidth}
-      handleWidth={handleWidth}
-      storageKey="nodesPage.leftWidth"
-      left={
-        <VStack p={4} gap={4} align="start">
-          <Heading size="md">Nodes</Heading>
-          {isLoading && (
-            <Box display="flex" alignItems="center" gap={2}>
-              <Spinner size="sm" />
-              <Text>Loading nodes…</Text>
-            </Box>
-          )}
-          {isError && (
-            <Alert.Root status="error">
-              <Alert.Indicator />
-              <Alert.Description>
-                {error instanceof Error ? error.message : 'Failed to load nodes.'}
-              </Alert.Description>
-            </Alert.Root>
-          )}
-          {!isLoading && !isError && (
-            <Listbox.Root
-              collection={collection}
-              value={selectedNodeValue}
-              onValueChange={(details) => {
-                setSelectedNodeValue(details.value)
-                const sel = details.value[0]
-                if (sel && clusterName) {
-                  navigate(`/v2/${clusterName}/nodes/${sel}`)
-                }
-              }}
-              width="100%"
-            >
-              <Listbox.Label>Available Nodes</Listbox.Label>
-              <Listbox.Input as={Input} placeholder="Type to filter nodes..." onChange={(e) => setFilterValue(e.target.value)} />
-              <Listbox.Content>
-                {collection.items.map((node) => (
-                  <Listbox.Item item={node} key={node.value}>
-                    <Listbox.ItemText>{node.label}</Listbox.ItemText>
+    <>
+      {clusterName ? (
+        <VStack align="start" w="100%" p={4} pt={2} mb={4} gap={4}>
+          <NodeOverviewCards cluster={clusterName} />
+        </VStack>
+      ) : null}
 
-                  </Listbox.Item>
-                ))}
-                {collection.items.length === 0 && (
-                  <Text color="gray.500" p={2}>No nodes found.</Text>
+      <Tabs.Root defaultValue="nodes" variant="outline" w="100%">
+        <Tabs.List px={4}>
+          <Tabs.Trigger value="nodes">Node Browser</Tabs.Trigger>
+          <Tabs.Trigger value="grid">Nodes Table</Tabs.Trigger>
+        </Tabs.List>
+
+        <Tabs.Content value="nodes">
+          <ResizableColumns
+            height="calc(100vh - 260px)"
+            initialLeftWidth={320}
+            minLeftWidth={minLeftWidth}
+            maxLeftWidth={maxLeftWidth}
+            handleWidth={handleWidth}
+            storageKey="nodesPage.leftWidth"
+            left={
+              <VStack p={4} gap={4} align="start">
+                <Heading size="md">Nodes</Heading>
+                {isLoading && (
+                  <Box display="flex" alignItems="center" gap={2}>
+                    <Spinner size="sm" />
+                    <Text>Loading nodes…</Text>
+                  </Box>
                 )}
-              </Listbox.Content>
-            </Listbox.Root>
-          )}
-        </VStack>
-      }
-      right={
-        <VStack flex={1} p={4} gap={4} align="start" minW="0">
-          {selectedNode ? (
-            <>
-              <Heading size="md">{selectedNode.label} Details</Heading>
-              <NodeInfoSummary cluster={clusterName!} nodename={selectedNode.value} />
-              <NodeErrorMessages cluster={clusterName!} nodename={selectedNode.value} />
-              <NodeStates cluster={clusterName!} nodename={selectedNode.value} />
-              <NodeCpuTimeseries cluster={clusterName!} nodename={selectedNode.value} />
-              <NodeTopology cluster={clusterName!} nodename={selectedNode.value} />
-            </>
-          ) : (
-            <Text>Select a node to see details</Text>
-          )}
-        </VStack>
-      }
-    />
-      </>
+                {isError && (
+                  <Alert.Root status="error">
+                    <Alert.Indicator />
+                    <Alert.Description>
+                      {error instanceof Error ? error.message : 'Failed to load nodes.'}
+                    </Alert.Description>
+                  </Alert.Root>
+                )}
+                {!isLoading && !isError && (
+                  <Listbox.Root
+                    collection={collection}
+                    value={selectedNodeValue}
+                    onValueChange={(details) => {
+                      setSelectedNodeValue(details.value)
+                      const sel = details.value[0]
+                      if (sel && clusterName) {
+                        navigate(`/v2/${clusterName}/nodes/${sel}`)
+                      }
+                    }}
+                    width="100%"
+                  >
+                    <Listbox.Label>Available Nodes</Listbox.Label>
+                    <Listbox.Input as={Input} placeholder="Type to filter nodes..." onChange={(e) => setFilterValue(e.target.value)} />
+                    <Listbox.Content>
+                      {collection.items.map((node) => (
+                        <Listbox.Item item={node} key={node.value}>
+                          <Listbox.ItemText>{node.label}</Listbox.ItemText>
+
+                        </Listbox.Item>
+                      ))}
+                      {collection.items.length === 0 && (
+                        <Text color="gray.500" p={2}>No nodes found.</Text>
+                      )}
+                    </Listbox.Content>
+                  </Listbox.Root>
+                )}
+              </VStack>
+            }
+            right={
+              <VStack flex={1} p={4} gap={4} align="start" minW="0">
+                {selectedNode ? (
+                  <>
+                    <Heading size="md">{selectedNode.label} Details</Heading>
+                    <NodeInfoSummary cluster={clusterName!} nodename={selectedNode.value} />
+                    <NodeErrorMessages cluster={clusterName!} nodename={selectedNode.value} />
+                    <NodeStates cluster={clusterName!} nodename={selectedNode.value} />
+                    <NodeCpuTimeseries cluster={clusterName!} nodename={selectedNode.value} />
+                    <NodeTopology cluster={clusterName!} nodename={selectedNode.value} />
+                  </>
+                ) : (
+                  <Text>Select a node to see details</Text>
+                )}
+              </VStack>
+            }
+          />
+        </Tabs.Content>
+
+        <Tabs.Content value="grid">
+          <VStack p={4} gap={4} align="start" w="100%">
+            <Heading size="md">All Nodes</Heading>
+            {isLoading && (
+              <Box display="flex" alignItems="center" gap={2}>
+                <Spinner size="sm" />
+                <Text>Loading nodes…</Text>
+              </Box>
+            )}
+            {isError && (
+              <Alert.Root status="error">
+                <Alert.Indicator />
+                <Alert.Description>
+                  {error instanceof Error ? error.message : 'Failed to load nodes.'}
+                </Alert.Description>
+              </Alert.Root>
+            )}
+            <NodesTable 
+              clusterName={clusterName!} 
+              onNodeClick={(nodeName) => navigate(`/v2/${clusterName}/nodes/${nodeName}`)}
+            />
+            <Text fontSize="sm" color="gray.600">
+              Click on any row to view detailed information about that node.
+            </Text>
+          </VStack>
+        </Tabs.Content>
+      </Tabs.Root>
+    </>
   )
 }
