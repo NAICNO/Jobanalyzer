@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { getClusterByClusterNodesByNodenameErrorMessagesOptions } from '../../client/@tanstack/react-query.gen'
 import type { ErrorMessageResponse } from '../../client'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 type Props = {
   cluster: string
@@ -11,8 +12,18 @@ type Props = {
 }
 
 export const NodeErrorMessages = ({ cluster, nodename }: Props) => {
+  const client = useClusterClient(cluster)
+  
+  if (!client) {
+    return <Spinner />
+  }
+  
+  const baseURL = client.getConfig().baseURL
+  
   const queryOpts = getClusterByClusterNodesByNodenameErrorMessagesOptions({
     path: { cluster, nodename },
+    client,
+    baseURL,
   })
 
   const { data, isLoading, isError, error } = useQuery({

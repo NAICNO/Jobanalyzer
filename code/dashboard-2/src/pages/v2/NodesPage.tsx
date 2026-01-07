@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { getClusterByClusterNodesOptions } from '../../client/@tanstack/react-query.gen'
+import { useClusterClient } from '../../hooks/useClusterClient'
 import { NodeErrorMessages } from '../../components/v2/NodeErrorMessages'
 import { NodeTopology } from '../../components/v2/NodeTopology'
 import { NodeInfoSummary } from '../../components/v2/NodeInfoSummary'
@@ -20,9 +21,18 @@ export const NodesPage = () => {
   const maxLeftWidth = 640
   const handleWidth = 6
 
+  const client = useClusterClient(clusterName)
+  if (!client) {
+    return <Spinner />
+  }
+
+  const baseURL = client.getConfig().baseURL
+
   // Fetch nodes for the cluster from /cluster/:cluster/nodes
   const baseQueryOptions = getClusterByClusterNodesOptions({
     path: { cluster: clusterName ?? '' },
+    client,
+    baseURL,
   })
   const { data, isLoading, isError, error } = useQuery({
     ...baseQueryOptions,

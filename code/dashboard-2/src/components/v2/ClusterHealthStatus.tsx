@@ -8,26 +8,35 @@ import {
   getClusterByClusterNodesOptions
 } from '../../client/@tanstack/react-query.gen'
 import type { ErrorMessageResponse, NodeStateResponse } from '../../client'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 interface Props {
   cluster: string
 }
 
 export const ClusterHealthStatus = ({ cluster }: Props) => {
+  const client = useClusterClient(cluster)
+  
+  if (!client) {
+    return <Spinner />
+  }
+  
+  const baseURL = client.getConfig().baseURL
+  
   const errorsQuery = useQuery({
-    ...getClusterByClusterErrorMessagesOptions({ path: { cluster } }),
+    ...getClusterByClusterErrorMessagesOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
   const statesQuery = useQuery({
-    ...getClusterByClusterNodesStatesOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
   const timestampsQuery = useQuery({
-    ...getClusterByClusterNodesLastProbeTimestampOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesLastProbeTimestampOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
   const nodesQ = useQuery({
-    ...getClusterByClusterNodesOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
 

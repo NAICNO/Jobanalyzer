@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { HStack, SimpleGrid, Text, VStack, Tag, Progress, Stat, Badge } from '@chakra-ui/react'
 
-import type { PartitionResponseOutput } from '../../client'
+import type { PartitionResponse } from '../../client'
 
 interface Props {
-  partitions: PartitionResponseOutput[]
+  partitions: PartitionResponse[]
   isFetching?: boolean
 }
 
