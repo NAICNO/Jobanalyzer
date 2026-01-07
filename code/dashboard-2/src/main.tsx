@@ -14,7 +14,8 @@ import App from './App.tsx'
 import { system } from './theme.ts'
 import { ColorModeProvider } from './components/ui/color-mode.tsx'
 import { client } from './client/client.gen.ts'
-import { EX3_API_ENDPOINT, UIO_API_ENDPOINT, } from './Constants.ts'
+import { UIO_API_ENDPOINT, } from './Constants.ts'
+import { ClusterProvider } from './contexts/ClusterContext.tsx'
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
@@ -29,8 +30,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ChakraProvider value={system}>
       <ColorModeProvider>
         <QueryClientProvider client={queryClient}>
-          <App/>
-          <ReactQueryDevtools initialIsOpen={false}/>
+          <ClusterProvider>
+            <App/>
+            <ReactQueryDevtools initialIsOpen={false}/>
+          </ClusterProvider>
         </QueryClientProvider>
       </ColorModeProvider>
     </ChakraProvider>
