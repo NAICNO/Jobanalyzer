@@ -6,14 +6,17 @@ import { themeQuartz } from 'ag-grid-community'
 
 import { getClusterByClusterPartitionsOptions } from '../../client/@tanstack/react-query.gen'
 import type { PartitionResponse } from '../../client'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 interface Props {
   cluster: string
 }
 
 export const ClusterQueueActivity = ({ cluster }: Props) => {
+  const client = useClusterClient(cluster)
+  
   const partitionsQ = useQuery({
-    ...getClusterByClusterPartitionsOptions({ path: { cluster } }),
+    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
 

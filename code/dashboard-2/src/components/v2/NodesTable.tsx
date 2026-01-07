@@ -8,6 +8,7 @@ import { themeQuartz } from 'ag-grid-community'
 import { getClusterByClusterNodesInfoOptions, getClusterByClusterNodesLastProbeTimestampOptions } from '../../client/@tanstack/react-query.gen'
 import type { NodeInfoResponse } from '../../client'
 import { createNodeNameRenderer, createCpuRenderer, createMemoryRenderer, createGpuRenderer } from '../../utils/nodeTableRenderers'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 interface NodesTableProps {
   clusterName: string
@@ -15,10 +16,20 @@ interface NodesTableProps {
 }
 
 export const NodesTable = ({ clusterName, onNodeClick }: NodesTableProps) => {
+  const client = useClusterClient(clusterName)
+  
+  if (!client) {
+    return <Spinner />
+  }
+  
+  const baseURL = client.getConfig().baseURL
+  
   // Fetch node info data
   const { data: nodesInfoData, isLoading, isError } = useQuery({
     ...getClusterByClusterNodesInfoOptions({
       path: { cluster: clusterName },
+      client,
+      baseURL,
     }),
     enabled: !!clusterName,
   })
@@ -27,6 +38,8 @@ export const NodesTable = ({ clusterName, onNodeClick }: NodesTableProps) => {
   const { data: lastProbeData } = useQuery({
     ...getClusterByClusterNodesLastProbeTimestampOptions({
       path: { cluster: clusterName },
+      client,
+      baseURL,
     }),
     enabled: !!clusterName,
   })

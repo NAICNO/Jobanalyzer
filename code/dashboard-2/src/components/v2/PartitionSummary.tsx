@@ -1,9 +1,9 @@
 import { DataList, VStack, Text, Box, HStack, Progress } from '@chakra-ui/react'
 
-import type { PartitionResponseOutput } from '../../client'
+import type { PartitionResponse } from '../../client'
 
 interface Props {
-  partition: PartitionResponseOutput
+  partition: PartitionResponse
 }
 
 export const PartitionSummary = ({ partition }: Props) => {

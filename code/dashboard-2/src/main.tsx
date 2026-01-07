@@ -13,17 +13,11 @@ import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'
 import App from './App.tsx'
 import { system } from './theme.ts'
 import { ColorModeProvider } from './components/ui/color-mode.tsx'
-import { client } from './client/client.gen.ts'
-import { UIO_API_ENDPOINT, } from './Constants.ts'
 import { ClusterProvider } from './contexts/ClusterContext.tsx'
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
 const queryClient = new QueryClient()
-
-client.setConfig({
-  baseURL: UIO_API_ENDPOINT,
-})
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

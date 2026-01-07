@@ -5,12 +5,22 @@ import { useMemo } from 'react'
 import { LuArrowLeft } from 'react-icons/lu'
 
 import { getClusterByClusterNodesByNodenameTopologyOptions } from '../../client/@tanstack/react-query.gen'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 export const NodeTopologyPage = () => {
   const { clusterName, nodename } = useParams()
 
+  const client = useClusterClient(clusterName)
+  if (!client) {
+    return <Spinner />
+  }
+
+  const baseURL = client.getConfig().baseURL
+
   const queryOpts = getClusterByClusterNodesByNodenameTopologyOptions({
     path: { cluster: clusterName ?? '', nodename: nodename ?? '' },
+    client,
+    baseURL,
   })
 
   const { data, isLoading, isError, error } = useQuery({
