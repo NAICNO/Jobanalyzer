@@ -22,6 +22,8 @@ import { PartitionsPage } from './pages/v2/PartitionsPage.tsx'
 import { JobsPage } from './pages/v2/JobsPage.tsx'
 import { QueriesPage } from './pages/v2/QueriesPage.tsx'
 import { NodeTopologyPage } from './pages/v2/NodeTopologyPage.tsx'
+import { ClusterSelectionPage } from './pages/v2/ClusterSelectionPage.tsx'
+import { ClusterRouteGuard } from './components/ClusterRouteGuard.tsx'
 
 const router = createBrowserRouter([
   {
@@ -30,46 +32,50 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="dashboard/ml" replace/>
+        element: <Navigate to="v2/mlx.hpc.uio.no/overview" replace/>
       },
       {
         path: 'v2',
         children: [
           {
+            path: 'select-cluster',
+            element: <ClusterSelectionPage />,
+          },
+          {
             path: ':clusterName/overview',
-            element: <ClusterOverview />,
+            element: <ClusterRouteGuard><ClusterOverview /></ClusterRouteGuard>,
           },
           {
             path: ':clusterName/nodes',
-            element: <NodesPage/>,
+            element: <ClusterRouteGuard><NodesPage/></ClusterRouteGuard>,
           },
           {
             path: ':clusterName/nodes/:nodename',
-            element: <NodesPage/>,
+            element: <ClusterRouteGuard><NodesPage/></ClusterRouteGuard>,
           },
           {
             path: ':clusterName/nodes/:nodename/topology',
-            element: <NodeTopologyPage/>,
+            element: <ClusterRouteGuard><NodeTopologyPage/></ClusterRouteGuard>,
           },
           {
             path: ':clusterName/partitions',
-            element: <PartitionsPage/>,
+            element: <ClusterRouteGuard><PartitionsPage/></ClusterRouteGuard>,
           },
           {
             path: ':clusterName/partitions/:partitionName',
-            element: <PartitionsPage/>,
+            element: <ClusterRouteGuard><PartitionsPage/></ClusterRouteGuard>,
           },
           {
             path: ':clusterName/jobs',
-            element: <JobsPage/>,
+            element: <ClusterRouteGuard><JobsPage/></ClusterRouteGuard>,
           },
           {
             path: ':clusterName/jobs/:jobId',
-            element: <JobsPage/>,
+            element: <ClusterRouteGuard><JobsPage/></ClusterRouteGuard>,
           },
           {
             path: ':clusterName/queries',
-            element: <QueriesPage/>,
+            element: <ClusterRouteGuard><QueriesPage/></ClusterRouteGuard>,
           }
         ]
       },

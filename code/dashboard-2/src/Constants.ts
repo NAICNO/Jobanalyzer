@@ -63,20 +63,20 @@ export const JOB_QUERY_BASE_PATH = '/jobquery'
 
 // Cluster definitions for dynamic dashboard configuration
 export const CLUSTERS = {
-  ex3: {
-    id: 'ex3',
+  'ex3.simula.no': {
+    id: 'ex3.simula.no',
     name: 'EX3',
     basePath: '/v2/ex3.simula.no',
     icon: LuServer,
   },
-  mlx: {
-    id: 'mlx',
+  'mlx.hpc.uio.no': {
+    id: 'mlx.hpc.uio.no',
     name: 'ML Nodes',
     basePath: '/v2/mlx.hpc.uio.no',
     icon: GrNodes,
   },
-  fox: {
-    id: 'fox',
+  'fox.educloud.no': {
+    id: 'fox.educloud.no',
     name: 'Fox',
     basePath: '/v2/fox.educloud.no',
     icon: GiFox,
@@ -100,7 +100,7 @@ const buildClusterSidebarItems = () => {
     const clusterName = cluster.basePath.split('/').pop() || cluster.id
     return {
       type: 'link' as const,
-      path: `/dashboard/${cluster.id}`,
+      path: cluster.basePath + '/overview',
       matches: clusterName,
       text: cluster.name,
       icon: cluster.icon,
@@ -187,8 +187,8 @@ export const CELL_BACKGROUND_COLORS = {
 }
 
 export const CLUSTER_INFO: Record<string, Cluster> = {
-  'ml': {
-    cluster: 'ml',
+  'mlx.hpc.uio.no': {
+    cluster: 'mlx.hpc.uio.no',
     canonical: 'mlx.hpc.uio.no',
     subclusters: [{name: 'nvidia', nodes: 'ml[1-3,6-9]'}],
     uptime: true,
@@ -201,8 +201,8 @@ export const CLUSTER_INFO: Record<string, Cluster> = {
     prefix: 'ml-',
     policy: 'Significant CPU usage without any GPU usage',
   },
-  'fox': {
-    cluster: 'fox',
+  'fox.educloud.no': {
+    cluster: 'fox.educloud.no',
     canonical: 'fox.educloud.no',
     subclusters: [
       {name: 'cpu', nodes: 'c*'},
@@ -220,8 +220,8 @@ export const CLUSTER_INFO: Record<string, Cluster> = {
     prefix: 'fox-',
     policy: '(To be determined)',
   },
-  'saga': {
-    cluster: 'saga',
+  'saga.sigma2.no': {
+    cluster: 'saga.sigma2.no',
     canonical: 'saga.sigma2.no',
     subclusters: [],
     uptime: false,
@@ -234,8 +234,8 @@ export const CLUSTER_INFO: Record<string, Cluster> = {
     prefix: 'saga-',
     policy: '(To be determined)',
   },
-  'betzy': {
-    cluster: 'betzy',
+  'betzy.sigma2.no': {
+    cluster: 'betzy.sigma2.no',
     canonical: 'betzy.sigma2.no',
     subclusters: [],
     uptime: false,
