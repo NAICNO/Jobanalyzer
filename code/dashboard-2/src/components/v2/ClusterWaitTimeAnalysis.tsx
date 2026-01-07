@@ -3,19 +3,28 @@ import { useQuery } from '@tanstack/react-query'
 
 import { getClusterByClusterPartitionsOptions } from '../../client/@tanstack/react-query.gen'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import type { PartitionResponseOutput } from '../../client'
+import type { PartitionResponse } from '../../client'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 interface Props {
   cluster: string
 }
 
 export const ClusterWaitTimeAnalysis = ({ cluster }: Props) => {
+  const client = useClusterClient(cluster)
+  
+  if (!client) {
+    return <Spinner />
+  }
+  
+  const baseURL = client.getConfig().baseURL
+  
   const partitionsQ = useQuery({
-    ...getClusterByClusterPartitionsOptions({ path: { cluster } }),
+    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
 
-  const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponseOutput>
+  const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponse>
   const partitions = Object.values(partitionsMap)
 
   // Collect wait time statistics

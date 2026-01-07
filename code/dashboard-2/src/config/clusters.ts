@@ -37,7 +37,7 @@ export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
     name: 'ML Nodes',
     description: 'Machine Learning Cluster at UiO',
     icon: GrNodes,
-    apiBaseUrl: 'https://naic-monitor.uio.no/api/v2/',
+    apiBaseUrl: 'https://naic-monitor.uio.no/api/v2',
     authEndpoint: {
       authorization: 'https://auth.mlx.hpc.uio.no/authorize',
       token: 'https://auth.mlx.hpc.uio.no/token',
@@ -49,7 +49,7 @@ export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
     name: 'Fox',
     description: 'Fox Cluster at EduCloud',
     icon: GiFox,
-    apiBaseUrl: 'https://naic-monitor.uio.no/api/v2/',
+    apiBaseUrl: 'https://naic-monitor.uio.no/api/v2',
     authEndpoint: {
       authorization: 'https://auth.fox.educloud.no/authorize',
       token: 'https://auth.fox.educloud.no/token',

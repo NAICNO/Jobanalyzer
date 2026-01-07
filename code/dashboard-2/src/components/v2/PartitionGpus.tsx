@@ -1,9 +1,9 @@
 import { Accordion, VStack, Text, HStack, Tag } from '@chakra-ui/react'
 
-import type { PartitionResponseOutput } from '../../client'
+import type { PartitionResponse } from '../../client'
 
 interface Props {
-  partition: PartitionResponseOutput
+  partition: PartitionResponse
 }
 
 export const PartitionGpus = ({partition}: Props) => {

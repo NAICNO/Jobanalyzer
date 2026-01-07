@@ -3,6 +3,7 @@ import { DataList, VStack, Text, Listbox, createListCollection, Accordion, Box, 
 import { useQuery } from '@tanstack/react-query'
 
 import { getClusterByClusterNodesByNodenameInfoOptions } from '../../client/@tanstack/react-query.gen'
+import { useClusterClient } from '../../hooks/useClusterClient'
 import type { NodeInfoResponse, GpuCardResponse } from '../../client'
 
 interface Props {
@@ -11,8 +12,18 @@ interface Props {
 }
 
 export const NodeInfoSummary = ({ cluster, nodename }: Props) => {
+  const client = useClusterClient(cluster)
+  
+  if (!client) {
+    return <Spinner />
+  }
+  
+  const baseURL = client.getConfig().baseURL
+  
   const infoQueryOpts = getClusterByClusterNodesByNodenameInfoOptions({
     path: { cluster, nodename },
+    client,
+    baseURL,
   })
   const { data: nodeInfoData, isLoading, isError, error } = useQuery({
     ...infoQueryOpts,

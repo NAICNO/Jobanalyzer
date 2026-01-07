@@ -1,10 +1,10 @@
 import { Accordion, VStack, Text, Box, HStack, Tag } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router'
 
-import type { PartitionResponseOutput } from '../../client'
+import type { PartitionResponse } from '../../client'
 
 interface Props {
-  partition: PartitionResponseOutput
+  partition: PartitionResponse
 }
 
 export const PartitionNodes = ({ partition }: Props) => {

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { getClusterByClusterNodesByNodenameStatesOptions } from '../../client/@tanstack/react-query.gen'
 import type { NodeStateResponse } from '../../client'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 interface Props {
   cluster: string
@@ -12,11 +13,20 @@ interface Props {
 }
 
 export const NodeStates = ({ cluster, nodename, initialCollapsed = false }: Props) => {
+  const client = useClusterClient(cluster)
   const [value, setValue] = useState<string[]>(initialCollapsed ? [] : ['states'])
   const expanded = value.includes('states')
 
+  if (!client) {
+    return null
+  }
+  
+  const baseURL = client.getConfig().baseURL
+
   const queryOpts = getClusterByClusterNodesByNodenameStatesOptions({
     path: { cluster, nodename },
+    client,
+    baseURL,
   })
 
   const { data, isLoading, isError, error } = useQuery({
