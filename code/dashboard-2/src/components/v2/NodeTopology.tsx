@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { LuExternalLink } from 'react-icons/lu'
 
 import { getClusterByClusterNodesByNodenameTopologyOptions } from '../../client/@tanstack/react-query.gen'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 type Props = {
   cluster: string
@@ -12,11 +13,22 @@ type Props = {
 }
 
 export const NodeTopology = ({ cluster, nodename, initialCollapsed = true }: Props) => {
+  const client = useClusterClient(cluster)
+  
   // Use Accordion in controlled mode so we can gate the fetch by expansion state
   const [value, setValue] = useState<string[]>(initialCollapsed ? [] : ['topology'])
   const expanded = value.includes('topology')
+  
+  if (!client) {
+    return null
+  }
+  
+  const baseURL = client.getConfig().baseURL
+  
   const queryOpts = getClusterByClusterNodesByNodenameTopologyOptions({
     path: { cluster, nodename },
+    client,
+    baseURL,
   })
 
   const { data, isLoading, isError, error } = useQuery({

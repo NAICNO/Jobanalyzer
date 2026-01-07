@@ -8,6 +8,7 @@ import {
 } from '../../client/@tanstack/react-query.gen'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import type { SampleGpuTimeseriesResponse, SampleProcessAccResponse } from '../../client'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 // Time configuration constants (in seconds)
 const TIME_WINDOW = 24 * 60 * 60 // 24 hours
@@ -21,6 +22,8 @@ interface Props {
 }
 
 export const ClusterTimebasedActivity = ({cluster}: Props) => {
+  const client = useClusterClient(cluster)
+  
   // Round to nearest QUERY_REFRESH_INTERVAL to prevent constant refetching
   // This creates stable query keys while still keeping data relatively fresh
   const now = Math.floor(Date.now() / 1000 / QUERY_REFRESH_INTERVAL) * QUERY_REFRESH_INTERVAL
@@ -34,6 +37,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
         end_time_in_s: now,
         resolution_in_s: DATA_RESOLUTION,
       },
+      client,
     }),
     enabled: !!cluster,
     staleTime: STALE_TIME_MS,
@@ -48,6 +52,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
         end_time_in_s: now,
         resolution_in_s: DATA_RESOLUTION,
       },
+      client,
     }),
     enabled: !!cluster,
     staleTime: STALE_TIME_MS,
@@ -62,6 +67,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
         end_time_in_s: now,
         resolution_in_s: DATA_RESOLUTION,
       },
+      client,
     }),
     enabled: !!cluster,
     staleTime: STALE_TIME_MS,

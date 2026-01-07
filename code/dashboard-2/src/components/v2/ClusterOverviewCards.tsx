@@ -1,4 +1,4 @@
-import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip } from '@chakra-ui/react'
+import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip, Spinner } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 
 import {
@@ -8,34 +8,44 @@ import {
   getClusterByClusterPartitionsOptions,
   getClusterByClusterNodesProcessGpuUtilOptions
 } from '../../client/@tanstack/react-query.gen'
-import type { NodeInfoResponse, NodeStateResponse, PartitionResponseOutput, NodeSampleProcessGpuAccResponse } from '../../client'
+import type { NodeInfoResponse, NodeStateResponse, PartitionResponse, NodeSampleProcessGpuAccResponse } from '../../client'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 interface Props {
   cluster: string
 }
 
 export const ClusterOverviewCards = ({ cluster }: Props) => {
+  const client = useClusterClient(cluster)
+  
+  // Early return if client is not available
+  if (!client) {
+    return <Spinner />
+  }
+  
+  const baseURL = client.getConfig().baseURL
+  
   // Fetch nodes data
   const nodesQ = useQuery({
-    ...getClusterByClusterNodesOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
   const infoQ = useQuery({
-    ...getClusterByClusterNodesInfoOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesInfoOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
   const statesQ = useQuery({
-    ...getClusterByClusterNodesStatesOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
   const gpuUtilQ = useQuery({
-    ...getClusterByClusterNodesProcessGpuUtilOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesProcessGpuUtilOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
 
   // Fetch partitions data
   const partitionsQ = useQuery({
-    ...getClusterByClusterPartitionsOptions({ path: { cluster } }),
+    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
 
@@ -49,7 +59,7 @@ export const ClusterOverviewCards = ({ cluster }: Props) => {
   const idleNodes = statesArr.reduce((acc, s) => acc + (Array.isArray(s.states) && s.states.includes('IDLE') ? 1 : 0), 0)
 
   // Process partitions data
-  const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponseOutput>
+  const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponse>
   const partitions = Object.values(partitionsMap)
   const totalPartitions = partitions.length
 

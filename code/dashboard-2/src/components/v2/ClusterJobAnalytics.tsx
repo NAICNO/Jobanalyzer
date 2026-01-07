@@ -3,14 +3,22 @@ import { useQuery } from '@tanstack/react-query'
 
 import { getClusterByClusterJobsOptions } from '../../client/@tanstack/react-query.gen'
 import type { JobsResponse } from '../../client'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 interface Props {
   cluster: string
 }
 
 export const ClusterJobAnalytics = ({ cluster }: Props) => {
+  const client = useClusterClient(cluster)
   const now = Math.floor(Date.now() / 1000)
   const last24h = now - (24 * 60 * 60)
+
+  if (!client) {
+    return <Spinner />
+  }
+  
+  const baseURL = client.getConfig().baseURL
 
   // Get recent jobs (last 24 hours)
   const jobsQ = useQuery({
@@ -20,6 +28,8 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
         start_time_in_s: last24h,
         end_time_in_s: now,
       },
+      client,
+      baseURL,
     }),
     enabled: !!cluster,
   })

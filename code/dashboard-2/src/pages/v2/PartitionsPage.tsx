@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { getClusterByClusterPartitionsOptions } from '../../client/@tanstack/react-query.gen'
+import { useClusterClient } from '../../hooks/useClusterClient'
 import { ResizableColumns } from '../../components/v2/ResizableColumns'
 import { PartitionSummary } from '../../components/v2/PartitionSummary'
 import { PartitionQueueOverview } from '../../components/v2/PartitionQueueOverview'
@@ -19,9 +20,18 @@ export const PartitionsPage = () => {
   const maxLeftWidth = 640
   const handleWidth = 6
 
+  const client = useClusterClient(clusterName)
+  if (!client) {
+    return <Spinner />
+  }
+
+  const baseURL = client.getConfig().baseURL
+
   // Fetch partitions for the cluster from /cluster/:cluster/partitions
   const baseQueryOptions = getClusterByClusterPartitionsOptions({
     path: { cluster: clusterName ?? '' },
+    client,
+    baseURL,
   })
   const { data, isLoading, isError, error } = useQuery({
     ...baseQueryOptions,

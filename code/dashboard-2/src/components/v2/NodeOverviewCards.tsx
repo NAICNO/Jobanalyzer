@@ -1,4 +1,4 @@
-import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip } from '@chakra-ui/react'
+import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip, Spinner } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import { TbBroadcast, TbBroadcastOff } from 'react-icons/tb'
 
@@ -6,30 +6,39 @@ import { getClusterByClusterNodesOptions, getClusterByClusterNodesInfoOptions, g
 import type { NodeInfoResponse, NodeStateResponse, NodeSampleProcessGpuAccResponse } from '../../client'
 import { getLivenessStats, LIVENESS_COLORS } from '../../utils/nodeLiveness'
 import { getUtilizationColorPalette, calculateUtilization } from '../../utils/utilizationColors'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 interface Props {
   cluster: string
 }
 
 export const NodeOverviewCards = ({ cluster }: Props) => {
+  const client = useClusterClient(cluster)
+  
+  if (!client) {
+    return <Spinner />
+  }
+  
+  const baseURL = client.getConfig().baseURL
+  
   const nodesQ = useQuery({
-    ...getClusterByClusterNodesOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
   const infoQ = useQuery({
-    ...getClusterByClusterNodesInfoOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesInfoOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
   const statesQ = useQuery({
-    ...getClusterByClusterNodesStatesOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
   const gpuUtilQ = useQuery({
-    ...getClusterByClusterNodesProcessGpuUtilOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesProcessGpuUtilOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
   const lastProbeQ = useQuery({
-    ...getClusterByClusterNodesLastProbeTimestampOptions({ path: { cluster } }),
+    ...getClusterByClusterNodesLastProbeTimestampOptions({ path: { cluster }, client, baseURL }),
     enabled: !!cluster,
   })
 

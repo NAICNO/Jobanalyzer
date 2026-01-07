@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getClusterByClusterNodesByNodenameCpuTimeseriesOptions } from '../../client/@tanstack/react-query.gen'
 import type { GetClusterByClusterNodesByNodenameCpuTimeseriesResponse, SampleProcessAccResponse } from '../../client'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
+import { useClusterClient } from '../../hooks/useClusterClient'
 
 interface Props {
   cluster: string
@@ -25,17 +26,19 @@ function toSeries(data: GetClusterByClusterNodesByNodenameCpuTimeseriesResponse 
 }
 
 export const NodeCpuTimeseries = ({ cluster, nodename, initialCollapsed = false, resolutionSec }: Props) => {
+  const client = useClusterClient(cluster)
   const [value, setValue] = useState<string[]>(initialCollapsed ? [] : ['cpu'])
   const expanded = value.includes('cpu')
 
   const queryOpts = getClusterByClusterNodesByNodenameCpuTimeseriesOptions({
     path: { cluster, nodename },
     query: resolutionSec ? { resolution_in_s: resolutionSec } : undefined,
+    client,
   })
 
   const { data, isLoading, isError, error } = useQuery({
     ...queryOpts,
-    enabled: !!cluster && !!nodename && expanded,
+    enabled: !!cluster && !!nodename && !!client && expanded,
     staleTime: 60_000,
   })
 

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useFormik } from 'formik'
+
+import { useClusterClient } from '../../hooks/useClusterClient'
 import {
   VStack,
   HStack,
@@ -64,6 +66,13 @@ const limitCollection = createListCollection({
 
 export const JobsPage = () => {
   const {clusterName} = useParams<{ clusterName: string }>()
+
+  const client = useClusterClient(clusterName)
+  if (!client) {
+    return <Spinner />
+  }
+
+  const baseURL = client.getConfig().baseURL
 
   const [hasSearched, setHasSearched] = useState(false)
   const [queryParams, setQueryParams] = useState<GetClusterByClusterJobsQueryData['query']>({})
@@ -132,6 +141,8 @@ export const JobsPage = () => {
     ...getClusterByClusterJobsQueryOptions({
       path: {cluster: clusterName ?? ''},
       query: queryParams,
+      client,
+      baseURL,
     }),
     enabled: !!clusterName && hasSearched,
   })

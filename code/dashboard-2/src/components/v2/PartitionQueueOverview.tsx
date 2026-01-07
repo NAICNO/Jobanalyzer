@@ -1,9 +1,9 @@
 import { Accordion, VStack, Text, Box, HStack, Tag, Table } from '@chakra-ui/react'
 
-import type { PartitionResponseOutput, JobResponse } from '../../client'
+import type { PartitionResponse, JobResponse } from '../../client'
 
 interface Props {
-  partition: PartitionResponseOutput
+  partition: PartitionResponse
 }
 
 export const PartitionQueueOverview = ({ partition }: Props) => {
