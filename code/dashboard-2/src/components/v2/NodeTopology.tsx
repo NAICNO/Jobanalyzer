@@ -23,12 +23,9 @@ export const NodeTopology = ({ cluster, nodename, initialCollapsed = true }: Pro
     return null
   }
   
-  const baseURL = client.getConfig().baseURL
-  
   const queryOpts = getClusterByClusterNodesByNodenameTopologyOptions({
     path: { cluster, nodename },
     client,
-    baseURL,
   })
 
   const { data, isLoading, isError, error } = useQuery({

@@ -22,14 +22,11 @@ export const NodesTable = ({ clusterName, onNodeClick }: NodesTableProps) => {
     return <Spinner />
   }
   
-  const baseURL = client.getConfig().baseURL
-  
   // Fetch node info data
   const { data: nodesInfoData, isLoading, isError } = useQuery({
     ...getClusterByClusterNodesInfoOptions({
       path: { cluster: clusterName },
       client,
-      baseURL,
     }),
     enabled: !!clusterName,
   })
@@ -39,7 +36,6 @@ export const NodesTable = ({ clusterName, onNodeClick }: NodesTableProps) => {
     ...getClusterByClusterNodesLastProbeTimestampOptions({
       path: { cluster: clusterName },
       client,
-      baseURL,
     }),
     enabled: !!clusterName,
   })
