@@ -42,40 +42,50 @@ const router = createBrowserRouter([
             element: <ClusterSelectionPage />,
           },
           {
-            path: ':clusterName/overview',
-            element: <ClusterRouteGuard><ClusterOverview /></ClusterRouteGuard>,
-          },
-          {
-            path: ':clusterName/nodes',
-            element: <ClusterRouteGuard><NodesPage/></ClusterRouteGuard>,
-          },
-          {
-            path: ':clusterName/nodes/:nodename',
-            element: <ClusterRouteGuard><NodesPage/></ClusterRouteGuard>,
-          },
-          {
-            path: ':clusterName/nodes/:nodename/topology',
-            element: <ClusterRouteGuard><NodeTopologyPage/></ClusterRouteGuard>,
-          },
-          {
-            path: ':clusterName/partitions',
-            element: <ClusterRouteGuard><PartitionsPage/></ClusterRouteGuard>,
-          },
-          {
-            path: ':clusterName/partitions/:partitionName',
-            element: <ClusterRouteGuard><PartitionsPage/></ClusterRouteGuard>,
-          },
-          {
-            path: ':clusterName/jobs',
-            element: <ClusterRouteGuard><JobsPage/></ClusterRouteGuard>,
-          },
-          {
-            path: ':clusterName/jobs/:jobId',
-            element: <ClusterRouteGuard><JobsPage/></ClusterRouteGuard>,
-          },
-          {
-            path: ':clusterName/queries',
-            element: <ClusterRouteGuard><QueriesPage/></ClusterRouteGuard>,
+            path: ':clusterName',
+            element: <ClusterRouteGuard />,
+            children: [
+              {
+                path: 'overview',
+                element: <ClusterOverview />,
+              },
+              {
+                path: 'nodes',
+                element: <NodesPage />,
+              },
+              {
+                path: 'nodes/:nodename',
+                element: <NodesPage />,
+              },
+              {
+                path: 'nodes/:nodename/topology',
+                element: <NodeTopologyPage />,
+              },
+              {
+                path: 'partitions',
+                element: <PartitionsPage />,
+              },
+              {
+                path: 'partitions/:partitionName',
+                element: <PartitionsPage />,
+              },
+              {
+                path: 'jobs',
+                element: <JobsPage />,
+              },
+              {
+                path: 'jobs/running',
+                element: <JobsPage />,
+              },
+              {
+                path: 'jobs/:jobId',
+                element: <JobsPage />,
+              },
+              {
+                path: 'jobs/query',
+                element: <QueriesPage />,
+              }
+            ]
           }
         ]
       },

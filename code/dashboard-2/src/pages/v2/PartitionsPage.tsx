@@ -25,13 +25,10 @@ export const PartitionsPage = () => {
     return <Spinner />
   }
 
-  const baseURL = client.getConfig().baseURL
-
   // Fetch partitions for the cluster from /cluster/:cluster/partitions
   const baseQueryOptions = getClusterByClusterPartitionsOptions({
     path: { cluster: clusterName ?? '' },
     client,
-    baseURL,
   })
   const { data, isLoading, isError, error } = useQuery({
     ...baseQueryOptions,
@@ -148,7 +145,6 @@ export const PartitionsPage = () => {
                     navigate(`/v2/${clusterName}/partitions/${sel}`)
                   }
                 }}
-                width="100%"
               >
                 <Listbox.Label>Available Partitions</Listbox.Label>
                 <Listbox.Input as={Input} placeholder="Type to filter partitions..." onChange={(e) => setFilterValue(e.target.value)} />

@@ -15,12 +15,9 @@ export const NodeTopologyPage = () => {
     return <Spinner />
   }
 
-  const baseURL = client.getConfig().baseURL
-
   const queryOpts = getClusterByClusterNodesByNodenameTopologyOptions({
     path: { cluster: clusterName ?? '', nodename: nodename ?? '' },
     client,
-    baseURL,
   })
 
   const { data, isLoading, isError, error } = useQuery({

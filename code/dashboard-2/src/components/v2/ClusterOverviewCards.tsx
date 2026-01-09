@@ -23,29 +23,27 @@ export const ClusterOverviewCards = ({ cluster }: Props) => {
     return <Spinner />
   }
   
-  const baseURL = client.getConfig().baseURL
-  
   // Fetch nodes data
   const nodesQ = useQuery({
-    ...getClusterByClusterNodesOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterNodesOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
   const infoQ = useQuery({
-    ...getClusterByClusterNodesInfoOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterNodesInfoOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
   const statesQ = useQuery({
-    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
   const gpuUtilQ = useQuery({
-    ...getClusterByClusterNodesProcessGpuUtilOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterNodesProcessGpuUtilOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
 
   // Fetch partitions data
   const partitionsQ = useQuery({
-    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
 

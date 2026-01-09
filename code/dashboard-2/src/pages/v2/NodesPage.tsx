@@ -26,13 +26,10 @@ export const NodesPage = () => {
     return <Spinner />
   }
 
-  const baseURL = client.getConfig().baseURL
-
   // Fetch nodes for the cluster from /cluster/:cluster/nodes
   const baseQueryOptions = getClusterByClusterNodesOptions({
     path: { cluster: clusterName ?? '' },
     client,
-    baseURL,
   })
   const { data, isLoading, isError, error } = useQuery({
     ...baseQueryOptions,
@@ -103,15 +100,14 @@ export const NodesPage = () => {
 
         <Tabs.Content value="nodes">
           <ResizableColumns
-            height="calc(100vh - 260px)"
+            height="calc(100vh)"
             initialLeftWidth={320}
             minLeftWidth={minLeftWidth}
             maxLeftWidth={maxLeftWidth}
             handleWidth={handleWidth}
             storageKey="nodesPage.leftWidth"
             left={
-              <VStack p={4} gap={4} align="start">
-                <Heading size="md">Nodes</Heading>
+              <VStack p={4} pt={0} gap={4} align="start">
                 {isLoading && (
                   <Box display="flex" alignItems="center" gap={2}>
                     <Spinner size="sm" />
