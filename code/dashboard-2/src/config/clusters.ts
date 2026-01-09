@@ -22,8 +22,8 @@ export interface ClusterConfig {
 export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
   {
     id: 'ex3.simula.no',
-    name: 'EX3',
-    description: 'EX3 Cluster at Simula',
+    name: 'eX3',
+    description: 'eX3 Cluster at Simula',
     icon: LuServer,
     apiBaseUrl: 'https://localhost:12200/api/v2',
     authEndpoint: {

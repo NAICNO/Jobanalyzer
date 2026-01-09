@@ -17,10 +17,8 @@ export const ClusterWaitTimeAnalysis = ({ cluster }: Props) => {
     return <Spinner />
   }
   
-  const baseURL = client.getConfig().baseURL
-  
   const partitionsQ = useQuery({
-    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
 

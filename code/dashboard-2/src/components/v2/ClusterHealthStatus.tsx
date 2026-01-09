@@ -21,22 +21,20 @@ export const ClusterHealthStatus = ({ cluster }: Props) => {
     return <Spinner />
   }
   
-  const baseURL = client.getConfig().baseURL
-  
   const errorsQuery = useQuery({
-    ...getClusterByClusterErrorMessagesOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterErrorMessagesOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
   const statesQuery = useQuery({
-    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
   const timestampsQuery = useQuery({
-    ...getClusterByClusterNodesLastProbeTimestampOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterNodesLastProbeTimestampOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
   const nodesQ = useQuery({
-    ...getClusterByClusterNodesOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterNodesOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
 

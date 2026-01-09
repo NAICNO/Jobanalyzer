@@ -1,6 +1,7 @@
 import { CLUSTER_INFO } from '../Constants.ts'
 import moment from 'moment'
 import { Cluster, Subcluster } from '../types'
+import { formatToUtcDateTimeString as formatToUtcDateTimeStringNew, formatDateTime as formatDateTimeNew } from './formatters'
 
 export const findCluster = (clusterName?: string | null): Cluster | null => {
   return clusterName && CLUSTER_INFO[clusterName] ? CLUSTER_INFO[clusterName] : null
@@ -23,9 +24,8 @@ export const breakText = (text: string): string => {
   return text.replaceAll(' ', '\xA0').replaceAll(',', ', ')
 }
 
-export const formatToUtcDateTimeString = (date: Date) => {
-  return moment(date).utc().format('YYYY-MM-DDTHH:mm[Z]')
-}
+/** @deprecated Use formatToUtcDateTimeString from ./formatters instead */
+export const formatToUtcDateTimeString = formatToUtcDateTimeStringNew
 
 export const toPercentage = (value: number) => {
   return (value / 100).toFixed(1)
@@ -136,6 +136,5 @@ const hslToHex = (h: number, s: number, l: number): string => {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
-export const dateTimeFormatter = (datetime: number) => {
-  return moment(datetime).format('MMM D, HH:mm')
-}
+/** @deprecated Use formatDateTime from ./formatters instead */
+export const dateTimeFormatter = formatDateTimeNew

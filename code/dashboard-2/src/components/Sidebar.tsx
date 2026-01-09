@@ -76,8 +76,14 @@ const transformSidebarItemsToTree = (selectedClusters: string[]) => {
     { text: 'Overview', route: '/overview' },
     { text: 'Partitions', route: '/partitions' },
     { text: 'Nodes', route: '/nodes' },
-    { text: 'Jobs', route: '/jobs' },
-    { text: 'Queries', route: '/queries' },
+    { 
+      text: 'Jobs', 
+      route: '/jobs',
+      children: [
+        { text: 'Running', route: '/jobs/running' },
+        { text: 'Query', route: '/jobs/query' },
+      ]
+    },
     { text: 'Errors', route: '/errors' },
   ]
 
@@ -100,6 +106,12 @@ const transformSidebarItemsToTree = (selectedClusters: string[]) => {
         name: route.text,
         path: basePath + route.route,
         matches: clusterFullName + route.route,
+        children: route.children?.map((subRoute, subSubIndex) => ({
+          id: `cluster-${clusterId}-sub-${subIndex}-subsub-${subSubIndex}`,
+          name: subRoute.text,
+          path: basePath + subRoute.route,
+          matches: clusterFullName + subRoute.route,
+        })),
       })),
     }
 
@@ -207,7 +219,7 @@ const SideBarContent = () => {
           variant="subtle"
           size="md"
           colorPalette="blue"
-          selectionMode="multiple"
+          selectionMode="single"
           selectedValue={getSelectedValue()}
           defaultExpandedValue={collection.getBranchValues()}
           animateContent
@@ -218,14 +230,34 @@ const SideBarContent = () => {
               render={({ node, nodeState }) => {
                 const treeNode = node as TreeNode
                 const clusterId = treeNode.id.replace('cluster-', '')
+                
+                // Check if this is a top-level cluster node (draggable)
+                const isTopLevelCluster = treeNode.id.startsWith('cluster-') && !treeNode.id.includes('-sub-')
 
-                return nodeState.isBranch ? (
-                  <SortableTreeBranch
-                    clusterId={clusterId}
-                    treeNode={treeNode}
-                    nodeState={nodeState}
-                  />
-                ) : (
+                if (nodeState.isBranch && isTopLevelCluster) {
+                  return (
+                    <SortableTreeBranch
+                      clusterId={clusterId}
+                      treeNode={treeNode}
+                      nodeState={nodeState}
+                    />
+                  )
+                }
+                
+                if (nodeState.isBranch) {
+                  return (
+                    <TreeView.BranchControl>
+                      <TreeView.BranchIndicator asChild>
+                        <Box fontSize="md" transition="transform 0.2s" mr={1}>
+                          <LuChevronRight />
+                        </Box>
+                      </TreeView.BranchIndicator>
+                      <TreeView.BranchText>{treeNode.name}</TreeView.BranchText>
+                    </TreeView.BranchControl>
+                  )
+                }
+                
+                return (
                   <TreeView.Item asChild>
                     <NavLink to={treeNode.path || '#'}>
                       <TreeView.ItemText>{treeNode.name}</TreeView.ItemText>

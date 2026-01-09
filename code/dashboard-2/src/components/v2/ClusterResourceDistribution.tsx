@@ -20,18 +20,16 @@ export const ClusterResourceDistribution = ({ cluster }: Props) => {
     return <Spinner />
   }
   
-  const baseURL = client.getConfig().baseURL
-  
   const partitionsQ = useQuery({
-    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
   const infoQ = useQuery({
-    ...getClusterByClusterNodesInfoOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterNodesInfoOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
   const statesQ = useQuery({
-    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client, baseURL }),
+    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client }),
     enabled: !!cluster,
   })
 

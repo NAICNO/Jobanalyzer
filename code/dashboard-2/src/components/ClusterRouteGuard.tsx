@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router'
+import { useNavigate, useLocation, Outlet } from 'react-router'
 import { useCluster } from '../hooks/useCluster'
 
 /**
  * Route guard that redirects to cluster selection page if user has no clusters selected
  * Should wrap v2 routes that require a cluster
  */
-export const ClusterRouteGuard = ({ children }: { children: React.ReactNode }) => {
+export const ClusterRouteGuard = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { hasSelectedClusters } = useCluster()
@@ -28,5 +28,5 @@ export const ClusterRouteGuard = ({ children }: { children: React.ReactNode }) =
     return null
   }
 
-  return <>{children}</>
+  return <Outlet />
 }

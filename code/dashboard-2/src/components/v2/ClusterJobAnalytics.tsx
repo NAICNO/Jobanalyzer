@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getClusterByClusterJobsOptions } from '../../client/@tanstack/react-query.gen'
 import type { JobsResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { getJobStateColor } from '../../util/formatters'
 
 interface Props {
   cluster: string
@@ -17,8 +18,6 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
   if (!client) {
     return <Spinner />
   }
-  
-  const baseURL = client.getConfig().baseURL
 
   // Get recent jobs (last 24 hours)
   const jobsQ = useQuery({
@@ -29,7 +28,6 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
         end_time_in_s: now,
       },
       client,
-      baseURL,
     }),
     enabled: !!cluster,
   })
@@ -97,14 +95,6 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
       return bTime - aTime
     })
     .slice(0, 20)
-
-  const getStateColor = (state: string) => {
-    if (state === 'COMPLETED') return 'green'
-    if (state === 'FAILED') return 'red'
-    if (state === 'TIMEOUT') return 'orange'
-    if (state === 'CANCELLED') return 'gray'
-    return 'blue'
-  }
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${Math.round(minutes)}m`
@@ -212,7 +202,7 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
                             <Table.Cell fontSize="xs" fontWeight="medium">{job.job_id}</Table.Cell>
                             <Table.Cell fontSize="xs" truncate>{job.user_name}</Table.Cell>
                             <Table.Cell fontSize="xs">
-                              <Tag.Root size="sm" colorPalette={getStateColor(job.job_state ?? '')}>
+                              <Tag.Root size="sm" colorPalette={getJobStateColor(job.job_state ?? '')}>
                                 <Tag.Label>{job.job_state}</Tag.Label>
                               </Tag.Root>
                             </Table.Cell>
