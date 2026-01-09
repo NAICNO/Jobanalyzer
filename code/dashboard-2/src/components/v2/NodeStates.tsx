@@ -20,13 +20,10 @@ export const NodeStates = ({ cluster, nodename, initialCollapsed = false }: Prop
   if (!client) {
     return null
   }
-  
-  const baseURL = client.getConfig().baseURL
 
   const queryOpts = getClusterByClusterNodesByNodenameStatesOptions({
     path: { cluster, nodename },
     client,
-    baseURL,
   })
 
   const { data, isLoading, isError, error } = useQuery({

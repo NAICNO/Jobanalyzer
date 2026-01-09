@@ -1,504 +1,332 @@
-import { useState } from 'react'
+import { useMemo } from 'react'
+import { Box, Text, VStack, HStack, Spinner, Alert, Button, Badge } from '@chakra-ui/react'
 import { useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useFormik } from 'formik'
+import { AgGridReact } from 'ag-grid-react'
+import type { ColDef, ValueFormatterParams, ICellRendererParams } from 'ag-grid-community'
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community'
 
+import { getClusterByClusterJobsOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
-import {
-  VStack,
-  HStack,
-  Text,
-  Box,
-  SimpleGrid,
-  Input,
-  Button,
-  Table,
-  Tag,
-  Spinner,
-  Alert,
-  Field,
-  Select,
-  createListCollection,
-  Portal,
-} from '@chakra-ui/react'
+import type { JobResponse } from '../../client'
+import { formatDuration, formatMemory, getJobStateColor } from '../../util/formatters'
+import { JobState } from '../../types/jobStates'
 
-import { getClusterByClusterJobsQueryOptions } from '../../client/@tanstack/react-query.gen'
-import type { JobResponse, GetClusterByClusterJobsQueryData } from '../../client'
+ModuleRegistry.registerModules([AllCommunityModule])
 
-interface JobQueryFormValues {
-  user: string
-  userId: string
-  jobId: string
-  states: string
-  limit: string
-  startAfter: string
-  startBefore: string
-  endAfter: string
-  endBefore: string
-  submitAfter: string
-  submitBefore: string
-  minDuration: string
-  maxDuration: string
+// Helper to parse resource strings like "cpu=2,mem=1024,node=1,gres/gpu=1"
+const parseResourceValue = (resourceStr: string | null | undefined, key: string): number => {
+  if (!resourceStr) return 0
+  const regex = new RegExp(`${key}=(\\d+)`)
+  const match = resourceStr.match(regex)
+  return match ? parseInt(match[1], 10) : 0
 }
 
-const statesCollection = createListCollection({
-  items: [
-    { label: 'COMPLETED', value: 'COMPLETED' },
-    { label: 'FAILED', value: 'FAILED' },
-    { label: 'TIMEOUT', value: 'TIMEOUT' },
-    { label: 'CANCELLED', value: 'CANCELLED' },
-    { label: 'RUNNING', value: 'RUNNING' },
-    { label: 'PENDING', value: 'PENDING' },
-  ],
-})
-
-const limitCollection = createListCollection({
-  items: [
-    { label: 'All', value: 'all' },
-    { label: '10', value: '10' },
-    { label: '25', value: '25' },
-    { label: '50', value: '50' },
-    { label: '100', value: '100' },
-    { label: '500', value: '500' },
-    { label: '1000', value: '1000' },
-  ],
-})
-
 export const JobsPage = () => {
-  const {clusterName} = useParams<{ clusterName: string }>()
+  const { clusterName } = useParams<{ clusterName: string }>()
 
   const client = useClusterClient(clusterName)
+
   if (!client) {
-    return <Spinner />
+    return (
+      <VStack p={4} align="start">
+        <Spinner />
+      </VStack>
+    )
   }
 
-  const baseURL = client.getConfig().baseURL
-
-  const [hasSearched, setHasSearched] = useState(false)
-  const [queryParams, setQueryParams] = useState<GetClusterByClusterJobsQueryData['query']>({})
-
-  const formik = useFormik<JobQueryFormValues>({
-    initialValues: {
-      user: '',
-      userId: '',
-      jobId: '',
-      states: '',
-      limit: 'all',
-      startAfter: '',
-      startBefore: '',
-      endAfter: '',
-      endBefore: '',
-      submitAfter: '',
-      submitBefore: '',
-      minDuration: '',
-      maxDuration: '',
-    },
-    onSubmit: (values) => {
-      const params: GetClusterByClusterJobsQueryData['query'] = {}
-
-      if (values.user) params.user = values.user
-      if (values.userId) params.user_id = parseInt(values.userId)
-      if (values.jobId) params.job_id = parseInt(values.jobId)
-      if (values.states) params.states = values.states
-      if (values.limit && values.limit !== 'all') params.limit = parseInt(values.limit)
-
-      // Convert date strings to timestamps (seconds)
-      if (values.startAfter) {
-        const date = new Date(values.startAfter)
-        params.start_after_in_s = Math.floor(date.getTime() / 1000)
-      }
-      if (values.startBefore) {
-        const date = new Date(values.startBefore)
-        params.start_before_in_s = Math.floor(date.getTime() / 1000)
-      }
-      if (values.endAfter) {
-        const date = new Date(values.endAfter)
-        params.end_after_in_s = Math.floor(date.getTime() / 1000)
-      }
-      if (values.endBefore) {
-        const date = new Date(values.endBefore)
-        params.end_before_in_s = Math.floor(date.getTime() / 1000)
-      }
-      if (values.submitAfter) {
-        const date = new Date(values.submitAfter)
-        params.submit_after_in_s = Math.floor(date.getTime() / 1000)
-      }
-      if (values.submitBefore) {
-        const date = new Date(values.submitBefore)
-        params.submit_before_in_s = Math.floor(date.getTime() / 1000)
-      }
-
-      // Duration in seconds
-      if (values.minDuration) params.min_duration_in_s = parseInt(values.minDuration)
-      if (values.maxDuration) params.max_duration_in_s = parseInt(values.maxDuration)
-
-      setQueryParams(params)
-      setHasSearched(true)
-    },
-  })
-
-  const jobsQuery = useQuery({
-    ...getClusterByClusterJobsQueryOptions({
-      path: {cluster: clusterName ?? ''},
-      query: queryParams,
+  // Fetch jobs for the cluster
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    ...getClusterByClusterJobsOptions({
+      path: { cluster: clusterName ?? '' },
       client,
-      baseURL,
     }),
-    enabled: !!clusterName && hasSearched,
+    enabled: !!clusterName,
   })
 
-  const jobs = (jobsQuery.data as JobResponse[]) ?? []
+  // Deduplicate jobs: Each SLURM job returns 3 entries (main job + batch + step).
+  // Keep only the main job entry (job_step="") which has complete metadata.
+  const jobs = useMemo(() => {
+    const allJobs = (data?.jobs ?? []) as JobResponse[]
+    return allJobs.filter(job => job.job_step === '')
+  }, [data?.jobs])
 
-  const getStateColor = (state: string) => {
-    if (state === 'COMPLETED') return 'green'
-    if (state === 'FAILED') return 'red'
-    if (state === 'TIMEOUT') return 'orange'
-    if (state === 'CANCELLED') return 'gray'
-    if (state === 'RUNNING') return 'blue'
-    if (state === 'PENDING') return 'yellow'
-    return 'gray'
-  }
+  // Column definitions for AG Grid
+  const columnDefs = useMemo<ColDef<JobResponse>[]>(
+    () => [
+      {
+        field: 'job_id',
+        headerName: 'Job ID',
+        width: 115,
+        sort: 'desc',
+        filter: 'agNumberColumnFilter',
+        pinned: 'left',
+        cellRenderer: (params: ICellRendererParams<JobResponse>) => {
+          return params.value ? params.value : ''
+        }
+      },
+      {
+        field: 'job_state',
+        headerName: 'State',
+        width: 120,
+        filter: 'agSetColumnFilter',
+        pinned: 'left',
+        cellRenderer: (params: ICellRendererParams<JobResponse>) => {
+          const state = params.value
+          const colorPalette = getJobStateColor(state)
+          return <Badge colorPalette={colorPalette} size="sm">{state}</Badge>
+        }
+      },
+      {
+        field: 'job_name',
+        headerName: 'Job Name',
+        flex: 1,
+        minWidth: 200,
+        filter: 'agTextColumnFilter',
+      },
+      {
+        field: 'user_name',
+        headerName: 'User',
+        width: 120,
+        filter: 'agTextColumnFilter',
+      },
+      {
+        field: 'account',
+        headerName: 'Account',
+        width: 130,
+        filter: 'agTextColumnFilter',
+      },
+      {
+        field: 'partition',
+        headerName: 'Partition',
+        width: 130,
+        filter: 'agTextColumnFilter',
+      },
+      {
+        field: 'requested_node_count',
+        headerName: 'Nodes',
+        width: 100,
+        filter: 'agNumberColumnFilter',
+      },
+      {
+        headerName: 'CPUs\n(Req/Alloc)',
+        width: 120,
+        filter: 'agTextColumnFilter',
+        wrapHeaderText: true,
+        autoHeaderHeight: true,
+        valueGetter: (params) => {
+          const requested = params.data?.requested_cpus || 0
+          const allocated = parseResourceValue(params.data?.allocated_resources, 'cpu')
+          return `${requested} / ${allocated}`
+        }
+      },
+      {
+        headerName: 'GPUs\n(Req/Alloc)',
+        width: 120,
+        filter: 'agTextColumnFilter',
+        wrapHeaderText: true,
+        autoHeaderHeight: true,
+        valueGetter: (params) => {
+          const requested = parseResourceValue(params.data?.requested_resources, 'gres/gpu')
+          const allocated = parseResourceValue(params.data?.allocated_resources, 'gres/gpu')
+          if (requested === 0 && allocated === 0) return '-'
+          return `${requested} / ${allocated}`
+        },
+        cellRenderer: (params: ICellRendererParams<JobResponse>) => {
+          if (params.value === '-') return '-'
+          return <Text color="purple.fg" fontWeight="medium">{params.value}</Text>
+        }
+      },
+      {
+        headerName: 'Memory\n(Req/Alloc)',
+        width: 150,
+        filter: 'agTextColumnFilter',
+        wrapHeaderText: true,
+        autoHeaderHeight: true,
+        valueGetter: (params) => {
+          const requested = params.data?.requested_memory_per_node || 0
+          const allocated = parseResourceValue(params.data?.allocated_resources, 'mem')
+          return { requested, allocated }
+        },
+        valueFormatter: (params: ValueFormatterParams<JobResponse>) => {
+          const { requested, allocated } = params.value || { requested: 0, allocated: 0 }
+          return `${formatMemory(requested)} / ${formatMemory(allocated)}`
+        }
+      },
+      {
+        headerName: 'Elapsed',
+        width: 120,
+        filter: 'agNumberColumnFilter',
+        valueGetter: (params) => {
+          const startTime = params.data?.start_time
+          const endTime = params.data?.end_time
+          if (!startTime) return 0
 
-  const formatDuration = (startTime?: Date | null, endTime?: Date | null) => {
-    if (!startTime || !endTime) return 'N/A'
-    const start = new Date(startTime).getTime()
-    const end = new Date(endTime).getTime()
-    const durationMs = end - start
-    if (durationMs <= 0) return 'N/A'
+          const start = new Date(startTime).getTime()
+          const end = endTime ? new Date(endTime).getTime() : Date.now()
+          return Math.floor((end - start) / 1000)
+        },
+        valueFormatter: (params: ValueFormatterParams<JobResponse>) => {
+          return formatDuration(params.value)
+        }
+      },
+      {
+        field: 'time_limit',
+        headerName: 'Time Limit',
+        width: 120,
+        filter: 'agNumberColumnFilter',
+        valueFormatter: (params: ValueFormatterParams<JobResponse>) => {
+          return formatDuration(params.value)
+        }
+      },
+      {
+        field: 'submit_time',
+        headerName: 'Submit Time',
+        width: 160,
+        filter: 'agDateColumnFilter',
+        valueFormatter: (params: ValueFormatterParams<JobResponse>) => {
+          if (!params.value) return '-'
+          return new Date(params.value).toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        }
+      },
+      {
+        field: 'start_time',
+        headerName: 'Start Time',
+        width: 160,
+        filter: 'agDateColumnFilter',
+        valueFormatter: (params: ValueFormatterParams<JobResponse>) => {
+          if (!params.value) return '-'
+          return new Date(params.value).toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        }
+      },
+      {
+        field: 'end_time',
+        headerName: 'End Time',
+        width: 160,
+        filter: 'agDateColumnFilter',
+        valueFormatter: (params: ValueFormatterParams<JobResponse>) => {
+          if (!params.value) return '-'
+          return new Date(params.value).toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        }
+      },
+      {
+        field: 'nodes',
+        headerName: 'Node List',
+        width: 100,
+        filter: 'agTextColumnFilter',
+        valueFormatter: (params: ValueFormatterParams<JobResponse>) => {
+          if (!params.value) return '-'
+          // Handle both string and array formats
+          if (typeof params.value === 'string') return params.value
+          if (Array.isArray(params.value)) return params.value.join(', ')
+          return '-'
+        }
+      },
+      {
+        field: 'priority',
+        headerName: 'Priority',
+        width: 100,
+        filter: 'agNumberColumnFilter',
+      },
+    ],
+    []
+  )
 
-    const seconds = Math.floor(durationMs / 1000)
-    const minutes = Math.floor(seconds / 60)
-    const hours = Math.floor(minutes / 60)
-    const days = Math.floor(hours / 24)
-
-    if (days > 0) return `${days}d ${hours % 24}h`
-    if (hours > 0) return `${hours}h ${minutes % 60}m`
-    if (minutes > 0) return `${minutes}m ${seconds % 60}s`
-    return `${seconds}s`
-  }
-
-  const formatDateTime = (date?: Date | null) => {
-    if (!date) return 'N/A'
-    return new Date(date).toLocaleString()
-  }
+  const defaultColDef = useMemo<ColDef>(() => ({
+    sortable: true,
+    resizable: true,
+    filter: true,
+    enableCellTextSelection: true,
+  }), [])
 
   if (!clusterName) {
-    return <Text>No cluster selected</Text>
+    return (
+      <VStack p={4} align="start">
+        <Alert.Root status="error">
+          <Alert.Indicator />
+          <Alert.Description>Missing cluster name in route.</Alert.Description>
+        </Alert.Root>
+      </VStack>
+    )
+  }
+
+  if (isError) {
+    return (
+      <VStack p={4} align="start" gap={4}>
+        <Alert.Root status="error">
+          <Alert.Indicator />
+          <Alert.Description>
+            Failed to load jobs: {error?.message || 'Unknown error'}
+          </Alert.Description>
+        </Alert.Root>
+      </VStack>
+    )
   }
 
   return (
-    <VStack w="100%" align="start" gap={6} p={4}>
-      <Text fontSize="2xl" fontWeight="bold">
-        Job Query - {clusterName}
-      </Text>
-
-      {/* Search Form */}
-      <Box w="100%" borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-        <form onSubmit={formik.handleSubmit}>
-          <VStack align="start" gap={2} w="100%">
-            <Text fontSize="lg" fontWeight="semibold">Search Criteria</Text>
-
-            <SimpleGrid columns={{base: 1, md: 3, lg: 4}} gap={2} w="100%">
-              {/* Basic Filters */}
-              <Field.Root>
-                <Field.Label fontSize="sm">User</Field.Label>
-                <Input
-                  name="user"
-                  value={formik.values.user}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., username"
-                  size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">User ID</Field.Label>
-                <Input
-                  name="userId"
-                  type="number"
-                  value={formik.values.userId}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., 1000"
-                  size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">Job ID</Field.Label>
-                <Input
-                  name="jobId"
-                  type="number"
-                  value={formik.values.jobId}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., 12345"
-                  size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">States</Field.Label>
-                <Select.Root
-                  multiple
-                  collection={statesCollection}
-                  value={formik.values.states ? formik.values.states.split(',') : []}
-                  onValueChange={(details) => {
-                    formik.setFieldValue('states', details.value.join(','))
-                  }}
-                  size="sm"
-                >
-                  <Select.HiddenSelect />
-                  <Select.Control>
-                    <Select.Trigger>
-                      <Select.ValueText placeholder="Select job states" />
-                    </Select.Trigger>
-                    <Select.IndicatorGroup>
-                      <Select.Indicator />
-                    </Select.IndicatorGroup>
-                  </Select.Control>
-                  <Portal>
-                    <Select.Positioner>
-                      <Select.Content>
-                        {statesCollection.items.map((state) => (
-                          <Select.Item item={state} key={state.value}>
-                            {state.label}
-                            <Select.ItemIndicator />
-                          </Select.Item>
-                        ))}
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Portal>
-                </Select.Root>
-              </Field.Root>
-            </SimpleGrid>
-
-            {/* Time Range Filters */}
-            <Text fontSize="md" fontWeight="semibold" mt={1}>Time Ranges</Text>
-            <SimpleGrid columns={{base: 1, md: 3, lg: 6}} gap={2} w="100%">
-              <Field.Root>
-                <Field.Label fontSize="sm">Start After</Field.Label>
-                <Input
-                  name="startAfter"
-                  type="datetime-local"
-                  value={formik.values.startAfter}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">Start Before</Field.Label>
-                <Input
-                  name="startBefore"
-                  type="datetime-local"
-                  value={formik.values.startBefore}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">End After</Field.Label>
-                <Input
-                  name="endAfter"
-                  type="datetime-local"
-                  value={formik.values.endAfter}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">End Before</Field.Label>
-                <Input
-                  name="endBefore"
-                  type="datetime-local"
-                  value={formik.values.endBefore}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">Submit After</Field.Label>
-                <Input
-                  name="submitAfter"
-                  type="datetime-local"
-                  value={formik.values.submitAfter}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">Submit Before</Field.Label>
-                <Input
-                  name="submitBefore"
-                  type="datetime-local"
-                  value={formik.values.submitBefore}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
-            </SimpleGrid>
-
-            {/* Duration Filters */}
-            <Text fontSize="md" fontWeight="semibold" mt={1}>Duration (seconds)</Text>
-            <SimpleGrid columns={{base: 1, md: 2}} gap={2} w="100%">
-              <Field.Root>
-                <Field.Label fontSize="sm">Min Duration (s)</Field.Label>
-                <Input
-                  name="minDuration"
-                  type="number"
-                  value={formik.values.minDuration}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., 3600"
-                  size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">Max Duration (s)</Field.Label>
-                <Input
-                  name="maxDuration"
-                  type="number"
-                  value={formik.values.maxDuration}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., 86400"
-                  size="sm"
-                />
-              </Field.Root>
-            </SimpleGrid>
-
-            {/* Action Buttons */}
-            <HStack gap={3} mt={4} w="100%" justify="space-between">
-              <HStack gap={3}>
-                <Button type="submit" colorPalette="blue">
-                  Search Jobs
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    formik.resetForm()
-                    setHasSearched(false)
-                    setQueryParams({})
-                  }}
-                >
-                  Reset
-                </Button>
-              </HStack>
-              <Field.Root maxW="120px">
-                <Field.Label fontSize="sm">Result Limit</Field.Label>
-                <Select.Root
-                  collection={limitCollection}
-                  value={[formik.values.limit]}
-                  onValueChange={(details) => {
-                    formik.setFieldValue('limit', details.value[0])
-                  }}
-                  size="sm"
-                >
-                  <Select.HiddenSelect />
-                  <Select.Control>
-                    <Select.Trigger>
-                      <Select.ValueText />
-                    </Select.Trigger>
-                    <Select.IndicatorGroup>
-                      <Select.Indicator />
-                    </Select.IndicatorGroup>
-                  </Select.Control>
-                  <Portal>
-                    <Select.Positioner>
-                      <Select.Content>
-                        {limitCollection.items.map((item) => (
-                          <Select.Item item={item} key={item.value}>
-                            {item.label}
-                            <Select.ItemIndicator />
-                          </Select.Item>
-                        ))}
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Portal>
-                </Select.Root>
-              </Field.Root>
-            </HStack>
-          </VStack>
-        </form>
-      </Box>
-
-      {/* Results */}
-      {hasSearched && (
-        <Box w="100%" borderWidth="1px" borderColor="gray.200" rounded="md" p={4} bg="white">
-          <VStack align="start" gap={3} w="100%">
-            <HStack justify="space-between" w="100%">
-              <Text fontSize="lg" fontWeight="semibold">
-                Search Results
-              </Text>
-              {!jobsQuery.isLoading && (
-                <Text fontSize="sm" color="gray.600">
-                  Found {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+    <VStack w="100%" align="start" gap={4} p={4}>
+      <HStack w="100%" justify="space-between" align="center">
+        <VStack align="start" gap={1}>
+          <Text fontSize="2xl" fontWeight="bold">
+            Jobs - {clusterName}
+          </Text>
+          <HStack gap={2}>
+            <Text fontSize="sm" color="fg.muted">
+              {isLoading ? 'Loading...' : `${jobs.length} jobs`}
+            </Text>
+            {!isLoading && jobs.length > 0 && (
+              <>
+                <Text fontSize="sm" color="fg.muted">•</Text>
+                <Text fontSize="sm" color="fg.muted">
+                  {jobs.filter(j => j.job_state === JobState.RUNNING).length} running
                 </Text>
-              )}
-            </HStack>
-
-            {jobsQuery.isLoading ? (
-              <Box w="100%" h="200px" display="flex" alignItems="center" justifyContent="center">
-                <Spinner size="lg"/>
-              </Box>
-            ) : jobsQuery.isError ? (
-              <Alert.Root status="error">
-                <Alert.Indicator/>
-                <Alert.Title>Error loading jobs</Alert.Title>
-                <Alert.Description>
-                  {jobsQuery.error.message}
-                </Alert.Description>
-              </Alert.Root>
-            ) : jobs.length === 0 ? (
-              <Box w="100%" textAlign="center" py={8}>
-                <Text color="gray.500">No jobs found matching your criteria</Text>
-              </Box>
-            ) : (
-              <Box w="100%" overflowX="auto">
-                <Table.Root size="sm" variant="outline">
-                  <Table.Header>
-                    <Table.Row bg="gray.50">
-                      <Table.ColumnHeader fontSize="xs">Job ID</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">User</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Job Name</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">State</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Submit Time</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Start Time</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">End Time</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Duration</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Account</Table.ColumnHeader>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {jobs.map((job) => (
-                      <Table.Row key={`${job.job_id}-${job.job_step}`}>
-                        <Table.Cell fontSize="xs" fontWeight="medium">
-                          {job.job_id}{job.job_step ? `.${job.job_step}` : ''}
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs">{job.user_name}</Table.Cell>
-                        <Table.Cell fontSize="xs" maxW="200px" truncate>
-                          {job.job_name ?? 'N/A'}
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs">
-                          <Tag.Root size="sm" colorPalette={getStateColor(job.job_state ?? '')}>
-                            <Tag.Label>{job.job_state}</Tag.Label>
-                          </Tag.Root>
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs">{formatDateTime(job.submit_time)}</Table.Cell>
-                        <Table.Cell fontSize="xs">{formatDateTime(job.start_time)}</Table.Cell>
-                        <Table.Cell fontSize="xs">{formatDateTime(job.end_time)}</Table.Cell>
-                        <Table.Cell fontSize="xs">{formatDuration(job.start_time, job.end_time)}</Table.Cell>
-                        <Table.Cell fontSize="xs">{job.account ?? 'N/A'}</Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table.Root>
-              </Box>
+                <Text fontSize="sm" color="fg.muted">•</Text>
+                <Text fontSize="sm" color="fg.muted">
+                  {jobs.filter(j => j.job_state === JobState.PENDING).length} pending
+                </Text>
+              </>
             )}
-          </VStack>
+          </HStack>
+        </VStack>
+        <Button onClick={() => refetch()} size="sm" variant="outline">
+          Refresh
+        </Button>
+      </HStack>
+
+      {isLoading ? (
+        <Box w="100%" h="400px" display="flex" alignItems="center" justifyContent="center">
+          <Spinner size="xl" />
+        </Box>
+      ) : (
+        <Box w="100%" h="calc(100vh - 220px)">
+          <AgGridReact<JobResponse>
+            theme={themeQuartz}
+            rowData={jobs}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            getRowId={(params) => params.data.job_id?.toString() ?? ''}
+            pagination={true}
+            paginationPageSize={50}
+            paginationPageSizeSelector={[25, 50, 100, 200]}
+            rowSelection="single"
+            animateRows={true}
+            enableCellTextSelection={true}
+          />
         </Box>
       )}
     </VStack>

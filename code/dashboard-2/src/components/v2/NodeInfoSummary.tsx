@@ -18,12 +18,9 @@ export const NodeInfoSummary = ({ cluster, nodename }: Props) => {
     return <Spinner />
   }
   
-  const baseURL = client.getConfig().baseURL
-  
   const infoQueryOpts = getClusterByClusterNodesByNodenameInfoOptions({
     path: { cluster, nodename },
     client,
-    baseURL,
   })
   const { data: nodeInfoData, isLoading, isError, error } = useQuery({
     ...infoQueryOpts,
