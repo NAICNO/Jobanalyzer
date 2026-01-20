@@ -1,6 +1,7 @@
 // This is a reader-only interface to the timescaledb, allowing it to be used as the primitive data
 // store for sonalyze.  This in turn allows all of sonalyze's application logic (stream merging etc)
-// to be applied to data stored in timescaledb.
+// to be applied to data stored in timescaledb so that we don't have to duplicate it in the Python
+// code.
 //
 // The interface is read-only because ingestion into timescaledb is handled by external ingestion
 // code, as part of slurm-monitor.  The insertion methods on the DB returned from OpenConnectedDB
@@ -20,6 +21,7 @@ import (
 	"maps"
 	"math"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -373,9 +375,6 @@ func (cdb *connectedDB) ReadSacctData(
 		submitTime, timestamp                                               time.Time
 	)
 
-	// I think gres_detail is always empty.  allocated_resources has a gres-format string which
-	// we can parse: billing=78,cpu=48,gres/gpu:a100_80=4,gres/gpu=4,mem=384G,node=1
-
 	table := "sample_slurm_job as t1 join sample_slurm_job_acc as t2 on " +
 		"t1.cluster = t2.cluster and " +
 		"t1.job_id = t2.job_id and " +
@@ -385,7 +384,7 @@ func (cdb *connectedDB) ReadSacctData(
 	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 	fields := "account, allocated_resources, \"AllocTRES\", array_job_id, array_task_id, \"AveCPU\", " +
 		"\"AveDiskRead\", \"AveDiskWrite\", \"AveRSS\", \"AveVMSize\", t1.cluster, distribution, \"ElapsedRaw\", " +
-		"end_time, exit_code, gres_detail, het_job_id, het_job_offset, t1.job_id, job_name, " +
+		"end_time, exit_code, het_job_id, het_job_offset, t1.job_id, job_name, " +
 		"job_state, t1.job_step, \"MaxRSS\", \"MaxVMSize\", \"MinCPU\", minimum_cpus_per_node, nodes, " +
 		"partition, priority, requested_cpus, requested_memory_per_node, requested_node_count, " +
 		"requested_resouces, reservation, start_time, submit_time, suspend_time, \"SystemCPU\", " +
@@ -393,7 +392,7 @@ func (cdb *connectedDB) ReadSacctData(
 	boxes := []any{
 		&account, &allocatedResources, &allocTRES, &arrayJobId, &arrayTaskId, &aveCPU,
 		&aveDiskRead, &aveDiskWrite, &aveRSS, &aveVMSize, &cluster, &distribution, &elapsedRaw,
-		&endTime, &exitCode, &gresDetail, &hetJobId, &hetJobOffset, &jobId, &jobName,
+		&endTime, &exitCode, &hetJobId, &hetJobOffset, &jobId, &jobName,
 		&jobState, &jobStep, &maxRSS, &maxVMSize, &minCPU, &minCpusPerNode, &nodes,
 		&partition, &priority, &requestedCpus, &requestedMemoryPerNode, &requestedNodeCount,
 		&requestedResources, &reservation, &startTime, &submitTime, &suspendTime, &systemCPU,
@@ -415,10 +414,10 @@ func (cdb *connectedDB) ReadSacctData(
 			ajob = uint32(arrayJobId.Int)
 		}
 		if arrayTaskId != nil {
-			atask = *arrayTaskId
+			atask = uint32(*arrayTaskId)
 		}
 		if exitCode != nil {
-			xcode = *exitCode
+			xcode = uint32(*exitCode)
 		}
 
 		// The sonar version is currently lost in the timescaledb
@@ -430,10 +429,10 @@ func (cdb *connectedDB) ReadSacctData(
 		// requestedResources.  The former is more accurate, as the latter may have the fields in
 		// some other order, but the former is not available for pending jobs.
 		res := allocatedResources
-		reqGpu := ""
 		if res == "" {
 			res = requestedResources
 		}
+		reqGpu := ""
 		if res != "" {
 			for _, f := range strings.Split(res, ",") {
 				if strings.HasPrefix(f, "gres/gpu") {
@@ -448,8 +447,8 @@ func (cdb *connectedDB) ReadSacctData(
 		nodeNames := ""
 		for _, n := range nodes {
 			// https://github.com/NordicHPC/sonar/issues/471 - Sonar should have scrubbed this
-			// pointless output from scontrol, instead it gets ingested as-is and stored in the
-			// database.
+			// pointless output from sacct, instead it gets ingested as-is and stored in the
+			// database.  So work around it.
 			if n == "None assigned" {
 				continue
 			}
@@ -460,23 +459,23 @@ func (cdb *connectedDB) ReadSacctData(
 		}
 
 		return &repr.SacctInfo{
-			Time:        timestamp.UTC().Unix(),
-			Start:       start,
-			End:         end,
-			Submit:      submitTime.UTC().Unix(),
-			SystemCPU:   uint64(systemCPU.Int),
-			UserCPU:     uint64(userCPU.Int),
-			AveCPU:      uint64(aveCPU.Int),
-			MinCPU:      uint64(minCPU.Int),
-			Version:     v0,
-			User:        StringToUstr(userName),
-			JobName:     StringToUstr(jobName),
-			State:       StringToUstr(jobState),
-			Account:     StringToUstr(account),
-			Layout:      StringToUstr(distribution),
-			Reservation: StringToUstr(reservation),
-			JobStep:     StringToUstr(jobStep),
-			NodeList:    StringToUstr(nodeNames),
+			Time:         timestamp.UTC().Unix(),
+			Start:        start,
+			End:          end,
+			Submit:       submitTime.UTC().Unix(),
+			SystemCPU:    uint64(systemCPU.Int),
+			UserCPU:      uint64(userCPU.Int),
+			AveCPU:       uint64(aveCPU.Int),
+			MinCPU:       uint64(minCPU.Int),
+			Version:      v0,
+			User:         StringToUstr(userName),
+			JobName:      StringToUstr(jobName),
+			State:        StringToUstr(jobState),
+			Account:      StringToUstr(account),
+			Layout:       StringToUstr(distribution),
+			Reservation:  StringToUstr(reservation),
+			JobStep:      StringToUstr(jobStep),
+			NodeList:     StringToUstr(nodeNames),
 			Partition:    StringToUstr(partition),
 			ReqGPUS:      StringToUstr(reqGpu),
 			JobID:        uint32(jobId.Int),
