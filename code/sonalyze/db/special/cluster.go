@@ -55,7 +55,6 @@ func DefineClusters(clusters map[string]*ClusterEntry, aliases *alias.Aliases) {
 }
 
 func NewClusterEntry() *ClusterEntry {
-	// This will become more elaborate
 	return new(ClusterEntry)
 }
 

@@ -118,8 +118,13 @@ func (cdb *connectedDB) ReadProcessSamples(
 	v0 := StringToUstr("0.0.0")
 	unbox := func() *repr.Sample {
 		return &repr.Sample{
-			// TODO: Gpus, GpuPct, GpuMemPct, GpuFail - requires some kind of join
-			// TODO: Cores - ditto
+			// TODO: Gpus, GpuPct, GpuMemPct, GpuFail - requires some kind of join probably with
+			// sample_process_gpu although the index is very complicated, five fields here and six
+			// fields there.  And we'll find multiple GPU records per sample record, which will be a
+			// mess.
+			//
+			// TODO: Cores - ditto, come from sysinfo_attributes, join on time (approximate),
+			// cluster, node probably.
 			Version:    v0,
 			Cluster:    cluster,
 			Cmd:        StringToUstr(cmd),
