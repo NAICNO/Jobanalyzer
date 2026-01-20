@@ -1,7 +1,5 @@
-github.com/NordicHPC/sonar/util/formats v0.16.0-pre1 h1:mb6Yae9//gE5Vs5BIgH0pKrmhSqQJT7H//BLhYdEnHI=
-github.com/NordicHPC/sonar/util/formats v0.16.0-pre1/go.mod h1:6cRx0fr1M91WiFkRCyFRlelOQ0TZ/M7w+dOzj1crrtI=
-github.com/NordicHPC/sonar/util/formats v0.17.0-pre1 h1:YQBh+qxnDl98+UB43vbRAoCdBjvLJQJhcks/UjGslxM=
-github.com/NordicHPC/sonar/util/formats v0.17.0-pre1/go.mod h1:6cRx0fr1M91WiFkRCyFRlelOQ0TZ/M7w+dOzj1crrtI=
+github.com/NordicHPC/sonar/util/formats v0.17.0-pre2 h1:NK6E+PwydGF7Czt+swx2DYP2eogObaN7DW3H3Rmt1ew=
+github.com/NordicHPC/sonar/util/formats v0.17.0-pre2/go.mod h1:6cRx0fr1M91WiFkRCyFRlelOQ0TZ/M7w+dOzj1crrtI=
 github.com/klauspost/compress v1.18.0 h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=
 github.com/klauspost/compress v1.18.0/go.mod h1:2Pp+KzxcywXVXMr50+X0Q/Lsb43OQHYWRCY2AiWywWQ=
 github.com/lars-t-hansen/ini v0.3.0 h1:ExCVIribzx2XXsdhD80q6k4BjayjJb7K3RcBh3EKQd0=

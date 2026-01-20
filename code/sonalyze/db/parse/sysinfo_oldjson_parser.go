@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/NordicHPC/sonar/util/formats/newfmt"
-	"github.com/NordicHPC/sonar/util/formats/oldfmt"
 	"sonalyze/db/repr"
 )
 
@@ -22,6 +21,37 @@ var (
 	descMatcher = regexp.MustCompile(`^(\d+)x(\d+)( \(hyperthreaded\))?(.*?), \d+ GiB`)
 	gpuMatcher  = regexp.MustCompile(`, \d+x (.*) @ (\d+)GiB$`)
 )
+
+// Vendored from Sonar v0.16.1, the last to provide util/formats/oldfmt.
+
+type OldfmtSysinfoEnvelope struct {
+	Version     string             `json:"version"`
+	Timestamp   string             `json:"timestamp"`
+	Hostname    string             `json:"hostname"`
+	Description string             `json:"description"`
+	CpuCores    uint64             `json:"cpu_cores"`
+	MemGB       uint64             `json:"mem_gb"`
+	GpuCards    uint64             `json:"gpu_cards"`
+	GpuMemGB    uint64             `json:"gpumem_gb"`
+	GpuInfo     []OldfmtGpuSysinfo `json:"gpu_info"`
+}
+
+type OldfmtGpuSysinfo struct {
+	BusAddress    string `json:"bus_addr"`
+	Index         uint64 `json:"index"`
+	UUID          string `json:"uuid"`
+	Manufacturer  string `json:"manufacturer"`
+	Model         string `json:"model"`
+	Architecture  string `json:"arch"`
+	Driver        string `json:"driver"`
+	Firmware      string `json:"firmware"`
+	MemKB         uint64 `json:"mem_size_kib"`
+	PowerLimit    uint64 `json:"power_limit_watt"`
+	MaxPowerLimit uint64 `json:"max_power_limit_watt"`
+	MinPowerLimit uint64 `json:"min_power_limit_watt"`
+	MaxCEClock    uint64 `json:"max_ce_clock_mhz"`
+	MaxMemClock   uint64 `json:"max_mem_clock_mhz"`
+}
 
 // Sysinfo records appear in sequence in the input without preamble/postamble or separators.
 //
@@ -43,7 +73,7 @@ func ParseSysinfoOldJSON(
 	dec := json.NewDecoder(input)
 
 	for dec.More() {
-		var r oldfmt.SysinfoEnvelope
+		var r OldfmtSysinfoEnvelope
 		err = dec.Decode(&r)
 		if err != nil {
 			return
