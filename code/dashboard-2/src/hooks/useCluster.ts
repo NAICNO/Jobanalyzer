@@ -7,7 +7,7 @@ export interface UseClusterReturn {
   currentCluster: string | null
   currentClusterConfig: ClusterConfig | undefined
   addCluster: (clusterId: string) => void
-  removeCluster: (clusterId: string) => void
+  removeCluster: (clusterId: string) => Promise<void>
   switchCluster: (clusterId: string) => void
   reorderClusters: (newOrder: string[]) => void
   hasSelectedClusters: boolean

@@ -5514,6 +5514,7 @@ __metadata:
     moment: "npm:^2.30.1"
     moment-timezone: "npm:^0.6.0"
     next-themes: "npm:^0.4.6"
+    oidc-client-ts: "npm:^3.4.1"
     react: "npm:^19.2.1"
     react-dom: "npm:^19.2.1"
     react-icons: "npm:^5.5.0"
@@ -5634,6 +5635,13 @@ __metadata:
     object.assign: "npm:^4.1.4"
     object.values: "npm:^1.1.6"
   checksum: 10c0/a32679e9cb55469cb6d8bbc863f7d631b2c98b7fc7bf172629261751a6e7bc8da6ae374ddb74d5fbd8b06cf0eb4572287b259813d92b36e384024ed35e4c13e1
+  languageName: node
+  linkType: hard
+
+"jwt-decode@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "jwt-decode@npm:4.0.0"
+  checksum: 10c0/de75bbf89220746c388cf6a7b71e56080437b77d2edb29bae1c2155048b02c6b8c59a3e5e8d6ccdfd54f0b8bda25226e491a4f1b55ac5f8da04cfbadec4e546c
   languageName: node
   linkType: hard
 
@@ -6095,6 +6103,15 @@ __metadata:
   version: 2.0.11
   resolution: "ohash@npm:2.0.11"
   checksum: 10c0/d07c8d79cc26da082c1a7c8d5b56c399dd4ed3b2bd069fcae6bae78c99a9bcc3ad813b1e1f49ca2f335292846d689c6141a762cf078727d2302a33d414e69c79
+  languageName: node
+  linkType: hard
+
+"oidc-client-ts@npm:^3.4.1":
+  version: 3.4.1
+  resolution: "oidc-client-ts@npm:3.4.1"
+  dependencies:
+    jwt-decode: "npm:^4.0.0"
+  checksum: 10c0/cf22e9bdb032daa33213e70c6c0dce374aa7cfaa82fca7c82205ace67d7efc2c59200d02ac4c57bf436afd1c0e46dc99e0867ec6e1958e943cbc4e1389131fb7
   languageName: node
   linkType: hard
 

@@ -14,6 +14,8 @@ import App from './App.tsx'
 import { system } from './theme.ts'
 import { ColorModeProvider } from './components/ui/color-mode.tsx'
 import { ClusterProvider } from './contexts/ClusterContext.tsx'
+import { AuthProvider } from './contexts/AuthContext.tsx'
+import { Toaster } from './components/ui/toaster.tsx'
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
@@ -24,10 +26,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ChakraProvider value={system}>
       <ColorModeProvider>
         <QueryClientProvider client={queryClient}>
-          <ClusterProvider>
-            <App/>
-            <ReactQueryDevtools initialIsOpen={false}/>
-          </ClusterProvider>
+          <AuthProvider>
+            <ClusterProvider>
+              <App/>
+              <ReactQueryDevtools initialIsOpen={false}/>
+              <Toaster />
+            </ClusterProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </ColorModeProvider>
     </ChakraProvider>

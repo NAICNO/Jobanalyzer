@@ -3,6 +3,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { getClusterConfig } from '../config/clusters'
 import { clearClusterClient } from '../utils/clusterApiClients'
 import { removeClusterAuth } from '../utils/secureStorage'
+import { clearUserManager } from '../utils/oidcManager'
+import { useAuth } from '../hooks/useAuth'
+import { toaster } from '../components/ui/toaster'
 
 const STORAGE_KEY = 'user_selected_clusters'
 
@@ -10,7 +13,7 @@ export interface ClusterContextValue {
   selectedClusters: string[]
   currentCluster: string | null
   addCluster: (clusterId: string) => void
-  removeCluster: (clusterId: string) => void
+  removeCluster: (clusterId: string) => Promise<void>
   switchCluster: (clusterId: string) => void
   reorderClusters: (newOrder: string[]) => void
   hasSelectedClusters: boolean
@@ -24,6 +27,7 @@ export interface ClusterProviderProps {
 
 export const ClusterProvider = ({ children }: ClusterProviderProps) => {
   const queryClient = useQueryClient()
+  const { silentLogout } = useAuth()
   const [selectedClusters, setSelectedClusters] = useState<string[]>(() => {
     // Initialize from localStorage immediately
     try {
@@ -78,11 +82,23 @@ export const ClusterProvider = ({ children }: ClusterProviderProps) => {
   }, [])
 
   const removeCluster = useCallback(
-    (clusterId: string) => {
+    async (clusterId: string) => {
+      // Sign out from OIDC if cluster requires authentication
+      const config = getClusterConfig(clusterId)
+      if (config?.requiresAuth) {
+        try {
+          // Use AuthContext's silentLogout to properly clear all auth state
+          await silentLogout(clusterId)
+        } catch (error) {
+          console.error('Error signing out during cluster removal:', error)
+        }
+        // Clear UserManager instance
+        clearUserManager(clusterId)
+      }
+
       setSelectedClusters((prev) => prev.filter((id) => id !== clusterId))
 
       // Clear React Query cache for this cluster
-      const config = getClusterConfig(clusterId)
       if (config) {
         queryClient.removeQueries({
           predicate: (query) => {
@@ -106,8 +122,16 @@ export const ClusterProvider = ({ children }: ClusterProviderProps) => {
           return remaining.length > 0 ? remaining[0] : null
         })
       }
+
+      // Show success toast
+      toaster.create({
+        title: 'Cluster removed',
+        description: `${config?.name || clusterId} has been removed from your dashboard`,
+        type: 'success',
+        duration: 3000,
+      })
     },
-    [currentCluster, queryClient, selectedClusters]
+    [currentCluster, queryClient, selectedClusters, silentLogout]
   )
 
   const switchCluster = useCallback((clusterId: string) => {

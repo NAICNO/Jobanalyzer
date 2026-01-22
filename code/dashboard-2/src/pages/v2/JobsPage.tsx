@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Box, Text, VStack, HStack, Spinner, Alert, Button, Badge } from '@chakra-ui/react'
-import { useParams } from 'react-router'
+import { useParams, useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { AgGridReact } from 'ag-grid-react'
 import type { ColDef, ValueFormatterParams, ICellRendererParams } from 'ag-grid-community'
@@ -24,6 +24,7 @@ const parseResourceValue = (resourceStr: string | null | undefined, key: string)
 
 export const JobsPage = () => {
   const { clusterName } = useParams<{ clusterName: string }>()
+  const navigate = useNavigate()
 
   const client = useClusterClient(clusterName)
 
@@ -326,6 +327,11 @@ export const JobsPage = () => {
             rowSelection="single"
             animateRows={true}
             enableCellTextSelection={true}
+            onRowClicked={(event) => {
+              if (event.data?.job_id) {
+                navigate(`/v2/${clusterName}/jobs/${event.data.job_id}`)
+              }
+            }}
           />
         </Box>
       )}
