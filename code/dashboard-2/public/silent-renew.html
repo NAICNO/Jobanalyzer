@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Silent Renew</title>
+</head>
+<body>
+    <script src="https://unpkg.com/oidc-client-ts@3.4.1/dist/browser/oidc-client-ts.min.js"></script>
+    <script>
+        // This page handles silent token renewal in a hidden iframe
+        new oidc.UserManager({ response_mode: 'query' })
+            .signinSilentCallback()
+            .catch(function (err) {
+                console.error('Silent renew error:', err);
+            });
+    </script>
+</body>
+</html>
