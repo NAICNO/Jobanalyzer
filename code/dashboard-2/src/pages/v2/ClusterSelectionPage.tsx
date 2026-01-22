@@ -1,25 +1,51 @@
-import { Box, Card, Grid, Heading, Text, VStack, HStack, Icon, IconButton } from '@chakra-ui/react'
+import { Box, Grid, Heading, Text, VStack } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
-import { LuX } from 'react-icons/lu'
-import { AVAILABLE_CLUSTERS } from '../../config/clusters'
+import { AVAILABLE_CLUSTERS, getClusterConfig } from '../../config/clusters'
 import { useCluster } from '../../hooks/useCluster'
 import { getClusterFullName } from '../../config/clusters'
+import { loginToCluster } from '../../utils/oidcManager'
+import { toaster } from '../../components/ui/toaster'
+import { ClusterCard } from '../../components/ClusterCard'
 
 export const ClusterSelectionPage = () => {
   const navigate = useNavigate()
   const { addCluster, removeCluster, selectedClusters } = useCluster()
 
-  const handleClusterSelect = (clusterId: string) => {
-    addCluster(clusterId)
+  const handleClusterSelect = async (clusterId: string) => {
+    const clusterConfig = getClusterConfig(clusterId)
     
-    // Navigate to the cluster's overview page
-    const clusterFullName = getClusterFullName(clusterId)
-    navigate(`/v2/${clusterFullName}/overview`)
+    if (!clusterConfig) {
+      console.error('Cluster config not found:', clusterId)
+      return
+    }
+    
+    // Check if cluster requires authentication
+    if (clusterConfig.requiresAuth) {
+      try {
+        // Don't add cluster yet - it will be added after successful authentication
+        // Use oidc-client-ts to initiate the authentication flow with PKCE
+        const returnPath = `/v2/${getClusterFullName(clusterId)}/overview`
+        await loginToCluster(clusterId, returnPath)
+      } catch (error) {
+        console.error('Failed to initiate login:', error)
+        toaster.create({
+          title: 'Authentication failed',
+          description: error instanceof Error ? error.message : 'Failed to initiate login',
+          type: 'error',
+          duration: 5000,
+        })
+      }
+    } else {
+      // For non-auth clusters, add immediately and navigate
+      addCluster(clusterId)
+      const clusterFullName = getClusterFullName(clusterId)
+      navigate(`/v2/${clusterFullName}/overview`)
+    }
   }
 
-  const handleRemoveCluster = (clusterId: string, event: React.MouseEvent) => {
+  const handleRemoveCluster = async (clusterId: string, event: React.MouseEvent) => {
     event.stopPropagation()
-    removeCluster(clusterId)
+    await removeCluster(clusterId)
   }
 
   return (
@@ -39,78 +65,15 @@ export const ClusterSelectionPage = () => {
         }}
         gap={6}
       >
-        {AVAILABLE_CLUSTERS.map((cluster) => {
-          const isSelected = selectedClusters.includes(cluster.id)
-
-          return (
-            <Card.Root
-              key={cluster.id}
-              cursor="pointer"
-              transition="all 0.2s"
-              borderWidth="2px"
-              shadow='md'
-              borderColor={isSelected ? 'blue.500' : 'transparent'}
-              _hover={{
-                borderColor: isSelected ? 'blue.600' : 'gray.200',
-                transform: 'translateY(-2px)',
-                shadow: 'lg',
-              }}
-              onClick={() => !isSelected && handleClusterSelect(cluster.id)}
-              opacity={isSelected ? 0.6 : 1}
-              position="relative"
-            >
-              <Card.Body>
-                {isSelected && (
-                  <IconButton
-                    position="absolute"
-                    top={2}
-                    right={2}
-                    size="xs"
-                    variant="ghost"
-                    colorPalette="red"
-                    aria-label="Remove cluster"
-                    onClick={(e) => handleRemoveCluster(cluster.id, e)}
-                  >
-                    <LuX />
-                  </IconButton>
-                )}
-                <VStack gap={4} align="start">
-                  <HStack gap={3}>
-                    <Icon fontSize="3xl" color="blue.500">
-                      <cluster.icon />
-                    </Icon>
-                    <VStack align="start" gap={0}>
-                      <Heading size="md">{cluster.name}</Heading>
-                      <Text fontSize="xs" color="gray.500">
-                        {cluster.id}
-                      </Text>
-                    </VStack>
-                  </HStack>
-
-                  {cluster.description && (
-                    <Text fontSize="sm" color="gray.600">
-                      {cluster.description}
-                    </Text>
-                  )}
-
-                  {isSelected && (
-                    <Box
-                      px={3}
-                      py={1}
-                      bg="blue.500"
-                      color="white"
-                      borderRadius="md"
-                      fontSize="xs"
-                      fontWeight="semibold"
-                    >
-                      Already Added
-                    </Box>
-                  )}
-                </VStack>
-              </Card.Body>
-            </Card.Root>
-          )
-        })}
+        {AVAILABLE_CLUSTERS.map((cluster) => (
+          <ClusterCard
+            key={cluster.id}
+            cluster={cluster}
+            isSelected={selectedClusters.includes(cluster.id)}
+            onSelect={handleClusterSelect}
+            onRemove={handleRemoveCluster}
+          />
+        ))}
       </Grid>
 
       {selectedClusters.length > 0 && (

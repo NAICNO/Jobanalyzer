@@ -20,10 +20,12 @@ import { ClusterOverview } from './pages/v2/ClusterOverview.tsx'
 import { NodesPage } from './pages/v2/NodesPage.tsx'
 import { PartitionsPage } from './pages/v2/PartitionsPage.tsx'
 import { JobsPage } from './pages/v2/JobsPage.tsx'
+import { JobDetailsPage } from './pages/v2/JobDetailsPage.tsx'
 import { QueriesPage } from './pages/v2/QueriesPage.tsx'
 import { NodeTopologyPage } from './pages/v2/NodeTopologyPage.tsx'
 import { ClusterSelectionPage } from './pages/v2/ClusterSelectionPage.tsx'
 import { ClusterRouteGuard } from './components/ClusterRouteGuard.tsx'
+import { CallbackPage } from './pages/auth/CallbackPage.tsx'
 
 const router = createBrowserRouter([
   {
@@ -33,6 +35,15 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Navigate to="v2/mlx.hpc.uio.no/overview" replace/>
+      },
+      {
+        path: 'auth',
+        children: [
+          {
+            path: 'callback',
+            element: <CallbackPage />,
+          },
+        ],
       },
       {
         path: 'v2',
@@ -78,12 +89,12 @@ const router = createBrowserRouter([
                 element: <JobsPage />,
               },
               {
-                path: 'jobs/:jobId',
-                element: <JobsPage />,
-              },
-              {
                 path: 'jobs/query',
                 element: <QueriesPage />,
+              },
+              {
+                path: 'jobs/:jobId',
+                element: <JobDetailsPage />,
               }
             ]
           }

@@ -1,11 +1,12 @@
 import { createClient, createConfig, type ClientOptions } from '../client/client/index'
 import type { Client } from '../client/client/types.gen'
+import { getUserManager } from './oidcManager'
 
 // Cache for cluster-specific API clients
 const clusterClients = new Map<string, Client>()
 
 /**
- * Creates a new API client instance for a specific cluster
+ * Creates a new API client instance for a specific cluster with auth interceptors
  * @param clusterId - The cluster identifier
  * @param apiBaseUrl - The base URL for the cluster's API
  * @returns A configured API client instance
@@ -15,6 +16,53 @@ export const createClusterClient = (
   apiBaseUrl: string
 ): Client => {
   const client = createClient(createConfig<ClientOptions>({ baseURL: apiBaseUrl }))
+  
+  // Add request interceptor to inject auth token
+  client.instance.interceptors.request.use(
+    async (config) => {
+      const userManager = getUserManager(clusterId)
+      if (userManager) {
+        try {
+          const user = await userManager.getUser()
+          if (user && !user.expired) {
+            config.headers.Authorization = `Bearer ${user.access_token}`
+          }
+        } catch (error) {
+          console.error('Failed to get user for auth:', error)
+        }
+      }
+      return config
+    },
+    (error) => {
+      return Promise.reject(error)
+    }
+  )
+
+  // Add response interceptor to handle 401 errors
+  client.instance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      if (error.response?.status === 401) {
+        console.error('Unauthorized request, clearing user session')
+        
+        // Clear the user session
+        const userManager = getUserManager(clusterId)
+        if (userManager) {
+          try {
+            await userManager.removeUser()
+          } catch (err) {
+            console.error('Failed to remove user:', err)
+          }
+        }
+
+        // Redirect to cluster selection with error message
+        // Note: The actual redirect will be handled by the ClusterRouteGuard
+        // or auth context, we just ensure the session is cleared here
+      }
+      
+      return Promise.reject(error)
+    }
+  )
   
   // Store in cache
   clusterClients.set(clusterId, client)
