@@ -19,8 +19,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                }
+                "schema": {}
               }
             }
           }
@@ -39,63 +38,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/cluster": {
-      "get": {
-        "tags": [
-          "v2",
-          "cluster"
-        ],
-        "summary": "Available clusters",
-        "description": "Get the list of clusters (available at a particular point in time)",
-        "operationId": "cluster_cluster_get",
-        "parameters": [
-          {
-            "name": "time_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Time In S"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ClusterResponse"
-                  },
-                  "title": "Response Cluster Cluster Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": {}
               }
             }
           }
@@ -138,6 +81,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -149,6 +109,485 @@
                     "$ref": "#/components/schemas/PartitionResponse"
                   },
                   "title": "Response Partitions Cluster  Cluster  Partitions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user": {
+      "get": {
+        "tags": [
+          "v2"
+        ],
+        "summary": "Currently logged in user",
+        "description": "Get status of partitions of a cluster (for a specific time point)",
+        "operationId": "user_user_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPayload"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobquery": {
+      "get": {
+        "tags": [
+          "v2"
+        ],
+        "summary": "Dashboard Job Query",
+        "operationId": "dashboard_job_query_jobquery_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "-",
+              "title": "User"
+            }
+          },
+          {
+            "name": "host",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Host"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "To"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "From"
+            }
+          },
+          {
+            "name": "fmt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Fmt"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobQueryResultItem"
+                  },
+                  "title": "Response Dashboard Job Query Jobquery Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobprofile": {
+      "get": {
+        "tags": [
+          "v2"
+        ],
+        "summary": "Dashboard Job Profile",
+        "operationId": "dashboard_job_profile_jobprofile_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "-",
+              "title": "User"
+            }
+          },
+          {
+            "name": "host",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Host"
+            }
+          },
+          {
+            "name": "job",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Job"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "To"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "From"
+            }
+          },
+          {
+            "name": "fmt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Fmt"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobProfileResultItem"
+                  },
+                  "title": "Response Dashboard Job Profile Jobprofile Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster}/queries": {
+      "get": {
+        "tags": [
+          "v2",
+          "cluster"
+        ],
+        "summary": "Get the list of 'named' predefined queries",
+        "operationId": "list_queries_cluster__cluster__queries_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueriesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster}/queries/{query_name}": {
+      "get": {
+        "tags": [
+          "v2",
+          "cluster"
+        ],
+        "summary": "Execute a the 'named' query",
+        "operationId": "queries_cluster__cluster__queries__query_name__get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "query_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Query Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster}/benchmarks/{benchmark_name}": {
+      "get": {
+        "tags": [
+          "v2"
+        ],
+        "summary": "Benchmarks",
+        "operationId": "benchmarks_cluster__cluster__benchmarks__benchmark_name__get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "benchmark_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Benchmark Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster": {
+      "get": {
+        "tags": [
+          "v2",
+          "cluster"
+        ],
+        "summary": "Available clusters",
+        "description": "Get the list of clusters (available at a particular point in time)",
+        "operationId": "cluster_cluster_get",
+        "parameters": [
+          {
+            "name": "time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Time In S"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClusterResponse"
+                  },
+                  "title": "Response Cluster Cluster Get"
                 }
               }
             }
@@ -202,6 +641,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -282,6 +738,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -362,6 +835,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -397,7 +887,7 @@
           "node"
         ],
         "summary": "Detailed information about a single node in a cluster",
-        "description": "Get available information about nodes in a cluster\n\nIt will only contain information about reporting nodes - in some case a\nnode might exist in a cluster, but not system information has been received\nyet.  To check - compare with the complete node list /cluster/{cluster}/nodes",
+        "description": "Get available information about nodes in a cluster\n\nIt will only contain information about reporting nodes - in some case a\nnode might exist in a cluster, but no system information has been received\nyet.  To check - compare with the complete node list /cluster/{cluster}/nodes",
         "operationId": "nodes_sysinfo_cluster__cluster__nodes__nodename__info_get",
         "parameters": [
           {
@@ -442,6 +932,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -477,7 +984,7 @@
           "cluster"
         ],
         "summary": "Detailed information about nodes in a cluster",
-        "description": "Get available information about nodes in a cluster\n\nIt will only contain information about reporting nodes - in some case a\nnode might exist in a cluster, but not system information has been received\nyet.  To check - compare with the complete node list /cluster/{cluster}/nodes",
+        "description": "Get available information about nodes in a cluster\n\nIt will only contain information about reporting nodes - in some case a\nnode might exist in a cluster, but no system information has been received\nyet.  To check - compare with the complete node list /cluster/{cluster}/nodes",
         "operationId": "nodes_sysinfo_cluster__cluster__nodes_info_get",
         "parameters": [
           {
@@ -522,6 +1029,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -602,6 +1126,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -682,6 +1223,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -739,13 +1297,29 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                }
+                "schema": {}
               }
             }
           },
@@ -791,6 +1365,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -895,6 +1486,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -987,6 +1595,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1447,626 +2072,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NodeGpuJobSampleProcessGpuTimeseriesResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/cluster/{cluster}/jobs/{job_id}/process/timeseries": {
-      "get": {
-        "tags": [
-          "v2",
-          "job"
-        ],
-        "summary": "Get **job**-specific process (cpu/memory/gpu) timeseries data",
-        "description": "Get job-related timeseries for all processes running on cpu and gpu\n\nBy default this related to SLURM jobs (epoch set to 0).\nTo relate to non-SLURM jobs, provide the epoch as parameter to the query.\n\nThat will be separated in 'cpu_memory' and 'gpus'",
-        "operationId": "job_sample_process_system_cluster__cluster__jobs__job_id__process_timeseries_get",
-        "parameters": [
-          {
-            "name": "cluster",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Cluster"
-            }
-          },
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Job Id"
-            }
-          },
-          {
-            "name": "epoch",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Epoch"
-            }
-          },
-          {
-            "name": "nodename",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Nodename"
-            }
-          },
-          {
-            "name": "start_time_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Start Time In S"
-            }
-          },
-          {
-            "name": "end_time_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "End Time In S"
-            }
-          },
-          {
-            "name": "resolution_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Resolution In S"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/AppSettings"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "App Settings"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SystemProcessTimeseriesResponse"
-                  },
-                  "title": "Response Job Sample Process System Cluster  Cluster  Jobs  Job Id  Process Timeseries Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/cluster/{cluster}/jobs/process/timeseries": {
-      "get": {
-        "tags": [
-          "v2",
-          "cluster"
-        ],
-        "summary": "Get all jobs process timeseries-data (cpu/memory/gpu) on a given cluster",
-        "description": "Get job-related timeseries for all processes running on cpu and gpu\n\nBy default this related to SLURM jobs (epoch set to 0).\nTo relate to non-SLURM jobs, provide the epoch as parameter to the query.\n\nThat will be separated in 'cpu_memory' and 'gpus'",
-        "operationId": "job_sample_process_system_cluster__cluster__jobs_process_timeseries_get",
-        "parameters": [
-          {
-            "name": "cluster",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Cluster"
-            }
-          },
-          {
-            "name": "job_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Job Id"
-            }
-          },
-          {
-            "name": "epoch",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Epoch"
-            }
-          },
-          {
-            "name": "nodename",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Nodename"
-            }
-          },
-          {
-            "name": "start_time_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Start Time In S"
-            }
-          },
-          {
-            "name": "end_time_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "End Time In S"
-            }
-          },
-          {
-            "name": "resolution_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Resolution In S"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/AppSettings"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "App Settings"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SystemProcessTimeseriesResponse"
-                  },
-                  "title": "Response Job Sample Process System Cluster  Cluster  Jobs Process Timeseries Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/cluster/{cluster}/jobs/{job_id}/process/gpu/timeseries": {
-      "get": {
-        "tags": [
-          "v2",
-          "job"
-        ],
-        "summary": "Get GPU sample as timeseries aggregate for a specific job on a given cluster",
-        "description": "Get job-related timeseries data for processes running on gpu",
-        "operationId": "job_sample_process_gpu_timeseries_cluster__cluster__jobs__job_id__process_gpu_timeseries_get",
-        "parameters": [
-          {
-            "name": "cluster",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Cluster"
-            }
-          },
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Job Id"
-            }
-          },
-          {
-            "name": "epoch",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Epoch"
-            }
-          },
-          {
-            "name": "nodename",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Nodename"
-            }
-          },
-          {
-            "name": "start_time_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Start Time In S"
-            }
-          },
-          {
-            "name": "end_time_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "End Time In S"
-            }
-          },
-          {
-            "name": "resolution_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Resolution In S"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/AppSettings"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "App Settings"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/JobNodeSampleProcessGpuTimeseriesResponse"
-                  },
-                  "title": "Response Job Sample Process Gpu Timeseries Cluster  Cluster  Jobs  Job Id  Process Gpu Timeseries Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/cluster/{cluster}/jobs/process/gpu/timeseries": {
-      "get": {
-        "tags": [
-          "v2",
-          "cluster"
-        ],
-        "summary": "Get GPU samples as timeseries, aggregated per job (for all jobs) and process on a given cluster",
-        "description": "Get job-related timeseries data for processes running on gpu",
-        "operationId": "job_sample_process_gpu_timeseries_cluster__cluster__jobs_process_gpu_timeseries_get",
-        "parameters": [
-          {
-            "name": "cluster",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Cluster"
-            }
-          },
-          {
-            "name": "job_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Job Id"
-            }
-          },
-          {
-            "name": "epoch",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Epoch"
-            }
-          },
-          {
-            "name": "nodename",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Nodename"
-            }
-          },
-          {
-            "name": "start_time_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Start Time In S"
-            }
-          },
-          {
-            "name": "end_time_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "End Time In S"
-            }
-          },
-          {
-            "name": "resolution_in_s",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Resolution In S"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/AppSettings"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "App Settings"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/JobNodeSampleProcessGpuTimeseriesResponse"
-                  },
-                  "title": "Response Job Sample Process Gpu Timeseries Cluster  Cluster  Jobs Process Gpu Timeseries Get"
                 }
               }
             }
@@ -2860,6 +2865,626 @@
         }
       }
     },
+    "/cluster/{cluster}/jobs/{job_id}/process/timeseries": {
+      "get": {
+        "tags": [
+          "v2",
+          "job"
+        ],
+        "summary": "Get **job**-specific process (cpu/memory/gpu) timeseries data",
+        "description": "Get job-related timeseries for all processes running on cpu and gpu\n\nBy default this related to SLURM jobs (epoch set to 0).\nTo relate to non-SLURM jobs, provide the epoch as parameter to the query.\n\nThat will be separated in 'cpu_memory' and 'gpus'",
+        "operationId": "job_sample_process_system_cluster__cluster__jobs__job_id__process_timeseries_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "epoch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Epoch"
+            }
+          },
+          {
+            "name": "nodename",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Nodename"
+            }
+          },
+          {
+            "name": "start_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Time In S"
+            }
+          },
+          {
+            "name": "end_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Time In S"
+            }
+          },
+          {
+            "name": "resolution_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resolution In S"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SystemProcessTimeseriesResponse"
+                  },
+                  "title": "Response Job Sample Process System Cluster  Cluster  Jobs  Job Id  Process Timeseries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster}/jobs/process/timeseries": {
+      "get": {
+        "tags": [
+          "v2",
+          "cluster"
+        ],
+        "summary": "Get all jobs process timeseries-data (cpu/memory/gpu) on a given cluster",
+        "description": "Get job-related timeseries for all processes running on cpu and gpu\n\nBy default this related to SLURM jobs (epoch set to 0).\nTo relate to non-SLURM jobs, provide the epoch as parameter to the query.\n\nThat will be separated in 'cpu_memory' and 'gpus'",
+        "operationId": "job_sample_process_system_cluster__cluster__jobs_process_timeseries_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "epoch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Epoch"
+            }
+          },
+          {
+            "name": "nodename",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Nodename"
+            }
+          },
+          {
+            "name": "start_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Time In S"
+            }
+          },
+          {
+            "name": "end_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Time In S"
+            }
+          },
+          {
+            "name": "resolution_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resolution In S"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SystemProcessTimeseriesResponse"
+                  },
+                  "title": "Response Job Sample Process System Cluster  Cluster  Jobs Process Timeseries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster}/jobs/{job_id}/process/gpu/timeseries": {
+      "get": {
+        "tags": [
+          "v2",
+          "job"
+        ],
+        "summary": "Get GPU sample as timeseries aggregate for a specific job on a given cluster",
+        "description": "Get job-related timeseries data for processes running on gpu",
+        "operationId": "job_sample_process_gpu_timeseries_cluster__cluster__jobs__job_id__process_gpu_timeseries_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "epoch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Epoch"
+            }
+          },
+          {
+            "name": "nodename",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Nodename"
+            }
+          },
+          {
+            "name": "start_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Time In S"
+            }
+          },
+          {
+            "name": "end_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Time In S"
+            }
+          },
+          {
+            "name": "resolution_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resolution In S"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobNodeSampleProcessGpuTimeseriesResponse"
+                  },
+                  "title": "Response Job Sample Process Gpu Timeseries Cluster  Cluster  Jobs  Job Id  Process Gpu Timeseries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster}/jobs/process/gpu/timeseries": {
+      "get": {
+        "tags": [
+          "v2",
+          "cluster"
+        ],
+        "summary": "Get GPU samples as timeseries, aggregated per job (for all jobs) and process on a given cluster",
+        "description": "Get job-related timeseries data for processes running on gpu",
+        "operationId": "job_sample_process_gpu_timeseries_cluster__cluster__jobs_process_gpu_timeseries_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "epoch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Epoch"
+            }
+          },
+          {
+            "name": "nodename",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Nodename"
+            }
+          },
+          {
+            "name": "start_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Time In S"
+            }
+          },
+          {
+            "name": "end_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Time In S"
+            }
+          },
+          {
+            "name": "resolution_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resolution In S"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobNodeSampleProcessGpuTimeseriesResponse"
+                  },
+                  "title": "Response Job Sample Process Gpu Timeseries Cluster  Cluster  Jobs Process Gpu Timeseries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cluster/{cluster}/jobs": {
       "get": {
         "tags": [
@@ -2928,6 +3553,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -3526,14 +4168,14 @@
         }
       }
     },
-    "/cluster/{cluster}/jobs/query": {
+    "/cluster/{cluster}/query/jobs": {
       "get": {
         "tags": [
           "v2",
           "cluster"
         ],
         "summary": "Provides a generic job query interface",
-        "operationId": "jobs_query_cluster__cluster__jobs_query_get",
+        "operationId": "query_jobs_cluster__cluster__query_jobs_get",
         "parameters": [
           {
             "name": "cluster",
@@ -3741,13 +4383,29 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                }
+                "schema": {}
               }
             }
           },
@@ -3764,358 +4422,74 @@
         }
       }
     },
-    "/jobquery": {
+    "/cluster/{cluster}/jobs/{job_id}/report": {
       "get": {
         "tags": [
-          "v2"
+          "v2",
+          "job"
         ],
-        "summary": "Dashboard Job Query",
-        "operationId": "dashboard_job_query_jobquery_get",
+        "summary": "Get a report on stats for the current job",
+        "operationId": "job_report_cluster__cluster__jobs__job_id__report_get",
         "parameters": [
           {
             "name": "cluster",
-            "in": "query",
-            "required": false,
+            "in": "path",
+            "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
+              "type": "string",
               "title": "Cluster"
-            }
-          },
-          {
-            "name": "user",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "-",
-              "title": "User"
-            }
-          },
-          {
-            "name": "host",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "",
-              "title": "Host"
             }
           },
           {
             "name": "job_id",
-            "in": "query",
-            "required": false,
+            "in": "path",
+            "required": true,
             "schema": {
-              "type": "string",
-              "default": "",
+              "type": "integer",
               "title": "Job Id"
             }
           },
           {
-            "name": "to",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "",
-              "title": "To"
-            }
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "",
-              "title": "From"
-            }
-          },
-          {
-            "name": "fmt",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "",
-              "title": "Fmt"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/JobQueryResultItem"
-                  },
-                  "title": "Response Dashboard Job Query Jobquery Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/jobprofile": {
-      "get": {
-        "tags": [
-          "v2"
-        ],
-        "summary": "Dashboard Job Profile",
-        "operationId": "dashboard_job_profile_jobprofile_get",
-        "parameters": [
-          {
-            "name": "cluster",
+            "name": "time_in_s",
             "in": "query",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "number"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "Cluster"
-            }
-          },
-          {
-            "name": "user",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "-",
-              "title": "User"
-            }
-          },
-          {
-            "name": "host",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "",
-              "title": "Host"
-            }
-          },
-          {
-            "name": "job",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Job"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "",
-              "title": "To"
-            }
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "From"
-            }
-          },
-          {
-            "name": "fmt",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "",
-              "title": "Fmt"
+              "title": "Time In S"
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/JobProfileResultItem"
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
                   },
-                  "title": "Response Dashboard Job Profile Jobprofile Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
               }
             }
           }
-        }
-      }
-    },
-    "/cluster/{cluster}/queries": {
-      "get": {
-        "tags": [
-          "v2",
-          "cluster"
-        ],
-        "summary": "Get the list of 'named' predefined queries",
-        "operationId": "list_queries_cluster__cluster__queries_get",
-        "parameters": [
-          {
-            "name": "cluster",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Cluster"
-            }
-          }
-        ],
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QueriesResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/cluster/{cluster}/queries/{query_name}": {
-      "get": {
-        "tags": [
-          "v2",
-          "cluster"
-        ],
-        "summary": "Execute a the 'named' query",
-        "operationId": "queries_cluster__cluster__queries__query_name__get",
-        "parameters": [
-          {
-            "name": "cluster",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Cluster"
-            }
-          },
-          {
-            "name": "query_name",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Query Name"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/cluster/{cluster}/benchmarks/{benchmark_name}": {
-      "get": {
-        "tags": [
-          "v2"
-        ],
-        "summary": "Benchmarks",
-        "operationId": "benchmarks_cluster__cluster__benchmarks__benchmark_name__get",
-        "parameters": [
-          {
-            "name": "cluster",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Cluster"
-            }
-          },
-          {
-            "name": "benchmark_name",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Benchmark Name"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
+                  "$ref": "#/components/schemas/JobReport"
                 }
               }
             }
@@ -4136,6 +4510,19 @@
   },
   "components": {
     "schemas": {
+      "Account": {
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/Roles"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "account"
+        ],
+        "title": "Account"
+      },
       "AllocTRES": {
         "properties": {
           "cpu": {
@@ -4206,6 +4593,9 @@
             ],
             "title": "Data Dir"
           },
+          "prefetch": {
+            "$ref": "#/components/schemas/PrefetchSettings"
+          },
           "db_schema_version": {
             "anyOf": [
               {
@@ -4215,7 +4605,11 @@
                 "type": "null"
               }
             ],
-            "title": "Db Schema Version"
+            "title": "Db Schema Version",
+            "default": "v2"
+          },
+          "oauth": {
+            "$ref": "#/components/schemas/OAuthSettings"
           }
         },
         "type": "object",
@@ -4320,7 +4714,7 @@
           "uri": {
             "type": "string",
             "title": "Uri",
-            "default": "sqlite:////home/slurmmon/.slurm-monitor/slurm-monitor-db.sqlite"
+            "default": "sqlite:////home/roehr/.slurm-monitor/slurm-monitor-db.sqlite"
           },
           "create_missing": {
             "type": "boolean",
@@ -4390,6 +4784,11 @@
             "type": "string",
             "title": "Architecture",
             "description": "card-dependent, manufacturer's arch string, for NVIDIA this is 'Turing', 'Volta', etc."
+          },
+          "memory": {
+            "type": "integer",
+            "title": "Memory",
+            "description": "Memory of card in KiB"
           },
           "cluster": {
             "type": "string",
@@ -4462,6 +4861,7 @@
           "manufacturer",
           "model",
           "architecture",
+          "memory",
           "cluster",
           "node",
           "index",
@@ -4613,27 +5013,27 @@
           "cpu-peak": {
             "type": "number",
             "title": "Cpu-Peak",
-            "default": 0
+            "default": 0.0
           },
           "res-peak": {
             "type": "number",
             "title": "Res-Peak",
-            "default": 0
+            "default": 0.0
           },
           "mem-peak": {
             "type": "number",
             "title": "Mem-Peak",
-            "default": 0
+            "default": 0.0
           },
           "gpu-peak": {
             "type": "number",
             "title": "Gpu-Peak",
-            "default": 0
+            "default": 0.0
           },
           "gpumem-peak": {
             "type": "number",
             "title": "Gpumem-Peak",
-            "default": 0
+            "default": 0.0
           }
         },
         "type": "object",
@@ -4647,6 +5047,178 @@
           "cmd"
         ],
         "title": "JobQueryResultItem"
+      },
+      "JobReport": {
+        "properties": {
+          "cpu_avg": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Cpu Avg",
+            "description": "The mean + stddev for cpu_avg",
+            "default": {}
+          },
+          "cpu_util": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Cpu Util",
+            "description": "The mean + stddev for cpu_util",
+            "default": {}
+          },
+          "resident_memory": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Resident Memory",
+            "description": "The mean + stddev for resident_memory in KiB",
+            "default": {}
+          },
+          "virtual_memory": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Virtual Memory",
+            "description": "The mean + stddev for virtual_memory in KiB",
+            "default": {}
+          },
+          "num_threads": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Num Threads",
+            "description": "The mean + stddev for number of threads",
+            "default": {}
+          },
+          "data_read": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Data Read",
+            "description": "The mean + stddev",
+            "default": {}
+          },
+          "data_written": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Data Written",
+            "description": "The mean + stddev",
+            "default": {}
+          },
+          "data_cancelled": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Data Cancelled",
+            "description": "The mean + stddev",
+            "default": {}
+          },
+          "requested_cpus": {
+            "type": "integer",
+            "title": "Requested Cpus",
+            "description": "Requested cpus",
+            "default": 0
+          },
+          "requested_memory_per_node": {
+            "type": "integer",
+            "title": "Requested Memory Per Node",
+            "description": "Requested memory per node in KiB",
+            "default": 0
+          },
+          "requested_gpus": {
+            "type": "integer",
+            "title": "Requested Gpus",
+            "description": "Requested gpus",
+            "default": 0
+          },
+          "used_gpu_uuids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Used Gpu Uuids",
+            "description": "List of used gpus (by uuid)",
+            "default": []
+          },
+          "nodes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Nodes",
+            "description": "List of used nodes",
+            "default": []
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "description": "List of warnings",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "JobReport"
       },
       "JobResponse": {
         "properties": {
@@ -4679,7 +5251,7 @@
           "job_state": {
             "type": "string",
             "title": "Job State",
-            "description": "State of the job, e.g., PENDING, RUNNING, FAILED(see \u003Ca href='https://slurm.schedmd.com/job_state_codes.html#states'\u003ESLURM Job States\u003C/a\u003E)"
+            "description": "State of the job, e.g., PENDING, RUNNING, FAILED(see <a href='https://slurm.schedmd.com/job_state_codes.html#states'>SLURM Job States</a>)"
           },
           "array_job_id": {
             "anyOf": [
@@ -4708,12 +5280,12 @@
           "het_job_id": {
             "type": "integer",
             "title": "Het Job Id",
-            "description": "Id of the het(erogeneous) job (see \u003Ca href='https://slurm.schedmd.com/heterogeneous_jobs.html'\u003ESLURM documentation\u003C/a\u003E)"
+            "description": "Id of the het(erogeneous) job (see <a href='https://slurm.schedmd.com/heterogeneous_jobs.html'>SLURM documentation</a>)"
           },
           "het_job_offset": {
             "type": "integer",
             "title": "Het Job Offset",
-            "description": "Unique sequence number (starting with 0) the het(erogeneous)  job component (see \u003Ca href='https://slurm.schedmd.com/heterogeneous_jobs.html'\u003ESLURM documentation\u003C/a\u003E)"
+            "description": "Unique sequence number (starting with 0) the het(erogeneous)  job component (see <a href='https://slurm.schedmd.com/heterogeneous_jobs.html'>SLURM documentation</a>)"
           },
           "user_name": {
             "type": "string",
@@ -4894,7 +5466,7 @@
                 "type": "null"
               }
             ],
-            "description": "Slurm Accounting Response data (\u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003ESlurm documentation\u003C/a\u003E)"
+            "description": "Slurm Accounting Response data (<a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>Slurm documentation</a>)"
           }
         },
         "type": "object",
@@ -4936,8 +5508,7 @@
             "description": "Epoch uniquely identifying non-slurm jobs"
           },
           "data": {
-            "items": {
-            },
+            "items": {},
             "type": "array",
             "title": "Data"
           }
@@ -5155,6 +5726,38 @@
         ],
         "title": "NodeStateResponse"
       },
+      "OAuthSettings": {
+        "properties": {
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": false
+          },
+          "client": {
+            "type": "string",
+            "title": "Client",
+            "default": ""
+          },
+          "client_secret": {
+            "type": "string",
+            "title": "Client Secret",
+            "default": ""
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "default": ""
+          },
+          "realm": {
+            "type": "string",
+            "title": "Realm",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "OAuthSettings"
+      },
       "PartitionResponse": {
         "properties": {
           "time": {
@@ -5258,6 +5861,23 @@
         ],
         "title": "PartitionResponse"
       },
+      "PrefetchSettings": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "interval": {
+            "type": "integer",
+            "title": "Interval",
+            "default": 90
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PrefetchSettings"
+      },
       "ProcessPoint": {
         "properties": {
           "command": {
@@ -5323,67 +5943,82 @@
         ],
         "title": "QueriesResponse"
       },
+      "Roles": {
+        "properties": {
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Roles"
+      },
       "SAcctResponse": {
         "properties": {
           "AllocTRES": {
             "type": "string",
             "title": "Alloctres",
-            "description": "Allocated Trackable resources (TRES) (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "Allocated Trackable resources (TRES) (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "ElapsedRaw": {
             "type": "integer",
             "title": "Elapsedraw",
-            "description": "The job's elapsed time in seconds (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "The job's elapsed time in seconds (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "SystemCPU": {
             "type": "integer",
             "title": "Systemcpu",
-            "description": "The amount of CPU time used by the job or job step. (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "The amount of CPU time used by the job or job step. (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "UserCPU": {
             "type": "integer",
             "title": "Usercpu",
-            "description": "The amount of user CPU time used by the job or job step. (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "The amount of user CPU time used by the job or job step. (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "AveVMSize": {
             "type": "integer",
             "title": "Avevmsize",
-            "description": "Average virtual memory size (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "Average virtual memory size (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "MaxVMSize": {
             "type": "integer",
             "title": "Maxvmsize",
-            "description": "Maximum virtual memory size (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "Maximum virtual memory size (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "AveCPU": {
             "type": "integer",
             "title": "Avecpu",
-            "description": "Average CPU usage (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "Average CPU usage (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "MinCPU": {
             "type": "integer",
             "title": "Mincpu",
-            "description": "Minimum CPU usage (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "Minimum CPU usage (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "AveRSS": {
             "type": "integer",
             "title": "Averss",
-            "description": "Average resident set size of all tasks in job (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "Average resident set size of all tasks in job (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "MaxRSS": {
             "type": "integer",
             "title": "Maxrss",
-            "description": "Maximum resident set size of all tasks in job (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "Maximum resident set size of all tasks in job (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "AveDiskRead": {
             "type": "integer",
             "title": "Avediskread",
-            "description": "Average number of bytes read by all tasks in job (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "Average number of bytes read by all tasks in job (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           },
           "AveDiskWrite": {
             "type": "integer",
             "title": "Avediskwrite",
-            "description": "Average number of bytes written by all tasks in job (see \u003Ca href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'\u003E SLURM Job Accounting\u003C/a\u003E)"
+            "description": "Average number of bytes written by all tasks in job (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)"
           }
         },
         "type": "object",
@@ -5429,7 +6064,7 @@
           "performance_state": {
             "type": "number",
             "title": "Performance State",
-            "description": "Current performance level, card-specific \u003E= 0, or unset for 'unknown'"
+            "description": "Current performance level, card-specific >= 0, or unset for 'unknown'"
           },
           "memory": {
             "type": "number",
@@ -5646,6 +6281,127 @@
           "nodes"
         ],
         "title": "SystemProcessTimeseriesResponse"
+      },
+      "TokenPayload": {
+        "properties": {
+          "exp": {
+            "type": "integer",
+            "title": "Exp"
+          },
+          "iat": {
+            "type": "integer",
+            "title": "Iat"
+          },
+          "jti": {
+            "type": "string",
+            "title": "Jti"
+          },
+          "iss": {
+            "type": "string",
+            "title": "Iss"
+          },
+          "aud": {
+            "type": "string",
+            "title": "Aud"
+          },
+          "sub": {
+            "type": "string",
+            "title": "Sub"
+          },
+          "typ": {
+            "type": "string",
+            "title": "Typ"
+          },
+          "azp": {
+            "type": "string",
+            "title": "Azp"
+          },
+          "sid": {
+            "type": "string",
+            "title": "Sid"
+          },
+          "acr": {
+            "type": "integer",
+            "title": "Acr"
+          },
+          "auth_time": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Time"
+          },
+          "allowed-origins": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed-Origins",
+            "default": []
+          },
+          "realm_access": {
+            "$ref": "#/components/schemas/Roles"
+          },
+          "resource_access": {
+            "$ref": "#/components/schemas/Account"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "email_verified": {
+            "type": "boolean",
+            "title": "Email Verified"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "preferred_username": {
+            "type": "string",
+            "title": "Preferred Username"
+          },
+          "given_name": {
+            "type": "string",
+            "title": "Given Name"
+          },
+          "family_name": {
+            "type": "string",
+            "title": "Family Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "exp",
+          "iat",
+          "jti",
+          "iss",
+          "aud",
+          "sub",
+          "typ",
+          "azp",
+          "sid",
+          "acr",
+          "realm_access",
+          "resource_access",
+          "scope",
+          "email_verified",
+          "name",
+          "preferred_username",
+          "given_name",
+          "family_name",
+          "email"
+        ],
+        "title": "TokenPayload"
       },
       "ValidationError": {
         "properties": {
