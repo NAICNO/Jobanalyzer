@@ -4,8 +4,8 @@ import { type DefaultError, queryOptions } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 
 import { client } from '../client.gen'
-import { get, getClearCache, getCluster, getClusterByClusterBenchmarksByBenchmarkName, getClusterByClusterErrorMessages, getClusterByClusterJobs, getClusterByClusterJobsByJobId, getClusterByClusterJobsByJobIdEpochByEpoch, getClusterByClusterJobsByJobIdEpochByEpochInfo, getClusterByClusterJobsByJobIdInfo, getClusterByClusterJobsByJobIdProcessGpuTimeseries, getClusterByClusterJobsByJobIdProcessTimeseries, getClusterByClusterJobsProcessGpuTimeseries, getClusterByClusterJobsProcessTimeseries, getClusterByClusterJobsQuery, getClusterByClusterNodes, getClusterByClusterNodesByNodenameCpuTimeseries, getClusterByClusterNodesByNodenameErrorMessages, getClusterByClusterNodesByNodenameGpuTimeseries, getClusterByClusterNodesByNodenameInfo, getClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseries, getClusterByClusterNodesByNodenameMemoryTimeseries, getClusterByClusterNodesByNodenameProcessGpuTimeseries, getClusterByClusterNodesByNodenameProcessGpuUtil, getClusterByClusterNodesByNodenameStates, getClusterByClusterNodesByNodenameTopology, getClusterByClusterNodesCpuTimeseries, getClusterByClusterNodesGpuTimeseries, getClusterByClusterNodesInfo, getClusterByClusterNodesLastProbeTimestamp, getClusterByClusterNodesMemoryTimeseries, getClusterByClusterNodesProcessGpuTimeseries, getClusterByClusterNodesProcessGpuUtil, getClusterByClusterNodesStates, getClusterByClusterPartitions, getClusterByClusterQueries, getClusterByClusterQueriesByQueryName, getJobprofile, getJobquery, type Options } from '../sdk.gen'
-import type { GetClearCacheData, GetClusterByClusterBenchmarksByBenchmarkNameData, GetClusterByClusterBenchmarksByBenchmarkNameError, GetClusterByClusterErrorMessagesData, GetClusterByClusterErrorMessagesError, GetClusterByClusterErrorMessagesResponse, GetClusterByClusterJobsByJobIdData, GetClusterByClusterJobsByJobIdEpochByEpochData, GetClusterByClusterJobsByJobIdEpochByEpochError, GetClusterByClusterJobsByJobIdEpochByEpochInfoData, GetClusterByClusterJobsByJobIdEpochByEpochInfoError, GetClusterByClusterJobsByJobIdEpochByEpochInfoResponse, GetClusterByClusterJobsByJobIdEpochByEpochResponse, GetClusterByClusterJobsByJobIdError, GetClusterByClusterJobsByJobIdInfoData, GetClusterByClusterJobsByJobIdInfoError, GetClusterByClusterJobsByJobIdInfoResponse, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesError, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponse, GetClusterByClusterJobsByJobIdProcessTimeseriesData, GetClusterByClusterJobsByJobIdProcessTimeseriesError, GetClusterByClusterJobsByJobIdProcessTimeseriesResponse, GetClusterByClusterJobsByJobIdResponse, GetClusterByClusterJobsData, GetClusterByClusterJobsError, GetClusterByClusterJobsProcessGpuTimeseriesData, GetClusterByClusterJobsProcessGpuTimeseriesError, GetClusterByClusterJobsProcessGpuTimeseriesResponse, GetClusterByClusterJobsProcessTimeseriesData, GetClusterByClusterJobsProcessTimeseriesError, GetClusterByClusterJobsProcessTimeseriesResponse, GetClusterByClusterJobsQueryData, GetClusterByClusterJobsQueryError, GetClusterByClusterJobsResponse, GetClusterByClusterNodesByNodenameCpuTimeseriesData, GetClusterByClusterNodesByNodenameCpuTimeseriesError, GetClusterByClusterNodesByNodenameCpuTimeseriesResponse, GetClusterByClusterNodesByNodenameErrorMessagesData, GetClusterByClusterNodesByNodenameErrorMessagesError, GetClusterByClusterNodesByNodenameErrorMessagesResponse, GetClusterByClusterNodesByNodenameGpuTimeseriesData, GetClusterByClusterNodesByNodenameGpuTimeseriesError, GetClusterByClusterNodesByNodenameGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameInfoData, GetClusterByClusterNodesByNodenameInfoError, GetClusterByClusterNodesByNodenameInfoResponse, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesError, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameMemoryTimeseriesData, GetClusterByClusterNodesByNodenameMemoryTimeseriesError, GetClusterByClusterNodesByNodenameMemoryTimeseriesResponse, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesError, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameProcessGpuUtilData, GetClusterByClusterNodesByNodenameProcessGpuUtilError, GetClusterByClusterNodesByNodenameProcessGpuUtilResponse, GetClusterByClusterNodesByNodenameStatesData, GetClusterByClusterNodesByNodenameStatesError, GetClusterByClusterNodesByNodenameStatesResponse, GetClusterByClusterNodesByNodenameTopologyData, GetClusterByClusterNodesByNodenameTopologyError, GetClusterByClusterNodesCpuTimeseriesData, GetClusterByClusterNodesCpuTimeseriesError, GetClusterByClusterNodesCpuTimeseriesResponse, GetClusterByClusterNodesData, GetClusterByClusterNodesError, GetClusterByClusterNodesGpuTimeseriesData, GetClusterByClusterNodesGpuTimeseriesError, GetClusterByClusterNodesGpuTimeseriesResponse, GetClusterByClusterNodesInfoData, GetClusterByClusterNodesInfoError, GetClusterByClusterNodesInfoResponse, GetClusterByClusterNodesLastProbeTimestampData, GetClusterByClusterNodesLastProbeTimestampError, GetClusterByClusterNodesLastProbeTimestampResponse, GetClusterByClusterNodesMemoryTimeseriesData, GetClusterByClusterNodesMemoryTimeseriesError, GetClusterByClusterNodesMemoryTimeseriesResponse, GetClusterByClusterNodesProcessGpuTimeseriesData, GetClusterByClusterNodesProcessGpuTimeseriesError, GetClusterByClusterNodesProcessGpuTimeseriesResponse, GetClusterByClusterNodesProcessGpuUtilData, GetClusterByClusterNodesProcessGpuUtilError, GetClusterByClusterNodesProcessGpuUtilResponse, GetClusterByClusterNodesResponse, GetClusterByClusterNodesStatesData, GetClusterByClusterNodesStatesError, GetClusterByClusterNodesStatesResponse, GetClusterByClusterPartitionsData, GetClusterByClusterPartitionsError, GetClusterByClusterPartitionsResponse, GetClusterByClusterQueriesByQueryNameData, GetClusterByClusterQueriesByQueryNameError, GetClusterByClusterQueriesData, GetClusterByClusterQueriesError, GetClusterByClusterQueriesResponse, GetClusterData, GetClusterError, GetClusterResponse, GetData, GetJobprofileData, GetJobprofileError, GetJobprofileResponse, GetJobqueryData, GetJobqueryError, GetJobqueryResponse } from '../types.gen'
+import { get, getClearCache, getCluster, getClusterByClusterBenchmarksByBenchmarkName, getClusterByClusterErrorMessages, getClusterByClusterJobs, getClusterByClusterJobsByJobId, getClusterByClusterJobsByJobIdEpochByEpoch, getClusterByClusterJobsByJobIdEpochByEpochInfo, getClusterByClusterJobsByJobIdInfo, getClusterByClusterJobsByJobIdProcessGpuTimeseries, getClusterByClusterJobsByJobIdProcessTimeseries, getClusterByClusterJobsByJobIdReport, getClusterByClusterJobsProcessGpuTimeseries, getClusterByClusterJobsProcessTimeseries, getClusterByClusterNodes, getClusterByClusterNodesByNodenameCpuTimeseries, getClusterByClusterNodesByNodenameErrorMessages, getClusterByClusterNodesByNodenameGpuTimeseries, getClusterByClusterNodesByNodenameInfo, getClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseries, getClusterByClusterNodesByNodenameMemoryTimeseries, getClusterByClusterNodesByNodenameProcessGpuTimeseries, getClusterByClusterNodesByNodenameProcessGpuUtil, getClusterByClusterNodesByNodenameStates, getClusterByClusterNodesByNodenameTopology, getClusterByClusterNodesCpuTimeseries, getClusterByClusterNodesGpuTimeseries, getClusterByClusterNodesInfo, getClusterByClusterNodesLastProbeTimestamp, getClusterByClusterNodesMemoryTimeseries, getClusterByClusterNodesProcessGpuTimeseries, getClusterByClusterNodesProcessGpuUtil, getClusterByClusterNodesStates, getClusterByClusterPartitions, getClusterByClusterQueries, getClusterByClusterQueriesByQueryName, getClusterByClusterQueryJobs, getJobprofile, getJobquery, getUser, type Options } from '../sdk.gen'
+import type { GetClearCacheData, GetClusterByClusterBenchmarksByBenchmarkNameData, GetClusterByClusterBenchmarksByBenchmarkNameError, GetClusterByClusterErrorMessagesData, GetClusterByClusterErrorMessagesError, GetClusterByClusterErrorMessagesResponse, GetClusterByClusterJobsByJobIdData, GetClusterByClusterJobsByJobIdEpochByEpochData, GetClusterByClusterJobsByJobIdEpochByEpochError, GetClusterByClusterJobsByJobIdEpochByEpochInfoData, GetClusterByClusterJobsByJobIdEpochByEpochInfoError, GetClusterByClusterJobsByJobIdEpochByEpochInfoResponse, GetClusterByClusterJobsByJobIdEpochByEpochResponse, GetClusterByClusterJobsByJobIdError, GetClusterByClusterJobsByJobIdInfoData, GetClusterByClusterJobsByJobIdInfoError, GetClusterByClusterJobsByJobIdInfoResponse, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesError, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponse, GetClusterByClusterJobsByJobIdProcessTimeseriesData, GetClusterByClusterJobsByJobIdProcessTimeseriesError, GetClusterByClusterJobsByJobIdProcessTimeseriesResponse, GetClusterByClusterJobsByJobIdReportData, GetClusterByClusterJobsByJobIdReportError, GetClusterByClusterJobsByJobIdReportResponse, GetClusterByClusterJobsByJobIdResponse, GetClusterByClusterJobsData, GetClusterByClusterJobsError, GetClusterByClusterJobsProcessGpuTimeseriesData, GetClusterByClusterJobsProcessGpuTimeseriesError, GetClusterByClusterJobsProcessGpuTimeseriesResponse, GetClusterByClusterJobsProcessTimeseriesData, GetClusterByClusterJobsProcessTimeseriesError, GetClusterByClusterJobsProcessTimeseriesResponse, GetClusterByClusterJobsResponse, GetClusterByClusterNodesByNodenameCpuTimeseriesData, GetClusterByClusterNodesByNodenameCpuTimeseriesError, GetClusterByClusterNodesByNodenameCpuTimeseriesResponse, GetClusterByClusterNodesByNodenameErrorMessagesData, GetClusterByClusterNodesByNodenameErrorMessagesError, GetClusterByClusterNodesByNodenameErrorMessagesResponse, GetClusterByClusterNodesByNodenameGpuTimeseriesData, GetClusterByClusterNodesByNodenameGpuTimeseriesError, GetClusterByClusterNodesByNodenameGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameInfoData, GetClusterByClusterNodesByNodenameInfoError, GetClusterByClusterNodesByNodenameInfoResponse, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesError, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameMemoryTimeseriesData, GetClusterByClusterNodesByNodenameMemoryTimeseriesError, GetClusterByClusterNodesByNodenameMemoryTimeseriesResponse, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesError, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameProcessGpuUtilData, GetClusterByClusterNodesByNodenameProcessGpuUtilError, GetClusterByClusterNodesByNodenameProcessGpuUtilResponse, GetClusterByClusterNodesByNodenameStatesData, GetClusterByClusterNodesByNodenameStatesError, GetClusterByClusterNodesByNodenameStatesResponse, GetClusterByClusterNodesByNodenameTopologyData, GetClusterByClusterNodesByNodenameTopologyError, GetClusterByClusterNodesCpuTimeseriesData, GetClusterByClusterNodesCpuTimeseriesError, GetClusterByClusterNodesCpuTimeseriesResponse, GetClusterByClusterNodesData, GetClusterByClusterNodesError, GetClusterByClusterNodesGpuTimeseriesData, GetClusterByClusterNodesGpuTimeseriesError, GetClusterByClusterNodesGpuTimeseriesResponse, GetClusterByClusterNodesInfoData, GetClusterByClusterNodesInfoError, GetClusterByClusterNodesInfoResponse, GetClusterByClusterNodesLastProbeTimestampData, GetClusterByClusterNodesLastProbeTimestampError, GetClusterByClusterNodesLastProbeTimestampResponse, GetClusterByClusterNodesMemoryTimeseriesData, GetClusterByClusterNodesMemoryTimeseriesError, GetClusterByClusterNodesMemoryTimeseriesResponse, GetClusterByClusterNodesProcessGpuTimeseriesData, GetClusterByClusterNodesProcessGpuTimeseriesError, GetClusterByClusterNodesProcessGpuTimeseriesResponse, GetClusterByClusterNodesProcessGpuUtilData, GetClusterByClusterNodesProcessGpuUtilError, GetClusterByClusterNodesProcessGpuUtilResponse, GetClusterByClusterNodesResponse, GetClusterByClusterNodesStatesData, GetClusterByClusterNodesStatesError, GetClusterByClusterNodesStatesResponse, GetClusterByClusterPartitionsData, GetClusterByClusterPartitionsError, GetClusterByClusterPartitionsResponse, GetClusterByClusterQueriesByQueryNameData, GetClusterByClusterQueriesByQueryNameError, GetClusterByClusterQueriesData, GetClusterByClusterQueriesError, GetClusterByClusterQueriesResponse, GetClusterByClusterQueryJobsData, GetClusterByClusterQueryJobsError, GetClusterData, GetClusterError, GetClusterResponse, GetData, GetJobprofileData, GetJobprofileError, GetJobprofileResponse, GetJobqueryData, GetJobqueryError, GetJobqueryResponse, GetUserData, GetUserResponse } from '../types.gen'
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseURL' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -76,26 +76,6 @@ export const getClearCacheOptions = (options?: Options<GetClearCacheData>) => qu
   queryKey: getClearCacheQueryKey(options)
 })
 
-export const getClusterQueryKey = (options?: Options<GetClusterData>) => createQueryKey('getCluster', options)
-
-/**
- * Available clusters
- *
- * Get the list of clusters (available at a particular point in time)
- */
-export const getClusterOptions = (options?: Options<GetClusterData>) => queryOptions<GetClusterResponse, AxiosError<GetClusterError>, GetClusterResponse, ReturnType<typeof getClusterQueryKey>>({
-  queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getCluster({
-      ...options,
-      ...queryKey[0],
-      signal,
-      throwOnError: true
-    })
-    return data
-  },
-  queryKey: getClusterQueryKey(options)
-})
-
 export const getClusterByClusterPartitionsQueryKey = (options: Options<GetClusterByClusterPartitionsData>) => createQueryKey('getClusterByClusterPartitions', options)
 
 /**
@@ -114,6 +94,136 @@ export const getClusterByClusterPartitionsOptions = (options: Options<GetCluster
     return data
   },
   queryKey: getClusterByClusterPartitionsQueryKey(options)
+})
+
+export const getUserQueryKey = (options?: Options<GetUserData>) => createQueryKey('getUser', options)
+
+/**
+ * Currently logged in user
+ *
+ * Get status of partitions of a cluster (for a specific time point)
+ */
+export const getUserOptions = (options?: Options<GetUserData>) => queryOptions<GetUserResponse, AxiosError<DefaultError>, GetUserResponse, ReturnType<typeof getUserQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getUser({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getUserQueryKey(options)
+})
+
+export const getJobqueryQueryKey = (options?: Options<GetJobqueryData>) => createQueryKey('getJobquery', options)
+
+/**
+ * Dashboard Job Query
+ */
+export const getJobqueryOptions = (options?: Options<GetJobqueryData>) => queryOptions<GetJobqueryResponse, AxiosError<GetJobqueryError>, GetJobqueryResponse, ReturnType<typeof getJobqueryQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getJobquery({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getJobqueryQueryKey(options)
+})
+
+export const getJobprofileQueryKey = (options?: Options<GetJobprofileData>) => createQueryKey('getJobprofile', options)
+
+/**
+ * Dashboard Job Profile
+ */
+export const getJobprofileOptions = (options?: Options<GetJobprofileData>) => queryOptions<GetJobprofileResponse, AxiosError<GetJobprofileError>, GetJobprofileResponse, ReturnType<typeof getJobprofileQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getJobprofile({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getJobprofileQueryKey(options)
+})
+
+export const getClusterByClusterQueriesQueryKey = (options: Options<GetClusterByClusterQueriesData>) => createQueryKey('getClusterByClusterQueries', options)
+
+/**
+ * Get the list of 'named' predefined queries
+ */
+export const getClusterByClusterQueriesOptions = (options: Options<GetClusterByClusterQueriesData>) => queryOptions<GetClusterByClusterQueriesResponse, AxiosError<GetClusterByClusterQueriesError>, GetClusterByClusterQueriesResponse, ReturnType<typeof getClusterByClusterQueriesQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getClusterByClusterQueries({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getClusterByClusterQueriesQueryKey(options)
+})
+
+export const getClusterByClusterQueriesByQueryNameQueryKey = (options: Options<GetClusterByClusterQueriesByQueryNameData>) => createQueryKey('getClusterByClusterQueriesByQueryName', options)
+
+/**
+ * Execute a the 'named' query
+ */
+export const getClusterByClusterQueriesByQueryNameOptions = (options: Options<GetClusterByClusterQueriesByQueryNameData>) => queryOptions<unknown, AxiosError<GetClusterByClusterQueriesByQueryNameError>, unknown, ReturnType<typeof getClusterByClusterQueriesByQueryNameQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getClusterByClusterQueriesByQueryName({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getClusterByClusterQueriesByQueryNameQueryKey(options)
+})
+
+export const getClusterByClusterBenchmarksByBenchmarkNameQueryKey = (options: Options<GetClusterByClusterBenchmarksByBenchmarkNameData>) => createQueryKey('getClusterByClusterBenchmarksByBenchmarkName', options)
+
+/**
+ * Benchmarks
+ */
+export const getClusterByClusterBenchmarksByBenchmarkNameOptions = (options: Options<GetClusterByClusterBenchmarksByBenchmarkNameData>) => queryOptions<unknown, AxiosError<GetClusterByClusterBenchmarksByBenchmarkNameError>, unknown, ReturnType<typeof getClusterByClusterBenchmarksByBenchmarkNameQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getClusterByClusterBenchmarksByBenchmarkName({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getClusterByClusterBenchmarksByBenchmarkNameQueryKey(options)
+})
+
+export const getClusterQueryKey = (options?: Options<GetClusterData>) => createQueryKey('getCluster', options)
+
+/**
+ * Available clusters
+ *
+ * Get the list of clusters (available at a particular point in time)
+ */
+export const getClusterOptions = (options?: Options<GetClusterData>) => queryOptions<GetClusterResponse, AxiosError<GetClusterError>, GetClusterResponse, ReturnType<typeof getClusterQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getCluster({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getClusterQueryKey(options)
 })
 
 export const getClusterByClusterNodesQueryKey = (options: Options<GetClusterByClusterNodesData>) => createQueryKey('getClusterByClusterNodes', options)
@@ -184,7 +294,7 @@ export const getClusterByClusterNodesByNodenameInfoQueryKey = (options: Options<
  * Get available information about nodes in a cluster
  *
  * It will only contain information about reporting nodes - in some case a
- * node might exist in a cluster, but not system information has been received
+ * node might exist in a cluster, but no system information has been received
  * yet.  To check - compare with the complete node list /cluster/{cluster}/nodes
  */
 export const getClusterByClusterNodesByNodenameInfoOptions = (options: Options<GetClusterByClusterNodesByNodenameInfoData>) => queryOptions<GetClusterByClusterNodesByNodenameInfoResponse, AxiosError<GetClusterByClusterNodesByNodenameInfoError>, GetClusterByClusterNodesByNodenameInfoResponse, ReturnType<typeof getClusterByClusterNodesByNodenameInfoQueryKey>>({
@@ -208,7 +318,7 @@ export const getClusterByClusterNodesInfoQueryKey = (options: Options<GetCluster
  * Get available information about nodes in a cluster
  *
  * It will only contain information about reporting nodes - in some case a
- * node might exist in a cluster, but not system information has been received
+ * node might exist in a cluster, but no system information has been received
  * yet.  To check - compare with the complete node list /cluster/{cluster}/nodes
  */
 export const getClusterByClusterNodesInfoOptions = (options: Options<GetClusterByClusterNodesInfoData>) => queryOptions<GetClusterByClusterNodesInfoResponse, AxiosError<GetClusterByClusterNodesInfoError>, GetClusterByClusterNodesInfoResponse, ReturnType<typeof getClusterByClusterNodesInfoQueryKey>>({
@@ -407,96 +517,6 @@ export const getClusterByClusterNodesByNodenameProcessGpuTimeseriesOptions = (op
   queryKey: getClusterByClusterNodesByNodenameProcessGpuTimeseriesQueryKey(options)
 })
 
-export const getClusterByClusterJobsByJobIdProcessTimeseriesQueryKey = (options: Options<GetClusterByClusterJobsByJobIdProcessTimeseriesData>) => createQueryKey('getClusterByClusterJobsByJobIdProcessTimeseries', options)
-
-/**
- * Get **job**-specific process (cpu/memory/gpu) timeseries data
- *
- * Get job-related timeseries for all processes running on cpu and gpu
- *
- * By default this related to SLURM jobs (epoch set to 0).
- * To relate to non-SLURM jobs, provide the epoch as parameter to the query.
- *
- * That will be separated in 'cpu_memory' and 'gpus'
- */
-export const getClusterByClusterJobsByJobIdProcessTimeseriesOptions = (options: Options<GetClusterByClusterJobsByJobIdProcessTimeseriesData>) => queryOptions<GetClusterByClusterJobsByJobIdProcessTimeseriesResponse, AxiosError<GetClusterByClusterJobsByJobIdProcessTimeseriesError>, GetClusterByClusterJobsByJobIdProcessTimeseriesResponse, ReturnType<typeof getClusterByClusterJobsByJobIdProcessTimeseriesQueryKey>>({
-  queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getClusterByClusterJobsByJobIdProcessTimeseries({
-      ...options,
-      ...queryKey[0],
-      signal,
-      throwOnError: true
-    })
-    return data
-  },
-  queryKey: getClusterByClusterJobsByJobIdProcessTimeseriesQueryKey(options)
-})
-
-export const getClusterByClusterJobsProcessTimeseriesQueryKey = (options: Options<GetClusterByClusterJobsProcessTimeseriesData>) => createQueryKey('getClusterByClusterJobsProcessTimeseries', options)
-
-/**
- * Get all jobs process timeseries-data (cpu/memory/gpu) on a given cluster
- *
- * Get job-related timeseries for all processes running on cpu and gpu
- *
- * By default this related to SLURM jobs (epoch set to 0).
- * To relate to non-SLURM jobs, provide the epoch as parameter to the query.
- *
- * That will be separated in 'cpu_memory' and 'gpus'
- */
-export const getClusterByClusterJobsProcessTimeseriesOptions = (options: Options<GetClusterByClusterJobsProcessTimeseriesData>) => queryOptions<GetClusterByClusterJobsProcessTimeseriesResponse, AxiosError<GetClusterByClusterJobsProcessTimeseriesError>, GetClusterByClusterJobsProcessTimeseriesResponse, ReturnType<typeof getClusterByClusterJobsProcessTimeseriesQueryKey>>({
-  queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getClusterByClusterJobsProcessTimeseries({
-      ...options,
-      ...queryKey[0],
-      signal,
-      throwOnError: true
-    })
-    return data
-  },
-  queryKey: getClusterByClusterJobsProcessTimeseriesQueryKey(options)
-})
-
-export const getClusterByClusterJobsByJobIdProcessGpuTimeseriesQueryKey = (options: Options<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData>) => createQueryKey('getClusterByClusterJobsByJobIdProcessGpuTimeseries', options)
-
-/**
- * Get GPU sample as timeseries aggregate for a specific job on a given cluster
- *
- * Get job-related timeseries data for processes running on gpu
- */
-export const getClusterByClusterJobsByJobIdProcessGpuTimeseriesOptions = (options: Options<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData>) => queryOptions<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponse, AxiosError<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesError>, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponse, ReturnType<typeof getClusterByClusterJobsByJobIdProcessGpuTimeseriesQueryKey>>({
-  queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getClusterByClusterJobsByJobIdProcessGpuTimeseries({
-      ...options,
-      ...queryKey[0],
-      signal,
-      throwOnError: true
-    })
-    return data
-  },
-  queryKey: getClusterByClusterJobsByJobIdProcessGpuTimeseriesQueryKey(options)
-})
-
-export const getClusterByClusterJobsProcessGpuTimeseriesQueryKey = (options: Options<GetClusterByClusterJobsProcessGpuTimeseriesData>) => createQueryKey('getClusterByClusterJobsProcessGpuTimeseries', options)
-
-/**
- * Get GPU samples as timeseries, aggregated per job (for all jobs) and process on a given cluster
- *
- * Get job-related timeseries data for processes running on gpu
- */
-export const getClusterByClusterJobsProcessGpuTimeseriesOptions = (options: Options<GetClusterByClusterJobsProcessGpuTimeseriesData>) => queryOptions<GetClusterByClusterJobsProcessGpuTimeseriesResponse, AxiosError<GetClusterByClusterJobsProcessGpuTimeseriesError>, GetClusterByClusterJobsProcessGpuTimeseriesResponse, ReturnType<typeof getClusterByClusterJobsProcessGpuTimeseriesQueryKey>>({
-  queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getClusterByClusterJobsProcessGpuTimeseries({
-      ...options,
-      ...queryKey[0],
-      signal,
-      throwOnError: true
-    })
-    return data
-  },
-  queryKey: getClusterByClusterJobsProcessGpuTimeseriesQueryKey(options)
-})
-
 export const getClusterByClusterNodesMemoryTimeseriesQueryKey = (options: Options<GetClusterByClusterNodesMemoryTimeseriesData>) => createQueryKey('getClusterByClusterNodesMemoryTimeseries', options)
 
 /**
@@ -613,6 +633,96 @@ export const getClusterByClusterNodesByNodenameGpuTimeseriesOptions = (options: 
   queryKey: getClusterByClusterNodesByNodenameGpuTimeseriesQueryKey(options)
 })
 
+export const getClusterByClusterJobsByJobIdProcessTimeseriesQueryKey = (options: Options<GetClusterByClusterJobsByJobIdProcessTimeseriesData>) => createQueryKey('getClusterByClusterJobsByJobIdProcessTimeseries', options)
+
+/**
+ * Get **job**-specific process (cpu/memory/gpu) timeseries data
+ *
+ * Get job-related timeseries for all processes running on cpu and gpu
+ *
+ * By default this related to SLURM jobs (epoch set to 0).
+ * To relate to non-SLURM jobs, provide the epoch as parameter to the query.
+ *
+ * That will be separated in 'cpu_memory' and 'gpus'
+ */
+export const getClusterByClusterJobsByJobIdProcessTimeseriesOptions = (options: Options<GetClusterByClusterJobsByJobIdProcessTimeseriesData>) => queryOptions<GetClusterByClusterJobsByJobIdProcessTimeseriesResponse, AxiosError<GetClusterByClusterJobsByJobIdProcessTimeseriesError>, GetClusterByClusterJobsByJobIdProcessTimeseriesResponse, ReturnType<typeof getClusterByClusterJobsByJobIdProcessTimeseriesQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getClusterByClusterJobsByJobIdProcessTimeseries({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getClusterByClusterJobsByJobIdProcessTimeseriesQueryKey(options)
+})
+
+export const getClusterByClusterJobsProcessTimeseriesQueryKey = (options: Options<GetClusterByClusterJobsProcessTimeseriesData>) => createQueryKey('getClusterByClusterJobsProcessTimeseries', options)
+
+/**
+ * Get all jobs process timeseries-data (cpu/memory/gpu) on a given cluster
+ *
+ * Get job-related timeseries for all processes running on cpu and gpu
+ *
+ * By default this related to SLURM jobs (epoch set to 0).
+ * To relate to non-SLURM jobs, provide the epoch as parameter to the query.
+ *
+ * That will be separated in 'cpu_memory' and 'gpus'
+ */
+export const getClusterByClusterJobsProcessTimeseriesOptions = (options: Options<GetClusterByClusterJobsProcessTimeseriesData>) => queryOptions<GetClusterByClusterJobsProcessTimeseriesResponse, AxiosError<GetClusterByClusterJobsProcessTimeseriesError>, GetClusterByClusterJobsProcessTimeseriesResponse, ReturnType<typeof getClusterByClusterJobsProcessTimeseriesQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getClusterByClusterJobsProcessTimeseries({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getClusterByClusterJobsProcessTimeseriesQueryKey(options)
+})
+
+export const getClusterByClusterJobsByJobIdProcessGpuTimeseriesQueryKey = (options: Options<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData>) => createQueryKey('getClusterByClusterJobsByJobIdProcessGpuTimeseries', options)
+
+/**
+ * Get GPU sample as timeseries aggregate for a specific job on a given cluster
+ *
+ * Get job-related timeseries data for processes running on gpu
+ */
+export const getClusterByClusterJobsByJobIdProcessGpuTimeseriesOptions = (options: Options<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData>) => queryOptions<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponse, AxiosError<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesError>, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponse, ReturnType<typeof getClusterByClusterJobsByJobIdProcessGpuTimeseriesQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getClusterByClusterJobsByJobIdProcessGpuTimeseries({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getClusterByClusterJobsByJobIdProcessGpuTimeseriesQueryKey(options)
+})
+
+export const getClusterByClusterJobsProcessGpuTimeseriesQueryKey = (options: Options<GetClusterByClusterJobsProcessGpuTimeseriesData>) => createQueryKey('getClusterByClusterJobsProcessGpuTimeseries', options)
+
+/**
+ * Get GPU samples as timeseries, aggregated per job (for all jobs) and process on a given cluster
+ *
+ * Get job-related timeseries data for processes running on gpu
+ */
+export const getClusterByClusterJobsProcessGpuTimeseriesOptions = (options: Options<GetClusterByClusterJobsProcessGpuTimeseriesData>) => queryOptions<GetClusterByClusterJobsProcessGpuTimeseriesResponse, AxiosError<GetClusterByClusterJobsProcessGpuTimeseriesError>, GetClusterByClusterJobsProcessGpuTimeseriesResponse, ReturnType<typeof getClusterByClusterJobsProcessGpuTimeseriesQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getClusterByClusterJobsProcessGpuTimeseries({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getClusterByClusterJobsProcessGpuTimeseriesQueryKey(options)
+})
+
 export const getClusterByClusterJobsQueryKey = (options: Options<GetClusterByClusterJobsData>) => createQueryKey('getClusterByClusterJobs', options)
 
 /**
@@ -713,14 +823,14 @@ export const getClusterByClusterJobsByJobIdOptions = (options: Options<GetCluste
   queryKey: getClusterByClusterJobsByJobIdQueryKey(options)
 })
 
-export const getClusterByClusterJobsQueryQueryKey = (options: Options<GetClusterByClusterJobsQueryData>) => createQueryKey('getClusterByClusterJobsQuery', options)
+export const getClusterByClusterQueryJobsQueryKey = (options: Options<GetClusterByClusterQueryJobsData>) => createQueryKey('getClusterByClusterQueryJobs', options)
 
 /**
  * Provides a generic job query interface
  */
-export const getClusterByClusterJobsQueryOptions = (options: Options<GetClusterByClusterJobsQueryData>) => queryOptions<unknown, AxiosError<GetClusterByClusterJobsQueryError>, unknown, ReturnType<typeof getClusterByClusterJobsQueryQueryKey>>({
+export const getClusterByClusterQueryJobsOptions = (options: Options<GetClusterByClusterQueryJobsData>) => queryOptions<unknown, AxiosError<GetClusterByClusterQueryJobsError>, unknown, ReturnType<typeof getClusterByClusterQueryJobsQueryKey>>({
   queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getClusterByClusterJobsQuery({
+    const { data } = await getClusterByClusterQueryJobs({
       ...options,
       ...queryKey[0],
       signal,
@@ -728,17 +838,17 @@ export const getClusterByClusterJobsQueryOptions = (options: Options<GetClusterB
     })
     return data
   },
-  queryKey: getClusterByClusterJobsQueryQueryKey(options)
+  queryKey: getClusterByClusterQueryJobsQueryKey(options)
 })
 
-export const getJobqueryQueryKey = (options?: Options<GetJobqueryData>) => createQueryKey('getJobquery', options)
+export const getClusterByClusterJobsByJobIdReportQueryKey = (options: Options<GetClusterByClusterJobsByJobIdReportData>) => createQueryKey('getClusterByClusterJobsByJobIdReport', options)
 
 /**
- * Dashboard Job Query
+ * Get a report on stats for the current job
  */
-export const getJobqueryOptions = (options?: Options<GetJobqueryData>) => queryOptions<GetJobqueryResponse, AxiosError<GetJobqueryError>, GetJobqueryResponse, ReturnType<typeof getJobqueryQueryKey>>({
+export const getClusterByClusterJobsByJobIdReportOptions = (options: Options<GetClusterByClusterJobsByJobIdReportData>) => queryOptions<GetClusterByClusterJobsByJobIdReportResponse, AxiosError<GetClusterByClusterJobsByJobIdReportError>, GetClusterByClusterJobsByJobIdReportResponse, ReturnType<typeof getClusterByClusterJobsByJobIdReportQueryKey>>({
   queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getJobquery({
+    const { data } = await getClusterByClusterJobsByJobIdReport({
       ...options,
       ...queryKey[0],
       signal,
@@ -746,77 +856,5 @@ export const getJobqueryOptions = (options?: Options<GetJobqueryData>) => queryO
     })
     return data
   },
-  queryKey: getJobqueryQueryKey(options)
-})
-
-export const getJobprofileQueryKey = (options: Options<GetJobprofileData>) => createQueryKey('getJobprofile', options)
-
-/**
- * Dashboard Job Profile
- */
-export const getJobprofileOptions = (options: Options<GetJobprofileData>) => queryOptions<GetJobprofileResponse, AxiosError<GetJobprofileError>, GetJobprofileResponse, ReturnType<typeof getJobprofileQueryKey>>({
-  queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getJobprofile({
-      ...options,
-      ...queryKey[0],
-      signal,
-      throwOnError: true
-    })
-    return data
-  },
-  queryKey: getJobprofileQueryKey(options)
-})
-
-export const getClusterByClusterQueriesQueryKey = (options: Options<GetClusterByClusterQueriesData>) => createQueryKey('getClusterByClusterQueries', options)
-
-/**
- * Get the list of 'named' predefined queries
- */
-export const getClusterByClusterQueriesOptions = (options: Options<GetClusterByClusterQueriesData>) => queryOptions<GetClusterByClusterQueriesResponse, AxiosError<GetClusterByClusterQueriesError>, GetClusterByClusterQueriesResponse, ReturnType<typeof getClusterByClusterQueriesQueryKey>>({
-  queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getClusterByClusterQueries({
-      ...options,
-      ...queryKey[0],
-      signal,
-      throwOnError: true
-    })
-    return data
-  },
-  queryKey: getClusterByClusterQueriesQueryKey(options)
-})
-
-export const getClusterByClusterQueriesByQueryNameQueryKey = (options: Options<GetClusterByClusterQueriesByQueryNameData>) => createQueryKey('getClusterByClusterQueriesByQueryName', options)
-
-/**
- * Execute a the 'named' query
- */
-export const getClusterByClusterQueriesByQueryNameOptions = (options: Options<GetClusterByClusterQueriesByQueryNameData>) => queryOptions<unknown, AxiosError<GetClusterByClusterQueriesByQueryNameError>, unknown, ReturnType<typeof getClusterByClusterQueriesByQueryNameQueryKey>>({
-  queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getClusterByClusterQueriesByQueryName({
-      ...options,
-      ...queryKey[0],
-      signal,
-      throwOnError: true
-    })
-    return data
-  },
-  queryKey: getClusterByClusterQueriesByQueryNameQueryKey(options)
-})
-
-export const getClusterByClusterBenchmarksByBenchmarkNameQueryKey = (options: Options<GetClusterByClusterBenchmarksByBenchmarkNameData>) => createQueryKey('getClusterByClusterBenchmarksByBenchmarkName', options)
-
-/**
- * Benchmarks
- */
-export const getClusterByClusterBenchmarksByBenchmarkNameOptions = (options: Options<GetClusterByClusterBenchmarksByBenchmarkNameData>) => queryOptions<unknown, AxiosError<GetClusterByClusterBenchmarksByBenchmarkNameError>, unknown, ReturnType<typeof getClusterByClusterBenchmarksByBenchmarkNameQueryKey>>({
-  queryFn: async ({ queryKey, signal }) => {
-    const { data } = await getClusterByClusterBenchmarksByBenchmarkName({
-      ...options,
-      ...queryKey[0],
-      signal,
-      throwOnError: true
-    })
-    return data
-  },
-  queryKey: getClusterByClusterBenchmarksByBenchmarkNameQueryKey(options)
+  queryKey: getClusterByClusterJobsByJobIdReportQueryKey(options)
 })

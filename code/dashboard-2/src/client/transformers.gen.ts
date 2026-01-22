@@ -2,16 +2,6 @@
 
 import type { GetClusterByClusterJobsByJobIdEpochByEpochInfoResponse, GetClusterByClusterJobsByJobIdEpochByEpochResponse, GetClusterByClusterJobsByJobIdInfoResponse, GetClusterByClusterJobsByJobIdResponse, GetClusterByClusterJobsResponse, GetClusterByClusterNodesByNodenameStatesResponse, GetClusterByClusterNodesStatesResponse, GetClusterByClusterPartitionsResponse, GetClusterResponse } from './types.gen'
 
-const clusterResponseSchemaResponseTransformer = (data: any) => {
-  data.time = new Date(data.time)
-  return data
-}
-
-export const getClusterResponseTransformer = async (data: any): Promise<GetClusterResponse> => {
-  data = data.map((item: any) => clusterResponseSchemaResponseTransformer(item))
-  return data
-}
-
 const partitionResponseSchemaResponseTransformer = (data: any) => {
   data.time = new Date(data.time)
   data.jobs_pending = data.jobs_pending.map((item: any) => jobResponseSchemaResponseTransformer(item))
@@ -34,6 +24,16 @@ const jobResponseSchemaResponseTransformer = (data: any) => {
 
 export const getClusterByClusterPartitionsResponseTransformer = async (data: any): Promise<GetClusterByClusterPartitionsResponse> => {
   data = data.map((item: any) => partitionResponseSchemaResponseTransformer(item))
+  return data
+}
+
+const clusterResponseSchemaResponseTransformer = (data: any) => {
+  data.time = new Date(data.time)
+  return data
+}
+
+export const getClusterResponseTransformer = async (data: any): Promise<GetClusterResponse> => {
+  data = data.map((item: any) => clusterResponseSchemaResponseTransformer(item))
   return data
 }
 
