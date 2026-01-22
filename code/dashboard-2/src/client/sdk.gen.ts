@@ -3,7 +3,7 @@
 import type { Client, Options as Options2, TDataShape } from './client'
 import { client } from './client.gen'
 import { getClusterByClusterJobsByJobIdEpochByEpochInfoResponseTransformer, getClusterByClusterJobsByJobIdEpochByEpochResponseTransformer, getClusterByClusterJobsByJobIdInfoResponseTransformer, getClusterByClusterJobsByJobIdResponseTransformer, getClusterByClusterJobsResponseTransformer, getClusterByClusterNodesByNodenameStatesResponseTransformer, getClusterByClusterNodesStatesResponseTransformer, getClusterByClusterPartitionsResponseTransformer, getClusterResponseTransformer } from './transformers.gen'
-import type { GetClearCacheData, GetClearCacheResponses, GetClusterByClusterBenchmarksByBenchmarkNameData, GetClusterByClusterBenchmarksByBenchmarkNameErrors, GetClusterByClusterBenchmarksByBenchmarkNameResponses, GetClusterByClusterErrorMessagesData, GetClusterByClusterErrorMessagesErrors, GetClusterByClusterErrorMessagesResponses, GetClusterByClusterJobsByJobIdData, GetClusterByClusterJobsByJobIdEpochByEpochData, GetClusterByClusterJobsByJobIdEpochByEpochErrors, GetClusterByClusterJobsByJobIdEpochByEpochInfoData, GetClusterByClusterJobsByJobIdEpochByEpochInfoErrors, GetClusterByClusterJobsByJobIdEpochByEpochInfoResponses, GetClusterByClusterJobsByJobIdEpochByEpochResponses, GetClusterByClusterJobsByJobIdErrors, GetClusterByClusterJobsByJobIdInfoData, GetClusterByClusterJobsByJobIdInfoErrors, GetClusterByClusterJobsByJobIdInfoResponses, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses, GetClusterByClusterJobsByJobIdProcessTimeseriesData, GetClusterByClusterJobsByJobIdProcessTimeseriesErrors, GetClusterByClusterJobsByJobIdProcessTimeseriesResponses, GetClusterByClusterJobsByJobIdResponses, GetClusterByClusterJobsData, GetClusterByClusterJobsErrors, GetClusterByClusterJobsProcessGpuTimeseriesData, GetClusterByClusterJobsProcessGpuTimeseriesErrors, GetClusterByClusterJobsProcessGpuTimeseriesResponses, GetClusterByClusterJobsProcessTimeseriesData, GetClusterByClusterJobsProcessTimeseriesErrors, GetClusterByClusterJobsProcessTimeseriesResponses, GetClusterByClusterJobsQueryData, GetClusterByClusterJobsQueryErrors, GetClusterByClusterJobsQueryResponses, GetClusterByClusterJobsResponses, GetClusterByClusterNodesByNodenameCpuTimeseriesData, GetClusterByClusterNodesByNodenameCpuTimeseriesErrors, GetClusterByClusterNodesByNodenameCpuTimeseriesResponses, GetClusterByClusterNodesByNodenameErrorMessagesData, GetClusterByClusterNodesByNodenameErrorMessagesErrors, GetClusterByClusterNodesByNodenameErrorMessagesResponses, GetClusterByClusterNodesByNodenameGpuTimeseriesData, GetClusterByClusterNodesByNodenameGpuTimeseriesErrors, GetClusterByClusterNodesByNodenameGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameInfoData, GetClusterByClusterNodesByNodenameInfoErrors, GetClusterByClusterNodesByNodenameInfoResponses, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesErrors, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameMemoryTimeseriesData, GetClusterByClusterNodesByNodenameMemoryTimeseriesErrors, GetClusterByClusterNodesByNodenameMemoryTimeseriesResponses, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesErrors, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameProcessGpuUtilData, GetClusterByClusterNodesByNodenameProcessGpuUtilErrors, GetClusterByClusterNodesByNodenameProcessGpuUtilResponses, GetClusterByClusterNodesByNodenameStatesData, GetClusterByClusterNodesByNodenameStatesErrors, GetClusterByClusterNodesByNodenameStatesResponses, GetClusterByClusterNodesByNodenameTopologyData, GetClusterByClusterNodesByNodenameTopologyErrors, GetClusterByClusterNodesByNodenameTopologyResponses, GetClusterByClusterNodesCpuTimeseriesData, GetClusterByClusterNodesCpuTimeseriesErrors, GetClusterByClusterNodesCpuTimeseriesResponses, GetClusterByClusterNodesData, GetClusterByClusterNodesErrors, GetClusterByClusterNodesGpuTimeseriesData, GetClusterByClusterNodesGpuTimeseriesErrors, GetClusterByClusterNodesGpuTimeseriesResponses, GetClusterByClusterNodesInfoData, GetClusterByClusterNodesInfoErrors, GetClusterByClusterNodesInfoResponses, GetClusterByClusterNodesLastProbeTimestampData, GetClusterByClusterNodesLastProbeTimestampErrors, GetClusterByClusterNodesLastProbeTimestampResponses, GetClusterByClusterNodesMemoryTimeseriesData, GetClusterByClusterNodesMemoryTimeseriesErrors, GetClusterByClusterNodesMemoryTimeseriesResponses, GetClusterByClusterNodesProcessGpuTimeseriesData, GetClusterByClusterNodesProcessGpuTimeseriesErrors, GetClusterByClusterNodesProcessGpuTimeseriesResponses, GetClusterByClusterNodesProcessGpuUtilData, GetClusterByClusterNodesProcessGpuUtilErrors, GetClusterByClusterNodesProcessGpuUtilResponses, GetClusterByClusterNodesResponses, GetClusterByClusterNodesStatesData, GetClusterByClusterNodesStatesErrors, GetClusterByClusterNodesStatesResponses, GetClusterByClusterPartitionsData, GetClusterByClusterPartitionsErrors, GetClusterByClusterPartitionsResponses, GetClusterByClusterQueriesByQueryNameData, GetClusterByClusterQueriesByQueryNameErrors, GetClusterByClusterQueriesByQueryNameResponses, GetClusterByClusterQueriesData, GetClusterByClusterQueriesErrors, GetClusterByClusterQueriesResponses, GetClusterData, GetClusterErrors, GetClusterResponses, GetData, GetJobprofileData, GetJobprofileErrors, GetJobprofileResponses, GetJobqueryData, GetJobqueryErrors, GetJobqueryResponses, GetResponses } from './types.gen'
+import type { GetClearCacheData, GetClearCacheResponses, GetClusterByClusterBenchmarksByBenchmarkNameData, GetClusterByClusterBenchmarksByBenchmarkNameErrors, GetClusterByClusterBenchmarksByBenchmarkNameResponses, GetClusterByClusterErrorMessagesData, GetClusterByClusterErrorMessagesErrors, GetClusterByClusterErrorMessagesResponses, GetClusterByClusterJobsByJobIdData, GetClusterByClusterJobsByJobIdEpochByEpochData, GetClusterByClusterJobsByJobIdEpochByEpochErrors, GetClusterByClusterJobsByJobIdEpochByEpochInfoData, GetClusterByClusterJobsByJobIdEpochByEpochInfoErrors, GetClusterByClusterJobsByJobIdEpochByEpochInfoResponses, GetClusterByClusterJobsByJobIdEpochByEpochResponses, GetClusterByClusterJobsByJobIdErrors, GetClusterByClusterJobsByJobIdInfoData, GetClusterByClusterJobsByJobIdInfoErrors, GetClusterByClusterJobsByJobIdInfoResponses, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses, GetClusterByClusterJobsByJobIdProcessTimeseriesData, GetClusterByClusterJobsByJobIdProcessTimeseriesErrors, GetClusterByClusterJobsByJobIdProcessTimeseriesResponses, GetClusterByClusterJobsByJobIdReportData, GetClusterByClusterJobsByJobIdReportErrors, GetClusterByClusterJobsByJobIdReportResponses, GetClusterByClusterJobsByJobIdResponses, GetClusterByClusterJobsData, GetClusterByClusterJobsErrors, GetClusterByClusterJobsProcessGpuTimeseriesData, GetClusterByClusterJobsProcessGpuTimeseriesErrors, GetClusterByClusterJobsProcessGpuTimeseriesResponses, GetClusterByClusterJobsProcessTimeseriesData, GetClusterByClusterJobsProcessTimeseriesErrors, GetClusterByClusterJobsProcessTimeseriesResponses, GetClusterByClusterJobsResponses, GetClusterByClusterNodesByNodenameCpuTimeseriesData, GetClusterByClusterNodesByNodenameCpuTimeseriesErrors, GetClusterByClusterNodesByNodenameCpuTimeseriesResponses, GetClusterByClusterNodesByNodenameErrorMessagesData, GetClusterByClusterNodesByNodenameErrorMessagesErrors, GetClusterByClusterNodesByNodenameErrorMessagesResponses, GetClusterByClusterNodesByNodenameGpuTimeseriesData, GetClusterByClusterNodesByNodenameGpuTimeseriesErrors, GetClusterByClusterNodesByNodenameGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameInfoData, GetClusterByClusterNodesByNodenameInfoErrors, GetClusterByClusterNodesByNodenameInfoResponses, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesErrors, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameMemoryTimeseriesData, GetClusterByClusterNodesByNodenameMemoryTimeseriesErrors, GetClusterByClusterNodesByNodenameMemoryTimeseriesResponses, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesErrors, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameProcessGpuUtilData, GetClusterByClusterNodesByNodenameProcessGpuUtilErrors, GetClusterByClusterNodesByNodenameProcessGpuUtilResponses, GetClusterByClusterNodesByNodenameStatesData, GetClusterByClusterNodesByNodenameStatesErrors, GetClusterByClusterNodesByNodenameStatesResponses, GetClusterByClusterNodesByNodenameTopologyData, GetClusterByClusterNodesByNodenameTopologyErrors, GetClusterByClusterNodesByNodenameTopologyResponses, GetClusterByClusterNodesCpuTimeseriesData, GetClusterByClusterNodesCpuTimeseriesErrors, GetClusterByClusterNodesCpuTimeseriesResponses, GetClusterByClusterNodesData, GetClusterByClusterNodesErrors, GetClusterByClusterNodesGpuTimeseriesData, GetClusterByClusterNodesGpuTimeseriesErrors, GetClusterByClusterNodesGpuTimeseriesResponses, GetClusterByClusterNodesInfoData, GetClusterByClusterNodesInfoErrors, GetClusterByClusterNodesInfoResponses, GetClusterByClusterNodesLastProbeTimestampData, GetClusterByClusterNodesLastProbeTimestampErrors, GetClusterByClusterNodesLastProbeTimestampResponses, GetClusterByClusterNodesMemoryTimeseriesData, GetClusterByClusterNodesMemoryTimeseriesErrors, GetClusterByClusterNodesMemoryTimeseriesResponses, GetClusterByClusterNodesProcessGpuTimeseriesData, GetClusterByClusterNodesProcessGpuTimeseriesErrors, GetClusterByClusterNodesProcessGpuTimeseriesResponses, GetClusterByClusterNodesProcessGpuUtilData, GetClusterByClusterNodesProcessGpuUtilErrors, GetClusterByClusterNodesProcessGpuUtilResponses, GetClusterByClusterNodesResponses, GetClusterByClusterNodesStatesData, GetClusterByClusterNodesStatesErrors, GetClusterByClusterNodesStatesResponses, GetClusterByClusterPartitionsData, GetClusterByClusterPartitionsErrors, GetClusterByClusterPartitionsResponses, GetClusterByClusterQueriesByQueryNameData, GetClusterByClusterQueriesByQueryNameErrors, GetClusterByClusterQueriesByQueryNameResponses, GetClusterByClusterQueriesData, GetClusterByClusterQueriesErrors, GetClusterByClusterQueriesResponses, GetClusterByClusterQueryJobsData, GetClusterByClusterQueryJobsErrors, GetClusterByClusterQueryJobsResponses, GetClusterData, GetClusterErrors, GetClusterResponses, GetData, GetJobprofileData, GetJobprofileErrors, GetJobprofileResponses, GetJobqueryData, GetJobqueryErrors, GetJobqueryResponses, GetResponses, GetUserData, GetUserResponses } from './types.gen'
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -38,18 +38,6 @@ export const getClearCache = <ThrowOnError extends boolean = false>(options?: Op
 })
 
 /**
- * Available clusters
- *
- * Get the list of clusters (available at a particular point in time)
- */
-export const getCluster = <ThrowOnError extends boolean = false>(options?: Options<GetClusterData, ThrowOnError>) => (options?.client ?? client).get<GetClusterResponses, GetClusterErrors, ThrowOnError>({
-  responseTransformer: getClusterResponseTransformer,
-  responseType: 'json',
-  url: '/cluster',
-  ...options
-})
-
-/**
  * Partitions available in a given cluster
  *
  * Get status of partitions of a cluster (for a specific time point)
@@ -58,7 +46,87 @@ export const getClusterByClusterPartitions = <ThrowOnError extends boolean = fal
   responseTransformer: getClusterByClusterPartitionsResponseTransformer,
   responseType: 'json',
   url: '/cluster/{cluster}/partitions',
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
+})
+
+/**
+ * Currently logged in user
+ *
+ * Get status of partitions of a cluster (for a specific time point)
+ */
+export const getUser = <ThrowOnError extends boolean = false>(options?: Options<GetUserData, ThrowOnError>) => (options?.client ?? client).get<GetUserResponses, unknown, ThrowOnError>({
+  responseType: 'json',
+  url: '/user',
   ...options
+})
+
+/**
+ * Dashboard Job Query
+ */
+export const getJobquery = <ThrowOnError extends boolean = false>(options?: Options<GetJobqueryData, ThrowOnError>) => (options?.client ?? client).get<GetJobqueryResponses, GetJobqueryErrors, ThrowOnError>({
+  responseType: 'json',
+  url: '/jobquery',
+  ...options
+})
+
+/**
+ * Dashboard Job Profile
+ */
+export const getJobprofile = <ThrowOnError extends boolean = false>(options?: Options<GetJobprofileData, ThrowOnError>) => (options?.client ?? client).get<GetJobprofileResponses, GetJobprofileErrors, ThrowOnError>({
+  responseType: 'json',
+  url: '/jobprofile',
+  ...options
+})
+
+/**
+ * Get the list of 'named' predefined queries
+ */
+export const getClusterByClusterQueries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterQueriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterQueriesResponses, GetClusterByClusterQueriesErrors, ThrowOnError>({
+  responseType: 'json',
+  url: '/cluster/{cluster}/queries',
+  ...options
+})
+
+/**
+ * Execute a the 'named' query
+ */
+export const getClusterByClusterQueriesByQueryName = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterQueriesByQueryNameData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterQueriesByQueryNameResponses, GetClusterByClusterQueriesByQueryNameErrors, ThrowOnError>({
+  responseType: 'json',
+  url: '/cluster/{cluster}/queries/{query_name}',
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
+})
+
+/**
+ * Benchmarks
+ */
+export const getClusterByClusterBenchmarksByBenchmarkName = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterBenchmarksByBenchmarkNameData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterBenchmarksByBenchmarkNameResponses, GetClusterByClusterBenchmarksByBenchmarkNameErrors, ThrowOnError>({
+  responseType: 'json',
+  url: '/cluster/{cluster}/benchmarks/{benchmark_name}',
+  ...options
+})
+
+/**
+ * Available clusters
+ *
+ * Get the list of clusters (available at a particular point in time)
+ */
+export const getCluster = <ThrowOnError extends boolean = false>(options?: Options<GetClusterData, ThrowOnError>) => (options?.client ?? client).get<GetClusterResponses, GetClusterErrors, ThrowOnError>({
+  responseTransformer: getClusterResponseTransformer,
+  responseType: 'json',
+  url: '/cluster',
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options?.headers
+  }
 })
 
 /**
@@ -69,7 +137,11 @@ export const getClusterByClusterPartitions = <ThrowOnError extends boolean = fal
 export const getClusterByClusterNodes = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesResponses, GetClusterByClusterNodesErrors, ThrowOnError>({
   responseType: 'json',
   url: '/cluster/{cluster}/nodes',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -80,7 +152,11 @@ export const getClusterByClusterNodes = <ThrowOnError extends boolean = false>(o
 export const getClusterByClusterNodesByNodenameErrorMessages = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameErrorMessagesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameErrorMessagesResponses, GetClusterByClusterNodesByNodenameErrorMessagesErrors, ThrowOnError>({
   responseType: 'json',
   url: '/cluster/{cluster}/nodes/{nodename}/error_messages',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -91,7 +167,11 @@ export const getClusterByClusterNodesByNodenameErrorMessages = <ThrowOnError ext
 export const getClusterByClusterErrorMessages = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterErrorMessagesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterErrorMessagesResponses, GetClusterByClusterErrorMessagesErrors, ThrowOnError>({
   responseType: 'json',
   url: '/cluster/{cluster}/error_messages',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -100,13 +180,17 @@ export const getClusterByClusterErrorMessages = <ThrowOnError extends boolean = 
  * Get available information about nodes in a cluster
  *
  * It will only contain information about reporting nodes - in some case a
- * node might exist in a cluster, but not system information has been received
+ * node might exist in a cluster, but no system information has been received
  * yet.  To check - compare with the complete node list /cluster/{cluster}/nodes
  */
 export const getClusterByClusterNodesByNodenameInfo = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameInfoData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameInfoResponses, GetClusterByClusterNodesByNodenameInfoErrors, ThrowOnError>({
   responseType: 'json',
   url: '/cluster/{cluster}/nodes/{nodename}/info',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -115,13 +199,17 @@ export const getClusterByClusterNodesByNodenameInfo = <ThrowOnError extends bool
  * Get available information about nodes in a cluster
  *
  * It will only contain information about reporting nodes - in some case a
- * node might exist in a cluster, but not system information has been received
+ * node might exist in a cluster, but no system information has been received
  * yet.  To check - compare with the complete node list /cluster/{cluster}/nodes
  */
 export const getClusterByClusterNodesInfo = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesInfoData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesInfoResponses, GetClusterByClusterNodesInfoErrors, ThrowOnError>({
   responseType: 'json',
   url: '/cluster/{cluster}/nodes/info',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -133,7 +221,11 @@ export const getClusterByClusterNodesByNodenameStates = <ThrowOnError extends bo
   responseTransformer: getClusterByClusterNodesByNodenameStatesResponseTransformer,
   responseType: 'json',
   url: '/cluster/{cluster}/nodes/{nodename}/states',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -145,7 +237,11 @@ export const getClusterByClusterNodesStates = <ThrowOnError extends boolean = fa
   responseTransformer: getClusterByClusterNodesStatesResponseTransformer,
   responseType: 'json',
   url: '/cluster/{cluster}/nodes/states',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -156,7 +252,11 @@ export const getClusterByClusterNodesStates = <ThrowOnError extends boolean = fa
 export const getClusterByClusterNodesByNodenameTopology = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameTopologyData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameTopologyResponses, GetClusterByClusterNodesByNodenameTopologyErrors, ThrowOnError>({
   responseType: 'json',
   url: '/cluster/{cluster}/nodes/{nodename}/topology',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -170,7 +270,11 @@ export const getClusterByClusterNodesByNodenameTopology = <ThrowOnError extends 
 export const getClusterByClusterNodesLastProbeTimestamp = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesLastProbeTimestampData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesLastProbeTimestampResponses, GetClusterByClusterNodesLastProbeTimestampErrors, ThrowOnError>({
   responseType: 'json',
   url: '/cluster/{cluster}/nodes/last_probe_timestamp',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -181,7 +285,11 @@ export const getClusterByClusterNodesLastProbeTimestamp = <ThrowOnError extends 
 export const getClusterByClusterNodesProcessGpuUtil = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesProcessGpuUtilData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesProcessGpuUtilResponses, GetClusterByClusterNodesProcessGpuUtilErrors, ThrowOnError>({
   responseType: 'json',
   url: '/cluster/{cluster}/nodes/process/gpu/util',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -192,7 +300,11 @@ export const getClusterByClusterNodesProcessGpuUtil = <ThrowOnError extends bool
 export const getClusterByClusterNodesByNodenameProcessGpuUtil = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameProcessGpuUtilData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameProcessGpuUtilResponses, GetClusterByClusterNodesByNodenameProcessGpuUtilErrors, ThrowOnError>({
   responseType: 'json',
   url: '/cluster/{cluster}/nodes/{nodename}/process/gpu/util',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -233,76 +345,6 @@ export const getClusterByClusterNodesProcessGpuTimeseries = <ThrowOnError extend
 export const getClusterByClusterNodesByNodenameProcessGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameProcessGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
   url: '/cluster/{cluster}/nodes/{nodename}/process/gpu/timeseries',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
-})
-
-/**
- * Get **job**-specific process (cpu/memory/gpu) timeseries data
- *
- * Get job-related timeseries for all processes running on cpu and gpu
- *
- * By default this related to SLURM jobs (epoch set to 0).
- * To relate to non-SLURM jobs, provide the epoch as parameter to the query.
- *
- * That will be separated in 'cpu_memory' and 'gpus'
- */
-export const getClusterByClusterJobsByJobIdProcessTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdProcessTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdProcessTimeseriesResponses, GetClusterByClusterJobsByJobIdProcessTimeseriesErrors, ThrowOnError>({
-  responseType: 'json',
-  url: '/cluster/{cluster}/jobs/{job_id}/process/timeseries',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
-})
-
-/**
- * Get all jobs process timeseries-data (cpu/memory/gpu) on a given cluster
- *
- * Get job-related timeseries for all processes running on cpu and gpu
- *
- * By default this related to SLURM jobs (epoch set to 0).
- * To relate to non-SLURM jobs, provide the epoch as parameter to the query.
- *
- * That will be separated in 'cpu_memory' and 'gpus'
- */
-export const getClusterByClusterJobsProcessTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsProcessTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsProcessTimeseriesResponses, GetClusterByClusterJobsProcessTimeseriesErrors, ThrowOnError>({
-  responseType: 'json',
-  url: '/cluster/{cluster}/jobs/process/timeseries',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
-})
-
-/**
- * Get GPU sample as timeseries aggregate for a specific job on a given cluster
- *
- * Get job-related timeseries data for processes running on gpu
- */
-export const getClusterByClusterJobsByJobIdProcessGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors, ThrowOnError>({
-  responseType: 'json',
-  url: '/cluster/{cluster}/jobs/{job_id}/process/gpu/timeseries',
-  ...options,
-  headers: {
-    'Content-Type': 'application/json',
-    ...options.headers
-  }
-})
-
-/**
- * Get GPU samples as timeseries, aggregated per job (for all jobs) and process on a given cluster
- *
- * Get job-related timeseries data for processes running on gpu
- */
-export const getClusterByClusterJobsProcessGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsProcessGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsProcessGpuTimeseriesResponses, GetClusterByClusterJobsProcessGpuTimeseriesErrors, ThrowOnError>({
-  responseType: 'json',
-  url: '/cluster/{cluster}/jobs/process/gpu/timeseries',
   ...options,
   headers: {
     'Content-Type': 'application/json',
@@ -397,6 +439,76 @@ export const getClusterByClusterNodesByNodenameGpuTimeseries = <ThrowOnError ext
 })
 
 /**
+ * Get **job**-specific process (cpu/memory/gpu) timeseries data
+ *
+ * Get job-related timeseries for all processes running on cpu and gpu
+ *
+ * By default this related to SLURM jobs (epoch set to 0).
+ * To relate to non-SLURM jobs, provide the epoch as parameter to the query.
+ *
+ * That will be separated in 'cpu_memory' and 'gpus'
+ */
+export const getClusterByClusterJobsByJobIdProcessTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdProcessTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdProcessTimeseriesResponses, GetClusterByClusterJobsByJobIdProcessTimeseriesErrors, ThrowOnError>({
+  responseType: 'json',
+  url: '/cluster/{cluster}/jobs/{job_id}/process/timeseries',
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
+})
+
+/**
+ * Get all jobs process timeseries-data (cpu/memory/gpu) on a given cluster
+ *
+ * Get job-related timeseries for all processes running on cpu and gpu
+ *
+ * By default this related to SLURM jobs (epoch set to 0).
+ * To relate to non-SLURM jobs, provide the epoch as parameter to the query.
+ *
+ * That will be separated in 'cpu_memory' and 'gpus'
+ */
+export const getClusterByClusterJobsProcessTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsProcessTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsProcessTimeseriesResponses, GetClusterByClusterJobsProcessTimeseriesErrors, ThrowOnError>({
+  responseType: 'json',
+  url: '/cluster/{cluster}/jobs/process/timeseries',
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
+})
+
+/**
+ * Get GPU sample as timeseries aggregate for a specific job on a given cluster
+ *
+ * Get job-related timeseries data for processes running on gpu
+ */
+export const getClusterByClusterJobsByJobIdProcessGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors, ThrowOnError>({
+  responseType: 'json',
+  url: '/cluster/{cluster}/jobs/{job_id}/process/gpu/timeseries',
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
+})
+
+/**
+ * Get GPU samples as timeseries, aggregated per job (for all jobs) and process on a given cluster
+ *
+ * Get job-related timeseries data for processes running on gpu
+ */
+export const getClusterByClusterJobsProcessGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsProcessGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsProcessGpuTimeseriesResponses, GetClusterByClusterJobsProcessGpuTimeseriesErrors, ThrowOnError>({
+  responseType: 'json',
+  url: '/cluster/{cluster}/jobs/process/gpu/timeseries',
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
+})
+
+/**
  * Get jobs running on the given cluster
  *
  * Check current status of jobs
@@ -405,7 +517,11 @@ export const getClusterByClusterJobs = <ThrowOnError extends boolean = false>(op
   responseTransformer: getClusterByClusterJobsResponseTransformer,
   responseType: 'json',
   url: '/cluster/{cluster}/jobs',
-  ...options
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
@@ -475,53 +591,25 @@ export const getClusterByClusterJobsByJobId = <ThrowOnError extends boolean = fa
 /**
  * Provides a generic job query interface
  */
-export const getClusterByClusterJobsQuery = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsQueryData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsQueryResponses, GetClusterByClusterJobsQueryErrors, ThrowOnError>({
+export const getClusterByClusterQueryJobs = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterQueryJobsData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterQueryJobsResponses, GetClusterByClusterQueryJobsErrors, ThrowOnError>({
   responseType: 'json',
-  url: '/cluster/{cluster}/jobs/query',
-  ...options
+  url: '/cluster/{cluster}/query/jobs',
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })
 
 /**
- * Dashboard Job Query
+ * Get a report on stats for the current job
  */
-export const getJobquery = <ThrowOnError extends boolean = false>(options?: Options<GetJobqueryData, ThrowOnError>) => (options?.client ?? client).get<GetJobqueryResponses, GetJobqueryErrors, ThrowOnError>({
+export const getClusterByClusterJobsByJobIdReport = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdReportData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdReportResponses, GetClusterByClusterJobsByJobIdReportErrors, ThrowOnError>({
   responseType: 'json',
-  url: '/jobquery',
-  ...options
-})
-
-/**
- * Dashboard Job Profile
- */
-export const getJobprofile = <ThrowOnError extends boolean = false>(options: Options<GetJobprofileData, ThrowOnError>) => (options.client ?? client).get<GetJobprofileResponses, GetJobprofileErrors, ThrowOnError>({
-  responseType: 'json',
-  url: '/jobprofile',
-  ...options
-})
-
-/**
- * Get the list of 'named' predefined queries
- */
-export const getClusterByClusterQueries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterQueriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterQueriesResponses, GetClusterByClusterQueriesErrors, ThrowOnError>({
-  responseType: 'json',
-  url: '/cluster/{cluster}/queries',
-  ...options
-})
-
-/**
- * Execute a the 'named' query
- */
-export const getClusterByClusterQueriesByQueryName = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterQueriesByQueryNameData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterQueriesByQueryNameResponses, GetClusterByClusterQueriesByQueryNameErrors, ThrowOnError>({
-  responseType: 'json',
-  url: '/cluster/{cluster}/queries/{query_name}',
-  ...options
-})
-
-/**
- * Benchmarks
- */
-export const getClusterByClusterBenchmarksByBenchmarkName = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterBenchmarksByBenchmarkNameData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterBenchmarksByBenchmarkNameResponses, GetClusterByClusterBenchmarksByBenchmarkNameErrors, ThrowOnError>({
-  responseType: 'json',
-  url: '/cluster/{cluster}/benchmarks/{benchmark_name}',
-  ...options
+  url: '/cluster/{cluster}/jobs/{job_id}/report',
+  ...options,
+  headers: {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
 })

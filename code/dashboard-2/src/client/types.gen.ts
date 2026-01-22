@@ -5,6 +5,13 @@ export type ClientOptions = {
 };
 
 /**
+ * Account
+ */
+export type Account = {
+    account: Roles;
+};
+
+/**
  * AllocTRES
  */
 export type AllocTres = {
@@ -58,10 +65,12 @@ export type AppSettings = {
      * Data Dir
      */
     data_dir?: string | null;
+    prefetch?: PrefetchSettings;
     /**
      * Db Schema Version
      */
     db_schema_version?: string | null;
+    oauth?: OAuthSettings;
 };
 
 /**
@@ -202,6 +211,12 @@ export type GpuCardResponse = {
      * card-dependent, manufacturer's arch string, for NVIDIA this is 'Turing', 'Volta', etc.
      */
     architecture: string;
+    /**
+     * Memory
+     *
+     * Memory of card in KiB
+     */
+    memory: number;
     /**
      * Cluster
      *
@@ -398,6 +413,112 @@ export type JobQueryResultItem = {
      * Gpumem-Peak
      */
     'gpumem-peak'?: number;
+};
+
+/**
+ * JobReport
+ */
+export type JobReport = {
+    /**
+     * Cpu Avg
+     *
+     * The mean + stddev for cpu_avg
+     */
+    cpu_avg?: {
+        [key: string]: number | number;
+    };
+    /**
+     * Cpu Util
+     *
+     * The mean + stddev for cpu_util
+     */
+    cpu_util?: {
+        [key: string]: number | number;
+    };
+    /**
+     * Resident Memory
+     *
+     * The mean + stddev for resident_memory in KiB
+     */
+    resident_memory?: {
+        [key: string]: number | number;
+    };
+    /**
+     * Virtual Memory
+     *
+     * The mean + stddev for virtual_memory in KiB
+     */
+    virtual_memory?: {
+        [key: string]: number;
+    };
+    /**
+     * Num Threads
+     *
+     * The mean + stddev for number of threads
+     */
+    num_threads?: {
+        [key: string]: number | number;
+    };
+    /**
+     * Data Read
+     *
+     * The mean + stddev
+     */
+    data_read?: {
+        [key: string]: number | number;
+    };
+    /**
+     * Data Written
+     *
+     * The mean + stddev
+     */
+    data_written?: {
+        [key: string]: number | number;
+    };
+    /**
+     * Data Cancelled
+     *
+     * The mean + stddev
+     */
+    data_cancelled?: {
+        [key: string]: number | number;
+    };
+    /**
+     * Requested Cpus
+     *
+     * Requested cpus
+     */
+    requested_cpus?: number;
+    /**
+     * Requested Memory Per Node
+     *
+     * Requested memory per node in KiB
+     */
+    requested_memory_per_node?: number;
+    /**
+     * Requested Gpus
+     *
+     * Requested gpus
+     */
+    requested_gpus?: number;
+    /**
+     * Used Gpu Uuids
+     *
+     * List of used gpus (by uuid)
+     */
+    used_gpu_uuids?: Array<string>;
+    /**
+     * Nodes
+     *
+     * List of used nodes
+     */
+    nodes?: Array<string>;
+    /**
+     * Warnings
+     *
+     * List of warnings
+     */
+    warnings?: Array<string>;
 };
 
 /**
@@ -802,6 +923,32 @@ export type NodeStateResponse = {
 };
 
 /**
+ * OAuthSettings
+ */
+export type OAuthSettings = {
+    /**
+     * Required
+     */
+    required?: boolean;
+    /**
+     * Client
+     */
+    client?: string;
+    /**
+     * Client Secret
+     */
+    client_secret?: string;
+    /**
+     * Url
+     */
+    url?: string;
+    /**
+     * Realm
+     */
+    realm?: string;
+};
+
+/**
  * PartitionResponse
  */
 export type PartitionResponse = {
@@ -886,6 +1033,20 @@ export type PartitionResponse = {
 };
 
 /**
+ * PrefetchSettings
+ */
+export type PrefetchSettings = {
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Interval
+     */
+    interval?: number;
+};
+
+/**
  * ProcessPoint
  */
 export type ProcessPoint = {
@@ -933,6 +1094,16 @@ export type QueriesResponse = {
      * List of available predefined queries
      */
     queries: Array<string>;
+};
+
+/**
+ * Roles
+ */
+export type Roles = {
+    /**
+     * Roles
+     */
+    roles?: Array<string>;
 };
 
 /**
@@ -1239,6 +1410,90 @@ export type SystemProcessTimeseriesResponse = {
 };
 
 /**
+ * TokenPayload
+ */
+export type TokenPayload = {
+    /**
+     * Exp
+     */
+    exp: number;
+    /**
+     * Iat
+     */
+    iat: number;
+    /**
+     * Jti
+     */
+    jti: string;
+    /**
+     * Iss
+     */
+    iss: string;
+    /**
+     * Aud
+     */
+    aud: string;
+    /**
+     * Sub
+     */
+    sub: string;
+    /**
+     * Typ
+     */
+    typ: string;
+    /**
+     * Azp
+     */
+    azp: string;
+    /**
+     * Sid
+     */
+    sid: string;
+    /**
+     * Acr
+     */
+    acr: number;
+    /**
+     * Auth Time
+     */
+    auth_time?: number | null;
+    /**
+     * Allowed-Origins
+     */
+    'allowed-origins'?: Array<string>;
+    realm_access: Roles;
+    resource_access: Account;
+    /**
+     * Scope
+     */
+    scope: string;
+    /**
+     * Email Verified
+     */
+    email_verified: boolean;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Preferred Username
+     */
+    preferred_username: string;
+    /**
+     * Given Name
+     */
+    given_name: string;
+    /**
+     * Family Name
+     */
+    family_name: string;
+    /**
+     * Email
+     */
+    email: string;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -1284,40 +1539,11 @@ export type GetClearCacheResponses = {
     200: unknown;
 };
 
-export type GetClusterData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Time In S
-         */
-        time_in_s?: number | null;
-    };
-    url: '/cluster';
-};
-
-export type GetClusterErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetClusterError = GetClusterErrors[keyof GetClusterErrors];
-
-export type GetClusterResponses = {
-    /**
-     * Response Cluster Cluster Get
-     *
-     * Successful Response
-     */
-    200: Array<ClusterResponse>;
-};
-
-export type GetClusterResponse = GetClusterResponses[keyof GetClusterResponses];
-
 export type GetClusterByClusterPartitionsData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1353,8 +1579,271 @@ export type GetClusterByClusterPartitionsResponses = {
 
 export type GetClusterByClusterPartitionsResponse = GetClusterByClusterPartitionsResponses[keyof GetClusterByClusterPartitionsResponses];
 
-export type GetClusterByClusterNodesData = {
+export type GetUserData = {
     body?: never;
+    path?: never;
+    query?: never;
+    url: '/user';
+};
+
+export type GetUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: TokenPayload;
+};
+
+export type GetUserResponse = GetUserResponses[keyof GetUserResponses];
+
+export type GetJobqueryData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Cluster
+         */
+        cluster?: string | null;
+        /**
+         * User
+         */
+        user?: string;
+        /**
+         * Host
+         */
+        host?: string;
+        /**
+         * Job Id
+         */
+        job_id?: string;
+        /**
+         * To
+         */
+        to?: string;
+        /**
+         * From
+         */
+        from?: string;
+        /**
+         * Fmt
+         */
+        fmt?: string;
+    };
+    url: '/jobquery';
+};
+
+export type GetJobqueryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetJobqueryError = GetJobqueryErrors[keyof GetJobqueryErrors];
+
+export type GetJobqueryResponses = {
+    /**
+     * Response Dashboard Job Query Jobquery Get
+     *
+     * Successful Response
+     */
+    200: Array<JobQueryResultItem>;
+};
+
+export type GetJobqueryResponse = GetJobqueryResponses[keyof GetJobqueryResponses];
+
+export type GetJobprofileData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Cluster
+         */
+        cluster?: string | null;
+        /**
+         * User
+         */
+        user?: string;
+        /**
+         * Host
+         */
+        host?: string;
+        /**
+         * Job
+         */
+        job?: number;
+        /**
+         * To
+         */
+        to?: string;
+        /**
+         * From
+         */
+        from?: string;
+        /**
+         * Fmt
+         */
+        fmt?: string;
+    };
+    url: '/jobprofile';
+};
+
+export type GetJobprofileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetJobprofileError = GetJobprofileErrors[keyof GetJobprofileErrors];
+
+export type GetJobprofileResponses = {
+    /**
+     * Response Dashboard Job Profile Jobprofile Get
+     *
+     * Successful Response
+     */
+    200: Array<JobProfileResultItem>;
+};
+
+export type GetJobprofileResponse = GetJobprofileResponses[keyof GetJobprofileResponses];
+
+export type GetClusterByClusterQueriesData = {
+    body?: never;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/cluster/{cluster}/queries';
+};
+
+export type GetClusterByClusterQueriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterQueriesError = GetClusterByClusterQueriesErrors[keyof GetClusterByClusterQueriesErrors];
+
+export type GetClusterByClusterQueriesResponses = {
+    /**
+     * Successful Response
+     */
+    200: QueriesResponse;
+};
+
+export type GetClusterByClusterQueriesResponse = GetClusterByClusterQueriesResponses[keyof GetClusterByClusterQueriesResponses];
+
+export type GetClusterByClusterQueriesByQueryNameData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+        /**
+         * Query Name
+         */
+        query_name: string;
+    };
+    query?: never;
+    url: '/cluster/{cluster}/queries/{query_name}';
+};
+
+export type GetClusterByClusterQueriesByQueryNameErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterQueriesByQueryNameError = GetClusterByClusterQueriesByQueryNameErrors[keyof GetClusterByClusterQueriesByQueryNameErrors];
+
+export type GetClusterByClusterQueriesByQueryNameResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetClusterByClusterBenchmarksByBenchmarkNameData = {
+    body?: never;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+        /**
+         * Benchmark Name
+         */
+        benchmark_name: string;
+    };
+    query?: never;
+    url: '/cluster/{cluster}/benchmarks/{benchmark_name}';
+};
+
+export type GetClusterByClusterBenchmarksByBenchmarkNameErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterBenchmarksByBenchmarkNameError = GetClusterByClusterBenchmarksByBenchmarkNameErrors[keyof GetClusterByClusterBenchmarksByBenchmarkNameErrors];
+
+export type GetClusterByClusterBenchmarksByBenchmarkNameResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetClusterData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path?: never;
+    query?: {
+        /**
+         * Time In S
+         */
+        time_in_s?: number | null;
+    };
+    url: '/cluster';
+};
+
+export type GetClusterErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterError = GetClusterErrors[keyof GetClusterErrors];
+
+export type GetClusterResponses = {
+    /**
+     * Response Cluster Cluster Get
+     *
+     * Successful Response
+     */
+    200: Array<ClusterResponse>;
+};
+
+export type GetClusterResponse = GetClusterResponses[keyof GetClusterResponses];
+
+export type GetClusterByClusterNodesData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1391,7 +1880,10 @@ export type GetClusterByClusterNodesResponses = {
 export type GetClusterByClusterNodesResponse = GetClusterByClusterNodesResponses[keyof GetClusterByClusterNodesResponses];
 
 export type GetClusterByClusterNodesByNodenameErrorMessagesData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1434,7 +1926,10 @@ export type GetClusterByClusterNodesByNodenameErrorMessagesResponses = {
 export type GetClusterByClusterNodesByNodenameErrorMessagesResponse = GetClusterByClusterNodesByNodenameErrorMessagesResponses[keyof GetClusterByClusterNodesByNodenameErrorMessagesResponses];
 
 export type GetClusterByClusterErrorMessagesData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1477,7 +1972,10 @@ export type GetClusterByClusterErrorMessagesResponses = {
 export type GetClusterByClusterErrorMessagesResponse = GetClusterByClusterErrorMessagesResponses[keyof GetClusterByClusterErrorMessagesResponses];
 
 export type GetClusterByClusterNodesByNodenameInfoData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1520,7 +2018,10 @@ export type GetClusterByClusterNodesByNodenameInfoResponses = {
 export type GetClusterByClusterNodesByNodenameInfoResponse = GetClusterByClusterNodesByNodenameInfoResponses[keyof GetClusterByClusterNodesByNodenameInfoResponses];
 
 export type GetClusterByClusterNodesInfoData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1563,7 +2064,10 @@ export type GetClusterByClusterNodesInfoResponses = {
 export type GetClusterByClusterNodesInfoResponse = GetClusterByClusterNodesInfoResponses[keyof GetClusterByClusterNodesInfoResponses];
 
 export type GetClusterByClusterNodesByNodenameStatesData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1604,7 +2108,10 @@ export type GetClusterByClusterNodesByNodenameStatesResponses = {
 export type GetClusterByClusterNodesByNodenameStatesResponse = GetClusterByClusterNodesByNodenameStatesResponses[keyof GetClusterByClusterNodesByNodenameStatesResponses];
 
 export type GetClusterByClusterNodesStatesData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1645,7 +2152,10 @@ export type GetClusterByClusterNodesStatesResponses = {
 export type GetClusterByClusterNodesStatesResponse = GetClusterByClusterNodesStatesResponses[keyof GetClusterByClusterNodesStatesResponses];
 
 export type GetClusterByClusterNodesByNodenameTopologyData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1677,7 +2187,10 @@ export type GetClusterByClusterNodesByNodenameTopologyResponses = {
 };
 
 export type GetClusterByClusterNodesLastProbeTimestampData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1716,7 +2229,10 @@ export type GetClusterByClusterNodesLastProbeTimestampResponses = {
 export type GetClusterByClusterNodesLastProbeTimestampResponse = GetClusterByClusterNodesLastProbeTimestampResponses[keyof GetClusterByClusterNodesLastProbeTimestampResponses];
 
 export type GetClusterByClusterNodesProcessGpuUtilData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1759,7 +2275,10 @@ export type GetClusterByClusterNodesProcessGpuUtilResponses = {
 export type GetClusterByClusterNodesProcessGpuUtilResponse = GetClusterByClusterNodesProcessGpuUtilResponses[keyof GetClusterByClusterNodesProcessGpuUtilResponses];
 
 export type GetClusterByClusterNodesByNodenameProcessGpuUtilData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -1974,246 +2493,6 @@ export type GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponses = {
 };
 
 export type GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponse = GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponses[keyof GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponses];
-
-export type GetClusterByClusterJobsByJobIdProcessTimeseriesData = {
-    /**
-     * App Settings
-     */
-    body?: AppSettings | null;
-    path: {
-        /**
-         * Cluster
-         */
-        cluster: string;
-        /**
-         * Job Id
-         */
-        job_id: number | null;
-    };
-    query?: {
-        /**
-         * Epoch
-         */
-        epoch?: number;
-        /**
-         * Nodename
-         */
-        nodename?: string | null;
-        /**
-         * Start Time In S
-         */
-        start_time_in_s?: number | null;
-        /**
-         * End Time In S
-         */
-        end_time_in_s?: number | null;
-        /**
-         * Resolution In S
-         */
-        resolution_in_s?: number | null;
-    };
-    url: '/cluster/{cluster}/jobs/{job_id}/process/timeseries';
-};
-
-export type GetClusterByClusterJobsByJobIdProcessTimeseriesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetClusterByClusterJobsByJobIdProcessTimeseriesError = GetClusterByClusterJobsByJobIdProcessTimeseriesErrors[keyof GetClusterByClusterJobsByJobIdProcessTimeseriesErrors];
-
-export type GetClusterByClusterJobsByJobIdProcessTimeseriesResponses = {
-    /**
-     * Response Job Sample Process System Cluster  Cluster  Jobs  Job Id  Process Timeseries Get
-     *
-     * Successful Response
-     */
-    200: Array<SystemProcessTimeseriesResponse>;
-};
-
-export type GetClusterByClusterJobsByJobIdProcessTimeseriesResponse = GetClusterByClusterJobsByJobIdProcessTimeseriesResponses[keyof GetClusterByClusterJobsByJobIdProcessTimeseriesResponses];
-
-export type GetClusterByClusterJobsProcessTimeseriesData = {
-    /**
-     * App Settings
-     */
-    body?: AppSettings | null;
-    path: {
-        /**
-         * Cluster
-         */
-        cluster: string;
-    };
-    query?: {
-        /**
-         * Job Id
-         */
-        job_id?: number | null;
-        /**
-         * Epoch
-         */
-        epoch?: number;
-        /**
-         * Nodename
-         */
-        nodename?: string | null;
-        /**
-         * Start Time In S
-         */
-        start_time_in_s?: number | null;
-        /**
-         * End Time In S
-         */
-        end_time_in_s?: number | null;
-        /**
-         * Resolution In S
-         */
-        resolution_in_s?: number | null;
-    };
-    url: '/cluster/{cluster}/jobs/process/timeseries';
-};
-
-export type GetClusterByClusterJobsProcessTimeseriesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetClusterByClusterJobsProcessTimeseriesError = GetClusterByClusterJobsProcessTimeseriesErrors[keyof GetClusterByClusterJobsProcessTimeseriesErrors];
-
-export type GetClusterByClusterJobsProcessTimeseriesResponses = {
-    /**
-     * Response Job Sample Process System Cluster  Cluster  Jobs Process Timeseries Get
-     *
-     * Successful Response
-     */
-    200: Array<SystemProcessTimeseriesResponse>;
-};
-
-export type GetClusterByClusterJobsProcessTimeseriesResponse = GetClusterByClusterJobsProcessTimeseriesResponses[keyof GetClusterByClusterJobsProcessTimeseriesResponses];
-
-export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData = {
-    /**
-     * App Settings
-     */
-    body?: AppSettings | null;
-    path: {
-        /**
-         * Cluster
-         */
-        cluster: string;
-        /**
-         * Job Id
-         */
-        job_id: number | null;
-    };
-    query?: {
-        /**
-         * Epoch
-         */
-        epoch?: number;
-        /**
-         * Nodename
-         */
-        nodename?: string | null;
-        /**
-         * Start Time In S
-         */
-        start_time_in_s?: number | null;
-        /**
-         * End Time In S
-         */
-        end_time_in_s?: number | null;
-        /**
-         * Resolution In S
-         */
-        resolution_in_s?: number | null;
-    };
-    url: '/cluster/{cluster}/jobs/{job_id}/process/gpu/timeseries';
-};
-
-export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesError = GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors[keyof GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors];
-
-export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses = {
-    /**
-     * Response Job Sample Process Gpu Timeseries Cluster  Cluster  Jobs  Job Id  Process Gpu Timeseries Get
-     *
-     * Successful Response
-     */
-    200: Array<JobNodeSampleProcessGpuTimeseriesResponse>;
-};
-
-export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponse = GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses[keyof GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses];
-
-export type GetClusterByClusterJobsProcessGpuTimeseriesData = {
-    /**
-     * App Settings
-     */
-    body?: AppSettings | null;
-    path: {
-        /**
-         * Cluster
-         */
-        cluster: string;
-    };
-    query?: {
-        /**
-         * Job Id
-         */
-        job_id?: number | null;
-        /**
-         * Epoch
-         */
-        epoch?: number;
-        /**
-         * Nodename
-         */
-        nodename?: string | null;
-        /**
-         * Start Time In S
-         */
-        start_time_in_s?: number | null;
-        /**
-         * End Time In S
-         */
-        end_time_in_s?: number | null;
-        /**
-         * Resolution In S
-         */
-        resolution_in_s?: number | null;
-    };
-    url: '/cluster/{cluster}/jobs/process/gpu/timeseries';
-};
-
-export type GetClusterByClusterJobsProcessGpuTimeseriesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetClusterByClusterJobsProcessGpuTimeseriesError = GetClusterByClusterJobsProcessGpuTimeseriesErrors[keyof GetClusterByClusterJobsProcessGpuTimeseriesErrors];
-
-export type GetClusterByClusterJobsProcessGpuTimeseriesResponses = {
-    /**
-     * Response Job Sample Process Gpu Timeseries Cluster  Cluster  Jobs Process Gpu Timeseries Get
-     *
-     * Successful Response
-     */
-    200: Array<JobNodeSampleProcessGpuTimeseriesResponse>;
-};
-
-export type GetClusterByClusterJobsProcessGpuTimeseriesResponse = GetClusterByClusterJobsProcessGpuTimeseriesResponses[keyof GetClusterByClusterJobsProcessGpuTimeseriesResponses];
 
 export type GetClusterByClusterNodesMemoryTimeseriesData = {
     /**
@@ -2531,8 +2810,251 @@ export type GetClusterByClusterNodesByNodenameGpuTimeseriesResponses = {
 
 export type GetClusterByClusterNodesByNodenameGpuTimeseriesResponse = GetClusterByClusterNodesByNodenameGpuTimeseriesResponses[keyof GetClusterByClusterNodesByNodenameGpuTimeseriesResponses];
 
+export type GetClusterByClusterJobsByJobIdProcessTimeseriesData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+        /**
+         * Job Id
+         */
+        job_id: number | null;
+    };
+    query?: {
+        /**
+         * Epoch
+         */
+        epoch?: number;
+        /**
+         * Nodename
+         */
+        nodename?: string | null;
+        /**
+         * Start Time In S
+         */
+        start_time_in_s?: number | null;
+        /**
+         * End Time In S
+         */
+        end_time_in_s?: number | null;
+        /**
+         * Resolution In S
+         */
+        resolution_in_s?: number | null;
+    };
+    url: '/cluster/{cluster}/jobs/{job_id}/process/timeseries';
+};
+
+export type GetClusterByClusterJobsByJobIdProcessTimeseriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterJobsByJobIdProcessTimeseriesError = GetClusterByClusterJobsByJobIdProcessTimeseriesErrors[keyof GetClusterByClusterJobsByJobIdProcessTimeseriesErrors];
+
+export type GetClusterByClusterJobsByJobIdProcessTimeseriesResponses = {
+    /**
+     * Response Job Sample Process System Cluster  Cluster  Jobs  Job Id  Process Timeseries Get
+     *
+     * Successful Response
+     */
+    200: Array<SystemProcessTimeseriesResponse>;
+};
+
+export type GetClusterByClusterJobsByJobIdProcessTimeseriesResponse = GetClusterByClusterJobsByJobIdProcessTimeseriesResponses[keyof GetClusterByClusterJobsByJobIdProcessTimeseriesResponses];
+
+export type GetClusterByClusterJobsProcessTimeseriesData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+    };
+    query?: {
+        /**
+         * Job Id
+         */
+        job_id?: number | null;
+        /**
+         * Epoch
+         */
+        epoch?: number;
+        /**
+         * Nodename
+         */
+        nodename?: string | null;
+        /**
+         * Start Time In S
+         */
+        start_time_in_s?: number | null;
+        /**
+         * End Time In S
+         */
+        end_time_in_s?: number | null;
+        /**
+         * Resolution In S
+         */
+        resolution_in_s?: number | null;
+    };
+    url: '/cluster/{cluster}/jobs/process/timeseries';
+};
+
+export type GetClusterByClusterJobsProcessTimeseriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterJobsProcessTimeseriesError = GetClusterByClusterJobsProcessTimeseriesErrors[keyof GetClusterByClusterJobsProcessTimeseriesErrors];
+
+export type GetClusterByClusterJobsProcessTimeseriesResponses = {
+    /**
+     * Response Job Sample Process System Cluster  Cluster  Jobs Process Timeseries Get
+     *
+     * Successful Response
+     */
+    200: Array<SystemProcessTimeseriesResponse>;
+};
+
+export type GetClusterByClusterJobsProcessTimeseriesResponse = GetClusterByClusterJobsProcessTimeseriesResponses[keyof GetClusterByClusterJobsProcessTimeseriesResponses];
+
+export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+        /**
+         * Job Id
+         */
+        job_id: number | null;
+    };
+    query?: {
+        /**
+         * Epoch
+         */
+        epoch?: number;
+        /**
+         * Nodename
+         */
+        nodename?: string | null;
+        /**
+         * Start Time In S
+         */
+        start_time_in_s?: number | null;
+        /**
+         * End Time In S
+         */
+        end_time_in_s?: number | null;
+        /**
+         * Resolution In S
+         */
+        resolution_in_s?: number | null;
+    };
+    url: '/cluster/{cluster}/jobs/{job_id}/process/gpu/timeseries';
+};
+
+export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesError = GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors[keyof GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors];
+
+export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses = {
+    /**
+     * Response Job Sample Process Gpu Timeseries Cluster  Cluster  Jobs  Job Id  Process Gpu Timeseries Get
+     *
+     * Successful Response
+     */
+    200: Array<JobNodeSampleProcessGpuTimeseriesResponse>;
+};
+
+export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponse = GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses[keyof GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses];
+
+export type GetClusterByClusterJobsProcessGpuTimeseriesData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+    };
+    query?: {
+        /**
+         * Job Id
+         */
+        job_id?: number | null;
+        /**
+         * Epoch
+         */
+        epoch?: number;
+        /**
+         * Nodename
+         */
+        nodename?: string | null;
+        /**
+         * Start Time In S
+         */
+        start_time_in_s?: number | null;
+        /**
+         * End Time In S
+         */
+        end_time_in_s?: number | null;
+        /**
+         * Resolution In S
+         */
+        resolution_in_s?: number | null;
+    };
+    url: '/cluster/{cluster}/jobs/process/gpu/timeseries';
+};
+
+export type GetClusterByClusterJobsProcessGpuTimeseriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterJobsProcessGpuTimeseriesError = GetClusterByClusterJobsProcessGpuTimeseriesErrors[keyof GetClusterByClusterJobsProcessGpuTimeseriesErrors];
+
+export type GetClusterByClusterJobsProcessGpuTimeseriesResponses = {
+    /**
+     * Response Job Sample Process Gpu Timeseries Cluster  Cluster  Jobs Process Gpu Timeseries Get
+     *
+     * Successful Response
+     */
+    200: Array<JobNodeSampleProcessGpuTimeseriesResponse>;
+};
+
+export type GetClusterByClusterJobsProcessGpuTimeseriesResponse = GetClusterByClusterJobsProcessGpuTimeseriesResponses[keyof GetClusterByClusterJobsProcessGpuTimeseriesResponses];
+
 export type GetClusterByClusterJobsData = {
-    body?: never;
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -2806,8 +3328,11 @@ export type GetClusterByClusterJobsByJobIdResponses = {
 
 export type GetClusterByClusterJobsByJobIdResponse = GetClusterByClusterJobsByJobIdResponses[keyof GetClusterByClusterJobsByJobIdResponses];
 
-export type GetClusterByClusterJobsQueryData = {
-    body?: never;
+export type GetClusterByClusterQueryJobsData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
     path: {
         /**
          * Cluster
@@ -2868,227 +3393,63 @@ export type GetClusterByClusterJobsQueryData = {
          */
         limit?: number;
     };
-    url: '/cluster/{cluster}/jobs/query';
+    url: '/cluster/{cluster}/query/jobs';
 };
 
-export type GetClusterByClusterJobsQueryErrors = {
+export type GetClusterByClusterQueryJobsErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetClusterByClusterJobsQueryError = GetClusterByClusterJobsQueryErrors[keyof GetClusterByClusterJobsQueryErrors];
+export type GetClusterByClusterQueryJobsError = GetClusterByClusterQueryJobsErrors[keyof GetClusterByClusterQueryJobsErrors];
 
-export type GetClusterByClusterJobsQueryResponses = {
+export type GetClusterByClusterQueryJobsResponses = {
     /**
      * Successful Response
      */
     200: unknown;
 };
 
-export type GetJobqueryData = {
-    body?: never;
-    path?: never;
-    query?: {
+export type GetClusterByClusterJobsByJobIdReportData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
         /**
          * Cluster
          */
-        cluster?: string | null;
-        /**
-         * User
-         */
-        user?: string;
-        /**
-         * Host
-         */
-        host?: string;
+        cluster: string;
         /**
          * Job Id
          */
-        job_id?: string;
-        /**
-         * To
-         */
-        to?: string;
-        /**
-         * From
-         */
-        from?: string;
-        /**
-         * Fmt
-         */
-        fmt?: string;
+        job_id: number;
     };
-    url: '/jobquery';
+    query?: {
+        /**
+         * Time In S
+         */
+        time_in_s?: number | null;
+    };
+    url: '/cluster/{cluster}/jobs/{job_id}/report';
 };
 
-export type GetJobqueryErrors = {
+export type GetClusterByClusterJobsByJobIdReportErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetJobqueryError = GetJobqueryErrors[keyof GetJobqueryErrors];
+export type GetClusterByClusterJobsByJobIdReportError = GetClusterByClusterJobsByJobIdReportErrors[keyof GetClusterByClusterJobsByJobIdReportErrors];
 
-export type GetJobqueryResponses = {
-    /**
-     * Response Dashboard Job Query Jobquery Get
-     *
-     * Successful Response
-     */
-    200: Array<JobQueryResultItem>;
-};
-
-export type GetJobqueryResponse = GetJobqueryResponses[keyof GetJobqueryResponses];
-
-export type GetJobprofileData = {
-    body?: never;
-    path?: never;
-    query: {
-        /**
-         * Cluster
-         */
-        cluster?: string | null;
-        /**
-         * User
-         */
-        user?: string;
-        /**
-         * Host
-         */
-        host?: string;
-        /**
-         * Job
-         */
-        job?: number;
-        /**
-         * To
-         */
-        to?: string;
-        /**
-         * From
-         */
-        from: string;
-        /**
-         * Fmt
-         */
-        fmt?: string;
-    };
-    url: '/jobprofile';
-};
-
-export type GetJobprofileErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetJobprofileError = GetJobprofileErrors[keyof GetJobprofileErrors];
-
-export type GetJobprofileResponses = {
-    /**
-     * Response Dashboard Job Profile Jobprofile Get
-     *
-     * Successful Response
-     */
-    200: Array<JobProfileResultItem>;
-};
-
-export type GetJobprofileResponse = GetJobprofileResponses[keyof GetJobprofileResponses];
-
-export type GetClusterByClusterQueriesData = {
-    body?: never;
-    path: {
-        /**
-         * Cluster
-         */
-        cluster: string;
-    };
-    query?: never;
-    url: '/cluster/{cluster}/queries';
-};
-
-export type GetClusterByClusterQueriesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetClusterByClusterQueriesError = GetClusterByClusterQueriesErrors[keyof GetClusterByClusterQueriesErrors];
-
-export type GetClusterByClusterQueriesResponses = {
+export type GetClusterByClusterJobsByJobIdReportResponses = {
     /**
      * Successful Response
      */
-    200: QueriesResponse;
+    200: JobReport;
 };
 
-export type GetClusterByClusterQueriesResponse = GetClusterByClusterQueriesResponses[keyof GetClusterByClusterQueriesResponses];
-
-export type GetClusterByClusterQueriesByQueryNameData = {
-    body?: never;
-    path: {
-        /**
-         * Cluster
-         */
-        cluster: string;
-        /**
-         * Query Name
-         */
-        query_name: string;
-    };
-    query?: never;
-    url: '/cluster/{cluster}/queries/{query_name}';
-};
-
-export type GetClusterByClusterQueriesByQueryNameErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetClusterByClusterQueriesByQueryNameError = GetClusterByClusterQueriesByQueryNameErrors[keyof GetClusterByClusterQueriesByQueryNameErrors];
-
-export type GetClusterByClusterQueriesByQueryNameResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type GetClusterByClusterBenchmarksByBenchmarkNameData = {
-    body?: never;
-    path: {
-        /**
-         * Cluster
-         */
-        cluster: string;
-        /**
-         * Benchmark Name
-         */
-        benchmark_name: string;
-    };
-    query?: never;
-    url: '/cluster/{cluster}/benchmarks/{benchmark_name}';
-};
-
-export type GetClusterByClusterBenchmarksByBenchmarkNameErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetClusterByClusterBenchmarksByBenchmarkNameError = GetClusterByClusterBenchmarksByBenchmarkNameErrors[keyof GetClusterByClusterBenchmarksByBenchmarkNameErrors];
-
-export type GetClusterByClusterBenchmarksByBenchmarkNameResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
+export type GetClusterByClusterJobsByJobIdReportResponse = GetClusterByClusterJobsByJobIdReportResponses[keyof GetClusterByClusterJobsByJobIdReportResponses];
