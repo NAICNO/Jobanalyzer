@@ -22,8 +22,8 @@ import {
   Portal,
 } from '@chakra-ui/react'
 
-import { getClusterByClusterJobsQueryOptions } from '../../client/@tanstack/react-query.gen'
-import type { JobResponse, GetClusterByClusterJobsQueryData } from '../../client'
+import { getClusterByClusterJobsOptions } from '../../client/@tanstack/react-query.gen'
+import type { JobResponse, GetClusterByClusterJobsData } from '../../client'
 import { JobState } from '../../types/jobStates'
 import { getJobStateColor } from '../../util/formatters'
 
@@ -85,7 +85,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
   }
 
   const [hasSearched, setHasSearched] = useState(false)
-  const [queryParams, setQueryParams] = useState<GetClusterByClusterJobsQueryData['query']>({})
+  const [queryParams, setQueryParams] = useState<GetClusterByClusterJobsData['query']>({})
 
   const formik = useFormik<JobQueryFormValues>({
     initialValues: {
@@ -104,7 +104,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
       maxDuration: '',
     },
     onSubmit: (values) => {
-      const params: GetClusterByClusterJobsQueryData['query'] = {}
+      const params: GetClusterByClusterJobsData['query'] = {}
 
       if (values.user) params.user = values.user
       if (values.userId) params.user_id = parseInt(values.userId)
@@ -155,7 +155,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
   }, [filter, hasSearched])
 
   const jobsQuery = useQuery({
-    ...getClusterByClusterJobsQueryOptions({
+    ...getClusterByClusterJobsOptions({
       path: {cluster: clusterName ?? ''},
       query: queryParams,
       client,
