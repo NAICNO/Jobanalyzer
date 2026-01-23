@@ -102,11 +102,11 @@ export const TimeRangePicker = ({
     const num = parseInt(match[1], 10)
     const unit = match[2]
     switch (unit) {
-      case 'm': return num * 60 * 1000
-      case 'h': return num * 60 * 60 * 1000
-      case 'd': return num * 24 * 60 * 60 * 1000
-      case 'w': return num * 7 * 24 * 60 * 60 * 1000
-      default: return null
+    case 'm': return num * 60 * 1000
+    case 'h': return num * 60 * 60 * 1000
+    case 'd': return num * 24 * 60 * 60 * 1000
+    case 'w': return num * 7 * 24 * 60 * 60 * 1000
+    default: return null
     }
   }
 
@@ -298,364 +298,364 @@ export const TimeRangePicker = ({
         </Menu.Trigger>
         <Menu.Positioner>
           <Menu.Content ref={menuRef} minW="300px" maxH="400px" overflowY="auto">
-          <Box p={1.5}>
-            <VStack align="stretch" gap={1}>
-              {/* Custom Input */}
-              <Box>
-                <Text fontSize="xs" fontWeight="semibold" color="blue.600" mb={1}>
+            <Box p={1.5}>
+              <VStack align="stretch" gap={1}>
+                {/* Custom Input */}
+                <Box>
+                  <Text fontSize="xs" fontWeight="semibold" color="blue.600" mb={1}>
                 Relative time (15m, 1h, 1d, 1w)
-                </Text>
-                <HStack>
-                  <Input
-                    size="xs"
-                    placeholder="e.g., 2h, 3d, 1w"
-                    value={customInput}
-                    onChange={(e) => setCustomInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleCustomInput()
-                      }
-                    }}
-                  />
-                </HStack>
-              </Box>
-
-              <Separator my={0.5} />
-
-              {/* Relative Time Ranges */}
-              <VStack align="stretch" gap={0}>
-                {relativeTimeRanges.map((range) => (
-                  <Menu.Item
-                    key={range.value}
-                    value={range.value}
-                    onClick={() => handleSelectRange(range)}
-                    bg={selectedRange.value === range.value ? 'blue.50' : 'white'}
-                    _hover={{ bg: 'gray.50' }}
-                    cursor="pointer"
-                    py={1}
-                    px={2}
-                    rounded="sm"
-                  >
-                    <HStack justify="space-between" w="100%">
-                      <Text fontSize="xs">{range.label}</Text>
-                      <Text fontSize="xs" color="gray.500" fontFamily="mono">
-                        {range.value}
-                      </Text>
-                    </HStack>
-                  </Menu.Item>
-                ))}
-              </VStack>
-
-              <Separator my={0.5} />
-
-              {/* Start and End Times */}
-              <Box>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  w="100%"
-                  justifyContent="space-between"
-                  onClick={() => setSidePaneMode('absolute')}
-                  py={1}
-                >
-                  <HStack gap={1.5}>
-                    <Box as={FiCalendar} boxSize={3.5} />
-                    <Text fontSize="xs">Start and end times</Text>
-                  </HStack>
-                  <Box as={FiChevronRight} boxSize={3.5} />
-                </Button>
-              </Box>
-
-              {/* Around a Time */}
-              <Box>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  w="100%"
-                  justifyContent="space-between"
-                  onClick={() => setSidePaneMode('around')}
-                  py={1}
-                >
-                  <HStack gap={1.5}>
-                    <Box as={FiClock} boxSize={3.5} />
-                    <Text fontSize="xs">Around a time</Text>
-                  </HStack>
-                  <Box as={FiChevronRight} boxSize={3.5} />
-                </Button>
-              </Box>
-
-              {/* Timezone */}
-              <Separator my={0.5} />
-              <Box>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  w="100%"
-                  justifyContent="space-between"
-                  py={1}
-                >
-                  <HStack gap={1.5}>
-                    <Box as={FiGlobe} boxSize={3.5} />
-                    <Text fontSize="xs">Time zone: {timezone} (UTC+1)</Text>
-                  </HStack>
-                  <Box as={FiChevronRight} boxSize={3.5} />
-                </Button>
-              </Box>
-            </VStack>
-          </Box>
-        </Menu.Content>
-      </Menu.Positioner>
-
-      {/* Side Pane for Absolute and Around forms */}
-      {sidePaneMode && (
-        <Portal>
-          {/* Backdrop overlay */}
-          <Box
-            position="fixed"
-            top={0}
-            left={0}
-            right={0}
-            bottom={0}
-            bg="blackAlpha.300"
-            zIndex={1499}
-            onClick={() => setSidePaneMode(null)}
-          />
-          {/* Side pane content */}
-          <Box
-            position="fixed"
-            top={`${sidePanePosition.top}px`}
-            left={sidePanePosition.left !== undefined ? `${sidePanePosition.left}px` : undefined}
-            right={sidePanePosition.right !== undefined ? `${sidePanePosition.right}px` : undefined}
-            bg="white"
-            boxShadow="0 4px 12px rgba(0,0,0,0.15)"
-            rounded="md"
-            w="340px"
-            maxH="70vh"
-            overflowY="auto"
-            zIndex={1500}
-            p={2.5}
-          >
-            <VStack align="stretch" gap={1.5}>
-              <Text fontSize="sm" fontWeight="semibold">
-                {sidePaneMode === 'absolute' ? 'Start and end times' : 'Around a time'}
-              </Text>
-
-              {sidePaneMode === 'absolute' ? (
-                <>
-                  {/* Start time */}
-                  <VStack align="stretch" gap={1}>
-                    <Text fontWeight="semibold" fontSize="sm">Start time</Text>
-                    <Field.Root>
-                      <Field.Label fontSize="xs">Date</Field.Label>
-                      <Input
-                        type="date"
-                        size="sm"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        onPaste={(e) => {
-                          const text = e.clipboardData.getData('text')
-                          const d = new Date(text)
-                          if (!isNaN(d.getTime())) {
-                            e.preventDefault()
-                            const yyyy = d.getFullYear()
-                            const mm = String(d.getMonth() + 1).padStart(2, '0')
-                            const dd = String(d.getDate()).padStart(2, '0')
-                            const hh = String(d.getHours()).padStart(2, '0')
-                            const mi = String(d.getMinutes()).padStart(2, '0')
-                            const ss = String(d.getSeconds()).padStart(2, '0')
-                            setStartDate(`${yyyy}-${mm}-${dd}`)
-                            setStartTime(`${hh}:${mi}:${ss}`)
-                          }
-                        }}
-                      />
-                    </Field.Root>
-                    <HStack gap={2}>
-                      <Input
-                        type="time"
-                        step={1}
-                        size="sm"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                      />
-                      <Box borderWidth="1px" rounded="sm" px={1.5} py={0.5} fontSize="xs" color="gray.600">
-                        {timezone}
-                      </Box>
-                    </HStack>
-                  </VStack>
-
-                  {/* End time */}
-                  <VStack align="stretch" gap={1}>
-                    <Text fontWeight="semibold" fontSize="sm">End time</Text>
-                    <Field.Root>
-                      <Field.Label fontSize="xs">Date</Field.Label>
-                      <Input
-                        type="date"
-                        size="sm"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        onPaste={(e) => {
-                          const text = e.clipboardData.getData('text')
-                          const d = new Date(text)
-                          if (!isNaN(d.getTime())) {
-                            e.preventDefault()
-                            const yyyy = d.getFullYear()
-                            const mm = String(d.getMonth() + 1).padStart(2, '0')
-                            const dd = String(d.getDate()).padStart(2, '0')
-                            const hh = String(d.getHours()).padStart(2, '0')
-                            const mi = String(d.getMinutes()).padStart(2, '0')
-                            const ss = String(d.getSeconds()).padStart(2, '0')
-                            setEndDate(`${yyyy}-${mm}-${dd}`)
-                            setEndTime(`${hh}:${mi}:${ss}`)
-                          }
-                        }}
-                      />
-                    </Field.Root>
-                    <HStack gap={2}>
-                      <Input
-                        type="time"
-                        step={1}
-                        size="sm"
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
-                      />
-                      <Box borderWidth="1px" rounded="sm" px={1.5} py={0.5} fontSize="xs" color="gray.600">
-                        {timezone}
-                      </Box>
-                    </HStack>
-                  </VStack>
-
-                  {/* Actions */}
-                  <HStack justify="end" gap={2} pt={2}>
-                    <Button variant="ghost" size="sm" onClick={() => setSidePaneMode(null)}>Cancel</Button>
-                    <Button
-                      size="sm"
-                      colorPalette="blue"
-                      onClick={handleAbsoluteRange}
-                      disabled={!startDate || !startTime || !endDate || !endTime}
-                    >
-                      Apply
-                    </Button>
-                  </HStack>
-
-                  {/* Tip */}
-                  <HStack align="start" gap={1.5} p={2} bg="gray.50" rounded="sm">
-                    <Box as={FiInfo} boxSize={3.5} mt={0.5} color="gray.600" />
-                    <Text fontSize="xs" color="gray.700">
-                      Tip: Paste ISO 8601 timestamps into date/time fields (e.g., 2025-10-26T23:51:49.902Z)
-                    </Text>
-                  </HStack>
-
-                  {/* Change format */}
-                  <Button variant="plain" colorPalette="blue" justifyContent="flex-start" px={0} size="sm">
-                    <HStack gap={1.5}>
-                      <Box as={FiPlusCircle} boxSize={3.5} />
-                      <Text fontSize="xs">Change date & time format</Text>
-                      <Box as={FiExternalLink} boxSize={3} />
-                    </HStack>
-                  </Button>
-                </>
-              ) : (
-                <>
-                  {/* Around a time form */}
-                  <Text fontWeight="semibold" fontSize="sm">Around a time</Text>
-                  <Field.Root>
-                    <Field.Label fontSize="xs">Date</Field.Label>
+                  </Text>
+                  <HStack>
                     <Input
-                      type="date"
-                      size="sm"
-                      value={aroundDate}
-                      onChange={(e) => setAroundDate(e.target.value)}
-                      onPaste={(e) => {
-                        const text = e.clipboardData.getData('text')
-                        const d = new Date(text)
-                        if (!isNaN(d.getTime())) {
-                          e.preventDefault()
-                          const yyyy = d.getFullYear()
-                          const mm = String(d.getMonth() + 1).padStart(2, '0')
-                          const dd = String(d.getDate()).padStart(2, '0')
-                          const hh = String(d.getHours()).padStart(2, '0')
-                          const mi = String(d.getMinutes()).padStart(2, '0')
-                          const ss = String(d.getSeconds()).padStart(2, '0')
-                          setAroundDate(`${yyyy}-${mm}-${dd}`)
-                          setAroundClock(`${hh}:${mi}:${ss}`)
+                      size="xs"
+                      placeholder="e.g., 2h, 3d, 1w"
+                      value={customInput}
+                      onChange={(e) => setCustomInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCustomInput()
                         }
                       }}
                     />
-                  </Field.Root>
-                  <HStack gap={2}>
-                    <Input
-                      type="time"
-                      step={1}
-                      size="sm"
-                      value={aroundClock}
-                      onChange={(e) => setAroundClock(e.target.value)}
-                    />
-                    <Box borderWidth="1px" rounded="sm" px={1.5} py={0.5} fontSize="xs" color="gray.600">
-                      {timezone}
-                    </Box>
                   </HStack>
+                </Box>
 
-                  <Field.Root>
-                    <Field.Label fontSize="xs">Duration</Field.Label>
-                    <select
-                      value={aroundDurationMin}
-                      onChange={(e) => setAroundDurationMin(Number(e.target.value))}
-                      style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--chakra-colors-gray-200)' }}
+                <Separator my={0.5} />
+
+                {/* Relative Time Ranges */}
+                <VStack align="stretch" gap={0}>
+                  {relativeTimeRanges.map((range) => (
+                    <Menu.Item
+                      key={range.value}
+                      value={range.value}
+                      onClick={() => handleSelectRange(range)}
+                      bg={selectedRange.value === range.value ? 'blue.50' : 'white'}
+                      _hover={{ bg: 'gray.50' }}
+                      cursor="pointer"
+                      py={1}
+                      px={2}
+                      rounded="sm"
                     >
-                      {durationOptions.map((opt) => (
-                        <option key={opt.value} value={opt.minutes}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </Field.Root>
+                      <HStack justify="space-between" w="100%">
+                        <Text fontSize="xs">{range.label}</Text>
+                        <Text fontSize="xs" color="gray.500" fontFamily="mono">
+                          {range.value}
+                        </Text>
+                      </HStack>
+                    </Menu.Item>
+                  ))}
+                </VStack>
 
-                  {/* Actions */}
-                  <HStack justify="end" gap={2} pt={2}>
-                    <Button variant="ghost" size="sm" onClick={() => setSidePaneMode(null)}>Cancel</Button>
-                    <Button
-                      size="sm"
-                      colorPalette="blue"
-                      onClick={handleAroundTime}
-                      disabled={!aroundDate || !aroundClock}
-                    >
-                      Apply
-                    </Button>
-                  </HStack>
+                <Separator my={0.5} />
 
-                  {/* Tip */}
-                  <HStack align="start" gap={1.5} p={2} bg="gray.50" rounded="sm">
-                    <Box as={FiInfo} boxSize={3.5} mt={0.5} color="gray.600" />
-                    <Text fontSize="xs" color="gray.700">
-                      Tip: Paste ISO 8601 timestamps into date/time fields (e.g., 2025-10-26T23:52:32.386Z)
-                    </Text>
-                  </HStack>
-
-                  <Button variant="plain" colorPalette="blue" justifyContent="flex-start" px={0} size="sm">
+                {/* Start and End Times */}
+                <Box>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    w="100%"
+                    justifyContent="space-between"
+                    onClick={() => setSidePaneMode('absolute')}
+                    py={1}
+                  >
                     <HStack gap={1.5}>
-                      <Box as={FiPlusCircle} boxSize={3.5} />
-                      <Text fontSize="xs">Change date & time format</Text>
-                      <Box as={FiExternalLink} boxSize={3} />
+                      <Box as={FiCalendar} boxSize={3.5} />
+                      <Text fontSize="xs">Start and end times</Text>
                     </HStack>
+                    <Box as={FiChevronRight} boxSize={3.5} />
                   </Button>
-                </>
-              )}
-            </VStack>
-          </Box>
-        </Portal>
-      )}
-    </Menu.Root>
+                </Box>
 
-    {/* Next button */}
-    <Button
-      variant="outline"
-      size="sm"
-      px={2}
-      borderLeftRadius={0}
-      borderLeftWidth={0}
-      onClick={() => handleNavigate('next')}
-      aria-label="Next time range"
-    >
-      <Box as={FiChevronRight} boxSize={4} />
-    </Button>
-  </HStack>
+                {/* Around a Time */}
+                <Box>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    w="100%"
+                    justifyContent="space-between"
+                    onClick={() => setSidePaneMode('around')}
+                    py={1}
+                  >
+                    <HStack gap={1.5}>
+                      <Box as={FiClock} boxSize={3.5} />
+                      <Text fontSize="xs">Around a time</Text>
+                    </HStack>
+                    <Box as={FiChevronRight} boxSize={3.5} />
+                  </Button>
+                </Box>
+
+                {/* Timezone */}
+                <Separator my={0.5} />
+                <Box>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    w="100%"
+                    justifyContent="space-between"
+                    py={1}
+                  >
+                    <HStack gap={1.5}>
+                      <Box as={FiGlobe} boxSize={3.5} />
+                      <Text fontSize="xs">Time zone: {timezone} (UTC+1)</Text>
+                    </HStack>
+                    <Box as={FiChevronRight} boxSize={3.5} />
+                  </Button>
+                </Box>
+              </VStack>
+            </Box>
+          </Menu.Content>
+        </Menu.Positioner>
+
+        {/* Side Pane for Absolute and Around forms */}
+        {sidePaneMode && (
+          <Portal>
+            {/* Backdrop overlay */}
+            <Box
+              position="fixed"
+              top={0}
+              left={0}
+              right={0}
+              bottom={0}
+              bg="blackAlpha.300"
+              zIndex={1499}
+              onClick={() => setSidePaneMode(null)}
+            />
+            {/* Side pane content */}
+            <Box
+              position="fixed"
+              top={`${sidePanePosition.top}px`}
+              left={sidePanePosition.left !== undefined ? `${sidePanePosition.left}px` : undefined}
+              right={sidePanePosition.right !== undefined ? `${sidePanePosition.right}px` : undefined}
+              bg="white"
+              boxShadow="0 4px 12px rgba(0,0,0,0.15)"
+              rounded="md"
+              w="340px"
+              maxH="70vh"
+              overflowY="auto"
+              zIndex={1500}
+              p={2.5}
+            >
+              <VStack align="stretch" gap={1.5}>
+                <Text fontSize="sm" fontWeight="semibold">
+                  {sidePaneMode === 'absolute' ? 'Start and end times' : 'Around a time'}
+                </Text>
+
+                {sidePaneMode === 'absolute' ? (
+                  <>
+                    {/* Start time */}
+                    <VStack align="stretch" gap={1}>
+                      <Text fontWeight="semibold" fontSize="sm">Start time</Text>
+                      <Field.Root>
+                        <Field.Label fontSize="xs">Date</Field.Label>
+                        <Input
+                          type="date"
+                          size="sm"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          onPaste={(e) => {
+                            const text = e.clipboardData.getData('text')
+                            const d = new Date(text)
+                            if (!isNaN(d.getTime())) {
+                              e.preventDefault()
+                              const yyyy = d.getFullYear()
+                              const mm = String(d.getMonth() + 1).padStart(2, '0')
+                              const dd = String(d.getDate()).padStart(2, '0')
+                              const hh = String(d.getHours()).padStart(2, '0')
+                              const mi = String(d.getMinutes()).padStart(2, '0')
+                              const ss = String(d.getSeconds()).padStart(2, '0')
+                              setStartDate(`${yyyy}-${mm}-${dd}`)
+                              setStartTime(`${hh}:${mi}:${ss}`)
+                            }
+                          }}
+                        />
+                      </Field.Root>
+                      <HStack gap={2}>
+                        <Input
+                          type="time"
+                          step={1}
+                          size="sm"
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                        />
+                        <Box borderWidth="1px" rounded="sm" px={1.5} py={0.5} fontSize="xs" color="gray.600">
+                          {timezone}
+                        </Box>
+                      </HStack>
+                    </VStack>
+
+                    {/* End time */}
+                    <VStack align="stretch" gap={1}>
+                      <Text fontWeight="semibold" fontSize="sm">End time</Text>
+                      <Field.Root>
+                        <Field.Label fontSize="xs">Date</Field.Label>
+                        <Input
+                          type="date"
+                          size="sm"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          onPaste={(e) => {
+                            const text = e.clipboardData.getData('text')
+                            const d = new Date(text)
+                            if (!isNaN(d.getTime())) {
+                              e.preventDefault()
+                              const yyyy = d.getFullYear()
+                              const mm = String(d.getMonth() + 1).padStart(2, '0')
+                              const dd = String(d.getDate()).padStart(2, '0')
+                              const hh = String(d.getHours()).padStart(2, '0')
+                              const mi = String(d.getMinutes()).padStart(2, '0')
+                              const ss = String(d.getSeconds()).padStart(2, '0')
+                              setEndDate(`${yyyy}-${mm}-${dd}`)
+                              setEndTime(`${hh}:${mi}:${ss}`)
+                            }
+                          }}
+                        />
+                      </Field.Root>
+                      <HStack gap={2}>
+                        <Input
+                          type="time"
+                          step={1}
+                          size="sm"
+                          value={endTime}
+                          onChange={(e) => setEndTime(e.target.value)}
+                        />
+                        <Box borderWidth="1px" rounded="sm" px={1.5} py={0.5} fontSize="xs" color="gray.600">
+                          {timezone}
+                        </Box>
+                      </HStack>
+                    </VStack>
+
+                    {/* Actions */}
+                    <HStack justify="end" gap={2} pt={2}>
+                      <Button variant="ghost" size="sm" onClick={() => setSidePaneMode(null)}>Cancel</Button>
+                      <Button
+                        size="sm"
+                        colorPalette="blue"
+                        onClick={handleAbsoluteRange}
+                        disabled={!startDate || !startTime || !endDate || !endTime}
+                      >
+                      Apply
+                      </Button>
+                    </HStack>
+
+                    {/* Tip */}
+                    <HStack align="start" gap={1.5} p={2} bg="gray.50" rounded="sm">
+                      <Box as={FiInfo} boxSize={3.5} mt={0.5} color="gray.600" />
+                      <Text fontSize="xs" color="gray.700">
+                      Tip: Paste ISO 8601 timestamps into date/time fields (e.g., 2025-10-26T23:51:49.902Z)
+                      </Text>
+                    </HStack>
+
+                    {/* Change format */}
+                    <Button variant="plain" colorPalette="blue" justifyContent="flex-start" px={0} size="sm">
+                      <HStack gap={1.5}>
+                        <Box as={FiPlusCircle} boxSize={3.5} />
+                        <Text fontSize="xs">Change date & time format</Text>
+                        <Box as={FiExternalLink} boxSize={3} />
+                      </HStack>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {/* Around a time form */}
+                    <Text fontWeight="semibold" fontSize="sm">Around a time</Text>
+                    <Field.Root>
+                      <Field.Label fontSize="xs">Date</Field.Label>
+                      <Input
+                        type="date"
+                        size="sm"
+                        value={aroundDate}
+                        onChange={(e) => setAroundDate(e.target.value)}
+                        onPaste={(e) => {
+                          const text = e.clipboardData.getData('text')
+                          const d = new Date(text)
+                          if (!isNaN(d.getTime())) {
+                            e.preventDefault()
+                            const yyyy = d.getFullYear()
+                            const mm = String(d.getMonth() + 1).padStart(2, '0')
+                            const dd = String(d.getDate()).padStart(2, '0')
+                            const hh = String(d.getHours()).padStart(2, '0')
+                            const mi = String(d.getMinutes()).padStart(2, '0')
+                            const ss = String(d.getSeconds()).padStart(2, '0')
+                            setAroundDate(`${yyyy}-${mm}-${dd}`)
+                            setAroundClock(`${hh}:${mi}:${ss}`)
+                          }
+                        }}
+                      />
+                    </Field.Root>
+                    <HStack gap={2}>
+                      <Input
+                        type="time"
+                        step={1}
+                        size="sm"
+                        value={aroundClock}
+                        onChange={(e) => setAroundClock(e.target.value)}
+                      />
+                      <Box borderWidth="1px" rounded="sm" px={1.5} py={0.5} fontSize="xs" color="gray.600">
+                        {timezone}
+                      </Box>
+                    </HStack>
+
+                    <Field.Root>
+                      <Field.Label fontSize="xs">Duration</Field.Label>
+                      <select
+                        value={aroundDurationMin}
+                        onChange={(e) => setAroundDurationMin(Number(e.target.value))}
+                        style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--chakra-colors-gray-200)' }}
+                      >
+                        {durationOptions.map((opt) => (
+                          <option key={opt.value} value={opt.minutes}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </Field.Root>
+
+                    {/* Actions */}
+                    <HStack justify="end" gap={2} pt={2}>
+                      <Button variant="ghost" size="sm" onClick={() => setSidePaneMode(null)}>Cancel</Button>
+                      <Button
+                        size="sm"
+                        colorPalette="blue"
+                        onClick={handleAroundTime}
+                        disabled={!aroundDate || !aroundClock}
+                      >
+                      Apply
+                      </Button>
+                    </HStack>
+
+                    {/* Tip */}
+                    <HStack align="start" gap={1.5} p={2} bg="gray.50" rounded="sm">
+                      <Box as={FiInfo} boxSize={3.5} mt={0.5} color="gray.600" />
+                      <Text fontSize="xs" color="gray.700">
+                      Tip: Paste ISO 8601 timestamps into date/time fields (e.g., 2025-10-26T23:52:32.386Z)
+                      </Text>
+                    </HStack>
+
+                    <Button variant="plain" colorPalette="blue" justifyContent="flex-start" px={0} size="sm">
+                      <HStack gap={1.5}>
+                        <Box as={FiPlusCircle} boxSize={3.5} />
+                        <Text fontSize="xs">Change date & time format</Text>
+                        <Box as={FiExternalLink} boxSize={3} />
+                      </HStack>
+                    </Button>
+                  </>
+                )}
+              </VStack>
+            </Box>
+          </Portal>
+        )}
+      </Menu.Root>
+
+      {/* Next button */}
+      <Button
+        variant="outline"
+        size="sm"
+        px={2}
+        borderLeftRadius={0}
+        borderLeftWidth={0}
+        onClick={() => handleNavigate('next')}
+        aria-label="Next time range"
+      >
+        <Box as={FiChevronRight} boxSize={4} />
+      </Button>
+    </HStack>
   )
 }

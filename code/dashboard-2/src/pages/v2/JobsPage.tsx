@@ -327,7 +327,7 @@ export const JobsPage = () => {
             rowSelection="single"
             animateRows={true}
             enableCellTextSelection={true}
-            onRowClicked={(event) => {
+            onRowDoubleClicked={(event) => {
               if (event.data?.job_id) {
                 navigate(`/v2/${clusterName}/jobs/${event.data.job_id}`)
               }
