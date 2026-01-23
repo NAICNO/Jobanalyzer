@@ -1,30 +1,56 @@
-import { useMemo } from 'react'
-import { Box, Text, VStack, HStack, Spinner, Alert, Badge, SimpleGrid, Card, Separator } from '@chakra-ui/react'
-import { useParams } from 'react-router'
+import { useMemo, lazy, Suspense, useState, useEffect } from 'react'
+import { Box, Text, VStack, HStack, Spinner, Alert, Badge, SimpleGrid, Separator, Stat, Tabs, Tooltip, Icon } from '@chakra-ui/react'
+import { useParams, useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
+import { HiInformationCircle } from 'react-icons/hi2'
 
-import { getClusterByClusterJobsByJobIdOptions } from '../../client/@tanstack/react-query.gen'
+import { getClusterByClusterJobsByJobIdOptions, getClusterByClusterJobsByJobIdReportOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { formatDuration, formatMemory, getJobStateColor } from '../../util/formatters'
+import { JobStatCard } from '../../components/v2/JobStatCard'
+import { NavigateBackButton } from '../../components/NavigateBackButton'
+
+// Lazy load tab components for better initial load performance
+const OverviewTab = lazy(() => import('../../components/v2/OverviewTab').then(m => ({ default: m.OverviewTab })))
+const PerformanceMetricsTab = lazy(() => import('../../components/v2/PerformanceMetricsTab').then(m => ({ default: m.PerformanceMetricsTab })))
+const ResourceTimelineTab = lazy(() => import('../../components/v2/ResourceTimelineTab').then(m => ({ default: m.ResourceTimelineTab })))
+const GpuPerformanceTab = lazy(() => import('../../components/v2/GpuPerformanceTab').then(m => ({ default: m.GpuPerformanceTab })))
 
 export const JobDetailsPage = () => {
   const { clusterName, jobId } = useParams<{ clusterName: string; jobId: string }>()
   const client = useClusterClient(clusterName)
+  const location = useLocation()
+  const [activeTab, setActiveTab] = useState('overview')
 
   const jobIdNum = useMemo(() => {
     const parsed = parseInt(jobId ?? '', 10)
     return isNaN(parsed) ? undefined : parsed
   }, [jobId])
 
-  const { data: job, isLoading, isError, error } = useQuery({
+  const { data: job, isLoading, isError, error, refetch } = useQuery({
     ...getClusterByClusterJobsByJobIdOptions({
-      path: { 
-        cluster: clusterName ?? '', 
-        job_id: jobIdNum ?? 0 
+      path: {
+        cluster: clusterName ?? '',
+        job_id: jobIdNum ?? 0
       },
       client: client ?? undefined,
     }),
     enabled: !!clusterName && !!jobIdNum && !!client,
+    staleTime: 5 * 60 * 1000, // 5 minutes - job details rarely change
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
+  })
+
+  const { data: report, refetch: refetchReport } = useQuery({
+    ...getClusterByClusterJobsByJobIdReportOptions({
+      path: {
+        cluster: clusterName ?? '',
+        job_id: jobIdNum ?? 0
+      },
+      client: client ?? undefined,
+    }),
+    enabled: !!clusterName && !!jobIdNum && !!client,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
   })
 
   const elapsed = useMemo(() => {
@@ -49,6 +75,43 @@ export const JobDetailsPage = () => {
       gresDetail: job?.gres_detail
     }
   }, [job?.requested_resources, job?.allocated_resources, job?.used_gpu_uuids, job?.gres_detail])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      switch (e.key) {
+      case '1':
+        setActiveTab('overview')
+        break
+      case '2':
+        setActiveTab('metrics')
+        break
+      case '3':
+        setActiveTab('timeline')
+        break
+      case '4':
+        // Only switch to GPU tab if GPUs are available
+        if (gpuInfo.uuids.length > 0) {
+          setActiveTab('gpu')
+        }
+        break
+      case 'r':
+      case 'R':
+        // Refresh data
+        void refetch()
+        void refetchReport()
+        break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [gpuInfo.uuids.length, refetch, refetchReport])
 
   // Render loading/error states after all hooks
   if (!client) {
@@ -103,338 +166,177 @@ export const JobDetailsPage = () => {
   }
 
   return (
-    <VStack w="100%" align="start" gap={6} p={6}>
+    <VStack w="100%" align="start" gap={0} p={4}>
       {/* Header */}
-      <VStack align="start" gap={2} w="100%">
-        <HStack gap={3}>
-          <Text fontSize="3xl" fontWeight="bold">
-            Job {job.job_id}
-          </Text>
-          <Badge colorPalette={getJobStateColor(job.job_state)} size="lg">
-            {job.job_state}
-          </Badge>
+      <VStack align="start" w="100%">
+        <HStack gap={3} justify="space-between" w="100%">
+          <HStack gap={3}>
+            {location.key !== 'default' && <NavigateBackButton />}
+            <Text fontSize="3xl" fontWeight="bold">
+              Job {job.job_id}
+            </Text>
+            <Badge colorPalette={getJobStateColor(job.job_state)} size="lg">
+              {job.job_state}
+            </Badge>
+          </HStack>
+          <Tooltip.Root openDelay={200}>
+            <Tooltip.Trigger asChild>
+              <Icon size="md" color="gray.500" cursor="help">
+                <HiInformationCircle />
+              </Icon>
+            </Tooltip.Trigger>
+            <Tooltip.Positioner>
+              <Tooltip.Content maxW="300px">
+                <VStack align="start" gap={2}>
+                  <Text fontSize="xs" fontWeight="semibold">Keyboard Shortcuts</Text>
+                  <Text fontSize="xs">• Press <Badge size="xs">1</Badge> for Overview</Text>
+                  <Text fontSize="xs">• Press <Badge size="xs">2</Badge> for Performance Metrics</Text>
+                  <Text fontSize="xs">• Press <Badge size="xs">3</Badge> for Resource Timeline</Text>
+                  {gpuInfo.uuids.length > 0 && (
+                    <Text fontSize="xs">• Press <Badge size="xs">4</Badge> for GPU Performance</Text>
+                  )}
+                  <Text fontSize="xs">• Press <Badge size="xs">R</Badge> to refresh data</Text>
+                </VStack>
+              </Tooltip.Content>
+            </Tooltip.Positioner>
+          </Tooltip.Root>
         </HStack>
         <Text fontSize="md" color="fg.muted">
           Cluster: {clusterName}
         </Text>
       </VStack>
 
-      {/* Job Information */}
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={4} w="100%">
-        <Card.Root>
-          <Card.Body gap={2}>
-            <Text fontSize="sm" color="fg.muted">Job Name</Text>
-            <Text fontSize="lg" fontWeight="medium">{job.job_name || 'N/A'}</Text>
-          </Card.Body>
-        </Card.Root>
+      {/* Quick Stats - Sticky Header */}
+      <Box
+        position="sticky"
+        top={0}
+        zIndex={10}
+        bg="bg"
+        w="100%"
+        borderY="1px"
+        borderColor="border"
+        py={4}
+        mx={-6}
+        px={6}
+      >
+        <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} gap={3}>
+          <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+            <Stat.Root>
+              <Stat.Label fontSize="sm" color="gray.600">Status</Stat.Label>
+              <Stat.ValueText>
+                <Badge colorPalette={getJobStateColor(job.job_state)}>
+                  {job.job_state}
+                </Badge>
+              </Stat.ValueText>
+            </Stat.Root>
+          </Box>
 
-        <Card.Root>
-          <Card.Body gap={2}>
-            <Text fontSize="sm" color="fg.muted">Job Step</Text>
-            <Text fontSize="lg" fontWeight="medium">{job.job_step || '(main)'}</Text>
-          </Card.Body>
-        </Card.Root>
+          <JobStatCard
+            label="Elapsed Time"
+            value={formatDuration(elapsed)}
+            tooltip="Total time from job start to completion or current time for running jobs"
+          />
 
-        <Card.Root>
-          <Card.Body gap={2}>
-            <Text fontSize="sm" color="fg.muted">User</Text>
-            <Text fontSize="lg" fontWeight="medium">{job.user_name || 'N/A'}</Text>
-          </Card.Body>
-        </Card.Root>
+          <JobStatCard
+            label="CPU Hours"
+            value={((elapsed / 3600) * (job.requested_cpus || 0)).toFixed(2)}
+            tooltip="Total CPU time: Elapsed time × Requested CPUs. Measures total compute capacity allocated."
+          />
 
-        <Card.Root>
-          <Card.Body gap={2}>
-            <Text fontSize="sm" color="fg.muted">Account</Text>
-            <Text fontSize="lg" fontWeight="medium">{job.account || 'N/A'}</Text>
-          </Card.Body>
-        </Card.Root>
+          <JobStatCard
+            label="Peak Memory"
+            value={job.sacct?.MaxRSS ? formatMemory(job.sacct.MaxRSS) : 'N/A'}
+            tooltip="Maximum resident memory used (MaxRSS from SLURM accounting). Shows actual memory footprint."
+          />
 
-        <Card.Root>
-          <Card.Body gap={2}>
-            <Text fontSize="sm" color="fg.muted">Partition</Text>
-            <Text fontSize="lg" fontWeight="medium">{job.partition || 'N/A'}</Text>
-          </Card.Body>
-        </Card.Root>
-
-        <Card.Root>
-          <Card.Body gap={2}>
-            <Text fontSize="sm" color="fg.muted">Reservation</Text>
-            <Text fontSize="lg" fontWeight="medium">{job.reservation || 'None'}</Text>
-          </Card.Body>
-        </Card.Root>
-
-        <Card.Root>
-          <Card.Body gap={2}>
-            <Text fontSize="sm" color="fg.muted">Priority</Text>
-            <Text fontSize="lg" fontWeight="medium">{job.priority ?? 'N/A'}</Text>
-          </Card.Body>
-        </Card.Root>
-
-        <Card.Root>
-          <Card.Body gap={2}>
-            <Text fontSize="sm" color="fg.muted">Exit Code</Text>
-            <Text fontSize="lg" fontWeight="medium">{job.exit_code ?? 'N/A'}</Text>
-          </Card.Body>
-        </Card.Root>
-      </SimpleGrid>
-
-      <Separator />
-
-      {/* Time Information */}
-      <VStack align="start" gap={4} w="100%">
-        <Text fontSize="xl" fontWeight="semibold">Time Information</Text>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={4} w="100%">
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Timestamp</Text>
-              <Text fontSize="md" fontWeight="medium">
-                {job.time ? new Date(job.time).toLocaleString() : 'N/A'}
-              </Text>
-            </Card.Body>
-          </Card.Root>
-
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Submit Time</Text>
-              <Text fontSize="md" fontWeight="medium">
-                {job.submit_time ? new Date(job.submit_time).toLocaleString() : 'N/A'}
-              </Text>
-            </Card.Body>
-          </Card.Root>
-
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Start Time</Text>
-              <Text fontSize="md" fontWeight="medium">
-                {job.start_time ? new Date(job.start_time).toLocaleString() : 'N/A'}
-              </Text>
-            </Card.Body>
-          </Card.Root>
-
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">End Time</Text>
-              <Text fontSize="md" fontWeight="medium">
-                {job.end_time ? new Date(job.end_time).toLocaleString() : 'Running'}
-              </Text>
-            </Card.Body>
-          </Card.Root>
-
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Elapsed Time</Text>
-              <Text fontSize="md" fontWeight="medium">
-                {formatDuration(elapsed)}
-              </Text>
-            </Card.Body>
-          </Card.Root>
-
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Suspend Time</Text>
-              <Text fontSize="md" fontWeight="medium">
-                {formatDuration(job.suspend_time)}
-              </Text>
-            </Card.Body>
-          </Card.Root>
-
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Time Limit</Text>
-              <Text fontSize="md" fontWeight="medium">
-                {formatDuration(job.time_limit)}
-              </Text>
-            </Card.Body>
-          </Card.Root>
+          {gpuInfo.allocated > 0 && (
+            <JobStatCard
+              label="GPU Hours"
+              value={((elapsed / 3600) * gpuInfo.allocated).toFixed(2)}
+              tooltip="Total GPU time: Elapsed time × Allocated GPUs. Measures total GPU compute capacity used."
+            />
+          )}
         </SimpleGrid>
-      </VStack>
+      </Box>
 
       <Separator />
 
-      {/* Resource Information */}
-      <VStack align="start" gap={4} w="100%">
-        <Text fontSize="xl" fontWeight="semibold">Resource Information</Text>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={4} w="100%">
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Nodes</Text>
-              <Text fontSize="md" fontWeight="medium">{job.requested_node_count || 'N/A'}</Text>
-            </Card.Body>
-          </Card.Root>
+      {/* Tabbed Content */}
+      <Tabs.Root value={activeTab} onValueChange={(e) => setActiveTab(e.value)} w="100%">
+        <Tabs.List>
+          <Tabs.Trigger value="overview">
+            <Text>Overview</Text>
+            <Badge size="xs" ml={1} colorPalette="gray">1</Badge>
+          </Tabs.Trigger>
+          <Tabs.Trigger value="metrics">
+            <Text>Performance Metrics</Text>
+            <Badge size="xs" ml={1} colorPalette="gray">2</Badge>
+          </Tabs.Trigger>
+          <Tabs.Trigger value="timeline">
+            <Text>Resource Timeline</Text>
+            <Badge size="xs" ml={1} colorPalette="gray">3</Badge>
+          </Tabs.Trigger>
+          {gpuInfo.uuids.length > 0 && (
+            <Tabs.Trigger value="gpu">
+              <Text>GPU Performance</Text>
+              <Badge size="xs" ml={1} colorPalette="gray">4</Badge>
+            </Tabs.Trigger>
+          )}
+        </Tabs.List>
 
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">CPUs</Text>
-              <Text fontSize="md" fontWeight="medium">{job.requested_cpus || 'N/A'}</Text>
-            </Card.Body>
-          </Card.Root>
+        <Box mt={6}>
+          <Tabs.Content value="overview">
+            <Suspense fallback={
+              <Box w="100%" h="400px" display="flex" alignItems="center" justifyContent="center">
+                <Spinner size="lg" />
+              </Box>
+            }>
+              <OverviewTab job={job} elapsed={elapsed} gpuInfo={gpuInfo} />
+            </Suspense>
+          </Tabs.Content>
 
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Memory Per Node</Text>
-              <Text fontSize="md" fontWeight="medium">
-                {formatMemory(job.requested_memory_per_node)}
-              </Text>
-            </Card.Body>
-          </Card.Root>
+          <Tabs.Content value="metrics">
+            <Suspense fallback={
+              <Box w="100%" h="400px" display="flex" alignItems="center" justifyContent="center">
+                <Spinner size="lg" />
+              </Box>
+            }>
+              <PerformanceMetricsTab job={job} report={report} elapsed={elapsed} />
+            </Suspense>
+          </Tabs.Content>
 
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Distribution</Text>
-              <Text fontSize="md" fontWeight="medium">
-                {job.distribution || 'N/A'}
-              </Text>
-            </Card.Body>
-          </Card.Root>
+          <Tabs.Content value="timeline">
+            <Suspense fallback={
+              <Box w="100%" h="400px" display="flex" alignItems="center" justifyContent="center">
+                <Spinner size="lg" />
+              </Box>
+            }>
+              <ResourceTimelineTab 
+                cluster={clusterName} 
+                jobId={jobIdNum} 
+                client={client} 
+              />
+            </Suspense>
+          </Tabs.Content>
 
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Requested Resources</Text>
-              <Text fontSize="md" fontWeight="medium" wordBreak="break-word">
-                {job.requested_resources || 'N/A'}
-              </Text>
-            </Card.Body>
-          </Card.Root>
-
-          <Card.Root>
-            <Card.Body gap={2}>
-              <Text fontSize="sm" color="fg.muted">Allocated Resources</Text>
-              <Text fontSize="md" fontWeight="medium" wordBreak="break-word">
-                {job.allocated_resources || 'N/A'}
-              </Text>
-            </Card.Body>
-          </Card.Root>
-        </SimpleGrid>
-      </VStack>
-
-      <Separator />
-
-      {/* Node Information */}
-      <VStack align="start" gap={4} w="100%">
-        <Text fontSize="xl" fontWeight="semibold">Node Information</Text>
-        <Card.Root w="100%">
-          <Card.Body gap={2}>
-            <Text fontSize="sm" color="fg.muted">Nodes</Text>
-            <Text fontSize="md" fontWeight="medium">
-              {Array.isArray(job.nodes) ? job.nodes.join(', ') : job.nodes || 'N/A'}
-            </Text>
-          </Card.Body>
-        </Card.Root>
-      </VStack>
-
-      {/* GPU Information */}
-      {(gpuInfo.requested > 0 || gpuInfo.allocated > 0 || gpuInfo.uuids.length > 0) && (
-        <>
-          <Separator />
-          <VStack align="start" gap={4} w="100%">
-            <Text fontSize="xl" fontWeight="semibold">GPU Information</Text>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={4} w="100%">
-              {gpuInfo.requested > 0 && (
-                <Card.Root>
-                  <Card.Body gap={2}>
-                    <Text fontSize="sm" color="fg.muted">Requested GPUs</Text>
-                    <Text fontSize="lg" fontWeight="medium">{gpuInfo.requested}</Text>
-                  </Card.Body>
-                </Card.Root>
-              )}
-
-              {gpuInfo.allocated > 0 && (
-                <Card.Root>
-                  <Card.Body gap={2}>
-                    <Text fontSize="sm" color="fg.muted">Allocated GPUs</Text>
-                    <Text fontSize="lg" fontWeight="medium">{gpuInfo.allocated}</Text>
-                  </Card.Body>
-                </Card.Root>
-              )}
-
-              {gpuInfo.uuids.length > 0 && (
-                <Card.Root>
-                  <Card.Body gap={2}>
-                    <Text fontSize="sm" color="fg.muted">GPU Count</Text>
-                    <Text fontSize="lg" fontWeight="medium">{gpuInfo.uuids.length}</Text>
-                  </Card.Body>
-                </Card.Root>
-              )}
-            </SimpleGrid>
-
-            {gpuInfo.gresDetail && (
-              <Card.Root w="100%">
-                <Card.Body gap={2}>
-                  <Text fontSize="sm" color="fg.muted">GRES Details</Text>
-                  <Text fontSize="md" fontWeight="medium" wordBreak="break-word">
-                    {gpuInfo.gresDetail}
-                  </Text>
-                </Card.Body>
-              </Card.Root>
-            )}
-
-            {gpuInfo.uuids.length > 0 && (
-              <Card.Root w="100%">
-                <Card.Body gap={2}>
-                  <Text fontSize="sm" color="fg.muted">GPU UUIDs</Text>
-                  <VStack align="start" gap={1}>
-                    {gpuInfo.uuids.map((uuid, idx) => (
-                      <Text key={idx} fontSize="sm" fontFamily="mono">{uuid}</Text>
-                    ))}
-                  </VStack>
-                </Card.Body>
-              </Card.Root>
-            )}
-          </VStack>
-        </>
-      )}
-
-      {/* Heterogeneous Job Information */}
-      {job.het_job_id > 0 && (
-        <>
-          <Separator />
-          <VStack align="start" gap={4} w="100%">
-            <Text fontSize="xl" fontWeight="semibold">Heterogeneous Job Information</Text>
-            <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} w="100%">
-              <Card.Root>
-                <Card.Body gap={2}>
-                  <Text fontSize="sm" color="fg.muted">Het Job ID</Text>
-                  <Text fontSize="md" fontWeight="medium">{job.het_job_id}</Text>
-                </Card.Body>
-              </Card.Root>
-
-              <Card.Root>
-                <Card.Body gap={2}>
-                  <Text fontSize="sm" color="fg.muted">Het Job Offset</Text>
-                  <Text fontSize="md" fontWeight="medium">{job.het_job_offset}</Text>
-                </Card.Body>
-              </Card.Root>
-            </SimpleGrid>
-          </VStack>
-        </>
-      )}
-
-      {/* Array Job Information */}
-      {job.array_job_id != null && job.array_job_id > 0 && (
-        <>
-          <Separator />
-          <VStack align="start" gap={4} w="100%">
-            <Text fontSize="xl" fontWeight="semibold">Array Job Information</Text>
-            <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} w="100%">
-              <Card.Root>
-                <Card.Body gap={2}>
-                  <Text fontSize="sm" color="fg.muted">Array Job ID</Text>
-                  <Text fontSize="md" fontWeight="medium">{job.array_job_id}</Text>
-                </Card.Body>
-              </Card.Root>
-
-              {job.array_task_id !== null && job.array_task_id !== undefined && (
-                <Card.Root>
-                  <Card.Body gap={2}>
-                    <Text fontSize="sm" color="fg.muted">Array Task ID</Text>
-                    <Text fontSize="md" fontWeight="medium">{job.array_task_id}</Text>
-                  </Card.Body>
-                </Card.Root>
-              )}
-            </SimpleGrid>
-          </VStack>
-        </>
-      )}
+          {gpuInfo.uuids.length > 0 && (
+            <Tabs.Content value="gpu">
+              <Suspense fallback={
+                <Box w="100%" h="400px" display="flex" alignItems="center" justifyContent="center">
+                  <Spinner size="lg" />
+                </Box>
+              }>
+                <GpuPerformanceTab 
+                  cluster={clusterName} 
+                  jobId={jobIdNum} 
+                  client={client}
+                  gpuUuids={gpuInfo.uuids}
+                />
+              </Suspense>
+            </Tabs.Content>
+          )}
+        </Box>
+      </Tabs.Root>
     </VStack>
   )
 }

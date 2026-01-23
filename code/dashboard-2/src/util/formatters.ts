@@ -1,8 +1,10 @@
 import dayjs from 'dayjs'
 import duration from 'dayjs/plugin/duration'
+import utc from 'dayjs/plugin/utc'
 import { JobState } from '../types/jobStates'
 
 dayjs.extend(duration)
+dayjs.extend(utc)
 
 /**
  * Format duration in seconds to human-readable string (e.g., "2d 5h 30m")
@@ -66,4 +68,35 @@ export const getJobStateColor = (state: string): string => {
   ) return 'red'
   if (state === JobState.CANCELLED || state === JobState.PREEMPTED) return 'orange'
   return 'gray'
+}
+
+/**
+ * Format CPU hours (e.g., "1,234 CPU-hours")
+ */
+export const formatCpuHours = (cpuHours: number): string => {
+  return `${cpuHours.toLocaleString('en-US', { maximumFractionDigits: 2 })} CPU-hours`
+}
+
+/**
+ * Format efficiency percentage (e.g., "85.4%")
+ */
+export const formatEfficiency = (efficiency: number | null): string => {
+  if (efficiency === null) return 'N/A'
+  return `${efficiency.toFixed(1)}%`
+}
+
+/**
+ * Format I/O rate in bytes per second (e.g., "125.3 MB/s")
+ */
+export const formatIORate = (bytesPerSec: number): string => {
+  if (bytesPerSec >= 1024 * 1024 * 1024) {
+    return `${(bytesPerSec / (1024 * 1024 * 1024)).toFixed(1)} GB/s`
+  }
+  if (bytesPerSec >= 1024 * 1024) {
+    return `${(bytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`
+  }
+  if (bytesPerSec >= 1024) {
+    return `${(bytesPerSec / 1024).toFixed(1)} KB/s`
+  }
+  return `${bytesPerSec.toFixed(1)} B/s`
 }
