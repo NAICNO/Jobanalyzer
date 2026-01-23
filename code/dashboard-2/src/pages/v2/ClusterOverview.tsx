@@ -29,7 +29,7 @@ export const ClusterOverview = () => {
       <ClusterResourceDistribution cluster={clusterName} />
 
       <ClusterQueueActivity cluster={clusterName} />
-{/*
+      {/*
       <ClusterJobAnalytics cluster={clusterName} />
 
       <ClusterWaitTimeAnalysis cluster={clusterName} /> */}
