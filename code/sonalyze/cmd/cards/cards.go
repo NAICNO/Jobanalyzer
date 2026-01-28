@@ -10,7 +10,7 @@ import (
 	. "sonalyze/cmd"
 	"sonalyze/data/card"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -91,7 +91,7 @@ func (nc *CardCommand) ReifyForRemote(x *ArgReifier) error {
 	)
 }
 
-func (nc *CardCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+func (nc *CardCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io.Writer) error {
 	cdp, err := card.OpenCardDataProvider(meta)
 	if err != nil {
 		return err

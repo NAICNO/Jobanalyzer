@@ -10,7 +10,7 @@ import (
 	. "sonalyze/cmd"
 	"sonalyze/data/nodesample"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -90,7 +90,7 @@ func (nc *NodeProfCommand) Validate() error {
 //
 // Processing
 
-func (nc *NodeProfCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+func (nc *NodeProfCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io.Writer) error {
 	nsd, err := nodesample.OpenNodeSampleDataProvider(meta)
 	if err != nil {
 		return err

@@ -16,7 +16,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/data/sample"
 	"sonalyze/db"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type AddCommand struct {
@@ -81,7 +81,7 @@ func (ac *AddCommand) ReifyForRemote(x *ArgReifier) error {
 	return errors.Join(e1, e2)
 }
 
-func (ac *AddCommand) Perform(meta special.ClusterMeta, stdin io.Reader, _, _ io.Writer) error {
+func (ac *AddCommand) Perform(meta types.Context, stdin io.Reader, _, _ io.Writer) error {
 	data, err := io.ReadAll(stdin)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (ac *AddCommand) Perform(meta special.ClusterMeta, stdin io.Reader, _, _ io
 	}
 }
 
-func (ac *AddCommand) addSysinfo(meta special.ClusterMeta, payload []byte) error {
+func (ac *AddCommand) addSysinfo(meta types.Context, payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sysinfo record %d bytes", len(payload))
 	}
@@ -124,7 +124,7 @@ func (ac *AddCommand) addSysinfo(meta special.ClusterMeta, payload []byte) error
 	return err
 }
 
-func (ac *AddCommand) addSonarFreeCsv(meta special.ClusterMeta, payload []byte) error {
+func (ac *AddCommand) addSonarFreeCsv(meta types.Context, payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sample records %d bytes", len(payload))
 	}
@@ -160,7 +160,7 @@ func (ac *AddCommand) addSonarFreeCsv(meta special.ClusterMeta, payload []byte) 
 	return result
 }
 
-func (ac *AddCommand) addSlurmSacctFreeCsv(meta special.ClusterMeta, payload []byte) error {
+func (ac *AddCommand) addSlurmSacctFreeCsv(meta types.Context, payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sacct records %d bytes", len(payload))
 	}

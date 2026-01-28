@@ -7,15 +7,15 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type SlurmPartitionDataProvider struct {
 	theLog db.CluzterDataProvider
 }
 
-func OpenSlurmPartitionDataProvider(meta special.ClusterMeta) (*SlurmPartitionDataProvider, error) {
-	theLog, err := db.OpenReadOnlyDB(meta, special.SlurmPartitionData)
+func OpenSlurmPartitionDataProvider(meta types.Context) (*SlurmPartitionDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, types.SlurmPartitionData)
 	if err != nil {
 		return nil, err
 	}

@@ -8,15 +8,15 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type CardDataProvider struct {
 	theLog db.SysinfoDataProvider
 }
 
-func OpenCardDataProvider(meta special.ClusterMeta) (*CardDataProvider, error) {
-	theLog, err := db.OpenReadOnlyDB(meta, special.CardData)
+func OpenCardDataProvider(meta types.Context) (*CardDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, types.CardData)
 	if err != nil {
 		return nil, err
 	}

@@ -12,7 +12,7 @@ import (
 	. "sonalyze/cmd"
 	"sonalyze/data/common"
 	"sonalyze/data/config"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -110,7 +110,7 @@ func (nc *NodeCommand) Validate() error {
 //
 // Processing
 
-func (nc *NodeCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+func (nc *NodeCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io.Writer) error {
 	cdp, err := config.OpenConfigDataProvider(meta)
 	if err != nil {
 		return err

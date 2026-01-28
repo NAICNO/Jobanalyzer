@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	. "sonalyze/cmd"
+	"sonalyze/db/repr"
 	"sonalyze/db/special"
 	. "sonalyze/table"
 )
@@ -17,11 +18,11 @@ import (
 
 package clusters
 
-import "sonalyze/db/special"
+import "sonalyze/db/repr"
 
 %%
 
-FIELDS *special.ClusterEntry
+FIELDS *repr.Cluster
 
  Name        string   desc:"Cluster name" alias:"cluster"
  Description string   desc:"Human-consumable cluster summary" alias:"desc"
@@ -100,8 +101,11 @@ func (cc *ClusterCommand) Validate() error {
 // Analysis
 
 func (cc *ClusterCommand) Perform(_ io.Reader, stdout, stderr io.Writer) error {
-	printable := special.AllClusters()
-	slices.SortFunc(printable, func(a, b *special.ClusterEntry) int {
+	printable := make([]*repr.Cluster, 0)
+	for _, ce := range special.AllClusters() {
+		printable = append(printable, &ce.Cluster)
+	}
+	slices.SortFunc(printable, func(a, b *repr.Cluster) int {
 		return cmp.Compare(a.Name, b.Name)
 	})
 

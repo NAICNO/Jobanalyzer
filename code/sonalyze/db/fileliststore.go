@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"sonalyze/db/filedb"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type FileListDataProvider struct {
@@ -15,17 +15,17 @@ type FileListDataProvider struct {
 	*filedb.TransientSysinfoCluster
 	*filedb.TransientSacctCluster
 	*filedb.TransientCluzterCluster
-	meta     special.ClusterMeta
-	dataType special.DataType
+	meta     types.Context
+	dataType types.DataType
 }
 
-func (tdb *FileListDataProvider) DataType() special.DataType {
+func (tdb *FileListDataProvider) DataType() types.DataType {
 	return tdb.dataType
 }
 
 func OpenFileListDB(
-	meta special.ClusterMeta,
-	dataType special.DataType,
+	meta types.Context,
+	dataType types.DataType,
 ) (DataProvider, error) {
 	var transientSampleCluster *filedb.TransientSampleCluster
 	var transientSysinfoCluster *filedb.TransientSysinfoCluster
@@ -33,26 +33,26 @@ func OpenFileListDB(
 	var transientCluzterCluster *filedb.TransientCluzterCluster
 	var err error
 	switch {
-	case dataType&special.ProcessSampleData != 0:
-		if dataType&^special.ProcessSampleData != 0 {
+	case dataType&types.ProcessSampleData != 0:
+		if dataType&^types.ProcessSampleData != 0 {
 			panic("Incompatible type flags")
 		}
-		transientSampleCluster, err = OpenFileListSampleDB(meta, meta.LogFiles(special.ProcessSampleData))
-	case dataType&special.SysinfoData != 0:
-		if dataType&^special.SysinfoData != 0 {
+		transientSampleCluster, err = OpenFileListSampleDB(meta, meta.LogFiles(types.ProcessSampleData))
+	case dataType&types.SysinfoData != 0:
+		if dataType&^types.SysinfoData != 0 {
 			panic("Incompatible type flags")
 		}
-		transientSysinfoCluster, err = OpenFileListSysinfoDB(meta, meta.LogFiles(special.SysinfoData))
-	case dataType&special.SlurmJobData != 0:
-		if dataType&^special.SlurmJobData != 0 {
+		transientSysinfoCluster, err = OpenFileListSysinfoDB(meta, meta.LogFiles(types.SysinfoData))
+	case dataType&types.SlurmJobData != 0:
+		if dataType&^types.SlurmJobData != 0 {
 			panic("Incompatible type flags")
 		}
-		transientSacctCluster, err = OpenFileListSacctDB(meta, meta.LogFiles(special.SlurmJobData))
-	case dataType&special.SlurmSystemData != 0:
-		if dataType&^special.SlurmSystemData != 0 {
+		transientSacctCluster, err = OpenFileListSacctDB(meta, meta.LogFiles(types.SlurmJobData))
+	case dataType&types.SlurmSystemData != 0:
+		if dataType&^types.SlurmSystemData != 0 {
 			panic("Incompatible type flags")
 		}
-		transientCluzterCluster, err = OpenFileListCluzterDB(meta, meta.LogFiles(special.SlurmSystemData))
+		transientCluzterCluster, err = OpenFileListCluzterDB(meta, meta.LogFiles(types.SlurmSystemData))
 	default:
 		panic("NYI")
 	}
@@ -72,7 +72,7 @@ func OpenFileListDB(
 // The following are internal but are public for testing
 
 func OpenFileListSampleDB(
-	meta special.ClusterMeta,
+	meta types.Context,
 	files []string,
 ) (*filedb.TransientSampleCluster, error) {
 	if len(files) == 0 {
@@ -86,7 +86,7 @@ func OpenFileListSampleDB(
 }
 
 func OpenFileListSacctDB(
-	meta special.ClusterMeta,
+	meta types.Context,
 	files []string,
 ) (*filedb.TransientSacctCluster, error) {
 	if len(files) == 0 {
@@ -100,7 +100,7 @@ func OpenFileListSacctDB(
 }
 
 func OpenFileListSysinfoDB(
-	meta special.ClusterMeta,
+	meta types.Context,
 	files []string,
 ) (*filedb.TransientSysinfoCluster, error) {
 	if len(files) == 0 {
@@ -114,7 +114,7 @@ func OpenFileListSysinfoDB(
 }
 
 func OpenFileListCluzterDB(
-	meta special.ClusterMeta,
+	meta types.Context,
 	files []string,
 ) (*filedb.TransientCluzterCluster, error) {
 	if len(files) == 0 {

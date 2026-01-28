@@ -17,7 +17,7 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/data/node"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type NodeConfig struct {
@@ -29,12 +29,11 @@ type NodeConfig struct {
 }
 
 type ConfigDataProvider struct {
-	meta    special.ClusterMeta
-	cluster *special.ClusterEntry
-	data    *perClusterInfo
-	valid   bool
-	cards   *card.CardDataProvider
-	nodes   *node.NodeDataProvider
+	meta  types.Context
+	data  *perClusterInfo
+	valid bool
+	cards *card.CardDataProvider
+	nodes *node.NodeDataProvider
 }
 
 var (
@@ -50,7 +49,7 @@ var (
 	clusterTable     = make(map[string]*perClusterInfo)
 )
 
-func OpenConfigDataProvider(meta special.ClusterMeta) (*ConfigDataProvider, error) {
+func OpenConfigDataProvider(meta types.Context) (*ConfigDataProvider, error) {
 	nodes, err := node.OpenNodeDataProvider(meta)
 	if err != nil {
 		return nil, err
@@ -72,23 +71,21 @@ func OpenConfigDataProvider(meta special.ClusterMeta) (*ConfigDataProvider, erro
 	}
 
 	return &ConfigDataProvider{
-		meta:    meta,
-		cluster: meta.Cluster(),
-		data:    data,
-		valid:   true,
-		nodes:   nodes,
-		cards:   cards,
+		meta:  meta,
+		data:  data,
+		valid: true,
+		nodes: nodes,
+		cards: cards,
 	}, nil
 }
 
-func MaybeOpenConfigDataProvider(meta special.ClusterMeta) *ConfigDataProvider {
+func MaybeOpenConfigDataProvider(meta types.Context) *ConfigDataProvider {
 	cdp, err := OpenConfigDataProvider(meta)
 	if err == nil {
 		return cdp
 	}
 	return &ConfigDataProvider{
-		meta:    meta,
-		cluster: meta.Cluster(),
+		meta: meta,
 	}
 }
 
@@ -119,8 +116,8 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 	}
 
 	// Fallback code to old-style static node config, this will likely disappear.
-	if cdp.cluster.HaveConfig {
-		return cdp.cluster.Config.LookupHost(host.String())
+	if cdp.meta.HaveConfig() {
+		return cdp.meta.Config().LookupHost(host.String())
 	}
 
 	return nil
@@ -203,9 +200,9 @@ func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
 	records := cdp.obtainAllFromCache(qa)
 
 	// Fallback code to old-style static node config, this will likely disappear.
-	if len(records) == 0 && cdp.cluster.HaveConfig {
+	if len(records) == 0 && cdp.meta.HaveConfig() {
 		for _, host := range qa.Host {
-			if probe := cdp.cluster.Config.LookupHost(host); probe != nil {
+			if probe := cdp.meta.Config().LookupHost(host); probe != nil {
 				records = append(records, &NodeConfig{
 					NodeSummary: *probe,
 				})

@@ -94,7 +94,8 @@ func (va *VerboseArgs) VerboseFlag() bool {
 //
 // If a -jobanalyzer-dir argument is present then it specifies the root location of the database and
 // *all* data are found within that directory at known locations.  This precludes -data-dir,
-// -config-file, -report-dir, and a file list.
+// -config-file, -report-dir, and a file list.  However, it allows a -database-uri argument that
+// specifies that the data store is to be found at the URI, using well-known mechanisms for access.
 //
 // Otherwise, if -data-dir is present then that is a directory for a single cluster's sample,
 // sysinfo, and slurm data store and the -config-file argument may provide cluster configuration
@@ -127,6 +128,7 @@ type DatabaseArgs struct {
 
 	// Local arguments
 	jobanalyzerDir string
+	databaseUri    string
 	dataDir        string
 	reportDir      string
 	configFile     string
@@ -148,6 +150,10 @@ func (db *DatabaseArgs) JobanalyzerDir() string {
 func (db *DatabaseArgs) SetJobanalyzerDir(dir, cn string) {
 	db.jobanalyzerDir = dir
 	db.clusterName = cn
+}
+
+func (db *DatabaseArgs) DatabaseURI() string {
+	return db.databaseUri
 }
 
 func (db *DatabaseArgs) DataDir() string {
@@ -247,9 +253,12 @@ func (db *DatabaseArgs) Add(fs *CLI, opts DBArgOptions) {
 	}
 
 	fs.Group("local-data-source")
-	// Even for NoDatabase we allow jobanalyzer-dir since this makes life easier for everyone.
+	// Even for NoDatabase we allow jobanalyzer-dir and hence database-uri since allowing the former
+	// makes life easier for everyone and not allowing the latter is inconsistent.
 	fs.StringVar(&db.jobanalyzerDir, "jobanalyzer-dir", "",
 		"Jobanalyzer root `directory`, precludes all other local data source arguments.")
+	fs.StringVar(&db.databaseUri, "database-uri", "",
+		"Data store external to Jobanalyzer root `directory`.")
 	if !opts.RequireFullDatabase {
 		fs.StringVar(&db.dataDir, "data-dir", "",
 			"Select the root `directory` for log files [default: none]")
@@ -281,10 +290,16 @@ func (db *DatabaseArgs) Validate() error {
 	}
 
 	// Basic validation of mutually exclusive situations
+	if db.jobanalyzerDir == "" && db.databaseUri != "" {
+		return errors.New("-database-uri requires -jobanalyzer-dir")
+	}
 	switch {
 	case db.remoting:
 		if db.jobanalyzerDir != "" {
 			return errors.New("Remote execution precludes -jobanalyzer-dir")
+		}
+		if db.databaseUri != "" {
+			return errors.New("Remote execution precludes a -database-uri")
 		}
 		if db.dataDir != "" {
 			return errors.New("Remote execution precludes a -data-dir")
@@ -312,13 +327,19 @@ func (db *DatabaseArgs) Validate() error {
 			return errors.New("A -jobanalyzer-dir precludes a file list")
 		}
 	case db.dataDir != "":
+		if db.databaseUri != "" {
+			return errors.New("A -data-dir precludes a -database-uri")
+		}
 		if db.reportDir != "" {
-			return errors.New("A -data-dir a -report-dir")
+			return errors.New("A -data-dir precludes a -report-dir")
 		}
 		if len(db.logFiles) > 0 {
 			return errors.New("A -data-dir precludes a file list")
 		}
 	case db.reportDir != "":
+		if db.databaseUri != "" {
+			return errors.New("A -report-dir precludes a -database-uri")
+		}
 		if len(db.logFiles) > 0 {
 			return errors.New("A -report-dir precludes a file list")
 		}
@@ -327,6 +348,7 @@ func (db *DatabaseArgs) Validate() error {
 	if !db.options.NoDatabase {
 		if !db.remoting &&
 			db.jobanalyzerDir == "" &&
+			db.databaseUri == "" &&
 			db.dataDir == "" &&
 			db.reportDir == "" &&
 			db.configFile == "" &&
@@ -375,6 +397,8 @@ func (db *DatabaseArgs) Validate() error {
 	if db.authFile != "" {
 		db.authFile, e6 = options.RequireFile(db.authFile, "-auth-file")
 	}
+
+	// Technically cache is ignored for -database-uri, but accept and check it anyway.
 
 	if db.cache != "" {
 		var scale int64

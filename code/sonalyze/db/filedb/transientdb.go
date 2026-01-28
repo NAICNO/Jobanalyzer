@@ -9,13 +9,13 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 // TransientCluster is a transient cluster mixin that has only one type of files.
 type TransientCluster struct {
 	// MT: Immutable after initialization
-	meta  special.ClusterMeta
+	meta  types.Context
 	files []*LogFile
 }
 
@@ -54,7 +54,7 @@ type TransientSampleCluster struct /* implements SampleCluster */ {
 }
 
 func NewTransientSampleCluster(
-	meta special.ClusterMeta,
+	meta types.Context,
 	ty FileAttr,
 	fileNames []string,
 ) *TransientSampleCluster {
@@ -117,7 +117,7 @@ type TransientSacctCluster struct /* implements SacctCluster */ {
 }
 
 func NewTransientSacctCluster(
-	meta special.ClusterMeta,
+	meta types.Context,
 	ty FileAttr,
 	fileNames []string,
 ) *TransientSacctCluster {
@@ -150,7 +150,7 @@ type TransientSysinfoCluster struct /* implements SysinfoCluster */ {
 }
 
 func NewTransientSysinfoCluster(
-	meta special.ClusterMeta,
+	meta types.Context,
 	ty FileAttr,
 	fileNames []string,
 ) *TransientSysinfoCluster {
@@ -198,7 +198,7 @@ type TransientCluzterCluster struct /* implements CluzterCluster */ {
 }
 
 func NewTransientCluzterCluster(
-	meta special.ClusterMeta,
+	meta types.Context,
 	ty FileAttr,
 	fileNames []string,
 ) *TransientCluzterCluster {

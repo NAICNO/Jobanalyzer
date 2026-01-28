@@ -12,7 +12,7 @@ import (
 	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type QueryFilter struct {
@@ -42,8 +42,8 @@ type SlurmjobDataProvider struct {
 	theLog db.SacctDataProvider
 }
 
-func OpenSlurmjobDataProvider(meta special.ClusterMeta) (*SlurmjobDataProvider, error) {
-	theLog, err := db.OpenReadOnlyDB(meta, special.SlurmJobData)
+func OpenSlurmjobDataProvider(meta types.Context) (*SlurmjobDataProvider, error) {
+	theLog, err := db.OpenReadOnlyDB(meta, types.SlurmJobData)
 	if err != nil {
 		return nil, err
 	}

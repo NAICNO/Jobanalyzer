@@ -11,7 +11,7 @@ import (
 	"regexp"
 
 	. "sonalyze/cmd"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type ReportCommand struct {
@@ -69,7 +69,7 @@ func (rc *ReportCommand) Validate() error {
 	)
 }
 
-func (rc *ReportCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, _ io.Writer) error {
+func (rc *ReportCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.Writer) error {
 	// TODO: This is a pretty inappropriate interface.  We want some kind of database abstraction
 	// here, not go directly to the file system.
 

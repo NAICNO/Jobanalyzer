@@ -9,7 +9,7 @@ import (
 
 	"sonalyze/db/errs"
 	"sonalyze/db/filedb"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type clusterStore struct {
@@ -43,14 +43,14 @@ func SetCacheSize(size int64) {
 
 // Open a date-keyed directory tree as a read-only persistent database.
 func OpenPersistentDirectoryDB(
-	meta special.ClusterMeta,
+	meta types.Context,
 ) (PersistentDataProvider, error) {
 	return gClusterStore.openPersistentCluster(meta, meta.DataDir())
 }
 
 // Open a date-keyed directory tree as a read-write persistent database.
 func OpenAppendablePersistentDirectoryDB(
-	meta special.ClusterMeta,
+	meta types.Context,
 ) (AppendablePersistentDataProvider, error) {
 	return gClusterStore.openPersistentCluster(meta, meta.DataDir())
 }
@@ -66,7 +66,7 @@ func Close() {
 }
 
 // For testing use.
-func openPersistentCluster(meta special.ClusterMeta, dir string) (*filedb.PersistentCluster, error) {
+func openPersistentCluster(meta types.Context, dir string) (*filedb.PersistentCluster, error) {
 	return gClusterStore.openPersistentCluster(meta, dir)
 }
 
@@ -91,7 +91,7 @@ func (s *clusterStore) lazyInitLocked() {
 }
 
 func (ls *clusterStore) openPersistentCluster(
-	meta special.ClusterMeta,
+	meta types.Context,
 	clusterDir string,
 ) (*filedb.PersistentCluster, error) {
 	ls.Lock()

@@ -7,7 +7,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/data/common"
 	"sonalyze/data/slurmjob"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 type sacctSummary struct {
@@ -17,7 +17,7 @@ type sacctSummary struct {
 	usedCpu      uint64
 }
 
-func (sc *SacctCommand) Perform(meta special.ClusterMeta, _ io.Reader, stdout, stderr io.Writer) error {
+func (sc *SacctCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io.Writer) error {
 	sdp, err := slurmjob.OpenSlurmjobDataProvider(meta)
 	if err != nil {
 		return err
