@@ -90,6 +90,21 @@ func OpenConnectedDB(cx types.Context) AppendablePersistentDataProvider {
 	return &connectedDB{theDB, cx}
 }
 
+// NOTE that the names in fields are a little bit brittle in the face of schema evolution and joins.
+// They can always be written as "t1.field" and "t2.field", and it's useful to do so, because if
+// they are just "field" then even if that is unambiguous at the time it's written, if a field of
+// that name is added to the other table then it will become ambiguous.
+
+type query struct {
+	table    string // base table name for first-level selection, the result is "t1"
+	fromDate time.Time
+	toDate   time.Time
+	hosts    *Hosts
+	join     string // an additional table t2 + join clauses
+	fields   string // comma-separated list of names
+	boxes    []any  // in the same order as the fields
+}
+
 func (cdb *connectedDB) ReadProcessSamples(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
@@ -101,15 +116,18 @@ func (cdb *connectedDB) ReadProcessSamples(
 	var rolledup int
 	var timestamp time.Time
 
-	table := "sample_process"
-	clusterTable := ""
-
-	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields := "cmd, cpu_avg, cpu_time, epoch, job, node, num_threads, pid, ppid, " +
-		"resident_memory, rolledup, time, user, virtual_memory"
-	boxes := []any{
-		&cmd, &cpuAvg, &cpuTime, &epoch, &job, &node, &numThreads, &pid, &ppid,
-		&residentMemory, &rolledup, &timestamp, &user, &virtualMemory,
+	q := query{
+		table:    "sample_process",
+		fromDate: fromDate,
+		toDate:   toDate,
+		hosts:    hosts,
+		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+		fields: "cmd, cpu_avg, cpu_time, epoch, job, node, num_threads, pid, ppid, " +
+			"resident_memory, rolledup, time, user, virtual_memory",
+		boxes: []any{
+			&cmd, &cpuAvg, &cpuTime, &epoch, &job, &node, &numThreads, &pid, &ppid,
+			&residentMemory, &rolledup, &timestamp, &user, &virtualMemory,
+		},
 	}
 
 	// Reference: ParseSamplesV0JSON()
@@ -143,8 +161,7 @@ func (cdb *connectedDB) ReadProcessSamples(
 			CpuKB:      uint64(virtualMemory.Int),
 		}
 	}
-	return querySlice[repr.Sample](
-		cdb, fromDate, toDate, hosts, verbose, boxes, unbox, table, fields, clusterTable)
+	return querySlice[repr.Sample](cdb, &q, verbose, unbox)
 }
 
 func (cdb *connectedDB) ReadNodeSamples(
@@ -157,14 +174,18 @@ func (cdb *connectedDB) ReadNodeSamples(
 	var node string
 	var timestamp time.Time
 
-	table := "sample_system"
-
-	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields := "existing_entities, load1, load15, load5, node, " +
-		"runnable_entities, time, used_memory"
-	boxes := []any{
-		&existingEntities, &load1, &load15, &load5, &node,
-		&runnableEntities, &timestamp, &usedMemory,
+	q := query{
+		table:    "sample_system",
+		fromDate: fromDate,
+		toDate:   toDate,
+		hosts:    hosts,
+		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+		fields: "existing_entities, load1, load15, load5, node, " +
+			"runnable_entities, time, used_memory",
+		boxes: []any{
+			&existingEntities, &load1, &load15, &load5, &node,
+			&runnableEntities, &timestamp, &usedMemory,
+		},
 	}
 
 	// Reference: ParseSamplesV0JSON
@@ -180,8 +201,7 @@ func (cdb *connectedDB) ReadNodeSamples(
 			UsedMemory:       uint64(usedMemory.Int),
 		}
 	}
-	return querySlice[repr.NodeSample](
-		cdb, fromDate, toDate, hosts, verbose, boxes, unbox, table, fields, "")
+	return querySlice[repr.NodeSample](cdb, &q, verbose, unbox)
 }
 
 func (cdb *connectedDB) ReadCpuSamples(
@@ -193,11 +213,15 @@ func (cdb *connectedDB) ReadCpuSamples(
 	var node string
 	var timestamp time.Time
 
-	table := "sample_system"
-
-	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields := "cpus, node, time"
-	boxes := []any{&cpus, &node, &timestamp}
+	q := query{
+		table:    "sample_system",
+		fromDate: fromDate,
+		toDate:   toDate,
+		hosts:    hosts,
+		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+		fields: "cpus, node, time",
+		boxes:  []any{&cpus, &node, &timestamp},
+	}
 
 	// Reference: ParseSamplesV0JSON
 	unbox := func() *repr.CpuSamples {
@@ -211,8 +235,7 @@ func (cdb *connectedDB) ReadCpuSamples(
 			Encoded:   repr.EncodedCpuSamplesFromValues(cpuLoad),
 		}
 	}
-	return querySlice[repr.CpuSamples](
-		cdb, fromDate, toDate, hosts, verbose, boxes, unbox, table, fields, "")
+	return querySlice[repr.CpuSamples](cdb, &q, verbose, unbox)
 }
 
 func (cdb *connectedDB) ReadGpuSamples(
@@ -244,14 +267,18 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	var distances []int
 	var cards []string
 
-	table := "sysinfo_attributes"
-
-	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields := "architecture, cards, cluster, cores_per_socket, cpu_model, distances, memory, " +
-		"node, os_name, os_release, sockets, threads_per_core, time, topo_svg, topo_text"
-	boxes := []any{
-		&architecture, &cards, &cluster, &coresPerSocket, &cpuModel, &distances, &memory,
-		&node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp, &topoSvg, &topoText,
+	q := query{
+		table:    "sysinfo_attributes",
+		fromDate: fromDate,
+		toDate:   toDate,
+		hosts:    hosts,
+		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+		fields: "architecture, cards, cluster, cores_per_socket, cpu_model, distances, memory, " +
+			"node, os_name, os_release, sockets, threads_per_core, time, topo_svg, topo_text",
+		boxes: []any{
+			&architecture, &cards, &cluster, &coresPerSocket, &cpuModel, &distances, &memory,
+			&node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp, &topoSvg, &topoText,
+		},
 	}
 
 	// Reference: ParseSysinfoV0JSON
@@ -308,8 +335,7 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 		}
 	}
 
-	return querySlice[repr.SysinfoNodeData](
-		cdb, fromDate, toDate, hosts, verbose, boxes, unbox, table, fields, "")
+	return querySlice[repr.SysinfoNodeData](cdb, &q, verbose, unbox)
 }
 
 func (cdb *connectedDB) ReadSysinfoCardData(
@@ -322,16 +348,22 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 	var maxCeClock, maxMemoryClock, maxPowerLimit, memory, minPowerLimit, powerLimit pgtype.Int8
 	var timestamp time.Time
 
-	// The DB stores what it perceives to be static card info in a separate table, sysinfo_gpu_card.
-	// That needs to be joined to sysinfo_gpu_card_config here (by UUID) to get the full story.
-	table := "sysinfo_gpu_card_config t1 join sysinfo_gpu_card t2 on t1.uuid = t2.uuid"
-
-	// Alpha field name order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields := "address, architecture, driver, firmware, index, manufacturer, max_ce_clock, max_memory_clock, " +
-		"max_power_limit, memory, min_power_limit, node, power_limit, time, t1.uuid"
-	boxes := []any{
-		&address, &architecture, &driver, &firmware, &index, &manufacturer, &maxCeClock, &maxMemoryClock,
-		&maxPowerLimit, &memory, &minPowerLimit, &node, &powerLimit, &timestamp, &uuid,
+	q := query{
+		// The DB stores what it perceives to be static card info in a separate table,
+		// sysinfo_gpu_card.  That needs to be joined to sysinfo_gpu_card_config here (by UUID) to
+		// get the full story.
+		table:    "sysinfo_gpu_card_config",
+		fromDate: fromDate,
+		toDate:   toDate,
+		hosts:    hosts,
+		join:     "sysinfo_gpu_card t2 on t1.uuid = t2.uuid",
+		// Alpha field name order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+		fields: "address, architecture, driver, firmware, index, manufacturer, max_ce_clock, max_memory_clock, " +
+			"max_power_limit, memory, min_power_limit, node, power_limit, time, t1.uuid",
+		boxes: []any{
+			&address, &architecture, &driver, &firmware, &index, &manufacturer, &maxCeClock, &maxMemoryClock,
+			&maxPowerLimit, &memory, &minPowerLimit, &node, &powerLimit, &timestamp, &uuid,
+		},
 	}
 
 	// Reference: ParseSysinfoV0JSON
@@ -357,8 +389,7 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 		}
 	}
 
-	return querySlice[repr.SysinfoCardData](
-		cdb, fromDate, toDate, hosts, verbose, boxes, unbox, table, fields, "")
+	return querySlice[repr.SysinfoCardData](cdb, &q, verbose, unbox)
 }
 
 func (cdb *connectedDB) ReadSacctData(
@@ -380,28 +411,30 @@ func (cdb *connectedDB) ReadSacctData(
 		submitTime, timestamp                                               time.Time
 	)
 
-	table := "sample_slurm_job as t1 join sample_slurm_job_acc as t2 on " +
-		"t1.cluster = t2.cluster and " +
-		"t1.job_id = t2.job_id and " +
-		"t1.job_step = t2.job_step and " +
-		"t1.time = t2.time"
-
-	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields := "account, allocated_resources, \"AllocTRES\", array_job_id, array_task_id, \"AveCPU\", " +
-		"\"AveDiskRead\", \"AveDiskWrite\", \"AveRSS\", \"AveVMSize\", t1.cluster, distribution, \"ElapsedRaw\", " +
-		"end_time, exit_code, het_job_id, het_job_offset, t1.job_id, job_name, " +
-		"job_state, t1.job_step, \"MaxRSS\", \"MaxVMSize\", \"MinCPU\", minimum_cpus_per_node, nodes, " +
-		"partition, priority, requested_cpus, requested_memory_per_node, requested_node_count, " +
-		"requested_resouces, reservation, start_time, submit_time, suspend_time, \"SystemCPU\", " +
-		"t1.time, time_limit, \"UserCPU\", user_name"
-	boxes := []any{
-		&account, &allocatedResources, &allocTRES, &arrayJobId, &arrayTaskId, &aveCPU,
-		&aveDiskRead, &aveDiskWrite, &aveRSS, &aveVMSize, &cluster, &distribution, &elapsedRaw,
-		&endTime, &exitCode, &hetJobId, &hetJobOffset, &jobId, &jobName,
-		&jobState, &jobStep, &maxRSS, &maxVMSize, &minCPU, &minCpusPerNode, &nodes,
-		&partition, &priority, &requestedCpus, &requestedMemoryPerNode, &requestedNodeCount,
-		&requestedResources, &reservation, &startTime, &submitTime, &suspendTime, &systemCPU,
-		&timestamp, &timeLimit, &userCPU, &userName,
+	q := query{
+		table:    "sample_slurm_job",
+		fromDate: fromDate,
+		toDate:   toDate,
+		join: "sample_slurm_job_acc as t2 on " +
+			"t1.cluster = t2.cluster and t1.job_id = t2.job_id and t1.job_step = t2.job_step and " +
+			"t1.time = t2.time",
+		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+		fields: "account, allocated_resources, \"AllocTRES\", array_job_id, array_task_id, \"AveCPU\", " +
+			"\"AveDiskRead\", \"AveDiskWrite\", \"AveRSS\", \"AveVMSize\", t1.cluster, distribution, \"ElapsedRaw\", " +
+			"end_time, exit_code, het_job_id, het_job_offset, t1.job_id, job_name, " +
+			"job_state, t1.job_step, \"MaxRSS\", \"MaxVMSize\", \"MinCPU\", minimum_cpus_per_node, nodes, " +
+			"partition, priority, requested_cpus, requested_memory_per_node, requested_node_count, " +
+			"requested_resources, reservation, start_time, submit_time, suspend_time, \"SystemCPU\", " +
+			"t1.time, time_limit, \"UserCPU\", user_name",
+		boxes: []any{
+			&account, &allocatedResources, &allocTRES, &arrayJobId, &arrayTaskId, &aveCPU,
+			&aveDiskRead, &aveDiskWrite, &aveRSS, &aveVMSize, &cluster, &distribution, &elapsedRaw,
+			&endTime, &exitCode, &hetJobId, &hetJobOffset, &jobId, &jobName,
+			&jobState, &jobStep, &maxRSS, &maxVMSize, &minCPU, &minCpusPerNode, &nodes,
+			&partition, &priority, &requestedCpus, &requestedMemoryPerNode, &requestedNodeCount,
+			&requestedResources, &reservation, &startTime, &submitTime, &suspendTime, &systemCPU,
+			&timestamp, &timeLimit, &userCPU, &userName,
+		},
 	}
 
 	// Reference: ParseSlurmV0JSON
@@ -504,8 +537,7 @@ func (cdb *connectedDB) ReadSacctData(
 		}
 	}
 
-	return querySlice[repr.SacctInfo](
-		cdb, fromDate, toDate, nil, verbose, boxes, unbox, table, fields, "t1.")
+	return querySlice[repr.SacctInfo](cdb, &q, verbose, unbox)
 }
 
 func (cdb *connectedDB) ReadCluzterAttributeData(
@@ -516,11 +548,14 @@ func (cdb *connectedDB) ReadCluzterAttributeData(
 	var slurm bool
 	var timestamp time.Time
 
-	table := "cluster_attributes"
-
-	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields := "cluster, slurm, time"
-	boxes := []any{&cluster, &slurm, &timestamp}
+	q := query{
+		table:    "cluster_attributes",
+		fromDate: fromDate,
+		toDate:   toDate,
+		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+		fields: "cluster, slurm, time",
+		boxes:  []any{&cluster, &slurm, &timestamp},
+	}
 
 	// Reference: ParseCluzterV0JSON
 	unbox := func() *repr.CluzterAttributes {
@@ -531,8 +566,7 @@ func (cdb *connectedDB) ReadCluzterAttributeData(
 		}
 	}
 
-	return querySlice[repr.CluzterAttributes](
-		cdb, fromDate, toDate, nil, verbose, boxes, unbox, table, fields, "")
+	return querySlice[repr.CluzterAttributes](cdb, &q, verbose, unbox)
 }
 
 func (cdb *connectedDB) ReadCluzterPartitionData(
@@ -544,11 +578,14 @@ func (cdb *connectedDB) ReadCluzterPartitionData(
 	var nodeNamesCompact []string
 	var timestamp time.Time
 
-	table := "partition"
-
-	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields := "cluster, nodes_compact, partition, time"
-	boxes := []any{&cluster, &nodeNamesCompact, &partName, &timestamp}
+	q := query{
+		table:    "partition",
+		fromDate: fromDate,
+		toDate:   toDate,
+		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+		fields: "cluster, nodes_compact, partition, time",
+		boxes:  []any{&cluster, &nodeNamesCompact, &partName, &timestamp},
+	}
 
 	// A little tricky.  The Sonar data has multiple partitions for a timestamp in the same object
 	// (in fact all partitions on the cluster at that time).  The database has flattened this view
@@ -573,8 +610,7 @@ func (cdb *connectedDB) ReadCluzterPartitionData(
 		}
 	}
 
-	return querySlice[repr.CluzterPartitions](
-		cdb, fromDate, toDate, nil, verbose, boxes, unbox, table, fields, "")
+	return querySlice[repr.CluzterPartitions](cdb, &q, verbose, unbox)
 }
 
 func (cdb *connectedDB) ReadCluzterNodeData(
@@ -586,11 +622,14 @@ func (cdb *connectedDB) ReadCluzterNodeData(
 	var states []string
 	var timestamp time.Time
 
-	table := "node_state"
-
-	// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	fields := "cluster, node, states, time"
-	boxes := []any{&cluster, &nodeName, &states, &timestamp}
+	q := query{
+		table:    "node_state",
+		fromDate: fromDate,
+		toDate:   toDate,
+		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+		fields: "cluster, node, states, time",
+		boxes:  []any{&cluster, &nodeName, &states, &timestamp},
+	}
 
 	// TODO: Merge nodes in the same state, as the consumer (snodes) depends on that for good UX.
 	// It could also be fixed in the consumer...
@@ -609,30 +648,54 @@ func (cdb *connectedDB) ReadCluzterNodeData(
 		}
 	}
 
-	return querySlice[repr.CluzterNodes](
-		cdb, fromDate, toDate, nil, verbose, boxes, unbox, table, fields, "")
+	return querySlice[repr.CluzterNodes](cdb, &q, verbose, unbox)
 }
 
 func querySlice[T any](
 	cdb *connectedDB,
-	fromDate, toDate time.Time,
-	hosts *Hosts, // may be nil
+	q *query,
 	verbose bool,
-	boxes []any,
 	unbox func() *T,
-	table, fields string,
-	clusterPrefix string,
 ) (finalRows [][]*T, softErrors int, err error) {
-	// TODO: time span and hosts obviously
-	// TODO: precedence of 'table' (which may be a join) vis-a-vis the WHERE clause
-	qstr := "SELECT " + fields + " FROM " + table + " WHERE " + clusterPrefix + "cluster=$1"
+	primary := "SELECT * FROM " + q.table + " WHERE " + "cluster=$1"
 	qarg := []any{cdb.cx.ClusterName()}
+	if !q.fromDate.IsZero() {
+		primary += fmt.Sprintf(" AND time >= $%d", len(qarg)+1)
+		qarg = append(qarg, q.fromDate.Format(time.DateOnly))
+	}
+	if !q.toDate.IsZero() {
+		primary += fmt.Sprintf(" AND time < $%d", len(qarg)+1)
+		qarg = append(qarg, q.toDate.Add(time.Hour*24).Format(time.DateOnly))
+	}
+	// TODO: Host filtering if q.hosts is not nil or empty.
+	//
+	// At the database level, host filtering is exclusively an optimization, to avoid reading /
+	// generating data.  Note in particular that we can apply abbreviations.
+	//
+	// Precise filtering: For single hosts, we use '='.  For ranges, it's probably '>=' and '<=' but
+	// only for somewhat restrictive syntax, there must be no more than one range in the syntax and
+	// we stop expanding after, and we can only deal with equal prefixes, so c1-[3-6,9-21] becomes
+	// maybe x >= c1-3 && x <= c1-6 || x = c1-9 || x >= c1-10 && x <= c1-19 || x >= c1-20 && x <=
+	// c1-21 and eg c1-[3-6,9-21]-foo we can't handle except with postprocessing.  If we can use
+	// not-equals we can include larger ranges but can then exclude some in the middle.
+	//
+	// But equally, anything starting with "c1-" would be in and anything else would be out, and
+	// this might still be a worthwhile savings - depending on how many that are.  On fox it would
+	// exclude the bigmem and gpu nodes only.  On betzy, probably quite a lot of nodes, but the
+	// precise expansion would be a lot better.
+	qstr := "SELECT " + q.fields + " FROM (" + primary + ") AS t1"
+	if q.join != "" {
+		qstr += " JOIN " + q.join
+	}
+	if verbose {
+		Log.Infof("SQL: %s %s", qstr, qarg)
+	}
 	rows, err := cdb.theDB.Query(context.Background(), qstr, qarg...)
 	if err != nil {
 		return
 	}
 	dataRows := make([]*T, 0)
-	_, err = pgx.ForEachRow(rows, boxes, func() error {
+	_, err = pgx.ForEachRow(rows, q.boxes, func() error {
 		dataRows = append(dataRows, unbox())
 		return nil
 	})
