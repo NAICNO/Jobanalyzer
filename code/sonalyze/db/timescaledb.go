@@ -670,7 +670,8 @@ func querySlice[T any](
 	// TODO: Host filtering if q.hosts is not nil or empty.
 	//
 	// At the database level, host filtering is exclusively an optimization, to avoid reading /
-	// generating data.  Note in particular that we can apply abbreviations.
+	// generating data.  Note in particular that we can apply lossy abbreviations as long as they
+	// find everything a precise match would find.
 	//
 	// Precise filtering: For single hosts, we use '='.  For ranges, it's probably '>=' and '<=' but
 	// only for somewhat restrictive syntax, there must be no more than one range in the syntax and
@@ -679,10 +680,18 @@ func querySlice[T any](
 	// c1-21 and eg c1-[3-6,9-21]-foo we can't handle except with postprocessing.  If we can use
 	// not-equals we can include larger ranges but can then exclude some in the middle.
 	//
+	// Note however that x >= c1-3 will also find c1-30, not what we want, so this is "precise" in a
+	// strange sense.  It is only if we can count on a suffix that this can work well.  Our host
+	// names do have suffixes (c1-10.fox) but it's not generally true.
+	//
 	// But equally, anything starting with "c1-" would be in and anything else would be out, and
 	// this might still be a worthwhile savings - depending on how many that are.  On fox it would
 	// exclude the bigmem and gpu nodes only.  On betzy, probably quite a lot of nodes, but the
-	// precise expansion would be a lot better.
+	// precise expansion would be a lot better.  Probably this is expressed as x >= 'c1-' && x <= 'c1.'?
+	// if there's not a "string prefix" operator in SQL.  There's an infix "like" operator that might apply:
+	// node like 'c1-%'.  It's more general than prefix matching, % matches zero or more chars,
+	// _ matches one char exactly.  Also there's 'not like' and also 'ilike' for case insensitive matching.
+	// A perf hint is to avoid leading wildcards.
 	qstr := "SELECT " + q.fields + " FROM (" + primary + ") AS t1"
 	if q.join != "" {
 		qstr += " JOIN " + q.join
