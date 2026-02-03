@@ -127,8 +127,8 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 // given time interval, or in the backing config file if there is one and there are no nodes in the
 // data base.
 //
-// Noe this cannot be taken from computed config data because need this list to compute the config
-// data for an open set of hosts.
+// Note this cannot be taken from computed config data because we need this list to compute the
+// config data for an open set of hosts.
 //
 // This needs a cache and/or lazy computation, too.  The right way to think about it, I think, is to
 // ignore the toDate, and to populate the lazy table from the fromDate to the youngest date not
@@ -136,13 +136,13 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 // good enough) and should be careful to share data where possible, because the host sets can be
 // quite large but have tremendous stability over time, so there will be a lot of sharing.
 //
-// This API can be made internal, the only external user can use ConfigDataProvider.Query for the
-// same effect.  And it's not necessary for the return value to be a map, both current consumers
-// really want a list of names, neither uses the map as a map.  But maps.Equal runs in O(n) time, so
-// maps are no worse than slices locally.
+// This has only one client, the Query method below.
+//
+// It's not necessary for the return value to be a map, the client really wants a list of names.
+// (But maps.Equal runs in O(n) time, so maps are no worse than slices locally.)
 
-func (cdb *ConfigDataProvider) AvailableHosts(fromDate, toDate time.Time) (map[string]bool, error) {
-	recordBlobs, _, err := cdb.nodes.QueryRaw(
+func (cdp *ConfigDataProvider) availableHosts(fromDate, toDate time.Time) (map[string]bool, error) {
+	recordBlobs, _, err := cdp.nodes.QueryRaw(
 		fromDate,
 		toDate,
 		nil,
@@ -159,7 +159,7 @@ func (cdb *ConfigDataProvider) AvailableHosts(fromDate, toDate time.Time) (map[s
 			}
 		}
 	} else {
-		for _, node := range cdb.meta.NodesDefinedInConfigIfAny() {
+		for _, node := range cdp.meta.NodesDefinedInConfigIfAny() {
 			nodenames[node.Hostname] = true
 		}
 	}
@@ -181,7 +181,7 @@ type QueryArgs struct {
 
 func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
 	if len(qa.Host) == 0 {
-		hosts, err := cdp.AvailableHosts(qa.FromDate, qa.ToDate)
+		hosts, err := cdp.availableHosts(qa.FromDate, qa.ToDate)
 		if err != nil {
 			return nil, err
 		}

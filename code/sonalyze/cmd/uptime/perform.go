@@ -51,6 +51,7 @@ import (
 	uslices "go-utils/slices"
 
 	. "sonalyze/common"
+	dcommon "sonalyze/data/common"
 	"sonalyze/data/config"
 	"sonalyze/data/sample"
 	"sonalyze/db/types"
@@ -320,20 +321,23 @@ func (uc *UptimeCommand) computeAlwaysDown(
 		if err != nil {
 			return
 		}
-		nodes, err := cdp.AvailableHosts(
-			time.Unix(fromIncl, 0).UTC(),
-			time.Unix(toIncl, 0).UTC(),
-		)
+		configs, err := cdp.Query(
+			config.QueryArgs{
+				QueryFilter: dcommon.QueryFilter {
+					FromDate: time.Unix(fromIncl, 0).UTC(),
+					ToDate: time.Unix(toIncl, 0).UTC(),
+				},
+			})
 		if err != nil {
+			return
+		}
+		if len(configs) == 0 {
 			return
 		}
 
 		hs := make(map[Ustr]bool)
-		for hostname := range nodes {
-			hs[StringToUstr(hostname)] = true
-		}
-		if len(hs) == 0 {
-			return
+		for _, c := range configs {
+			hs[StringToUstr(c.Hostname)] = true
 		}
 		for _, sample := range samples {
 			delete(hs, sample.Hostname)
