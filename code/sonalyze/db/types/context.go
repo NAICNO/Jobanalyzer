@@ -1,18 +1,11 @@
-package special
+package types
 
 import (
+	"go-utils/config"
 	"sonalyze/db/repr"
 )
 
-// ClusterMeta is an atrophied shim around a *ClusterEntry.  It no longer has any utility (except
-// marginally for testing since we can mock a ClusterEntry).  It should be removed and the methods
-// of the main implementor, clusterMeta, should be moved onto ClusterEntry.  Probably ClusterEntry
-// should not be called that.
-
-type ClusterMeta interface {
-	// The underlying cluster object.
-	Cluster() *ClusterEntry
-
+type Context interface {
 	// Return the name of the cluster.  This is assumed to be time-unvarying.
 	ClusterName() string
 
@@ -34,9 +27,21 @@ type ClusterMeta interface {
 	// incorporate the type).
 	LogFiles(dataType DataType) []string
 
+	// Return true if the underlying database is a real database that we're connected to
+	HaveDatabaseConnection() bool
+
+	// Return the underlying connected database.  (The type is regrettably `any` for now.)
+	ConnectedDB() any
+
 	// Return a data directory either from -data-dir or computed from -jobanalyzer-dir, otherwise ""
 	DataDir() string
 
 	// Return a data directory either from -report-dir or computed from -jobanalyzer-dir, otherwise ""
 	ReportDir() string
+
+	// Return true if the cluster has an underlying static config.
+	HaveConfig() bool
+
+	// Return the underlying static config iff we have it, otherwise nil.
+	Config() *config.ClusterConfig
 }

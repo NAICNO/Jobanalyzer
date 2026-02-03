@@ -11,8 +11,10 @@ import (
 
 	"go-utils/config"
 	. "sonalyze/common"
+	"sonalyze/db/filesys"
 	"sonalyze/db/repr"
 	"sonalyze/db/special"
+	"sonalyze/db/types"
 )
 
 var theDB *PersistentCluster
@@ -20,10 +22,6 @@ var theDB *PersistentCluster
 type stubMeta struct {
 	dataDir string
 	cfg     *config.ClusterConfig
-}
-
-func (mm *stubMeta) Cluster() *special.ClusterEntry {
-	return nil
 }
 
 func (mm *stubMeta) ClusterName() string {
@@ -42,16 +40,32 @@ func (mm *stubMeta) DataDir() string {
 	return mm.dataDir
 }
 
-func (mm *stubMeta) HaveLogFilesOfType(_ special.DataType) bool {
+func (mm *stubMeta) HaveLogFilesOfType(_ types.DataType) bool {
 	return false
 }
 
-func (mm *stubMeta) LogFiles(_ special.DataType) []string {
+func (mm *stubMeta) LogFiles(_ types.DataType) []string {
+	return nil
+}
+
+func (mm *stubMeta) HaveDatabaseConnection() bool {
+	return false
+}
+
+func (mm *stubMeta) ConnectedDB() any {
 	return nil
 }
 
 func (mm *stubMeta) ReportDir() string {
 	return ""
+}
+
+func (mm *stubMeta) HaveConfig() bool {
+	return mm.cfg != nil
+}
+
+func (mm *stubMeta) Config() *config.ClusterConfig {
+	return mm.cfg
 }
 
 func getPersistentDB(t *testing.T, cluster string) *PersistentCluster {
@@ -60,14 +74,14 @@ func getPersistentDB(t *testing.T, cluster string) *PersistentCluster {
 	}
 	var err error
 	// Do not change this.
-	theCfg, err := special.ReadConfigData(special.MakeConfigFilePath("testdata", cluster))
+	theCfg, err := special.ReadConfigData(filesys.MakeConfigFilePath("testdata", cluster))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if theCfg == nil {
 		t.Fatal("nil config")
 	}
-	dataDir := special.MakeClusterDataPath("testdata", cluster)
+	dataDir := filesys.MakeClusterDataPath("testdata", cluster)
 	theDB = NewPersistentCluster(dataDir, &stubMeta{dataDir: dataDir, cfg: theCfg})
 	return theDB
 }

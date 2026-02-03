@@ -6,7 +6,7 @@ import (
 
 	"sonalyze/cmd"
 	"sonalyze/cmd/report"
-	"sonalyze/db/special"
+	"sonalyze/db"
 )
 
 func TestReport(t *testing.T) {
@@ -25,9 +25,9 @@ func TestReport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer special.CloseDataStore()
+	defer db.CloseDataStore()
 	var stdout strings.Builder
-	err = rc.Perform(cmd.NewMetaFromCommand(&rc), nil, &stdout, nil)
+	err = rc.Perform(cmd.NewContextFromCommand(&rc), nil, &stdout, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

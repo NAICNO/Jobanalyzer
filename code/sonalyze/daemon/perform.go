@@ -30,7 +30,6 @@ import (
 	"go-utils/process"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
-	"sonalyze/data/cluster"
 	"sonalyze/db"
 	"sonalyze/db/special"
 )
@@ -47,8 +46,14 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 
 	if dc.kafkaBroker != "" {
 		for _, cl := range special.AllClusters() {
-			meta := cluster.NewMetaFromCluster(cl)
-			ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
+			meta := db.NewContextFromCluster(cl)
+			var ds db.AppendablePersistentDataProvider
+			var err error
+			if meta.HaveDatabaseConnection() {
+				ds = db.OpenConnectedDB(meta)
+			} else {
+				ds, err = db.OpenAppendablePersistentDirectoryDB(meta)
+			}
 			if err != nil {
 				if dc.Verbose {
 					Log.Warningf("Failed to open data store for %s", cl.Name)

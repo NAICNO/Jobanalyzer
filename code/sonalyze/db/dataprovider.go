@@ -40,6 +40,18 @@ type SampleDataProvider interface {
 	GpuSampleDataProvider
 }
 
+type APINotSupportedError struct {
+	message string
+}
+
+func NewAPINotSupportedError(message string) error {
+	return &APINotSupportedError{message}
+}
+
+func (e *APINotSupportedError) Error() string {
+	return "API not supported: " + e.message
+}
+
 type ProcessSampleDataProvider interface {
 	ReadProcessSamples(
 		fromDate, toDate time.Time,

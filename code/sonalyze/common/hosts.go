@@ -31,9 +31,25 @@ func NewHosts(prefix bool, patterns []string) (*Hosts, error) {
 	}, nil
 }
 
+func (h *Hosts) String() string {
+	s := strings.Join(h.patterns, ",")
+	if h.prefix {
+		s = "prefix: " + s
+	}
+	return s
+}
+
 // Return true if the set of patterns is empty.
 func (h *Hosts) IsEmpty() bool {
 	return h.globber.IsEmpty()
+}
+
+func (h *Hosts) Patterns() []string {
+	return h.patterns
+}
+
+func (h *Hosts) IsPrefix() bool {
+	return h.prefix
 }
 
 // Return the cached globber that matches strings against the hosts in the set.

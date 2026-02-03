@@ -29,7 +29,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/cpusample"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -64,7 +64,7 @@ func (tc *TopCommand) MaybeFormatHelp() *FormatHelp {
 	return nil
 }
 
-func (tc *TopCommand) Perform(meta special.ClusterMeta, stdin io.Reader, stdout, stderr io.Writer) error {
+func (tc *TopCommand) Perform(meta types.Context, stdin io.Reader, stdout, stderr io.Writer) error {
 	cdp, err := cpusample.OpenCpuSampleDataProvider(meta)
 
 	// TODO: Use standard query interface with standard QueryFilter here.

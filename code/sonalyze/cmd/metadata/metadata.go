@@ -11,7 +11,7 @@ import (
 	. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/sample"
-	"sonalyze/db/special"
+	"sonalyze/db/types"
 	. "sonalyze/table"
 )
 
@@ -126,7 +126,7 @@ func (mdc *MetadataCommand) DefaultRecordFilters() (
 
 func (mdc *MetadataCommand) Perform(
 	out io.Writer,
-	meta special.ClusterMeta,
+	meta types.Context,
 	filter sample.QueryFilter,
 	hosts *Hosts,
 	recordFilter *sample.SampleFilter,
