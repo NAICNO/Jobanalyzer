@@ -323,9 +323,9 @@ func (uc *UptimeCommand) computeAlwaysDown(
 		}
 		configs, err := cdp.Query(
 			config.QueryArgs{
-				QueryFilter: dcommon.QueryFilter {
+				QueryFilter: dcommon.QueryFilter{
 					FromDate: time.Unix(fromIncl, 0).UTC(),
-					ToDate: time.Unix(toIncl, 0).UTC(),
+					ToDate:   time.Unix(toIncl, 0).UTC(),
 				},
 			})
 		if err != nil {
