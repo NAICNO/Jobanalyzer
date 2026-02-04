@@ -1,14 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "FastAPI",
-    "version": "0.1.0"
+    "title": "slurm-monitor REST API",
+    "version": "2"
   },
-  "servers": [
-    {
-      "url": "/api/v2"
-    }
-  ],
   "paths": {
     "/": {
       "get": {
@@ -2865,6 +2860,254 @@
         }
       }
     },
+    "/cluster/{cluster}/nodes/diskstats/timeseries": {
+      "get": {
+        "tags": [
+          "v2",
+          "cluster"
+        ],
+        "summary": "Get timeseries data of GPU samples for all nodes in a given cluster",
+        "operationId": "nodes_sample_disk_cluster__cluster__nodes_diskstats_timeseries_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "nodename",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Nodename"
+            }
+          },
+          {
+            "name": "start_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Time In S"
+            }
+          },
+          {
+            "name": "end_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Time In S"
+            }
+          },
+          {
+            "name": "resolution_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resolution In S"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeDiskTimeseriesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster}/nodes/{nodename}/diskstats/timeseries": {
+      "get": {
+        "tags": [
+          "v2",
+          "node"
+        ],
+        "summary": "Get **node**-specific timeseries data of DiskStat samples",
+        "operationId": "nodes_sample_disk_cluster__cluster__nodes__nodename__diskstats_timeseries_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "nodename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Nodename"
+            }
+          },
+          {
+            "name": "start_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Time In S"
+            }
+          },
+          {
+            "name": "end_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Time In S"
+            }
+          },
+          {
+            "name": "resolution_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resolution In S"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeDiskTimeseriesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cluster/{cluster}/jobs/{job_id}/process/timeseries": {
       "get": {
         "tags": [
@@ -4714,7 +4957,7 @@
           "uri": {
             "type": "string",
             "title": "Uri",
-            "default": "sqlite:////home/roehr/.slurm-monitor/slurm-monitor-db.sqlite"
+            "default": "sqlite:////home/slurmmon/.slurm-monitor/slurm-monitor-db.sqlite"
           },
           "create_missing": {
             "type": "boolean",
@@ -5538,6 +5781,17 @@
         ],
         "title": "JobsResponse"
       },
+      "NodeDiskTimeseriesResponse": {
+        "additionalProperties": {
+          "items": {
+            "$ref": "#/components/schemas/SampleDiskTimeseriesResponse"
+          },
+          "type": "array"
+        },
+        "type": "object",
+        "title": "NodeDiskTimeseriesResponse",
+        "description": "List of timeseries data per node"
+      },
       "NodeGpuJobSampleProcessGpuTimeseriesResponse": {
         "additionalProperties": {
           "$ref": "#/components/schemas/GpuJobSampleProcessGpuTimeseriesResponse"
@@ -6038,6 +6292,186 @@
         ],
         "title": "SAcctResponse"
       },
+      "SampleDiskResponse": {
+        "properties": {
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time",
+            "description": "Timezone Aware timestamp"
+          },
+          "reads_completed": {
+            "type": "integer",
+            "title": "Reads Completed",
+            "description": "Number of completed reads"
+          },
+          "reads_merged": {
+            "type": "integer",
+            "title": "Reads Merged",
+            "description": "Number of reads merged (adjacent reads might be merged)"
+          },
+          "sectors_read": {
+            "type": "integer",
+            "title": "Sectors Read",
+            "description": "Number of sector read"
+          },
+          "ms_spent_reading": {
+            "type": "integer",
+            "title": "Ms Spent Reading",
+            "description": "Milliseconds spent reading"
+          },
+          "writes_completed": {
+            "type": "integer",
+            "title": "Writes Completed",
+            "description": "Number of writes completed"
+          },
+          "writes_merged": {
+            "type": "integer",
+            "title": "Writes Merged",
+            "description": "Number of merged writes"
+          },
+          "sectors_written": {
+            "type": "integer",
+            "title": "Sectors Written",
+            "description": "Number of sectors being written"
+          },
+          "ms_spent_writing": {
+            "type": "integer",
+            "title": "Ms Spent Writing",
+            "description": "Milliseconds spent writing"
+          },
+          "ios_currently_in_progress": {
+            "type": "integer",
+            "title": "Ios Currently In Progress",
+            "description": "Number of I/Os in progress"
+          },
+          "ms_spent_doing_ios": {
+            "type": "integer",
+            "title": "Ms Spent Doing Ios",
+            "description": "Milliseconds on doing I/Os"
+          },
+          "weighted_ms_spent_doing_ios": {
+            "type": "integer",
+            "title": "Weighted Ms Spent Doing Ios",
+            "description": "Weighted milliseconds spend on doing I/Os"
+          },
+          "discards_completed": {
+            "type": "integer",
+            "title": "Discards Completed",
+            "description": "Number of completed discards"
+          },
+          "discards_merged": {
+            "type": "integer",
+            "title": "Discards Merged",
+            "description": "Number of sectors discarded"
+          },
+          "sectors_discarded": {
+            "type": "integer",
+            "title": "Sectors Discarded",
+            "description": "Number of section that have been discarded"
+          },
+          "ms_spent_discarding": {
+            "type": "integer",
+            "title": "Ms Spent Discarding",
+            "description": "Milliseconds spent dicarding"
+          },
+          "flush_requests_completed": {
+            "type": "integer",
+            "title": "Flush Requests Completed",
+            "description": "Number of completed flush requests"
+          },
+          "ms_spent_flushing": {
+            "type": "integer",
+            "title": "Ms Spent Flushing",
+            "description": "Milliseconds spent flushing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "time",
+          "reads_completed",
+          "reads_merged",
+          "sectors_read",
+          "ms_spent_reading",
+          "writes_completed",
+          "writes_merged",
+          "sectors_written",
+          "ms_spent_writing",
+          "ios_currently_in_progress",
+          "ms_spent_doing_ios",
+          "weighted_ms_spent_doing_ios",
+          "discards_completed",
+          "discards_merged",
+          "sectors_discarded",
+          "ms_spent_discarding",
+          "flush_requests_completed",
+          "ms_spent_flushing"
+        ],
+        "title": "SampleDiskResponse"
+      },
+      "SampleDiskTimeseriesResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the disk"
+          },
+          "major": {
+            "type": "integer",
+            "title": "Major",
+            "description": "Major device number"
+          },
+          "minor": {
+            "type": "integer",
+            "title": "Minor",
+            "description": "Minor device number"
+          },
+          "field_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Field Names",
+            "description": "diskstat fieldnames",
+            "default": [
+              "reads_completed",
+              "reads_merged",
+              "sectors_read",
+              "ms_spent_reading",
+              "writes_completed",
+              "writes_merged",
+              "sectors_written",
+              "ms_spent_writing",
+              "ios_currently_in_progress",
+              "ms_spent_doing_ios",
+              "weighted_ms_spent_doing_ios",
+              "discards_completed",
+              "discards_merged",
+              "sectors_discarded",
+              "ms_spent_discarding",
+              "flush_requests_completed",
+              "ms_spent_flushing"
+            ]
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SampleDiskResponse"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "Timeseries of SampleDisk for this disk"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "major",
+          "minor",
+          "data"
+        ],
+        "title": "SampleDiskTimeseriesResponse",
+        "description": "provide the timeseries of samples"
+      },
       "SampleGpuBaseResponse": {
         "properties": {
           "time": {
@@ -6436,6 +6870,23 @@
         ],
         "title": "ValidationError"
       }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
     }
-  }
+  },
+  "servers": [
+    {
+      "url": "/api/v2"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ]
 }

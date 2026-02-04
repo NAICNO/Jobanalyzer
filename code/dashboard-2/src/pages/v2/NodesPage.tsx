@@ -1,7 +1,8 @@
-import { VStack, Text, Heading, Listbox, Input, useFilter, Spinner, Alert, createListCollection, Box, Tabs } from '@chakra-ui/react'
+import { VStack, Text, Heading, Listbox, Input, useFilter, Spinner, Alert, createListCollection, Box, Tabs, Splitter } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useLocalStorage } from 'react-use'
 
 import { getClusterByClusterNodesOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
@@ -10,16 +11,12 @@ import { NodeTopology } from '../../components/v2/NodeTopology'
 import { NodeInfoSummary } from '../../components/v2/NodeInfoSummary'
 import { NodeStates } from '../../components/v2/NodeStates'
 import { NodeCpuTimeseries } from '../../components/v2/NodeCpuTimeseries'
-import { ResizableColumns } from '../../components/v2/ResizableColumns'
 import { NodeOverviewCards } from '../../components/v2/NodeOverviewCards'
 import { NodesTable } from '../../components/v2/NodesTable'
 
 export const NodesPage = () => {
   const { clusterName, nodename } = useParams()
   const navigate = useNavigate()
-  const minLeftWidth = 220
-  const maxLeftWidth = 640
-  const handleWidth = 6
 
   const client = useClusterClient(clusterName)
   if (!client) {
@@ -45,6 +42,9 @@ export const NodesPage = () => {
   const [filterValue, setFilterValue] = useState('')
   const filteredItems = useMemo(() => items.filter((it) => contains(it.label, filterValue)), [items, filterValue, contains])
   const collection = useMemo(() => createListCollection<NodeItem>({ items: filteredItems }), [filteredItems])
+
+  // Splitter sizes with localStorage persistence
+  const [sizes, setSizes] = useLocalStorage<number[]>('nodesPage.splitterSizes', [25, 75])
 
   // Sync selection with URL param and initialize when data arrives
   useEffect(() => {
@@ -99,15 +99,16 @@ export const NodesPage = () => {
         </Tabs.List>
 
         <Tabs.Content value="nodes">
-          <ResizableColumns
-            height="calc(100vh)"
-            initialLeftWidth={320}
-            minLeftWidth={minLeftWidth}
-            maxLeftWidth={maxLeftWidth}
-            handleWidth={handleWidth}
-            storageKey="nodesPage.leftWidth"
-            left={
-              <VStack p={4} pt={0} gap={4} align="start">
+          <Splitter.Root
+            panels={[
+              { id: 'left', minSize: 15, maxSize: 40 },
+              { id: 'right', minSize: 50 }
+            ]}
+            defaultSize={sizes}
+            onResizeEnd={(details) => setSizes(details.size)}
+          >
+            <Splitter.Panel id="left">
+              <VStack p={4} pt={0} gap={4} align="start" h="full" overflowY="auto">
                 {isLoading && (
                   <Box display="flex" alignItems="center" gap={2}>
                     <Spinner size="sm" />
@@ -141,7 +142,6 @@ export const NodesPage = () => {
                       {collection.items.map((node) => (
                         <Listbox.Item item={node} key={node.value}>
                           <Listbox.ItemText>{node.label}</Listbox.ItemText>
-
                         </Listbox.Item>
                       ))}
                       {collection.items.length === 0 && (
@@ -151,9 +151,14 @@ export const NodesPage = () => {
                   </Listbox.Root>
                 )}
               </VStack>
-            }
-            right={
-              <VStack flex={1} p={4} gap={4} align="start" minW="0">
+            </Splitter.Panel>
+
+            <Splitter.ResizeTrigger id="left:right" w="12px">
+              <Splitter.ResizeTriggerSeparator borderWidth="2px" />
+            </Splitter.ResizeTrigger>
+
+            <Splitter.Panel id="right">
+              <VStack flex={1} p={4} gap={4} align="start" minW="0" h="full" overflowY="auto">
                 {selectedNode ? (
                   <>
                     <Heading size="md">{selectedNode.label} Details</Heading>
@@ -167,8 +172,8 @@ export const NodesPage = () => {
                   <Text>Select a node to see details</Text>
                 )}
               </VStack>
-            }
-          />
+            </Splitter.Panel>
+          </Splitter.Root>
         </Tabs.Content>
 
         <Tabs.Content value="grid">

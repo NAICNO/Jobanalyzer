@@ -768,6 +768,15 @@ export type JobsResponse = {
 };
 
 /**
+ * NodeDiskTimeseriesResponse
+ *
+ * List of timeseries data per node
+ */
+export type NodeDiskTimeseriesResponse = {
+    [key: string]: Array<SampleDiskTimeseriesResponse>;
+};
+
+/**
  * NodeGpuJobSampleProcessGpuTimeseriesResponse
  */
 export type NodeGpuJobSampleProcessGpuTimeseriesResponse = {
@@ -1182,6 +1191,158 @@ export type SAcctResponse = {
      * Average number of bytes written by all tasks in job (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'> SLURM Job Accounting</a>)
      */
     AveDiskWrite: number;
+};
+
+/**
+ * SampleDiskResponse
+ */
+export type SampleDiskResponse = {
+    /**
+     * Time
+     *
+     * Timezone Aware timestamp
+     */
+    time: Date;
+    /**
+     * Reads Completed
+     *
+     * Number of completed reads
+     */
+    reads_completed: number;
+    /**
+     * Reads Merged
+     *
+     * Number of reads merged (adjacent reads might be merged)
+     */
+    reads_merged: number;
+    /**
+     * Sectors Read
+     *
+     * Number of sector read
+     */
+    sectors_read: number;
+    /**
+     * Ms Spent Reading
+     *
+     * Milliseconds spent reading
+     */
+    ms_spent_reading: number;
+    /**
+     * Writes Completed
+     *
+     * Number of writes completed
+     */
+    writes_completed: number;
+    /**
+     * Writes Merged
+     *
+     * Number of merged writes
+     */
+    writes_merged: number;
+    /**
+     * Sectors Written
+     *
+     * Number of sectors being written
+     */
+    sectors_written: number;
+    /**
+     * Ms Spent Writing
+     *
+     * Milliseconds spent writing
+     */
+    ms_spent_writing: number;
+    /**
+     * Ios Currently In Progress
+     *
+     * Number of I/Os in progress
+     */
+    ios_currently_in_progress: number;
+    /**
+     * Ms Spent Doing Ios
+     *
+     * Milliseconds on doing I/Os
+     */
+    ms_spent_doing_ios: number;
+    /**
+     * Weighted Ms Spent Doing Ios
+     *
+     * Weighted milliseconds spend on doing I/Os
+     */
+    weighted_ms_spent_doing_ios: number;
+    /**
+     * Discards Completed
+     *
+     * Number of completed discards
+     */
+    discards_completed: number;
+    /**
+     * Discards Merged
+     *
+     * Number of sectors discarded
+     */
+    discards_merged: number;
+    /**
+     * Sectors Discarded
+     *
+     * Number of section that have been discarded
+     */
+    sectors_discarded: number;
+    /**
+     * Ms Spent Discarding
+     *
+     * Milliseconds spent dicarding
+     */
+    ms_spent_discarding: number;
+    /**
+     * Flush Requests Completed
+     *
+     * Number of completed flush requests
+     */
+    flush_requests_completed: number;
+    /**
+     * Ms Spent Flushing
+     *
+     * Milliseconds spent flushing
+     */
+    ms_spent_flushing: number;
+};
+
+/**
+ * SampleDiskTimeseriesResponse
+ *
+ * provide the timeseries of samples
+ */
+export type SampleDiskTimeseriesResponse = {
+    /**
+     * Name
+     *
+     * Name of the disk
+     */
+    name: string;
+    /**
+     * Major
+     *
+     * Major device number
+     */
+    major: number;
+    /**
+     * Minor
+     *
+     * Minor device number
+     */
+    minor: number;
+    /**
+     * Field Names
+     *
+     * diskstat fieldnames
+     */
+    field_names?: Array<string>;
+    /**
+     * Data
+     *
+     * Timeseries of SampleDisk for this disk
+     */
+    data: Array<SampleDiskResponse>;
 };
 
 /**
@@ -2809,6 +2970,106 @@ export type GetClusterByClusterNodesByNodenameGpuTimeseriesResponses = {
 };
 
 export type GetClusterByClusterNodesByNodenameGpuTimeseriesResponse = GetClusterByClusterNodesByNodenameGpuTimeseriesResponses[keyof GetClusterByClusterNodesByNodenameGpuTimeseriesResponses];
+
+export type GetClusterByClusterNodesDiskstatsTimeseriesData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+    };
+    query?: {
+        /**
+         * Nodename
+         */
+        nodename?: string | null;
+        /**
+         * Start Time In S
+         */
+        start_time_in_s?: number | null;
+        /**
+         * End Time In S
+         */
+        end_time_in_s?: number | null;
+        /**
+         * Resolution In S
+         */
+        resolution_in_s?: number | null;
+    };
+    url: '/cluster/{cluster}/nodes/diskstats/timeseries';
+};
+
+export type GetClusterByClusterNodesDiskstatsTimeseriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterNodesDiskstatsTimeseriesError = GetClusterByClusterNodesDiskstatsTimeseriesErrors[keyof GetClusterByClusterNodesDiskstatsTimeseriesErrors];
+
+export type GetClusterByClusterNodesDiskstatsTimeseriesResponses = {
+    /**
+     * Successful Response
+     */
+    200: NodeDiskTimeseriesResponse;
+};
+
+export type GetClusterByClusterNodesDiskstatsTimeseriesResponse = GetClusterByClusterNodesDiskstatsTimeseriesResponses[keyof GetClusterByClusterNodesDiskstatsTimeseriesResponses];
+
+export type GetClusterByClusterNodesByNodenameDiskstatsTimeseriesData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+        /**
+         * Nodename
+         */
+        nodename: string | null;
+    };
+    query?: {
+        /**
+         * Start Time In S
+         */
+        start_time_in_s?: number | null;
+        /**
+         * End Time In S
+         */
+        end_time_in_s?: number | null;
+        /**
+         * Resolution In S
+         */
+        resolution_in_s?: number | null;
+    };
+    url: '/cluster/{cluster}/nodes/{nodename}/diskstats/timeseries';
+};
+
+export type GetClusterByClusterNodesByNodenameDiskstatsTimeseriesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterNodesByNodenameDiskstatsTimeseriesError = GetClusterByClusterNodesByNodenameDiskstatsTimeseriesErrors[keyof GetClusterByClusterNodesByNodenameDiskstatsTimeseriesErrors];
+
+export type GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponses = {
+    /**
+     * Successful Response
+     */
+    200: NodeDiskTimeseriesResponse;
+};
+
+export type GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponse = GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponses[keyof GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponses];
 
 export type GetClusterByClusterJobsByJobIdProcessTimeseriesData = {
     /**
