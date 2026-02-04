@@ -34,7 +34,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="v2/mlx.hpc.uio.no/overview" replace/>
+        element: <Navigate to="v2/select-cluster" replace/>
       },
       {
         path: 'auth',
@@ -48,6 +48,10 @@ const router = createBrowserRouter([
       {
         path: 'v2',
         children: [
+          {
+            index: true,
+            element: <Navigate to="select-cluster" replace/>
+          },
           {
             path: 'select-cluster',
             element: <ClusterSelectionPage />,

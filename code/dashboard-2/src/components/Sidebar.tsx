@@ -84,7 +84,6 @@ const transformSidebarItemsToTree = (selectedClusters: string[]) => {
         { text: 'Query', route: '/jobs/query' },
       ]
     },
-    { text: 'Errors', route: '/errors' },
   ]
 
   // Build nodes for selected clusters only

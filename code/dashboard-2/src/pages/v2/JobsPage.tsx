@@ -70,7 +70,7 @@ export const JobsPage = () => {
         field: 'job_state',
         headerName: 'State',
         width: 120,
-        filter: 'agSetColumnFilter',
+        filter: 'agTextColumnFilter',
         pinned: 'left',
         cellRenderer: (params: ICellRendererParams<JobResponse>) => {
           const state = params.value
@@ -324,7 +324,6 @@ export const JobsPage = () => {
             pagination={true}
             paginationPageSize={50}
             paginationPageSizeSelector={[25, 50, 100, 200]}
-            rowSelection="single"
             animateRows={true}
             enableCellTextSelection={true}
             onRowDoubleClicked={(event) => {
