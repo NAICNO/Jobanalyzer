@@ -1,11 +1,11 @@
-import { VStack, Text, Heading, Listbox, Input, useFilter, Spinner, Alert, createListCollection, Box, HStack, Badge } from '@chakra-ui/react'
+import { VStack, Text, Heading, Listbox, Input, useFilter, Spinner, Alert, createListCollection, Box, HStack, Badge, Splitter } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useLocalStorage } from 'react-use'
 
 import { getClusterByClusterPartitionsOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
-import { ResizableColumns } from '../../components/v2/ResizableColumns'
 import { PartitionSummary } from '../../components/v2/PartitionSummary'
 import { PartitionQueueOverview } from '../../components/v2/PartitionQueueOverview'
 import { PartitionNodes } from '../../components/v2/PartitionNodes'
@@ -16,9 +16,6 @@ import type { PartitionResponse } from '../../client'
 export const PartitionsPage = () => {
   const { clusterName, partitionName } = useParams()
   const navigate = useNavigate()
-  const minLeftWidth = 220
-  const maxLeftWidth = 640
-  const handleWidth = 6
 
   const client = useClusterClient(clusterName)
   if (!client) {
@@ -55,6 +52,9 @@ export const PartitionsPage = () => {
     () => createListCollection<PartitionItem>({ items: filteredItems }),
     [filteredItems]
   )
+
+  // Splitter sizes with localStorage persistence
+  const [sizes, setSizes] = useLocalStorage<number[]>('partitionsPage.splitterSizes', [25, 75])
 
   // Sync selection with URL param and initialize when data arrives
   useEffect(() => {
@@ -103,15 +103,17 @@ export const PartitionsPage = () => {
         </Box>
       )}
 
-      <ResizableColumns
-        height="calc(100vh - 200px)"
-        initialLeftWidth={320}
-        minLeftWidth={minLeftWidth}
-        maxLeftWidth={maxLeftWidth}
-        handleWidth={handleWidth}
-        storageKey="partitionsPage.leftWidth"
-        left={
-          <VStack p={4} gap={4} align="start">
+      <Splitter.Root
+        panels={[
+          { id: 'left', minSize: 15, maxSize: 40 },
+          { id: 'right', minSize: 50 }
+        ]}
+        defaultSize={sizes}
+        onResizeEnd={(details) => setSizes(details.size)}
+        h="calc(100vh - 200px)"
+      >
+        <Splitter.Panel id="left">
+          <VStack p={4} gap={4} align="start" h="full" overflowY="auto">
             <Heading size="md">Partitions</Heading>
             {isLoading && (
               <Box display="flex" alignItems="center" gap={2}>
@@ -177,9 +179,14 @@ export const PartitionsPage = () => {
               </Listbox.Root>
             )}
           </VStack>
-        }
-        right={
-          <VStack flex={1} p={4} gap={4} align="start" minW="0">
+        </Splitter.Panel>
+
+        <Splitter.ResizeTrigger id="left:right" w="12px">
+          <Splitter.ResizeTriggerSeparator borderWidth="2px" />
+        </Splitter.ResizeTrigger>
+
+        <Splitter.Panel id="right">
+          <VStack flex={1} p={4} gap={4} align="start" minW="0" h="full" overflowY="auto">
             {selectedPartition ? (
               <>
                 <Heading size="md">{selectedPartition.label}</Heading>
@@ -192,8 +199,8 @@ export const PartitionsPage = () => {
               <Text>Select a partition to see details</Text>
             )}
           </VStack>
-        }
-      />
+        </Splitter.Panel>
+      </Splitter.Root>
     </>
   )
 }
