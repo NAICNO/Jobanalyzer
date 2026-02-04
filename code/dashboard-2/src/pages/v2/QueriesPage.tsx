@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router'
+import { useParams, Link as ReactRouterLink } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useFormik } from 'formik'
 
@@ -20,6 +20,7 @@ import {
   Select,
   createListCollection,
   Portal,
+  Link,
 } from '@chakra-ui/react'
 
 import { getClusterByClusterJobsOptions } from '../../client/@tanstack/react-query.gen'
@@ -32,7 +33,6 @@ interface JobQueryFormValues {
   userId: string
   jobId: string
   states: string
-  limit: string
   startAfter: string
   startBefore: string
   endAfter: string
@@ -84,8 +84,20 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
     return <Spinner />
   }
 
+  // Get today at 00:00 in local datetime format for input
+  const getTodayMidnight = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}T00:00`
+  }
+
   const [hasSearched, setHasSearched] = useState(false)
   const [queryParams, setQueryParams] = useState<GetClusterByClusterJobsData['query']>({})
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
 
   const formik = useFormik<JobQueryFormValues>({
     initialValues: {
@@ -93,12 +105,11 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
       userId: '',
       jobId: '',
       states: filter === 'running' ? JobState.RUNNING : '',
-      limit: 'all',
       startAfter: '',
       startBefore: '',
       endAfter: '',
       endBefore: '',
-      submitAfter: '',
+      submitAfter: getTodayMidnight(),
       submitBefore: '',
       minDuration: '',
       maxDuration: '',
@@ -110,7 +121,8 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
       if (values.userId) params.user_id = parseInt(values.userId)
       if (values.jobId) params.job_id = parseInt(values.jobId)
       if (values.states) params.states = values.states
-      if (values.limit && values.limit !== 'all') params.limit = parseInt(values.limit)
+      // Set a reasonable limit for client-side pagination
+      params.limit = 1000
 
       // Convert date strings to timestamps (seconds)
       if (values.startAfter) {
@@ -144,6 +156,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
 
       setQueryParams(params)
       setHasSearched(true)
+      setCurrentPage(1)
     },
   })
 
@@ -163,8 +176,14 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
     enabled: !!clusterName && hasSearched,
   })
 
-  const jobs = (jobsQuery.data as JobResponse[]) ?? []
+  const jobs = (jobsQuery.data?.jobs as JobResponse[]) ?? []
 
+  // Client-side pagination
+  const totalJobs = jobs.length
+  const totalPages = Math.ceil(totalJobs / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedJobs = jobs.slice(startIndex, endIndex)
 
   const formatDuration = (startTime?: Date | null, endTime?: Date | null) => {
     if (!startTime || !endTime) return 'N/A'
@@ -395,12 +414,14 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                 </Button>
               </HStack>
               <Field.Root maxW="120px">
-                <Field.Label fontSize="sm">Result Limit</Field.Label>
+                <Field.Label fontSize="sm">Results per Page</Field.Label>
                 <Select.Root
                   collection={limitCollection}
-                  value={[formik.values.limit]}
+                  value={[pageSize.toString()]}
                   onValueChange={(details) => {
-                    formik.setFieldValue('limit', details.value[0])
+                    const newSize = details.value[0] === 'all' ? totalJobs : parseInt(details.value[0])
+                    setPageSize(newSize)
+                    setCurrentPage(1)
                   }}
                   size="sm"
                 >
@@ -440,9 +461,9 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
               <Text fontSize="lg" fontWeight="semibold">
                 Search Results
               </Text>
-              {!jobsQuery.isLoading && (
+              {!jobsQuery.isLoading && totalJobs > 0 && (
                 <Text fontSize="sm" color="gray.600">
-                  Found {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+                  Showing {startIndex + 1}-{Math.min(endIndex, totalJobs)} of {totalJobs} job{totalJobs !== 1 ? 's' : ''}
                 </Text>
               )}
             </HStack>
@@ -472,6 +493,8 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                       <Table.ColumnHeader fontSize="xs">User</Table.ColumnHeader>
                       <Table.ColumnHeader fontSize="xs">Job Name</Table.ColumnHeader>
                       <Table.ColumnHeader fontSize="xs">State</Table.ColumnHeader>
+                      <Table.ColumnHeader fontSize="xs">Partition</Table.ColumnHeader>
+                      <Table.ColumnHeader fontSize="xs">Nodes</Table.ColumnHeader>
                       <Table.ColumnHeader fontSize="xs">Submit Time</Table.ColumnHeader>
                       <Table.ColumnHeader fontSize="xs">Start Time</Table.ColumnHeader>
                       <Table.ColumnHeader fontSize="xs">End Time</Table.ColumnHeader>
@@ -480,10 +503,18 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
-                    {jobs.map((job) => (
+                    {paginatedJobs.map((job) => (
                       <Table.Row key={`${job.job_id}-${job.job_step}`}>
                         <Table.Cell fontSize="xs" fontWeight="medium">
-                          {job.job_id}{job.job_step ? `.${job.job_step}` : ''}
+                          <Link
+                            asChild
+                            colorPalette="blue"
+                            _hover={{ textDecoration: 'underline' }}
+                          >
+                            <ReactRouterLink to={`/v2/${clusterName}/jobs/${job.job_id}`}>
+                              {job.job_id}{job.job_step ? `.${job.job_step}` : ''}
+                            </ReactRouterLink>
+                          </Link>
                         </Table.Cell>
                         <Table.Cell fontSize="xs">{job.user_name}</Table.Cell>
                         <Table.Cell fontSize="xs" maxW="200px" truncate>
@@ -493,6 +524,10 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                           <Tag.Root size="sm" colorPalette={getJobStateColor(job.job_state ?? '')}>
                             <Tag.Label>{job.job_state}</Tag.Label>
                           </Tag.Root>
+                        </Table.Cell>
+                        <Table.Cell fontSize="xs">{job.partition ?? 'N/A'}</Table.Cell>
+                        <Table.Cell fontSize="xs" maxW="150px" truncate title={job.nodes?.join(', ') ?? 'N/A'}>
+                          {job.nodes?.join(', ') ?? 'N/A'}
                         </Table.Cell>
                         <Table.Cell fontSize="xs">{formatDateTime(job.submit_time)}</Table.Cell>
                         <Table.Cell fontSize="xs">{formatDateTime(job.start_time)}</Table.Cell>
@@ -504,6 +539,53 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                   </Table.Body>
                 </Table.Root>
               </Box>
+            )}
+
+            {/* Pagination Controls */}
+            {!jobsQuery.isLoading && totalPages > 1 && (
+              <HStack justify="space-between" w="100%" pt={2}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <HStack gap={2}>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        size="sm"
+                        variant={currentPage === pageNum ? 'solid' : 'outline'}
+                        colorPalette={currentPage === pageNum ? 'blue' : 'gray'}
+                        onClick={() => setCurrentPage(pageNum)}
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </HStack>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </HStack>
             )}
           </VStack>
         </Box>
