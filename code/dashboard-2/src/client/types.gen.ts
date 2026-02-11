@@ -126,6 +126,32 @@ export type CombinedProcessTimeSeriesResponse = {
 };
 
 /**
+ * CustomPage[JobResponse]
+ */
+export type CustomPageJobResponse = {
+    /**
+     * Jobs
+     */
+    jobs: Array<JobResponse>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Size
+     */
+    size: number;
+    /**
+     * Pages
+     */
+    pages: number;
+};
+
+/**
  * DatabaseSettings
  */
 export type DatabaseSettings = {
@@ -670,7 +696,7 @@ export type JobResponse = {
      *
      * List of nodes that are requested by this job
      */
-    nodes: Array<string>;
+    nodes?: Array<string> | null;
     /**
      * Priority
      */
@@ -1670,6 +1696,16 @@ export type ValidationError = {
      * Error Type
      */
     type: string;
+    /**
+     * Input
+     */
+    input?: unknown;
+    /**
+     * Context
+     */
+    ctx?: {
+        [key: string]: unknown;
+    };
 };
 
 export type GetData = {
@@ -3648,7 +3684,7 @@ export type GetClusterByClusterQueryJobsData = {
         /**
          * States
          */
-        states?: string;
+        states?: string | null;
         /**
          * Limit
          */
@@ -3672,6 +3708,104 @@ export type GetClusterByClusterQueryJobsResponses = {
      */
     200: unknown;
 };
+
+export type GetClusterByClusterQueryJobsPagesData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+    };
+    query?: {
+        /**
+         * User
+         */
+        user?: string | null;
+        /**
+         * User Id
+         */
+        user_id?: number | null;
+        /**
+         * Job Id
+         */
+        job_id?: number | null;
+        /**
+         * Start Before In S
+         */
+        start_before_in_s?: number | null;
+        /**
+         * Start After In S
+         */
+        start_after_in_s?: number | null;
+        /**
+         * End Before In S
+         */
+        end_before_in_s?: number | null;
+        /**
+         * End After In S
+         */
+        end_after_in_s?: number | null;
+        /**
+         * Submit Before In S
+         */
+        submit_before_in_s?: number | null;
+        /**
+         * Submit After In S
+         */
+        submit_after_in_s?: number | null;
+        /**
+         * Min Duration In S
+         */
+        min_duration_in_s?: number | null;
+        /**
+         * Max Duration In S
+         */
+        max_duration_in_s?: number | null;
+        /**
+         * States
+         */
+        states?: string | null;
+        /**
+         * Timestamp
+         */
+        timestamp?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/cluster/{cluster}/query/jobs/pages';
+};
+
+export type GetClusterByClusterQueryJobsPagesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterQueryJobsPagesError = GetClusterByClusterQueryJobsPagesErrors[keyof GetClusterByClusterQueryJobsPagesErrors];
+
+export type GetClusterByClusterQueryJobsPagesResponses = {
+    /**
+     * Successful Response
+     */
+    200: CustomPageJobResponse;
+};
+
+export type GetClusterByClusterQueryJobsPagesResponse = GetClusterByClusterQueryJobsPagesResponses[keyof GetClusterByClusterQueryJobsPagesResponses];
 
 export type GetClusterByClusterJobsByJobIdReportData = {
     /**

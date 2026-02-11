@@ -100,3 +100,16 @@ export const formatIORate = (bytesPerSec: number): string => {
   }
   return `${bytesPerSec.toFixed(1)} B/s`
 }
+
+/**
+ * Format I/O operations per second (e.g., "1.2K IOPS" or "450 IOPS")
+ */
+export const formatIOPS = (ops: number): string => {
+  if (ops >= 1_000_000) {
+    return `${(ops / 1_000_000).toFixed(1)}M IOPS`
+  }
+  if (ops >= 1_000) {
+    return `${(ops / 1_000).toFixed(1)}K IOPS`
+  }
+  return `${ops.toFixed(0)} IOPS`
+}

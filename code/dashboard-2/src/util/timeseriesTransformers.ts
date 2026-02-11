@@ -2,7 +2,9 @@ import type {
   SystemProcessTimeseriesResponse, 
   SampleProcessAccResponse,
   SampleProcessGpuAccResponse,
-  JobNodeSampleProcessGpuTimeseriesResponse
+  JobNodeSampleProcessGpuTimeseriesResponse,
+  SampleDiskTimeseriesResponse,
+  GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponse
 } from '../client'
 
 /**
@@ -37,6 +39,45 @@ export interface GpuDataPoint {
  */
 export interface GpuTimeseriesByUuid {
   [uuid: string]: GpuDataPoint[]
+}
+
+/**
+ * Chart data point for Disk I/O metrics
+ */
+export interface DiskDataPoint {
+  time: Date
+  timeMs: number
+  timeStr: string // For display
+  // IOPS (rate calculations)
+  read_iops: number
+  write_iops: number
+  // Throughput in MB/s
+  read_throughput_mb: number
+  write_throughput_mb: number
+  // Latency in ms (average per operation)
+  read_latency_ms: number
+  write_latency_ms: number
+  // Queue depth
+  ios_in_progress: number
+  // Utilization %
+  utilization_pct: number
+}
+
+/**
+ * Disk metadata and timeseries data
+ */
+export interface DiskData {
+  name: string
+  major: number
+  minor: number
+  data: DiskDataPoint[]
+}
+
+/**
+ * Transformed disk timeseries by disk name
+ */
+export interface DiskTimeseriesByName {
+  [diskName: string]: DiskData
 }
 
 /**
@@ -316,4 +357,169 @@ export function downsampleTimeseries<T extends { time: Date }>(
 export function calculateOptimalMaxPoints(chartWidth: number): number {
   // Aim for roughly 2 points per pixel, capped at 1000
   return Math.min(Math.max(Math.floor(chartWidth / 2), 200), 1000)
+}
+
+/**
+ * Transform disk timeseries response to organized data by disk name
+ * Calculates rate-based metrics (IOPS, throughput, latency, utilization) from cumulative counters
+ * 
+ * @param response - API response from diskstats/timeseries endpoint
+ * @param nodename - Node name to extract data for
+ * @returns Object mapping disk names to their transformed timeseries data
+ * 
+ * @TODO Test with real API response from /nodes/{nodename}/diskstats/timeseries endpoint
+ * @TODO Test with multi-disk scenarios (sda, sdb, nvme0n1, etc.)
+ * @TODO Write test cases for: no disks, single disk, sparse data, counter wraparound
+ * @TODO Verify rate calculations match expected I/O metrics
+ */
+export const transformDiskstatsTimeseries = (
+  response: GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponse | undefined,
+  nodename: string
+): DiskTimeseriesByName => {
+  if (!response) return {}
+  
+  const map = response as Record<string, SampleDiskTimeseriesResponse[]>
+  const diskArrays = map[nodename] ?? map[Object.keys(map)[0]] ?? []
+  
+  const result: DiskTimeseriesByName = {}
+
+  diskArrays.forEach((disk) => {
+    const points: DiskDataPoint[] = []
+    
+    for (let i = 0; i < disk.data.length; i++) {
+      const current = disk.data[i]
+      const prev = i > 0 ? disk.data[i - 1] : null
+      
+      if (!current?.time) continue
+      
+      const time = new Date(current.time)
+      const timeMs = time.getTime()
+      const timeStr = time.toLocaleTimeString()
+      
+      // Calculate deltas and rates if we have a previous sample
+      let read_iops = 0
+      let write_iops = 0
+      let read_throughput_mb = 0
+      let write_throughput_mb = 0
+      let read_latency_ms = 0
+      let write_latency_ms = 0
+      let utilization_pct = 0
+      
+      if (prev?.time) {
+        const timeDeltaSec = (timeMs - new Date(prev.time).getTime()) / 1000
+        
+        if (timeDeltaSec > 0) {
+          // IOPS = operations delta / time delta
+          const readsDelta = current.reads_completed - prev.reads_completed
+          const writesDelta = current.writes_completed - prev.writes_completed
+          read_iops = readsDelta / timeDeltaSec
+          write_iops = writesDelta / timeDeltaSec
+          
+          // Throughput: sectors * 512 bytes / 1024^2 / time = MB/s
+          const sectorsDelta = current.sectors_read - prev.sectors_read
+          const sectorsWrittenDelta = current.sectors_written - prev.sectors_written
+          read_throughput_mb = (sectorsDelta * 512) / (1024 * 1024) / timeDeltaSec
+          write_throughput_mb = (sectorsWrittenDelta * 512) / (1024 * 1024) / timeDeltaSec
+          
+          // Latency: ms delta / operations delta (average latency per operation)
+          if (readsDelta > 0) {
+            const msDelta = current.ms_spent_reading - prev.ms_spent_reading
+            read_latency_ms = msDelta / readsDelta
+          }
+          if (writesDelta > 0) {
+            const msDelta = current.ms_spent_writing - prev.ms_spent_writing
+            write_latency_ms = msDelta / writesDelta
+          }
+          
+          // Utilization: (ms spent doing IO delta / time delta in ms) * 100
+          const ioMsDelta = current.ms_spent_doing_ios - prev.ms_spent_doing_ios
+          utilization_pct = Math.min(100, (ioMsDelta / (timeDeltaSec * 1000)) * 100)
+        }
+      }
+      
+      points.push({
+        time,
+        timeMs,
+        timeStr,
+        read_iops: Math.max(0, read_iops),
+        write_iops: Math.max(0, write_iops),
+        read_throughput_mb: Math.max(0, read_throughput_mb),
+        write_throughput_mb: Math.max(0, write_throughput_mb),
+        read_latency_ms: Math.max(0, read_latency_ms),
+        write_latency_ms: Math.max(0, write_latency_ms),
+        ios_in_progress: current.ios_currently_in_progress,
+        utilization_pct: Math.max(0, utilization_pct),
+      })
+    }
+    
+    result[disk.name] = {
+      name: disk.name,
+      major: disk.major,
+      minor: disk.minor,
+      data: points,
+    }
+  })
+
+  return result
+}
+
+/**
+ * Calculate disk I/O summary statistics
+ * 
+ * @TODO Test with real transformed disk timeseries data
+ * @TODO Write test cases for: empty data, single point, high I/O scenarios
+ * @TODO Verify statistical calculations match expected values
+ */
+export const calculateDiskStats = (
+  data: DiskDataPoint[]
+): {
+  avgReadIOPS: number
+  maxReadIOPS: number
+  avgWriteIOPS: number
+  maxWriteIOPS: number
+  avgReadThroughput: number
+  maxReadThroughput: number
+  avgWriteThroughput: number
+  maxWriteThroughput: number
+  avgUtilization: number
+  maxUtilization: number
+} => {
+  if (data.length === 0) {
+    return {
+      avgReadIOPS: 0,
+      maxReadIOPS: 0,
+      avgWriteIOPS: 0,
+      maxWriteIOPS: 0,
+      avgReadThroughput: 0,
+      maxReadThroughput: 0,
+      avgWriteThroughput: 0,
+      maxWriteThroughput: 0,
+      avgUtilization: 0,
+      maxUtilization: 0,
+    }
+  }
+
+  const sum = data.reduce(
+    (acc, point) => ({
+      read_iops: acc.read_iops + point.read_iops,
+      write_iops: acc.write_iops + point.write_iops,
+      read_throughput: acc.read_throughput + point.read_throughput_mb,
+      write_throughput: acc.write_throughput + point.write_throughput_mb,
+      utilization: acc.utilization + point.utilization_pct,
+    }),
+    { read_iops: 0, write_iops: 0, read_throughput: 0, write_throughput: 0, utilization: 0 }
+  )
+
+  return {
+    avgReadIOPS: sum.read_iops / data.length,
+    maxReadIOPS: Math.max(...data.map(d => d.read_iops)),
+    avgWriteIOPS: sum.write_iops / data.length,
+    maxWriteIOPS: Math.max(...data.map(d => d.write_iops)),
+    avgReadThroughput: sum.read_throughput / data.length,
+    maxReadThroughput: Math.max(...data.map(d => d.read_throughput_mb)),
+    avgWriteThroughput: sum.write_throughput / data.length,
+    maxWriteThroughput: Math.max(...data.map(d => d.write_throughput_mb)),
+    avgUtilization: sum.utilization / data.length,
+    maxUtilization: Math.max(...data.map(d => d.utilization_pct)),
+  }
 }
