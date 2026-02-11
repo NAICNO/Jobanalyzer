@@ -11,6 +11,7 @@ import { NodeTopology } from '../../components/v2/NodeTopology'
 import { NodeInfoSummary } from '../../components/v2/NodeInfoSummary'
 import { NodeStates } from '../../components/v2/NodeStates'
 import { NodeCpuTimeseries } from '../../components/v2/NodeCpuTimeseries'
+import { NodeDiskstatsTimeseries } from '../../components/v2/NodeDiskstatsTimeseries'
 import { NodeOverviewCards } from '../../components/v2/NodeOverviewCards'
 import { NodesTable } from '../../components/v2/NodesTable'
 
@@ -166,6 +167,7 @@ export const NodesPage = () => {
                     <NodeErrorMessages cluster={clusterName!} nodename={selectedNode.value} />
                     <NodeStates cluster={clusterName!} nodename={selectedNode.value} />
                     <NodeCpuTimeseries cluster={clusterName!} nodename={selectedNode.value} />
+                    <NodeDiskstatsTimeseries cluster={clusterName!} nodename={selectedNode.value} />
                     <NodeTopology cluster={clusterName!} nodename={selectedNode.value} />
                   </>
                 ) : (
