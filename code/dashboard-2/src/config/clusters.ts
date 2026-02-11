@@ -26,31 +26,15 @@ export interface ClusterConfig {
 export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
   {
     id: 'ex3.simula.no',
-    name: 'eX3',
-    description: 'eX3 Cluster at Simula',
-    icon: LuServer,
-    apiBaseUrl: 'https://localhost:12200/api/v2',
-    authEndpoint: {
-      authorization: 'https://auth.ex3.simula.no/authorize',
-      token: 'https://auth.ex3.simula.no/token',
-      userInfo: 'https://auth.ex3.simula.no/userinfo',
-      clientId: 'ex3-client-id',
-      redirectUri: 'http://localhost:5173/auth/callback',
-      scope: 'openid profile email',
-    },
-    requiresAuth: false,
-  },
-  {
-    id: 'ex3-auth.simula.no',
     name: 'eX3 (Auth)',
     description: 'eX3 Cluster with Authentication',
     icon: LuServer,
-    apiBaseUrl: 'https://localhost:12200/api/v2',
+    apiBaseUrl: 'https://localhost:12201/api/v2',
     authEndpoint: {
       authorization: 'https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/auth',
       token: 'https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/token',
       userInfo: 'https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/userinfo',
-      clientId: 'naic-monitor-client',
+      clientId: 'naic-monitor.ex3.simula.no',
       redirectUri: 'http://localhost:5173/auth/callback',
       scope: 'openid profile email',
     },
