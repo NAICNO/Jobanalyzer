@@ -49,6 +49,36 @@ export const formatDateTime = (datetime: number | Date): string => {
 }
 
 /**
+ * Format date to locale string (e.g., "1/15/2026, 2:30:00 PM")
+ */
+export const formatDateTimeToLocaleString = (date?: Date | null): string => {
+  if (!date) return 'N/A'
+  return new Date(date).toLocaleString()
+}
+
+/**
+ * Calculate and format duration between two dates
+ * Returns a human-readable string like "2d 5h" or "30m 45s"
+ */
+export const formatDurationBetweenDates = (startTime?: Date | null, endTime?: Date | null): string => {
+  if (!startTime || !endTime) return 'N/A'
+  const start = new Date(startTime).getTime()
+  const end = new Date(endTime).getTime()
+  const durationMs = end - start
+  if (durationMs <= 0) return 'N/A'
+
+  const seconds = Math.floor(durationMs / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0) return `${days}d ${hours % 24}h`
+  if (hours > 0) return `${hours}h ${minutes % 60}m`
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`
+  return `${seconds}s`
+}
+
+/**
  * Get the color palette for a job state (for Chakra UI components)
  * @param state - The job state string
  * @returns The Chakra UI color palette name
