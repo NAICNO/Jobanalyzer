@@ -23,8 +23,8 @@ import {
   Link,
 } from '@chakra-ui/react'
 
-import { getClusterByClusterJobsOptions } from '../../client/@tanstack/react-query.gen'
-import type { JobResponse, GetClusterByClusterJobsData } from '../../client'
+import { getClusterByClusterQueryJobsPagesOptions } from '../../client/@tanstack/react-query.gen'
+import type { JobResponse, GetClusterByClusterQueryJobsPagesData } from '../../client'
 import { JobState } from '../../types/jobStates'
 import { getJobStateColor } from '../../util/formatters'
 
@@ -95,7 +95,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
   }
 
   const [hasSearched, setHasSearched] = useState(false)
-  const [queryParams, setQueryParams] = useState<GetClusterByClusterJobsData['query']>({})
+  const [queryParams, setQueryParams] = useState<GetClusterByClusterQueryJobsPagesData['query']>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
 
@@ -115,14 +115,12 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
       maxDuration: '',
     },
     onSubmit: (values) => {
-      const params: GetClusterByClusterJobsData['query'] = {}
+      const params: GetClusterByClusterQueryJobsPagesData['query'] = {}
 
       if (values.user) params.user = values.user
       if (values.userId) params.user_id = parseInt(values.userId)
       if (values.jobId) params.job_id = parseInt(values.jobId)
       if (values.states) params.states = values.states
-      // Set a reasonable limit for client-side pagination
-      params.limit = 1000
 
       // Convert date strings to timestamps (seconds)
       if (values.startAfter) {
@@ -168,22 +166,25 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
   }, [filter, hasSearched])
 
   const jobsQuery = useQuery({
-    ...getClusterByClusterJobsOptions({
+    ...getClusterByClusterQueryJobsPagesOptions({
       path: {cluster: clusterName ?? ''},
-      query: queryParams,
+      query: {
+        ...queryParams,
+        page: currentPage,
+        page_size: pageSize,
+      },
       client,
     }),
     enabled: !!clusterName && hasSearched,
   })
 
   const jobs = (jobsQuery.data?.jobs as JobResponse[]) ?? []
-
-  // Client-side pagination
-  const totalJobs = jobs.length
-  const totalPages = Math.ceil(totalJobs / pageSize)
-  const startIndex = (currentPage - 1) * pageSize
-  const endIndex = startIndex + pageSize
-  const paginatedJobs = jobs.slice(startIndex, endIndex)
+  const totalJobs = jobsQuery.data?.total ?? 0
+  const totalPages = jobsQuery.data?.pages ?? 0
+  const currentPageSize = jobsQuery.data?.size ?? pageSize
+  const apiPage = jobsQuery.data?.page ?? currentPage
+  const startIndex = (apiPage - 1) * currentPageSize
+  const endIndex = startIndex + jobs.length
 
   const formatDuration = (startTime?: Date | null, endTime?: Date | null) => {
     if (!startTime || !endTime) return 'N/A'
@@ -419,9 +420,10 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                   collection={limitCollection}
                   value={[pageSize.toString()]}
                   onValueChange={(details) => {
-                    const newSize = details.value[0] === 'all' ? totalJobs : parseInt(details.value[0])
-                    setPageSize(newSize)
-                    setCurrentPage(1)
+                    if (details.value[0] !== 'all') {
+                      setPageSize(parseInt(details.value[0]))
+                      setCurrentPage(1)
+                    }
                   }}
                   size="sm"
                 >
@@ -463,7 +465,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
               </Text>
               {!jobsQuery.isLoading && totalJobs > 0 && (
                 <Text fontSize="sm" color="gray.600">
-                  Showing {startIndex + 1}-{Math.min(endIndex, totalJobs)} of {totalJobs} job{totalJobs !== 1 ? 's' : ''}
+                  Showing {startIndex + 1}-{endIndex} of {totalJobs} job{totalJobs !== 1 ? 's' : ''}
                 </Text>
               )}
             </HStack>
@@ -503,7 +505,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
-                    {paginatedJobs.map((job) => (
+                    {jobs.map((job) => (
                       <Table.Row key={`${job.job_id}-${job.job_step}`}>
                         <Table.Cell fontSize="xs" fontWeight="medium">
                           <Link
