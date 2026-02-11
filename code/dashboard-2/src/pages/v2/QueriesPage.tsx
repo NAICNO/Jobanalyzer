@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react'
-import { useParams, Link as ReactRouterLink } from 'react-router'
+import { useState, useEffect, useMemo } from 'react'
+import { useParams, useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useFormik } from 'formik'
+import { AgGridReact } from 'ag-grid-react'
+import type { ColDef, ICellRendererParams } from 'ag-grid-community'
+import { themeQuartz } from 'ag-grid-community'
 
 import { useClusterClient } from '../../hooks/useClusterClient'
 import {
@@ -12,21 +15,25 @@ import {
   SimpleGrid,
   Input,
   Button,
-  Table,
-  Tag,
+  Badge,
   Spinner,
   Alert,
   Field,
   Select,
   createListCollection,
   Portal,
-  Link,
+  Collapsible,
+  Icon,
+  Pagination,
+  IconButton,
+  NativeSelect,
 } from '@chakra-ui/react'
 
 import { getClusterByClusterQueryJobsPagesOptions } from '../../client/@tanstack/react-query.gen'
 import type { JobResponse, GetClusterByClusterQueryJobsPagesData } from '../../client'
 import { JobState } from '../../types/jobStates'
-import { getJobStateColor } from '../../util/formatters'
+import { getJobStateColor, formatDurationBetweenDates, formatDateTimeToLocaleString } from '../../util/formatters'
+import { LuChevronDown, LuChevronRight, LuChevronLeft } from 'react-icons/lu'
 
 interface JobQueryFormValues {
   user: string
@@ -60,24 +67,121 @@ const statesCollection = createListCollection({
   ],
 })
 
-const limitCollection = createListCollection({
-  items: [
-    { label: 'All', value: 'all' },
-    { label: '10', value: '10' },
-    { label: '25', value: '25' },
-    { label: '50', value: '50' },
-    { label: '100', value: '100' },
-    { label: '500', value: '500' },
-    { label: '1000', value: '1000' },
-  ],
-})
-
 interface QueriesPageProps {
   filter?: 'running'
 }
 
+// Column definitions factory
+const createColumnDefs = (
+  clusterName: string,
+  navigate: (path: string) => void
+): ColDef<JobResponse>[] => [
+  {
+    field: 'job_id',
+    headerName: 'Job ID',
+    width: 120,
+    filter: 'agNumberColumnFilter',
+    pinned: 'left',
+    cellRenderer: (params: ICellRendererParams<JobResponse>) => {
+      const jobStep = params.data?.job_step
+      const display = `${params.value}${jobStep ? `.${jobStep}` : ''}`
+      return (
+        <span
+          style={{ color: '#3182ce', cursor: 'pointer', fontWeight: 500 }}
+          onClick={() => {
+            if (params.data?.job_id) {
+              navigate(`/v2/${clusterName}/jobs/${params.data.job_id}`)
+            }
+          }}
+        >
+          {display}
+        </span>
+      )
+    },
+  },
+  {
+    field: 'user_name',
+    headerName: 'User',
+    width: 120,
+    filter: 'agTextColumnFilter',
+  },
+  {
+    field: 'job_name',
+    headerName: 'Job Name',
+    flex: 1,
+    minWidth: 200,
+    filter: 'agTextColumnFilter',
+    valueFormatter: (params) => params.value ?? 'N/A',
+  },
+  {
+    field: 'job_state',
+    headerName: 'State',
+    width: 130,
+    filter: 'agTextColumnFilter',
+    cellRenderer: (params: ICellRendererParams<JobResponse>) => {
+      const state = params.value
+      const colorPalette = getJobStateColor(state)
+      return <Badge colorPalette={colorPalette} size="sm">{state}</Badge>
+    },
+  },
+  {
+    field: 'partition',
+    headerName: 'Partition',
+    width: 130,
+    filter: 'agTextColumnFilter',
+    valueFormatter: (params) => params.value ?? 'N/A',
+  },
+  {
+    field: 'nodes',
+    headerName: 'Nodes',
+    width: 200,
+    filter: 'agTextColumnFilter',
+    valueFormatter: (params) => {
+      const nodes = params.value
+      if (!nodes || nodes.length === 0) return 'N/A'
+      return nodes.join(', ')
+    },
+  },
+  {
+    field: 'submit_time',
+    headerName: 'Submit Time',
+    width: 180,
+    filter: 'agDateColumnFilter',
+    valueFormatter: (params) => formatDateTimeToLocaleString(params.value),
+  },
+  {
+    field: 'start_time',
+    headerName: 'Start Time',
+    width: 180,
+    filter: 'agDateColumnFilter',
+    valueFormatter: (params) => formatDateTimeToLocaleString(params.value),
+  },
+  {
+    field: 'end_time',
+    headerName: 'End Time',
+    width: 180,
+    filter: 'agDateColumnFilter',
+    valueFormatter: (params) => formatDateTimeToLocaleString(params.value),
+  },
+  {
+    headerName: 'Duration',
+    width: 130,
+    valueGetter: (params) => {
+      return formatDurationBetweenDates(params.data?.start_time, params.data?.end_time)
+    },
+  },
+  {
+    field: 'account',
+    headerName: 'Account',
+    width: 130,
+    filter: 'agTextColumnFilter',
+    valueFormatter: (params) => params.value ?? 'N/A',
+  },
+]
+
 export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
   const {clusterName} = useParams<{ clusterName: string }>()
+  const navigate = useNavigate()
 
   const client = useClusterClient(clusterName)
   if (!client) {
@@ -98,6 +202,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
   const [queryParams, setQueryParams] = useState<GetClusterByClusterQueryJobsPagesData['query']>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
+  const [isFormOpen, setIsFormOpen] = useState(true)
 
   const formik = useFormik<JobQueryFormValues>({
     initialValues: {
@@ -180,34 +285,52 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
 
   const jobs = (jobsQuery.data?.jobs as JobResponse[]) ?? []
   const totalJobs = jobsQuery.data?.total ?? 0
-  const totalPages = jobsQuery.data?.pages ?? 0
-  const currentPageSize = jobsQuery.data?.size ?? pageSize
-  const apiPage = jobsQuery.data?.page ?? currentPage
-  const startIndex = (apiPage - 1) * currentPageSize
-  const endIndex = startIndex + jobs.length
 
-  const formatDuration = (startTime?: Date | null, endTime?: Date | null) => {
-    if (!startTime || !endTime) return 'N/A'
-    const start = new Date(startTime).getTime()
-    const end = new Date(endTime).getTime()
-    const durationMs = end - start
-    if (durationMs <= 0) return 'N/A'
+  // Auto-collapse form after successful query with results
+  useEffect(() => {
+    if (hasSearched && !jobsQuery.isLoading && jobs.length > 0) {
+      const timer = setTimeout(() => {
+        setIsFormOpen(false)
+      }, 400)
+      return () => clearTimeout(timer)
+    }
+  }, [hasSearched, jobsQuery.isLoading, jobs.length])
 
-    const seconds = Math.floor(durationMs / 1000)
-    const minutes = Math.floor(seconds / 60)
-    const hours = Math.floor(minutes / 60)
-    const days = Math.floor(hours / 24)
+  // Generate summary of active filters
+  const filterSummary = useMemo(() => {
+    const filters: string[] = []
+    if (formik.values.user) filters.push(`User: ${formik.values.user}`)
+    if (formik.values.userId) filters.push(`User ID: ${formik.values.userId}`)
+    if (formik.values.jobId) filters.push(`Job ID: ${formik.values.jobId}`)
+    if (formik.values.states) {
+      const stateLabels = formik.values.states.split(',').join(', ')
+      filters.push(`States: ${stateLabels}`)
+    }
+    if (formik.values.minDuration) filters.push(`Min Duration: ${formik.values.minDuration}s`)
+    if (formik.values.maxDuration) filters.push(`Max Duration: ${formik.values.maxDuration}s`)
+    if (formik.values.startAfter) filters.push(`Start After: ${new Date(formik.values.startAfter).toLocaleDateString()}`)
+    if (formik.values.startBefore) filters.push(`Start Before: ${new Date(formik.values.startBefore).toLocaleDateString()}`)
+    if (formik.values.endAfter) filters.push(`End After: ${new Date(formik.values.endAfter).toLocaleDateString()}`)
+    if (formik.values.endBefore) filters.push(`End Before: ${new Date(formik.values.endBefore).toLocaleDateString()}`)
+    if (formik.values.submitAfter) filters.push(`Submit After: ${new Date(formik.values.submitAfter).toLocaleDateString()}`)
+    if (formik.values.submitBefore) filters.push(`Submit Before: ${new Date(formik.values.submitBefore).toLocaleDateString()}`)
+    
+    return filters.length > 0 ? filters.join(' • ') : 'No filters applied'
+  }, [formik.values])
 
-    if (days > 0) return `${days}d ${hours % 24}h`
-    if (hours > 0) return `${hours}h ${minutes % 60}m`
-    if (minutes > 0) return `${minutes}m ${seconds % 60}s`
-    return `${seconds}s`
-  }
+  // AG Grid column definitions
+  const columnDefs = useMemo<ColDef<JobResponse>[]>(
+    () => createColumnDefs(clusterName ?? '', navigate),
+    [clusterName, navigate]
+  )
 
-  const formatDateTime = (date?: Date | null) => {
-    if (!date) return 'N/A'
-    return new Date(date).toLocaleString()
-  }
+  const defaultColDef = useMemo<ColDef>(
+    () => ({
+      sortable: true,
+      resizable: true,
+    }),
+    []
+  )
 
   if (!clusterName) {
     return <Text>No cluster selected</Text>
@@ -222,236 +345,265 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
       {/* Search Form */}
       <Box w="100%" borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
         <form onSubmit={formik.handleSubmit}>
-          <VStack align="start" gap={2} w="100%">
-            <Text fontSize="lg" fontWeight="semibold">Search Criteria</Text>
+          <Collapsible.Root open={isFormOpen} onOpenChange={(e) => setIsFormOpen(e.open)}>
+            <Collapsible.Trigger
+              width="100%"
+              display="flex"
+              alignItems="center"
+              gap={2}
+              py={2}
+              px={1}
+              _hover={{ bg: 'gray.50' }}
+              rounded="md"
+              transition="background 0.2s"
+            >
+              <Icon fontSize="xl">
+                <Collapsible.Context>
+                  {(api) => (api.open ? <LuChevronDown/> : <LuChevronRight />)}
+                </Collapsible.Context>
+              </Icon>
+              <VStack align="start" gap={0} flex="1">
+                <Text fontSize="lg" fontWeight="semibold">Search Criteria</Text>
+                {!isFormOpen && (
+                  <Text fontSize="xs" color="gray.500" truncate maxW="100%">
+                    {filterSummary}
+                  </Text>
+                )}
+              </VStack>
+            </Collapsible.Trigger>
 
-            <SimpleGrid columns={{base: 1, md: 3, lg: 4}} gap={2} w="100%">
-              {/* Basic Filters */}
-              <Field.Root>
-                <Field.Label fontSize="sm">User</Field.Label>
-                <Input
-                  name="user"
-                  value={formik.values.user}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., username"
-                  size="sm"
-                />
-              </Field.Root>
+            <Collapsible.Content>
+              <VStack align="start" gap={2} w="100%" mt={2}>
+                {/* Basic Filters */}
+                <SimpleGrid columns={{base: 2, md: 3, lg: 6}} gap={2} w="100%">
+                  <Field.Root>
+                    <Field.Label fontSize="sm">User</Field.Label>
+                    <Input
+                      name="user"
+                      value={formik.values.user}
+                      onChange={formik.handleChange}
+                      placeholder="e.g., username"
+                      size="sm"
+                      borderLeftWidth={formik.values.user ? '3px' : undefined}
+                      borderLeftColor={formik.values.user ? 'blue.500' : undefined}
+                    />
+                  </Field.Root>
 
-              <Field.Root>
-                <Field.Label fontSize="sm">User ID</Field.Label>
-                <Input
-                  name="userId"
-                  type="number"
-                  value={formik.values.userId}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., 1000"
-                  size="sm"
-                />
-              </Field.Root>
+                  <Field.Root>
+                    <Field.Label fontSize="sm">User ID</Field.Label>
+                    <Input
+                      name="userId"
+                      type="number"
+                      value={formik.values.userId}
+                      onChange={formik.handleChange}
+                      placeholder="e.g., 1000"
+                      size="sm"
+                      borderLeftWidth={formik.values.userId ? '3px' : undefined}
+                      borderLeftColor={formik.values.userId ? 'blue.500' : undefined}
+                    />
+                  </Field.Root>
 
-              <Field.Root>
-                <Field.Label fontSize="sm">Job ID</Field.Label>
-                <Input
-                  name="jobId"
-                  type="number"
-                  value={formik.values.jobId}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., 12345"
-                  size="sm"
-                />
-              </Field.Root>
+                  <Field.Root>
+                    <Field.Label fontSize="sm">Job ID</Field.Label>
+                    <Input
+                      name="jobId"
+                      type="number"
+                      value={formik.values.jobId}
+                      onChange={formik.handleChange}
+                      placeholder="e.g., 12345"
+                      size="sm"
+                      borderLeftWidth={formik.values.jobId ? '3px' : undefined}
+                      borderLeftColor={formik.values.jobId ? 'blue.500' : undefined}
+                    />
+                  </Field.Root>
 
-              <Field.Root>
-                <Field.Label fontSize="sm">States</Field.Label>
-                <Select.Root
-                  multiple
-                  collection={statesCollection}
-                  value={formik.values.states ? formik.values.states.split(',') : []}
-                  onValueChange={(details) => {
-                    formik.setFieldValue('states', details.value.join(','))
-                  }}
-                  size="sm"
-                >
-                  <Select.HiddenSelect />
-                  <Select.Control>
-                    <Select.Trigger>
-                      <Select.ValueText placeholder="Select job states" />
-                    </Select.Trigger>
-                    <Select.IndicatorGroup>
-                      <Select.Indicator />
-                    </Select.IndicatorGroup>
-                  </Select.Control>
-                  <Portal>
-                    <Select.Positioner>
-                      <Select.Content>
-                        {statesCollection.items.map((state) => (
-                          <Select.Item item={state} key={state.value}>
-                            {state.label}
-                            <Select.ItemIndicator />
-                          </Select.Item>
-                        ))}
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Portal>
-                </Select.Root>
-              </Field.Root>
-            </SimpleGrid>
+                  <Field.Root>
+                    <Field.Label fontSize="sm">States</Field.Label>
+                    <Select.Root
+                      multiple
+                      collection={statesCollection}
+                      value={formik.values.states ? formik.values.states.split(',') : []}
+                      onValueChange={(details) => {
+                        formik.setFieldValue('states', details.value.join(','))
+                      }}
+                      size="sm"
+                    >
+                      <Select.HiddenSelect />
+                      <Select.Control
+                        borderLeftWidth={formik.values.states ? '3px' : undefined}
+                        borderLeftColor={formik.values.states ? 'blue.500' : undefined}
+                      >
+                        <Select.Trigger>
+                          <Select.ValueText placeholder="Select job states" />
+                        </Select.Trigger>
+                        <Select.IndicatorGroup>
+                          <Select.Indicator />
+                        </Select.IndicatorGroup>
+                      </Select.Control>
+                      <Portal>
+                        <Select.Positioner>
+                          <Select.Content>
+                            {statesCollection.items.map((state) => (
+                              <Select.Item item={state} key={state.value}>
+                                {state.label}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Portal>
+                    </Select.Root>
+                  </Field.Root>
 
-            {/* Time Range Filters */}
-            <Text fontSize="md" fontWeight="semibold" mt={1}>Time Ranges</Text>
-            <SimpleGrid columns={{base: 1, md: 3, lg: 6}} gap={2} w="100%">
-              <Field.Root>
-                <Field.Label fontSize="sm">Start After</Field.Label>
-                <Input
-                  name="startAfter"
-                  type="datetime-local"
-                  value={formik.values.startAfter}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
+                  <Field.Root>
+                    <Field.Label fontSize="sm">Min Duration (s)</Field.Label>
+                    <Input
+                      name="minDuration"
+                      type="number"
+                      value={formik.values.minDuration}
+                      onChange={formik.handleChange}
+                      placeholder="e.g., 3600"
+                      size="sm"
+                      borderLeftWidth={formik.values.minDuration ? '3px' : undefined}
+                      borderLeftColor={formik.values.minDuration ? 'blue.500' : undefined}
+                    />
+                  </Field.Root>
 
-              <Field.Root>
-                <Field.Label fontSize="sm">Start Before</Field.Label>
-                <Input
-                  name="startBefore"
-                  type="datetime-local"
-                  value={formik.values.startBefore}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
+                  <Field.Root>
+                    <Field.Label fontSize="sm">Max Duration (s)</Field.Label>
+                    <Input
+                      name="maxDuration"
+                      type="number"
+                      value={formik.values.maxDuration}
+                      onChange={formik.handleChange}
+                      placeholder="e.g., 86400"
+                      size="sm"
+                      borderLeftWidth={formik.values.maxDuration ? '3px' : undefined}
+                      borderLeftColor={formik.values.maxDuration ? 'blue.500' : undefined}
+                    />
+                  </Field.Root>
+                </SimpleGrid>
 
-              <Field.Root>
-                <Field.Label fontSize="sm">End After</Field.Label>
-                <Input
-                  name="endAfter"
-                  type="datetime-local"
-                  value={formik.values.endAfter}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
+                {/* Time Range Filters in Grouped Containers */}
+                <HStack gap={2} w="100%" flexWrap="wrap" align="start">
+                  <Box borderWidth="1px" borderColor="gray.300" rounded="md" p={2} flex="1" minW="200px">
+                    <Text fontSize="xs" fontWeight="semibold" mb={1} color="gray.600">Start Times</Text>
+                    <VStack gap={2} align="stretch">
+                      <Field.Root>
+                        <Field.Label fontSize="sm">After</Field.Label>
+                        <Input
+                          name="startAfter"
+                          type="datetime-local"
+                          value={formik.values.startAfter}
+                          onChange={formik.handleChange}
+                          size="sm"
+                          borderLeftWidth={formik.values.startAfter ? '3px' : undefined}
+                          borderLeftColor={formik.values.startAfter ? 'blue.500' : undefined}
+                        />
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label fontSize="sm">Before</Field.Label>
+                        <Input
+                          name="startBefore"
+                          type="datetime-local"
+                          value={formik.values.startBefore}
+                          onChange={formik.handleChange}
+                          size="sm"
+                          borderLeftWidth={formik.values.startBefore ? '3px' : undefined}
+                          borderLeftColor={formik.values.startBefore ? 'blue.500' : undefined}
+                        />
+                      </Field.Root>
+                    </VStack>
+                  </Box>
 
-              <Field.Root>
-                <Field.Label fontSize="sm">End Before</Field.Label>
-                <Input
-                  name="endBefore"
-                  type="datetime-local"
-                  value={formik.values.endBefore}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
+                  <Box borderWidth="1px" borderColor="gray.300" rounded="md" p={2} flex="1" minW="200px">
+                    <Text fontSize="xs" fontWeight="semibold" mb={1} color="gray.600">End Times</Text>
+                    <VStack gap={2} align="stretch">
+                      <Field.Root>
+                        <Field.Label fontSize="sm">After</Field.Label>
+                        <Input
+                          name="endAfter"
+                          type="datetime-local"
+                          value={formik.values.endAfter}
+                          onChange={formik.handleChange}
+                          size="sm"
+                          borderLeftWidth={formik.values.endAfter ? '3px' : undefined}
+                          borderLeftColor={formik.values.endAfter ? 'blue.500' : undefined}
+                        />
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label fontSize="sm">Before</Field.Label>
+                        <Input
+                          name="endBefore"
+                          type="datetime-local"
+                          value={formik.values.endBefore}
+                          onChange={formik.handleChange}
+                          size="sm"
+                          borderLeftWidth={formik.values.endBefore ? '3px' : undefined}
+                          borderLeftColor={formik.values.endBefore ? 'blue.500' : undefined}
+                        />
+                      </Field.Root>
+                    </VStack>
+                  </Box>
 
-              <Field.Root>
-                <Field.Label fontSize="sm">Submit After</Field.Label>
-                <Input
-                  name="submitAfter"
-                  type="datetime-local"
-                  value={formik.values.submitAfter}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
+                  <Box borderWidth="1px" borderColor="gray.300" rounded="md" p={2} flex="1" minW="200px">
+                    <Text fontSize="xs" fontWeight="semibold" mb={1} color="gray.600">Submit Times</Text>
+                    <VStack gap={2} align="stretch">
+                      <Field.Root>
+                        <Field.Label fontSize="sm">After</Field.Label>
+                        <Input
+                          name="submitAfter"
+                          type="datetime-local"
+                          value={formik.values.submitAfter}
+                          onChange={formik.handleChange}
+                          size="sm"
+                          borderLeftWidth={formik.values.submitAfter ? '3px' : undefined}
+                          borderLeftColor={formik.values.submitAfter ? 'blue.500' : undefined}
+                        />
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label fontSize="sm">Before</Field.Label>
+                        <Input
+                          name="submitBefore"
+                          type="datetime-local"
+                          value={formik.values.submitBefore}
+                          onChange={formik.handleChange}
+                          size="sm"
+                          borderLeftWidth={formik.values.submitBefore ? '3px' : undefined}
+                          borderLeftColor={formik.values.submitBefore ? 'blue.500' : undefined}
+                        />
+                      </Field.Root>
+                    </VStack>
+                  </Box>
+                </HStack>
 
-              <Field.Root>
-                <Field.Label fontSize="sm">Submit Before</Field.Label>
-                <Input
-                  name="submitBefore"
-                  type="datetime-local"
-                  value={formik.values.submitBefore}
-                  onChange={formik.handleChange}
-                  size="sm"
-                />
-              </Field.Root>
-            </SimpleGrid>
-
-            {/* Duration Filters */}
-            <Text fontSize="md" fontWeight="semibold" mt={1}>Duration (seconds)</Text>
-            <SimpleGrid columns={{base: 1, md: 2}} gap={2} w="100%">
-              <Field.Root>
-                <Field.Label fontSize="sm">Min Duration (s)</Field.Label>
-                <Input
-                  name="minDuration"
-                  type="number"
-                  value={formik.values.minDuration}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., 3600"
-                  size="sm"
-                />
-              </Field.Root>
-
-              <Field.Root>
-                <Field.Label fontSize="sm">Max Duration (s)</Field.Label>
-                <Input
-                  name="maxDuration"
-                  type="number"
-                  value={formik.values.maxDuration}
-                  onChange={formik.handleChange}
-                  placeholder="e.g., 86400"
-                  size="sm"
-                />
-              </Field.Root>
-            </SimpleGrid>
-
-            {/* Action Buttons */}
-            <HStack gap={3} mt={4} w="100%" justify="space-between">
-              <HStack gap={3}>
-                <Button type="submit" colorPalette="blue">
-                  Search Jobs
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    formik.resetForm()
-                    setHasSearched(false)
-                    setQueryParams({})
-                  }}
-                >
-                  Reset
-                </Button>
-              </HStack>
-              <Field.Root maxW="120px">
-                <Field.Label fontSize="sm">Results per Page</Field.Label>
-                <Select.Root
-                  collection={limitCollection}
-                  value={[pageSize.toString()]}
-                  onValueChange={(details) => {
-                    if (details.value[0] !== 'all') {
-                      setPageSize(parseInt(details.value[0]))
-                      setCurrentPage(1)
-                    }
-                  }}
-                  size="sm"
-                >
-                  <Select.HiddenSelect />
-                  <Select.Control>
-                    <Select.Trigger>
-                      <Select.ValueText />
-                    </Select.Trigger>
-                    <Select.IndicatorGroup>
-                      <Select.Indicator />
-                    </Select.IndicatorGroup>
-                  </Select.Control>
-                  <Portal>
-                    <Select.Positioner>
-                      <Select.Content>
-                        {limitCollection.items.map((item) => (
-                          <Select.Item item={item} key={item.value}>
-                            {item.label}
-                            <Select.ItemIndicator />
-                          </Select.Item>
-                        ))}
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Portal>
-                </Select.Root>
-              </Field.Root>
-            </HStack>
-          </VStack>
+                {/* Action Buttons */}
+                <HStack gap={2}>
+                  <Button 
+                    type="submit" 
+                    colorPalette="blue" 
+                    size="sm"
+                    loading={jobsQuery.isLoading}
+                  >
+                    Search Jobs
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      formik.resetForm()
+                      setHasSearched(false)
+                      setQueryParams({})
+                      setIsFormOpen(true)
+                    }}
+                  >
+                    Reset
+                  </Button>
+                </HStack>
+              </VStack>
+            </Collapsible.Content>
+          </Collapsible.Root>
         </form>
       </Box>
 
@@ -459,19 +611,19 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
       {hasSearched && (
         <Box w="100%" borderWidth="1px" borderColor="gray.200" rounded="md" p={4} bg="white">
           <VStack align="start" gap={3} w="100%">
-            <HStack justify="space-between" w="100%">
-              <Text fontSize="lg" fontWeight="semibold">
+            <HStack gap={2}>
+              <Text textStyle="lg" fontWeight="semibold">
                 Search Results
               </Text>
-              {!jobsQuery.isLoading && totalJobs > 0 && (
-                <Text fontSize="sm" color="gray.600">
-                  Showing {startIndex + 1}-{endIndex} of {totalJobs} job{totalJobs !== 1 ? 's' : ''}
+              {!jobsQuery.isLoading && (
+                <Text textStyle="sm" color="gray.600">
+                  ({totalJobs} {totalJobs === 1 ? 'result' : 'results'})
                 </Text>
               )}
             </HStack>
 
             {jobsQuery.isLoading ? (
-              <Box w="100%" h="200px" display="flex" alignItems="center" justifyContent="center">
+              <Box w="100%" h="400px" display="flex" alignItems="center" justifyContent="center">
                 <Spinner size="lg"/>
               </Box>
             ) : jobsQuery.isError ? (
@@ -487,107 +639,75 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                 <Text color="gray.500">No jobs found matching your criteria</Text>
               </Box>
             ) : (
-              <Box w="100%" overflowX="auto">
-                <Table.Root size="sm" variant="outline">
-                  <Table.Header>
-                    <Table.Row bg="gray.50">
-                      <Table.ColumnHeader fontSize="xs">Job ID</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">User</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Job Name</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">State</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Partition</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Nodes</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Submit Time</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Start Time</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">End Time</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Duration</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Account</Table.ColumnHeader>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {jobs.map((job) => (
-                      <Table.Row key={`${job.job_id}-${job.job_step}`}>
-                        <Table.Cell fontSize="xs" fontWeight="medium">
-                          <Link
-                            asChild
-                            colorPalette="blue"
-                            _hover={{ textDecoration: 'underline' }}
-                          >
-                            <ReactRouterLink to={`/v2/${clusterName}/jobs/${job.job_id}`}>
-                              {job.job_id}{job.job_step ? `.${job.job_step}` : ''}
-                            </ReactRouterLink>
-                          </Link>
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs">{job.user_name}</Table.Cell>
-                        <Table.Cell fontSize="xs" maxW="200px" truncate>
-                          {job.job_name ?? 'N/A'}
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs">
-                          <Tag.Root size="sm" colorPalette={getJobStateColor(job.job_state ?? '')}>
-                            <Tag.Label>{job.job_state}</Tag.Label>
-                          </Tag.Root>
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs">{job.partition ?? 'N/A'}</Table.Cell>
-                        <Table.Cell fontSize="xs" maxW="150px" truncate title={job.nodes?.join(', ') ?? 'N/A'}>
-                          {job.nodes?.join(', ') ?? 'N/A'}
-                        </Table.Cell>
-                        <Table.Cell fontSize="xs">{formatDateTime(job.submit_time)}</Table.Cell>
-                        <Table.Cell fontSize="xs">{formatDateTime(job.start_time)}</Table.Cell>
-                        <Table.Cell fontSize="xs">{formatDateTime(job.end_time)}</Table.Cell>
-                        <Table.Cell fontSize="xs">{formatDuration(job.start_time, job.end_time)}</Table.Cell>
-                        <Table.Cell fontSize="xs">{job.account ?? 'N/A'}</Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table.Root>
-              </Box>
-            )}
-
-            {/* Pagination Controls */}
-            {!jobsQuery.isLoading && totalPages > 1 && (
-              <HStack justify="space-between" w="100%" pt={2}>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <HStack gap={2}>
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-                    return (
-                      <Button
-                        key={pageNum}
-                        size="sm"
-                        variant={currentPage === pageNum ? 'solid' : 'outline'}
-                        colorPalette={currentPage === pageNum ? 'blue' : 'gray'}
-                        onClick={() => setCurrentPage(pageNum)}
+              <VStack w="100%" h="calc(100vh - 175px)" gap={3}>
+                <Box w="100%" flex="1">
+                  <AgGridReact<JobResponse>
+                    theme={themeQuartz}
+                    rowData={jobs}
+                    columnDefs={columnDefs}
+                    defaultColDef={defaultColDef}
+                    getRowId={(params) => `${params.data.job_id}-${params.data.job_step ?? ''}`}
+                    pagination={false}
+                    animateRows={true}
+                    enableCellTextSelection={true}
+                  />
+                </Box>
+                
+                {/* Custom Pagination Controls */}
+                <HStack w="100%" justify="space-between" py={2}>
+                  <HStack gap={2}>
+                    <Text fontSize="sm" color="gray.600">Rows per page:</Text>
+                    <NativeSelect.Root size="sm" width="80px">
+                      <NativeSelect.Field
+                        value={String(pageSize)}
+                        onChange={(e) => {
+                          setPageSize(Number(e.currentTarget.value))
+                          setCurrentPage(1)
+                        }}
                       >
-                        {pageNum}
-                      </Button>
-                    )
-                  })}
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                      </NativeSelect.Field>
+                      <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                  </HStack>
+                  
+                  <Pagination.Root
+                    count={totalJobs}
+                    pageSize={pageSize}
+                    page={currentPage}
+                    onPageChange={(e) => setCurrentPage(e.page)}
+                  >
+                    <HStack gap={2}>
+                      <Pagination.PrevTrigger asChild>
+                        <IconButton size="sm" variant="ghost">
+                          <LuChevronLeft />
+                        </IconButton>
+                      </Pagination.PrevTrigger>
+
+                      <Pagination.Items
+                        render={(page) => (
+                          <IconButton
+                            key={page.value}
+                            size="sm"
+                            variant={page.value === currentPage ? 'solid' : 'ghost'}
+                          >
+                            {page.value}
+                          </IconButton>
+                        )}
+                      />
+
+                      <Pagination.NextTrigger asChild>
+                        <IconButton size="sm" variant="ghost">
+                          <LuChevronRight />
+                        </IconButton>
+                      </Pagination.NextTrigger>
+                    </HStack>
+                  </Pagination.Root>
                 </HStack>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </HStack>
+              </VStack>
             )}
           </VStack>
         </Box>
