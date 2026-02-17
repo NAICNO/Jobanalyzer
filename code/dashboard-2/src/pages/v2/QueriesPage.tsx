@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router'
 import { useFormik } from 'formik'
 import { AgGridReact } from 'ag-grid-react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
@@ -182,6 +182,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
   const {clusterName} = useParams<{ clusterName: string }>()
   const navigate = useNavigate()
 
+  const [searchParams, setSearchParams] = useSearchParams()
   const client = useClusterClient(clusterName)
   if (!client) {
     return <Spinner />
@@ -197,70 +198,88 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
     return `${year}-${month}-${day}T00:00`
   }
 
-  const [hasSearched, setHasSearched] = useState(false)
+  // Read initial state from URL search params
+  const hasUrlParams = searchParams.has('searched')
+  const initialFormValues: JobQueryFormValues = {
+    user: searchParams.get('user') ?? '',
+    userId: searchParams.get('userId') ?? '',
+    jobId: searchParams.get('jobId') ?? '',
+    states: searchParams.get('states') ?? (filter === 'running' ? JobState.RUNNING : ''),
+    startAfter: searchParams.get('startAfter') ?? '',
+    startBefore: searchParams.get('startBefore') ?? '',
+    endAfter: searchParams.get('endAfter') ?? '',
+    endBefore: searchParams.get('endBefore') ?? '',
+    submitAfter: searchParams.get('submitAfter') ?? (hasUrlParams ? '' : getTodayMidnight()),
+    submitBefore: searchParams.get('submitBefore') ?? '',
+    minDuration: searchParams.get('minDuration') ?? '',
+    maxDuration: searchParams.get('maxDuration') ?? '',
+  }
+
+  const [hasSearched, setHasSearched] = useState(hasUrlParams)
   const [queryParams, setQueryParams] = useState<GetClusterByClusterQueryJobsPagesData['query']>({})
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
-  const [isFormOpen, setIsFormOpen] = useState(true)
+  const [currentPage, setCurrentPage] = useState(() => {
+    const p = searchParams.get('page')
+    return p ? parseInt(p) : 1
+  })
+  const [pageSize, setPageSize] = useState(() => {
+    const ps = searchParams.get('pageSize')
+    return ps ? parseInt(ps) : 25
+  })
+  const [isFormOpen, setIsFormOpen] = useState(!hasUrlParams)
+
+  // Write form values + pagination to URL search params
+  const syncToUrl = (values: JobQueryFormValues, page: number, ps: number) => {
+    const params = new URLSearchParams()
+    params.set('searched', '1')
+    for (const [key, val] of Object.entries(values)) {
+      if (val) params.set(key, val)
+    }
+    params.set('page', String(page))
+    params.set('pageSize', String(ps))
+    setSearchParams(params, { replace: true })
+  }
+
+  const buildQueryParams = (values: JobQueryFormValues) => {
+    const params: GetClusterByClusterQueryJobsPagesData['query'] = {}
+
+    if (values.user) params.user = values.user
+    if (values.userId) params.user_id = parseInt(values.userId)
+    if (values.jobId) params.job_id = parseInt(values.jobId)
+    if (values.states) params.states = values.states
+
+    if (values.startAfter) params.start_after_in_s = Math.floor(new Date(values.startAfter).getTime() / 1000)
+    if (values.startBefore) params.start_before_in_s = Math.floor(new Date(values.startBefore).getTime() / 1000)
+    if (values.endAfter) params.end_after_in_s = Math.floor(new Date(values.endAfter).getTime() / 1000)
+    if (values.endBefore) params.end_before_in_s = Math.floor(new Date(values.endBefore).getTime() / 1000)
+    if (values.submitAfter) params.submit_after_in_s = Math.floor(new Date(values.submitAfter).getTime() / 1000)
+    if (values.submitBefore) params.submit_before_in_s = Math.floor(new Date(values.submitBefore).getTime() / 1000)
+
+    if (values.minDuration) params.min_duration_in_s = parseInt(values.minDuration)
+    if (values.maxDuration) params.max_duration_in_s = parseInt(values.maxDuration)
+
+    return params
+  }
 
   const formik = useFormik<JobQueryFormValues>({
-    initialValues: {
-      user: '',
-      userId: '',
-      jobId: '',
-      states: filter === 'running' ? JobState.RUNNING : '',
-      startAfter: '',
-      startBefore: '',
-      endAfter: '',
-      endBefore: '',
-      submitAfter: getTodayMidnight(),
-      submitBefore: '',
-      minDuration: '',
-      maxDuration: '',
-    },
+    initialValues: initialFormValues,
     onSubmit: (values) => {
-      const params: GetClusterByClusterQueryJobsPagesData['query'] = {}
-
-      if (values.user) params.user = values.user
-      if (values.userId) params.user_id = parseInt(values.userId)
-      if (values.jobId) params.job_id = parseInt(values.jobId)
-      if (values.states) params.states = values.states
-
-      // Convert date strings to timestamps (seconds)
-      if (values.startAfter) {
-        const date = new Date(values.startAfter)
-        params.start_after_in_s = Math.floor(date.getTime() / 1000)
-      }
-      if (values.startBefore) {
-        const date = new Date(values.startBefore)
-        params.start_before_in_s = Math.floor(date.getTime() / 1000)
-      }
-      if (values.endAfter) {
-        const date = new Date(values.endAfter)
-        params.end_after_in_s = Math.floor(date.getTime() / 1000)
-      }
-      if (values.endBefore) {
-        const date = new Date(values.endBefore)
-        params.end_before_in_s = Math.floor(date.getTime() / 1000)
-      }
-      if (values.submitAfter) {
-        const date = new Date(values.submitAfter)
-        params.submit_after_in_s = Math.floor(date.getTime() / 1000)
-      }
-      if (values.submitBefore) {
-        const date = new Date(values.submitBefore)
-        params.submit_before_in_s = Math.floor(date.getTime() / 1000)
-      }
-
-      // Duration in seconds
-      if (values.minDuration) params.min_duration_in_s = parseInt(values.minDuration)
-      if (values.maxDuration) params.max_duration_in_s = parseInt(values.maxDuration)
-
+      const params = buildQueryParams(values)
       setQueryParams(params)
       setHasSearched(true)
       setCurrentPage(1)
+      syncToUrl(values, 1, pageSize)
     },
   })
+
+  // Restore query on mount if URL has search params
+  const hasRestoredRef = useRef(false)
+  useEffect(() => {
+    if (hasUrlParams && !hasRestoredRef.current) {
+      hasRestoredRef.current = true
+      const params = buildQueryParams(initialFormValues)
+      setQueryParams(params)
+    }
+  }, [])
 
   // Auto-submit the form when filter prop is provided
   useEffect(() => {
@@ -591,6 +610,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                       setHasSearched(false)
                       setQueryParams({})
                       setIsFormOpen(true)
+                      setSearchParams({}, { replace: true })
                     }}
                   >
                     Reset
@@ -656,8 +676,10 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                       <NativeSelect.Field
                         value={String(pageSize)}
                         onChange={(e) => {
-                          setPageSize(Number(e.currentTarget.value))
+                          const newPageSize = Number(e.currentTarget.value)
+                          setPageSize(newPageSize)
                           setCurrentPage(1)
+                          syncToUrl(formik.values, 1, newPageSize)
                         }}
                       >
                         <option value="10">10</option>
@@ -673,7 +695,10 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                     count={totalJobs}
                     pageSize={pageSize}
                     page={currentPage}
-                    onPageChange={(e) => setCurrentPage(e.page)}
+                    onPageChange={(e) => {
+                      setCurrentPage(e.page)
+                      syncToUrl(formik.values, e.page, pageSize)
+                    }}
                   >
                     <HStack gap={2}>
                       <Pagination.PrevTrigger asChild>
