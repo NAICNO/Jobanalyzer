@@ -1,11 +1,10 @@
 import { VStack, Text, Heading, Listbox, Input, useFilter, Spinner, Alert, createListCollection, Box, HStack, Badge, Splitter } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
 import { useLocalStorage } from 'react-use'
 
-import { getClusterByClusterPartitionsOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterPartitions } from '../../hooks/v2/useClusterQueries'
 import { PartitionSummary } from '../../components/v2/PartitionSummary'
 import { PartitionQueueOverview } from '../../components/v2/PartitionQueueOverview'
 import { PartitionNodes } from '../../components/v2/PartitionNodes'
@@ -18,19 +17,7 @@ export const PartitionsPage = () => {
   const navigate = useNavigate()
 
   const client = useClusterClient(clusterName)
-  if (!client) {
-    return <Spinner />
-  }
-
-  // Fetch partitions for the cluster from /cluster/:cluster/partitions
-  const baseQueryOptions = getClusterByClusterPartitionsOptions({
-    path: { cluster: clusterName ?? '' },
-    client,
-  })
-  const { data, isLoading, isError, error } = useQuery({
-    ...baseQueryOptions,
-    enabled: !!clusterName,
-  })
+  const { data, isLoading, isError, error } = useClusterPartitions({ cluster: clusterName ?? '', client })
 
   const partitionsMap = (data ?? {}) as Record<string, PartitionResponse>
   const partitions = Object.values(partitionsMap)

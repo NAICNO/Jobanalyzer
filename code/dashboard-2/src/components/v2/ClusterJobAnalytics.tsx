@@ -1,9 +1,8 @@
 import { VStack, Text, SimpleGrid, Box, Table, Tag, Stat, Spinner } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
 
-import { getClusterByClusterJobsOptions } from '../../client/@tanstack/react-query.gen'
 import type { JobsResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterJobs } from '../../hooks/v2/useClusterQueries'
 import { getJobStateColor } from '../../util/formatters'
 
 interface Props {
@@ -15,22 +14,7 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
   const now = Math.floor(Date.now() / 1000)
   const last24h = now - (24 * 60 * 60)
 
-  if (!client) {
-    return <Spinner />
-  }
-
-  // Get recent jobs (last 24 hours)
-  const jobsQ = useQuery({
-    ...getClusterByClusterJobsOptions({
-      path: { cluster },
-      query: {
-        start_time_in_s: last24h,
-        end_time_in_s: now,
-      },
-      client,
-    }),
-    enabled: !!cluster,
-  })
+  const jobsQ = useClusterJobs({ cluster, client, startTimeInS: last24h, endTimeInS: now })
 
   const jobsData = (jobsQ.data as JobsResponse) ?? { jobs: [] }
   const jobs = jobsData.jobs ?? []

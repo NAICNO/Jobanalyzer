@@ -24,10 +24,21 @@ import { JobDetailsPage } from './pages/v2/JobDetailsPage.tsx'
 import { QueriesPage } from './pages/v2/QueriesPage.tsx'
 import { NodeTopologyPage } from './pages/v2/NodeTopologyPage.tsx'
 import { ClusterSelectionPage } from './pages/v2/ClusterSelectionPage.tsx'
+import { ProcessTreeFullViewPage } from './pages/v2/ProcessTreeFullViewPage.tsx'
 import { ClusterRouteGuard } from './components/ClusterRouteGuard.tsx'
 import { CallbackPage } from './pages/auth/CallbackPage.tsx'
 
 const router = createBrowserRouter([
+  {
+    path: '/v2/:clusterName/jobs/:jobId/process-tree',
+    element: <ClusterRouteGuard />,
+    children: [
+      {
+        index: true,
+        element: <ProcessTreeFullViewPage />,
+      },
+    ],
+  },
   {
     path: '/',
     element: <RootLayout/>,

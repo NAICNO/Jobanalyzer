@@ -1,14 +1,13 @@
 import { Box, VStack, Spinner, Text, Alert } from '@chakra-ui/react'
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { AgGridReact } from 'ag-grid-react'
 import type { ColDef } from 'ag-grid-community'
 import { themeQuartz } from 'ag-grid-community'
 
-import { getClusterByClusterNodesInfoOptions, getClusterByClusterNodesLastProbeTimestampOptions } from '../../client/@tanstack/react-query.gen'
 import type { NodeInfoResponse } from '../../client'
 import { createNodeNameRenderer, createCpuRenderer, createMemoryRenderer, createGpuRenderer } from '../../utils/nodeTableRenderers'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterNodesInfo, useClusterNodesLastProbeTimestamp } from '../../hooks/v2/useNodeQueries'
 
 interface NodesTableProps {
   clusterName: string
@@ -18,27 +17,8 @@ interface NodesTableProps {
 export const NodesTable = ({ clusterName, onNodeClick }: NodesTableProps) => {
   const client = useClusterClient(clusterName)
   
-  if (!client) {
-    return <Spinner />
-  }
-  
-  // Fetch node info data
-  const { data: nodesInfoData, isLoading, isError } = useQuery({
-    ...getClusterByClusterNodesInfoOptions({
-      path: { cluster: clusterName },
-      client,
-    }),
-    enabled: !!clusterName,
-  })
-
-  // Fetch last probe timestamps for liveness
-  const { data: lastProbeData } = useQuery({
-    ...getClusterByClusterNodesLastProbeTimestampOptions({
-      path: { cluster: clusterName },
-      client,
-    }),
-    enabled: !!clusterName,
-  })
+  const { data: nodesInfoData, isLoading, isError } = useClusterNodesInfo({ cluster: clusterName, client })
+  const { data: lastProbeData } = useClusterNodesLastProbeTimestamp({ cluster: clusterName, client })
 
   // Transform data to array format
   const rowData = useMemo<NodeInfoResponse[]>(() => {
