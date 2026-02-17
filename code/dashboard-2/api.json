@@ -2939,6 +2939,7 @@
                   "type": "null"
                 }
               ],
+              "default": 300,
               "title": "Resolution In S"
             }
           }
@@ -3063,6 +3064,7 @@
                   "type": "null"
                 }
               ],
+              "default": 300,
               "title": "Resolution In S"
             }
           }
@@ -3401,6 +3403,150 @@
                     "$ref": "#/components/schemas/SystemProcessTimeseriesResponse"
                   },
                   "title": "Response Job Sample Process System Cluster  Cluster  Jobs Process Timeseries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster/{cluster}/jobs/{job_id}/process/tree": {
+      "get": {
+        "tags": [
+          "v2",
+          "job"
+        ],
+        "summary": "Get **job**-specific process (cpu/memory) timeseries data",
+        "description": "Get job-related process tree providing process level data for all related nodes\n\nBy default this related to SLURM jobs (epoch set to 0).\nTo relate to non-SLURM jobs, provide the epoch as parameter to the query.",
+        "operationId": "job_sample_process_system_tree_cluster__cluster__jobs__job_id__process_tree_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "epoch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Epoch"
+            }
+          },
+          {
+            "name": "nodename",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Nodename"
+            }
+          },
+          {
+            "name": "start_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Time In S"
+            }
+          },
+          {
+            "name": "end_time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Time In S"
+            }
+          },
+          {
+            "name": "resolution_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resolution In S"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemProcessTreeResponse"
                 }
               }
             }
@@ -4887,7 +5033,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 1770366748,
+              "default": 1770997363,
               "title": "Timestamp"
             }
           },
@@ -6476,6 +6622,40 @@
         "type": "object",
         "title": "PrefetchSettings"
       },
+      "ProcessData": {
+        "properties": {
+          "ppid": {
+            "type": "integer",
+            "title": "Ppid",
+            "description": "Parent Process Id"
+          },
+          "user": {
+            "type": "string",
+            "title": "User",
+            "description": "User"
+          },
+          "cmd": {
+            "type": "string",
+            "title": "Cmd",
+            "description": "Command (this is not the command line)"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SampleProcessAccResponse"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ppid",
+          "user",
+          "cmd",
+          "data"
+        ],
+        "title": "ProcessData"
+      },
       "ProcessPoint": {
         "properties": {
           "command": {
@@ -6523,6 +6703,93 @@
           "gpumem"
         ],
         "title": "ProcessPoint"
+      },
+      "ProcessRelations": {
+        "properties": {
+          "relation_id": {
+            "type": "string",
+            "title": "Relation Id",
+            "description": "Identifier for this relation"
+          },
+          "source": {
+            "type": "integer",
+            "title": "Source",
+            "description": "Source aka parent process id"
+          },
+          "target": {
+            "type": "integer",
+            "title": "Target",
+            "description": "Target aka child process id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "relation_id",
+          "source",
+          "target"
+        ],
+        "title": "ProcessRelations"
+      },
+      "ProcessTreeMetaData": {
+        "properties": {
+          "total_processes": {
+            "type": "integer",
+            "title": "Total Processes"
+          },
+          "start_time": {
+            "type": "integer",
+            "title": "Start Time"
+          },
+          "end_time": {
+            "type": "integer",
+            "title": "End Time"
+          },
+          "root_pid": {
+            "type": "integer",
+            "title": "Root Pid"
+          },
+          "max_depth": {
+            "type": "integer",
+            "title": "Max Depth"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_processes",
+          "start_time",
+          "end_time",
+          "root_pid",
+          "max_depth"
+        ],
+        "title": "ProcessTreeMetaData"
+      },
+      "ProcessTreeResponse": {
+        "properties": {
+          "processes": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProcessData"
+            },
+            "type": "object",
+            "title": "Processes"
+          },
+          "relations": {
+            "items": {
+              "$ref": "#/components/schemas/ProcessRelations"
+            },
+            "type": "array",
+            "title": "Relations"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ProcessTreeMetaData"
+          }
+        },
+        "type": "object",
+        "required": [
+          "processes",
+          "relations",
+          "metadata"
+        ],
+        "title": "ProcessTreeResponse"
       },
       "QueriesResponse": {
         "properties": {
@@ -6728,6 +6995,12 @@
             "type": "integer",
             "title": "Ms Spent Flushing",
             "description": "Milliseconds spent flushing"
+          },
+          "delta_time_in_s": {
+            "type": "integer",
+            "title": "Delta Time In S",
+            "description": "Time delta for which these value hold, 0 if unknown",
+            "default": 0
           }
         },
         "type": "object",
@@ -7059,6 +7332,35 @@
           "nodes"
         ],
         "title": "SystemProcessTimeseriesResponse"
+      },
+      "SystemProcessTreeResponse": {
+        "properties": {
+          "job": {
+            "type": "integer",
+            "title": "Job",
+            "description": "Job ID"
+          },
+          "epoch": {
+            "type": "integer",
+            "title": "Epoch",
+            "description": "Epoch uniquely identifying non-slurm jobs"
+          },
+          "nodes": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProcessTreeResponse"
+            },
+            "type": "object",
+            "title": "Nodes",
+            "description": "Process tree per node"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job",
+          "epoch",
+          "nodes"
+        ],
+        "title": "SystemProcessTreeResponse"
       },
       "TokenPayload": {
         "properties": {

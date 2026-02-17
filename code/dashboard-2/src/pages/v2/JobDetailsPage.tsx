@@ -15,6 +15,7 @@ const OverviewTab = lazy(() => import('../../components/v2/OverviewTab').then(m 
 const PerformanceMetricsTab = lazy(() => import('../../components/v2/PerformanceMetricsTab').then(m => ({ default: m.PerformanceMetricsTab })))
 const ResourceTimelineTab = lazy(() => import('../../components/v2/ResourceTimelineTab').then(m => ({ default: m.ResourceTimelineTab })))
 const GpuPerformanceTab = lazy(() => import('../../components/v2/GpuPerformanceTab').then(m => ({ default: m.GpuPerformanceTab })))
+const ProcessTreeTab = lazy(() => import('../../components/v2/ProcessTreeTab').then(m => ({ default: m.ProcessTreeTab })))
 
 export const JobDetailsPage = () => {
   const { clusterName, jobId } = useParams<{ clusterName: string; jobId: string }>()
@@ -99,6 +100,9 @@ export const JobDetailsPage = () => {
         if (gpuInfo.uuids.length > 0) {
           setActiveTab('gpu')
         }
+        break
+      case '5':
+        setActiveTab('process-tree')
         break
       case 'r':
       case 'R':
@@ -195,6 +199,7 @@ export const JobDetailsPage = () => {
                   {gpuInfo.uuids.length > 0 && (
                     <Text fontSize="xs">• Press <Badge size="xs">4</Badge> for GPU Performance</Text>
                   )}
+                  <Text fontSize="xs">• Press <Badge size="xs">5</Badge> for Process Tree</Text>
                   <Text fontSize="xs">• Press <Badge size="xs">R</Badge> to refresh data</Text>
                 </VStack>
               </Tooltip.Content>
@@ -208,28 +213,18 @@ export const JobDetailsPage = () => {
 
       {/* Quick Stats - Sticky Header */}
       <Box
-        position="sticky"
-        top={0}
-        zIndex={10}
-        bg="bg"
         w="100%"
-        borderY="1px"
-        borderColor="border"
-        py={4}
-        mx={-6}
-        px={6}
+        py={2}
       >
         <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} gap={3}>
-          <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-            <Stat.Root>
-              <Stat.Label fontSize="sm" color="gray.600">Status</Stat.Label>
-              <Stat.ValueText>
-                <Badge colorPalette={getJobStateColor(job.job_state)}>
-                  {job.job_state}
-                </Badge>
-              </Stat.ValueText>
-            </Stat.Root>
-          </Box>
+          <Stat.Root borderWidth="1px" borderColor="border" rounded="md" p={3}>
+            <Stat.Label fontSize="sm" color="fg.muted">Status</Stat.Label>
+            <Stat.ValueText>
+              <Badge colorPalette={getJobStateColor(job.job_state)}>
+                {job.job_state}
+              </Badge>
+            </Stat.ValueText>
+          </Stat.Root>
 
           <JobStatCard
             label="Elapsed Time"
@@ -282,6 +277,10 @@ export const JobDetailsPage = () => {
               <Badge size="xs" ml={1} colorPalette="gray">4</Badge>
             </Tabs.Trigger>
           )}
+          <Tabs.Trigger value="process-tree">
+            <Text>Process Tree</Text>
+            <Badge size="xs" ml={1} colorPalette="gray">5</Badge>
+          </Tabs.Trigger>
         </Tabs.List>
 
         <Box mt={6}>
@@ -335,6 +334,20 @@ export const JobDetailsPage = () => {
               </Suspense>
             </Tabs.Content>
           )}
+
+          <Tabs.Content value="process-tree">
+            <Suspense fallback={
+              <Box w="100%" h="400px" display="flex" alignItems="center" justifyContent="center">
+                <Spinner size="lg" />
+              </Box>
+            }>
+              <ProcessTreeTab
+                cluster={clusterName}
+                jobId={jobIdNum}
+                client={client}
+              />
+            </Suspense>
+          </Tabs.Content>
         </Box>
       </Tabs.Root>
     </VStack>
