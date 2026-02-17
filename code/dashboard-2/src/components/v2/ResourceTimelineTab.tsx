@@ -243,210 +243,209 @@ export const ResourceTimelineTab = memo(({ cluster, jobId, client }: Props) => {
             </Card.Root>
           </SimpleGrid>
 
-          {/* CPU Utilization Chart */}
-          <Card.Root
-            size="sm"
+          {/* Charts Grid - 2x2 layout */}
+          <SimpleGrid
+            columns={{ base: 1, lg: 2 }}
+            gap={4}
             w="100%"
             opacity={isFetching ? 0.6 : 1}
             transition="opacity 0.3s"
           >
-            <Card.Body>
-              <Text fontSize="md" fontWeight="semibold" mb={4}>
-                CPU Utilization
-              </Text>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={chartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="timeStr"
-                    tick={{ fontSize: 12 }}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    label={{
-                      value: 'CPU %',
-                      angle: -90,
-                      position: 'insideLeft',
-                    }}
-                    domain={[0, 100]}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="cpu_util"
-                    stroke="#3182CE"
-                    name="CPU Utilization"
-                    dot={false}
-                    strokeWidth={2}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="cpu_avg"
-                    stroke="#E53E3E"
-                    name="CPU Average"
-                    dot={false}
-                    strokeWidth={2}
-                  />
-                  <Brush dataKey="timeStr" height={30} stroke="#718096" />
-                </LineChart>
-              </ResponsiveContainer>
-            </Card.Body>
-          </Card.Root>
+            {/* CPU Utilization Chart */}
+            <Card.Root size="sm">
+              <Card.Body>
+                <Text fontSize="md" fontWeight="semibold" mb={4}>
+                  CPU Utilization
+                </Text>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="timeStr"
+                      tick={{ fontSize: 10 }}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      label={{
+                        value: 'CPU %',
+                        angle: -90,
+                        position: 'insideLeft',
+                        style: { fontSize: 11 },
+                      }}
+                      domain={[0, 100]}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="cpu_util"
+                      stroke="#3182CE"
+                      name="CPU Utilization"
+                      dot={false}
+                      strokeWidth={2}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="cpu_avg"
+                      stroke="#E53E3E"
+                      name="CPU Average"
+                      dot={false}
+                      strokeWidth={2}
+                    />
+                    <Brush dataKey="timeStr" height={25} stroke="#718096" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Card.Body>
+            </Card.Root>
 
-          {/* Memory Usage Chart */}
-          <Card.Root
-            size="sm"
-            w="100%"
-            opacity={isFetching ? 0.6 : 1}
-            transition="opacity 0.3s"
-          >
-            <Card.Body>
-              <Text fontSize="md" fontWeight="semibold" mb={4}>
-                Memory Usage
-              </Text>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart
-                  data={chartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="timeStr"
-                    tick={{ fontSize: 12 }}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    label={{
-                      value: 'Memory (GB)',
-                      angle: -90,
-                      position: 'insideLeft',
-                    }}
-                    tickFormatter={(value) => formatMemory(value)}
-                  />
-                  <Tooltip
-                    content={<CustomTooltip />}
-                    formatter={(value: number | undefined) => [
-                      formatMemory(value || 0),
-                      '',
-                    ]}
-                  />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="memory_resident"
-                    stackId="1"
-                    stroke="#38A169"
-                    fill="#38A169"
-                    fillOpacity={0.6}
-                    name="Resident Memory"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="memory_virtual"
-                    stackId="2"
-                    stroke="#805AD5"
-                    fill="#805AD5"
-                    fillOpacity={0.4}
-                    name="Virtual Memory"
-                  />
-                  <Brush dataKey="timeStr" height={30} stroke="#718096" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </Card.Body>
-          </Card.Root>
+            {/* Memory Usage Chart */}
+            <Card.Root size="sm">
+              <Card.Body>
+                <Text fontSize="md" fontWeight="semibold" mb={4}>
+                  Memory Usage
+                </Text>
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart
+                    data={chartData}
+                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="timeStr"
+                      tick={{ fontSize: 10 }}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      label={{
+                        value: 'Memory (GB)',
+                        angle: -90,
+                        position: 'insideLeft',
+                        style: { fontSize: 11 },
+                      }}
+                      tickFormatter={(value) => formatMemory(value)}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <Tooltip
+                      content={<CustomTooltip />}
+                      formatter={(value: number | undefined) => [
+                        formatMemory(value || 0),
+                        '',
+                      ]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Area
+                      type="monotone"
+                      dataKey="memory_resident"
+                      stackId="1"
+                      stroke="#38A169"
+                      fill="#38A169"
+                      fillOpacity={0.6}
+                      name="Resident Memory"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="memory_virtual"
+                      stackId="2"
+                      stroke="#805AD5"
+                      fill="#805AD5"
+                      fillOpacity={0.4}
+                      name="Virtual Memory"
+                    />
+                    <Brush dataKey="timeStr" height={25} stroke="#718096" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </Card.Body>
+            </Card.Root>
 
-          {/* Process Count Chart */}
-          <Card.Root
-            size="sm"
-            w="100%"
-            opacity={isFetching ? 0.6 : 1}
-            transition="opacity 0.3s"
-          >
-            <Card.Body>
-              <Text fontSize="md" fontWeight="semibold" mb={4}>
-                Process Count
-              </Text>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart
-                  data={chartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="timeStr"
-                    tick={{ fontSize: 12 }}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    label={{
-                      value: 'Processes',
-                      angle: -90,
-                      position: 'insideLeft',
-                    }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="processes_avg"
-                    stroke="#DD6B20"
-                    name="Average Processes"
-                    dot={false}
-                    strokeWidth={2}
-                  />
-                  <Brush dataKey="timeStr" height={30} stroke="#718096" />
-                </LineChart>
-              </ResponsiveContainer>
-            </Card.Body>
-          </Card.Root>
+            {/* Memory Utilization % Chart */}
+            <Card.Root size="sm">
+              <Card.Body>
+                <Text fontSize="md" fontWeight="semibold" mb={4}>
+                  Memory Utilization %
+                </Text>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="timeStr"
+                      tick={{ fontSize: 10 }}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      label={{
+                        value: 'Memory %',
+                        angle: -90,
+                        position: 'insideLeft',
+                        style: { fontSize: 11 },
+                      }}
+                      domain={[0, 100]}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="memory_util"
+                      stroke="#319795"
+                      name="Memory Utilization"
+                      dot={false}
+                      strokeWidth={2}
+                    />
+                    <Brush dataKey="timeStr" height={25} stroke="#718096" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Card.Body>
+            </Card.Root>
 
-          {/* Memory Utilization % Chart */}
-          <Card.Root            size="sm"            w="100%"
-            opacity={isFetching ? 0.6 : 1}
-            transition="opacity 0.3s"
-          >
-            <Card.Body>
-              <Text fontSize="md" fontWeight="semibold" mb={4}>
-                Memory Utilization %
-              </Text>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart
-                  data={chartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="timeStr"
-                    tick={{ fontSize: 12 }}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    label={{
-                      value: 'Memory %',
-                      angle: -90,
-                      position: 'insideLeft',
-                    }}
-                    domain={[0, 100]}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="memory_util"
-                    stroke="#319795"
-                    name="Memory Utilization"
-                    dot={false}
-                    strokeWidth={2}
-                  />
-                  <Brush dataKey="timeStr" height={30} stroke="#718096" />
-                </LineChart>
-              </ResponsiveContainer>
-            </Card.Body>
-          </Card.Root>
+            {/* Process Count Chart */}
+            <Card.Root size="sm">
+              <Card.Body>
+                <Text fontSize="md" fontWeight="semibold" mb={4}>
+                  Process Count
+                </Text>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="timeStr"
+                      tick={{ fontSize: 10 }}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      label={{
+                        value: 'Processes',
+                        angle: -90,
+                        position: 'insideLeft',
+                        style: { fontSize: 11 },
+                      }}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="processes_avg"
+                      stroke="#DD6B20"
+                      name="Average Processes"
+                      dot={false}
+                      strokeWidth={2}
+                    />
+                    <Brush dataKey="timeStr" height={25} stroke="#718096" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Card.Body>
+            </Card.Root>
+          </SimpleGrid>
         </>
       )}
     </VStack>

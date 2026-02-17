@@ -1082,6 +1082,34 @@ export type PrefetchSettings = {
 };
 
 /**
+ * ProcessData
+ */
+export type ProcessData = {
+    /**
+     * Ppid
+     *
+     * Parent Process Id
+     */
+    ppid: number;
+    /**
+     * User
+     *
+     * User
+     */
+    user: string;
+    /**
+     * Cmd
+     *
+     * Command (this is not the command line)
+     */
+    cmd: string;
+    /**
+     * Data
+     */
+    data: Array<SampleProcessAccResponse>;
+};
+
+/**
  * ProcessPoint
  */
 export type ProcessPoint = {
@@ -1117,6 +1145,73 @@ export type ProcessPoint = {
      * Gpumem
      */
     gpumem: number;
+};
+
+/**
+ * ProcessRelations
+ */
+export type ProcessRelations = {
+    /**
+     * Relation Id
+     *
+     * Identifier for this relation
+     */
+    relation_id: string;
+    /**
+     * Source
+     *
+     * Source aka parent process id
+     */
+    source: number;
+    /**
+     * Target
+     *
+     * Target aka child process id
+     */
+    target: number;
+};
+
+/**
+ * ProcessTreeMetaData
+ */
+export type ProcessTreeMetaData = {
+    /**
+     * Total Processes
+     */
+    total_processes: number;
+    /**
+     * Start Time
+     */
+    start_time: number;
+    /**
+     * End Time
+     */
+    end_time: number;
+    /**
+     * Root Pid
+     */
+    root_pid: number;
+    /**
+     * Max Depth
+     */
+    max_depth: number;
+};
+
+/**
+ * ProcessTreeResponse
+ */
+export type ProcessTreeResponse = {
+    /**
+     * Processes
+     */
+    processes: {
+        [key: string]: ProcessData;
+    };
+    /**
+     * Relations
+     */
+    relations: Array<ProcessRelations>;
+    metadata: ProcessTreeMetaData;
 };
 
 /**
@@ -1331,6 +1426,12 @@ export type SampleDiskResponse = {
      * Milliseconds spent flushing
      */
     ms_spent_flushing: number;
+    /**
+     * Delta Time In S
+     *
+     * Time delta for which these value hold, 0 if unknown
+     */
+    delta_time_in_s?: number;
 };
 
 /**
@@ -1593,6 +1694,32 @@ export type SystemProcessTimeseriesResponse = {
      */
     nodes: {
         [key: string]: CombinedProcessTimeSeriesResponse;
+    };
+};
+
+/**
+ * SystemProcessTreeResponse
+ */
+export type SystemProcessTreeResponse = {
+    /**
+     * Job
+     *
+     * Job ID
+     */
+    job: number;
+    /**
+     * Epoch
+     *
+     * Epoch uniquely identifying non-slurm jobs
+     */
+    epoch: number;
+    /**
+     * Nodes
+     *
+     * Process tree per node
+     */
+    nodes: {
+        [key: string]: ProcessTreeResponse;
     };
 };
 
@@ -3226,6 +3353,64 @@ export type GetClusterByClusterJobsProcessTimeseriesResponses = {
 };
 
 export type GetClusterByClusterJobsProcessTimeseriesResponse = GetClusterByClusterJobsProcessTimeseriesResponses[keyof GetClusterByClusterJobsProcessTimeseriesResponses];
+
+export type GetClusterByClusterJobsByJobIdProcessTreeData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+        /**
+         * Job Id
+         */
+        job_id: number;
+    };
+    query?: {
+        /**
+         * Epoch
+         */
+        epoch?: number;
+        /**
+         * Nodename
+         */
+        nodename?: string | null;
+        /**
+         * Start Time In S
+         */
+        start_time_in_s?: number | null;
+        /**
+         * End Time In S
+         */
+        end_time_in_s?: number | null;
+        /**
+         * Resolution In S
+         */
+        resolution_in_s?: number | null;
+    };
+    url: '/cluster/{cluster}/jobs/{job_id}/process/tree';
+};
+
+export type GetClusterByClusterJobsByJobIdProcessTreeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterJobsByJobIdProcessTreeError = GetClusterByClusterJobsByJobIdProcessTreeErrors[keyof GetClusterByClusterJobsByJobIdProcessTreeErrors];
+
+export type GetClusterByClusterJobsByJobIdProcessTreeResponses = {
+    /**
+     * Successful Response
+     */
+    200: SystemProcessTreeResponse;
+};
+
+export type GetClusterByClusterJobsByJobIdProcessTreeResponse = GetClusterByClusterJobsByJobIdProcessTreeResponses[keyof GetClusterByClusterJobsByJobIdProcessTreeResponses];
 
 export type GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData = {
     /**
