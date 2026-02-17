@@ -146,12 +146,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Access token expiring (5 minutes before expiry)
       userManager.events.addAccessTokenExpiring(() => {
         console.log(`Access token expiring for cluster ${clusterId}`)
-        toaster.create({
-          title: 'Session expiring soon',
-          description: 'Your session will be refreshed automatically',
-          type: 'info',
-          duration: 3000,
-        })
       })
 
       // Access token expired
