@@ -1,21 +1,14 @@
 import { VStack, Text, SimpleGrid, Box, Spinner } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
 
-import {
-  getClusterByClusterNodesGpuTimeseriesOptions,
-  getClusterByClusterNodesCpuTimeseriesOptions,
-  getClusterByClusterNodesMemoryTimeseriesOptions
-} from '../../client/@tanstack/react-query.gen'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import type { SampleGpuTimeseriesResponse, SampleProcessAccResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterTimeseries } from '../../hooks/v2/useClusterQueries'
 
 // Time configuration constants (in seconds)
 const TIME_WINDOW = 24 * 60 * 60 // 24 hours
 const DATA_RESOLUTION = 3600 // 1 hour
 const QUERY_REFRESH_INTERVAL = 5 * 60 // 5 minutes
-const STALE_TIME_MS = 5 * 60 * 1000 // 5 minutes in milliseconds
-const GC_TIME_MS = 10 * 60 * 1000 // 10 minutes in milliseconds
 
 interface Props {
   cluster: string
@@ -29,49 +22,12 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
   const now = Math.floor(Date.now() / 1000 / QUERY_REFRESH_INTERVAL) * QUERY_REFRESH_INTERVAL
   const startTime = now - TIME_WINDOW
 
-  const gpuTimeseriesQ = useQuery({
-    ...getClusterByClusterNodesGpuTimeseriesOptions({
-      path: {cluster},
-      query: {
-        start_time_in_s: startTime,
-        end_time_in_s: now,
-        resolution_in_s: DATA_RESOLUTION,
-      },
-      client,
-    }),
-    enabled: !!cluster,
-    staleTime: STALE_TIME_MS,
-    gcTime: GC_TIME_MS,
-  })
-
-  const cpuTimeseriesQ = useQuery({
-    ...getClusterByClusterNodesCpuTimeseriesOptions({
-      path: {cluster},
-      query: {
-        start_time_in_s: startTime,
-        end_time_in_s: now,
-        resolution_in_s: DATA_RESOLUTION,
-      },
-      client,
-    }),
-    enabled: !!cluster,
-    staleTime: STALE_TIME_MS,
-    gcTime: GC_TIME_MS,
-  })
-
-  const memoryTimeseriesQ = useQuery({
-    ...getClusterByClusterNodesMemoryTimeseriesOptions({
-      path: {cluster},
-      query: {
-        start_time_in_s: startTime,
-        end_time_in_s: now,
-        resolution_in_s: DATA_RESOLUTION,
-      },
-      client,
-    }),
-    enabled: !!cluster,
-    staleTime: STALE_TIME_MS,
-    gcTime: GC_TIME_MS,
+  const { gpuQuery: gpuTimeseriesQ, cpuQuery: cpuTimeseriesQ, memoryQuery: memoryTimeseriesQ } = useClusterTimeseries({
+    cluster,
+    client,
+    startTimeInS: startTime,
+    endTimeInS: now,
+    resolutionInS: DATA_RESOLUTION,
   })
 
   const gpuData = (gpuTimeseriesQ.data ?? {}) as Record<string, Array<SampleGpuTimeseriesResponse>>

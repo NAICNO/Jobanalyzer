@@ -1,13 +1,9 @@
-import { VStack, HStack, Text, SimpleGrid, Box, Progress, Stat, Tag, Spinner } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
+import { VStack, HStack, Text, SimpleGrid, Box, Progress, Stat, Tag } from '@chakra-ui/react'
 
-import {
-  getClusterByClusterPartitionsOptions,
-  getClusterByClusterNodesInfoOptions,
-  getClusterByClusterNodesStatesOptions
-} from '../../client/@tanstack/react-query.gen'
 import type { PartitionResponse, NodeInfoResponse, NodeStateResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterNodesInfo, useClusterNodesStates } from '../../hooks/v2/useNodeQueries'
+import { useClusterPartitions } from '../../hooks/v2/useClusterQueries'
 
 interface Props {
   cluster: string
@@ -16,22 +12,9 @@ interface Props {
 export const ClusterResourceDistribution = ({ cluster }: Props) => {
   const client = useClusterClient(cluster)
   
-  if (!client) {
-    return <Spinner />
-  }
-  
-  const partitionsQ = useQuery({
-    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const infoQ = useQuery({
-    ...getClusterByClusterNodesInfoOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const statesQ = useQuery({
-    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
+  const partitionsQ = useClusterPartitions({ cluster, client })
+  const infoQ = useClusterNodesInfo({ cluster, client })
+  const statesQ = useClusterNodesStates({ cluster, client })
 
   const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponse>
   const partitions = Object.values(partitionsMap).sort((a, b) => (b.total_gpus ?? 0) - (a.total_gpus ?? 0))

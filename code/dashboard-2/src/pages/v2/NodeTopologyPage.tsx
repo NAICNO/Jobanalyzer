@@ -1,29 +1,16 @@
 import { VStack, Heading, Spinner, Alert, Box, HStack, Text, Container } from '@chakra-ui/react'
 import { useParams, Link } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { LuArrowLeft } from 'react-icons/lu'
 
-import { getClusterByClusterNodesByNodenameTopologyOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useNodeTopology } from '../../hooks/v2/useNodeQueries'
 
 export const NodeTopologyPage = () => {
   const { clusterName, nodename } = useParams()
 
   const client = useClusterClient(clusterName)
-  if (!client) {
-    return <Spinner />
-  }
-
-  const queryOpts = getClusterByClusterNodesByNodenameTopologyOptions({
-    path: { cluster: clusterName ?? '', nodename: nodename ?? '' },
-    client,
-  })
-
-  const { data, isLoading, isError, error } = useQuery({
-    ...queryOpts,
-    enabled: !!clusterName && !!nodename,
-  })
+  const { data, isLoading, isError, error } = useNodeTopology({ cluster: clusterName ?? '', nodename: nodename ?? '', client })
 
   const svg = useMemo<string | undefined>(() => {
     if (!data) return undefined

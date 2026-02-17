@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
 import { useFormik } from 'formik'
 import { AgGridReact } from 'ag-grid-react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
@@ -29,8 +28,8 @@ import {
   NativeSelect,
 } from '@chakra-ui/react'
 
-import { getClusterByClusterQueryJobsPagesOptions } from '../../client/@tanstack/react-query.gen'
 import type { JobResponse, GetClusterByClusterQueryJobsPagesData } from '../../client'
+import { useJobQueryPages } from '../../hooks/v2/useJobQueries'
 import { JobState } from '../../types/jobStates'
 import { getJobStateColor, formatDurationBetweenDates, formatDateTimeToLocaleString } from '../../util/formatters'
 import { LuChevronDown, LuChevronRight, LuChevronLeft } from 'react-icons/lu'
@@ -270,17 +269,13 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
     }
   }, [filter, hasSearched])
 
-  const jobsQuery = useQuery({
-    ...getClusterByClusterQueryJobsPagesOptions({
-      path: {cluster: clusterName ?? ''},
-      query: {
-        ...queryParams,
-        page: currentPage,
-        page_size: pageSize,
-      },
-      client,
-    }),
-    enabled: !!clusterName && hasSearched,
+  const jobsQuery = useJobQueryPages({
+    cluster: clusterName ?? '',
+    client,
+    queryParams: queryParams ?? {},
+    page: currentPage,
+    pageSize,
+    enabled: hasSearched,
   })
 
   const jobs = (jobsQuery.data?.jobs as JobResponse[]) ?? []

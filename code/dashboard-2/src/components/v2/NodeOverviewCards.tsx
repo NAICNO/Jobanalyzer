@@ -1,12 +1,11 @@
-import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip, Spinner } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
+import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip } from '@chakra-ui/react'
 import { TbBroadcast, TbBroadcastOff } from 'react-icons/tb'
 
-import { getClusterByClusterNodesOptions, getClusterByClusterNodesInfoOptions, getClusterByClusterNodesStatesOptions, getClusterByClusterNodesProcessGpuUtilOptions, getClusterByClusterNodesLastProbeTimestampOptions } from '../../client/@tanstack/react-query.gen'
 import type { NodeInfoResponse, NodeStateResponse, NodeSampleProcessGpuAccResponse } from '../../client'
 import { getLivenessStats, LIVENESS_COLORS } from '../../utils/nodeLiveness'
 import { getUtilizationColorPalette, calculateUtilization } from '../../utils/utilizationColors'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterNodes, useClusterNodesInfo, useClusterNodesStates, useClusterNodesProcessGpuUtil, useClusterNodesLastProbeTimestamp } from '../../hooks/v2/useNodeQueries'
 
 interface Props {
   cluster: string
@@ -14,31 +13,12 @@ interface Props {
 
 export const NodeOverviewCards = ({ cluster }: Props) => {
   const client = useClusterClient(cluster)
-  
-  if (!client) {
-    return <Spinner />
-  }
-  
-  const nodesQ = useQuery({
-    ...getClusterByClusterNodesOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const infoQ = useQuery({
-    ...getClusterByClusterNodesInfoOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const statesQ = useQuery({
-    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const gpuUtilQ = useQuery({
-    ...getClusterByClusterNodesProcessGpuUtilOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const lastProbeQ = useQuery({
-    ...getClusterByClusterNodesLastProbeTimestampOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
+
+  const nodesQ = useClusterNodes({ cluster, client })
+  const infoQ = useClusterNodesInfo({ cluster, client })
+  const statesQ = useClusterNodesStates({ cluster, client })
+  const gpuUtilQ = useClusterNodesProcessGpuUtil({ cluster, client })
+  const lastProbeQ = useClusterNodesLastProbeTimestamp({ cluster, client })
 
   const nodes = (nodesQ.data ?? []) as string[]
   const infoMap = (infoQ.data ?? {}) as Record<string, NodeInfoResponse>
