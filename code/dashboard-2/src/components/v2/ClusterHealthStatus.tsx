@@ -1,14 +1,9 @@
-import { VStack, HStack, Text, Badge, Alert, Spinner, SimpleGrid, Box, Stat, Tag } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
+import { VStack, HStack, Text, Badge, Alert, SimpleGrid, Box, Stat, Tag, Spinner } from '@chakra-ui/react'
 
-import {
-  getClusterByClusterErrorMessagesOptions,
-  getClusterByClusterNodesStatesOptions,
-  getClusterByClusterNodesLastProbeTimestampOptions,
-  getClusterByClusterNodesOptions
-} from '../../client/@tanstack/react-query.gen'
 import type { ErrorMessageResponse, NodeStateResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterNodes, useClusterNodesStates, useClusterNodesLastProbeTimestamp } from '../../hooks/v2/useNodeQueries'
+import { useClusterErrorMessages } from '../../hooks/v2/useClusterQueries'
 
 interface Props {
   cluster: string
@@ -17,26 +12,10 @@ interface Props {
 export const ClusterHealthStatus = ({ cluster }: Props) => {
   const client = useClusterClient(cluster)
   
-  if (!client) {
-    return <Spinner />
-  }
-  
-  const errorsQuery = useQuery({
-    ...getClusterByClusterErrorMessagesOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const statesQuery = useQuery({
-    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const timestampsQuery = useQuery({
-    ...getClusterByClusterNodesLastProbeTimestampOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const nodesQ = useQuery({
-    ...getClusterByClusterNodesOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
+  const errorsQuery = useClusterErrorMessages({ cluster, client })
+  const statesQuery = useClusterNodesStates({ cluster, client })
+  const timestampsQuery = useClusterNodesLastProbeTimestamp({ cluster, client })
+  const nodesQ = useClusterNodes({ cluster, client })
 
   const errorsMap = (errorsQuery.data ?? {}) as Record<string, ErrorMessageResponse>
   const errors = Object.values(errorsMap)

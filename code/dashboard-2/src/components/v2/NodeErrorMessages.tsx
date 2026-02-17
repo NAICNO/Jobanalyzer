@@ -1,10 +1,9 @@
 import { useMemo } from 'react'
 import { VStack, Text, HStack, Spinner, Alert } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
 
-import { getClusterByClusterNodesByNodenameErrorMessagesOptions } from '../../client/@tanstack/react-query.gen'
 import type { ErrorMessageResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useNodeErrorMessages } from '../../hooks/v2/useNodeQueries'
 
 type Props = {
   cluster: string
@@ -14,19 +13,7 @@ type Props = {
 export const NodeErrorMessages = ({ cluster, nodename }: Props) => {
   const client = useClusterClient(cluster)
   
-  if (!client) {
-    return <Spinner />
-  }
-  
-  const queryOpts = getClusterByClusterNodesByNodenameErrorMessagesOptions({
-    path: { cluster, nodename },
-    client,
-  })
-
-  const { data, isLoading, isError, error } = useQuery({
-    ...queryOpts,
-    enabled: !!cluster && !!nodename,
-  })
+  const { data, isLoading, isError, error } = useNodeErrorMessages({ cluster, nodename, client })
 
   const messages: ErrorMessageResponse[] = useMemo(() => {
     if (!data) return []

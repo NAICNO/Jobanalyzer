@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react'
-import { Accordion, Alert, Badge, Box, HStack, Select, Spinner, Text, VStack } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
+import { Accordion, Alert, Badge, Box, HStack, Select, Spinner, Text, VStack, createListCollection } from '@chakra-ui/react'
 
-import { getClusterByClusterNodesByNodenameDiskstatsTimeseriesOptions } from '../../client/@tanstack/react-query.gen'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, AreaChart, Area } from 'recharts'
 import { useClusterClient } from '../../hooks/useClusterClient'
-import { createListCollection } from '@chakra-ui/react'
+import { useNodeDiskstatsTimeseries } from '../../hooks/v2/useNodeQueries'
 import { transformDiskstatsTimeseries } from '../../util/timeseriesTransformers'
 
 interface Props {
@@ -21,17 +19,7 @@ export const NodeDiskstatsTimeseries = ({ cluster, nodename, initialCollapsed = 
   const [selectedDisk, setSelectedDisk] = useState<string>('')
   const expanded = value.includes('diskstats')
 
-  const queryOpts = getClusterByClusterNodesByNodenameDiskstatsTimeseriesOptions({
-    path: { cluster, nodename },
-    query: resolutionSec ? { resolution_in_s: resolutionSec } : undefined,
-    client: client ?? undefined,
-  })
-
-  const { data, isLoading, isError, error } = useQuery({
-    ...queryOpts,
-    enabled: !!cluster && !!nodename && !!client && expanded,
-    staleTime: 60_000,
-  })
+  const { data, isLoading, isError, error } = useNodeDiskstatsTimeseries({ cluster, nodename, client, resolutionSec, enabled: expanded })
 
   const diskData = useMemo(() => transformDiskstatsTimeseries(data, nodename), [data, nodename])
   const diskNames = Object.keys(diskData).sort()

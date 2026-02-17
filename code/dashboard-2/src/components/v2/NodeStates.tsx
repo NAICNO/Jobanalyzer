@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import { VStack, Text, HStack, Spinner, Alert, Box, Accordion, Tag } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
 
-import { getClusterByClusterNodesByNodenameStatesOptions } from '../../client/@tanstack/react-query.gen'
 import type { NodeStateResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useNodeStates } from '../../hooks/v2/useNodeQueries'
 
 interface Props {
   cluster: string
@@ -17,19 +16,7 @@ export const NodeStates = ({ cluster, nodename, initialCollapsed = false }: Prop
   const [value, setValue] = useState<string[]>(initialCollapsed ? [] : ['states'])
   const expanded = value.includes('states')
 
-  if (!client) {
-    return null
-  }
-
-  const queryOpts = getClusterByClusterNodesByNodenameStatesOptions({
-    path: { cluster, nodename },
-    client,
-  })
-
-  const { data, isLoading, isError, error } = useQuery({
-    ...queryOpts,
-    enabled: !!cluster && !!nodename && expanded,
-  })
+  const { data, isLoading, isError, error } = useNodeStates({ cluster, nodename, client, enabled: expanded })
 
   const items = useMemo<NodeStateResponse[]>(() => (Array.isArray(data) ? (data as NodeStateResponse[]) : []), [data])
 

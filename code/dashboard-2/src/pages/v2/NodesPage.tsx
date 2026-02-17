@@ -1,11 +1,10 @@
 import { VStack, Text, Heading, Listbox, Input, useFilter, Spinner, Alert, createListCollection, Box, Tabs, Splitter } from '@chakra-ui/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
 import { useLocalStorage } from 'react-use'
 
-import { getClusterByClusterNodesOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterNodes } from '../../hooks/v2/useNodeQueries'
 import { NodeErrorMessages } from '../../components/v2/NodeErrorMessages'
 import { NodeTopology } from '../../components/v2/NodeTopology'
 import { NodeInfoSummary } from '../../components/v2/NodeInfoSummary'
@@ -20,19 +19,7 @@ export const NodesPage = () => {
   const navigate = useNavigate()
 
   const client = useClusterClient(clusterName)
-  if (!client) {
-    return <Spinner />
-  }
-
-  // Fetch nodes for the cluster from /cluster/:cluster/nodes
-  const baseQueryOptions = getClusterByClusterNodesOptions({
-    path: { cluster: clusterName ?? '' },
-    client,
-  })
-  const { data, isLoading, isError, error } = useQuery({
-    ...baseQueryOptions,
-    enabled: !!clusterName,
-  })
+  const { data, isLoading, isError, error } = useClusterNodes({ cluster: clusterName ?? '', client })
 
   const nodes = (data ?? []) as string[]
   type NodeItem = { value: string; label: string }
