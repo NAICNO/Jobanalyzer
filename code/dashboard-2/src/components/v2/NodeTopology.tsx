@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import { VStack, Text, HStack, Spinner, Alert, Box, Accordion, IconButton } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
 import { LuExternalLink } from 'react-icons/lu'
 
-import { getClusterByClusterNodesByNodenameTopologyOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useNodeTopology } from '../../hooks/v2/useNodeQueries'
 
 type Props = {
   cluster: string
@@ -19,19 +18,7 @@ export const NodeTopology = ({ cluster, nodename, initialCollapsed = true }: Pro
   const [value, setValue] = useState<string[]>(initialCollapsed ? [] : ['topology'])
   const expanded = value.includes('topology')
   
-  if (!client) {
-    return null
-  }
-  
-  const queryOpts = getClusterByClusterNodesByNodenameTopologyOptions({
-    path: { cluster, nodename },
-    client,
-  })
-
-  const { data, isLoading, isError, error } = useQuery({
-    ...queryOpts,
-    enabled: !!cluster && !!nodename && expanded,
-  })
+  const { data, isLoading, isError, error } = useNodeTopology({ cluster, nodename, client, enabled: expanded })
 
   const svg = useMemo<string | undefined>(() => {
     if (!data) return undefined

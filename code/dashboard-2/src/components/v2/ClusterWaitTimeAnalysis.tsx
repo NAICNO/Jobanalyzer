@@ -1,10 +1,9 @@
 import { VStack, Text, SimpleGrid, Box, Table, Stat, Spinner } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
 
-import { getClusterByClusterPartitionsOptions } from '../../client/@tanstack/react-query.gen'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import type { PartitionResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterPartitions } from '../../hooks/v2/useClusterQueries'
 
 interface Props {
   cluster: string
@@ -13,14 +12,7 @@ interface Props {
 export const ClusterWaitTimeAnalysis = ({ cluster }: Props) => {
   const client = useClusterClient(cluster)
   
-  if (!client) {
-    return <Spinner />
-  }
-  
-  const partitionsQ = useQuery({
-    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
+  const partitionsQ = useClusterPartitions({ cluster, client })
 
   const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponse>
   const partitions = Object.values(partitionsMap)

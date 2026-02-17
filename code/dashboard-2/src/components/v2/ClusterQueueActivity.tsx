@@ -1,12 +1,11 @@
 import { VStack, HStack, Text, SimpleGrid, Box, Stat, Badge } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
 import { AgGridReact } from 'ag-grid-react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 import { themeQuartz } from 'ag-grid-community'
 
-import { getClusterByClusterPartitionsOptions } from '../../client/@tanstack/react-query.gen'
 import type { PartitionResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterPartitions } from '../../hooks/v2/useClusterQueries'
 
 interface Props {
   cluster: string
@@ -15,10 +14,7 @@ interface Props {
 export const ClusterQueueActivity = ({ cluster }: Props) => {
   const client = useClusterClient(cluster)
   
-  const partitionsQ = useQuery({
-    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
+  const partitionsQ = useClusterPartitions({ cluster, client })
 
   const partitions = (partitionsQ.data ?? []) as PartitionResponse[]
 

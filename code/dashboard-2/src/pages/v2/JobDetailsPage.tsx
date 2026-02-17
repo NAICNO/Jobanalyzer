@@ -1,11 +1,10 @@
 import { useMemo, lazy, Suspense, useState, useEffect } from 'react'
 import { Box, Text, VStack, HStack, Spinner, Alert, Badge, SimpleGrid, Separator, Stat, Tabs, Tooltip, Icon } from '@chakra-ui/react'
 import { useParams, useLocation } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
 import { HiInformationCircle } from 'react-icons/hi2'
 
-import { getClusterByClusterJobsByJobIdOptions, getClusterByClusterJobsByJobIdReportOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useJobDetails, useJobReport } from '../../hooks/v2/useJobQueries'
 import { formatDuration, formatMemory, getJobStateColor } from '../../util/formatters'
 import { JobStatCard } from '../../components/v2/JobStatCard'
 import { NavigateBackButton } from '../../components/NavigateBackButton'
@@ -28,30 +27,16 @@ export const JobDetailsPage = () => {
     return isNaN(parsed) ? undefined : parsed
   }, [jobId])
 
-  const { data: job, isLoading, isError, error, refetch } = useQuery({
-    ...getClusterByClusterJobsByJobIdOptions({
-      path: {
-        cluster: clusterName ?? '',
-        job_id: jobIdNum ?? 0
-      },
-      client: client ?? undefined,
-    }),
-    enabled: !!clusterName && !!jobIdNum && !!client,
-    staleTime: 5 * 60 * 1000, // 5 minutes - job details rarely change
-    gcTime: 10 * 60 * 1000, // 10 minutes cache
+  const { data: job, isLoading, isError, error, refetch } = useJobDetails({
+    cluster: clusterName ?? '',
+    jobId: jobIdNum ?? 0,
+    client,
   })
 
-  const { data: report, refetch: refetchReport } = useQuery({
-    ...getClusterByClusterJobsByJobIdReportOptions({
-      path: {
-        cluster: clusterName ?? '',
-        job_id: jobIdNum ?? 0
-      },
-      client: client ?? undefined,
-    }),
-    enabled: !!clusterName && !!jobIdNum && !!client,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes cache
+  const { data: report, refetch: refetchReport } = useJobReport({
+    cluster: clusterName ?? '',
+    jobId: jobIdNum ?? 0,
+    client,
   })
 
   const elapsed = useMemo(() => {

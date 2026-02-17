@@ -1,15 +1,9 @@
-import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip, Spinner } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
+import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip } from '@chakra-ui/react'
 
-import {
-  getClusterByClusterNodesOptions,
-  getClusterByClusterNodesInfoOptions,
-  getClusterByClusterNodesStatesOptions,
-  getClusterByClusterPartitionsOptions,
-  getClusterByClusterNodesProcessGpuUtilOptions
-} from '../../client/@tanstack/react-query.gen'
 import type { NodeInfoResponse, NodeStateResponse, PartitionResponse, NodeSampleProcessGpuAccResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterNodes, useClusterNodesInfo, useClusterNodesStates, useClusterNodesProcessGpuUtil } from '../../hooks/v2/useNodeQueries'
+import { useClusterPartitions } from '../../hooks/v2/useClusterQueries'
 
 interface Props {
   cluster: string
@@ -18,34 +12,11 @@ interface Props {
 export const ClusterOverviewCards = ({ cluster }: Props) => {
   const client = useClusterClient(cluster)
   
-  // Early return if client is not available
-  if (!client) {
-    return <Spinner />
-  }
-  
-  // Fetch nodes data
-  const nodesQ = useQuery({
-    ...getClusterByClusterNodesOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const infoQ = useQuery({
-    ...getClusterByClusterNodesInfoOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const statesQ = useQuery({
-    ...getClusterByClusterNodesStatesOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-  const gpuUtilQ = useQuery({
-    ...getClusterByClusterNodesProcessGpuUtilOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
-
-  // Fetch partitions data
-  const partitionsQ = useQuery({
-    ...getClusterByClusterPartitionsOptions({ path: { cluster }, client }),
-    enabled: !!cluster,
-  })
+  const nodesQ = useClusterNodes({ cluster, client })
+  const infoQ = useClusterNodesInfo({ cluster, client })
+  const statesQ = useClusterNodesStates({ cluster, client })
+  const gpuUtilQ = useClusterNodesProcessGpuUtil({ cluster, client })
+  const partitionsQ = useClusterPartitions({ cluster, client })
 
   // Process nodes data
   const nodes = (nodesQ.data ?? []) as string[]

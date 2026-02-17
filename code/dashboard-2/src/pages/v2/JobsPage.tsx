@@ -1,13 +1,12 @@
 import { useMemo } from 'react'
 import { Box, Text, VStack, HStack, Spinner, Alert, Button, Badge } from '@chakra-ui/react'
 import { useParams, useNavigate } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
 import { AgGridReact } from 'ag-grid-react'
 import type { ColDef, ValueFormatterParams, ICellRendererParams } from 'ag-grid-community'
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community'
 
-import { getClusterByClusterJobsOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useClusterJobs } from '../../hooks/v2/useClusterQueries'
 import type { JobResponse } from '../../client'
 import { formatDuration, formatMemory, getJobStateColor } from '../../util/formatters'
 import { JobState } from '../../types/jobStates'
@@ -28,22 +27,7 @@ export const JobsPage = () => {
 
   const client = useClusterClient(clusterName)
 
-  if (!client) {
-    return (
-      <VStack p={4} align="start">
-        <Spinner />
-      </VStack>
-    )
-  }
-
-  // Fetch jobs for the cluster
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    ...getClusterByClusterJobsOptions({
-      path: { cluster: clusterName ?? '' },
-      client,
-    }),
-    enabled: !!clusterName,
-  })
+  const { data, isLoading, isError, error, refetch } = useClusterJobs({ cluster: clusterName ?? '', client })
 
   // Deduplicate jobs: Each SLURM job returns 3 entries (main job + batch + step).
   // Keep only the main job entry (job_step="") which has complete metadata.

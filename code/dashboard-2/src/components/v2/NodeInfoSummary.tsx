@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { DataList, VStack, Text, Listbox, createListCollection, Accordion, Box, Alert, Spinner, HStack } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
 
-import { getClusterByClusterNodesByNodenameInfoOptions } from '../../client/@tanstack/react-query.gen'
 import { useClusterClient } from '../../hooks/useClusterClient'
+import { useNodeInfo } from '../../hooks/v2/useNodeQueries'
 import type { NodeInfoResponse, GpuCardResponse } from '../../client'
 
 interface Props {
@@ -14,18 +13,7 @@ interface Props {
 export const NodeInfoSummary = ({ cluster, nodename }: Props) => {
   const client = useClusterClient(cluster)
   
-  if (!client) {
-    return <Spinner />
-  }
-  
-  const infoQueryOpts = getClusterByClusterNodesByNodenameInfoOptions({
-    path: { cluster, nodename },
-    client,
-  })
-  const { data: nodeInfoData, isLoading, isError, error } = useQuery({
-    ...infoQueryOpts,
-    enabled: !!cluster && !!nodename,
-  })
+  const { data: nodeInfoData, isLoading, isError, error } = useNodeInfo({ cluster, nodename, client })
 
   const info: NodeInfoResponse | undefined = useMemo(() => {
     if (!nodeInfoData) return undefined
