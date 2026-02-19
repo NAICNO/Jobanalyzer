@@ -63,14 +63,18 @@ export const calculateMemoryEfficiency = (job: JobResponse): number | null => {
  * @param report - Job report data
  * @returns GPU efficiency percentage (0-100), or null if not calculable
  */
-export const calculateGpuEfficiency = (report?: JobReport): number | null => {
+export const calculateGpuEfficiency = (
+  report?: JobReport,
+  avgGpuUtilization?: number,
+): number | null => {
+  if (avgGpuUtilization !== undefined && avgGpuUtilization >= 0) {
+    return Math.min(avgGpuUtilization, 100)
+  }
+
   if (!report?.used_gpu_uuids || report.used_gpu_uuids.length === 0) {
     return null
   }
-  
-  // Note: GPU utilization stats would need to come from the report
-  // For now, this is a placeholder - we'd need GPU timeseries data
-  // to calculate average GPU utilization
+
   return null
 }
 

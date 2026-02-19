@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueries } from '@tanstack/react-query'
 import {
   getClusterByClusterNodesOptions,
   getClusterByClusterNodesInfoOptions,
+  getClusterByClusterNodesInfoPagesOptions,
   getClusterByClusterNodesStatesOptions,
   getClusterByClusterNodesProcessGpuUtilOptions,
   getClusterByClusterNodesLastProbeTimestampOptions,
@@ -11,6 +12,9 @@ import {
   getClusterByClusterNodesByNodenameInfoOptions,
   getClusterByClusterNodesByNodenameCpuTimeseriesOptions,
   getClusterByClusterNodesByNodenameDiskstatsTimeseriesOptions,
+  getClusterByClusterNodesByNodenameMemoryTimeseriesOptions,
+  getClusterByClusterNodesByNodenameGpuTimeseriesOptions,
+  getClusterByClusterNodesByNodenameProcessGpuUtilOptions,
 } from '../../client/@tanstack/react-query.gen'
 import type { Client } from '../../client/client/types.gen'
 
@@ -53,6 +57,28 @@ export const useClusterNodesInfo = ({ cluster, client, enabled = true }: Cluster
   return useQuery({
     ...getClusterByClusterNodesInfoOptions({
       path: { cluster },
+      client: client || undefined,
+    }),
+    enabled: enabled && !!client && !!cluster,
+  })
+}
+
+interface UseClusterNodesInfoPagesOptions {
+  cluster: string
+  client: Client | null
+  page: number
+  pageSize: number
+  enabled?: boolean
+}
+
+export const useClusterNodesInfoPages = ({ cluster, client, page, pageSize, enabled = true }: UseClusterNodesInfoPagesOptions) => {
+  return useQuery({
+    ...getClusterByClusterNodesInfoPagesOptions({
+      path: { cluster },
+      query: {
+        page,
+        page_size: pageSize,
+      },
       client: client || undefined,
     }),
     enabled: enabled && !!client && !!cluster,
@@ -133,6 +159,29 @@ export const useNodeInfo = ({ cluster, nodename, client, enabled = true }: Singl
   })
 }
 
+export const useMultiNodeInfo = ({
+  cluster,
+  nodenames,
+  client,
+  enabled = true,
+}: {
+  cluster: string
+  nodenames: string[]
+  client: Client | null
+  enabled?: boolean
+}) => {
+  return useQueries({
+    queries: nodenames.map((nodename) => ({
+      ...getClusterByClusterNodesByNodenameInfoOptions({
+        path: { cluster, nodename },
+        client: client || undefined,
+      }),
+      enabled: enabled && !!client && !!cluster && !!nodename,
+      staleTime: 5 * 60 * 1000,
+    })),
+  })
+}
+
 const NODE_TIMESERIES_STALE_TIME_MS = 60_000 // 60 seconds
 
 export const useNodeCpuTimeseries = ({ cluster, nodename, client, resolutionSec, enabled = true }: NodeTimeseriesOptions) => {
@@ -156,5 +205,39 @@ export const useNodeDiskstatsTimeseries = ({ cluster, nodename, client, resoluti
     }),
     enabled: enabled && !!client && !!cluster && !!nodename,
     staleTime: NODE_TIMESERIES_STALE_TIME_MS,
+  })
+}
+
+export const useNodeMemoryTimeseries = ({ cluster, nodename, client, resolutionSec, enabled = true }: NodeTimeseriesOptions) => {
+  return useQuery({
+    ...getClusterByClusterNodesByNodenameMemoryTimeseriesOptions({
+      path: { cluster, nodename },
+      query: resolutionSec ? { resolution_in_s: resolutionSec } : undefined,
+      client: client || undefined,
+    }),
+    enabled: enabled && !!client && !!cluster && !!nodename,
+    staleTime: NODE_TIMESERIES_STALE_TIME_MS,
+  })
+}
+
+export const useNodeGpuTimeseries = ({ cluster, nodename, client, resolutionSec, enabled = true }: NodeTimeseriesOptions) => {
+  return useQuery({
+    ...getClusterByClusterNodesByNodenameGpuTimeseriesOptions({
+      path: { cluster, nodename },
+      query: resolutionSec ? { resolution_in_s: resolutionSec } : undefined,
+      client: client || undefined,
+    }),
+    enabled: enabled && !!client && !!cluster && !!nodename,
+    staleTime: NODE_TIMESERIES_STALE_TIME_MS,
+  })
+}
+
+export const useNodeProcessGpuUtil = ({ cluster, nodename, client, enabled = true }: SingleNodeOptions) => {
+  return useQuery({
+    ...getClusterByClusterNodesByNodenameProcessGpuUtilOptions({
+      path: { cluster, nodename },
+      client: client || undefined,
+    }),
+    enabled: enabled && !!client && !!cluster && !!nodename,
   })
 }
