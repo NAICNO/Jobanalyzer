@@ -77,10 +77,6 @@ export const ProcessTreeTab = memo(({ cluster, jobId, client }: Props) => {
               <Text color="fg.muted">Max Depth</Text>
               <Text fontWeight="bold">{metadata.max_depth}</Text>
             </HStack>
-            <HStack gap={1} px={3} py={1} borderWidth="1px" borderColor="border" rounded="md">
-              <Text color="fg.muted">Root PID</Text>
-              <Text fontWeight="bold">{metadata.root_pid}</Text>
-            </HStack>
           </HStack>
         )}
         <Button

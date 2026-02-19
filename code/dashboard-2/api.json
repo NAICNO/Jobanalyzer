@@ -1069,6 +1069,113 @@
         }
       }
     },
+    "/cluster/{cluster}/nodes/info/pages": {
+      "get": {
+        "tags": [
+          "v2",
+          "cluster"
+        ],
+        "summary": "Detailed information about nodes in a cluster",
+        "description": "Get available information about nodes in a cluster\n\nIt will only contain information about reporting nodes - in some case a\nnode might exist in a cluster, but no system information has been received\nyet.  To check - compare with the complete node list /cluster/{cluster}/nodes",
+        "operationId": "nodes_sysinfo_pages_cluster__cluster__nodes_info_pages_get",
+        "parameters": [
+          {
+            "name": "cluster",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cluster"
+            }
+          },
+          {
+            "name": "time_in_s",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Time In S"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomPage_NodeInfoResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cluster/{cluster}/nodes/{nodename}/states": {
       "get": {
         "tags": [
@@ -5033,7 +5140,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 1770997363,
+              "default": 1771421872,
               "title": "Timestamp"
             }
           },
@@ -5413,6 +5520,46 @@
           "pages"
         ],
         "title": "CustomPage[JobResponse]"
+      },
+      "CustomPage_NodeInfoResponse_": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/NodeInfoResponse"
+            },
+            "type": "array",
+            "title": "Nodes"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Size"
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nodes",
+          "total",
+          "page",
+          "size",
+          "pages"
+        ],
+        "title": "CustomPage[NodeInfoResponse]"
       },
       "DatabaseSettings": {
         "properties": {

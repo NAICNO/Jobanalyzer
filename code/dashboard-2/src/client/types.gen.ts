@@ -152,6 +152,32 @@ export type CustomPageJobResponse = {
 };
 
 /**
+ * CustomPage[NodeInfoResponse]
+ */
+export type CustomPageNodeInfoResponse = {
+    /**
+     * Nodes
+     */
+    nodes: Array<NodeInfoResponse>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Size
+     */
+    size: number;
+    /**
+     * Pages
+     */
+    pages: number;
+};
+
+/**
  * DatabaseSettings
  */
 export type DatabaseSettings = {
@@ -2386,6 +2412,56 @@ export type GetClusterByClusterNodesInfoResponses = {
 };
 
 export type GetClusterByClusterNodesInfoResponse = GetClusterByClusterNodesInfoResponses[keyof GetClusterByClusterNodesInfoResponses];
+
+export type GetClusterByClusterNodesInfoPagesData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path: {
+        /**
+         * Cluster
+         */
+        cluster: string;
+    };
+    query?: {
+        /**
+         * Time In S
+         */
+        time_in_s?: number | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/cluster/{cluster}/nodes/info/pages';
+};
+
+export type GetClusterByClusterNodesInfoPagesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetClusterByClusterNodesInfoPagesError = GetClusterByClusterNodesInfoPagesErrors[keyof GetClusterByClusterNodesInfoPagesErrors];
+
+export type GetClusterByClusterNodesInfoPagesResponses = {
+    /**
+     * Successful Response
+     */
+    200: CustomPageNodeInfoResponse;
+};
+
+export type GetClusterByClusterNodesInfoPagesResponse = GetClusterByClusterNodesInfoPagesResponses[keyof GetClusterByClusterNodesInfoPagesResponses];
 
 export type GetClusterByClusterNodesByNodenameStatesData = {
     /**
