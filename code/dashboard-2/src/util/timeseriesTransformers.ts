@@ -155,6 +155,25 @@ export const transformProcessTimeseries = (
 }
 
 /**
+ * Extract a mapping of GPU UUID to node name from the raw timeseries response.
+ * This information is discarded by transformGpuTimeseries, so this function
+ * provides it separately for display and downstream fetching.
+ */
+export const extractGpuNodeMapping = (
+  response: JobNodeSampleProcessGpuTimeseriesResponse | undefined
+): Record<string, string> => {
+  if (!response?.nodes) return {}
+
+  const mapping: Record<string, string> = {}
+  Object.entries(response.nodes).forEach(([nodeName, nodeData]) => {
+    Object.keys(nodeData.gpus).forEach((uuid) => {
+      mapping[uuid] = nodeName
+    })
+  })
+  return mapping
+}
+
+/**
  * Transform GPU timeseries response to organized data by GPU UUID
  * Aggregates data across all nodes for each GPU
  * 
@@ -385,18 +404,22 @@ export const transformDiskstatsTimeseries = (
 
   diskArrays.forEach((disk) => {
     const points: DiskDataPoint[] = []
-    
+
     for (let i = 0; i < disk.data.length; i++) {
       const current = disk.data[i]
       const prev = i > 0 ? disk.data[i - 1] : null
-      
+
       if (!current?.time) continue
-      
+
       const time = new Date(current.time)
       const timeMs = time.getTime()
       const timeStr = time.toLocaleTimeString()
-      
-      // Calculate deltas and rates if we have a previous sample
+
+      // The API may return either cumulative counters or per-interval deltas.
+      // If delta_time_in_s > 0, the values are already deltas for that interval — divide to get rates.
+      // Otherwise, compute deltas from the previous sample (cumulative counters).
+      const deltaTimeSec = (current as { delta_time_in_s?: number }).delta_time_in_s
+
       let read_iops = 0
       let write_iops = 0
       let read_throughput_mb = 0
@@ -404,39 +427,47 @@ export const transformDiskstatsTimeseries = (
       let read_latency_ms = 0
       let write_latency_ms = 0
       let utilization_pct = 0
-      
-      if (prev?.time) {
+
+      if (deltaTimeSec && deltaTimeSec > 0) {
+        // Values are per-interval deltas — divide by interval to get rates
+        read_iops = current.reads_completed / deltaTimeSec
+        write_iops = current.writes_completed / deltaTimeSec
+        read_throughput_mb = (current.sectors_read * 512) / (1024 * 1024) / deltaTimeSec
+        write_throughput_mb = (current.sectors_written * 512) / (1024 * 1024) / deltaTimeSec
+        if (current.reads_completed > 0) {
+          read_latency_ms = current.ms_spent_reading / current.reads_completed
+        }
+        if (current.writes_completed > 0) {
+          write_latency_ms = current.ms_spent_writing / current.writes_completed
+        }
+        utilization_pct = Math.min(100, (current.ms_spent_doing_ios / (deltaTimeSec * 1000)) * 100)
+      } else if (prev?.time) {
+        // Cumulative counters — compute deltas from previous sample
         const timeDeltaSec = (timeMs - new Date(prev.time).getTime()) / 1000
-        
+
         if (timeDeltaSec > 0) {
-          // IOPS = operations delta / time delta
           const readsDelta = current.reads_completed - prev.reads_completed
           const writesDelta = current.writes_completed - prev.writes_completed
           read_iops = readsDelta / timeDeltaSec
           write_iops = writesDelta / timeDeltaSec
-          
-          // Throughput: sectors * 512 bytes / 1024^2 / time = MB/s
+
           const sectorsDelta = current.sectors_read - prev.sectors_read
           const sectorsWrittenDelta = current.sectors_written - prev.sectors_written
           read_throughput_mb = (sectorsDelta * 512) / (1024 * 1024) / timeDeltaSec
           write_throughput_mb = (sectorsWrittenDelta * 512) / (1024 * 1024) / timeDeltaSec
-          
-          // Latency: ms delta / operations delta (average latency per operation)
+
           if (readsDelta > 0) {
-            const msDelta = current.ms_spent_reading - prev.ms_spent_reading
-            read_latency_ms = msDelta / readsDelta
+            read_latency_ms = (current.ms_spent_reading - prev.ms_spent_reading) / readsDelta
           }
           if (writesDelta > 0) {
-            const msDelta = current.ms_spent_writing - prev.ms_spent_writing
-            write_latency_ms = msDelta / writesDelta
+            write_latency_ms = (current.ms_spent_writing - prev.ms_spent_writing) / writesDelta
           }
-          
-          // Utilization: (ms spent doing IO delta / time delta in ms) * 100
+
           const ioMsDelta = current.ms_spent_doing_ios - prev.ms_spent_doing_ios
           utilization_pct = Math.min(100, (ioMsDelta / (timeDeltaSec * 1000)) * 100)
         }
       }
-      
+
       points.push({
         time,
         timeMs,

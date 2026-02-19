@@ -11,6 +11,7 @@ import {
   Badge,
   Button,
   Group,
+  Progress,
 } from '@chakra-ui/react'
 import {
   LineChart,
@@ -26,15 +27,19 @@ import {
   Brush,
 } from 'recharts'
 import type { Client } from '../../client/client/types.gen'
+import type { GpuCardResponse, NodeInfoResponse } from '../../client/types.gen'
 
 import { TimeRangePicker, type TimeRange } from '../TimeRangePicker'
 import { useJobGpuTimeseries } from '../../hooks/useJobTimeseries'
+import { useMultiNodeInfo } from '../../hooks/v2/useNodeQueries'
 import {
   transformGpuTimeseries,
   calculateGpuStats,
+  extractGpuNodeMapping,
 } from '../../util/timeseriesTransformers'
-import { formatMemory } from '../../util/formatters'
+import { formatMemory, formatEfficiency } from '../../util/formatters'
 import { timeRangeToTimestamps } from '../../util/timeRangeUtils'
+import { getEfficiencyColor, getEfficiencyLabel } from '../../util/efficiency'
 
 interface Props {
   cluster: string;
@@ -136,6 +141,39 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
     [timeseriesData],
   )
 
+  // Feature 3: Node-level GPU context (UUID → node name)
+  const gpuNodeMapping = useMemo(
+    () => extractGpuNodeMapping(timeseriesData?.[0]),
+    [timeseriesData],
+  )
+
+  // Feature 1: GPU hardware info - fetch node info for all involved nodes
+  const uniqueNodeNames = useMemo(
+    () => [...new Set(Object.values(gpuNodeMapping))],
+    [gpuNodeMapping],
+  )
+
+  const nodeInfoQueries = useMultiNodeInfo({
+    cluster,
+    nodenames: uniqueNodeNames,
+    client,
+    enabled: uniqueNodeNames.length > 0,
+  })
+
+  const gpuCardLookup = useMemo(() => {
+    const lookup: Record<string, GpuCardResponse> = {}
+    nodeInfoQueries.forEach((query) => {
+      if (!query.data) return
+      const nodeInfoMap = query.data as Record<string, NodeInfoResponse>
+      Object.values(nodeInfoMap).forEach((info) => {
+        info.cards?.forEach((card) => {
+          lookup[card.uuid] = card
+        })
+      })
+    })
+    return lookup
+  }, [nodeInfoQueries])
+
   const gpuStats = useMemo(() => {
     const statsMap: Record<string, ReturnType<typeof calculateGpuStats>> = {}
     Object.entries(gpuData).forEach(([uuid, data]) => {
@@ -143,6 +181,27 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
     })
     return statsMap
   }, [gpuData])
+
+  // Feature 2: Process-level breakdown (aggregate all PIDs per GPU)
+  const gpuAllPids = useMemo(() => {
+    const pidsMap: Record<string, number[]> = {}
+    Object.entries(gpuData).forEach(([uuid, data]) => {
+      const allPids = new Set<number>()
+      data.forEach((point) => {
+        point.pids.forEach((pid) => allPids.add(pid))
+      })
+      pidsMap[uuid] = Array.from(allPids).sort((a, b) => a - b)
+    })
+    return pidsMap
+  }, [gpuData])
+
+  // Feature 4: GPU efficiency metric
+  const gpuEfficiency = useMemo(() => {
+    const uuids = Object.keys(gpuStats)
+    if (uuids.length === 0) return null
+    const totalAvgUtil = uuids.reduce((sum, uuid) => sum + gpuStats[uuid].avgGpuUtil, 0)
+    return totalAvgUtil / uuids.length
+  }, [gpuStats])
 
   const availableGpus = Object.keys(gpuData)
 
@@ -180,6 +239,11 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
           <Badge colorPalette="blue" size="lg">
             {availableGpus.length} GPU{availableGpus.length > 1 ? 's' : ''}
           </Badge>
+          {gpuEfficiency !== null && (
+            <Badge colorPalette={getEfficiencyColor(gpuEfficiency)} size="lg">
+              Efficiency: {formatEfficiency(gpuEfficiency)} ({getEfficiencyLabel(gpuEfficiency)})
+            </Badge>
+          )}
           {isFetching && <Spinner size="sm" color="blue.500" />}
         </HStack>
 
@@ -277,6 +341,8 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
           >
             {availableGpus.map((uuid, idx) => {
               const stats = gpuStats[uuid]
+              const card = gpuCardLookup[uuid]
+              const pids = gpuAllPids[uuid]
               return (
                 <Card.Root
                   size="sm"
@@ -287,13 +353,43 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
                   <Card.Body>
                     <VStack align="start" gap={2}>
                       <HStack justify="space-between" w="100%">
-                        <Text fontSize="sm" fontWeight="semibold">
-                          GPU {idx + 1}
-                        </Text>
+                        <VStack align="start" gap={0}>
+                          <Text fontSize="sm" fontWeight="semibold">
+                            GPU {idx + 1}
+                          </Text>
+                          {gpuNodeMapping[uuid] && (
+                            <Text fontSize="xs" color="fg.muted">
+                              Node: {gpuNodeMapping[uuid]}
+                            </Text>
+                          )}
+                        </VStack>
                         <Badge colorPalette="blue" size="sm">
                           {uuid.slice(-8)}
                         </Badge>
                       </HStack>
+
+                      {/* Hardware info */}
+                      {card && (
+                        <Box w="100%" pb={1} borderBottomWidth="1px" borderColor="border">
+                          <Text fontSize="xs" fontWeight="semibold">
+                            {card.manufacturer} {card.model}
+                          </Text>
+                          <HStack gap={3} flexWrap="wrap">
+                            <Text fontSize="xs" color="fg.muted">
+                              {card.architecture}
+                            </Text>
+                            <Text fontSize="xs" color="fg.muted">
+                              {(card.memory / (1024 * 1024)).toFixed(0)} GB
+                            </Text>
+                            <Text fontSize="xs" color="fg.muted">
+                              CE {card.max_ce_clock} MHz
+                            </Text>
+                            <Text fontSize="xs" color="fg.muted">
+                              Mem {card.max_memory_clock} MHz
+                            </Text>
+                          </HStack>
+                        </Box>
+                      )}
 
                       <SimpleGrid columns={2} gap={3} w="100%">
                         <Box>
@@ -329,6 +425,27 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
                           </Text>
                         </Box>
                       </SimpleGrid>
+
+                      {/* PIDs */}
+                      {pids && pids.length > 0 && (
+                        <Box w="100%" pt={1} borderTopWidth="1px" borderColor="border">
+                          <Text fontSize="xs" color="fg.muted" mb={1}>
+                            PIDs ({pids.length}):
+                          </Text>
+                          <HStack gap={1} flexWrap="wrap">
+                            {pids.slice(0, 6).map((pid) => (
+                              <Badge key={pid} size="xs" variant="outline" colorPalette="gray">
+                                {pid}
+                              </Badge>
+                            ))}
+                            {pids.length > 6 && (
+                              <Text fontSize="xs" color="fg.muted">
+                                +{pids.length - 6} more
+                              </Text>
+                            )}
+                          </HStack>
+                        </Box>
+                      )}
                     </VStack>
                   </Card.Body>
                 </Card.Root>
@@ -336,72 +453,42 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
             })}
           </SimpleGrid>
 
-          {/* GPU Compute Utilization Chart */}
-          <Card.Root
-            size="sm"
-            w="100%"
-            opacity={isFetching ? 0.6 : 1}
-            transition="opacity 0.3s"
-          >
-            <Card.Body>
-              <Text fontSize="md" fontWeight="semibold" mb={4}>
-                GPU Compute Utilization
-              </Text>
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart
-                  data={combinedUtilData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          {/* GPU Compute Efficiency */}
+          {gpuEfficiency !== null && (
+            <Card.Root size="sm" w="100%">
+              <Card.Body>
+                <HStack justify="space-between" mb={1}>
+                  <Text fontSize="md" fontWeight="medium">
+                    GPU Compute Efficiency
+                  </Text>
+                  <HStack gap={2}>
+                    <Text fontSize="md" color="fg.muted">
+                      {formatEfficiency(gpuEfficiency)}
+                    </Text>
+                    <Text fontSize="sm" color="fg.muted">
+                      ({getEfficiencyLabel(gpuEfficiency)})
+                    </Text>
+                  </HStack>
+                </HStack>
+                <Progress.Root
+                  value={gpuEfficiency}
+                  max={100}
+                  colorPalette={getEfficiencyColor(gpuEfficiency)}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="timeStr"
-                    tick={{ fontSize: 12 }}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    label={{
-                      value: 'GPU Utilization %',
-                      angle: -90,
-                      position: 'insideLeft',
-                    }}
-                    domain={[0, 100]}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
+                  <Progress.Track>
+                    <Progress.Range />
+                  </Progress.Track>
+                </Progress.Root>
+                <Text fontSize="xs" color="fg.muted" mt={1}>
+                  Average GPU compute utilization across all {Object.keys(gpuStats).length} GPU(s)
+                </Text>
+              </Card.Body>
+            </Card.Root>
+          )}
 
-                  {selectedGpu === 'all' ? (
-                    // Show all GPUs as separate lines
-                    availableGpus.map((uuid, idx) => (
-                      <Line
-                        key={uuid}
-                        type="monotone"
-                        dataKey={`gpu_util_${uuid.slice(-8)}`}
-                        stroke={GPU_COLORS[idx % GPU_COLORS.length]}
-                        name={`GPU ${idx + 1}`}
-                        dot={false}
-                        strokeWidth={2}
-                      />
-                    ))
-                  ) : (
-                    // Show single GPU
-                    <Line
-                      type="monotone"
-                      dataKey="gpu_util"
-                      stroke="#3182CE"
-                      name="GPU Utilization"
-                      dot={false}
-                      strokeWidth={2}
-                    />
-                  )}
-
-                  <Brush dataKey="timeStr" height={30} stroke="#718096" />
-                </LineChart>
-              </ResponsiveContainer>
-            </Card.Body>
-          </Card.Root>
-
-          {/* GPU Memory Usage Chart */}
-          {selectedGpu !== 'all' && (
+          {/* Charts Grid */}
+          <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4} w="100%">
+            {/* GPU Compute Utilization Chart */}
             <Card.Root
               size="sm"
               w="100%"
@@ -410,63 +497,11 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
             >
               <Card.Body>
                 <Text fontSize="md" fontWeight="semibold" mb={4}>
-                  GPU Memory Usage
-                </Text>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart
-                    data={gpuData[selectedGpu]}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="timeStr"
-                      tick={{ fontSize: 12 }}
-                      interval="preserveStartEnd"
-                    />
-                    <YAxis
-                      label={{
-                        value: 'Memory',
-                        angle: -90,
-                        position: 'insideLeft',
-                      }}
-                      tickFormatter={(value) => formatMemory(value)}
-                    />
-                    <Tooltip
-                      content={<CustomTooltip />}
-                      formatter={(value: number | undefined) => [
-                        formatMemory(value || 0),
-                        '',
-                      ]}
-                    />
-                    <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="gpu_memory"
-                      stroke="#38A169"
-                      fill="#38A169"
-                      fillOpacity={0.6}
-                      name="GPU Memory"
-                    />
-                    <Brush dataKey="timeStr" height={30} stroke="#718096" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </Card.Body>
-            </Card.Root>
-          )}
-
-          {/* GPU Memory Utilization % Chart */}
-          {selectedGpu !== 'all' && (
-            <Card.Root              size="sm"              w="100%"
-              opacity={isFetching ? 0.6 : 1}
-              transition="opacity 0.3s"
-            >
-              <Card.Body>
-                <Text fontSize="md" fontWeight="semibold" mb={4}>
-                  GPU Memory Utilization %
+                  GPU Compute Utilization
                 </Text>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart
-                    data={gpuData[selectedGpu]}
+                    data={combinedUtilData}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -477,7 +512,7 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
                     />
                     <YAxis
                       label={{
-                        value: 'Memory %',
+                        value: 'GPU Utilization %',
                         angle: -90,
                         position: 'insideLeft',
                       }}
@@ -485,102 +520,296 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="gpu_memory_util"
-                      stroke="#805AD5"
-                      name="GPU Memory Utilization"
-                      dot={false}
-                      strokeWidth={2}
-                    />
-                    <Brush dataKey="timeStr" height={30} stroke="#718096" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Card.Body>
-            </Card.Root>
-          )}
 
-          {/* Combined Memory Chart for All GPUs */}
-          {selectedGpu === 'all' && (
-            <Card.Root
-              size="sm"
-              w="100%"
-              opacity={isFetching ? 0.6 : 1}
-              transition="opacity 0.3s"
-            >
-              <Card.Body>
-                <Text fontSize="md" fontWeight="semibold" mb={4}>
-                  GPU Memory Usage (All GPUs)
-                </Text>
-                <ResponsiveContainer width="100%" height={350}>
-                  <LineChart
-                    data={(() => {
-                      const timeMap = new Map<
-                        string,
-                        Record<string, string | Date | number>
-                      >()
-                      Object.entries(gpuData).forEach(([uuid, data]) => {
-                        data.forEach((point) => {
-                          const key = point.timeStr
-                          if (!timeMap.has(key)) {
-                            timeMap.set(key, {
-                              timeStr: key,
-                              time: point.time,
-                            })
-                          }
-                          timeMap.get(key)![`gpu_memory_${uuid.slice(-8)}`] =
-                            point.gpu_memory
-                        })
-                      })
-                      return Array.from(timeMap.values()).sort(
-                        (a, b) =>
-                          (a.time as Date).getTime() -
-                          (b.time as Date).getTime(),
-                      )
-                    })()}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="timeStr"
-                      tick={{ fontSize: 12 }}
-                      interval="preserveStartEnd"
-                    />
-                    <YAxis
-                      label={{
-                        value: 'Memory',
-                        angle: -90,
-                        position: 'insideLeft',
-                      }}
-                      tickFormatter={(value) => formatMemory(value)}
-                    />
-                    <Tooltip
-                      content={<CustomTooltip />}
-                      formatter={(value: number | undefined) => [
-                        formatMemory(value || 0),
-                        '',
-                      ]}
-                    />
-                    <Legend />
-
-                    {availableGpus.map((uuid, idx) => (
+                    {selectedGpu === 'all' ? (
+                      availableGpus.map((uuid, idx) => (
+                        <Line
+                          key={uuid}
+                          type="monotone"
+                          dataKey={`gpu_util_${uuid.slice(-8)}`}
+                          stroke={GPU_COLORS[idx % GPU_COLORS.length]}
+                          name={`GPU ${idx + 1}`}
+                          dot={false}
+                          strokeWidth={2}
+                        />
+                      ))
+                    ) : (
                       <Line
-                        key={uuid}
                         type="monotone"
-                        dataKey={`gpu_memory_${uuid.slice(-8)}`}
-                        stroke={GPU_COLORS[idx % GPU_COLORS.length]}
-                        name={`GPU ${idx + 1}`}
+                        dataKey="gpu_util"
+                        stroke="#3182CE"
+                        name="GPU Utilization"
                         dot={false}
                         strokeWidth={2}
                       />
-                    ))}
+                    )}
 
                     <Brush dataKey="timeStr" height={30} stroke="#718096" />
                   </LineChart>
                 </ResponsiveContainer>
               </Card.Body>
             </Card.Root>
-          )}
+
+            {/* GPU Memory Usage Chart (single GPU) */}
+            {selectedGpu !== 'all' && (
+              <Card.Root
+                size="sm"
+                w="100%"
+                opacity={isFetching ? 0.6 : 1}
+                transition="opacity 0.3s"
+              >
+                <Card.Body>
+                  <Text fontSize="md" fontWeight="semibold" mb={4}>
+                    GPU Memory Usage
+                  </Text>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart
+                      data={gpuData[selectedGpu]}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="timeStr"
+                        tick={{ fontSize: 12 }}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        label={{
+                          value: 'Memory',
+                          angle: -90,
+                          position: 'insideLeft',
+                        }}
+                        tickFormatter={(value) => formatMemory(value)}
+                      />
+                      <Tooltip
+                        content={<CustomTooltip />}
+                        formatter={(value: number | undefined) => [
+                          formatMemory(value || 0),
+                          '',
+                        ]}
+                      />
+                      <Legend />
+                      <Area
+                        type="monotone"
+                        dataKey="gpu_memory"
+                        stroke="#38A169"
+                        fill="#38A169"
+                        fillOpacity={0.6}
+                        name="GPU Memory"
+                      />
+                      <Brush dataKey="timeStr" height={30} stroke="#718096" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card.Root>
+            )}
+
+            {/* GPU Memory Utilization % Chart (single GPU) */}
+            {selectedGpu !== 'all' && (
+              <Card.Root
+                size="sm"
+                w="100%"
+                opacity={isFetching ? 0.6 : 1}
+                transition="opacity 0.3s"
+              >
+                <Card.Body>
+                  <Text fontSize="md" fontWeight="semibold" mb={4}>
+                    GPU Memory Utilization %
+                  </Text>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart
+                      data={gpuData[selectedGpu]}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="timeStr"
+                        tick={{ fontSize: 12 }}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        label={{
+                          value: 'Memory %',
+                          angle: -90,
+                          position: 'insideLeft',
+                        }}
+                        domain={[0, 100]}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="gpu_memory_util"
+                        stroke="#805AD5"
+                        name="GPU Memory Utilization"
+                        dot={false}
+                        strokeWidth={2}
+                      />
+                      <Brush dataKey="timeStr" height={30} stroke="#718096" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card.Root>
+            )}
+
+            {/* Combined Memory Chart for All GPUs */}
+            {selectedGpu === 'all' && (
+              <Card.Root
+                size="sm"
+                w="100%"
+                opacity={isFetching ? 0.6 : 1}
+                transition="opacity 0.3s"
+              >
+                <Card.Body>
+                  <Text fontSize="md" fontWeight="semibold" mb={4}>
+                    GPU Memory Usage (All GPUs)
+                  </Text>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart
+                      data={(() => {
+                        const timeMap = new Map<
+                          string,
+                          Record<string, string | Date | number>
+                        >()
+                        Object.entries(gpuData).forEach(([uuid, data]) => {
+                          data.forEach((point) => {
+                            const key = point.timeStr
+                            if (!timeMap.has(key)) {
+                              timeMap.set(key, {
+                                timeStr: key,
+                                time: point.time,
+                              })
+                            }
+                            timeMap.get(key)![`gpu_memory_${uuid.slice(-8)}`] =
+                              point.gpu_memory
+                          })
+                        })
+                        return Array.from(timeMap.values()).sort(
+                          (a, b) =>
+                            (a.time as Date).getTime() -
+                            (b.time as Date).getTime(),
+                        )
+                      })()}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="timeStr"
+                        tick={{ fontSize: 12 }}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        label={{
+                          value: 'Memory',
+                          angle: -90,
+                          position: 'insideLeft',
+                        }}
+                        tickFormatter={(value) => formatMemory(value)}
+                      />
+                      <Tooltip
+                        content={<CustomTooltip />}
+                        formatter={(value: number | undefined) => [
+                          formatMemory(value || 0),
+                          '',
+                        ]}
+                      />
+                      <Legend />
+
+                      {availableGpus.map((uuid, idx) => (
+                        <Line
+                          key={uuid}
+                          type="monotone"
+                          dataKey={`gpu_memory_${uuid.slice(-8)}`}
+                          stroke={GPU_COLORS[idx % GPU_COLORS.length]}
+                          name={`GPU ${idx + 1}`}
+                          dot={false}
+                          strokeWidth={2}
+                        />
+                      ))}
+
+                      <Brush dataKey="timeStr" height={30} stroke="#718096" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card.Root>
+            )}
+
+            {/* Combined Memory Utilization % Chart for All GPUs */}
+            {selectedGpu === 'all' && (
+              <Card.Root
+                size="sm"
+                w="100%"
+                opacity={isFetching ? 0.6 : 1}
+                transition="opacity 0.3s"
+              >
+                <Card.Body>
+                  <Text fontSize="md" fontWeight="semibold" mb={4}>
+                    GPU Memory Utilization % (All GPUs)
+                  </Text>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart
+                      data={(() => {
+                        const timeMap = new Map<
+                          string,
+                          Record<string, string | Date | number>
+                        >()
+                        Object.entries(gpuData).forEach(([uuid, data]) => {
+                          data.forEach((point) => {
+                            const key = point.timeStr
+                            if (!timeMap.has(key)) {
+                              timeMap.set(key, {
+                                timeStr: key,
+                                time: point.time,
+                              })
+                            }
+                            timeMap.get(key)![`gpu_mem_util_${uuid.slice(-8)}`] =
+                              point.gpu_memory_util
+                          })
+                        })
+                        return Array.from(timeMap.values()).sort(
+                          (a, b) =>
+                            (a.time as Date).getTime() -
+                            (b.time as Date).getTime(),
+                        )
+                      })()}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="timeStr"
+                        tick={{ fontSize: 12 }}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        label={{
+                          value: 'Memory %',
+                          angle: -90,
+                          position: 'insideLeft',
+                        }}
+                        domain={[0, 100]}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+
+                      {availableGpus.map((uuid, idx) => (
+                        <Line
+                          key={uuid}
+                          type="monotone"
+                          dataKey={`gpu_mem_util_${uuid.slice(-8)}`}
+                          stroke={GPU_COLORS[idx % GPU_COLORS.length]}
+                          name={`GPU ${idx + 1}`}
+                          dot={false}
+                          strokeWidth={2}
+                        />
+                      ))}
+
+                      <Brush dataKey="timeStr" height={30} stroke="#718096" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card.Body>
+              </Card.Root>
+            )}
+          </SimpleGrid>
         </>
       )}
     </VStack>
