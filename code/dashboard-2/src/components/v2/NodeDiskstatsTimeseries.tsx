@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Accordion, Alert, Badge, Box, HStack, Select, Spinner, Text, VStack, createListCollection } from '@chakra-ui/react'
+import { Accordion, Alert, Badge, Box, HStack, Select, SimpleGrid, Spinner, Text, VStack, createListCollection } from '@chakra-ui/react'
 
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, AreaChart, Area } from 'recharts'
 import { useClusterClient } from '../../hooks/useClusterClient'
@@ -106,166 +106,79 @@ export const NodeDiskstatsTimeseries = ({ cluster, nodename, initialCollapsed = 
                       </Box>
                     )}
 
-                    {/* IOPS Chart */}
-                    <Box w="100%" h="240px" px={2}>
-                      <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
-                        I/O Operations per Second (IOPS)
-                      </Text>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={series} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis
-                            dataKey="timeMs"
-                            type="number"
-                            domain={['auto', 'auto']}
-                            tickFormatter={(ts) => new Date(ts).toLocaleTimeString()}
-                          />
-                          <YAxis tickFormatter={(v) => v.toFixed(0)} />
-                          <Tooltip
-                            labelFormatter={(ts) => new Date(Number(ts)).toLocaleString()}
-                          />
-                          <Legend />
-                          <Line
-                            type="monotone"
-                            dataKey="read_iops"
-                            stroke="#3182CE"
-                            dot={false}
-                            strokeWidth={2}
-                            name="Read IOPS"
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="write_iops"
-                            stroke="#E53E3E"
-                            dot={false}
-                            strokeWidth={2}
-                            name="Write IOPS"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </Box>
+                    <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4} w="100%">
+                      {/* IOPS Chart */}
+                      <VStack align="start" gap={1}>
+                        <Text fontSize="sm" fontWeight="medium" color="fg.muted">IOPS</Text>
+                        <Box w="100%" h="220px">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={series} margin={{ left: 0, right: 8, top: 8, bottom: 8 }}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="timeMs" type="number" domain={['auto', 'auto']} tickFormatter={(ts) => new Date(ts).toLocaleTimeString()} />
+                              <YAxis tickFormatter={(v) => v.toFixed(0)} />
+                              <Tooltip labelFormatter={(ts) => new Date(Number(ts)).toLocaleString()} />
+                              <Legend />
+                              <Line type="monotone" dataKey="read_iops" stroke="#3182CE" dot={false} strokeWidth={2} name="Read" />
+                              <Line type="monotone" dataKey="write_iops" stroke="#E53E3E" dot={false} strokeWidth={2} name="Write" />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </Box>
+                      </VStack>
 
-                    {/* Throughput Chart */}
-                    <Box w="100%" h="240px" px={2}>
-                      <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
-                        Throughput (MB/s)
-                      </Text>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={series} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis
-                            dataKey="timeMs"
-                            type="number"
-                            domain={['auto', 'auto']}
-                            tickFormatter={(ts) => new Date(ts).toLocaleTimeString()}
-                          />
-                          <YAxis tickFormatter={(v) => `${v.toFixed(1)}`} />
-                          <Tooltip
-                            labelFormatter={(ts) => new Date(Number(ts)).toLocaleString()}
-                          />
-                          <Legend />
-                          <Line
-                            type="monotone"
-                            dataKey="read_throughput_mb"
-                            stroke="#38A169"
-                            dot={false}
-                            strokeWidth={2}
-                            name="Read MB/s"
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="write_throughput_mb"
-                            stroke="#DD6B20"
-                            dot={false}
-                            strokeWidth={2}
-                            name="Write MB/s"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </Box>
+                      {/* Throughput Chart */}
+                      <VStack align="start" gap={1}>
+                        <Text fontSize="sm" fontWeight="medium" color="fg.muted">Throughput (MB/s)</Text>
+                        <Box w="100%" h="220px">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={series} margin={{ left: 0, right: 8, top: 8, bottom: 8 }}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="timeMs" type="number" domain={['auto', 'auto']} tickFormatter={(ts) => new Date(ts).toLocaleTimeString()} />
+                              <YAxis tickFormatter={(v) => `${v.toFixed(1)}`} />
+                              <Tooltip labelFormatter={(ts) => new Date(Number(ts)).toLocaleString()} />
+                              <Legend />
+                              <Line type="monotone" dataKey="read_throughput_mb" stroke="#38A169" dot={false} strokeWidth={2} name="Read" />
+                              <Line type="monotone" dataKey="write_throughput_mb" stroke="#DD6B20" dot={false} strokeWidth={2} name="Write" />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </Box>
+                      </VStack>
 
-                    {/* Latency Chart (Dual Axis) */}
-                    <Box w="100%" h="240px" px={2}>
-                      <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
-                        I/O Latency & Queue Depth
-                      </Text>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={series} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis
-                            dataKey="timeMs"
-                            type="number"
-                            domain={['auto', 'auto']}
-                            tickFormatter={(ts) => new Date(ts).toLocaleTimeString()}
-                          />
-                          <YAxis yAxisId="left" tickFormatter={(v) => `${v.toFixed(1)} ms`} />
-                          <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => v.toFixed(0)} />
-                          <Tooltip
-                            labelFormatter={(ts) => new Date(Number(ts)).toLocaleString()}
-                          />
-                          <Legend />
-                          <Line
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="read_latency_ms"
-                            stroke="#805AD5"
-                            dot={false}
-                            strokeWidth={2}
-                            name="Read Latency (ms)"
-                          />
-                          <Line
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="write_latency_ms"
-                            stroke="#D69E2E"
-                            dot={false}
-                            strokeWidth={2}
-                            name="Write Latency (ms)"
-                          />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="ios_in_progress"
-                            stroke="#718096"
-                            dot={false}
-                            strokeWidth={1.5}
-                            strokeDasharray="5 5"
-                            name="Queue Depth"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </Box>
+                      {/* Latency & Queue Depth Chart */}
+                      <VStack align="start" gap={1}>
+                        <Text fontSize="sm" fontWeight="medium" color="fg.muted">Latency & Queue Depth</Text>
+                        <Box w="100%" h="220px">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={series} margin={{ left: 0, right: 8, top: 8, bottom: 8 }}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="timeMs" type="number" domain={['auto', 'auto']} tickFormatter={(ts) => new Date(ts).toLocaleTimeString()} />
+                              <YAxis yAxisId="left" tickFormatter={(v) => `${v.toFixed(1)} ms`} />
+                              <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => v.toFixed(0)} />
+                              <Tooltip labelFormatter={(ts) => new Date(Number(ts)).toLocaleString()} />
+                              <Legend />
+                              <Line yAxisId="left" type="monotone" dataKey="read_latency_ms" stroke="#805AD5" dot={false} strokeWidth={2} name="Read (ms)" />
+                              <Line yAxisId="left" type="monotone" dataKey="write_latency_ms" stroke="#D69E2E" dot={false} strokeWidth={2} name="Write (ms)" />
+                              <Line yAxisId="right" type="monotone" dataKey="ios_in_progress" stroke="#718096" dot={false} strokeWidth={1.5} strokeDasharray="5 5" name="Queue" />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </Box>
+                      </VStack>
 
-                    {/* Utilization Chart */}
-                    <Box w="100%" h="240px" px={2}>
-                      <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
-                        Disk Utilization (%)
-                      </Text>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={series} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis
-                            dataKey="timeMs"
-                            type="number"
-                            domain={['auto', 'auto']}
-                            tickFormatter={(ts) => new Date(ts).toLocaleTimeString()}
-                          />
-                          <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                          <Tooltip
-                            labelFormatter={(ts) => new Date(Number(ts)).toLocaleString()}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="utilization_pct"
-                            stroke="#319795"
-                            fill="#319795"
-                            fillOpacity={0.3}
-                            strokeWidth={2}
-                            name="Utilization"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </Box>
+                      {/* Utilization Chart */}
+                      <VStack align="start" gap={1}>
+                        <Text fontSize="sm" fontWeight="medium" color="fg.muted">Utilization</Text>
+                        <Box w="100%" h="220px">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={series} margin={{ left: 0, right: 8, top: 8, bottom: 8 }}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="timeMs" type="number" domain={['auto', 'auto']} tickFormatter={(ts) => new Date(ts).toLocaleTimeString()} />
+                              <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                              <Tooltip labelFormatter={(ts) => new Date(Number(ts)).toLocaleString()} />
+                              <Area type="monotone" dataKey="utilization_pct" stroke="#319795" fill="#319795" fillOpacity={0.3} strokeWidth={2} name="Utilization" />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </Box>
+                      </VStack>
+                    </SimpleGrid>
                   </VStack>
                 )}
               </Accordion.ItemBody>

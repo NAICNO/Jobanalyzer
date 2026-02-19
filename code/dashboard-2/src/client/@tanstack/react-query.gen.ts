@@ -4,8 +4,8 @@ import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOption
 import type { AxiosError } from 'axios'
 
 import { client } from '../client.gen'
-import { get, getClearCache, getCluster, getClusterByClusterBenchmarksByBenchmarkName, getClusterByClusterErrorMessages, getClusterByClusterJobs, getClusterByClusterJobsByJobId, getClusterByClusterJobsByJobIdEpochByEpoch, getClusterByClusterJobsByJobIdEpochByEpochInfo, getClusterByClusterJobsByJobIdInfo, getClusterByClusterJobsByJobIdProcessGpuTimeseries, getClusterByClusterJobsByJobIdProcessTimeseries, getClusterByClusterJobsByJobIdProcessTree, getClusterByClusterJobsByJobIdReport, getClusterByClusterJobsProcessGpuTimeseries, getClusterByClusterJobsProcessTimeseries, getClusterByClusterNodes, getClusterByClusterNodesByNodenameCpuTimeseries, getClusterByClusterNodesByNodenameDiskstatsTimeseries, getClusterByClusterNodesByNodenameErrorMessages, getClusterByClusterNodesByNodenameGpuTimeseries, getClusterByClusterNodesByNodenameInfo, getClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseries, getClusterByClusterNodesByNodenameMemoryTimeseries, getClusterByClusterNodesByNodenameProcessGpuTimeseries, getClusterByClusterNodesByNodenameProcessGpuUtil, getClusterByClusterNodesByNodenameStates, getClusterByClusterNodesByNodenameTopology, getClusterByClusterNodesCpuTimeseries, getClusterByClusterNodesDiskstatsTimeseries, getClusterByClusterNodesGpuTimeseries, getClusterByClusterNodesInfo, getClusterByClusterNodesLastProbeTimestamp, getClusterByClusterNodesMemoryTimeseries, getClusterByClusterNodesProcessGpuTimeseries, getClusterByClusterNodesProcessGpuUtil, getClusterByClusterNodesStates, getClusterByClusterPartitions, getClusterByClusterQueries, getClusterByClusterQueriesByQueryName, getClusterByClusterQueryJobs, getClusterByClusterQueryJobsPages, getJobprofile, getJobquery, getUser, type Options } from '../sdk.gen'
-import type { GetClearCacheData, GetClusterByClusterBenchmarksByBenchmarkNameData, GetClusterByClusterBenchmarksByBenchmarkNameError, GetClusterByClusterErrorMessagesData, GetClusterByClusterErrorMessagesError, GetClusterByClusterErrorMessagesResponse, GetClusterByClusterJobsByJobIdData, GetClusterByClusterJobsByJobIdEpochByEpochData, GetClusterByClusterJobsByJobIdEpochByEpochError, GetClusterByClusterJobsByJobIdEpochByEpochInfoData, GetClusterByClusterJobsByJobIdEpochByEpochInfoError, GetClusterByClusterJobsByJobIdEpochByEpochInfoResponse, GetClusterByClusterJobsByJobIdEpochByEpochResponse, GetClusterByClusterJobsByJobIdError, GetClusterByClusterJobsByJobIdInfoData, GetClusterByClusterJobsByJobIdInfoError, GetClusterByClusterJobsByJobIdInfoResponse, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesError, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponse, GetClusterByClusterJobsByJobIdProcessTimeseriesData, GetClusterByClusterJobsByJobIdProcessTimeseriesError, GetClusterByClusterJobsByJobIdProcessTimeseriesResponse, GetClusterByClusterJobsByJobIdProcessTreeData, GetClusterByClusterJobsByJobIdProcessTreeError, GetClusterByClusterJobsByJobIdProcessTreeResponse, GetClusterByClusterJobsByJobIdReportData, GetClusterByClusterJobsByJobIdReportError, GetClusterByClusterJobsByJobIdReportResponse, GetClusterByClusterJobsByJobIdResponse, GetClusterByClusterJobsData, GetClusterByClusterJobsError, GetClusterByClusterJobsProcessGpuTimeseriesData, GetClusterByClusterJobsProcessGpuTimeseriesError, GetClusterByClusterJobsProcessGpuTimeseriesResponse, GetClusterByClusterJobsProcessTimeseriesData, GetClusterByClusterJobsProcessTimeseriesError, GetClusterByClusterJobsProcessTimeseriesResponse, GetClusterByClusterJobsResponse, GetClusterByClusterNodesByNodenameCpuTimeseriesData, GetClusterByClusterNodesByNodenameCpuTimeseriesError, GetClusterByClusterNodesByNodenameCpuTimeseriesResponse, GetClusterByClusterNodesByNodenameDiskstatsTimeseriesData, GetClusterByClusterNodesByNodenameDiskstatsTimeseriesError, GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponse, GetClusterByClusterNodesByNodenameErrorMessagesData, GetClusterByClusterNodesByNodenameErrorMessagesError, GetClusterByClusterNodesByNodenameErrorMessagesResponse, GetClusterByClusterNodesByNodenameGpuTimeseriesData, GetClusterByClusterNodesByNodenameGpuTimeseriesError, GetClusterByClusterNodesByNodenameGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameInfoData, GetClusterByClusterNodesByNodenameInfoError, GetClusterByClusterNodesByNodenameInfoResponse, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesError, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameMemoryTimeseriesData, GetClusterByClusterNodesByNodenameMemoryTimeseriesError, GetClusterByClusterNodesByNodenameMemoryTimeseriesResponse, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesError, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameProcessGpuUtilData, GetClusterByClusterNodesByNodenameProcessGpuUtilError, GetClusterByClusterNodesByNodenameProcessGpuUtilResponse, GetClusterByClusterNodesByNodenameStatesData, GetClusterByClusterNodesByNodenameStatesError, GetClusterByClusterNodesByNodenameStatesResponse, GetClusterByClusterNodesByNodenameTopologyData, GetClusterByClusterNodesByNodenameTopologyError, GetClusterByClusterNodesCpuTimeseriesData, GetClusterByClusterNodesCpuTimeseriesError, GetClusterByClusterNodesCpuTimeseriesResponse, GetClusterByClusterNodesData, GetClusterByClusterNodesDiskstatsTimeseriesData, GetClusterByClusterNodesDiskstatsTimeseriesError, GetClusterByClusterNodesDiskstatsTimeseriesResponse, GetClusterByClusterNodesError, GetClusterByClusterNodesGpuTimeseriesData, GetClusterByClusterNodesGpuTimeseriesError, GetClusterByClusterNodesGpuTimeseriesResponse, GetClusterByClusterNodesInfoData, GetClusterByClusterNodesInfoError, GetClusterByClusterNodesInfoResponse, GetClusterByClusterNodesLastProbeTimestampData, GetClusterByClusterNodesLastProbeTimestampError, GetClusterByClusterNodesLastProbeTimestampResponse, GetClusterByClusterNodesMemoryTimeseriesData, GetClusterByClusterNodesMemoryTimeseriesError, GetClusterByClusterNodesMemoryTimeseriesResponse, GetClusterByClusterNodesProcessGpuTimeseriesData, GetClusterByClusterNodesProcessGpuTimeseriesError, GetClusterByClusterNodesProcessGpuTimeseriesResponse, GetClusterByClusterNodesProcessGpuUtilData, GetClusterByClusterNodesProcessGpuUtilError, GetClusterByClusterNodesProcessGpuUtilResponse, GetClusterByClusterNodesResponse, GetClusterByClusterNodesStatesData, GetClusterByClusterNodesStatesError, GetClusterByClusterNodesStatesResponse, GetClusterByClusterPartitionsData, GetClusterByClusterPartitionsError, GetClusterByClusterPartitionsResponse, GetClusterByClusterQueriesByQueryNameData, GetClusterByClusterQueriesByQueryNameError, GetClusterByClusterQueriesData, GetClusterByClusterQueriesError, GetClusterByClusterQueriesResponse, GetClusterByClusterQueryJobsData, GetClusterByClusterQueryJobsError, GetClusterByClusterQueryJobsPagesData, GetClusterByClusterQueryJobsPagesError, GetClusterByClusterQueryJobsPagesResponse, GetClusterData, GetClusterError, GetClusterResponse, GetData, GetJobprofileData, GetJobprofileError, GetJobprofileResponse, GetJobqueryData, GetJobqueryError, GetJobqueryResponse, GetUserData, GetUserResponse } from '../types.gen'
+import { get, getClearCache, getCluster, getClusterByClusterBenchmarksByBenchmarkName, getClusterByClusterErrorMessages, getClusterByClusterJobs, getClusterByClusterJobsByJobId, getClusterByClusterJobsByJobIdEpochByEpoch, getClusterByClusterJobsByJobIdEpochByEpochInfo, getClusterByClusterJobsByJobIdInfo, getClusterByClusterJobsByJobIdProcessGpuTimeseries, getClusterByClusterJobsByJobIdProcessTimeseries, getClusterByClusterJobsByJobIdProcessTree, getClusterByClusterJobsByJobIdReport, getClusterByClusterJobsProcessGpuTimeseries, getClusterByClusterJobsProcessTimeseries, getClusterByClusterNodes, getClusterByClusterNodesByNodenameCpuTimeseries, getClusterByClusterNodesByNodenameDiskstatsTimeseries, getClusterByClusterNodesByNodenameErrorMessages, getClusterByClusterNodesByNodenameGpuTimeseries, getClusterByClusterNodesByNodenameInfo, getClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseries, getClusterByClusterNodesByNodenameMemoryTimeseries, getClusterByClusterNodesByNodenameProcessGpuTimeseries, getClusterByClusterNodesByNodenameProcessGpuUtil, getClusterByClusterNodesByNodenameStates, getClusterByClusterNodesByNodenameTopology, getClusterByClusterNodesCpuTimeseries, getClusterByClusterNodesDiskstatsTimeseries, getClusterByClusterNodesGpuTimeseries, getClusterByClusterNodesInfo, getClusterByClusterNodesInfoPages, getClusterByClusterNodesLastProbeTimestamp, getClusterByClusterNodesMemoryTimeseries, getClusterByClusterNodesProcessGpuTimeseries, getClusterByClusterNodesProcessGpuUtil, getClusterByClusterNodesStates, getClusterByClusterPartitions, getClusterByClusterQueries, getClusterByClusterQueriesByQueryName, getClusterByClusterQueryJobs, getClusterByClusterQueryJobsPages, getJobprofile, getJobquery, getUser, type Options } from '../sdk.gen'
+import type { GetClearCacheData, GetClusterByClusterBenchmarksByBenchmarkNameData, GetClusterByClusterBenchmarksByBenchmarkNameError, GetClusterByClusterErrorMessagesData, GetClusterByClusterErrorMessagesError, GetClusterByClusterErrorMessagesResponse, GetClusterByClusterJobsByJobIdData, GetClusterByClusterJobsByJobIdEpochByEpochData, GetClusterByClusterJobsByJobIdEpochByEpochError, GetClusterByClusterJobsByJobIdEpochByEpochInfoData, GetClusterByClusterJobsByJobIdEpochByEpochInfoError, GetClusterByClusterJobsByJobIdEpochByEpochInfoResponse, GetClusterByClusterJobsByJobIdEpochByEpochResponse, GetClusterByClusterJobsByJobIdError, GetClusterByClusterJobsByJobIdInfoData, GetClusterByClusterJobsByJobIdInfoError, GetClusterByClusterJobsByJobIdInfoResponse, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesError, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponse, GetClusterByClusterJobsByJobIdProcessTimeseriesData, GetClusterByClusterJobsByJobIdProcessTimeseriesError, GetClusterByClusterJobsByJobIdProcessTimeseriesResponse, GetClusterByClusterJobsByJobIdProcessTreeData, GetClusterByClusterJobsByJobIdProcessTreeError, GetClusterByClusterJobsByJobIdProcessTreeResponse, GetClusterByClusterJobsByJobIdReportData, GetClusterByClusterJobsByJobIdReportError, GetClusterByClusterJobsByJobIdReportResponse, GetClusterByClusterJobsByJobIdResponse, GetClusterByClusterJobsData, GetClusterByClusterJobsError, GetClusterByClusterJobsProcessGpuTimeseriesData, GetClusterByClusterJobsProcessGpuTimeseriesError, GetClusterByClusterJobsProcessGpuTimeseriesResponse, GetClusterByClusterJobsProcessTimeseriesData, GetClusterByClusterJobsProcessTimeseriesError, GetClusterByClusterJobsProcessTimeseriesResponse, GetClusterByClusterJobsResponse, GetClusterByClusterNodesByNodenameCpuTimeseriesData, GetClusterByClusterNodesByNodenameCpuTimeseriesError, GetClusterByClusterNodesByNodenameCpuTimeseriesResponse, GetClusterByClusterNodesByNodenameDiskstatsTimeseriesData, GetClusterByClusterNodesByNodenameDiskstatsTimeseriesError, GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponse, GetClusterByClusterNodesByNodenameErrorMessagesData, GetClusterByClusterNodesByNodenameErrorMessagesError, GetClusterByClusterNodesByNodenameErrorMessagesResponse, GetClusterByClusterNodesByNodenameGpuTimeseriesData, GetClusterByClusterNodesByNodenameGpuTimeseriesError, GetClusterByClusterNodesByNodenameGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameInfoData, GetClusterByClusterNodesByNodenameInfoError, GetClusterByClusterNodesByNodenameInfoResponse, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesError, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameMemoryTimeseriesData, GetClusterByClusterNodesByNodenameMemoryTimeseriesError, GetClusterByClusterNodesByNodenameMemoryTimeseriesResponse, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesData, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesError, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponse, GetClusterByClusterNodesByNodenameProcessGpuUtilData, GetClusterByClusterNodesByNodenameProcessGpuUtilError, GetClusterByClusterNodesByNodenameProcessGpuUtilResponse, GetClusterByClusterNodesByNodenameStatesData, GetClusterByClusterNodesByNodenameStatesError, GetClusterByClusterNodesByNodenameStatesResponse, GetClusterByClusterNodesByNodenameTopologyData, GetClusterByClusterNodesByNodenameTopologyError, GetClusterByClusterNodesCpuTimeseriesData, GetClusterByClusterNodesCpuTimeseriesError, GetClusterByClusterNodesCpuTimeseriesResponse, GetClusterByClusterNodesData, GetClusterByClusterNodesDiskstatsTimeseriesData, GetClusterByClusterNodesDiskstatsTimeseriesError, GetClusterByClusterNodesDiskstatsTimeseriesResponse, GetClusterByClusterNodesError, GetClusterByClusterNodesGpuTimeseriesData, GetClusterByClusterNodesGpuTimeseriesError, GetClusterByClusterNodesGpuTimeseriesResponse, GetClusterByClusterNodesInfoData, GetClusterByClusterNodesInfoError, GetClusterByClusterNodesInfoPagesData, GetClusterByClusterNodesInfoPagesError, GetClusterByClusterNodesInfoPagesResponse, GetClusterByClusterNodesInfoResponse, GetClusterByClusterNodesLastProbeTimestampData, GetClusterByClusterNodesLastProbeTimestampError, GetClusterByClusterNodesLastProbeTimestampResponse, GetClusterByClusterNodesMemoryTimeseriesData, GetClusterByClusterNodesMemoryTimeseriesError, GetClusterByClusterNodesMemoryTimeseriesResponse, GetClusterByClusterNodesProcessGpuTimeseriesData, GetClusterByClusterNodesProcessGpuTimeseriesError, GetClusterByClusterNodesProcessGpuTimeseriesResponse, GetClusterByClusterNodesProcessGpuUtilData, GetClusterByClusterNodesProcessGpuUtilError, GetClusterByClusterNodesProcessGpuUtilResponse, GetClusterByClusterNodesResponse, GetClusterByClusterNodesStatesData, GetClusterByClusterNodesStatesError, GetClusterByClusterNodesStatesResponse, GetClusterByClusterPartitionsData, GetClusterByClusterPartitionsError, GetClusterByClusterPartitionsResponse, GetClusterByClusterQueriesByQueryNameData, GetClusterByClusterQueriesByQueryNameError, GetClusterByClusterQueriesData, GetClusterByClusterQueriesError, GetClusterByClusterQueriesResponse, GetClusterByClusterQueryJobsData, GetClusterByClusterQueryJobsError, GetClusterByClusterQueryJobsPagesData, GetClusterByClusterQueryJobsPagesError, GetClusterByClusterQueryJobsPagesResponse, GetClusterData, GetClusterError, GetClusterResponse, GetData, GetJobprofileData, GetJobprofileError, GetJobprofileResponse, GetJobqueryData, GetJobqueryError, GetJobqueryResponse, GetUserData, GetUserResponse } from '../types.gen'
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseURL' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -333,6 +333,92 @@ export const getClusterByClusterNodesInfoOptions = (options: Options<GetClusterB
   },
   queryKey: getClusterByClusterNodesInfoQueryKey(options)
 })
+
+export const getClusterByClusterNodesInfoPagesQueryKey = (options: Options<GetClusterByClusterNodesInfoPagesData>) => createQueryKey('getClusterByClusterNodesInfoPages', options)
+
+/**
+ * Detailed information about nodes in a cluster
+ *
+ * Get available information about nodes in a cluster
+ *
+ * It will only contain information about reporting nodes - in some case a
+ * node might exist in a cluster, but no system information has been received
+ * yet.  To check - compare with the complete node list /cluster/{cluster}/nodes
+ */
+export const getClusterByClusterNodesInfoPagesOptions = (options: Options<GetClusterByClusterNodesInfoPagesData>) => queryOptions<GetClusterByClusterNodesInfoPagesResponse, AxiosError<GetClusterByClusterNodesInfoPagesError>, GetClusterByClusterNodesInfoPagesResponse, ReturnType<typeof getClusterByClusterNodesInfoPagesQueryKey>>({
+  queryFn: async ({ queryKey, signal }) => {
+    const { data } = await getClusterByClusterNodesInfoPages({
+      ...options,
+      ...queryKey[0],
+      signal,
+      throwOnError: true
+    })
+    return data
+  },
+  queryKey: getClusterByClusterNodesInfoPagesQueryKey(options)
+})
+
+const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
+  const params = { ...queryKey[0] }
+  if (page.body) {
+    params.body = {
+      ...queryKey[0].body as any,
+      ...page.body as any
+    }
+  }
+  if (page.headers) {
+    params.headers = {
+      ...queryKey[0].headers,
+      ...page.headers
+    }
+  }
+  if (page.path) {
+    params.path = {
+      ...queryKey[0].path as any,
+      ...page.path as any
+    }
+  }
+  if (page.query) {
+    params.query = {
+      ...queryKey[0].query as any,
+      ...page.query as any
+    }
+  }
+  return params as unknown as typeof page
+}
+
+export const getClusterByClusterNodesInfoPagesInfiniteQueryKey = (options: Options<GetClusterByClusterNodesInfoPagesData>): QueryKey<Options<GetClusterByClusterNodesInfoPagesData>> => createQueryKey('getClusterByClusterNodesInfoPages', options, true)
+
+/**
+ * Detailed information about nodes in a cluster
+ *
+ * Get available information about nodes in a cluster
+ *
+ * It will only contain information about reporting nodes - in some case a
+ * node might exist in a cluster, but no system information has been received
+ * yet.  To check - compare with the complete node list /cluster/{cluster}/nodes
+ */
+export const getClusterByClusterNodesInfoPagesInfiniteOptions = (options: Options<GetClusterByClusterNodesInfoPagesData>) => infiniteQueryOptions<GetClusterByClusterNodesInfoPagesResponse, AxiosError<GetClusterByClusterNodesInfoPagesError>, InfiniteData<GetClusterByClusterNodesInfoPagesResponse>, QueryKey<Options<GetClusterByClusterNodesInfoPagesData>>, number | Pick<QueryKey<Options<GetClusterByClusterNodesInfoPagesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+// @ts-ignore
+  {
+    queryFn: async ({ pageParam, queryKey, signal }) => {
+      // @ts-ignore
+      const page: Pick<QueryKey<Options<GetClusterByClusterNodesInfoPagesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+        query: {
+          page: pageParam
+        }
+      }
+      const params = createInfiniteParams(queryKey, page)
+      const { data } = await getClusterByClusterNodesInfoPages({
+        ...options,
+        ...params,
+        signal,
+        throwOnError: true
+      })
+      return data
+    },
+    queryKey: getClusterByClusterNodesInfoPagesInfiniteQueryKey(options)
+  })
 
 export const getClusterByClusterNodesByNodenameStatesQueryKey = (options: Options<GetClusterByClusterNodesByNodenameStatesData>) => createQueryKey('getClusterByClusterNodesByNodenameStates', options)
 
@@ -917,35 +1003,6 @@ export const getClusterByClusterQueryJobsPagesOptions = (options: Options<GetClu
   },
   queryKey: getClusterByClusterQueryJobsPagesQueryKey(options)
 })
-
-const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
-  const params = { ...queryKey[0] }
-  if (page.body) {
-    params.body = {
-      ...queryKey[0].body as any,
-      ...page.body as any
-    }
-  }
-  if (page.headers) {
-    params.headers = {
-      ...queryKey[0].headers,
-      ...page.headers
-    }
-  }
-  if (page.path) {
-    params.path = {
-      ...queryKey[0].path as any,
-      ...page.path as any
-    }
-  }
-  if (page.query) {
-    params.query = {
-      ...queryKey[0].query as any,
-      ...page.query as any
-    }
-  }
-  return params as unknown as typeof page
-}
 
 export const getClusterByClusterQueryJobsPagesInfiniteQueryKey = (options: Options<GetClusterByClusterQueryJobsPagesData>): QueryKey<Options<GetClusterByClusterQueryJobsPagesData>> => createQueryKey('getClusterByClusterQueryJobsPages', options, true)
 
