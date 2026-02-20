@@ -12,6 +12,8 @@
 // performance issue will we add caching.  I do not expect this to happen.  Instead, I expect there
 // to be higher-level accessors to the data added to data/ that will make caching unnecessary.
 //
+// Nullable fields!
+//
 // As of 2026-02-20 the following fields can be null (the 2nd column is their status in this code):
 //
 //  sample_gpu.index                             ok
@@ -36,6 +38,23 @@
 // receive string values from nullable string fields, but will error out if the field has a null
 // value.  So we'll need to pass **string in this case.  Ditto for the other types, unless there are
 // PSQL layer types that have a Present flag and can handle this directly.
+//
+// The cliche is to allocate a variable of the pointer type:
+//
+//    var requestedResourcesp *string
+//
+// and then pass &requestedResourcesp to the query, and when we come back, the value is stored in
+// *requestedResourcesp if not nil.  If so, the box will have been dynamically allocated, no matter
+// what the initial value of requestedResourcesp.  Now we generally want to do:
+//
+//    var requestedResources string
+//    if requestedResourcesp != nil {
+//        requestedResources = *requestedResourcesp
+//    }
+//
+// and then our null-or-not value becomes an empty-string-or-not value.
+//
+// In addition to that, computed fields can sometimes become NULL.  This is poorly understood.
 
 package db
 
@@ -138,12 +157,15 @@ func (cdb *connectedDB) ReadProcessSamples(
 ) (sampleBlobs [][]*repr.Sample, softErrors int, err error) {
 	var cmd, node, user string
 	var cpuTime, epoch, job, numThreads, pid, ppid, residentMemory, virtualMemory, gpuMemory pgtype.Int8
-	var cpuAvg, gpuUtil, gpuMemoryUtil float64
+	var cpuAvg float64
 	var rolledup, gpuCount int
 	var timestamp time.Time
 
-	gpuUtilp := &gpuUtil
-	gpuMemoryUtilp := &gpuMemoryUtil
+	// It is not understood why the sums can be null and why this does not apply to the sum across
+	// gpu_memory.
+	//
+	// Nullable, ignore NULL and treat as zero
+	var gpuUtilp, gpuMemoryUtilp *float64
 
 	// Alpha order and KEEP THE FIELD AND BOX LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 	t1Fields := "t1.cmd, t1.cpu_avg, t1.cpu_time, t1.epoch, t1.job, t1.node, t1.num_threads, " +
@@ -296,12 +318,12 @@ func (cdb *connectedDB) ReadGpuSamples(
 ) (dataBlobs [][]*repr.GpuSamples, softErrors int, err error) {
 	var ce_clock, ce_util, failing, fan, memory, memory_clock, memory_util pgtype.Int8
 	var performance_state, power, power_limit pgtype.Int8
-	var index, temperature int
+	var temperature int
 	var compute_mode, node, uuid string
 	var timestamp time.Time
 
 	// Nullable, ignore NULL and treat as zero
-	indexp := &index
+	var indexp *int
 
 	// Here we must start with sysinfo_gpu_card_config as to be able to filter cards by cluster and
 	// node, but once that's done we're mostly interested in data from sample_gpu.  (It's a shame
@@ -325,6 +347,10 @@ func (cdb *connectedDB) ReadGpuSamples(
 
 	// Reference: ParseSamplesV0JSON
 	unbox := func() *repr.GpuSamples {
+		var index int
+		if indexp != nil {
+			index = *indexp
+		}
 		data := repr.PerGpuSample{
 			Attr: repr.GpuHasUuid | repr.GpuHasComputeMode | repr.GpuHasUtil | repr.GpuHasFailing,
 			SampleGpu: &newfmt.SampleGpu{
@@ -358,15 +384,14 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
-	var architecture, cluster, cpuModel, node, osName, osRelease, topoSvg, topoText string
+	var architecture, cluster, cpuModel, node, osName, osRelease string
 	var coresPerSocket, memory, sockets, threadsPerCore pgtype.Int8
 	var timestamp time.Time
 	var distances []int
 	var cards []string
 
 	// Nullable, ignore NULL and treat as empty string
-	topoSvgp := &topoSvg
-	topoTextp := &topoText
+	var topoSvgp, topoTextp *string
 
 	q := query{
 		table:    "sysinfo_attributes",
@@ -395,6 +420,10 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 				k++
 			}
 		}
+		var topoSvg string
+		if topoSvgp != nil {
+			topoSvg = *topoSvgp
+		}
 		// Arguably a database bug that these are kept encoded in the database.
 		if topoSvg != "" {
 			dst := make([]byte, base64.StdEncoding.DecodedLen(len(topoSvg)))
@@ -405,6 +434,10 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 			} else {
 				topoSvg = string(dst[:n])
 			}
+		}
+		var topoText string
+		if topoTextp != nil {
+			topoText = *topoTextp
 		}
 		if topoText != "" {
 			dst := make([]byte, base64.StdEncoding.DecodedLen(len(topoText)))
@@ -501,24 +534,19 @@ func (cdb *connectedDB) ReadSacctData(
 	var (
 		account, allocTRES, cluster, distribution, jobStep, jobName         string
 		jobState, partition, reservation, userName                          string
-		allocatedResources, requestedResources                              string
 		nodes                                                               []string
 		aveCPU, aveDiskRead, aveDiskWrite, aveRSS, aveVMSize, elapsedRaw    pgtype.Int8
 		hetJobId, jobId, maxRSS, maxVMSize, minCPU, priority, suspendTime   pgtype.Int8
 		systemCPU, timeLimit, userCPU, arrayJobId                           pgtype.Int8
-		arrayTaskId, exitCode                                               int
-		minCpusPerNode, hetJobOffset, requestedCpus, requestedMemoryPerNode int
+		hetJobOffset, requestedCpus, requestedMemoryPerNode                 int
 		requestedNodeCount                                                  int
 		endTime, startTime                                                  pgtype.Timestamptz
 		submitTime, timestamp                                               time.Time
 	)
 
 	// Nullable, ignore NULL and translate to empty string or zero
-	requestedResourcesp := &requestedResources
-	allocatedResourcesp := &allocatedResources
-	minCpusPerNodep := &minCpusPerNode
-	arrayTaskIdp := &arrayTaskId
-	exitCodep := &exitCode
+	var allocatedResourcesp, requestedResourcesp *string
+	var arrayTaskIdp, exitCodep *int
 
 	q := query{
 		table:    "sample_slurm_job",
@@ -531,7 +559,7 @@ func (cdb *connectedDB) ReadSacctData(
 		fields: "account, allocated_resources, \"AllocTRES\", array_job_id, array_task_id, \"AveCPU\", " +
 			"\"AveDiskRead\", \"AveDiskWrite\", \"AveRSS\", \"AveVMSize\", t1.cluster, distribution, \"ElapsedRaw\", " +
 			"end_time, exit_code, het_job_id, het_job_offset, t1.job_id, job_name, " +
-			"job_state, t1.job_step, \"MaxRSS\", \"MaxVMSize\", \"MinCPU\", minimum_cpus_per_node, nodes, " +
+			"job_state, t1.job_step, \"MaxRSS\", \"MaxVMSize\", \"MinCPU\", nodes, " +
 			"partition, priority, requested_cpus, requested_memory_per_node, requested_node_count, " +
 			"requested_resources, reservation, start_time, submit_time, suspend_time, \"SystemCPU\", " +
 			"t1.time, time_limit, \"UserCPU\", user_name",
@@ -539,7 +567,7 @@ func (cdb *connectedDB) ReadSacctData(
 			&account, &allocatedResourcesp, &allocTRES, &arrayJobId, &arrayTaskIdp, &aveCPU,
 			&aveDiskRead, &aveDiskWrite, &aveRSS, &aveVMSize, &cluster, &distribution, &elapsedRaw,
 			&endTime, &exitCodep, &hetJobId, &hetJobOffset, &jobId, &jobName,
-			&jobState, &jobStep, &maxRSS, &maxVMSize, &minCPU, &minCpusPerNodep, &nodes,
+			&jobState, &jobStep, &maxRSS, &maxVMSize, &minCPU, &nodes,
 			&partition, &priority, &requestedCpus, &requestedMemoryPerNode, &requestedNodeCount,
 			&requestedResourcesp, &reservation, &startTime, &submitTime, &suspendTime, &systemCPU,
 			&timestamp, &timeLimit, &userCPU, &userName,
@@ -548,7 +576,6 @@ func (cdb *connectedDB) ReadSacctData(
 
 	// Reference: ParseSlurmV0JSON
 	unbox := func() *repr.SacctInfo {
-		// Handle nullable fields
 		var start, end int64
 		if startTime.Status == pgtype.Present {
 			start = startTime.Time.UTC().Unix()
@@ -559,6 +586,20 @@ func (cdb *connectedDB) ReadSacctData(
 		var ajob uint32
 		if arrayJobId.Status == pgtype.Present {
 			ajob = uint32(arrayJobId.Int)
+		}
+		var allocatedResources, requestedResources string
+		if allocatedResourcesp != nil {
+			allocatedResources = *allocatedResourcesp
+		}
+		if requestedResourcesp != nil {
+			requestedResources = *requestedResourcesp
+		}
+		var arrayTaskId, exitCode int
+		if arrayTaskIdp != nil {
+			arrayTaskId = *arrayTaskIdp
+		}
+		if exitCodep != nil {
+			exitCode = *exitCodep
 		}
 
 		// The sonar version is currently lost in the timescaledb
