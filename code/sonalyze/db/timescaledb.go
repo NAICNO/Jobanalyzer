@@ -11,6 +11,31 @@
 // Here we read raw data from the database every time, no caching in Sonalyze.  Only if this is a
 // performance issue will we add caching.  I do not expect this to happen.  Instead, I expect there
 // to be higher-level accessors to the data added to data/ that will make caching unnecessary.
+//
+// As of 2026-02-20 the following fields can be null (the 2nd column is their status in this code):
+//
+//  sample_gpu.index                             ok
+//  sample_process.in_container                  not used
+//  sample_slurm_job.array_job_id                ok
+//  sample_slurm_job.array_task_id               ok
+//  sample_slurm_job.start_time                  ok
+//  sample_slurm_job.end_time                    ok
+//  sample_slurm_job.exit_code                   ok
+//  sample_slurm_job.nodes                       probably ok (slice)
+//  sample_slurm_job.gres_detail                 not used
+//  sample_slurm_job.requested_resources         ok
+//  sample_slurm_job.allocated_resources         ok
+//  sample_slurm_job.minimum_cpus_per_node       ok
+//  sample_system.boot                           not used
+//  sysinfo_attributes.topo_svg                  ok
+//  sysinfo_attributes.topo_text                 ok
+//  sysinfo_attributes.numa_nodes                not used
+//  sysinfo_attributes.distances                 probably ok (slice)
+//
+// It appears that the PSQL layer allows non-nullable containers (eg *string) to be passed to
+// receive string values from nullable string fields, but will error out if the field has a null
+// value.  So we'll need to pass **string in this case.  Ditto for the other types, unless there are
+// PSQL layer types that have a Present flag and can handle this directly.
 
 package db
 
@@ -275,6 +300,9 @@ func (cdb *connectedDB) ReadGpuSamples(
 	var compute_mode, node, uuid string
 	var timestamp time.Time
 
+	// Nullable, ignore NULL and treat as zero
+	indexp := &index
+
 	// Here we must start with sysinfo_gpu_card_config as to be able to filter cards by cluster and
 	// node, but once that's done we're mostly interested in data from sample_gpu.  (It's a shame
 	// that we have to do all of this just because sample_gpu does not carry cluster and node.)
@@ -289,7 +317,7 @@ func (cdb *connectedDB) ReadGpuSamples(
 			"t2.memory, t2.memory_clock, t2.memory_util, t1.node, t2.performance_state, " +
 			"t2.power, t2.power_limit, t2.temperature, t2.time, t2.uuid",
 		boxes: []any{
-			&ce_clock, &ce_util, &compute_mode, &failing, &fan, &index,
+			&ce_clock, &ce_util, &compute_mode, &failing, &fan, &indexp,
 			&memory, &memory_clock, &memory_util, &node, &performance_state,
 			&power, &power_limit, &temperature, &timestamp, &uuid,
 		},
@@ -336,6 +364,10 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	var distances []int
 	var cards []string
 
+	// Nullable, ignore NULL and treat as empty string
+	topoSvgp := &topoSvg
+	topoTextp := &topoText
+
 	q := query{
 		table:    "sysinfo_attributes",
 		fromDate: fromDate,
@@ -346,7 +378,7 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 			"node, os_name, os_release, sockets, threads_per_core, time, topo_svg, topo_text",
 		boxes: []any{
 			&architecture, &cards, &cluster, &coresPerSocket, &cpuModel, &distances, &memory,
-			&node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp, &topoSvg, &topoText,
+			&node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp, &topoSvgp, &topoTextp,
 		},
 	}
 
@@ -474,12 +506,19 @@ func (cdb *connectedDB) ReadSacctData(
 		aveCPU, aveDiskRead, aveDiskWrite, aveRSS, aveVMSize, elapsedRaw    pgtype.Int8
 		hetJobId, jobId, maxRSS, maxVMSize, minCPU, priority, suspendTime   pgtype.Int8
 		systemCPU, timeLimit, userCPU, arrayJobId                           pgtype.Int8
-		arrayTaskId, exitCode                                               *int
+		arrayTaskId, exitCode                                               int
 		minCpusPerNode, hetJobOffset, requestedCpus, requestedMemoryPerNode int
 		requestedNodeCount                                                  int
 		endTime, startTime                                                  pgtype.Timestamptz
 		submitTime, timestamp                                               time.Time
 	)
+
+	// Nullable, ignore NULL and translate to empty string or zero
+	requestedResourcesp := &requestedResources
+	allocatedResourcesp := &allocatedResources
+	minCpusPerNodep := &minCpusPerNode
+	arrayTaskIdp := &arrayTaskId
+	exitCodep := &exitCode
 
 	q := query{
 		table:    "sample_slurm_job",
@@ -497,12 +536,12 @@ func (cdb *connectedDB) ReadSacctData(
 			"requested_resources, reservation, start_time, submit_time, suspend_time, \"SystemCPU\", " +
 			"t1.time, time_limit, \"UserCPU\", user_name",
 		boxes: []any{
-			&account, &allocatedResources, &allocTRES, &arrayJobId, &arrayTaskId, &aveCPU,
+			&account, &allocatedResourcesp, &allocTRES, &arrayJobId, &arrayTaskIdp, &aveCPU,
 			&aveDiskRead, &aveDiskWrite, &aveRSS, &aveVMSize, &cluster, &distribution, &elapsedRaw,
-			&endTime, &exitCode, &hetJobId, &hetJobOffset, &jobId, &jobName,
-			&jobState, &jobStep, &maxRSS, &maxVMSize, &minCPU, &minCpusPerNode, &nodes,
+			&endTime, &exitCodep, &hetJobId, &hetJobOffset, &jobId, &jobName,
+			&jobState, &jobStep, &maxRSS, &maxVMSize, &minCPU, &minCpusPerNodep, &nodes,
 			&partition, &priority, &requestedCpus, &requestedMemoryPerNode, &requestedNodeCount,
-			&requestedResources, &reservation, &startTime, &submitTime, &suspendTime, &systemCPU,
+			&requestedResourcesp, &reservation, &startTime, &submitTime, &suspendTime, &systemCPU,
 			&timestamp, &timeLimit, &userCPU, &userName,
 		},
 	}
@@ -517,15 +556,9 @@ func (cdb *connectedDB) ReadSacctData(
 		if endTime.Status == pgtype.Present {
 			end = endTime.Time.UTC().Unix()
 		}
-		var ajob, atask, xcode uint32
+		var ajob uint32
 		if arrayJobId.Status == pgtype.Present {
 			ajob = uint32(arrayJobId.Int)
-		}
-		if arrayTaskId != nil {
-			atask = uint32(*arrayTaskId)
-		}
-		if exitCode != nil {
-			xcode = uint32(*exitCode)
 		}
 
 		// The sonar version is currently lost in the timescaledb
@@ -588,7 +621,7 @@ func (cdb *connectedDB) ReadSacctData(
 			ReqGPUS:      StringToUstr(reqGpu),
 			JobID:        uint32(jobId.Int),
 			ArrayJobID:   ajob,
-			ArrayIndex:   atask,
+			ArrayIndex:   uint32(arrayTaskId),
 			HetJobID:     uint32(hetJobId.Int),
 			HetOffset:    uint32(hetJobOffset),
 			AveDiskRead:  uint32(aveDiskRead.Int),
@@ -603,7 +636,7 @@ func (cdb *connectedDB) ReadSacctData(
 			ReqNodes:     uint32(requestedNodeCount),
 			Suspended:    uint32(suspendTime.Int),
 			TimelimitRaw: uint32(timeLimit.Int),
-			ExitCode:     uint8(xcode),
+			ExitCode:     uint8(exitCode),
 		}
 	}
 
