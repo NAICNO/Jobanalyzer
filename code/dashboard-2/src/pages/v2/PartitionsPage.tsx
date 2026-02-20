@@ -82,112 +82,114 @@ export const PartitionsPage = () => {
   }
 
   return (
-    <>
+    <VStack h="calc(100vh - 85px)" gap={0} align="stretch" overflow="hidden">
       {/* Overview cards across all partitions */}
       {partitions.length > 0 && (
-        <Box px={4} pt={4} pb={2} mb={4}>
+        <Box px={4} pt={4} pb={2}>
           <PartitionOverviewCards partitions={partitions} />
         </Box>
       )}
 
-      <Splitter.Root
-        panels={[
-          { id: 'left', minSize: 15, maxSize: 40 },
-          { id: 'right', minSize: 50 }
-        ]}
-        defaultSize={sizes}
-        onResizeEnd={(details) => setSizes(details.size)}
-        h="calc(100vh - 200px)"
-      >
-        <Splitter.Panel id="left">
-          <VStack p={4} gap={4} align="start" h="full" overflowY="auto">
-            <Heading size="md">Partitions</Heading>
-            {isLoading && (
-              <Box display="flex" alignItems="center" gap={2}>
-                <Spinner size="sm" />
-                <Text>Loading partitions…</Text>
-              </Box>
-            )}
-            {isError && (
-              <Alert.Root status="error">
-                <Alert.Indicator />
-                <Alert.Description>
-                  {error instanceof Error ? error.message : 'Failed to load partitions.'}
-                </Alert.Description>
-              </Alert.Root>
-            )}
-            {!isLoading && !isError && partitions.length === 0 && (
-              <Alert.Root status="info">
-                <Alert.Indicator />
-                <Alert.Description>No partitions found.</Alert.Description>
-              </Alert.Root>
-            )}
-            {!isLoading && !isError && partitions.length > 0 && (
-              <Listbox.Root
-                collection={collection}
-                value={selectedPartitionValue}
-                onValueChange={(details) => {
-                  const sel = details.value[0]
-                  setSelectedPartitionValue(details.value)
-                  // Only navigate if the URL doesn't already match
-                  if (sel && clusterName && sel !== partitionName) {
-                    navigate(`/v2/${clusterName}/partitions/${sel}`)
-                  }
-                }}
-              >
-                <Listbox.Label>Available Partitions</Listbox.Label>
-                <Listbox.Input as={Input} placeholder="Type to filter partitions..." onChange={(e) => setFilterValue(e.target.value)} />
-                <Listbox.Content>
-                  {collection.items.map((partition) => {
-                    const gpuUtil = partition.data.total_gpus
-                      ? Math.round(((partition.data.gpus_in_use?.length ?? 0) / partition.data.total_gpus) * 100)
-                      : 0
-                    const statusColor = gpuUtil > 90 ? 'red' : gpuUtil > 50 ? 'yellow' : 'green'
+      <Box position="relative" flex="1" minH="0">
+        <Splitter.Root
+          panels={[
+            { id: 'left', minSize: 15, maxSize: 40 },
+            { id: 'right', minSize: 50 }
+          ]}
+          defaultSize={sizes}
+          onResizeEnd={(details) => setSizes(details.size)}
+          position="absolute"
+          inset="0"
+        >
+          <Splitter.Panel id="left">
+            <VStack p={4} gap={4} h="full" overflow="hidden">
+              {isLoading && (
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Spinner size="sm" />
+                  <Text>Loading partitions…</Text>
+                </Box>
+              )}
+              {isError && (
+                <Alert.Root status="error">
+                  <Alert.Indicator />
+                  <Alert.Description>
+                    {error instanceof Error ? error.message : 'Failed to load partitions.'}
+                  </Alert.Description>
+                </Alert.Root>
+              )}
+              {!isLoading && !isError && partitions.length === 0 && (
+                <Alert.Root status="info">
+                  <Alert.Indicator />
+                  <Alert.Description>No partitions found.</Alert.Description>
+                </Alert.Root>
+              )}
+              {!isLoading && !isError && partitions.length > 0 && (
+                <Listbox.Root
+                  collection={collection}
+                  value={selectedPartitionValue}
+                  onValueChange={(details) => {
+                    const sel = details.value[0]
+                    setSelectedPartitionValue(details.value)
+                    // Only navigate if the URL doesn't already match
+                    if (sel && clusterName && sel !== partitionName) {
+                      navigate(`/v2/${clusterName}/partitions/${sel}`)
+                    }
+                  }}
+                  css={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+                >
+                  <Listbox.Label>Available Partitions</Listbox.Label>
+                  <Listbox.Input as={Input} placeholder="Type to filter partitions..." onChange={(e) => setFilterValue(e.target.value)} />
+                  <Listbox.Content css={{ flex: 1, maxHeight: 'unset' }}>
+                    {collection.items.map((partition) => {
+                      const gpuUtil = partition.data.total_gpus
+                        ? Math.round(((partition.data.gpus_in_use?.length ?? 0) / partition.data.total_gpus) * 100)
+                        : 0
+                      const statusColor = gpuUtil > 90 ? 'red' : gpuUtil > 50 ? 'yellow' : 'green'
 
-                    return (
-                      <Listbox.Item item={partition} key={partition.value}>
-                        <VStack align="start" gap={0.5} flex={1}>
-                          <HStack justify="space-between" w="100%">
-                            <Listbox.ItemText fontWeight="medium">{partition.label}</Listbox.ItemText>
-                            <Badge colorPalette={statusColor} size="xs">{gpuUtil}%</Badge>
-                          </HStack>
-                          <Text fontSize="xs" color="gray.500">
-                            {partition.data.nodes?.length ?? 0} nodes • {partition.data.total_cpus ?? 0} CPUs • {partition.data.total_gpus ?? 0} GPUs
-                          </Text>
-                        </VStack>
+                      return (
+                        <Listbox.Item item={partition} key={partition.value}>
+                          <VStack align="start" gap={0.5} flex={1}>
+                            <HStack justify="space-between" w="100%">
+                              <Listbox.ItemText fontWeight="medium">{partition.label}</Listbox.ItemText>
+                              <Badge colorPalette={statusColor} size="xs">{gpuUtil}%</Badge>
+                            </HStack>
+                            <Text fontSize="xs" color="gray.500">
+                              {partition.data.nodes?.length ?? 0} nodes • {partition.data.total_cpus ?? 0} CPUs • {partition.data.total_gpus ?? 0} GPUs
+                            </Text>
+                          </VStack>
+                        </Listbox.Item>
+                      )
+                    })}
+                    {collection.items.length === 0 && (
+                      <Text color="gray.500" p={2}>No partitions found.</Text>
+                    )}
+                  </Listbox.Content>
+                </Listbox.Root>
+              )}
+            </VStack>
+          </Splitter.Panel>
 
-                      </Listbox.Item>
-                    )
-                  })}
-                  {collection.items.length === 0 && (
-                    <Text color="gray.500" p={2}>No partitions found.</Text>
-                  )}
-                </Listbox.Content>
-              </Listbox.Root>
-            )}
-          </VStack>
-        </Splitter.Panel>
+          <Splitter.ResizeTrigger id="left:right" w="12px">
+            <Splitter.ResizeTriggerSeparator borderWidth="2px" />
+          </Splitter.ResizeTrigger>
 
-        <Splitter.ResizeTrigger id="left:right" w="12px">
-          <Splitter.ResizeTriggerSeparator borderWidth="2px" />
-        </Splitter.ResizeTrigger>
-
-        <Splitter.Panel id="right">
-          <VStack flex={1} p={4} gap={4} align="start" minW="0" h="full" overflowY="auto">
-            {selectedPartition ? (
-              <>
-                <Heading size="md">{selectedPartition.label}</Heading>
-                <PartitionSummary partition={selectedPartition.data} />
-                <PartitionQueueOverview partition={selectedPartition.data} />
-                <PartitionNodes partition={selectedPartition.data} />
-                <PartitionGpus partition={selectedPartition.data} />
-              </>
-            ) : (
-              <Text>Select a partition to see details</Text>
-            )}
-          </VStack>
-        </Splitter.Panel>
-      </Splitter.Root>
-    </>
+          <Splitter.Panel id="right">
+            <VStack flex={1} p={4} gap={4} align="start" minW="0" h="full" overflowY="auto">
+              {selectedPartition ? (
+                <>
+                  <Heading size="md">{selectedPartition.label}</Heading>
+                  <PartitionSummary partition={selectedPartition.data} />
+                  <PartitionQueueOverview partition={selectedPartition.data} />
+                  <PartitionNodes partition={selectedPartition.data} />
+                  <PartitionGpus partition={selectedPartition.data} />
+                </>
+              ) : (
+                <Text>Select a partition to see details</Text>
+              )}
+            </VStack>
+          </Splitter.Panel>
+        </Splitter.Root>
+      </Box>
+    </VStack>
   )
 }

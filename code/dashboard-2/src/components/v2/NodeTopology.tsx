@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { VStack, Text, HStack, Spinner, Alert, Box, Accordion, IconButton } from '@chakra-ui/react'
 import { LuExternalLink } from 'react-icons/lu'
+import DOMPurify from 'dompurify'
 
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useNodeTopology } from '../../hooks/v2/useNodeQueries'
@@ -22,15 +23,17 @@ export const NodeTopology = ({ cluster, nodename, initialCollapsed = true }: Pro
 
   const svg = useMemo<string | undefined>(() => {
     if (!data) return undefined
-    if (typeof data === 'string') return data
-    if (typeof data === 'object') {
+    let raw: string | undefined
+    if (typeof data === 'string') {
+      raw = data
+    } else if (typeof data === 'object') {
       const obj = data as Record<string, unknown>
-      return (obj.svg as string | undefined)
+      raw = (obj.svg as string | undefined)
         || (obj.body as string | undefined)
         || (obj.data as string | undefined)
         || undefined
     }
-    return undefined
+    return raw ? DOMPurify.sanitize(raw, { USE_PROFILES: { svg: true } }) : undefined
   }, [data])
 
   return (
@@ -79,6 +82,10 @@ export const NodeTopology = ({ cluster, nodename, initialCollapsed = true }: Pro
                 )}
                 {!isLoading && !isError && svg && (
                   <Box p={2} w="100%" overflow="auto"
+                    css={{
+                      '& svg': { overflow: 'visible' },
+                      '& svg text': { fontSize: '10px' },
+                    }}
                     dangerouslySetInnerHTML={{ __html: svg }}
                   />
                 )}
