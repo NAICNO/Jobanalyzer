@@ -25,7 +25,20 @@ export const ClusterOverviewCards = ({ cluster }: Props) => {
 
   const totalNodes = nodes.length
   const reportingNodes = Object.keys(infoMap).length
-  const idleNodes = statesArr.reduce((acc, s) => acc + (Array.isArray(s.states) && s.states.includes('IDLE') ? 1 : 0), 0)
+  const idleNodes = (() => {
+    const latestByNode = new Map<string, NodeStateResponse>()
+    for (const s of statesArr) {
+      const existing = latestByNode.get(s.node)
+      if (!existing || new Date(s.time) > new Date(existing.time)) {
+        latestByNode.set(s.node, s)
+      }
+    }
+    let count = 0
+    for (const s of latestByNode.values()) {
+      if (Array.isArray(s.states) && s.states.includes('IDLE')) count += 1
+    }
+    return count
+  })()
 
   // Process partitions data
   const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponse>
