@@ -40,6 +40,16 @@ const router = createBrowserRouter([
     ],
   },
   {
+    path: '/v2/:clusterName/nodes/:nodename/topology',
+    element: <ClusterRouteGuard />,
+    children: [
+      {
+        index: true,
+        element: <NodeTopologyPage />,
+      },
+    ],
+  },
+  {
     path: '/',
     element: <RootLayout/>,
     children: [
@@ -82,10 +92,6 @@ const router = createBrowserRouter([
               {
                 path: 'nodes/:nodename',
                 element: <NodesPage />,
-              },
-              {
-                path: 'nodes/:nodename/topology',
-                element: <NodeTopologyPage />,
               },
               {
                 path: 'partitions',

@@ -2,14 +2,6 @@
 
 import type { GetClusterByClusterJobsByJobIdEpochByEpochInfoResponse, GetClusterByClusterJobsByJobIdEpochByEpochResponse, GetClusterByClusterJobsByJobIdInfoResponse, GetClusterByClusterJobsByJobIdResponse, GetClusterByClusterJobsResponse, GetClusterByClusterNodesByNodenameStatesResponse, GetClusterByClusterNodesInfoPagesResponse, GetClusterByClusterNodesStatesResponse, GetClusterByClusterPartitionsResponse, GetClusterByClusterQueryJobsPagesResponse, GetClusterResponse } from './types.gen'
 
-const partitionResponseSchemaResponseTransformer = (data: any) => {
-  data.time = new Date(data.time)
-  data.jobs_pending = data.jobs_pending.map((item: any) => jobResponseSchemaResponseTransformer(item))
-  data.jobs_running = data.jobs_running.map((item: any) => jobResponseSchemaResponseTransformer(item))
-  data.pending_max_submit_time = new Date(data.pending_max_submit_time)
-  return data
-}
-
 const jobResponseSchemaResponseTransformer = (data: any) => {
   data.time = new Date(data.time)
   if (data.start_time) {
@@ -19,6 +11,14 @@ const jobResponseSchemaResponseTransformer = (data: any) => {
   if (data.end_time) {
     data.end_time = new Date(data.end_time)
   }
+  return data
+}
+
+const partitionResponseSchemaResponseTransformer = (data: any) => {
+  data.time = new Date(data.time)
+  data.jobs_pending = data.jobs_pending.map((item: any) => jobResponseSchemaResponseTransformer(item))
+  data.jobs_running = data.jobs_running.map((item: any) => jobResponseSchemaResponseTransformer(item))
+  data.pending_max_submit_time = new Date(data.pending_max_submit_time)
   return data
 }
 
@@ -37,8 +37,11 @@ export const getClusterResponseTransformer = async (data: any): Promise<GetClust
   return data
 }
 
-const customPageNodeInfoResponseSchemaResponseTransformer = (data: any) => {
-  data.nodes = data.nodes.map((item: any) => nodeInfoResponseSchemaResponseTransformer(item))
+const gpuCardResponseSchemaResponseTransformer = (data: any) => {
+  data.time = new Date(data.time)
+  if (data.last_active) {
+    data.last_active = new Date(data.last_active)
+  }
   return data
 }
 
@@ -48,11 +51,8 @@ const nodeInfoResponseSchemaResponseTransformer = (data: any) => {
   return data
 }
 
-const gpuCardResponseSchemaResponseTransformer = (data: any) => {
-  data.time = new Date(data.time)
-  if (data.last_active) {
-    data.last_active = new Date(data.last_active)
-  }
+const customPageNodeInfoResponseSchemaResponseTransformer = (data: any) => {
+  data.nodes = data.nodes.map((item: any) => nodeInfoResponseSchemaResponseTransformer(item))
   return data
 }
 

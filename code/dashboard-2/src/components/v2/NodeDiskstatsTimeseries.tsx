@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Accordion, Alert, Badge, Box, HStack, Select, SimpleGrid, Spinner, Text, VStack, createListCollection } from '@chakra-ui/react'
 
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, AreaChart, Area } from 'recharts'
@@ -37,7 +37,7 @@ export const NodeDiskstatsTimeseries = ({ cluster, nodename, initialCollapsed = 
   )
 
   // Auto-select first disk when data loads
-  useMemo(() => {
+  useEffect(() => {
     if (diskNames.length > 0 && !selectedDisk) {
       setSelectedDisk(diskNames[0])
     }
