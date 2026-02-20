@@ -412,7 +412,7 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error) {
-	var address, architecture, driver, firmware, manufacturer, node, uuid string
+	var address, architecture, driver, firmware, manufacturer, model, node, uuid string
 	var index int
 	var maxCeClock, maxMemoryClock, maxPowerLimit, memory, minPowerLimit, powerLimit pgtype.Int8
 	var timestamp time.Time
@@ -428,10 +428,10 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 		join:     "join sysinfo_gpu_card t2 on t1.uuid = t2.uuid",
 		// Alpha field name order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "address, architecture, driver, firmware, index, manufacturer, max_ce_clock, max_memory_clock, " +
-			"max_power_limit, memory, min_power_limit, node, power_limit, time, t1.uuid",
+			"max_power_limit, memory, min_power_limit, model, node, power_limit, time, t1.uuid",
 		boxes: []any{
 			&address, &architecture, &driver, &firmware, &index, &manufacturer, &maxCeClock, &maxMemoryClock,
-			&maxPowerLimit, &memory, &minPowerLimit, &node, &powerLimit, &timestamp, &uuid,
+			&maxPowerLimit, &memory, &minPowerLimit, &model, &node, &powerLimit, &timestamp, &uuid,
 		},
 	}
 
@@ -452,6 +452,7 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 				MaxPowerLimit:  uint64(maxPowerLimit.Int),
 				Memory:         uint64(memory.Int),
 				MinPowerLimit:  uint64(minPowerLimit.Int),
+				Model:          model,
 				PowerLimit:     uint64(powerLimit.Int),
 				UUID:           uuid,
 			},
