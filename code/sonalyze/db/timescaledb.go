@@ -54,7 +54,8 @@
 //
 // and then our null-or-not value becomes an empty-string-or-not value.
 //
-// In addition to that, computed fields can sometimes become NULL.  This is poorly understood.
+// Computed fields can sometimes become NULL, notably sum() over an empty set of rows, and must be
+// handled the same way.
 
 package db
 
@@ -70,6 +71,8 @@ import (
 	"time"
 
 	"github.com/NordicHPC/sonar/util/formats/newfmt"
+	// TODO: Probably this is the wrong pgtype version.  It works, but we should use a different
+	// version with pgx/v5.  See docs.
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v5"
 	"go-utils/gpuset"
@@ -156,16 +159,14 @@ func (cdb *connectedDB) ReadProcessSamples(
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, softErrors int, err error) {
 	var cmd, node, user string
-	var cpuTime, epoch, job, numThreads, pid, ppid, residentMemory, virtualMemory, gpuMemory pgtype.Int8
+	var cpuTime, epoch, job, numThreads, pid, ppid, residentMemory, virtualMemory pgtype.Int8
 	var cpuAvg float64
 	var rolledup, gpuCount int
 	var timestamp time.Time
 
-	// It is not understood why the sums can be null and why this does not apply to the sum across
-	// gpu_memory.
-	//
-	// Nullable, ignore NULL and treat as zero
+	// Nullable, ignore NULL and treat as zero.
 	var gpuUtilp, gpuMemoryUtilp *float64
+	var gpuMemoryp pgtype.Int8
 
 	// Alpha order and KEEP THE FIELD AND BOX LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 	t1Fields := "t1.cmd, t1.cpu_avg, t1.cpu_time, t1.epoch, t1.job, t1.node, t1.num_threads, " +
@@ -175,7 +176,7 @@ func (cdb *connectedDB) ReadProcessSamples(
 		&pid, &ppid, &residentMemory, &rolledup, &timestamp, &user, &virtualMemory,
 	}
 	t2Fields := "sum(t2.gpu_memory), sum(t2.gpu_util), sum(t2.gpu_memory_util), count(t2.uuid)"
-	t2Boxes := []any{&gpuMemory, &gpuUtilp, &gpuMemoryUtilp, &gpuCount}
+	t2Boxes := []any{&gpuMemoryp, &gpuUtilp, &gpuMemoryUtilp, &gpuCount}
 	joinBy := "left join sample_process_gpu as t2 on t1.cluster = t2.cluster and t1.node = t2.node " +
 		"and t1.time = t2.time and t1.pid = t2.pid and t1.job = t2.job and t1.epoch = t2.epoch " +
 		"group by " + t1Fields
@@ -204,6 +205,10 @@ func (cdb *connectedDB) ReadProcessSamples(
 				gpus, _ = gpuset.Adjoin(gpus, 1<<i)
 			}
 		}
+		var gpuMemory uint64
+		if gpuMemoryp.Status == pgtype.Present {
+			gpuMemory = uint64(gpuMemoryp.Int)
+		}
 		var gpuUtil, gpuMemoryUtil float32
 		if gpuUtilp != nil {
 			gpuUtil = float32(*gpuUtilp)
@@ -231,7 +236,7 @@ func (cdb *connectedDB) ReadProcessSamples(
 			Gpus:       gpus,
 			GpuPct:     gpuUtil,
 			GpuMemPct:  gpuMemoryUtil,
-			GpuKB:      uint64(gpuMemory.Int),
+			GpuKB:      gpuMemory,
 		}
 	}
 	return querySlice[repr.Sample](cdb, &q, verbose, unbox)
