@@ -118,6 +118,8 @@ func RemoteOperation(rCmd Command, verb string, stdin io.Reader, stdout, stderr 
 		curlArgs = append(curlArgs, "--get")
 	case SimpleCommand:
 		curlArgs = append(curlArgs, "--get")
+	case PrimitiveCommand:
+		curlArgs = append(curlArgs, "--get")
 	default:
 		panic("Unimplemented")
 	}
