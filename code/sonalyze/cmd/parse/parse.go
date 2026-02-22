@@ -39,7 +39,7 @@ FIELDS sample.Sample
  MemtotalKB uint64              desc:"Installed main memory"
  memtotal   U64Div1M            desc:"Installed main memory (GB)" field:"MemtotalKB"
  User       Ustr                desc:"Username of process owner" alias:"user"
- Pid        uint32              desc:"Process ID" alias:"pid"
+ Pid        uint64              desc:"Process ID" alias:"pid"
  Ppid       uint32              desc:"Process parent ID" alias:"ppid"
  Job        uint32              desc:"Job ID" alias:"job"
  Cmd        Ustr                desc:"Command name" alias:"cmd"

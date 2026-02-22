@@ -306,7 +306,7 @@ func InstantiateSampleFilter(recordFilter *SampleFilter) func(*repr.Sample) bool
 					return false
 				}
 			case testExcludeLowPids:
-				pid := uint32(op >> opShift)
+				pid := op >> opShift
 				if e.Pid < pid {
 					return false
 				}

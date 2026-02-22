@@ -129,7 +129,7 @@ func ParseSamplesV0JSON(
 					Threads:    uint32(process.NumThreads) + 1,
 					User:       user,
 					Job:        uint32(job.Job),
-					Pid:        uint32(process.Pid),
+					Pid:        process.Pid,
 					Ppid:       uint32(process.ParentPid),
 					Cmd:        ustrs.Alloc(process.Cmd),
 					CpuPct:     float32(process.CpuAvg),

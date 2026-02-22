@@ -227,7 +227,7 @@ func (cdb *connectedDB) ReadProcessSamples(
 			Job:        uint32(job.Int),
 			Hostname:   StringToUstr(node),
 			Threads:    uint32(numThreads.Int) + 1,
-			Pid:        uint32(pid.Int),
+			Pid:        uint64(pid.Int),
 			Ppid:       uint32(ppid.Int),
 			RssAnonKB:  uint64(residentMemory.Int),
 			Rolledup:   uint32(rolledup),

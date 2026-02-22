@@ -39,7 +39,7 @@ var (
 
 type InputStreamKey struct {
 	Host     Ustr   // A single node name, not any kind of node set
-	StreamId uint32 // See postprocess.go
+	StreamId uint64 // See postprocess.go
 	Cmd      Ustr   // The command name
 }
 

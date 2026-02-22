@@ -39,17 +39,19 @@ import (
 // TODO: INVESTIGATE: Admins swear that Slurm Job IDs are never reused (and that chaos ensues when
 // they are) and are currently above 1e6 on some systems.
 //
-// TODO: The invariant stated above is not true, because rollups only happen for jobs that have
-// the same ppid and no children.  Thus we could easily construct a process hierarchy where there
-// are several groups of rolled-up processes with the same job ID and command.
+// TODO: The invariant stated above is not true, because rollups only happen for jobs that have the
+// same ppid and no children.  Thus we could easily construct a process hierarchy where there are
+// several groups of rolled-up processes with the same job ID and command.  In v0.18 Sonar
+// introduced a fix for this, synthesizing unique nonzero PIDs for rolled-up processes.  Thus the
+// streamIds should only be (re)constructed for older data where the PID is zero.
 
 const JobIdTag = 10000000
 
 // Records for job id 0 are always not rolled up and we'll use the pid for those, which is unique.
-func streamId(e *repr.Sample) uint32 {
+func streamId(e *repr.Sample) uint64 {
 	syntheticPid := e.Pid
-	if e.Rolledup > 0 {
-		syntheticPid = JobIdTag + e.Job
+	if e.Rolledup > 0 && syntheticPid == 0 {
+		syntheticPid = uint64(JobIdTag + e.Job)
 	}
 	return syntheticPid
 }

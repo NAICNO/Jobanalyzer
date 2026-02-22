@@ -40,7 +40,9 @@ const (
 //  - the timestamp has been reduced from a 24-byte structure with a pointer to an 8-byte second
 //    value, we lose tz info but we never used that anyway and always assumed UTC
 //
-// Optimizations so far have brought the size from 240 bytes to 104 bytes.
+// Optimizations so far have brought the size from 240 bytes to 108 bytes.
+//
+// Note Pid must be 64-bit to deal with synthesized Pids coming from Sonar.  Ppid can remain 32-bit.
 //
 // TODO: OPTIMIZEME: Further optimizations are possible:
 //
@@ -83,6 +85,7 @@ type Sample struct {
 	GpuKB      uint64
 	CpuTimeSec uint64
 	Epoch      uint64
+	Pid        uint64
 	Version    Ustr
 	Cluster    Ustr
 	Hostname   Ustr
@@ -90,7 +93,6 @@ type Sample struct {
 	Threads    uint32
 	User       Ustr
 	Job        uint32
-	Pid        uint32
 	Ppid       uint32
 	Cmd        Ustr
 	CpuPct     float32

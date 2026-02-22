@@ -62,7 +62,7 @@ LineLoop:
 			memTotalKB       uint64  = math.MaxUint64
 			user                     = UstrEmpty
 			epoch            uint64  = 1
-			pid              uint32  = math.MaxUint32
+			pid              uint64  = math.MaxUint64
 			ppid             uint32  = math.MaxUint32
 			jobId            uint32  = math.MaxUint32
 			command                  = UstrEmpty
@@ -179,7 +179,7 @@ LineLoop:
 						continue LineLoop
 					}
 					jobId = uint32(tmp)
-					pid = jobId
+					pid = tmp
 				case 5:
 					command = ustrs.AllocBytes(val)
 				case 6:
@@ -335,9 +335,7 @@ LineLoop:
 					}
 				case 'p':
 					if val, ok := match(tokenizer, start, lim, eqloc, "pid"); ok {
-						var tmp uint64
-						tmp, err = parseUint(val)
-						pid = uint32(tmp)
+						pid, err = parseUint(val)
 						matched = true
 					} else if val, ok := match(tokenizer, start, lim, eqloc, "ppid"); ok {
 						var tmp uint64
@@ -468,7 +466,7 @@ LineLoop:
 		if jobId == math.MaxUint32 {
 			jobId = 0
 		}
-		if pid == math.MaxUint32 {
+		if pid == math.MaxUint64 {
 			pid = 0
 		}
 		if ppid == math.MaxUint32 {
