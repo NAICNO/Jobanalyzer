@@ -110,6 +110,9 @@ func ParseSysinfoOldJSON(
 			//   Cluster
 			//   OsRelease
 			//   TopoSVG
+			//   TopoText
+			//   NumaNodes
+			//   Distances
 		})
 
 		var model, manufacturer string

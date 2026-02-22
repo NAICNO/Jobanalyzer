@@ -47,6 +47,12 @@ var nodeFormatters = map[string]Formatter[*config.NodeConfig]{
 		},
 		Help: "(int) Total number of cores x threads",
 	},
+	"NumaNodes": {
+		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
+			return FormatInt((d.NumaNodes), ctx)
+		},
+		Help: "(int) NUMA nodes",
+	},
 	"MemGB": {
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatInt((d.MemGB), ctx)
@@ -96,6 +102,7 @@ func init() {
 	DefAlias(nodeFormatters, "Hostname", "host")
 	DefAlias(nodeFormatters, "Description", "desc")
 	DefAlias(nodeFormatters, "CpuCores", "cores")
+	DefAlias(nodeFormatters, "NumaNodes", "numas")
 	DefAlias(nodeFormatters, "MemGB", "mem")
 	DefAlias(nodeFormatters, "GpuCards", "gpus")
 	DefAlias(nodeFormatters, "GpuMemGB", "gpumem")
@@ -126,6 +133,12 @@ var nodePredicates = map[string]Predicate[*config.NodeConfig]{
 		Convert: CvtString2Int,
 		Compare: func(d *config.NodeConfig, v any) int {
 			return cmp.Compare((d.CpuCores), v.(int))
+		},
+	},
+	"NumaNodes": Predicate[*config.NodeConfig]{
+		Convert: CvtString2Int,
+		Compare: func(d *config.NodeConfig, v any) int {
+			return cmp.Compare((d.NumaNodes), v.(int))
 		},
 	},
 	"MemGB": Predicate[*config.NodeConfig]{
@@ -201,8 +214,8 @@ func (c *NodeCommand) MaybeFormatHelp() *FormatHelp {
 var nodeAliases = map[string][]string{
 	"default": []string{"host", "cores", "mem", "gpus", "gpumem", "desc"},
 	"Default": []string{"Hostname", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "Description"},
-	"all":     []string{"timestamp", "host", "desc", "cores", "mem", "gpus", "gpumem", "gpumempct", "distances"},
-	"All":     []string{"Timestamp", "Hostname", "Description", "CpuCores", "MemGB", "GpuCards", "GpuMemGB", "GpuMemPct", "Distances"},
+	"all":     []string{"timestamp", "host", "desc", "cores", "numas", "mem", "gpus", "gpumem", "gpumempct", "distances"},
+	"All":     []string{"Timestamp", "Hostname", "Description", "CpuCores", "NumaNodes", "MemGB", "GpuCards", "GpuMemGB", "GpuMemPct", "Distances"},
 }
 
 const nodeDefaultFields = "default"

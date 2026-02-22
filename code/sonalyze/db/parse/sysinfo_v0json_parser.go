@@ -58,6 +58,7 @@ func ParseSysinfoV0JSON(
 				OsName:         string(d.OsName),
 				OsRelease:      string(d.OsRelease),
 				Architecture:   string(d.Architecture),
+				NumaNodes:      uint64(d.NumaNodes),
 				Sockets:        uint64(d.Sockets),
 				CoresPerSocket: uint64(d.CoresPerSocket),
 				ThreadsPerCore: uint64(d.ThreadsPerCore),

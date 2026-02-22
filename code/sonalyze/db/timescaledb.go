@@ -31,7 +31,7 @@
 //  sample_system.boot                           not used
 //  sysinfo_attributes.topo_svg                  ok
 //  sysinfo_attributes.topo_text                 ok
-//  sysinfo_attributes.numa_nodes                not used
+//  sysinfo_attributes.numa_nodes                ok
 //  sysinfo_attributes.distances                 probably ok (slice)
 //
 // It appears that the PSQL layer allows non-nullable containers (eg *string) to be passed to
@@ -399,11 +399,11 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
 	var (
-		architecture, cluster, cpuModel, node, osName, osRelease string
-		coresPerSocket, memory, sockets, threadsPerCore          pgtype.Int8
-		timestamp                                                time.Time
-		distances                                                []int
-		cards                                                    []string
+		architecture, cluster, cpuModel, node, osName, osRelease      string
+		coresPerSocket, memory, numaNodesBox, sockets, threadsPerCore pgtype.Int8
+		timestamp                                                     time.Time
+		distances                                                     []int
+		cards                                                         []string
 
 		// Nullable, ignore NULL and treat as empty string
 		topoSvgp, topoTextp *string
@@ -416,10 +416,10 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 		hosts:    hosts,
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "architecture, cards, cluster, cores_per_socket, cpu_model, distances, memory, " +
-			"node, os_name, os_release, sockets, threads_per_core, time, topo_svg, topo_text",
+			"node, numa_nodes, os_name, os_release, sockets, threads_per_core, time, topo_svg, topo_text",
 		boxes: []any{
 			&architecture, &cards, &cluster, &coresPerSocket, &cpuModel, &distances, &memory,
-			&node, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp, &topoSvgp, &topoTextp,
+			&node, &numaNodesBox, &osName, &osRelease, &sockets, &threadsPerCore, &timestamp, &topoSvgp, &topoTextp,
 		},
 	}
 
@@ -435,6 +435,10 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 				j++
 				k++
 			}
+		}
+		var numaNodes uint64
+		if numaNodesBox.Status == pgtype.Present {
+			numaNodes = uint64(numaNodesBox.Int)
 		}
 		var topoSvg string
 		if topoSvgp != nil {
@@ -477,6 +481,7 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 			Node:           node,
 			OsName:         osName,
 			OsRelease:      osRelease,
+			NumaNodes:      numaNodes,
 			Sockets:        uint64(sockets.Int),
 			ThreadsPerCore: uint64(threadsPerCore.Int),
 			Time:           timestamp.Format(time.RFC3339),
