@@ -12,16 +12,17 @@ require github.com/twmb/franz-go v1.19.1
 
 require (
 	github.com/NordicHPC/sonar/util/formats v0.18.0
-	github.com/jackc/pgtype v1.14.4
+	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/pgx/v5 v5.7.6
 )
 
 require (
-	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/lib/pq v1.10.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/pkg/errors v0.8.1 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.11.2 // indirect
 	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/text v0.25.0 // indirect

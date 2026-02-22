@@ -71,9 +71,7 @@ import (
 	"time"
 
 	"github.com/NordicHPC/sonar/util/formats/newfmt"
-	// TODO: Probably this is the wrong pgtype version.  It works, but we should use a different
-	// version with pgx/v5.  See docs.
-	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
 	"go-utils/gpuset"
 	. "sonalyze/common"
