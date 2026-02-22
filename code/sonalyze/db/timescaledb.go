@@ -159,15 +159,17 @@ func (cdb *connectedDB) ReadProcessSamples(
 	hosts *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, softErrors int, err error) {
-	var cmd, node, user string
-	var cpuTime, epoch, job, numThreads, pid, ppid, residentMemory, virtualMemory pgtype.Int8
-	var cpuAvg float64
-	var rolledup, gpuCount int
-	var timestamp time.Time
+	var (
+		cmd, node, user                                                           string
+		cpuTime, epoch, job, numThreads, pid, ppid, residentMemory, virtualMemory pgtype.Int8
+		cpuAvg                                                                    float64
+		rolledup, gpuCount                                                        int
+		timestamp                                                                 time.Time
 
-	// Nullable, ignore NULL and treat as zero.
-	var gpuUtilp, gpuMemoryUtilp *float64
-	var gpuMemoryp pgtype.Int8
+		// Nullable, ignore NULL and treat as zero.
+		gpuUtilp, gpuMemoryUtilp *float64
+		gpuMemoryp               pgtype.Int8
+	)
 
 	// Alpha order and KEEP THE FIELD AND BOX LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 	t1Fields := "t1.cmd, t1.cpu_avg, t1.cpu_time, t1.epoch, t1.job, t1.node, t1.num_threads, " +
@@ -248,10 +250,12 @@ func (cdb *connectedDB) ReadNodeSamples(
 	hosts *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*repr.NodeSample, softErrors int, err error) {
-	var existingEntities, runnableEntities, usedMemory pgtype.Int8
-	var load1, load15, load5 float64
-	var node string
-	var timestamp time.Time
+	var (
+		existingEntities, runnableEntities, usedMemory pgtype.Int8
+		load1, load15, load5                           float64
+		node                                           string
+		timestamp                                      time.Time
+	)
 
 	q := query{
 		table:    "sample_system",
@@ -288,9 +292,11 @@ func (cdb *connectedDB) ReadCpuSamples(
 	hosts *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*repr.CpuSamples, softErrors int, err error) {
-	var cpus []pgtype.Int8
-	var node string
-	var timestamp time.Time
+	var (
+		cpus      []pgtype.Int8
+		node      string
+		timestamp time.Time
+	)
 
 	q := query{
 		table:    "sample_system",
@@ -322,14 +328,16 @@ func (cdb *connectedDB) ReadGpuSamples(
 	hosts *Hosts,
 	verbose bool,
 ) (dataBlobs [][]*repr.GpuSamples, softErrors int, err error) {
-	var ce_clock, ce_util, failing, fan, memory, memory_clock, memory_util pgtype.Int8
-	var performance_state, power, power_limit pgtype.Int8
-	var temperature int
-	var compute_mode, node, uuid string
-	var timestamp time.Time
+	var (
+		ce_clock, ce_util, failing, fan, memory, memory_clock, memory_util pgtype.Int8
+		performance_state, power, power_limit                              pgtype.Int8
+		temperature                                                        int
+		compute_mode, node, uuid                                           string
+		timestamp                                                          time.Time
 
-	// Nullable, ignore NULL and treat as zero
-	var indexp *int
+		// Nullable, ignore NULL and treat as zero
+		indexp *int
+	)
 
 	// Here we must start with sysinfo_gpu_card_config as to be able to filter cards by cluster and
 	// node, but once that's done we're mostly interested in data from sample_gpu.  (It's a shame
@@ -390,14 +398,16 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
-	var architecture, cluster, cpuModel, node, osName, osRelease string
-	var coresPerSocket, memory, sockets, threadsPerCore pgtype.Int8
-	var timestamp time.Time
-	var distances []int
-	var cards []string
+	var (
+		architecture, cluster, cpuModel, node, osName, osRelease string
+		coresPerSocket, memory, sockets, threadsPerCore          pgtype.Int8
+		timestamp                                                time.Time
+		distances                                                []int
+		cards                                                    []string
 
-	// Nullable, ignore NULL and treat as empty string
-	var topoSvgp, topoTextp *string
+		// Nullable, ignore NULL and treat as empty string
+		topoSvgp, topoTextp *string
+	)
 
 	q := query{
 		table:    "sysinfo_attributes",
@@ -483,10 +493,12 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 	hosts *Hosts,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error) {
-	var address, architecture, driver, firmware, manufacturer, model, node, uuid string
-	var index int
-	var maxCeClock, maxMemoryClock, maxPowerLimit, memory, minPowerLimit, powerLimit pgtype.Int8
-	var timestamp time.Time
+	var (
+		address, architecture, driver, firmware, manufacturer, model, node, uuid     string
+		index                                                                        int
+		maxCeClock, maxMemoryClock, maxPowerLimit, memory, minPowerLimit, powerLimit pgtype.Int8
+		timestamp                                                                    time.Time
+	)
 
 	q := query{
 		// The DB stores what it perceives to be static card info in a separate table,
@@ -548,11 +560,11 @@ func (cdb *connectedDB) ReadSacctData(
 		requestedNodeCount                                                int
 		endTime, startTime                                                pgtype.Timestamptz
 		submitTime, timestamp                                             time.Time
-	)
 
-	// Nullable, ignore NULL and translate to empty string or zero
-	var allocatedResourcesp, requestedResourcesp *string
-	var arrayTaskIdp, exitCodep *int
+		// Nullable, ignore NULL and translate to empty string or zero
+		allocatedResourcesp, requestedResourcesp *string
+		arrayTaskIdp, exitCodep                  *int
+	)
 
 	q := query{
 		table:    "sample_slurm_job",
@@ -694,9 +706,11 @@ func (cdb *connectedDB) ReadCluzterAttributeData(
 	fromDate, toDate time.Time,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterAttributes, softErrors int, err error) {
-	var cluster string
-	var slurm bool
-	var timestamp time.Time
+	var (
+		cluster   string
+		slurm     bool
+		timestamp time.Time
+	)
 
 	q := query{
 		table:    "cluster_attributes",
@@ -723,10 +737,12 @@ func (cdb *connectedDB) ReadCluzterPartitionData(
 	fromDate, toDate time.Time,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterPartitions, softErrors int, err error) {
-	var cluster string
-	var partName string
-	var nodeNamesCompact []string
-	var timestamp time.Time
+	var (
+		cluster          string
+		partName         string
+		nodeNamesCompact []string
+		timestamp        time.Time
+	)
 
 	q := query{
 		table:    "partition",
@@ -767,10 +783,12 @@ func (cdb *connectedDB) ReadCluzterNodeData(
 	fromDate, toDate time.Time,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterNodes, softErrors int, err error) {
-	var cluster string
-	var nodeName string
-	var states []string
-	var timestamp time.Time
+	var (
+		cluster   string
+		nodeName  string
+		states    []string
+		timestamp time.Time
+	)
 
 	q := query{
 		table:    "node_state",
