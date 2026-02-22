@@ -11,7 +11,7 @@ require github.com/lars-t-hansen/ini v0.3.0
 require github.com/twmb/franz-go v1.19.1
 
 require (
-	github.com/NordicHPC/sonar/util/formats v0.17.0-rc1
+	github.com/NordicHPC/sonar/util/formats v0.18.0
 	github.com/jackc/pgtype v1.14.4
 	github.com/jackc/pgx/v5 v5.7.6
 )
