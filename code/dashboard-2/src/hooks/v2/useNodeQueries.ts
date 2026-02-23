@@ -5,6 +5,7 @@ import {
   getClusterByClusterNodesInfoPagesOptions,
   getClusterByClusterNodesStatesOptions,
   getClusterByClusterNodesProcessGpuUtilOptions,
+  getClusterByClusterNodesMemoryTimeseriesOptions,
   getClusterByClusterNodesLastProbeTimestampOptions,
   getClusterByClusterNodesByNodenameTopologyOptions,
   getClusterByClusterNodesByNodenameStatesOptions,
@@ -112,6 +113,17 @@ export const useClusterNodesLastProbeTimestamp = ({ cluster, client, enabled = t
       client: client || undefined,
     }),
     enabled: enabled && !!client && !!cluster,
+  })
+}
+
+export const useClusterNodesMemoryTimeseries = ({ cluster, client, enabled = true }: ClusterNodeOptions) => {
+  return useQuery({
+    ...getClusterByClusterNodesMemoryTimeseriesOptions({
+      path: { cluster },
+      client: client || undefined,
+    }),
+    enabled: enabled && !!client && !!cluster,
+    staleTime: NODE_TIMESERIES_STALE_TIME_MS,
   })
 }
 

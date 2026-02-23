@@ -17,7 +17,7 @@ export const ClusterQueueActivity = () => {
   // Aggregate job counts across all partitions
   let totalRunning = 0
   let totalPending = 0
-  const jobsByUser: Record<string, { running: number; pending: number }> = {}
+  const jobsByUser: Record<string, { running: number; pending: number; cpusInUse: number; gpusInUse: number }> = {}
   const jobsByPartition: Array<{ partition: string; running: number; pending: number }> = []
 
   for (const partition of partitions) {
@@ -37,15 +37,17 @@ export const ClusterQueueActivity = () => {
     for (const job of runningJobs) {
       const user = job.user_name ?? 'Unknown'
       if (!jobsByUser[user]) {
-        jobsByUser[user] = { running: 0, pending: 0 }
+        jobsByUser[user] = { running: 0, pending: 0, cpusInUse: 0, gpusInUse: 0 }
       }
       jobsByUser[user].running++
+      jobsByUser[user].cpusInUse += job.requested_cpus ?? 0
+      jobsByUser[user].gpusInUse += job.requested_gpus ?? 0
     }
 
     for (const job of pendingJobs) {
       const user = job.user_name ?? 'Unknown'
       if (!jobsByUser[user]) {
-        jobsByUser[user] = { running: 0, pending: 0 }
+        jobsByUser[user] = { running: 0, pending: 0, cpusInUse: 0, gpusInUse: 0 }
       }
       jobsByUser[user].pending++
     }
@@ -60,6 +62,17 @@ export const ClusterQueueActivity = () => {
       total: counts.running + counts.pending
     }))
     .sort((a, b) => b.total - a.total)
+
+  // Active users with resource usage (running jobs only)
+  const activeUsers = Object.entries(jobsByUser)
+    .filter(([, counts]) => counts.running > 0)
+    .map(([user, counts]) => ({
+      user,
+      runningJobs: counts.running,
+      cpusInUse: counts.cpusInUse,
+      gpusInUse: counts.gpusInUse,
+    }))
+    .sort((a, b) => b.gpusInUse - a.gpusInUse || b.runningJobs - a.runningJobs)
 
   // Sort partitions by total jobs
   const sortedPartitions = jobsByPartition
@@ -144,6 +157,33 @@ export const ClusterQueueActivity = () => {
     }
   ]
 
+  const gpuCellRenderer = (params: ICellRendererParams) => {
+    return (
+      <span style={{
+        fontWeight: '600',
+        color: params.value > 0 ? '#3182CE' : undefined,
+      }}>
+        {params.value}
+      </span>
+    )
+  }
+
+  const activeUserColumns: ColDef[] = [
+    { field: 'user', headerName: 'User', flex: 2, sortable: true, filter: true, cellStyle: { fontWeight: '500' } },
+    {
+      field: 'runningJobs', headerName: 'Running', flex: 1, sortable: true, type: 'numericColumn',
+      cellRenderer: runningCellRenderer, cellStyle: { textAlign: 'center' },
+    },
+    {
+      field: 'cpusInUse', headerName: 'CPUs', flex: 1, sortable: true, type: 'numericColumn',
+      cellStyle: { textAlign: 'center' },
+    },
+    {
+      field: 'gpusInUse', headerName: 'GPUs', flex: 1, sortable: true, type: 'numericColumn',
+      cellRenderer: gpuCellRenderer, cellStyle: { textAlign: 'center' },
+    },
+  ]
+
   const userColumns: ColDef[] = [
     { 
       field: 'user', 
@@ -185,6 +225,28 @@ export const ClusterQueueActivity = () => {
   return (
     <VStack w="100%" align="start" gap={4}>
       <Text fontSize="lg" fontWeight="semibold">Queue Activity</Text>
+
+      {/* Top Active Users */}
+      {activeUsers.length > 0 && (
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%">
+          <VStack align="start" gap={2} w="100%">
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Top Active Users (Running Now)</Text>
+            <Box w="100%" h="250px">
+              <AgGridReact
+                theme={themeQuartz}
+                rowData={activeUsers}
+                columnDefs={activeUserColumns}
+                defaultColDef={{ resizable: true, sortable: true }}
+                domLayout="normal"
+                suppressCellFocus
+                onRowClicked={(e: RowClickedEvent) => {
+                  if (e.data?.user) navigate(`/v2/${cluster}/jobs/query`)
+                }}
+              />
+            </Box>
+          </VStack>
+        </Box>
+      )}
 
       {/* Jobs by Partition and User Tables */}
       <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4} w="100%">
