@@ -1,12 +1,27 @@
-import { VStack, Text, SimpleGrid, Box, Table, Tag, Stat, Spinner } from '@chakra-ui/react'
+import { VStack, HStack, Text, SimpleGrid, Box, Table, Tag, Stat, Spinner } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 import { LuCircleCheck, LuCircleX, LuCircleMinus, LuClock } from 'react-icons/lu'
+import {
+  PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ReferenceLine,
+} from 'recharts'
 
 import type { JobsResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useClusterJobs } from '../../hooks/v2/useClusterQueries'
 import { getJobStateColor } from '../../util/formatters'
 import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
+import { calculateCpuEfficiency, getEfficiencyColor } from '../../util/efficiency'
+
+const CHAKRA_TO_HEX: Record<string, string> = {
+  green: '#38A169',
+  blue: '#3182CE',
+  yellow: '#D69E2E',
+  red: '#E53E3E',
+  orange: '#DD6B20',
+  purple: '#805AD5',
+  gray: '#A0AEC0',
+}
 
 interface Props {
   cluster: string
@@ -161,7 +176,84 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
         </Box>
       </SimpleGrid>
 
-      <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4} w="100%">
+      <SimpleGrid columns={{ base: 1, lg: 3 }} gap={4} w="100%">
+        {/* Job State Distribution */}
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+          <VStack align="start" gap={2} w="100%" h="100%">
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Job State Distribution</Text>
+            {jobsQ.isLoading ? (
+              <Box w="100%" flex={1} display="flex" alignItems="center" justifyContent="center">
+                <Spinner size="lg" />
+              </Box>
+            ) : jobs.length === 0 ? (
+              <Text fontSize="xs" color="gray.500">No job data available</Text>
+            ) : (
+              (() => {
+                const stateDistribution: Record<string, number> = {}
+                for (const job of jobs) {
+                  const raw = job.job_state ?? 'UNKNOWN'
+                  const state = raw.split(/[\s+]/)[0]
+                  stateDistribution[state] = (stateDistribution[state] ?? 0) + 1
+                }
+                const pieData = Object.entries(stateDistribution)
+                  .map(([state, count]) => ({
+                    name: state,
+                    value: count,
+                    color: getJobStateColor(state),
+                  }))
+                  .sort((a, b) => b.value - a.value)
+
+                return (
+                  <HStack gap={1} w="100%" flex={1} align="center" justify="center">
+                    <Box flex={1} minW={0}>
+                      <ResponsiveContainer width="100%" height={300} minWidth={0}>
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius="80%"
+                            dataKey="value"
+                            nameKey="name"
+                            label={(props) => {
+                              const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props as {
+                                cx: number; cy: number; midAngle: number; innerRadius: number; outerRadius: number; percent: number
+                              }
+                              if (!percent || percent < 0.05) return null
+                              const RADIAN = Math.PI / 180
+                              const radius = innerRadius + (outerRadius - innerRadius) * 0.5
+                              const x = cx + radius * Math.cos(-midAngle * RADIAN)
+                              const y = cy + radius * Math.sin(-midAngle * RADIAN)
+                              return (
+                                <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={13} fontWeight="bold">
+                                  {`${(percent * 100).toFixed(0)}%`}
+                                </text>
+                              )
+                            }}
+                            labelLine={false}
+                          >
+                            {pieData.map((entry, idx) => (
+                              <Cell key={idx} fill={CHAKRA_TO_HEX[entry.color] ?? '#A0AEC0'} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip contentStyle={{ fontSize: 12 }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </Box>
+                    <VStack align="start" gap={1} flexShrink={0}>
+                      {pieData.map((d) => (
+                        <Tag.Root key={d.name} size="sm" colorPalette={d.color}>
+                          <Tag.Label>{d.name}: {d.value}</Tag.Label>
+                        </Tag.Root>
+                      ))}
+                    </VStack>
+                  </HStack>
+                )
+              })()
+            )}
+          </VStack>
+        </Box>
+
         {/* Recent Jobs Table */}
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <VStack align="start" gap={2} w="100%">
@@ -264,6 +356,115 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
           </VStack>
         </Box>
       </SimpleGrid>
+
+      {/* CPU Efficiency Trends */}
+      {(() => {
+        const jobsWithEfficiency = jobs
+          .filter((j) => j.job_state === 'COMPLETED' && j.sacct && j.start_time && j.end_time)
+          .map((j) => {
+            const elapsed = j.sacct!.ElapsedRaw ?? 0
+            const cpuEff = calculateCpuEfficiency(j, elapsed)
+            return {
+              endTime: new Date(j.end_time!).getTime(),
+              cpuEfficiency: cpuEff,
+            }
+          })
+          .filter((j): j is { endTime: number; cpuEfficiency: number } => j.cpuEfficiency !== null)
+          .sort((a, b) => a.endTime - b.endTime)
+
+        if (jobsWithEfficiency.length === 0) return null
+
+        // Adaptive bucketing based on time range
+        const rangeSeconds = (endTimeInS ?? 0) - (startTimeInS ?? 0)
+        const bucketMs = rangeSeconds > 7 * 86400
+          ? 24 * 60 * 60 * 1000
+          : rangeSeconds > 86400
+            ? 4 * 60 * 60 * 1000
+            : 60 * 60 * 1000
+
+        const buckets = new Map<number, { sum: number; count: number; lowCount: number }>()
+        for (const job of jobsWithEfficiency) {
+          const key = Math.floor(job.endTime / bucketMs) * bucketMs
+          if (!buckets.has(key)) buckets.set(key, { sum: 0, count: 0, lowCount: 0 })
+          const b = buckets.get(key)!
+          b.sum += job.cpuEfficiency
+          b.count++
+          if (job.cpuEfficiency < 20) b.lowCount++
+        }
+
+        const trendData = Array.from(buckets.entries())
+          .map(([ts, b]) => ({
+            time: new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' }),
+            timestamp: ts,
+            avgEfficiency: Math.round(b.sum / b.count),
+            jobCount: b.count,
+          }))
+          .sort((a, b) => a.timestamp - b.timestamp)
+
+        const overallAvgEff = Math.round(
+          jobsWithEfficiency.reduce((s, j) => s + j.cpuEfficiency, 0) / jobsWithEfficiency.length
+        )
+        const lowEffCount = jobsWithEfficiency.filter((j) => j.cpuEfficiency < 20).length
+
+        return (
+          <VStack align="start" gap={2} w="100%">
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">CPU Efficiency Trends</Text>
+
+            <SimpleGrid columns={{ base: 2, md: 3 }} gap={3} w="100%">
+              <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+                <Stat.Root>
+                  <Stat.Label fontSize="sm" color="gray.600">Avg CPU Efficiency</Stat.Label>
+                  <Stat.ValueText fontSize="2xl" fontWeight="bold" color={`${getEfficiencyColor(overallAvgEff)}.600`}>
+                    {overallAvgEff}%
+                  </Stat.ValueText>
+                </Stat.Root>
+              </Box>
+              <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+                <Stat.Root>
+                  <Stat.Label fontSize="sm" color="gray.600">Low Efficiency Jobs (&lt;20%)</Stat.Label>
+                  <Stat.ValueText fontSize="2xl" fontWeight="bold" color={lowEffCount > 0 ? 'red.600' : 'green.600'}>
+                    {lowEffCount}
+                  </Stat.ValueText>
+                </Stat.Root>
+              </Box>
+              <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+                <Stat.Root>
+                  <Stat.Label fontSize="sm" color="gray.600">Jobs Analyzed</Stat.Label>
+                  <Stat.ValueText fontSize="2xl" fontWeight="bold">
+                    {jobsWithEfficiency.length}
+                  </Stat.ValueText>
+                </Stat.Root>
+              </Box>
+            </SimpleGrid>
+
+            <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                  <YAxis
+                    domain={[0, 100]}
+                    tick={{ fontSize: 10 }}
+                    label={{ value: 'Efficiency %', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
+                  />
+                  <RechartsTooltip contentStyle={{ fontSize: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <ReferenceLine y={20} stroke="#E53E3E" strokeDasharray="5 5" label={{ value: 'Low', fontSize: 10 }} />
+                  <ReferenceLine y={80} stroke="#38A169" strokeDasharray="5 5" label={{ value: 'Target', fontSize: 10 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="avgEfficiency"
+                    stroke="#3182CE"
+                    name="Avg CPU Efficiency"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Box>
+          </VStack>
+        )
+      })()}
     </VStack>
   )
 }
