@@ -6,6 +6,7 @@ import {
   getClusterByClusterNodesGpuTimeseriesOptions,
   getClusterByClusterNodesCpuTimeseriesOptions,
   getClusterByClusterNodesMemoryTimeseriesOptions,
+  getClusterByClusterNodesDiskstatsTimeseriesOptions,
 } from '../../client/@tanstack/react-query.gen'
 import type { Client } from '../../client/client/types.gen'
 
@@ -139,5 +140,20 @@ export const useClusterTimeseries = ({
     gcTime: TIMESERIES_GC_TIME_MS,
   })
 
-  return { gpuQuery, cpuQuery, memoryQuery }
+  const diskQuery = useQuery({
+    ...getClusterByClusterNodesDiskstatsTimeseriesOptions({
+      path: { cluster },
+      query: {
+        start_time_in_s: startTimeInS,
+        end_time_in_s: endTimeInS,
+        resolution_in_s: resolutionInS,
+      },
+      client: client || undefined,
+    }),
+    enabled: isEnabled,
+    staleTime: TIMESERIES_STALE_TIME_MS,
+    gcTime: TIMESERIES_GC_TIME_MS,
+  })
+
+  return { gpuQuery, cpuQuery, memoryQuery, diskQuery }
 }
