@@ -1,29 +1,59 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { HStack, SimpleGrid, Text, VStack, Tag, Progress, Stat, Badge } from '@chakra-ui/react'
 
-import type { PartitionResponse } from '../../client'
+import type { PartitionResponse, NodeInfoResponse, NodeSampleProcessGpuAccResponse } from '../../client'
+import type { Client } from '../../client/client/types.gen'
+import { useClusterNodesInfo, useClusterNodesProcessGpuUtil } from '../../hooks/v2/useNodeQueries'
 
 interface Props {
   partitions: PartitionResponse[]
+  cluster: string
+  client: Client | null
   isFetching?: boolean
 }
 
-export const PartitionOverviewCards = ({ partitions, isFetching }: Props) => {
+export const PartitionOverviewCards = ({ partitions, cluster, client, isFetching }: Props) => {
+  // Fetch node-level data to get accurate GPU counts
+  const nodesInfoQuery = useClusterNodesInfo({ cluster, client })
+  const gpuUtilQuery = useClusterNodesProcessGpuUtil({ cluster, client })
+
+  const infoMap = (nodesInfoQuery.data ?? {}) as Record<string, NodeInfoResponse>
+
   const totals = useMemo(() => {
     const totalPartitions = partitions.length
     let totalCpus = 0
-    let totalGpus = 0
-    let gpusInUse = 0
+    let totalGpusFromPartitions = 0
+    let gpusInUseFromPartitions = 0
     let pendingJobs = 0
     for (const p of partitions) {
       totalCpus += p.total_cpus ?? 0
-      totalGpus += p.total_gpus ?? 0
-      gpusInUse += p.gpus_in_use?.length ?? 0
+      totalGpusFromPartitions += p.total_gpus ?? 0
+      gpusInUseFromPartitions += p.gpus_in_use?.length ?? 0
       pendingJobs += p.jobs_pending?.length ?? 0
     }
+
+    // Calculate GPU totals from nodes (same logic as ClusterOverviewCards)
+    const totalGpusFromNodes = Object.values(infoMap).reduce((sum, n) => sum + (Array.isArray(n.cards) ? n.cards.length : 0), 0)
+
+    const utilData = (gpuUtilQuery.data ?? undefined) as NodeSampleProcessGpuAccResponse | undefined
+    let gpusInUseFromUtil = 0
+    if (utilData && typeof utilData === 'object') {
+      const utilDataMap = utilData as Record<string, Record<string, { gpu_util?: number }>>
+      for (const nodeMap of Object.values(utilDataMap)) {
+        for (const sample of Object.values(nodeMap)) {
+          const util = sample.gpu_util ?? 0
+          if (util > 0) gpusInUseFromUtil += 1
+        }
+      }
+    }
+
+    // Use the more comprehensive GPU data (prefer nodes info)
+    const totalGpus = totalGpusFromNodes > 0 ? totalGpusFromNodes : totalGpusFromPartitions
+    const gpusInUse = gpusInUseFromUtil > 0 ? gpusInUseFromUtil : gpusInUseFromPartitions
     const gpuUtilPct = totalGpus > 0 ? Math.round((gpusInUse / totalGpus) * 100) : 0
+
     return { totalPartitions, totalCpus, totalGpus, gpusInUse, gpuUtilPct, pendingJobs }
-  }, [partitions])
+  }, [partitions, infoMap, gpuUtilQuery.data])
 
   // Simple trend indicator comparing to last snapshot
   const lastPendingRef = useRef<number>(totals.pendingJobs)

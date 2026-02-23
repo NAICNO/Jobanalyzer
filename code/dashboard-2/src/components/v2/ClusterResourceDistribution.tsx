@@ -64,6 +64,7 @@ export const ClusterResourceDistribution = () => {
                   const cpuTotal = partition.total_cpus ?? 0
                   const gpuTotal = partition.total_gpus ?? 0
                   const gpuInUse = partition.gpus_in_use?.length ?? 0
+                  const gpuReserved = partition.gpus_reserved ?? 0
                   const gpuUtilPct = gpuTotal > 0 ? Math.round((gpuInUse / gpuTotal) * 100) : 0
                   const gpuColor = gpuUtilPct > 90 ? 'red' : gpuUtilPct > 50 ? 'yellow' : 'green'
 
@@ -90,15 +91,22 @@ export const ClusterResourceDistribution = () => {
                         </HStack>
                       </HStack>
                       {gpuTotal > 0 && (
-                        <HStack gap={2} w="100%">
-                          <Text fontSize="2xs" color="gray.600" minW="60px">GPU: {gpuInUse}/{gpuTotal}</Text>
-                          <Progress.Root value={gpuUtilPct} max={100} colorPalette={gpuColor} flex={1} size="xs">
-                            <Progress.Track>
-                              <Progress.Range />
-                            </Progress.Track>
-                          </Progress.Root>
-                          <Text fontSize="2xs" color="gray.600" minW="35px" textAlign="right">{gpuUtilPct}%</Text>
-                        </HStack>
+                        <>
+                          <HStack gap={2} w="100%">
+                            <Text fontSize="2xs" color="gray.600" minW="60px">GPU: {gpuInUse}/{gpuTotal}</Text>
+                            <Progress.Root value={gpuUtilPct} max={100} colorPalette={gpuColor} flex={1} size="xs">
+                              <Progress.Track>
+                                <Progress.Range />
+                              </Progress.Track>
+                            </Progress.Root>
+                            <Text fontSize="2xs" color="gray.600" minW="35px" textAlign="right">{gpuUtilPct}%</Text>
+                          </HStack>
+                          {gpuReserved > 0 && gpuReserved !== gpuInUse && (
+                            <Text fontSize="2xs" color="gray.500">
+                              Reserved: {gpuReserved} · In Use: {gpuInUse} · Idle: {gpuReserved - gpuInUse}
+                            </Text>
+                          )}
+                        </>
                       )}
                     </Box>
                   )

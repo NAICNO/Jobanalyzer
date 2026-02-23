@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useMemo, useCallback, type ReactNo
 import type { UseQueryResult } from '@tanstack/react-query'
 
 import { useClusterClient } from '../hooks/useClusterClient'
-import { useClusterNodes, useClusterNodesInfo, useClusterNodesStates, useClusterNodesProcessGpuUtil } from '../hooks/v2/useNodeQueries'
+import { useClusterNodes, useClusterNodesInfo, useClusterNodesStates, useClusterNodesProcessGpuUtil, useClusterNodesMemoryTimeseries } from '../hooks/v2/useNodeQueries'
 import { useClusterPartitions } from '../hooks/v2/useClusterQueries'
 import type { TimeRange } from '../components/TimeRangePicker'
 import { timeRangeToTimestamps } from '../util/timeRangeUtils'
@@ -23,6 +23,7 @@ export interface ClusterOverviewContextValue {
   nodesInfoQuery: UseQueryResult
   nodesStatesQuery: UseQueryResult
   gpuUtilQuery: UseQueryResult
+  memoryUtilQuery: UseQueryResult
   // Time range
   timeRange: TimeRange
   setTimeRange: (range: TimeRange) => void
@@ -61,18 +62,21 @@ export const ClusterOverviewProvider = ({ cluster, children }: ClusterOverviewPr
   const nodesInfoQuery = useClusterNodesInfo({ cluster, client })
   const nodesStatesQuery = useClusterNodesStates({ cluster, client })
   const gpuUtilQuery = useClusterNodesProcessGpuUtil({ cluster, client })
+  const memoryUtilQuery = useClusterNodesMemoryTimeseries({ cluster, client })
 
   const refetchAll = useCallback(() => {
     // Only refetch dynamic data — skip nodesQuery (node list) and
     // nodesInfoQuery (hardware specs) as those rarely change.
-    partitionsQuery.refetch()  // job counts, GPU in-use
-    nodesStatesQuery.refetch() // node IDLE/ALLOC/DOWN states
-    gpuUtilQuery.refetch()     // GPU utilization
-  }, [partitionsQuery, nodesStatesQuery, gpuUtilQuery])
+    partitionsQuery.refetch()   // job counts, GPU in-use
+    nodesStatesQuery.refetch()  // node IDLE/ALLOC/DOWN states
+    gpuUtilQuery.refetch()      // GPU utilization
+    memoryUtilQuery.refetch()   // Memory utilization
+  }, [partitionsQuery, nodesStatesQuery, gpuUtilQuery, memoryUtilQuery])
 
   const isFetching = partitionsQuery.isFetching
     || nodesStatesQuery.isFetching
     || gpuUtilQuery.isFetching
+    || memoryUtilQuery.isFetching
 
   // Find the oldest dataUpdatedAt among all queries for staleness indicator
   const oldestDataUpdatedAt = useMemo(() => {
@@ -82,6 +86,7 @@ export const ClusterOverviewProvider = ({ cluster, children }: ClusterOverviewPr
       nodesInfoQuery.dataUpdatedAt,
       nodesStatesQuery.dataUpdatedAt,
       gpuUtilQuery.dataUpdatedAt,
+      memoryUtilQuery.dataUpdatedAt,
     ].filter(t => t > 0)
     return timestamps.length > 0 ? Math.min(...timestamps) : 0
   }, [
@@ -90,6 +95,7 @@ export const ClusterOverviewProvider = ({ cluster, children }: ClusterOverviewPr
     nodesInfoQuery.dataUpdatedAt,
     nodesStatesQuery.dataUpdatedAt,
     gpuUtilQuery.dataUpdatedAt,
+    memoryUtilQuery.dataUpdatedAt,
   ])
 
   const value: ClusterOverviewContextValue = {
@@ -99,6 +105,7 @@ export const ClusterOverviewProvider = ({ cluster, children }: ClusterOverviewPr
     nodesInfoQuery,
     nodesStatesQuery,
     gpuUtilQuery,
+    memoryUtilQuery,
     timeRange,
     setTimeRange,
     startTimeInS,
