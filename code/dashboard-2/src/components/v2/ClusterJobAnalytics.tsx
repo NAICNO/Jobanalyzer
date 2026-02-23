@@ -1,20 +1,23 @@
 import { VStack, Text, SimpleGrid, Box, Table, Tag, Stat, Spinner } from '@chakra-ui/react'
+import { useNavigate } from 'react-router'
+import { LuCircleCheck, LuCircleX, LuCircleMinus, LuClock } from 'react-icons/lu'
 
 import type { JobsResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useClusterJobs } from '../../hooks/v2/useClusterQueries'
 import { getJobStateColor } from '../../util/formatters'
+import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
 
 interface Props {
   cluster: string
 }
 
 export const ClusterJobAnalytics = ({ cluster }: Props) => {
+  const navigate = useNavigate()
   const client = useClusterClient(cluster)
-  const now = Math.floor(Date.now() / 1000)
-  const last24h = now - (24 * 60 * 60)
+  const { startTimeInS, endTimeInS, timeRange } = useClusterOverviewContext()
 
-  const jobsQ = useClusterJobs({ cluster, client, startTimeInS: last24h, endTimeInS: now })
+  const jobsQ = useClusterJobs({ cluster, client, startTimeInS, endTimeInS })
 
   const jobsData = (jobsQ.data as JobsResponse) ?? { jobs: [] }
   const jobs = jobsData.jobs ?? []
@@ -80,6 +83,16 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
     })
     .slice(0, 20)
 
+  const getJobStateIcon = (state: string) => {
+    switch (state) {
+      case 'COMPLETED': return <LuCircleCheck />
+      case 'FAILED': return <LuCircleX />
+      case 'CANCELLED': return <LuCircleMinus />
+      case 'TIMEOUT': return <LuClock />
+      default: return null
+    }
+  }
+
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${Math.round(minutes)}m`
     const hours = Math.floor(minutes / 60)
@@ -89,7 +102,7 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
 
   return (
     <VStack w="100%" align="start" gap={4}>
-      <Text fontSize="lg" fontWeight="semibold">Job Analytics (Last 24 Hours)</Text>
+      <Text fontSize="lg" fontWeight="semibold">Job Analytics ({timeRange.label})</Text>
 
       {/* Summary Cards */}
       <SimpleGrid columns={{ base: 2, md: 4, lg: 6 }} gap={3} w="100%">
@@ -183,10 +196,20 @@ export const ClusterJobAnalytics = ({ cluster }: Props) => {
 
                         return (
                           <Table.Row key={`${job.job_id}-${job.job_step}`}>
-                            <Table.Cell fontSize="xs" fontWeight="medium">{job.job_id}</Table.Cell>
+                            <Table.Cell fontSize="xs" fontWeight="medium">
+                              <Text
+                                as="span"
+                                cursor="pointer"
+                                _hover={{ color: 'blue.600', textDecoration: 'underline' }}
+                                onClick={() => navigate(`/v2/${cluster}/jobs/${job.job_id}`)}
+                              >
+                                {job.job_id}
+                              </Text>
+                            </Table.Cell>
                             <Table.Cell fontSize="xs" truncate>{job.user_name}</Table.Cell>
                             <Table.Cell fontSize="xs">
                               <Tag.Root size="sm" colorPalette={getJobStateColor(job.job_state ?? '')}>
+                                {getJobStateIcon(job.job_state ?? '')}
                                 <Tag.Label>{job.job_state}</Tag.Label>
                               </Tag.Root>
                             </Table.Cell>

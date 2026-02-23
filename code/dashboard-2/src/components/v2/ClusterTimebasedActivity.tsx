@@ -1,14 +1,19 @@
 import { VStack, Text, SimpleGrid, Box, Spinner } from '@chakra-ui/react'
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import type { SampleGpuTimeseriesResponse, SampleProcessAccResponse } from '../../client'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush, ReferenceLine } from 'recharts'
+import type { SampleGpuTimeseriesResponse, SampleProcessAccResponse, NodeDiskTimeseriesResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useClusterTimeseries } from '../../hooks/v2/useClusterQueries'
+import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
+import { transformClusterDiskstatsTimeseries } from '../../util/timeseriesTransformers'
 
-// Time configuration constants (in seconds)
-const TIME_WINDOW = 24 * 60 * 60 // 24 hours
 const DATA_RESOLUTION = 3600 // 1 hour
-const QUERY_REFRESH_INTERVAL = 5 * 60 // 5 minutes
+
+// Static utilization thresholds for reference lines
+const THRESHOLDS = {
+  gpuTarget: 80,    // Target GPU utilization %
+  memoryWarning: 90, // Memory utilization warning %
+} as const
 
 interface Props {
   cluster: string
@@ -16,23 +21,21 @@ interface Props {
 
 export const ClusterTimebasedActivity = ({cluster}: Props) => {
   const client = useClusterClient(cluster)
-  
-  // Round to nearest QUERY_REFRESH_INTERVAL to prevent constant refetching
-  // This creates stable query keys while still keeping data relatively fresh
-  const now = Math.floor(Date.now() / 1000 / QUERY_REFRESH_INTERVAL) * QUERY_REFRESH_INTERVAL
-  const startTime = now - TIME_WINDOW
+  const { startTimeInS, endTimeInS, timeRange } = useClusterOverviewContext()
 
-  const { gpuQuery: gpuTimeseriesQ, cpuQuery: cpuTimeseriesQ, memoryQuery: memoryTimeseriesQ } = useClusterTimeseries({
+  const { gpuQuery: gpuTimeseriesQ, cpuQuery: cpuTimeseriesQ, memoryQuery: memoryTimeseriesQ, diskQuery: diskTimeseriesQ } = useClusterTimeseries({
     cluster,
     client,
-    startTimeInS: startTime,
-    endTimeInS: now,
+    startTimeInS,
+    endTimeInS,
     resolutionInS: DATA_RESOLUTION,
   })
 
   const gpuData = (gpuTimeseriesQ.data ?? {}) as Record<string, Array<SampleGpuTimeseriesResponse>>
   const cpuData = (cpuTimeseriesQ.data ?? {}) as Record<string, Array<SampleProcessAccResponse>>
   const memoryData = (memoryTimeseriesQ.data ?? {}) as Record<string, Array<SampleProcessAccResponse>>
+  const diskData = diskTimeseriesQ.data as NodeDiskTimeseriesResponse | undefined
+  const diskTimeSeriesData = transformClusterDiskstatsTimeseries(diskData)
 
   // Process GPU timeseries data
   const gpuTimeSeriesData: Array<{
@@ -162,14 +165,15 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
   const hasGpuData = gpuTimeSeriesData.length > 0
   const hasCpuData = cpuTimeSeriesData.length > 0
   const hasMemoryData = memoryTimeSeriesData.length > 0
+  const hasDiskData = diskTimeSeriesData.length > 0
 
   return (
     <VStack w="100%" align="start" gap={4}>
-      <Text fontSize="lg" fontWeight="semibold">Resource Activity Over Time (Last 24 Hours)</Text>
+      <Text fontSize="lg" fontWeight="semibold">Resource Activity Over Time ({timeRange.label})</Text>
 
       <SimpleGrid columns={{base: 1, lg: 2}} gap={4} w="100%">
         {/* GPU Utilization Over Time */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="GPU utilization trend chart">
           <VStack align="start" gap={2} w="100%">
             <Text fontSize="sm" fontWeight="semibold" color="gray.700">GPU Utilization Trend</Text>
             {gpuTimeseriesQ.isLoading ? (
@@ -199,6 +203,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
                     formatter={(value: number) => `${value}%`}
                   />
                   <Legend wrapperStyle={{fontSize: 12}}/>
+                  <ReferenceLine y={THRESHOLDS.gpuTarget} stroke="#718096" strokeDasharray="4 4" label={{ value: 'Target', position: 'right', fontSize: 10, fill: '#718096' }} />
                   <Line
                     type="monotone"
                     dataKey="avgUtil"
@@ -216,6 +221,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
                     strokeDasharray="5 5"
                     dot={false}
                   />
+                  <Brush dataKey="time" height={25} stroke="#718096" />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -223,7 +229,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
         </Box>
 
         {/* CPU Utilization Over Time */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="CPU utilization trend chart">
           <VStack align="start" gap={2} w="100%">
             <Text fontSize="sm" fontWeight="semibold" color="gray.700">CPU Utilization Trend</Text>
             {cpuTimeseriesQ.isLoading ? (
@@ -270,6 +276,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
                     strokeDasharray="5 5"
                     dot={false}
                   />
+                  <Brush dataKey="time" height={25} stroke="#718096" />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -277,7 +284,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
         </Box>
 
         {/* Memory Utilization Over Time */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="Memory utilization trend chart">
           <VStack align="start" gap={2} w="100%">
             <Text fontSize="sm" fontWeight="semibold" color="gray.700">Memory Utilization Trend</Text>
             {memoryTimeseriesQ.isLoading ? (
@@ -307,6 +314,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
                     formatter={(value: number) => `${value}%`}
                   />
                   <Legend wrapperStyle={{fontSize: 12}}/>
+                  <ReferenceLine y={THRESHOLDS.memoryWarning} stroke="#e53e3e" strokeDasharray="4 4" label={{ value: 'Warning', position: 'right', fontSize: 10, fill: '#e53e3e' }} />
                   <Line
                     type="monotone"
                     dataKey="avgUtil"
@@ -324,6 +332,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
                     strokeDasharray="5 5"
                     dot={false}
                   />
+                  <Brush dataKey="time" height={25} stroke="#718096" />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -331,7 +340,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
         </Box>
 
         {/* GPU Count Over Time */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="Active GPUs trend chart">
           <VStack align="start" gap={2} w="100%">
             <Text fontSize="sm" fontWeight="semibold" color="gray.700">Active GPUs Trend</Text>
             {gpuTimeseriesQ.isLoading ? (
@@ -367,6 +376,109 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
                     strokeWidth={2}
                     dot={false}
                   />
+                  <Brush dataKey="time" height={25} stroke="#718096" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </VStack>
+        </Box>
+
+        {/* Disk I/O Utilization Over Time */}
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="Disk I/O utilization trend chart">
+          <VStack align="start" gap={2} w="100%">
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Disk I/O Utilization Trend</Text>
+            {diskTimeseriesQ.isLoading ? (
+              <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
+                <Spinner size="lg"/>
+              </Box>
+            ) : !hasDiskData ? (
+              <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
+                <Text fontSize="sm" color="gray.500">No disk data available</Text>
+              </Box>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={diskTimeSeriesData}>
+                  <CartesianGrid strokeDasharray="3 3"/>
+                  <XAxis
+                    dataKey="time"
+                    tick={{fontSize: 10}}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    tick={{fontSize: 10}}
+                    label={{value: 'Disk Util %', angle: -90, position: 'insideLeft', style: {fontSize: 10}}}
+                  />
+                  <Tooltip contentStyle={{fontSize: 12}}/>
+                  <Legend wrapperStyle={{fontSize: 12}}/>
+                  <Line
+                    type="monotone"
+                    dataKey="avgUtilization"
+                    stroke="#d69e2e"
+                    name="Avg Utilization"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="maxUtilization"
+                    stroke="#e53e3e"
+                    name="Max Utilization"
+                    strokeWidth={1}
+                    strokeDasharray="5 5"
+                    dot={false}
+                  />
+                  <Brush dataKey="time" height={25} stroke="#718096" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </VStack>
+        </Box>
+
+        {/* Disk IOPS Over Time */}
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="Disk IOPS trend chart">
+          <VStack align="start" gap={2} w="100%">
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Disk IOPS Trend</Text>
+            {diskTimeseriesQ.isLoading ? (
+              <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
+                <Spinner size="lg"/>
+              </Box>
+            ) : !hasDiskData ? (
+              <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
+                <Text fontSize="sm" color="gray.500">No disk data available</Text>
+              </Box>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={diskTimeSeriesData}>
+                  <CartesianGrid strokeDasharray="3 3"/>
+                  <XAxis
+                    dataKey="time"
+                    tick={{fontSize: 10}}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{fontSize: 10}}
+                    label={{value: 'IOPS', angle: -90, position: 'insideLeft', style: {fontSize: 10}}}
+                  />
+                  <Tooltip contentStyle={{fontSize: 12}}/>
+                  <Legend wrapperStyle={{fontSize: 12}}/>
+                  <Line
+                    type="monotone"
+                    dataKey="readIOPS"
+                    stroke="#3182ce"
+                    name="Read IOPS"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="writeIOPS"
+                    stroke="#dd6b20"
+                    name="Write IOPS"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Brush dataKey="time" height={25} stroke="#718096" />
                 </LineChart>
               </ResponsiveContainer>
             )}

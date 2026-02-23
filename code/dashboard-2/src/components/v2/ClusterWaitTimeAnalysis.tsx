@@ -1,18 +1,11 @@
 import { VStack, Text, SimpleGrid, Box, Table, Stat, Spinner } from '@chakra-ui/react'
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts'
 import type { PartitionResponse } from '../../client'
-import { useClusterClient } from '../../hooks/useClusterClient'
-import { useClusterPartitions } from '../../hooks/v2/useClusterQueries'
+import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
 
-interface Props {
-  cluster: string
-}
-
-export const ClusterWaitTimeAnalysis = ({ cluster }: Props) => {
-  const client = useClusterClient(cluster)
-  
-  const partitionsQ = useClusterPartitions({ cluster, client })
+export const ClusterWaitTimeAnalysis = () => {
+  const { partitionsQuery: partitionsQ } = useClusterOverviewContext()
 
   const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponse>
   const partitions = Object.values(partitionsMap)
@@ -56,7 +49,7 @@ export const ClusterWaitTimeAnalysis = ({ cluster }: Props) => {
 
   // Sort by oldest pending
   const sortedByOldestPending = waitTimeStats
-    .filter(s => s.oldestPendingMin > 0)
+    .filter(s => s.pendingCount > 0 && s.oldestPendingMin > 0)
     .sort((a, b) => b.oldestPendingMin - a.oldestPendingMin)
     .slice(0, 10)
 
@@ -159,16 +152,17 @@ export const ClusterWaitTimeAnalysis = ({ cluster }: Props) => {
                     tick={{ fontSize: 10 }}
                     label={{ value: 'Wait Time (min)', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
                   />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ fontSize: 12 }}
-                    formatter={(value: number) => `${formatTime(value)}`}
+                    formatter={(value: number | undefined) => value !== undefined ? `${formatTime(value)}` : 'N/A'}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar 
                     dataKey="waitTime" 
-                    fill="#ed8936" 
+                    fill="#ed8936"
                     name="Wait Time"
                   />
+                  <Brush dataKey="partition" height={25} stroke="#718096" />
                 </BarChart>
               </ResponsiveContainer>
             )}

@@ -1,22 +1,19 @@
 import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip } from '@chakra-ui/react'
+import { useNavigate } from 'react-router'
 
 import type { NodeInfoResponse, NodeStateResponse, PartitionResponse, NodeSampleProcessGpuAccResponse } from '../../client'
-import { useClusterClient } from '../../hooks/useClusterClient'
-import { useClusterNodes, useClusterNodesInfo, useClusterNodesStates, useClusterNodesProcessGpuUtil } from '../../hooks/v2/useNodeQueries'
-import { useClusterPartitions } from '../../hooks/v2/useClusterQueries'
+import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
 
-interface Props {
-  cluster: string
-}
-
-export const ClusterOverviewCards = ({ cluster }: Props) => {
-  const client = useClusterClient(cluster)
-  
-  const nodesQ = useClusterNodes({ cluster, client })
-  const infoQ = useClusterNodesInfo({ cluster, client })
-  const statesQ = useClusterNodesStates({ cluster, client })
-  const gpuUtilQ = useClusterNodesProcessGpuUtil({ cluster, client })
-  const partitionsQ = useClusterPartitions({ cluster, client })
+export const ClusterOverviewCards = () => {
+  const navigate = useNavigate()
+  const {
+    cluster,
+    nodesQuery: nodesQ,
+    nodesInfoQuery: infoQ,
+    nodesStatesQuery: statesQ,
+    gpuUtilQuery: gpuUtilQ,
+    partitionsQuery: partitionsQ,
+  } = useClusterOverviewContext()
 
   // Process nodes data
   const nodes = (nodesQ.data ?? []) as string[]
@@ -24,7 +21,8 @@ export const ClusterOverviewCards = ({ cluster }: Props) => {
   const statesArr = (statesQ.data ?? []) as NodeStateResponse[]
 
   const totalNodes = nodes.length
-  const reportingNodes = Object.keys(infoMap).length
+  const nodeSet = new Set(nodes)
+  const reportingNodes = Object.keys(infoMap).filter(n => nodeSet.has(n)).length
   const idleNodes = (() => {
     const latestByNode = new Map<string, NodeStateResponse>()
     for (const s of statesArr) {
@@ -90,11 +88,20 @@ export const ClusterOverviewCards = ({ cluster }: Props) => {
     }
   }
 
-  const Card = ({ label, value, loading, errors }: { label: string; value: string | number; loading?: boolean; errors?: string[] }) => {
+  const Card = ({ label, value, loading, errors, onClick }: { label: string; value: string | number; loading?: boolean; errors?: string[]; onClick?: () => void }) => {
     const hasErrors = errors && errors.length > 0
     const errorMsg = hasErrors ? errors.join('; ') : ''
     return (
-      <Stat.Root borderWidth="1px" borderColor="gray.200" rounded="md" p={2} bg="white">
+      <Stat.Root
+        borderWidth="1px"
+        borderColor="gray.200"
+        rounded="md"
+        p={2}
+        bg="white"
+        cursor={onClick ? 'pointer' : undefined}
+        _hover={onClick ? { borderColor: 'blue.300', bg: 'gray.50' } : undefined}
+        onClick={onClick}
+      >
         <HStack gap={1} justify="space-between">
           <Stat.Label fontSize="sm" color="gray.600">{label}</Stat.Label>
           {hasErrors && (
@@ -121,31 +128,35 @@ export const ClusterOverviewCards = ({ cluster }: Props) => {
       <Text fontSize="lg" fontWeight="semibold">Cluster overview</Text>
       <SimpleGrid columns={{ base: 1, sm: 2, md: 4, lg: 8 }} gap={3} w="100%">
         {/* Nodes metrics */}
-        <Card 
-          label="Total Nodes" 
-          value={totalNodes} 
-          loading={nodesQ.isLoading} 
-          errors={nodesQ.isError ? [getErrMsg(nodesQ.error)] : []} 
+        <Card
+          label="Total Nodes"
+          value={totalNodes}
+          loading={nodesQ.isLoading}
+          errors={nodesQ.isError ? [getErrMsg(nodesQ.error)] : []}
+          onClick={() => navigate(`/v2/${cluster}/nodes`)}
         />
-        <Card 
-          label="Reporting Nodes" 
-          value={reportingNodes} 
-          loading={infoQ.isLoading} 
-          errors={infoQ.isError ? [getErrMsg(infoQ.error)] : []} 
+        <Card
+          label="Reporting Nodes"
+          value={reportingNodes}
+          loading={infoQ.isLoading}
+          errors={infoQ.isError ? [getErrMsg(infoQ.error)] : []}
+          onClick={() => navigate(`/v2/${cluster}/nodes`)}
         />
-        <Card 
-          label="Idle Nodes" 
-          value={idleNodes} 
-          loading={statesQ.isLoading} 
-          errors={statesQ.isError ? [getErrMsg(statesQ.error)] : []} 
+        <Card
+          label="Idle Nodes"
+          value={idleNodes}
+          loading={statesQ.isLoading}
+          errors={statesQ.isError ? [getErrMsg(statesQ.error)] : []}
+          onClick={() => navigate(`/v2/${cluster}/nodes`)}
         />
 
         {/* Partitions metrics */}
-        <Card 
-          label="Partitions" 
-          value={totalPartitions} 
-          loading={partitionsQ.isLoading} 
-          errors={partitionsQ.isError ? [getErrMsg(partitionsQ.error)] : []} 
+        <Card
+          label="Partitions"
+          value={totalPartitions}
+          loading={partitionsQ.isLoading}
+          errors={partitionsQ.isError ? [getErrMsg(partitionsQ.error)] : []}
+          onClick={() => navigate(`/v2/${cluster}/partitions`)}
         />
 
         {/* Resource metrics */}
@@ -166,7 +177,16 @@ export const ClusterOverviewCards = ({ cluster }: Props) => {
         />
 
         {/* GPU Utilization Card */}
-        <Stat.Root borderWidth="1px" borderColor="gray.200" rounded="md" p={2} bg="white">
+        <Stat.Root
+          borderWidth="1px"
+          borderColor="gray.200"
+          rounded="md"
+          p={2}
+          bg="white"
+          cursor="pointer"
+          _hover={{ borderColor: 'blue.300', bg: 'gray.50' }}
+          onClick={() => navigate(`/v2/${cluster}/nodes`)}
+        >
           <HStack gap={1} justify="space-between">
             <Stat.Label fontSize="sm" color="gray.600">GPU Utilization</Stat.Label>
             {(gpuUtilQ.isError || infoQ.isError) && (
@@ -189,7 +209,7 @@ export const ClusterOverviewCards = ({ cluster }: Props) => {
             <Text fontSize="xs" color="gray.600">{gpusInUse} / {totalGpus}</Text>
             <Tag.Root size="sm" colorPalette={gpuColor}><Tag.Label>{gpuUtilPct}%</Tag.Label></Tag.Root>
           </HStack>
-          <Progress.Root value={gpuUtilPct} max={100} colorPalette={gpuColor} w="100%" size="xs">
+          <Progress.Root value={gpuUtilPct} max={100} colorPalette={gpuColor} w="100%" size="xs" aria-label={`GPU utilization: ${gpuUtilPct}% (${gpusInUse} of ${totalGpus} in use)`}>
             <Progress.Track>
               <Progress.Range />
             </Progress.Track>
@@ -200,11 +220,12 @@ export const ClusterOverviewCards = ({ cluster }: Props) => {
         </Stat.Root>
 
         {/* Queue metrics */}
-        <Card 
-          label="Pending Jobs" 
-          value={totalPendingJobs} 
-          loading={partitionsQ.isLoading} 
-          errors={partitionsQ.isError ? [getErrMsg(partitionsQ.error)] : []} 
+        <Card
+          label="Pending Jobs"
+          value={totalPendingJobs}
+          loading={partitionsQ.isLoading}
+          errors={partitionsQ.isError ? [getErrMsg(partitionsQ.error)] : []}
+          onClick={() => navigate(`/v2/${cluster}/jobs`)}
         />
       </SimpleGrid>
     </VStack>
