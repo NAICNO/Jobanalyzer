@@ -5140,7 +5140,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 1771421872,
+              "default": 1771619054,
               "title": "Timestamp"
             }
           },
@@ -5366,12 +5366,15 @@
           "host": {
             "type": "string",
             "title": "Host",
-            "default": "localhost"
+            "default": "0.0.0.0"
           },
           "port": {
             "type": "integer",
             "title": "Port",
             "default": 12000
+          },
+          "ssl": {
+            "$ref": "#/components/schemas/SSLSettings"
           },
           "database": {
             "$ref": "#/components/schemas/DatabaseSettings"
@@ -5404,6 +5407,9 @@
           },
           "oauth": {
             "$ref": "#/components/schemas/OAuthSettings"
+          },
+          "listen": {
+            "$ref": "#/components/schemas/ListenSettings"
           }
         },
         "type": "object",
@@ -6418,6 +6424,67 @@
         ],
         "title": "JobsResponse"
       },
+      "ListenSettings": {
+        "properties": {
+          "CLUSTER_NAME": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cluster Name",
+            "description": "Name of cluster"
+          },
+          "lookback": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lookback",
+            "description": "Lookback timeframe in hours"
+          },
+          "ui": {
+            "$ref": "#/components/schemas/ServerSettings",
+            "description": "Connection to UI",
+            "default": {
+              "host": "localhost",
+              "port": 25052
+            }
+          },
+          "KAFKA_BROKER": {
+            "$ref": "#/components/schemas/ServerSettings",
+            "description": "Connection to kafka broker",
+            "default": {
+              "host": "localhost",
+              "port": 9099
+            }
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ListenStatsSettings"
+          }
+        },
+        "type": "object",
+        "title": "ListenSettings"
+      },
+      "ListenStatsSettings": {
+        "properties": {
+          "interval": {
+            "type": "integer",
+            "title": "Interval",
+            "description": "Interval in seconds to compute stats",
+            "default": 30
+          }
+        },
+        "type": "object",
+        "title": "ListenStatsSettings"
+      },
       "NodeDiskTimeseriesResponse": {
         "additionalProperties": {
           "items": {
@@ -7050,6 +7117,36 @@
         ],
         "title": "SAcctResponse"
       },
+      "SSLSettings": {
+        "properties": {
+          "keyfile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keyfile",
+            "description": "Keyfile to use"
+          },
+          "certfile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Certfile",
+            "description": "Certfile to use"
+          }
+        },
+        "type": "object",
+        "title": "SSLSettings"
+      },
       "SampleDiskResponse": {
         "properties": {
           "time": {
@@ -7452,6 +7549,24 @@
         ],
         "title": "SampleProcessGpuAccResponse"
       },
+      "ServerSettings": {
+        "properties": {
+          "host": {
+            "type": "string",
+            "title": "Host"
+          },
+          "port": {
+            "type": "integer",
+            "title": "Port"
+          }
+        },
+        "type": "object",
+        "required": [
+          "host",
+          "port"
+        ],
+        "title": "ServerSettings"
+      },
       "SystemProcessTimeseriesResponse": {
         "properties": {
           "job": {
@@ -7670,23 +7785,11 @@
         ],
         "title": "ValidationError"
       }
-    },
-    "securitySchemes": {
-      "BearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
     }
   },
   "servers": [
     {
       "url": "/api/v2"
-    }
-  ],
-  "security": [
-    {
-      "BearerAuth": []
     }
   ]
 }
