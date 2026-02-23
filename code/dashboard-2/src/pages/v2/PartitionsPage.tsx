@@ -86,7 +86,7 @@ export const PartitionsPage = () => {
       {/* Overview cards across all partitions */}
       {partitions.length > 0 && (
         <Box px={4} pt={4} pb={2}>
-          <PartitionOverviewCards partitions={partitions} />
+          <PartitionOverviewCards partitions={partitions} cluster={clusterName} client={client} />
         </Box>
       )}
 

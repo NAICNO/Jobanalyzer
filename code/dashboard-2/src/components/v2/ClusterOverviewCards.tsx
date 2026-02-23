@@ -1,8 +1,9 @@
 import { SimpleGrid, VStack, Text, HStack, Badge, Tag, Progress, Stat, Tooltip } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 
-import type { NodeInfoResponse, NodeStateResponse, PartitionResponse, NodeSampleProcessGpuAccResponse } from '../../client'
+import type { NodeInfoResponse, NodeStateResponse, PartitionResponse, NodeSampleProcessGpuAccResponse, SampleProcessAccResponse } from '../../client'
 import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
+import { getUtilizationColor } from '../../util/colorStandards'
 
 export const ClusterOverviewCards = () => {
   const navigate = useNavigate()
@@ -12,6 +13,7 @@ export const ClusterOverviewCards = () => {
     nodesInfoQuery: infoQ,
     nodesStatesQuery: statesQ,
     gpuUtilQuery: gpuUtilQ,
+    memoryUtilQuery: memoryUtilQ,
     partitionsQuery: partitionsQ,
   } = useClusterOverviewContext()
 
@@ -48,13 +50,48 @@ export const ClusterOverviewCards = () => {
   let totalGpusFromPartitions = 0
   let gpusInUseFromPartitions = 0
   let totalPendingJobs = 0
+  let totalRunningJobs = 0
+  let allocatedCpus = 0
 
   for (const p of partitions) {
     totalCpus += p.total_cpus ?? 0
     totalGpusFromPartitions += p.total_gpus ?? 0
     gpusInUseFromPartitions += p.gpus_in_use?.length ?? 0
     totalPendingJobs += p.jobs_pending?.length ?? 0
+    totalRunningJobs += p.jobs_running?.length ?? 0
+
+    // Calculate allocated CPUs from running jobs
+    for (const job of p.jobs_running ?? []) {
+      allocatedCpus += job.requested_cpus ?? 0
+    }
   }
+
+  const cpuUtilPct = totalCpus > 0 ? Math.round((allocatedCpus / totalCpus) * 100) : 0
+  const cpuColor = totalCpus === 0 ? 'gray' : getUtilizationColor(cpuUtilPct)
+
+  // Calculate total memory from nodes
+  let totalMemoryGB = 0
+  for (const node of Object.values(infoMap)) {
+    totalMemoryGB += (node.memory ?? 0) / (1024 * 1024) // Convert bytes to GB
+  }
+  totalMemoryGB = Math.round(totalMemoryGB)
+
+  // Calculate memory utilization from timeseries (latest snapshot)
+  const memoryData = (memoryUtilQ.data ?? {}) as Record<string, Array<SampleProcessAccResponse>>
+  let totalMemoryUtilPct = 0
+  let memorySampleCount = 0
+
+  for (const samples of Object.values(memoryData)) {
+    if (Array.isArray(samples) && samples.length > 0) {
+      const latestSample = samples[samples.length - 1]
+      totalMemoryUtilPct += latestSample.memory_util ?? 0
+      memorySampleCount++
+    }
+  }
+
+  const memoryUtilPct = memorySampleCount > 0 ? Math.round(totalMemoryUtilPct / memorySampleCount) : 0
+  const usedMemoryGB = Math.round(totalMemoryGB * (memoryUtilPct / 100))
+  const memoryColor = getUtilizationColor(memoryUtilPct)
 
   // Calculate GPU utilization from nodes (alternative source)
   const totalGpusFromNodes = Object.values(infoMap).reduce((sum, n) => sum + (Array.isArray(n.cards) ? n.cards.length : 0), 0)
@@ -75,7 +112,7 @@ export const ClusterOverviewCards = () => {
   const totalGpus = totalGpusFromNodes > 0 ? totalGpusFromNodes : totalGpusFromPartitions
   const gpusInUse = gpusInUseFromUtil > 0 ? gpusInUseFromUtil : gpusInUseFromPartitions
   const gpuUtilPct = totalGpus > 0 ? Math.round((gpusInUse / totalGpus) * 100) : 0
-  const gpuColor = totalGpus === 0 ? 'gray' : gpuUtilPct > 90 ? 'red' : gpuUtilPct > 50 ? 'yellow' : 'green'
+  const gpuColor = totalGpus === 0 ? 'gray' : getUtilizationColor(gpuUtilPct)
 
   const getErrMsg = (e: unknown): string => {
     if (!e) return 'Unknown error'
@@ -126,7 +163,7 @@ export const ClusterOverviewCards = () => {
   return (
     <VStack w="100%" align="start" gap={2}>
       <Text fontSize="lg" fontWeight="semibold">Cluster overview</Text>
-      <SimpleGrid columns={{ base: 1, sm: 2, md: 4, lg: 8 }} gap={3} w="100%">
+      <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 9 }} gap={3} w="100%">
         {/* Nodes metrics */}
         <Card
           label="Total Nodes"
@@ -160,23 +197,42 @@ export const ClusterOverviewCards = () => {
         />
 
         {/* Resource metrics */}
-        <Card 
-          label="Total CPUs" 
-          value={totalCpus} 
-          loading={partitionsQ.isLoading} 
-          errors={partitionsQ.isError ? [getErrMsg(partitionsQ.error)] : []} 
-        />
-        <Card 
-          label="Total GPUs" 
-          value={totalGpus} 
-          loading={infoQ.isLoading || partitionsQ.isLoading} 
-          errors={[
-            ...(infoQ.isError ? [getErrMsg(infoQ.error)] : []),
-            ...(partitionsQ.isError ? [getErrMsg(partitionsQ.error)] : []),
-          ]} 
-        />
+        {/* CPUs Card - Combined Total + Utilization */}
+        <Stat.Root
+          borderWidth="1px"
+          borderColor="gray.200"
+          rounded="md"
+          p={2}
+          bg="white"
+        >
+          <HStack gap={1} justify="space-between">
+            <Stat.Label fontSize="sm" color="gray.600">CPUs</Stat.Label>
+            {partitionsQ.isError && (
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <Badge colorPalette="red" variant="solid" size="xs" cursor="pointer">!</Badge>
+                </Tooltip.Trigger>
+                <Tooltip.Positioner>
+                  <Tooltip.Content>{getErrMsg(partitionsQ.error)}</Tooltip.Content>
+                </Tooltip.Positioner>
+              </Tooltip.Root>
+            )}
+          </HStack>
+          <HStack justify="space-between" w="100%" mb={1}>
+            <Text fontSize="xs" color="gray.600">{allocatedCpus} / {totalCpus}</Text>
+            <Tag.Root size="sm" colorPalette={cpuColor}><Tag.Label>{cpuUtilPct}%</Tag.Label></Tag.Root>
+          </HStack>
+          <Progress.Root value={cpuUtilPct} max={100} colorPalette={cpuColor} w="100%" size="xs" aria-label={`CPU utilization: ${cpuUtilPct}% (${allocatedCpus} of ${totalCpus} allocated)`}>
+            <Progress.Track>
+              <Progress.Range />
+            </Progress.Track>
+          </Progress.Root>
+          {partitionsQ.isLoading && (
+            <Badge colorPalette="blue" size="xs" mt={1}>updating</Badge>
+          )}
+        </Stat.Root>
 
-        {/* GPU Utilization Card */}
+        {/* GPUs Card - Combined Total + Utilization */}
         <Stat.Root
           borderWidth="1px"
           borderColor="gray.200"
@@ -188,7 +244,7 @@ export const ClusterOverviewCards = () => {
           onClick={() => navigate(`/v2/${cluster}/nodes`)}
         >
           <HStack gap={1} justify="space-between">
-            <Stat.Label fontSize="sm" color="gray.600">GPU Utilization</Stat.Label>
+            <Stat.Label fontSize="sm" color="gray.600">GPUs</Stat.Label>
             {(gpuUtilQ.isError || infoQ.isError) && (
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
@@ -219,7 +275,57 @@ export const ClusterOverviewCards = () => {
           )}
         </Stat.Root>
 
+        {/* Memory Card - Combined Total + Utilization */}
+        <Stat.Root
+          borderWidth="1px"
+          borderColor="gray.200"
+          rounded="md"
+          p={2}
+          bg="white"
+          cursor="pointer"
+          _hover={{ borderColor: 'blue.300', bg: 'gray.50' }}
+          onClick={() => navigate(`/v2/${cluster}/nodes`)}
+        >
+          <HStack gap={1} justify="space-between">
+            <Stat.Label fontSize="sm" color="gray.600">Memory</Stat.Label>
+            {(memoryUtilQ.isError || infoQ.isError) && (
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <Badge colorPalette="red" variant="solid" size="xs" cursor="pointer">!</Badge>
+                </Tooltip.Trigger>
+                <Tooltip.Positioner>
+                  <Tooltip.Content>
+                    {[
+                      ...(memoryUtilQ.isError ? [getErrMsg(memoryUtilQ.error)] : []),
+                      ...(infoQ.isError ? [getErrMsg(infoQ.error)] : [])
+                    ].join('; ')}
+                  </Tooltip.Content>
+                </Tooltip.Positioner>
+              </Tooltip.Root>
+            )}
+          </HStack>
+          <HStack justify="space-between" w="100%" mb={1}>
+            <Text fontSize="xs" color="gray.600">{usedMemoryGB} / {totalMemoryGB} GB</Text>
+            <Tag.Root size="sm" colorPalette={memoryColor}><Tag.Label>{memoryUtilPct}%</Tag.Label></Tag.Root>
+          </HStack>
+          <Progress.Root value={memoryUtilPct} max={100} colorPalette={memoryColor} w="100%" size="xs" aria-label={`Memory utilization: ${memoryUtilPct}% (${usedMemoryGB} of ${totalMemoryGB} GB in use)`}>
+            <Progress.Track>
+              <Progress.Range />
+            </Progress.Track>
+          </Progress.Root>
+          {(memoryUtilQ.isLoading || infoQ.isLoading) && (
+            <Badge colorPalette="blue" size="xs" mt={1}>updating</Badge>
+          )}
+        </Stat.Root>
+
         {/* Queue metrics */}
+        <Card
+          label="Running Jobs"
+          value={totalRunningJobs}
+          loading={partitionsQ.isLoading}
+          errors={partitionsQ.isError ? [getErrMsg(partitionsQ.error)] : []}
+          onClick={() => navigate(`/v2/${cluster}/jobs/running`)}
+        />
         <Card
           label="Pending Jobs"
           value={totalPendingJobs}
