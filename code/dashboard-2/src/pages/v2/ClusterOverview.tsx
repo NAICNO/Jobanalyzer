@@ -29,10 +29,10 @@ export const ClusterOverview = () => {
       <ClusterResourceDistribution cluster={clusterName} />
 
       <ClusterQueueActivity cluster={clusterName} />
-      {/*
+
       <ClusterJobAnalytics cluster={clusterName} />
 
-      <ClusterWaitTimeAnalysis cluster={clusterName} /> */}
+      <ClusterWaitTimeAnalysis cluster={clusterName} />
 
       <ClusterTimebasedActivity cluster={clusterName} />
     </VStack>
