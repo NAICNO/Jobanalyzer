@@ -1,21 +1,24 @@
-import { VStack, HStack, Text, Badge, Alert, SimpleGrid, Box, Stat, Tag, Spinner } from '@chakra-ui/react'
+import { VStack, HStack, Text, Badge, Alert, Box, Tag, Spinner, Wrap, Collapsible } from '@chakra-ui/react'
+import { useNavigate } from 'react-router'
+import { LuChevronRight } from 'react-icons/lu'
 
 import type { ErrorMessageResponse, NodeStateResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
-import { useClusterNodes, useClusterNodesStates, useClusterNodesLastProbeTimestamp } from '../../hooks/v2/useNodeQueries'
+import { useClusterNodesLastProbeTimestamp } from '../../hooks/v2/useNodeQueries'
 import { useClusterErrorMessages } from '../../hooks/v2/useClusterQueries'
+import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
 
 interface Props {
   cluster: string
 }
 
 export const ClusterHealthStatus = ({ cluster }: Props) => {
+  const navigate = useNavigate()
   const client = useClusterClient(cluster)
-  
+  const { nodesStatesQuery: statesQuery, nodesQuery: nodesQ } = useClusterOverviewContext()
+
   const errorsQuery = useClusterErrorMessages({ cluster, client })
-  const statesQuery = useClusterNodesStates({ cluster, client })
   const timestampsQuery = useClusterNodesLastProbeTimestamp({ cluster, client })
-  const nodesQ = useClusterNodes({ cluster, client })
 
   const errorsMap = (errorsQuery.data ?? {}) as Record<string, ErrorMessageResponse>
   const errors = Object.values(errorsMap)
@@ -23,9 +26,18 @@ export const ClusterHealthStatus = ({ cluster }: Props) => {
     .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
     .slice(0, 10)
 
+  // Deduplicate to latest state per node, then count states
   const statesArr = (statesQuery.data ?? []) as NodeStateResponse[]
-  const statesCounts: Record<string, number> = {}
+  const latestStateByNode = new Map<string, NodeStateResponse>()
   for (const s of statesArr) {
+    const existing = latestStateByNode.get(s.node)
+    if (!existing || new Date(s.time) > new Date(existing.time)) {
+      latestStateByNode.set(s.node, s)
+    }
+  }
+
+  const statesCounts: Record<string, number> = {}
+  for (const s of latestStateByNode.values()) {
     if (Array.isArray(s.states)) {
       for (const state of s.states) {
         statesCounts[state] = (statesCounts[state] ?? 0) + 1
@@ -35,13 +47,13 @@ export const ClusterHealthStatus = ({ cluster }: Props) => {
 
   const timestampsMap = (timestampsQuery.data ?? {}) as Record<string, Date | null>
   const nodes = (nodesQ.data ?? []) as string[]
-  
+
   // Calculate staleness (nodes with no recent data)
   const now = new Date()
   const staleThresholdMs = 5 * 60 * 1000 // 5 minutes
   let staleNodes = 0
   let missingNodes = 0
-  
+
   for (const node of nodes) {
     const ts = timestampsMap[node]
     if (!ts) {
@@ -59,14 +71,17 @@ export const ClusterHealthStatus = ({ cluster }: Props) => {
 
   const getStateColor = (state: string): string => {
     const s = state.toUpperCase()
-    if (s.includes('DOWN') || s.includes('DRAIN') || s.includes('FAIL')) return 'red'
+    if (s.includes('DOWN') || s.includes('DRAIN') || s.includes('FAIL') || s.includes('INVALID')) return 'red'
     if (s.includes('IDLE')) return 'green'
     if (s.includes('ALLOC') || s.includes('MIX')) return 'blue'
+    if (s.includes('COMPLETING') || s.includes('PLANNED') || s.includes('RESERVED') || s.includes('MAINTENANCE')) return 'yellow'
     return 'gray'
   }
 
+  const sortedStates = Object.entries(statesCounts).sort((a, b) => b[1] - a[1])
+
   return (
-    <VStack w="100%" align="start" gap={4}>
+    <VStack w="100%" align="start" gap={3}>
       <HStack justify="space-between" w="100%">
         <Text fontSize="lg" fontWeight="semibold">Cluster Health</Text>
         {isLoading && <Spinner size="sm" />}
@@ -79,24 +94,87 @@ export const ClusterHealthStatus = ({ cluster }: Props) => {
         </Alert.Root>
       )}
 
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={4} w="100%">
-        {/* Recent Error Messages */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-          <VStack align="start" gap={2} w="100%">
-            <HStack justify="space-between" w="100%">
-              <Text fontSize="sm" fontWeight="semibold" color="gray.700">Recent Errors</Text>
-              <Badge colorPalette={recentErrors.length > 0 ? 'red' : 'green'}>
+      {/* Node States — horizontal wrapped tags */}
+      <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%">
+        <VStack align="start" gap={2} w="100%">
+          <Text fontSize="sm" fontWeight="semibold" color="gray.700">Node States</Text>
+          {sortedStates.length === 0 ? (
+            <Text fontSize="xs" color="gray.500">No state data available</Text>
+          ) : (
+            <Wrap gap={2}>
+              {sortedStates.map(([state, count]) => (
+                <Tag.Root key={state} size="sm" colorPalette={getStateColor(state)}>
+                  <Tag.Label>{state}: {count}</Tag.Label>
+                </Tag.Root>
+              ))}
+            </Wrap>
+          )}
+
+          {/* Freshness inline */}
+          <HStack gap={4}>
+            {staleNodes > 0 ? (
+              <HStack gap={1}>
+                <Text fontSize="xs" color="gray.500">Stale (&gt;5m):</Text>
+                <Badge colorPalette="orange" size="xs">{staleNodes}</Badge>
+              </HStack>
+            ) : (
+              <Text fontSize="xs" color="gray.500">No stale nodes</Text>
+            )}
+            {missingNodes > 0 && (
+              <HStack gap={1}>
+                <Text fontSize="xs" color="gray.500">Non-reporting:</Text>
+                <Badge colorPalette="red" size="xs">{missingNodes}</Badge>
+              </HStack>
+            )}
+          </HStack>
+        </VStack>
+      </Box>
+
+      {/* Recent Errors — collapsible, closed by default when empty */}
+      <Collapsible.Root defaultOpen={recentErrors.length > 0} w="100%">
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" bg="white" w="100%">
+          <Collapsible.Trigger asChild>
+            <HStack
+              justify="space-between"
+              w="100%"
+              p={3}
+              cursor="pointer"
+              _hover={{ bg: 'gray.50' }}
+              rounded="md"
+            >
+              <HStack gap={2}>
+                <Collapsible.Indicator
+                  transition="transform 0.2s"
+                  _open={{ transform: 'rotate(90deg)' }}
+                >
+                  <LuChevronRight />
+                </Collapsible.Indicator>
+                <Text fontSize="sm" fontWeight="semibold" color="gray.700">Recent Errors</Text>
+              </HStack>
+              <Badge colorPalette={recentErrors.length > 0 ? 'red' : 'green'} size="sm">
                 {recentErrors.length}
               </Badge>
             </HStack>
-            <VStack align="start" gap={1} w="100%" maxH="200px" overflowY="auto">
+          </Collapsible.Trigger>
+          <Collapsible.Content>
+            <VStack align="start" gap={1} px={3} pb={3} maxH="300px" overflowY="auto">
               {recentErrors.length === 0 ? (
                 <Text fontSize="xs" color="gray.500">No recent errors</Text>
               ) : (
                 recentErrors.map((err, idx) => (
                   <Box key={idx} w="100%" borderBottomWidth="1px" borderColor="gray.100" pb={1}>
                     <HStack justify="space-between" align="start" w="100%">
-                      <Text fontSize="xs" fontWeight="medium" color="gray.700" truncate>{err.node}</Text>
+                      <Text
+                        fontSize="xs"
+                        fontWeight="medium"
+                        color="gray.700"
+                        truncate
+                        cursor="pointer"
+                        _hover={{ color: 'blue.600', textDecoration: 'underline' }}
+                        onClick={() => navigate(`/v2/${cluster}/nodes/${err.node}`)}
+                      >
+                        {err.node}
+                      </Text>
                       <Text fontSize="2xs" color="gray.500" whiteSpace="nowrap">
                         {new Date(err.time).toLocaleTimeString()}
                       </Text>
@@ -106,59 +184,9 @@ export const ClusterHealthStatus = ({ cluster }: Props) => {
                 ))
               )}
             </VStack>
-          </VStack>
+          </Collapsible.Content>
         </Box>
-
-        {/* Node States Breakdown */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-          <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Node States</Text>
-            <VStack align="start" gap={1} w="100%" maxH="200px" overflowY="auto">
-              {Object.entries(statesCounts).length === 0 ? (
-                <Text fontSize="xs" color="gray.500">No state data available</Text>
-              ) : (
-                Object.entries(statesCounts)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([state, count]) => (
-                    <HStack key={state} justify="space-between" w="100%">
-                      <Tag.Root size="sm" colorPalette={getStateColor(state)}>
-                        <Tag.Label>{state}</Tag.Label>
-                      </Tag.Root>
-                      <Text fontSize="sm" fontWeight="semibold">{count}</Text>
-                    </HStack>
-                  ))
-              )}
-            </VStack>
-          </VStack>
-        </Box>
-
-        {/* Staleness Indicators */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-          <VStack align="start" gap={3} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Data Freshness</Text>
-            <Stat.Root>
-              <Stat.Label fontSize="xs" color="gray.600">Stale Nodes (&gt;5m)</Stat.Label>
-              <HStack gap={2}>
-                <Stat.ValueText fontSize="xl" fontWeight="semibold">{staleNodes}</Stat.ValueText>
-                {staleNodes > 0 && <Badge colorPalette="orange">warning</Badge>}
-              </HStack>
-              <Stat.HelpText fontSize="2xs" color="gray.500">
-                No updates in last 5 minutes
-              </Stat.HelpText>
-            </Stat.Root>
-            <Stat.Root>
-              <Stat.Label fontSize="xs" color="gray.600">Non-reporting Nodes</Stat.Label>
-              <HStack gap={2}>
-                <Stat.ValueText fontSize="xl" fontWeight="semibold">{missingNodes}</Stat.ValueText>
-                {missingNodes > 0 && <Badge colorPalette="red">error</Badge>}
-              </HStack>
-              <Stat.HelpText fontSize="2xs" color="gray.500">
-                No data ever received
-              </Stat.HelpText>
-            </Stat.Root>
-          </VStack>
-        </Box>
-      </SimpleGrid>
+      </Collapsible.Root>
     </VStack>
   )
 }

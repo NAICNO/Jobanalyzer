@@ -1,10 +1,11 @@
-import type { 
-  SystemProcessTimeseriesResponse, 
+import type {
+  SystemProcessTimeseriesResponse,
   SampleProcessAccResponse,
   SampleProcessGpuAccResponse,
   JobNodeSampleProcessGpuTimeseriesResponse,
   SampleDiskTimeseriesResponse,
-  GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponse
+  GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponse,
+  NodeDiskTimeseriesResponse,
 } from '../client'
 
 /**
@@ -553,4 +554,98 @@ export const calculateDiskStats = (
     avgUtilization: sum.utilization / data.length,
     maxUtilization: Math.max(...data.map(d => d.utilization_pct)),
   }
+}
+
+/**
+ * Chart data point for cluster-wide disk I/O aggregated across all nodes
+ */
+export interface ClusterDiskDataPoint {
+  time: string
+  avgUtilization: number
+  maxUtilization: number
+  readIOPS: number
+  writeIOPS: number
+}
+
+/**
+ * Transform cluster-wide disk stats timeseries response into chart-ready data.
+ * Aggregates across all nodes and all disks at each timestamp.
+ *
+ * The response is `Record<nodename, SampleDiskTimeseriesResponse[]>` where each
+ * SampleDiskTimeseriesResponse has a `data` array of raw disk samples.
+ */
+export const transformClusterDiskstatsTimeseries = (
+  response: NodeDiskTimeseriesResponse | undefined
+): ClusterDiskDataPoint[] => {
+  if (!response) return []
+
+  // Aggregate by timestamp across all nodes and disks
+  const tsMap = new Map<number, {
+    totalUtil: number
+    maxUtil: number
+    totalReadIOPS: number
+    totalWriteIOPS: number
+    count: number
+  }>()
+
+  for (const diskArrays of Object.values(response)) {
+    if (!Array.isArray(diskArrays)) continue
+
+    for (const disk of diskArrays) {
+      if (!Array.isArray(disk.data)) continue
+
+      for (let i = 0; i < disk.data.length; i++) {
+        const current = disk.data[i]
+        const prev = i > 0 ? disk.data[i - 1] : null
+        if (!current?.time) continue
+
+        const time = new Date(current.time)
+        const ts = Math.floor(time.getTime() / 1000)
+
+        const deltaTimeSec = (current as { delta_time_in_s?: number }).delta_time_in_s
+
+        let utilization = 0
+        let readIops = 0
+        let writeIops = 0
+
+        if (deltaTimeSec && deltaTimeSec > 0) {
+          utilization = Math.min(100, (current.ms_spent_doing_ios / (deltaTimeSec * 1000)) * 100)
+          readIops = current.reads_completed / deltaTimeSec
+          writeIops = current.writes_completed / deltaTimeSec
+        } else if (prev?.time) {
+          const timeDeltaSec = (time.getTime() - new Date(prev.time).getTime()) / 1000
+          if (timeDeltaSec > 0) {
+            const ioMsDelta = current.ms_spent_doing_ios - prev.ms_spent_doing_ios
+            utilization = Math.min(100, (ioMsDelta / (timeDeltaSec * 1000)) * 100)
+            readIops = (current.reads_completed - prev.reads_completed) / timeDeltaSec
+            writeIops = (current.writes_completed - prev.writes_completed) / timeDeltaSec
+          }
+        }
+
+        utilization = Math.max(0, utilization)
+        readIops = Math.max(0, readIops)
+        writeIops = Math.max(0, writeIops)
+
+        if (!tsMap.has(ts)) {
+          tsMap.set(ts, { totalUtil: 0, maxUtil: 0, totalReadIOPS: 0, totalWriteIOPS: 0, count: 0 })
+        }
+        const entry = tsMap.get(ts)!
+        entry.totalUtil += utilization
+        entry.maxUtil = Math.max(entry.maxUtil, utilization)
+        entry.totalReadIOPS += readIops
+        entry.totalWriteIOPS += writeIops
+        entry.count++
+      }
+    }
+  }
+
+  return Array.from(tsMap.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([ts, data]) => ({
+      time: new Date(ts * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      avgUtilization: data.count > 0 ? Math.round(data.totalUtil / data.count) : 0,
+      maxUtilization: Math.round(data.maxUtil),
+      readIOPS: data.count > 0 ? Math.round(data.totalReadIOPS / data.count) : 0,
+      writeIOPS: data.count > 0 ? Math.round(data.totalWriteIOPS / data.count) : 0,
+    }))
 }
