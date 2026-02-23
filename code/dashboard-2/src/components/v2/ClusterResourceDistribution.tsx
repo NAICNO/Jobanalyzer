@@ -1,20 +1,17 @@
 import { VStack, HStack, Text, SimpleGrid, Box, Progress, Stat, Tag } from '@chakra-ui/react'
+import { useNavigate } from 'react-router'
 
 import type { PartitionResponse, NodeInfoResponse, NodeStateResponse } from '../../client'
-import { useClusterClient } from '../../hooks/useClusterClient'
-import { useClusterNodesInfo, useClusterNodesStates } from '../../hooks/v2/useNodeQueries'
-import { useClusterPartitions } from '../../hooks/v2/useClusterQueries'
+import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
 
-interface Props {
-  cluster: string
-}
-
-export const ClusterResourceDistribution = ({ cluster }: Props) => {
-  const client = useClusterClient(cluster)
-  
-  const partitionsQ = useClusterPartitions({ cluster, client })
-  const infoQ = useClusterNodesInfo({ cluster, client })
-  const statesQ = useClusterNodesStates({ cluster, client })
+export const ClusterResourceDistribution = () => {
+  const navigate = useNavigate()
+  const {
+    cluster,
+    partitionsQuery: partitionsQ,
+    nodesInfoQuery: infoQ,
+    nodesStatesQuery: statesQ,
+  } = useClusterOverviewContext()
 
   const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponse>
   const partitions = Object.values(partitionsMap).sort((a, b) => (b.total_gpus ?? 0) - (a.total_gpus ?? 0))
@@ -73,7 +70,16 @@ export const ClusterResourceDistribution = ({ cluster }: Props) => {
                   return (
                     <Box key={partition.name} w="100%" borderBottomWidth="1px" borderColor="gray.100" pb={2}>
                       <HStack justify="space-between" w="100%" mb={1}>
-                        <Text fontSize="xs" fontWeight="medium" color="gray.700">{partition.name}</Text>
+                        <Text
+                          fontSize="xs"
+                          fontWeight="medium"
+                          color="gray.700"
+                          cursor="pointer"
+                          _hover={{ color: 'blue.600', textDecoration: 'underline' }}
+                          onClick={() => navigate(`/v2/${cluster}/partitions/${partition.name}`)}
+                        >
+                          {partition.name}
+                        </Text>
                         <HStack gap={1}>
                           <Tag.Root size="sm" variant="subtle">
                             <Tag.Label>{cpuTotal} CPUs</Tag.Label>
@@ -141,7 +147,16 @@ export const ClusterResourceDistribution = ({ cluster }: Props) => {
                     <HStack key={node.name} justify="space-between" w="100%" borderBottomWidth="1px" borderColor="gray.100" pb={1}>
                       <VStack align="start" gap={0} flex={1}>
                         <HStack gap={1}>
-                          <Text fontSize="xs" fontWeight="medium" color="gray.700">{node.name}</Text>
+                          <Text
+                            fontSize="xs"
+                            fontWeight="medium"
+                            color="gray.700"
+                            cursor="pointer"
+                            _hover={{ color: 'blue.600', textDecoration: 'underline' }}
+                            onClick={() => navigate(`/v2/${cluster}/nodes/${node.name}`)}
+                          >
+                            {node.name}
+                          </Text>
                           {states.length > 0 && (
                             <Tag.Root size="sm" colorPalette={stateColor}>
                               <Tag.Label>{states[0]}</Tag.Label>
@@ -182,7 +197,16 @@ export const ClusterResourceDistribution = ({ cluster }: Props) => {
                   .map((node) => (
                     <HStack key={node.name} justify="space-between" w="100%">
                       <VStack align="start" gap={0} flex={1}>
-                        <Text fontSize="xs" fontWeight="medium" color="gray.700">{node.name}</Text>
+                        <Text
+                          fontSize="xs"
+                          fontWeight="medium"
+                          color="gray.700"
+                          cursor="pointer"
+                          _hover={{ color: 'blue.600', textDecoration: 'underline' }}
+                          onClick={() => navigate(`/v2/${cluster}/nodes/${node.name}`)}
+                        >
+                          {node.name}
+                        </Text>
                         <Text fontSize="2xs" color="gray.500">{node.cpuCount} CPUs</Text>
                       </VStack>
                       <Tag.Root size="sm" colorPalette="purple">

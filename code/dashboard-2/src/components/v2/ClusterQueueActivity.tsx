@@ -1,22 +1,18 @@
-import { VStack, HStack, Text, SimpleGrid, Box, Stat, Badge } from '@chakra-ui/react'
+import { VStack, Text, SimpleGrid, Box } from '@chakra-ui/react'
+import { useNavigate } from 'react-router'
 import { AgGridReact } from 'ag-grid-react'
-import type { ColDef, ICellRendererParams } from 'ag-grid-community'
+import type { ColDef, ICellRendererParams, RowClickedEvent } from 'ag-grid-community'
 import { themeQuartz } from 'ag-grid-community'
 
 import type { PartitionResponse } from '../../client'
-import { useClusterClient } from '../../hooks/useClusterClient'
-import { useClusterPartitions } from '../../hooks/v2/useClusterQueries'
+import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
 
-interface Props {
-  cluster: string
-}
+export const ClusterQueueActivity = () => {
+  const navigate = useNavigate()
+  const { cluster, partitionsQuery: partitionsQ } = useClusterOverviewContext()
 
-export const ClusterQueueActivity = ({ cluster }: Props) => {
-  const client = useClusterClient(cluster)
-  
-  const partitionsQ = useClusterPartitions({ cluster, client })
-
-  const partitions = (partitionsQ.data ?? []) as PartitionResponse[]
+  const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponse>
+  const partitions = Object.values(partitionsMap)
 
   // Aggregate job counts across all partitions
   let totalRunning = 0
@@ -69,10 +65,6 @@ export const ClusterQueueActivity = ({ cluster }: Props) => {
   const sortedPartitions = jobsByPartition
     .map(p => ({ ...p, total: p.running + p.pending }))
     .sort((a, b) => b.total - a.total)
-
-  // Calculate trends (mock for now - would need historical data)
-  const runningTrend = totalRunning > 0 ? 'up' : 'neutral'
-  const pendingTrend = totalPending > 10 ? 'up' : totalPending > 0 ? 'neutral' : 'down'
 
   // Cell renderer for running jobs (green badge)
   const runningCellRenderer = (params: ICellRendererParams) => {
@@ -194,59 +186,6 @@ export const ClusterQueueActivity = ({ cluster }: Props) => {
     <VStack w="100%" align="start" gap={4}>
       <Text fontSize="lg" fontWeight="semibold">Queue Activity</Text>
 
-      {/* Summary Cards */}
-      <SimpleGrid columns={{ base: 2, md: 4 }} gap={3} w="100%">
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-          <Stat.Root>
-            <Stat.Label fontSize="sm" color="gray.600">Running Jobs</Stat.Label>
-            <HStack gap={2}>
-              <Stat.ValueText fontSize="2xl" fontWeight="bold" color="green.600">
-                {totalRunning}
-              </Stat.ValueText>
-              {runningTrend === 'up' && (
-                <Stat.UpIndicator>
-                  <Badge colorPalette="green" size="sm">Active</Badge>
-                </Stat.UpIndicator>
-              )}
-            </HStack>
-          </Stat.Root>
-        </Box>
-
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-          <Stat.Root>
-            <Stat.Label fontSize="sm" color="gray.600">Pending Jobs</Stat.Label>
-            <HStack gap={2}>
-              <Stat.ValueText fontSize="2xl" fontWeight="bold" color="orange.600">
-                {totalPending}
-              </Stat.ValueText>
-              {pendingTrend === 'up' && (
-                <Stat.UpIndicator>
-                  <Badge colorPalette="orange" size="sm">High</Badge>
-                </Stat.UpIndicator>
-              )}
-            </HStack>
-          </Stat.Root>
-        </Box>
-
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-          <Stat.Root>
-            <Stat.Label fontSize="sm" color="gray.600">Total Jobs</Stat.Label>
-            <Stat.ValueText fontSize="2xl" fontWeight="bold">
-              {totalRunning + totalPending}
-            </Stat.ValueText>
-          </Stat.Root>
-        </Box>
-
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-          <Stat.Root>
-            <Stat.Label fontSize="sm" color="gray.600">Active Users</Stat.Label>
-            <Stat.ValueText fontSize="2xl" fontWeight="bold">
-              {Object.keys(jobsByUser).length}
-            </Stat.ValueText>
-          </Stat.Root>
-        </Box>
-      </SimpleGrid>
-
       {/* Jobs by Partition and User Tables */}
       <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4} w="100%">
         {/* Jobs by Partition */}
@@ -264,6 +203,9 @@ export const ClusterQueueActivity = ({ cluster }: Props) => {
                 }}
                 domLayout="normal"
                 suppressCellFocus
+                onRowClicked={(e: RowClickedEvent) => {
+                  if (e.data?.partition) navigate(`/v2/${cluster}/partitions/${e.data.partition}`)
+                }}
               />
             </Box>
           </VStack>
@@ -284,6 +226,9 @@ export const ClusterQueueActivity = ({ cluster }: Props) => {
                 }}
                 domLayout="normal"
                 suppressCellFocus
+                onRowClicked={(e: RowClickedEvent) => {
+                  if (e.data?.user) navigate(`/v2/${cluster}/jobs/query`)
+                }}
               />
             </Box>
           </VStack>
