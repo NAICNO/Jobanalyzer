@@ -24,7 +24,6 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  */
 export const get = <ThrowOnError extends boolean = false>(options?: Options<GetData, ThrowOnError>) => (options?.client ?? client).get<GetResponses, unknown, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/',
   ...options
 })
@@ -34,7 +33,6 @@ export const get = <ThrowOnError extends boolean = false>(options?: Options<GetD
  */
 export const getClearCache = <ThrowOnError extends boolean = false>(options?: Options<GetClearCacheData, ThrowOnError>) => (options?.client ?? client).get<GetClearCacheResponses, unknown, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/clear_cache',
   ...options
 })
@@ -47,7 +45,6 @@ export const getClearCache = <ThrowOnError extends boolean = false>(options?: Op
 export const getClusterByClusterPartitions = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterPartitionsData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterPartitionsResponses, GetClusterByClusterPartitionsErrors, ThrowOnError>({
   responseTransformer: getClusterByClusterPartitionsResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/partitions',
   ...options,
   headers: {
@@ -63,7 +60,6 @@ export const getClusterByClusterPartitions = <ThrowOnError extends boolean = fal
  */
 export const getUser = <ThrowOnError extends boolean = false>(options?: Options<GetUserData, ThrowOnError>) => (options?.client ?? client).get<GetUserResponses, unknown, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/user',
   ...options
 })
@@ -73,7 +69,6 @@ export const getUser = <ThrowOnError extends boolean = false>(options?: Options<
  */
 export const getJobquery = <ThrowOnError extends boolean = false>(options?: Options<GetJobqueryData, ThrowOnError>) => (options?.client ?? client).get<GetJobqueryResponses, GetJobqueryErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/jobquery',
   ...options
 })
@@ -83,7 +78,6 @@ export const getJobquery = <ThrowOnError extends boolean = false>(options?: Opti
  */
 export const getJobprofile = <ThrowOnError extends boolean = false>(options?: Options<GetJobprofileData, ThrowOnError>) => (options?.client ?? client).get<GetJobprofileResponses, GetJobprofileErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/jobprofile',
   ...options
 })
@@ -93,7 +87,6 @@ export const getJobprofile = <ThrowOnError extends boolean = false>(options?: Op
  */
 export const getClusterByClusterQueries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterQueriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterQueriesResponses, GetClusterByClusterQueriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/queries',
   ...options
 })
@@ -103,7 +96,6 @@ export const getClusterByClusterQueries = <ThrowOnError extends boolean = false>
  */
 export const getClusterByClusterQueriesByQueryName = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterQueriesByQueryNameData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterQueriesByQueryNameResponses, GetClusterByClusterQueriesByQueryNameErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/queries/{query_name}',
   ...options,
   headers: {
@@ -117,7 +109,6 @@ export const getClusterByClusterQueriesByQueryName = <ThrowOnError extends boole
  */
 export const getClusterByClusterBenchmarksByBenchmarkName = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterBenchmarksByBenchmarkNameData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterBenchmarksByBenchmarkNameResponses, GetClusterByClusterBenchmarksByBenchmarkNameErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/benchmarks/{benchmark_name}',
   ...options
 })
@@ -130,7 +121,6 @@ export const getClusterByClusterBenchmarksByBenchmarkName = <ThrowOnError extend
 export const getCluster = <ThrowOnError extends boolean = false>(options?: Options<GetClusterData, ThrowOnError>) => (options?.client ?? client).get<GetClusterResponses, GetClusterErrors, ThrowOnError>({
   responseTransformer: getClusterResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster',
   ...options,
   headers: {
@@ -146,7 +136,6 @@ export const getCluster = <ThrowOnError extends boolean = false>(options?: Optio
  */
 export const getClusterByClusterNodes = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesResponses, GetClusterByClusterNodesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes',
   ...options,
   headers: {
@@ -162,7 +151,6 @@ export const getClusterByClusterNodes = <ThrowOnError extends boolean = false>(o
  */
 export const getClusterByClusterNodesByNodenameErrorMessages = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameErrorMessagesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameErrorMessagesResponses, GetClusterByClusterNodesByNodenameErrorMessagesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/error_messages',
   ...options,
   headers: {
@@ -178,7 +166,6 @@ export const getClusterByClusterNodesByNodenameErrorMessages = <ThrowOnError ext
  */
 export const getClusterByClusterErrorMessages = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterErrorMessagesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterErrorMessagesResponses, GetClusterByClusterErrorMessagesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/error_messages',
   ...options,
   headers: {
@@ -198,7 +185,6 @@ export const getClusterByClusterErrorMessages = <ThrowOnError extends boolean = 
  */
 export const getClusterByClusterNodesByNodenameInfo = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameInfoData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameInfoResponses, GetClusterByClusterNodesByNodenameInfoErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/info',
   ...options,
   headers: {
@@ -218,7 +204,6 @@ export const getClusterByClusterNodesByNodenameInfo = <ThrowOnError extends bool
  */
 export const getClusterByClusterNodesInfo = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesInfoData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesInfoResponses, GetClusterByClusterNodesInfoErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/info',
   ...options,
   headers: {
@@ -239,7 +224,6 @@ export const getClusterByClusterNodesInfo = <ThrowOnError extends boolean = fals
 export const getClusterByClusterNodesInfoPages = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesInfoPagesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesInfoPagesResponses, GetClusterByClusterNodesInfoPagesErrors, ThrowOnError>({
   responseTransformer: getClusterByClusterNodesInfoPagesResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/info/pages',
   ...options,
   headers: {
@@ -256,7 +240,6 @@ export const getClusterByClusterNodesInfoPages = <ThrowOnError extends boolean =
 export const getClusterByClusterNodesByNodenameStates = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameStatesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameStatesResponses, GetClusterByClusterNodesByNodenameStatesErrors, ThrowOnError>({
   responseTransformer: getClusterByClusterNodesByNodenameStatesResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/states',
   ...options,
   headers: {
@@ -273,7 +256,6 @@ export const getClusterByClusterNodesByNodenameStates = <ThrowOnError extends bo
 export const getClusterByClusterNodesStates = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesStatesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesStatesResponses, GetClusterByClusterNodesStatesErrors, ThrowOnError>({
   responseTransformer: getClusterByClusterNodesStatesResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/states',
   ...options,
   headers: {
@@ -289,7 +271,6 @@ export const getClusterByClusterNodesStates = <ThrowOnError extends boolean = fa
  */
 export const getClusterByClusterNodesByNodenameTopology = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameTopologyData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameTopologyResponses, GetClusterByClusterNodesByNodenameTopologyErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/topology',
   ...options,
   headers: {
@@ -308,7 +289,6 @@ export const getClusterByClusterNodesByNodenameTopology = <ThrowOnError extends 
  */
 export const getClusterByClusterNodesLastProbeTimestamp = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesLastProbeTimestampData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesLastProbeTimestampResponses, GetClusterByClusterNodesLastProbeTimestampErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/last_probe_timestamp',
   ...options,
   headers: {
@@ -324,7 +304,6 @@ export const getClusterByClusterNodesLastProbeTimestamp = <ThrowOnError extends 
  */
 export const getClusterByClusterNodesProcessGpuUtil = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesProcessGpuUtilData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesProcessGpuUtilResponses, GetClusterByClusterNodesProcessGpuUtilErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/process/gpu/util',
   ...options,
   headers: {
@@ -340,7 +319,6 @@ export const getClusterByClusterNodesProcessGpuUtil = <ThrowOnError extends bool
  */
 export const getClusterByClusterNodesByNodenameProcessGpuUtil = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameProcessGpuUtilData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameProcessGpuUtilResponses, GetClusterByClusterNodesByNodenameProcessGpuUtilErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/process/gpu/util',
   ...options,
   headers: {
@@ -356,7 +334,6 @@ export const getClusterByClusterNodesByNodenameProcessGpuUtil = <ThrowOnError ex
  */
 export const getClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/jobs/{job_id}/process/gpu/timeseries',
   ...options,
   headers: {
@@ -372,7 +349,6 @@ export const getClusterByClusterNodesByNodenameJobsByJobIdProcessGpuTimeseries =
  */
 export const getClusterByClusterNodesProcessGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesProcessGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesProcessGpuTimeseriesResponses, GetClusterByClusterNodesProcessGpuTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/process/gpu/timeseries',
   ...options,
   headers: {
@@ -388,7 +364,6 @@ export const getClusterByClusterNodesProcessGpuTimeseries = <ThrowOnError extend
  */
 export const getClusterByClusterNodesByNodenameProcessGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameProcessGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameProcessGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameProcessGpuTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/process/gpu/timeseries',
   ...options,
   headers: {
@@ -404,7 +379,6 @@ export const getClusterByClusterNodesByNodenameProcessGpuTimeseries = <ThrowOnEr
  */
 export const getClusterByClusterNodesMemoryTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesMemoryTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesMemoryTimeseriesResponses, GetClusterByClusterNodesMemoryTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/memory/timeseries',
   ...options,
   headers: {
@@ -420,7 +394,6 @@ export const getClusterByClusterNodesMemoryTimeseries = <ThrowOnError extends bo
  */
 export const getClusterByClusterNodesByNodenameMemoryTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameMemoryTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameMemoryTimeseriesResponses, GetClusterByClusterNodesByNodenameMemoryTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/memory/timeseries',
   ...options,
   headers: {
@@ -436,7 +409,6 @@ export const getClusterByClusterNodesByNodenameMemoryTimeseries = <ThrowOnError 
  */
 export const getClusterByClusterNodesCpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesCpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesCpuTimeseriesResponses, GetClusterByClusterNodesCpuTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/cpu/timeseries',
   ...options,
   headers: {
@@ -452,7 +424,6 @@ export const getClusterByClusterNodesCpuTimeseries = <ThrowOnError extends boole
  */
 export const getClusterByClusterNodesByNodenameCpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameCpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameCpuTimeseriesResponses, GetClusterByClusterNodesByNodenameCpuTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/cpu/timeseries',
   ...options,
   headers: {
@@ -466,7 +437,6 @@ export const getClusterByClusterNodesByNodenameCpuTimeseries = <ThrowOnError ext
  */
 export const getClusterByClusterNodesGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesGpuTimeseriesResponses, GetClusterByClusterNodesGpuTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/gpu/timeseries',
   ...options,
   headers: {
@@ -480,7 +450,6 @@ export const getClusterByClusterNodesGpuTimeseries = <ThrowOnError extends boole
  */
 export const getClusterByClusterNodesByNodenameGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameGpuTimeseriesResponses, GetClusterByClusterNodesByNodenameGpuTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/gpu/timeseries',
   ...options,
   headers: {
@@ -494,7 +463,6 @@ export const getClusterByClusterNodesByNodenameGpuTimeseries = <ThrowOnError ext
  */
 export const getClusterByClusterNodesDiskstatsTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesDiskstatsTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesDiskstatsTimeseriesResponses, GetClusterByClusterNodesDiskstatsTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/diskstats/timeseries',
   ...options,
   headers: {
@@ -508,7 +476,6 @@ export const getClusterByClusterNodesDiskstatsTimeseries = <ThrowOnError extends
  */
 export const getClusterByClusterNodesByNodenameDiskstatsTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterNodesByNodenameDiskstatsTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterNodesByNodenameDiskstatsTimeseriesResponses, GetClusterByClusterNodesByNodenameDiskstatsTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/nodes/{nodename}/diskstats/timeseries',
   ...options,
   headers: {
@@ -529,7 +496,6 @@ export const getClusterByClusterNodesByNodenameDiskstatsTimeseries = <ThrowOnErr
  */
 export const getClusterByClusterJobsByJobIdProcessTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdProcessTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdProcessTimeseriesResponses, GetClusterByClusterJobsByJobIdProcessTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs/{job_id}/process/timeseries',
   ...options,
   headers: {
@@ -550,7 +516,6 @@ export const getClusterByClusterJobsByJobIdProcessTimeseries = <ThrowOnError ext
  */
 export const getClusterByClusterJobsProcessTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsProcessTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsProcessTimeseriesResponses, GetClusterByClusterJobsProcessTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs/process/timeseries',
   ...options,
   headers: {
@@ -569,7 +534,6 @@ export const getClusterByClusterJobsProcessTimeseries = <ThrowOnError extends bo
  */
 export const getClusterByClusterJobsByJobIdProcessTree = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdProcessTreeData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdProcessTreeResponses, GetClusterByClusterJobsByJobIdProcessTreeErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs/{job_id}/process/tree',
   ...options,
   headers: {
@@ -585,7 +549,6 @@ export const getClusterByClusterJobsByJobIdProcessTree = <ThrowOnError extends b
  */
 export const getClusterByClusterJobsByJobIdProcessGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdProcessGpuTimeseriesResponses, GetClusterByClusterJobsByJobIdProcessGpuTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs/{job_id}/process/gpu/timeseries',
   ...options,
   headers: {
@@ -601,7 +564,6 @@ export const getClusterByClusterJobsByJobIdProcessGpuTimeseries = <ThrowOnError 
  */
 export const getClusterByClusterJobsProcessGpuTimeseries = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsProcessGpuTimeseriesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsProcessGpuTimeseriesResponses, GetClusterByClusterJobsProcessGpuTimeseriesErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs/process/gpu/timeseries',
   ...options,
   headers: {
@@ -618,7 +580,6 @@ export const getClusterByClusterJobsProcessGpuTimeseries = <ThrowOnError extends
 export const getClusterByClusterJobs = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsResponses, GetClusterByClusterJobsErrors, ThrowOnError>({
   responseTransformer: getClusterByClusterJobsResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs',
   ...options,
   headers: {
@@ -635,7 +596,6 @@ export const getClusterByClusterJobs = <ThrowOnError extends boolean = false>(op
 export const getClusterByClusterJobsByJobIdEpochByEpochInfo = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdEpochByEpochInfoData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdEpochByEpochInfoResponses, GetClusterByClusterJobsByJobIdEpochByEpochInfoErrors, ThrowOnError>({
   responseTransformer: getClusterByClusterJobsByJobIdEpochByEpochInfoResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs/{job_id}/epoch/{epoch}/info',
   ...options,
   headers: {
@@ -652,7 +612,6 @@ export const getClusterByClusterJobsByJobIdEpochByEpochInfo = <ThrowOnError exte
 export const getClusterByClusterJobsByJobIdEpochByEpoch = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdEpochByEpochData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdEpochByEpochResponses, GetClusterByClusterJobsByJobIdEpochByEpochErrors, ThrowOnError>({
   responseTransformer: getClusterByClusterJobsByJobIdEpochByEpochResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs/{job_id}/epoch/{epoch}',
   ...options,
   headers: {
@@ -669,7 +628,6 @@ export const getClusterByClusterJobsByJobIdEpochByEpoch = <ThrowOnError extends 
 export const getClusterByClusterJobsByJobIdInfo = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdInfoData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdInfoResponses, GetClusterByClusterJobsByJobIdInfoErrors, ThrowOnError>({
   responseTransformer: getClusterByClusterJobsByJobIdInfoResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs/{job_id}/info',
   ...options,
   headers: {
@@ -686,7 +644,6 @@ export const getClusterByClusterJobsByJobIdInfo = <ThrowOnError extends boolean 
 export const getClusterByClusterJobsByJobId = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdResponses, GetClusterByClusterJobsByJobIdErrors, ThrowOnError>({
   responseTransformer: getClusterByClusterJobsByJobIdResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs/{job_id}',
   ...options,
   headers: {
@@ -700,7 +657,6 @@ export const getClusterByClusterJobsByJobId = <ThrowOnError extends boolean = fa
  */
 export const getClusterByClusterQueryJobs = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterQueryJobsData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterQueryJobsResponses, GetClusterByClusterQueryJobsErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/query/jobs',
   ...options,
   headers: {
@@ -715,7 +671,6 @@ export const getClusterByClusterQueryJobs = <ThrowOnError extends boolean = fals
 export const getClusterByClusterQueryJobsPages = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterQueryJobsPagesData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterQueryJobsPagesResponses, GetClusterByClusterQueryJobsPagesErrors, ThrowOnError>({
   responseTransformer: getClusterByClusterQueryJobsPagesResponseTransformer,
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/query/jobs/pages',
   ...options,
   headers: {
@@ -729,7 +684,6 @@ export const getClusterByClusterQueryJobsPages = <ThrowOnError extends boolean =
  */
 export const getClusterByClusterJobsByJobIdReport = <ThrowOnError extends boolean = false>(options: Options<GetClusterByClusterJobsByJobIdReportData, ThrowOnError>) => (options.client ?? client).get<GetClusterByClusterJobsByJobIdReportResponses, GetClusterByClusterJobsByJobIdReportErrors, ThrowOnError>({
   responseType: 'json',
-  security: [{ scheme: 'bearer', type: 'http' }],
   url: '/cluster/{cluster}/jobs/{job_id}/report',
   ...options,
   headers: {

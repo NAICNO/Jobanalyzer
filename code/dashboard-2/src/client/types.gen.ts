@@ -60,6 +60,7 @@ export type AppSettings = {
      * Port
      */
     port?: number;
+    ssl?: SslSettings;
     database?: DatabaseSettings;
     /**
      * Data Dir
@@ -71,6 +72,7 @@ export type AppSettings = {
      */
     db_schema_version?: string | null;
     oauth?: OAuthSettings;
+    listen?: ListenSettings;
 };
 
 /**
@@ -820,6 +822,45 @@ export type JobsResponse = {
 };
 
 /**
+ * ListenSettings
+ */
+export type ListenSettings = {
+    /**
+     * Cluster Name
+     *
+     * Name of cluster
+     */
+    CLUSTER_NAME?: string | null;
+    /**
+     * Lookback
+     *
+     * Lookback timeframe in hours
+     */
+    lookback?: number | null;
+    /**
+     * Connection to UI
+     */
+    ui?: ServerSettings;
+    /**
+     * Connection to kafka broker
+     */
+    KAFKA_BROKER?: ServerSettings;
+    stats?: ListenStatsSettings;
+};
+
+/**
+ * ListenStatsSettings
+ */
+export type ListenStatsSettings = {
+    /**
+     * Interval
+     *
+     * Interval in seconds to compute stats
+     */
+    interval?: number;
+};
+
+/**
  * NodeDiskTimeseriesResponse
  *
  * List of timeseries data per node
@@ -1341,6 +1382,24 @@ export type SAcctResponse = {
 };
 
 /**
+ * SSLSettings
+ */
+export type SslSettings = {
+    /**
+     * Keyfile
+     *
+     * Keyfile to use
+     */
+    keyfile?: string | null;
+    /**
+     * Certfile
+     *
+     * Certfile to use
+     */
+    certfile?: string | null;
+};
+
+/**
  * SampleDiskResponse
  */
 export type SampleDiskResponse = {
@@ -1697,6 +1756,20 @@ export type SampleProcessGpuAccResponse = {
      * Process ids related to an accumulated sample
      */
     pids: Array<number>;
+};
+
+/**
+ * ServerSettings
+ */
+export type ServerSettings = {
+    /**
+     * Host
+     */
+    host: string;
+    /**
+     * Port
+     */
+    port: number;
 };
 
 /**
