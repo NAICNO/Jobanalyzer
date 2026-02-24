@@ -765,9 +765,9 @@ func (cdb *connectedDB) ReadCluzterPartitionData(
 
 	// Reference: ParseCluzterV0JSON
 	unbox := func() *repr.CluzterPartitions {
-		nodes := make([]newfmt.NodeRange, 0, len(nodeNamesCompact))
+		nodes := make([]newfmt.HostnameRange, 0, len(nodeNamesCompact))
 		for _, nnc := range nodeNamesCompact {
-			nodes = append(nodes, newfmt.NodeRange(nnc))
+			nodes = append(nodes, newfmt.HostnameRange(nnc))
 		}
 		return &repr.CluzterPartitions{
 			Time:    timestamp.Format(time.RFC3339),
@@ -814,7 +814,7 @@ func (cdb *connectedDB) ReadCluzterNodeData(
 			Cluster: cluster,
 			Nodes: []newfmt.ClusterNodes{
 				newfmt.ClusterNodes{
-					Names:  []newfmt.NodeRange{newfmt.NodeRange(nodeName)},
+					Names:  []newfmt.HostnameRange{newfmt.HostnameRange(nodeName)},
 					States: states,
 				},
 			},

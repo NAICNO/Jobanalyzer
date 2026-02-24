@@ -69,6 +69,13 @@ func ParseSlurmV0JSON(
 			if allocGPUS == UstrEmpty {
 				allocGPUS, gputmp = ParseSlurmGPUResources([]byte(sacct.AllocTRES), ustrs, gputmp)
 			}
+			var nodes strings.Builder
+			for _, v := range job.NodeList {
+				if nodes.Len() > 0 {
+					nodes.WriteRune(',')
+				}
+				nodes.WriteString(string(v))
+			}
 			records = append(records, &repr.SacctInfo{
 				Time:         timestamp,
 				Start:        startTime,
@@ -88,7 +95,7 @@ func ParseSlurmV0JSON(
 				JobStep:      step,
 				ArrayStep:    arrayStep,
 				HetStep:      hetStep,
-				NodeList:     ustrs.Alloc(strings.Join(job.NodeList, ",")),
+				NodeList:     ustrs.Alloc(nodes.String()),
 				Partition:    ustrs.Alloc(job.Partition),
 				ReqGPUS:      allocGPUS, // "ReqGPUS" is misnamed
 				JobID:        uint32(job.JobID),
