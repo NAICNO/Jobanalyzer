@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation, Outlet, useParams } from 'react-router'
 import { Box, Spinner, VStack, Text } from '@chakra-ui/react'
 import { useCluster } from '../hooks/useCluster'
@@ -19,6 +19,7 @@ export const ClusterRouteGuard = () => {
   const { hasSelectedClusters } = useCluster()
   const { isAuthenticated, login } = useAuth()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const loginAttemptedRef = useRef<string | null>(null)
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -38,12 +39,17 @@ export const ClusterRouteGuard = () => {
       // Check authentication if cluster requires it
       if (clusterName) {
         const clusterConfig = getClusterConfig(clusterName)
-        
+
         if (clusterConfig?.requiresAuth) {
           const authenticated = isAuthenticated(clusterName)
-          
+
           if (!authenticated) {
-            // Show toast notification
+            // Prevent duplicate login attempts for the same cluster
+            if (loginAttemptedRef.current === clusterName) {
+              return
+            }
+            loginAttemptedRef.current = clusterName
+
             toaster.create({
               title: 'Authentication Required',
               description: `You need to authenticate to access ${clusterConfig.name}`,
@@ -54,14 +60,17 @@ export const ClusterRouteGuard = () => {
             try {
               // Store the current path to return after auth
               await login(clusterName, location.pathname)
-              setIsCheckingAuth(false) // Add this
+              setIsCheckingAuth(false)
               return
             } catch (error) {
               console.error('Failed to initiate login:', error)
-              setIsCheckingAuth(false) // Add this
+              setIsCheckingAuth(false)
               navigate('/v2/select-cluster', { replace: true })
               return
             }
+          } else {
+            // Reset login attempt tracking if user is now authenticated
+            loginAttemptedRef.current = null
           }
         }
       }
