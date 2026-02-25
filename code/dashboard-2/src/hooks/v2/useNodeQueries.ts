@@ -116,10 +116,21 @@ export const useClusterNodesLastProbeTimestamp = ({ cluster, client, enabled = t
   })
 }
 
-export const useClusterNodesMemoryTimeseries = ({ cluster, client, enabled = true }: ClusterNodeOptions) => {
+interface ClusterNodesMemoryTimeseriesOptions extends ClusterNodeOptions {
+  startTimeInS?: number
+  endTimeInS?: number
+  resolutionInS?: number
+}
+
+export const useClusterNodesMemoryTimeseries = ({ cluster, client, enabled = true, startTimeInS, endTimeInS, resolutionInS }: ClusterNodesMemoryTimeseriesOptions) => {
+  const query = startTimeInS != null || endTimeInS != null || resolutionInS != null
+    ? { start_time_in_s: startTimeInS, end_time_in_s: endTimeInS, resolution_in_s: resolutionInS }
+    : undefined
+
   return useQuery({
     ...getClusterByClusterNodesMemoryTimeseriesOptions({
       path: { cluster },
+      query,
       client: client || undefined,
     }),
     enabled: enabled && !!client && !!cluster,
