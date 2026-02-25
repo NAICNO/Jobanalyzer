@@ -1,6 +1,13 @@
 import { createSystem, defaultConfig, defineConfig } from '@chakra-ui/react'
 
 const config = defineConfig({
+  globalCss: {
+    'html, body': {
+      overflow: 'hidden',
+      height: '100vh',
+      margin: 0,
+    },
+  },
   theme: {
     tokens: {
       fonts: {
