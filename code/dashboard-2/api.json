@@ -5140,7 +5140,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 1771619054,
+              "default": 1772007906,
               "title": "Timestamp"
             }
           },
@@ -7785,11 +7785,23 @@
         ],
         "title": "ValidationError"
       }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
     }
   },
   "servers": [
     {
       "url": "/api/v2"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
     }
   ]
 }
