@@ -11,6 +11,7 @@ import { ClusterQueueActivity } from '../../components/v2/ClusterQueueActivity'
 import { ClusterTimebasedActivity } from '../../components/v2/ClusterTimebasedActivity'
 import { ClusterJobAnalytics } from '../../components/v2/ClusterJobAnalytics'
 import { ClusterWaitTimeAnalysis } from '../../components/v2/ClusterWaitTimeAnalysis'
+import { LazySection } from '../../components/v2/LazySection'
 
 const ClusterOverviewContent = () => {
   const { cluster, timeRange, setTimeRange, refetchAll, isFetching, oldestDataUpdatedAt } = useClusterOverviewContext()
@@ -33,17 +34,23 @@ const ClusterOverviewContent = () => {
 
       <ClusterOverviewCards />
 
-      <ClusterHealthStatus cluster={cluster} />
+      <LazySection minHeight="250px">
+        {(isVisible) => <ClusterHealthStatus cluster={cluster} enabled={isVisible} />}
+      </LazySection>
 
       <ClusterResourceDistribution />
 
       <ClusterQueueActivity />
 
-      <ClusterJobAnalytics cluster={cluster} />
+      <LazySection minHeight="500px">
+        {(isVisible) => <ClusterJobAnalytics cluster={cluster} enabled={isVisible} />}
+      </LazySection>
 
       <ClusterWaitTimeAnalysis />
 
-      <ClusterTimebasedActivity cluster={cluster} />
+      <LazySection minHeight="700px">
+        {(isVisible) => <ClusterTimebasedActivity cluster={cluster} enabled={isVisible} />}
+      </LazySection>
     </VStack>
   )
 }

@@ -25,14 +25,15 @@ const CHAKRA_TO_HEX: Record<string, string> = {
 
 interface Props {
   cluster: string
+  enabled?: boolean
 }
 
-export const ClusterJobAnalytics = ({ cluster }: Props) => {
+export const ClusterJobAnalytics = ({ cluster, enabled }: Props) => {
   const navigate = useNavigate()
   const client = useClusterClient(cluster)
   const { startTimeInS, endTimeInS, timeRange } = useClusterOverviewContext()
 
-  const jobsQ = useClusterJobs({ cluster, client, startTimeInS, endTimeInS })
+  const jobsQ = useClusterJobs({ cluster, client, startTimeInS, endTimeInS, enabled })
 
   const jobsData = (jobsQ.data as JobsResponse) ?? { jobs: [] }
   const jobs = jobsData.jobs ?? []

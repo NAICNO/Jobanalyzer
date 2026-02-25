@@ -17,9 +17,10 @@ const THRESHOLDS = {
 
 interface Props {
   cluster: string
+  enabled?: boolean
 }
 
-export const ClusterTimebasedActivity = ({cluster}: Props) => {
+export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
   const client = useClusterClient(cluster)
   const { startTimeInS, endTimeInS, timeRange } = useClusterOverviewContext()
 
@@ -29,6 +30,7 @@ export const ClusterTimebasedActivity = ({cluster}: Props) => {
     startTimeInS,
     endTimeInS,
     resolutionInS: DATA_RESOLUTION,
+    enabled,
   })
 
   const gpuData = (gpuTimeseriesQ.data ?? {}) as Record<string, Array<SampleGpuTimeseriesResponse>>
