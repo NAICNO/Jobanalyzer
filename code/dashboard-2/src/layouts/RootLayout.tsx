@@ -28,6 +28,7 @@ export default function RootLayout() {
       }}
       gap="1"
       h="100vh"
+      overflow="hidden"
     >
       <GridItem
         px={{base: '20px', md: '20px'}}
@@ -57,6 +58,7 @@ export default function RootLayout() {
         bg={mainGridItemBackgroundColor}
         overflowY="auto"
         overflowX="hidden"
+        minH="0"
       >
         <Outlet/>
       </GridItem>

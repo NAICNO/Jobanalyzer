@@ -10,15 +10,16 @@ import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext
 
 interface Props {
   cluster: string
+  enabled?: boolean
 }
 
-export const ClusterHealthStatus = ({ cluster }: Props) => {
+export const ClusterHealthStatus = ({ cluster, enabled }: Props) => {
   const navigate = useNavigate()
   const client = useClusterClient(cluster)
   const { nodesStatesQuery: statesQuery, nodesQuery: nodesQ } = useClusterOverviewContext()
 
-  const errorsQuery = useClusterErrorMessages({ cluster, client })
-  const timestampsQuery = useClusterNodesLastProbeTimestamp({ cluster, client })
+  const errorsQuery = useClusterErrorMessages({ cluster, client, enabled })
+  const timestampsQuery = useClusterNodesLastProbeTimestamp({ cluster, client, enabled })
 
   const errorsMap = (errorsQuery.data ?? {}) as Record<string, ErrorMessageResponse>
   const errors = Object.values(errorsMap)
