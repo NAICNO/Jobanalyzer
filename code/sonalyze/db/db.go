@@ -78,15 +78,17 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 
 	// Add aliases to known clusters.  The aliases file is optional, but if something with that name
 	// is there it is an error to fail to open it.
-	aliasesFile := filesys.MakeClusterAliasesPath(jobanalyzerDir)
-	if info, bad := os.Stat(aliasesFile); bad == nil {
-		if info.Mode()&fs.ModeType != 0 {
-			return errors.New("Cluster alias file is not a regular file")
-		}
-		var err error
-		aliases, err = alias.ReadAliases(aliasesFile)
-		if err != nil {
-			return err
+	if jobanalyzerDir != "" {
+		aliasesFile := filesys.MakeClusterAliasesPath(jobanalyzerDir)
+		if info, bad := os.Stat(aliasesFile); bad == nil {
+			if info.Mode()&fs.ModeType != 0 {
+				return errors.New("Cluster alias file is not a regular file")
+			}
+			var err error
+			aliases, err = alias.ReadAliases(aliasesFile)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	if aliases != nil {
@@ -102,7 +104,7 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 		cfg, err := special.ReadConfigData(filesys.MakeConfigFilePath(jobanalyzerDir, c))
 		if err != nil {
 			// Arguably we could remove it, but this code will change anyway.
-			v.Description = "No configuration found"
+			v.Description = "Cluster: " + c
 			continue
 		}
 		v.Description = cfg.Description

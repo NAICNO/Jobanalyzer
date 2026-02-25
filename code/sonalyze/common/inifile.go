@@ -10,15 +10,16 @@ import (
 
 // MT: Constant after initialization
 var (
-	p                  = ini.NewParser()
-	store              *ini.Store
-	dataSource         = p.AddSection("data-source")
-	DataSourceRemote   = dataSource.AddString("remote")
-	DataSourceAuthFile = dataSource.AddString("auth-file")
-	DataSourceCluster  = dataSource.AddString("cluster")
-	DataSourceDataDir  = dataSource.AddString("data-dir")
-	DataSourceFrom     = dataSource.AddString("from")
-	DataSourceTo       = dataSource.AddString("to")
+	p                     = ini.NewParser()
+	store                 *ini.Store
+	dataSource            = p.AddSection("data-source")
+	DataSourceRemote      = dataSource.AddString("remote")
+	DataSourceAuthFile    = dataSource.AddString("auth-file")
+	DataSourceCluster     = dataSource.AddString("cluster")
+	DataSourceDataDir     = dataSource.AddString("data-dir")
+	DataSourceDatabaseUri = dataSource.AddString("database-uri")
+	DataSourceFrom        = dataSource.AddString("from")
+	DataSourceTo          = dataSource.AddString("to")
 )
 
 func init() {
