@@ -62,7 +62,11 @@ export const ClusterOverviewProvider = ({ cluster, children }: ClusterOverviewPr
   const nodesInfoQuery = useClusterNodesInfo({ cluster, client })
   const nodesStatesQuery = useClusterNodesStates({ cluster, client })
   const gpuUtilQuery = useClusterNodesProcessGpuUtil({ cluster, client })
-  const memoryUtilQuery = useClusterNodesMemoryTimeseries({ cluster, client })
+  // Use the same query key (with time-range params) as ClusterTimebasedActivity
+  // so React Query deduplicates into a single network request.
+  const memoryUtilQuery = useClusterNodesMemoryTimeseries({
+    cluster, client, startTimeInS, endTimeInS, resolutionInS: 3600,
+  })
 
   const refetchAll = useCallback(() => {
     // Only refetch dynamic data — skip nodesQuery (node list) and
