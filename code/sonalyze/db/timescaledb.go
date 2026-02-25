@@ -109,7 +109,10 @@ func OpenDatabaseURI(databaseURI string) (*databaseConnection, error) {
 }
 
 func (cdb *databaseConnection) EnumerateClusters() ([]string, error) {
-	rows, err := cdb.Query(context.Background(), "SELECT cluster FROM cluster_attributes")
+	rows, err := cdb.Query(
+		context.Background(),
+		"SELECT cluster FROM cluster_attributes GROUP BY cluster",
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +121,7 @@ func (cdb *databaseConnection) EnumerateClusters() ([]string, error) {
 		return nil, err
 	}
 	// Workaround for https://github.com/2maz/slurm-monitor/issues/17 which we can remove soon:
-	// cluster names can be duplicated.
+	// cluster names can be duplicated.  Also, the GROUP BY should take care of it.
 	uniqueClusters := make(map[string]bool)
 	for _, c := range rawClusters {
 		uniqueClusters[c] = true
@@ -537,16 +540,16 @@ func (cdb *connectedDB) ReadSacctData(
 	verbose bool,
 ) (recordBlobs [][]*repr.SacctInfo, softErrors int, err error) {
 	var (
-		account, allocTRES, cluster, distribution, jobStep, jobName         string
-		jobState, partition, reservation, userName                          string
-		nodes                                                               []string
-		aveCPU, aveDiskRead, aveDiskWrite, aveRSS, aveVMSize, elapsedRaw    pgtype.Int8
-		hetJobId, jobId, maxRSS, maxVMSize, minCPU, priority, suspendTime   pgtype.Int8
-		systemCPU, timeLimit, userCPU, arrayJobId                           pgtype.Int8
-		hetJobOffset, requestedCpus, requestedMemoryPerNode                 int
-		requestedNodeCount                                                  int
-		endTime, startTime                                                  pgtype.Timestamptz
-		submitTime, timestamp                                               time.Time
+		account, allocTRES, cluster, distribution, jobStep, jobName       string
+		jobState, partition, reservation, userName                        string
+		nodes                                                             []string
+		aveCPU, aveDiskRead, aveDiskWrite, aveRSS, aveVMSize, elapsedRaw  pgtype.Int8
+		hetJobId, jobId, maxRSS, maxVMSize, minCPU, priority, suspendTime pgtype.Int8
+		systemCPU, timeLimit, userCPU, arrayJobId                         pgtype.Int8
+		hetJobOffset, requestedCpus, requestedMemoryPerNode               int
+		requestedNodeCount                                                int
+		endTime, startTime                                                pgtype.Timestamptz
+		submitTime, timestamp                                             time.Time
 	)
 
 	// Nullable, ignore NULL and translate to empty string or zero

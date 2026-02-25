@@ -73,7 +73,7 @@ func (va *VerboseArgs) VerboseFlag() bool {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// The data source.  This is fairly elaborate to cover multiple use cases.
+// The data source(s).  This is fairly elaborate to cover multiple use cases.
 //
 // The data source can be "remote" or local.  If it is remote, then the command is forwarded to the
 // remote server and executed on a local data store there, ie, a "remote" source is just a REST
@@ -96,6 +96,10 @@ func (va *VerboseArgs) VerboseFlag() bool {
 // *all* data are found within that directory at known locations.  This precludes -data-dir,
 // -config-file, -report-dir, and a file list.  However, it allows a -database-uri argument that
 // specifies that the data store is to be found at the URI, using well-known mechanisms for access.
+//
+// Otherwise, if a -database-uri argument is present (without -jobanalyzer-dir) then it specifies
+// that the data store is to be found at the URI.  This precludes -data-dir and -config-file;
+// clusters are inferred (imperfectly) from the database.
 //
 // Otherwise, if -data-dir is present then that is a directory for a single cluster's sample,
 // sysinfo, and slurm data store and the -config-file argument may provide cluster configuration
@@ -284,15 +288,13 @@ func (db *DatabaseArgs) Validate() error {
 	//  - -remote
 	//  - -cluster without other args that indicate local execution
 	localData := db.jobanalyzerDir != "" || db.dataDir != "" || db.reportDir != "" ||
-		db.configFile != "" || len(db.logFiles) > 0
+		db.configFile != "" || db.databaseUri != "" || len(db.logFiles) > 0 ||
+		HasDefault(DataSourceDataDir) || HasDefault(DataSourceDatabaseUri)
 	if db.remoteHost != "" || (db.clusterName != "" && !localData) {
 		db.remoting = true
 	}
 
 	// Basic validation of mutually exclusive situations
-	if db.jobanalyzerDir == "" && db.databaseUri != "" {
-		return errors.New("-database-uri requires -jobanalyzer-dir")
-	}
 	switch {
 	case db.remoting:
 		if db.jobanalyzerDir != "" {
@@ -326,6 +328,16 @@ func (db *DatabaseArgs) Validate() error {
 		if len(db.logFiles) > 0 {
 			return errors.New("A -jobanalyzer-dir precludes a file list")
 		}
+	case db.databaseUri != "":
+		if db.dataDir != "" {
+			return errors.New("A -database-uri precludes a -data-dir")
+		}
+		if db.configFile != "" {
+			return errors.New("A -database-uri precludes a -config-file")
+		}
+		if len(db.logFiles) > 0 {
+			return errors.New("A -database-uri precludes a file list")
+		}
 	case db.dataDir != "":
 		if db.databaseUri != "" {
 			return errors.New("A -data-dir precludes a -database-uri")
@@ -357,13 +369,15 @@ func (db *DatabaseArgs) Validate() error {
 		}
 	}
 
-	// Apply defaults for the remote data source
 	if db.remoting {
 		ApplyDefault(&db.remoteHost, DataSourceRemote)
 		if os.Getenv("SONALYZE_AUTH") == "" {
 			ApplyDefault(&db.authFile, DataSourceAuthFile)
 		}
 		ApplyDefault(&db.clusterName, DataSourceCluster)
+	} else {
+		ApplyDefault(&db.dataDir, DataSourceDataDir)
+		ApplyDefault(&db.databaseUri, DataSourceDatabaseUri)
 	}
 
 	var e1, e2, e3, e4, e5, e6, e7 error
