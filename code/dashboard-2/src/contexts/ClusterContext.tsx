@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { getClusterConfig } from '../config/clusters'
+import { getClusterConfig, AVAILABLE_CLUSTERS } from '../config/clusters'
 import { clearClusterClient } from '../utils/clusterApiClients'
 import { removeClusterAuth } from '../utils/secureStorage'
 import { clearUserManager } from '../utils/oidcManager'
@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth'
 import { toaster } from '../components/ui/toaster'
 
 const STORAGE_KEY = 'user_selected_clusters'
+const VALID_CLUSTER_IDS = new Set(AVAILABLE_CLUSTERS.map((c) => c.id))
 
 export interface ClusterContextValue {
   selectedClusters: string[]
@@ -29,11 +30,12 @@ export const ClusterProvider = ({ children }: ClusterProviderProps) => {
   const queryClient = useQueryClient()
   const { silentLogout } = useAuth()
   const [selectedClusters, setSelectedClusters] = useState<string[]>(() => {
-    // Initialize from localStorage immediately
+    // Initialize from localStorage immediately, filtering out stale/invalid cluster IDs
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-        return JSON.parse(stored) as string[]
+        const parsed = JSON.parse(stored) as string[]
+        return parsed.filter((id) => VALID_CLUSTER_IDS.has(id))
       }
     } catch (error) {
       console.error('Failed to load selected clusters:', error)
@@ -41,11 +43,11 @@ export const ClusterProvider = ({ children }: ClusterProviderProps) => {
     return []
   })
   const [currentCluster, setCurrentCluster] = useState<string | null>(() => {
-    // Set first cluster as current on initialization
+    // Set first valid cluster as current on initialization
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-        const clusters = JSON.parse(stored) as string[]
+        const clusters = (JSON.parse(stored) as string[]).filter((id) => VALID_CLUSTER_IDS.has(id))
         return clusters.length > 0 ? clusters[0] : null
       }
     } catch (error) {
