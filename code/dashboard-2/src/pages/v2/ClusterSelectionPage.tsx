@@ -2,6 +2,7 @@ import { Box, Grid, Heading, Text, VStack } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 import { AVAILABLE_CLUSTERS, getClusterConfig, getClusterFullName } from '../../config/clusters'
 import { useCluster } from '../../hooks/useCluster'
+import { useAuth } from '../../hooks/useAuth'
 import { loginToCluster } from '../../utils/oidcManager'
 import { toaster } from '../../components/ui/toaster'
 import { ClusterCard } from '../../components/ClusterCard'
@@ -9,6 +10,7 @@ import { ClusterCard } from '../../components/ClusterCard'
 export const ClusterSelectionPage = () => {
   const navigate = useNavigate()
   const { addCluster, removeCluster, selectedClusters } = useCluster()
+  const { isAuthenticated } = useAuth()
 
   const handleClusterSelect = async (clusterId: string) => {
     const clusterConfig = getClusterConfig(clusterId)
@@ -64,15 +66,20 @@ export const ClusterSelectionPage = () => {
         }}
         gap={6}
       >
-        {AVAILABLE_CLUSTERS.map((cluster) => (
-          <ClusterCard
-            key={cluster.id}
-            cluster={cluster}
-            isSelected={selectedClusters.includes(cluster.id)}
-            onSelect={handleClusterSelect}
-            onRemove={handleRemoveCluster}
-          />
-        ))}
+        {AVAILABLE_CLUSTERS.map((cluster) => {
+          const selected = selectedClusters.includes(cluster.id)
+          const authExpired = selected && cluster.requiresAuth && !isAuthenticated(cluster.id)
+          return (
+            <ClusterCard
+              key={cluster.id}
+              cluster={cluster}
+              isSelected={selected}
+              isAuthExpired={authExpired}
+              onSelect={handleClusterSelect}
+              onRemove={handleRemoveCluster}
+            />
+          )
+        })}
       </Grid>
 
       {selectedClusters.length > 0 && (

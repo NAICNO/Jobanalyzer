@@ -1,15 +1,16 @@
 import { Card, VStack, HStack, Icon, IconButton, Heading, Text, Box } from '@chakra-ui/react'
-import { LuX, LuLock } from 'react-icons/lu'
+import { LuX, LuLock, LuShieldAlert } from 'react-icons/lu'
 import type { ClusterConfig } from '../config/clusters'
 
 interface ClusterCardProps {
   cluster: ClusterConfig
   isSelected: boolean
+  isAuthExpired?: boolean
   onSelect: (clusterId: string) => void
   onRemove: (clusterId: string, event: React.MouseEvent) => void
 }
 
-export const ClusterCard = ({ cluster, isSelected, onSelect, onRemove }: ClusterCardProps) => {
+export const ClusterCard = ({ cluster, isSelected, isAuthExpired, onSelect, onRemove }: ClusterCardProps) => {
   return (
     <Card.Root
       cursor="pointer"
@@ -22,8 +23,8 @@ export const ClusterCard = ({ cluster, isSelected, onSelect, onRemove }: Cluster
         transform: 'translateY(-2px)',
         shadow: 'lg',
       }}
-      onClick={() => !isSelected && onSelect(cluster.id)}
-      opacity={isSelected ? 0.6 : 1}
+      onClick={() => (!isSelected || isAuthExpired) && onSelect(cluster.id)}
+      opacity={isSelected && !isAuthExpired ? 0.6 : 1}
       position="relative"
     >
       <Card.Body>
@@ -70,17 +71,36 @@ export const ClusterCard = ({ cluster, isSelected, onSelect, onRemove }: Cluster
           )}
 
           {isSelected && (
-            <Box
-              px={3}
-              py={1}
-              bg="blue.500"
-              color="white"
-              borderRadius="md"
-              fontSize="xs"
-              fontWeight="semibold"
-            >
-              Already Added
-            </Box>
+            <HStack gap={2}>
+              <Box
+                px={3}
+                py={1}
+                bg="blue.500"
+                color="white"
+                borderRadius="md"
+                fontSize="xs"
+                fontWeight="semibold"
+              >
+                Already Added
+              </Box>
+              {isAuthExpired && (
+                <HStack
+                  gap={1}
+                  px={3}
+                  py={1}
+                  bg="orange.100"
+                  color="orange.800"
+                  borderRadius="md"
+                  fontSize="xs"
+                  fontWeight="semibold"
+                >
+                  <Icon fontSize="sm">
+                    <LuShieldAlert />
+                  </Icon>
+                  <Text fontSize="xs" fontWeight="semibold">Signed Out</Text>
+                </HStack>
+              )}
+            </HStack>
           )}
         </VStack>
       </Card.Body>
