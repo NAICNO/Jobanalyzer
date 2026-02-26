@@ -1,19 +1,14 @@
 module sonalyze
 
-go 1.23.8
-
-toolchain go1.24.2
-
-require go-utils v0.0.0-00010101000000-000000000000
-
-require github.com/lars-t-hansen/ini v0.3.0
-
-require github.com/twmb/franz-go v1.19.1
+go 1.24.2
 
 require (
 	github.com/NordicHPC/sonar/util/formats v0.18.1
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/pgx/v5 v5.7.6
+	github.com/lars-t-hansen/ini v0.3.0
+	github.com/twmb/franz-go v1.19.1
+	go-utils v0.0.0-00010101000000-000000000000
 )
 
 require (
