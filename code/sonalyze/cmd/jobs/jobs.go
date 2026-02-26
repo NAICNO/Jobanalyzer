@@ -246,6 +246,7 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	GpuType       []string
 	MergeAll      bool
 	MergeNone     bool
+	SacctFromSonar bool
 	MinRuntimeSec int64
 
 	// Print args
@@ -295,6 +296,7 @@ func (jc *JobsCommand) Add(fs *CLI) {
 			"optional [default: 0m]")
 
 	fs.Group("aggregation")
+	fs.BoolVar(&jc.SacctFromSonar, "sacct-from-sonar", false, "Use Sonar data to synthesize sacct data")
 	fs.BoolVar(&jc.MergeAll, "merge-all", false,
 		"Aggregate data across all hosts (appropriate for batch systems, but usually specified in the\n"+
 			"config file, not here")

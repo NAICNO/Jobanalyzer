@@ -68,6 +68,8 @@ const (
 	kIsZombie                       // Command contains <defunct> or user starts with _zombie_
 )
 
+const kb2gb = 1.0 / (1024 * 1024)
+
 // Package for results from aggregation.
 type jobSummary struct {
 	jobAggregate
@@ -227,10 +229,12 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
 	}
 	nt := nameTester{
-		needSacctInfo: slurmFilter != nil,
+		needSacctInfo: !jc.SacctFromSonar && slurmFilter != nil,
 	}
-	for _, f := range jc.PrintFields {
-		nt.testName(f.Name)
+	if !jc.SacctFromSonar {
+		for _, f := range jc.PrintFields {
+			nt.testName(f.Name)
+		}
 	}
 	if jc.ParsedQuery != nil {
 		names := make(map[string]bool)
@@ -322,6 +326,71 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	}
 	if jc.Verbose {
 		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
+	}
+
+	if jc.SacctFromSonar {
+		// compute, and then if slurmFilter != nil apply the slurm filter
+		for _, s := range summaries {
+			var sumRead, sumWrite float64
+			for _, r := range s.job {
+				sumRead += float64(r.ReadKB) * kb2gb
+				sumWrite += float64(r.WriteKB) * kb2gb
+			}
+			var state Ustr
+			if (s.computedFlags & kIsNotLiveAtEnd) != 0 {
+				state = StringToUstr("COMPLETED")
+			} else {
+				state = StringToUstr("RUNNING")
+			}
+			var requestedGpus int
+			if s.Gpus.IsUnknown() {
+				requestedGpus = 1
+			} else {
+				requestedGpus = s.Gpus.Size()
+			}
+			s.sacctInfo = &repr.SacctInfo{
+				Time: s.job[0].Timestamp,
+				Start: s.Start,
+				End: s.End,
+				Submit: s.Start,
+				// SystemCPU
+				// UserCPU
+				// AveCPU
+				// MinCPU
+				Version: s.job[0].Version,
+				User: s.User,
+				JobName: StringToUstr(s.User.String() + ": " + s.Cmd),
+				State: state,
+				Account: s.User,
+				// Layout
+				// Reservation
+				// JobStep
+				// ArrayStep
+				// HetStep
+				NodeList: StringToUstr(FormatHostnames(s.Hosts, PrintModFixed)),
+				// Partition
+				ReqGPUS: StringToUstr(fmt.Sprintf("*=%d", requestedGpus)),
+				// JobID
+				// ArrayJobID
+				// ArrayIndex
+				// HetJobID
+				// HetOffset
+				AveDiskRead: uint32(sumRead / float64(len(s.job))),
+				AveDiskWrite: uint32(sumWrite / float64(len(s.job))),
+				// AveRSS
+				// AveVMSize
+				// ElapsedRaw
+				// MaxRSS
+				// MaxVMSize
+				ReqCPUS: uint32(s.computed[kThreadPeak]),
+				ReqMem: uint32(s.computed[kCpuGBPeak]),
+				// ReqNodes
+				// Suspended
+				// TimeLimitRaw
+				// ExitCode
+				// ExitSignal
+			}
+		}
 	}
 
 	if nt.needSacctInfo {
@@ -492,7 +561,6 @@ func (jc *JobsCommand) aggregateJob(
 		isZombie, inContainer                bool
 		dataRead, dataWritten, dataCancelled uint64
 	)
-	const kb2gb = 1.0 / (1024 * 1024)
 
 	for _, s := range job {
 		gpus = gpuset.UnionGpuSets(gpus, s.Gpus)
