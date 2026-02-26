@@ -609,10 +609,13 @@ func sumRecords(
 	selected []Sample,
 ) Sample {
 	var cpuPct, gpuPct, gpuMemPct, cpuUtilPct float32
+	var cpuSampledPct float32
 	var cpuKB, rssAnonKB, gpuKB, cpuTimeSec uint64
+	var dataRead, dataWritten, dataCancelled uint64
 	var rolledup, threads uint32
 	var gpuFail uint8
 	var gpus = gpuset.EmptyGpuSet()
+	var inContainer bool
 	for _, s := range selected {
 		cpuPct += s.CpuPct
 		gpuPct += s.GpuPct
@@ -623,9 +626,14 @@ func sumRecords(
 		gpuKB += s.GpuKB
 		cpuTimeSec += s.CpuTimeSec
 		rolledup += s.Rolledup
-		threads += s.Threads
+		threads += s.NumThreads
 		gpuFail = MergeGpuFail(gpuFail, s.GpuFail)
 		gpus = gpuset.UnionGpuSets(gpus, s.Gpus)
+		inContainer = inContainer || s.InContainer
+		cpuSampledPct += s.CpuSampledUtilPct
+		dataRead += s.DataReadKB
+		dataWritten += s.DataWrittenKB
+		dataCancelled += s.DataCancelledKB
 	}
 	// The invariant is that rolledup is the number of *other* processes rolled up into this one.
 	// So we add one for each in the list + the others rolled into each of those, and subtract one
@@ -635,23 +643,28 @@ func sumRecords(
 	// Synthesize the record.
 	return Sample{
 		Sample: &repr.Sample{
-			Version:    version,
-			Timestamp:  timestamp,
-			Hostname:   hostname,
-			User:       username,
-			Job:        jobId,
-			Cmd:        command,
-			CpuPct:     cpuPct,
-			CpuKB:      cpuKB,
-			RssAnonKB:  rssAnonKB,
-			Gpus:       gpus,
-			GpuPct:     gpuPct,
-			GpuMemPct:  gpuMemPct,
-			GpuKB:      gpuKB,
-			GpuFail:    gpuFail,
-			CpuTimeSec: cpuTimeSec,
-			Rolledup:   rolledup,
-			Threads:    threads,
+			Version:           version,
+			Timestamp:         timestamp,
+			Hostname:          hostname,
+			User:              username,
+			Job:               jobId,
+			Cmd:               command,
+			CpuPct:            cpuPct,
+			CpuKB:             cpuKB,
+			RssAnonKB:         rssAnonKB,
+			Gpus:              gpus,
+			GpuPct:            gpuPct,
+			GpuMemPct:         gpuMemPct,
+			GpuKB:             gpuKB,
+			GpuFail:           gpuFail,
+			CpuTimeSec:        cpuTimeSec,
+			Rolledup:          rolledup,
+			NumThreads:        threads,
+			InContainer:       inContainer,
+			CpuSampledUtilPct: cpuSampledPct,
+			DataReadKB:        dataRead,
+			DataWrittenKB:     dataWritten,
+			DataCancelledKB:   dataCancelled,
 		},
 		CpuUtilPct: cpuUtilPct,
 	}

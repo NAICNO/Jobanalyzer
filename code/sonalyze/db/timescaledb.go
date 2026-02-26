@@ -162,21 +162,25 @@ func (cdb *connectedDB) ReadProcessSamples(
 	var (
 		cmd, node, user                                                           string
 		cpuTime, epoch, job, numThreads, pid, ppid, residentMemory, virtualMemory pgtype.Int8
-		cpuAvg                                                                    float64
+		cancelled, read, written                                                  pgtype.Int8
+		cpuAvg, cpuUtil                                                           float64
 		rolledup, gpuCount                                                        int
 		timestamp                                                                 time.Time
 
-		// Nullable, ignore NULL and treat as zero.
+		// Nullable, ignore NULL and treat as zero/false.
 		gpuUtilp, gpuMemoryUtilp *float64
 		gpuMemoryp               pgtype.Int8
+		inContainerp             *bool
 	)
 
 	// Alpha order and KEEP THE FIELD AND BOX LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	t1Fields := "t1.cmd, t1.cpu_avg, t1.cpu_time, t1.epoch, t1.job, t1.node, t1.num_threads, " +
-		"t1.pid, t1.ppid, t1.resident_memory, t1.rolledup, t1.time, t1.user, t1.virtual_memory"
+	t1Fields := "t1.cancelled, t1.cmd, t1.cpu_avg, t1.cpu_time, t1.cpu_util, t1.epoch, t1.job, " +
+		"t1.node, t1.num_threads, t1.pid, t1.ppid, t1.read, t1.resident_memory, t1.rolledup, " +
+		"t1.time, t1.user, t1.written, t1.virtual_memory"
 	t1Boxes := []any{
-		&cmd, &cpuAvg, &cpuTime, &epoch, &job, &node, &numThreads,
-		&pid, &ppid, &residentMemory, &rolledup, &timestamp, &user, &virtualMemory,
+		&cancelled, &cmd, &cpuAvg, &cpuTime, &cpuUtil, &epoch, &job,
+		&node, &numThreads, &pid, &ppid, &read, &residentMemory, &rolledup,
+		&timestamp, &user, &written, &virtualMemory,
 	}
 	t2Fields := "sum(t2.gpu_memory), sum(t2.gpu_util), sum(t2.gpu_memory_util), count(t2.uuid)"
 	t2Boxes := []any{&gpuMemoryp, &gpuUtilp, &gpuMemoryUtilp, &gpuCount}
@@ -200,7 +204,7 @@ func (cdb *connectedDB) ReadProcessSamples(
 	unbox := func() *repr.Sample {
 		// gpu fields can be null / 0
 		// Can't do: GpuFail, info appears lost
-		// Won't do: Cores, nobody cares, it's obsolete
+		// Won't do: NumCores, nobody cares, it's obsolete
 		gpus := gpuset.EmptyGpuSet()
 		if gpuCount > 0 {
 			// Note, information about precise indices is lost
@@ -219,27 +223,36 @@ func (cdb *connectedDB) ReadProcessSamples(
 		if gpuMemoryUtilp != nil {
 			gpuMemoryUtil = float32(*gpuMemoryUtilp)
 		}
+		var inContainer bool
+		if inContainerp != nil {
+			inContainer = *inContainerp
+		}
 		return &repr.Sample{
-			Version:    v0,
-			Cluster:    cluster,
-			Cmd:        StringToUstr(cmd),
-			CpuPct:     float32(cpuAvg),
-			CpuTimeSec: uint64(cpuTime.Int),
-			Epoch:      uint64(epoch.Int),
-			Job:        uint32(job.Int),
-			Hostname:   StringToUstr(node),
-			Threads:    uint32(numThreads.Int) + 1,
-			Pid:        uint64(pid.Int),
-			Ppid:       uint32(ppid.Int),
-			RssAnonKB:  uint64(residentMemory.Int),
-			Rolledup:   uint32(rolledup),
-			Timestamp:  timestamp.UTC().Unix(),
-			User:       StringToUstr(user),
-			CpuKB:      uint64(virtualMemory.Int),
-			Gpus:       gpus,
-			GpuPct:     gpuUtil,
-			GpuMemPct:  gpuMemoryUtil,
-			GpuKB:      gpuMemory,
+			Version:           v0,
+			Cluster:           cluster,
+			Cmd:               StringToUstr(cmd),
+			CpuPct:            float32(cpuAvg),
+			CpuTimeSec:        uint64(cpuTime.Int),
+			Epoch:             uint64(epoch.Int),
+			Job:               uint32(job.Int),
+			Hostname:          StringToUstr(node),
+			NumThreads:        uint32(numThreads.Int) + 1,
+			Pid:               uint64(pid.Int),
+			Ppid:              uint32(ppid.Int),
+			RssAnonKB:         uint64(residentMemory.Int),
+			Rolledup:          uint32(rolledup),
+			Timestamp:         timestamp.UTC().Unix(),
+			User:              StringToUstr(user),
+			CpuKB:             uint64(virtualMemory.Int),
+			Gpus:              gpus,
+			GpuPct:            gpuUtil,
+			GpuMemPct:         gpuMemoryUtil,
+			GpuKB:             gpuMemory,
+			InContainer:       inContainer,
+			CpuSampledUtilPct: float32(cpuUtil),
+			DataReadKB:        uint64(read.Int),
+			DataWrittenKB:     uint64(written.Int),
+			DataCancelledKB:   uint64(cancelled.Int),
 		}
 	}
 	return querySlice[repr.Sample](cdb, &q, verbose, unbox)

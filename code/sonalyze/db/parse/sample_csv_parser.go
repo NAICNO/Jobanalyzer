@@ -511,7 +511,7 @@ LineLoop:
 			Version:    version,
 			Timestamp:  timestamp,
 			Hostname:   hostname,
-			Cores:      numCores,
+			NumCores:   numCores,
 			MemtotalKB: memTotalKB,
 			User:       user,
 			Epoch:      epoch,
