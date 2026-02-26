@@ -34,8 +34,8 @@ FIELDS sample.Sample
  Timestamp  DateTimeValue       desc:"Timestamp of record " alias:"localtime"
  time       IsoDateTimeValue    desc:"Timestamp of record" field:"Timestamp"
  Hostname   Ustr                desc:"Host name (FQDN)" alias:"host"
- Cores      uint32              desc:"Total number of cores (including hyperthreads)" alias:"cores"
- Threads    uint32              desc:"Number of threads active" alias:"threads"
+ NumCores   uint32              desc:"Total number of cores (including hyperthreads)" alias:"Cores,cores"
+ NumThreads uint32              desc:"Number of threads active" alias:"Threads,threads"
  MemtotalKB uint64              desc:"Installed main memory"
  memtotal   U64Div1M            desc:"Installed main memory (GB)" field:"MemtotalKB"
  User       Ustr                desc:"Username of process owner" alias:"user"
@@ -60,6 +60,12 @@ FIELDS sample.Sample
  Flags      uint8               desc:"Bit vector of flags, UTSL"
  CpuUtilPct float32             desc:"CPU utilization since last reading (percent, CONSULT DOCUMENTATION)" \
                                 alias:"cpu_util_pct"
+ InContainer bool               desc:"True if process runs in container" alias:"contained"
+ CpuSampledUtilPct float32      desc:"Sampled CPU utilization (percent, CONSULT DOCUMENTATION)" \
+                                alias:"cpu_util_sampled"
+ DataReadKB  uint64             desc:"All read traffic" alias:"read"
+ DataWrittenKB uint64           desc:"All write traffic" alias:"written"
+ DataCancelledKB uint64         desc:"All cancelled write traffic" alias:"cancelled"
 
 SUMMARY ParseCommand
 

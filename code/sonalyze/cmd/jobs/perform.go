@@ -50,6 +50,8 @@ const (
 	kSgpuGBPeak            // Peak GPU memory utilization ditto
 	kThreadAvg             // Average number of active threads (summed across all processes)
 	kThreadPeak            // Peak number of active threads (ditto)
+	kReadGB                // Total amount of read traffic
+	kWrittenGB             // Total amount of write traffic
 	kDuration              // Duration of job in seconds (wall clock, not CPU)
 	numF64Fields
 )
@@ -95,12 +97,13 @@ type jobSummary struct {
 // figures.  If a system config is not present then all fields will represent the recorded values
 // (kRgpuKB * the recorded percentages).
 type jobAggregate struct {
-	GpuFail  int
-	Gpus     gpuset.GpuSet
-	computed [numF64Fields]float64
-	IsZombie bool
-	Cmd      string
-	Hosts    *Hostnames
+	GpuFail     int
+	Gpus        gpuset.GpuSet
+	computed    [numF64Fields]float64
+	IsZombie    bool
+	InContainer bool
+	Cmd         string
+	Hosts       *Hostnames
 }
 
 func (jc *JobsCommand) Perform(
@@ -472,21 +475,22 @@ func (jc *JobsCommand) aggregateJob(
 ) jobAggregate {
 	gpus := gpuset.EmptyGpuSet()
 	var (
-		gpuFail                       uint8
-		cpuPctAvg, cpuPctPeak         float64
-		rCpuPctAvg, rCpuPctPeak       float64
-		cpuGBAvg, cpuGBPeak           float64
-		rCpuGBAvg, rCpuGBPeak         float64
-		gpuPctAvg, gpuPctPeak         float64
-		rGpuPctAvg, rGpuPctPeak       float64
-		sGpuPctAvg, sGpuPctPeak       float64
-		rssAnonGBAvg, rssAnonGBPeak   float64
-		rRssAnonGBAvg, rRssAnonGBPeak float64
-		gpuGBAvg, gpuGBPeak           float64
-		rGpuGBAvg, rGpuGBPeak         float64
-		sGpuGBAvg, sGpuGBPeak         float64
-		threadAvg, threadPeak         uint32
-		isZombie                      bool
+		gpuFail                              uint8
+		cpuPctAvg, cpuPctPeak                float64
+		rCpuPctAvg, rCpuPctPeak              float64
+		cpuGBAvg, cpuGBPeak                  float64
+		rCpuGBAvg, rCpuGBPeak                float64
+		gpuPctAvg, gpuPctPeak                float64
+		rGpuPctAvg, rGpuPctPeak              float64
+		sGpuPctAvg, sGpuPctPeak              float64
+		rssAnonGBAvg, rssAnonGBPeak          float64
+		rRssAnonGBAvg, rRssAnonGBPeak        float64
+		gpuGBAvg, gpuGBPeak                  float64
+		rGpuGBAvg, rGpuGBPeak                float64
+		sGpuGBAvg, sGpuGBPeak                float64
+		threadAvg, threadPeak                uint32
+		isZombie, inContainer                bool
+		dataRead, dataWritten, dataCancelled uint64
 	)
 	const kb2gb = 1.0 / (1024 * 1024)
 
@@ -503,8 +507,13 @@ func (jc *JobsCommand) aggregateJob(
 		rssAnonGBPeak = max(rssAnonGBPeak, float64(s.RssAnonKB)*kb2gb)
 		gpuGBAvg += float64(s.GpuKB) * kb2gb
 		gpuGBPeak = max(gpuGBPeak, float64(s.GpuKB)*kb2gb)
-		threadAvg += s.Threads
-		threadPeak = max(threadPeak, s.Threads)
+		threadAvg += s.NumThreads
+		threadPeak = max(threadPeak, s.NumThreads)
+		inContainer = inContainer || s.InContainer
+		// ignore CpuSampledUtilPct for now
+		dataRead += s.DataReadKB
+		dataWritten += s.DataWrittenKB
+		dataCancelled += s.DataCancelledKB
 
 		if needZombie && !isZombie {
 			cmd := s.Cmd.String()
@@ -573,11 +582,12 @@ func (jc *JobsCommand) aggregateJob(
 	}
 	n := float64(len(job))
 	a := jobAggregate{
-		Gpus:     gpus,
-		GpuFail:  int(gpuFail),
-		Cmd:      cmd,
-		Hosts:    hosts,
-		IsZombie: isZombie,
+		Gpus:        gpus,
+		GpuFail:     int(gpuFail),
+		Cmd:         cmd,
+		Hosts:       hosts,
+		IsZombie:    isZombie,
+		InContainer: inContainer,
 	}
 	a.computed[kCpuPctAvg] = cpuPctAvg / n
 	a.computed[kCpuPctPeak] = cpuPctPeak
@@ -610,6 +620,8 @@ func (jc *JobsCommand) aggregateJob(
 
 	a.computed[kThreadAvg] = float64(threadAvg) / n
 	a.computed[kThreadPeak] = float64(threadPeak)
+	a.computed[kReadGB] = float64(dataRead)
+	a.computed[kWrittenGB] = float64(dataWritten)
 
 	return a
 }

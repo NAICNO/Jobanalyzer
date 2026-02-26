@@ -12,7 +12,7 @@ import (
 
 type Sample struct {
 	*repr.Sample         // Read-only (adjusted) log data
-	CpuUtilPct   float32 // Computed from a concrete selection
+	CpuUtilPct   float32 // *Computed* from a concrete selection
 }
 
 // A sample stream is just a list of samples.

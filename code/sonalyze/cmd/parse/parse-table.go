@@ -47,15 +47,15 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		},
 		Help: "(string) Host name (FQDN)",
 	},
-	"Cores": {
+	"NumCores": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
-			return FormatUint32((d.Cores), ctx)
+			return FormatUint32((d.NumCores), ctx)
 		},
 		Help: "(uint32) Total number of cores (including hyperthreads)",
 	},
-	"Threads": {
+	"NumThreads": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
-			return FormatUint32((d.Threads), ctx)
+			return FormatUint32((d.NumThreads), ctx)
 		},
 		Help: "(uint32) Number of threads active",
 	},
@@ -191,6 +191,36 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		},
 		Help: "(float32) CPU utilization since last reading (percent, CONSULT DOCUMENTATION)",
 	},
+	"InContainer": {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
+			return FormatBool((d.InContainer), ctx)
+		},
+		Help: "(bool) True if process runs in container",
+	},
+	"CpuSampledUtilPct": {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
+			return FormatFloat32((d.CpuSampledUtilPct), ctx)
+		},
+		Help: "(float32) Sampled CPU utilization (percent, CONSULT DOCUMENTATION)",
+	},
+	"DataReadKB": {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
+			return FormatUint64((d.DataReadKB), ctx)
+		},
+		Help: "(uint64) All read traffic",
+	},
+	"DataWrittenKB": {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
+			return FormatUint64((d.DataWrittenKB), ctx)
+		},
+		Help: "(uint64) All write traffic",
+	},
+	"DataCancelledKB": {
+		Fmt: func(d sample.Sample, ctx PrintMods) string {
+			return FormatUint64((d.DataCancelledKB), ctx)
+		},
+		Help: "(uint64) All cancelled write traffic",
+	},
 }
 
 func init() {
@@ -198,8 +228,10 @@ func init() {
 	DefAlias(parseFormatters, "Version", "v")
 	DefAlias(parseFormatters, "Timestamp", "localtime")
 	DefAlias(parseFormatters, "Hostname", "host")
-	DefAlias(parseFormatters, "Cores", "cores")
-	DefAlias(parseFormatters, "Threads", "threads")
+	DefAlias(parseFormatters, "NumCores", "Cores")
+	DefAlias(parseFormatters, "NumCores", "cores")
+	DefAlias(parseFormatters, "NumThreads", "Threads")
+	DefAlias(parseFormatters, "NumThreads", "threads")
 	DefAlias(parseFormatters, "User", "user")
 	DefAlias(parseFormatters, "Pid", "pid")
 	DefAlias(parseFormatters, "Ppid", "ppid")
@@ -219,6 +251,11 @@ func init() {
 	DefAlias(parseFormatters, "CpuTimeSec", "cputime_sec")
 	DefAlias(parseFormatters, "Rolledup", "rolledup")
 	DefAlias(parseFormatters, "CpuUtilPct", "cpu_util_pct")
+	DefAlias(parseFormatters, "InContainer", "contained")
+	DefAlias(parseFormatters, "CpuSampledUtilPct", "cpu_util_sampled")
+	DefAlias(parseFormatters, "DataReadKB", "read")
+	DefAlias(parseFormatters, "DataWrittenKB", "written")
+	DefAlias(parseFormatters, "DataCancelledKB", "cancelled")
 }
 
 // MT: Constant after initialization; immutable
@@ -247,16 +284,16 @@ var parsePredicates = map[string]Predicate[sample.Sample]{
 			return cmp.Compare((d.Hostname), v.(Ustr))
 		},
 	},
-	"Cores": Predicate[sample.Sample]{
+	"NumCores": Predicate[sample.Sample]{
 		Convert: CvtString2Uint32,
 		Compare: func(d sample.Sample, v any) int {
-			return cmp.Compare((d.Cores), v.(uint32))
+			return cmp.Compare((d.NumCores), v.(uint32))
 		},
 	},
-	"Threads": Predicate[sample.Sample]{
+	"NumThreads": Predicate[sample.Sample]{
 		Convert: CvtString2Uint32,
 		Compare: func(d sample.Sample, v any) int {
-			return cmp.Compare((d.Threads), v.(uint32))
+			return cmp.Compare((d.NumThreads), v.(uint32))
 		},
 	},
 	"MemtotalKB": Predicate[sample.Sample]{
@@ -389,6 +426,36 @@ var parsePredicates = map[string]Predicate[sample.Sample]{
 		Convert: CvtString2Float32,
 		Compare: func(d sample.Sample, v any) int {
 			return cmp.Compare((d.CpuUtilPct), v.(float32))
+		},
+	},
+	"InContainer": Predicate[sample.Sample]{
+		Convert: CvtString2Bool,
+		Compare: func(d sample.Sample, v any) int {
+			return CompareBool((d.InContainer), v.(bool))
+		},
+	},
+	"CpuSampledUtilPct": Predicate[sample.Sample]{
+		Convert: CvtString2Float32,
+		Compare: func(d sample.Sample, v any) int {
+			return cmp.Compare((d.CpuSampledUtilPct), v.(float32))
+		},
+	},
+	"DataReadKB": Predicate[sample.Sample]{
+		Convert: CvtString2Uint64,
+		Compare: func(d sample.Sample, v any) int {
+			return cmp.Compare((d.DataReadKB), v.(uint64))
+		},
+	},
+	"DataWrittenKB": Predicate[sample.Sample]{
+		Convert: CvtString2Uint64,
+		Compare: func(d sample.Sample, v any) int {
+			return cmp.Compare((d.DataWrittenKB), v.(uint64))
+		},
+	},
+	"DataCancelledKB": Predicate[sample.Sample]{
+		Convert: CvtString2Uint64,
+		Compare: func(d sample.Sample, v any) int {
+			return cmp.Compare((d.DataCancelledKB), v.(uint64))
 		},
 	},
 }

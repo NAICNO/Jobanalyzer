@@ -473,8 +473,10 @@ func TestCaching(t *testing.T) {
 	d := tmpCopyTree(theClusterDir)
 	defer os.RemoveAll(d)
 
-	// 200 is small enough that we should see some purging.
-	filedb.CacheInit(300)
+	// Limit needs to be small enough that we should see some purging.  The exact limit depends on
+	// the sizes of some of our data, notably Sample, and may have to be adjusted if those data grow
+	// or shrink a lot.
+	filedb.CacheInit(360)
 	filedb.CachePurgeAllSync()
 
 	var ul CacheListener

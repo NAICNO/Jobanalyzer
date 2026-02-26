@@ -275,6 +275,18 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(DurationValue) Total GPU time of the job across all cards",
 	},
+	"ReadGB": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			return FormatF64Ceil((d.computed[kReadGB]), ctx)
+		},
+		Help: "(int) Total read traffic",
+	},
+	"WrittenGB": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			return FormatF64Ceil((d.computed[kWrittenGB]), ctx)
+		},
+		Help: "(int) Total read traffic",
+	},
 	"SomeGpu": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			return FormatBool((d.computedFlags&kUsesGpu != 0), ctx)
@@ -496,6 +508,8 @@ func init() {
 	DefAlias(jobsFormatters, "Classification", "classification")
 	DefAlias(jobsFormatters, "CpuTime", "cputime")
 	DefAlias(jobsFormatters, "GpuTime", "gputime")
+	DefAlias(jobsFormatters, "ReadGB", "read")
+	DefAlias(jobsFormatters, "WrittenGB", "written")
 }
 
 // MT: Constant after initialization; immutable
@@ -736,6 +750,18 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 		Convert: CvtString2DurationValue,
 		Compare: func(d *jobSummary, v any) int {
 			return cmp.Compare((d.GpuTime), v.(DurationValue))
+		},
+	},
+	"ReadGB": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kReadGB]), v.(F64Ceil))
+		},
+	},
+	"WrittenGB": Predicate[*jobSummary]{
+		Convert: CvtString2Float64,
+		Compare: func(d *jobSummary, v any) int {
+			return cmp.Compare((d.computed[kWrittenGB]), v.(F64Ceil))
 		},
 	},
 	"SomeGpu": Predicate[*jobSummary]{
