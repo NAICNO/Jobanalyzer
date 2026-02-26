@@ -71,7 +71,7 @@ const (
 
 const kb2gb = 1.0 / (1024 * 1024)
 
-// Package for results from aggregation.
+// Package for results from aggregation and summation.
 type jobSummary struct {
 	jobAggregate
 	JobId          uint32
@@ -83,6 +83,10 @@ type jobSummary struct {
 	End            DateTimeValue // Latest time ditto
 	CpuTime        DurationValue
 	GpuTime        DurationValue
+	AveCPU         float64
+	AveDiskRead    float64
+	AveDiskWrite   float64
+	MinCpu         float64
 	Classification int // Bit vector of flags
 	job            sample.SampleStream
 	computedFlags  int
@@ -156,7 +160,7 @@ func (jc *JobsCommand) Perform(
 		}
 	}
 
-	summaries := jc.aggregateAndFilterJobs(meta, cfg, streams, bounds)
+	summaries := jc.summarizeAndFilterJobs(meta, cfg, streams, bounds)
 	if jc.Verbose {
 		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
@@ -175,7 +179,7 @@ func (jc *JobsCommand) Perform(
 // --merge-none we do not merge; otherwise the config file can specify the hosts to merge across;
 // otherwise if there is no config we do not merge.
 
-func (jc *JobsCommand) aggregateAndFilterJobs(
+func (jc *JobsCommand) summarizeAndFilterJobs(
 	meta types.Context,
 	cfg *config.ConfigDataProvider,
 	streams sample.InputStreamSet,
@@ -195,6 +199,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	summaryFilter, slurmFilter := jc.buildFilters()
 	nt := nameTester{
 		needSacctInfo: !jc.SacctFromSonar && slurmFilter != nil,
+		needHosts: jc.SacctFromSonar,
 	}
 	summaries, discarded := jc.summarizeJobsFromSonarData(
 		cfg,
@@ -248,85 +253,103 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	discarded := 0
 	for _, job := range jobs {
 		if uint(len(job)) >= minSamples {
-			host := job[0].Hostname
-			jobId := job[0].Job
-			user := job[0].User
-			first := job[0].Timestamp
-			last := job[len(job)-1].Timestamp
-			duration := last - first
-			aggregate := jc.aggregateSingleJobFromSonarData(cfg, host, job, nt.needCmd, nt.needHosts, jc.Zombie)
-			aggregate.computed[kDuration] = float64(duration)
-			usesGpu := !aggregate.Gpus.IsEmpty()
-			flags := 0
-			if usesGpu {
-				flags |= kUsesGpu
-			} else {
-				flags |= kDoesNotUseGpu
-			}
-			if aggregate.GpuFail != 0 {
-				flags |= kGpuFail
-			}
-			bound, haveBound := bounds[host]
-			if !haveBound {
-				panic("Expected to find bound")
-			}
-			if first == bound.Earliest {
-				flags |= kIsLiveAtStart
-			} else {
-				flags |= kIsNotLiveAtStart
-			}
-			if last == bound.Latest {
-				flags |= kIsLiveAtEnd
-			} else {
-				flags |= kIsNotLiveAtEnd
-			}
-			if aggregate.IsZombie {
-				flags |= kIsZombie
-			}
-			jobAndMark := ""
-			if nt.needJobAndMark {
-				mark := ""
-				switch {
-				case flags&(kIsLiveAtStart|kIsLiveAtEnd) == (kIsLiveAtStart | kIsLiveAtEnd):
-					mark = "!"
-				case flags&kIsLiveAtStart != 0:
-					mark = "<"
-				case flags&kIsLiveAtEnd != 0:
-					mark = ">"
-				}
-				jobAndMark = fmt.Sprint(jobId, mark)
-			}
-			classification := 0
-			if (flags & kIsLiveAtStart) != 0 {
-				classification |= sonalyze.LIVE_AT_START
-			}
-			if (flags & kIsLiveAtEnd) != 0 {
-				classification |= sonalyze.LIVE_AT_END
-			}
-			summary := &jobSummary{
-				jobAggregate:   aggregate,
-				JobId:          jobId,
-				JobAndMark:     jobAndMark,
-				User:           user,
-				CpuTime:        DurationValue(math.Round(aggregate.computed[kCpuPctAvg] * float64(duration) / 100)),
-				GpuTime:        DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(duration) / 100)),
-				Duration:       DurationValue(duration),
-				Now:            DateTimeValue(now),
-				Start:          DateTimeValue(first),
-				End:            DateTimeValue(last),
-				selected:       true,
-				Classification: classification,
-				job:            job,
-				computedFlags:  flags,
-			}
+			summary := jc.summarizeSingleJobFromSonarData(cfg, bounds, job, now, nt)
 			if summaryFilter == nil || summaryFilter.apply(summary) {
 				summaries = append(summaries, summary)
+			} else {
+				discarded++
 			}
 		} else {
 			discarded++
 		}
 	}
 	return summaries, discarded
+}
+
+func (jc *JobsCommand) summarizeSingleJobFromSonarData(
+	cfg *config.ConfigDataProvider,
+	bounds Timebounds,
+	job sample.SampleStream,
+	now int64,
+	nt *nameTester,
+) *jobSummary {
+	host := job[0].Hostname
+	jobId := job[0].Job
+	user := job[0].User
+	first := job[0].Timestamp
+	last := job[len(job)-1].Timestamp
+	duration := last - first
+	aggregate := jc.aggregateSingleJobFromSonarData(cfg, host, job, nt.needCmd, nt.needHosts, jc.Zombie)
+	aggregate.computed[kDuration] = float64(duration)
+	usesGpu := !aggregate.Gpus.IsEmpty()
+	flags := 0
+	if usesGpu {
+		flags |= kUsesGpu
+	} else {
+		flags |= kDoesNotUseGpu
+	}
+	if aggregate.GpuFail != 0 {
+		flags |= kGpuFail
+	}
+	bound, haveBound := bounds[host]
+	if !haveBound {
+		panic("Expected to find bound")
+	}
+	if first == bound.Earliest {
+		flags |= kIsLiveAtStart
+	} else {
+		flags |= kIsNotLiveAtStart
+	}
+	if last == bound.Latest {
+		flags |= kIsLiveAtEnd
+	} else {
+		flags |= kIsNotLiveAtEnd
+	}
+	if aggregate.IsZombie {
+		flags |= kIsZombie
+	}
+	jobAndMark := ""
+	if nt.needJobAndMark {
+		mark := ""
+		switch {
+		case flags&(kIsLiveAtStart|kIsLiveAtEnd) == (kIsLiveAtStart | kIsLiveAtEnd):
+			mark = "!"
+		case flags&kIsLiveAtStart != 0:
+			mark = "<"
+		case flags&kIsLiveAtEnd != 0:
+			mark = ">"
+		}
+		jobAndMark = fmt.Sprint(jobId, mark)
+	}
+	classification := 0
+	if (flags & kIsLiveAtStart) != 0 {
+		classification |= sonalyze.LIVE_AT_START
+	}
+	if (flags & kIsLiveAtEnd) != 0 {
+		classification |= sonalyze.LIVE_AT_END
+	}
+	//numTasksInJob := 1.0 // FIXME
+	return &jobSummary{
+		jobAggregate:   aggregate,
+		JobId:          jobId,
+		JobAndMark:     jobAndMark,
+		User:           user,
+		CpuTime:        DurationValue(math.Round(aggregate.computed[kCpuPctAvg] * float64(duration) / 100)),
+		GpuTime:        DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(duration) / 100)),
+		Duration:       DurationValue(duration),
+		Now:            DateTimeValue(now),
+		Start:          DateTimeValue(first),
+		End:            DateTimeValue(last),
+		// FIXME
+		// AveCPU:         aggregate.computed[kCpuTimeSecTotal] / numTasksInJob,
+		// AveDiskRead:    aggregate.computed[kReadGBTotal] / numTasksInJob,
+		// AveDiskWrite:   aggregate.computed[kWrittenGBTotal] / numTasksInJob,
+		//MinCpu:         ...,
+		selected:       true,
+		Classification: classification,
+		job:            job,
+		computedFlags:  flags,
+	}
 }
 
 // Given a list of log entries for a job - a single stream of samples where each sample is the merge
@@ -511,11 +534,11 @@ func (jc *JobsCommand) synthesizeSacctData(
 		} else {
 			state = StringToUstr("RUNNING")
 		}
-		var requestedGpus int
+		var requestedGpus string
 		if s.Gpus.IsUnknown() {
-			requestedGpus = 1
-		} else {
-			requestedGpus = s.Gpus.Size()
+			requestedGpus = "*=1"
+		} else if s.Gpus.Size() > 0 {
+			requestedGpus = fmt.Sprintf("*=%d", s.Gpus.Size())
 		}
 		s.sacctInfo = &repr.SacctInfo{
 			Time: s.job[0].Timestamp,
@@ -523,25 +546,24 @@ func (jc *JobsCommand) synthesizeSacctData(
 			End: s.End,  // End is valid unless liveAtEnd
 			Submit: s.Start, // Submit time is start time (note validity constraint)
 			UserCPU: uint64(s.CpuTime),
-			AveCPU: uint64(s.jobAggregate.computed[kCpuPctAvg]),
-			// Compute elsewhere
-			//MinCPU: minCpu,
+			// FIXME
+			//AveCPU: uint64(s.computed[kCpuSecAvg]),
+			MinCPU: uint64(s.MinCpu),
 			Version: s.job[0].Version,
 			User: s.User,
 			JobName: StringToUstr(s.User.String() + ": " + s.Cmd),
 			State: state,
 			Account: s.User,
 			NodeList: StringToUstr(FormatHostnames(s.Hosts, PrintModFixed)),
-			ReqGPUS: StringToUstr(fmt.Sprintf("*=%d", requestedGpus)),
+			ReqGPUS: StringToUstr(requestedGpus),
 			JobID: s.JobId,
-			// These two are wrong I think, as they are running totals.  Also, should be computed elsewhere.
-			AveDiskRead: uint32(s.jobAggregate.computed[kReadGB] / float64(len(s.job))),
-			AveDiskWrite: uint32(s.jobAggregate.computed[kWrittenGB] / float64(len(s.job))),
-			AveRSS: uint32(s.jobAggregate.computed[kRssAnonGBAvg]),
-			AveVMSize: uint32(s.jobAggregate.computed[kCpuGBAvg]),
-			ElapsedRaw: uint32(s.jobAggregate.computed[kDuration]),
-			MaxRSS: uint32(s.jobAggregate.computed[kRssAnonGBPeak]),
-			MaxVMSize: uint32(s.jobAggregate.computed[kCpuGBPeak]),
+			AveDiskRead: uint32(s.AveDiskRead),
+			AveDiskWrite: uint32(s.AveDiskWrite),
+			AveRSS: uint32(s.computed[kRssAnonGBAvg]),
+			AveVMSize: uint32(s.computed[kCpuGBAvg]),
+			ElapsedRaw: uint32(s.computed[kDuration]),
+			MaxRSS: uint32(s.computed[kRssAnonGBPeak]),
+			MaxVMSize: uint32(s.computed[kCpuGBPeak]),
 			ReqCPUS: uint32(s.computed[kThreadPeak]),
 			ReqMem: uint32(s.computed[kCpuGBPeak]),
 			// We don't have these:
