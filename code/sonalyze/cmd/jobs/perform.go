@@ -22,7 +22,8 @@ import (
 	. "sonalyze/table"
 )
 
-// Computed float64 fields in jobAggregate.computed
+// Computed float64 fields in jobAggregate.computed.  These are for the job as a whole, being
+// computed from the single stream that is the synthesized / merged job.
 const (
 	kCpuPctAvg      = iota // Average CPU utilization, 1 core == 100%
 	kCpuPctPeak            // Peak CPU utilization ditto
@@ -163,40 +164,12 @@ func (jc *JobsCommand) Perform(
 	return jc.printJobSummaries(out, summaries)
 }
 
-// Container for computations we would prefer not to do but will need to do if certain names are
-// used for printing or in queries.
-
-type nameTester struct {
-	needCmd        bool
-	needHosts      bool
-	needJobAndMark bool
-	needSacctInfo  bool
-}
-
-func (nt *nameTester) testName(name string) {
-	switch name {
-	case "cmd", "Cmd":
-		nt.needCmd = true
-	case "host", "hosts", "Hosts":
-		nt.needHosts = true
-	case "jobm", "JobAndMark":
-		nt.needJobAndMark = true
-	case "Submit", "JobName", "State", "Account", "Layout", "Reservation",
-		"Partition", "RequestedGpus", "DiskReadAvgGB", "DiskWriteAvgGB",
-		"RequestedCpus", "RequestedMemGB", "RequestedNodes", "TimeLimit",
-		"ExitCode":
-		// Our names for the Slurm sacct data fields.  Mostly these are the same as in the sacct
-		// data, but there's no shame in sticking to proper naming.
-		nt.needSacctInfo = true
-	}
-}
-
 // A sample stream is a quadruple (host, command, job-related-id, record-list).  A stream is only
 // ever about one job.  There may be multiple streams per job, they will all have the same
 // job-related-id which is unique but not necessarily equal to any field in any of the records.
 //
-// This function collects the data per job and returns a vector of (aggregate, records) pairs where
-// the aggregate describes the job in aggregate and the records is a synthesized stream of sample
+// This function collects the data per job and returns a vector of (summary, records) pairs where
+// the summary describes the job in aggregate and the records is a synthesized stream of sample
 // records for the job, based on all the input streams for the job.  The manner of the synthesis
 // depends on arguments to the program: with --merge-all we merge across all hosts; with
 // --merge-none we do not merge; otherwise the config file can specify the hosts to merge across;
@@ -208,7 +181,6 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) []*jobSummary {
-	var now = time.Now().UTC().Unix()
 	var jobs sample.SampleStreams
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
@@ -220,16 +192,45 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 	if jc.Verbose {
 		Log.Infof("Jobs constructed by merging: %d", len(jobs))
 	}
-
 	summaryFilter, slurmFilter := jc.buildFilters()
+	nt := nameTester{
+		needSacctInfo: !jc.SacctFromSonar && slurmFilter != nil,
+	}
+	summaries, discarded := jc.summarizeJobsFromSonarData(
+		cfg,
+		bounds,
+		jobs,
+		summaryFilter,
+		&nt,
+	)
+	if jc.Verbose {
+		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
+	}
+	var slurmDiscarded int
+	if jc.SacctFromSonar {
+		slurmDiscarded = jc.synthesizeSacctData(summaries, slurmFilter)
+	}
+	if nt.needSacctInfo {
+		slurmDiscarded = jc.joinSacctData(meta, summaries, slurmFilter)
+	}
+	if (jc.SacctFromSonar || nt.needSacctInfo) && jc.Verbose {
+		Log.Infof("Jobs discarded by aggregation filtering: %d", slurmDiscarded)
+	}
+	return summaries
+}
 
+func (jc *JobsCommand) summarizeJobsFromSonarData(
+	cfg *config.ConfigDataProvider,
+	bounds Timebounds,
+	jobs sample.SampleStreams,
+	summaryFilter *aggregationFilter,
+	nt *nameTester,
+) ([]*jobSummary, int) {
+	var now = time.Now().UTC().Unix()
 	summaries := make([]*jobSummary, 0)
 	minSamples := jc.lookupUint("min-samples")
 	if jc.Verbose && minSamples > 1 {
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
-	}
-	nt := nameTester{
-		needSacctInfo: !jc.SacctFromSonar && slurmFilter != nil,
 	}
 	if !jc.SacctFromSonar {
 		for _, f := range jc.PrintFields {
@@ -243,6 +244,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 			nt.testName(name)
 		}
 	}
+
 	discarded := 0
 	for _, job := range jobs {
 		if uint(len(job)) >= minSamples {
@@ -252,7 +254,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 			first := job[0].Timestamp
 			last := job[len(job)-1].Timestamp
 			duration := last - first
-			aggregate := jc.aggregateJob(cfg, host, job, nt.needCmd, nt.needHosts, jc.Zombie)
+			aggregate := jc.aggregateSingleJobFromSonarData(cfg, host, job, nt.needCmd, nt.needHosts, jc.Zombie)
 			aggregate.computed[kDuration] = float64(duration)
 			usesGpu := !aggregate.Gpus.IsEmpty()
 			flags := 0
@@ -307,7 +309,7 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 				JobAndMark:     jobAndMark,
 				User:           user,
 				CpuTime:        DurationValue(math.Round(aggregate.computed[kCpuPctAvg] * float64(duration) / 100)),
-				GpuTime:        DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(kDuration) / 100)),
+				GpuTime:        DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(duration) / 100)),
 				Duration:       DurationValue(duration),
 				Now:            DateTimeValue(now),
 				Start:          DateTimeValue(first),
@@ -324,219 +326,15 @@ func (jc *JobsCommand) aggregateAndFilterJobs(
 			discarded++
 		}
 	}
-	if jc.Verbose {
-		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
-	}
-
-	if jc.SacctFromSonar {
-		// compute, and then if slurmFilter != nil apply the slurm filter
-		for _, s := range summaries {
-			var sumRead, sumWrite float64
-			for _, r := range s.job {
-				sumRead += float64(r.ReadKB) * kb2gb
-				sumWrite += float64(r.WriteKB) * kb2gb
-			}
-			var state Ustr
-			if (s.computedFlags & kIsNotLiveAtEnd) != 0 {
-				state = StringToUstr("COMPLETED")
-			} else {
-				state = StringToUstr("RUNNING")
-			}
-			var requestedGpus int
-			if s.Gpus.IsUnknown() {
-				requestedGpus = 1
-			} else {
-				requestedGpus = s.Gpus.Size()
-			}
-			s.sacctInfo = &repr.SacctInfo{
-				Time: s.job[0].Timestamp,
-				Start: s.Start,
-				End: s.End,
-				Submit: s.Start,
-				// SystemCPU
-				// UserCPU
-				// AveCPU
-				// MinCPU
-				Version: s.job[0].Version,
-				User: s.User,
-				JobName: StringToUstr(s.User.String() + ": " + s.Cmd),
-				State: state,
-				Account: s.User,
-				// Layout
-				// Reservation
-				// JobStep
-				// ArrayStep
-				// HetStep
-				NodeList: StringToUstr(FormatHostnames(s.Hosts, PrintModFixed)),
-				// Partition
-				ReqGPUS: StringToUstr(fmt.Sprintf("*=%d", requestedGpus)),
-				// JobID
-				// ArrayJobID
-				// ArrayIndex
-				// HetJobID
-				// HetOffset
-				AveDiskRead: uint32(sumRead / float64(len(s.job))),
-				AveDiskWrite: uint32(sumWrite / float64(len(s.job))),
-				// AveRSS
-				// AveVMSize
-				// ElapsedRaw
-				// MaxRSS
-				// MaxVMSize
-				ReqCPUS: uint32(s.computed[kThreadPeak]),
-				ReqMem: uint32(s.computed[kCpuGBPeak]),
-				// ReqNodes
-				// Suspended
-				// TimeLimitRaw
-				// ExitCode
-				// ExitSignal
-			}
-		}
-	}
-
-	if nt.needSacctInfo {
-		// TODO: If we have slurm data then those data may have precise measurements for some of the
-		// fields here and we might use them instead.  If so, do so here and not in printing, to
-		// avoid messiness vis-a-vis filtering.
-
-		if sdp, err := slurmjob.OpenSlurmjobDataProvider(meta); err == nil {
-			var err error
-
-			// Two things happen here:
-			//
-			// - attach slurm info to summaries we have
-			// - reduce the set of summaries we have by filtering on slurm information for those
-			//   summaries that do have slurm information
-			//
-			// Importantly, the first step cannot incorporate the second step, because it is valid
-			// for a job in the first set to not have a slurm aspect.
-			//
-			// So:
-			//
-			// - compute a set A of SlurmJobs from the job IDs alone
-			// - then another smaller set B of SlurmJobs from A with the other filters
-			// - then A \ B is the set of jobs to remove from the list of summaries
-			// - and B is the set of jobs contributing info for the remaining jobs
-
-			jobIds := make([]uint32, 0)
-			for _, summary := range summaries {
-				if summary.JobId != 0 {
-					jobIds = append(jobIds, summary.JobId)
-				}
-			}
-
-			var (
-				aJobs, bJobs []*slurmjob.SlurmJob
-				bMap         map[uint32]*slurmjob.SlurmJob
-			)
-			aJobs, err = sdp.Query(
-				slurmjob.QueryFilter{
-					QueryFilter: common.QueryFilter{
-						HaveFrom: jc.HaveFrom,
-						FromDate: jc.FromDate,
-						HaveTo:   jc.HaveTo,
-						ToDate:   jc.ToDate,
-					},
-					Job: jobIds,
-				},
-				jc.Verbose,
-			)
-			if err != nil {
-				if jc.Verbose {
-					Log.Warningf("Slurm data query failed: %v", err)
-				}
-				// Oh well
-				return summaries
-			}
-
-			if slurmFilter != nil {
-				var err error
-				bJobs, err = slurmjob.FilterJobs(
-					aJobs,
-					*slurmFilter,
-					jc.Verbose,
-				)
-				if err != nil {
-					if jc.Verbose {
-						Log.Warningf("Slurm data filter failed (bizarrely): %v", err)
-					}
-					bJobs = aJobs
-					// Ignore it, fall through to attach job info
-				} else {
-					bMap = make(map[uint32]*slurmjob.SlurmJob)
-					for _, j := range bJobs {
-						bMap[j.Id] = j
-					}
-					cullSet := make(map[uint32]bool)
-					for _, a := range aJobs {
-						if bMap[a.Id] == nil {
-							cullSet[a.Id] = true
-						}
-					}
-					summaries = slices.DeleteFunc(summaries, func(s *jobSummary) bool {
-						return cullSet[s.JobId]
-					})
-				}
-			} else {
-				bJobs = aJobs
-			}
-
-			if bMap == nil {
-				bMap = make(map[uint32]*slurmjob.SlurmJob)
-				for _, j := range bJobs {
-					bMap[j.Id] = j
-				}
-			}
-
-			for _, summary := range summaries {
-				if probe, found := bMap[summary.JobId]; found {
-					summary.sacctInfo = probe.Main // Hm
-				}
-			}
-		} else {
-			if jc.Verbose {
-				Log.Warningf("Needed slurm data but can't read those from transient cluster")
-			}
-		}
-	}
-
-	return summaries
+	return summaries, discarded
 }
 
-// Merge mergeable streams as if by --merge-all; the remaining streams are merged as if by
-// --merge-none, and the two sets of merged jobs are combined into one set.
+// Given a list of log entries for a job - a single stream of samples where each sample is the merge
+// across all processes for the job at some time point - sorted ascending by timestamp and with no
+// duplicated timestamps, return a JobAggregate for the job, with values that are computed from all
+// log entries.
 
-func mergeAcrossSomeNodes(
-	streams sample.InputStreamSet,
-	bounds Timebounds,
-) (sample.SampleStreams, Timebounds) {
-	mergeable := make(sample.InputStreamSet)
-	mBounds := make(Timebounds)
-	solo := make(sample.InputStreamSet)
-	sBounds := make(Timebounds)
-	for k, v := range streams {
-		bound := bounds[k.Host]
-		if (*v)[0].Epoch == 0 {
-			mBounds[k.Host] = bound
-			mergeable[k] = v
-		} else {
-			sBounds[k.Host] = bound
-			solo[k] = v
-		}
-	}
-	mergedJobs, mergedBounds := sample.MergeByJob(mergeable, mBounds)
-	otherJobs := sample.MergeByHostAndJob(solo)
-	mergedJobs = append(mergedJobs, otherJobs...)
-	for k, v := range sBounds {
-		mergedBounds[k] = v
-	}
-	return mergedJobs, mergedBounds
-}
-
-// Given a list of log entries for a job, sorted ascending by timestamp and with no duplicated
-// timestamps, return a JobAggregate for the job, with values that are computed from all log
-// entries.
-
-func (jc *JobsCommand) aggregateJob(
+func (jc *JobsCommand) aggregateSingleJobFromSonarData(
 	cfg *config.ConfigDataProvider,
 	host Ustr,
 	job sample.SampleStream,
@@ -557,9 +355,10 @@ func (jc *JobsCommand) aggregateJob(
 		gpuGBAvg, gpuGBPeak                  float64
 		rGpuGBAvg, rGpuGBPeak                float64
 		sGpuGBAvg, sGpuGBPeak                float64
+		cpuTime                              float64
 		threadAvg, threadPeak                uint32
 		isZombie, inContainer                bool
-		dataRead, dataWritten, dataCancelled uint64
+		dataRead, dataWritten, dataCancelled float64
 	)
 
 	for _, s := range job {
@@ -569,6 +368,7 @@ func (jc *JobsCommand) aggregateJob(
 		cpuPctPeak = max(cpuPctPeak, float64(s.CpuUtilPct))
 		gpuPctAvg += float64(s.GpuPct)
 		gpuPctPeak = max(gpuPctPeak, float64(s.GpuPct))
+		cpuTime += float64(s.CpuTimeSec)
 		cpuGBAvg += float64(s.CpuKB) * kb2gb
 		cpuGBPeak = max(cpuGBPeak, float64(s.CpuKB)*kb2gb)
 		rssAnonGBAvg += float64(s.RssAnonKB) * kb2gb
@@ -579,9 +379,9 @@ func (jc *JobsCommand) aggregateJob(
 		threadPeak = max(threadPeak, s.NumThreads)
 		inContainer = inContainer || s.InContainer
 		// ignore CpuSampledUtilPct for now
-		dataRead += s.DataReadKB
-		dataWritten += s.DataWrittenKB
-		dataCancelled += s.DataCancelledKB
+		dataRead += float64(s.DataReadKB) * kb2gb
+		dataWritten += float64(s.DataWrittenKB) * kb2gb
+		dataCancelled += float64(s.DataCancelledKB) * kb2gb
 
 		if needZombie && !isZombie {
 			cmd := s.Cmd.String()
@@ -688,10 +488,252 @@ func (jc *JobsCommand) aggregateJob(
 
 	a.computed[kThreadAvg] = float64(threadAvg) / n
 	a.computed[kThreadPeak] = float64(threadPeak)
-	a.computed[kReadGB] = float64(dataRead)
-	a.computed[kWrittenGB] = float64(dataWritten)
+	a.computed[kReadGB] = dataRead
+	a.computed[kWrittenGB] = dataWritten
 
 	return a
+}
+
+
+func (jc *JobsCommand) synthesizeSacctData(
+	summaries []*jobSummary,
+	slurmFilter *slurmjob.QueryFilter,
+) int {
+	// This should do more than trivial computation, all the heavy lifting should happen in
+	// aggregateFromSonarData.
+	//
+	// TODO: This needs to apply the slurmFilter if it is defined.
+	var discarded int
+	for _, s := range summaries {
+		var state Ustr
+		if (s.computedFlags & kIsNotLiveAtEnd) != 0 {
+			state = StringToUstr("COMPLETED")
+		} else {
+			state = StringToUstr("RUNNING")
+		}
+		var requestedGpus int
+		if s.Gpus.IsUnknown() {
+			requestedGpus = 1
+		} else {
+			requestedGpus = s.Gpus.Size()
+		}
+		s.sacctInfo = &repr.SacctInfo{
+			Time: s.job[0].Timestamp,
+			Start: s.Start,  // Start is valid unless liveAtStart
+			End: s.End,  // End is valid unless liveAtEnd
+			Submit: s.Start, // Submit time is start time (note validity constraint)
+			UserCPU: uint64(s.CpuTime),
+			AveCPU: uint64(s.jobAggregate.computed[kCpuPctAvg]),
+			// Compute elsewhere
+			//MinCPU: minCpu,
+			Version: s.job[0].Version,
+			User: s.User,
+			JobName: StringToUstr(s.User.String() + ": " + s.Cmd),
+			State: state,
+			Account: s.User,
+			NodeList: StringToUstr(FormatHostnames(s.Hosts, PrintModFixed)),
+			ReqGPUS: StringToUstr(fmt.Sprintf("*=%d", requestedGpus)),
+			JobID: s.JobId,
+			// These two are wrong I think, as they are running totals.  Also, should be computed elsewhere.
+			AveDiskRead: uint32(s.jobAggregate.computed[kReadGB] / float64(len(s.job))),
+			AveDiskWrite: uint32(s.jobAggregate.computed[kWrittenGB] / float64(len(s.job))),
+			AveRSS: uint32(s.jobAggregate.computed[kRssAnonGBAvg]),
+			AveVMSize: uint32(s.jobAggregate.computed[kCpuGBAvg]),
+			ElapsedRaw: uint32(s.jobAggregate.computed[kDuration]),
+			MaxRSS: uint32(s.jobAggregate.computed[kRssAnonGBPeak]),
+			MaxVMSize: uint32(s.jobAggregate.computed[kCpuGBPeak]),
+			ReqCPUS: uint32(s.computed[kThreadPeak]),
+			ReqMem: uint32(s.computed[kCpuGBPeak]),
+			// We don't have these:
+			// ArrayIndex
+			// ArrayJobID
+			// ArrayStep
+			// ExitCode
+			// ExitSignal
+			// HetJobID
+			// HetOffset
+			// HetStep
+			// JobStep
+			// Layout
+			// Partition
+			// ReqNodes
+			// Reservation
+			// Suspended
+			// SystemCPU
+			// TimeLimitRaw
+		}
+	}
+	return discarded
+}
+
+func (jc *JobsCommand) joinSacctData(
+	meta types.Context,
+	summaries []*jobSummary,
+	slurmFilter *slurmjob.QueryFilter,
+) int {
+	// TODO: If we have slurm data then those data may have precise measurements for some of the
+	// fields here and we might use them instead.  If so, do so here and not in printing, to
+	// avoid messiness vis-a-vis filtering.
+
+	var discarded int
+	if sdp, err := slurmjob.OpenSlurmjobDataProvider(meta); err == nil {
+		var err error
+
+		// Two things happen here:
+		//
+		// - attach slurm info to summaries we have
+		// - reduce the set of summaries we have by filtering on slurm information for those
+		//   summaries that do have slurm information
+		//
+		// Importantly, the first step cannot incorporate the second step, because it is valid
+		// for a job in the first set to not have a slurm aspect.
+		//
+		// So:
+		//
+		// - compute a set A of SlurmJobs from the job IDs alone
+		// - then another smaller set B of SlurmJobs from A with the other filters
+		// - then A \ B is the set of jobs to remove from the list of summaries
+		// - and B is the set of jobs contributing info for the remaining jobs
+
+		jobIds := make([]uint32, 0)
+		for _, summary := range summaries {
+			if summary.JobId != 0 {
+				jobIds = append(jobIds, summary.JobId)
+			}
+		}
+
+		var (
+			aJobs, bJobs []*slurmjob.SlurmJob
+			bMap         map[uint32]*slurmjob.SlurmJob
+		)
+		aJobs, err = sdp.Query(
+			slurmjob.QueryFilter{
+				QueryFilter: common.QueryFilter{
+					HaveFrom: jc.HaveFrom,
+					FromDate: jc.FromDate,
+					HaveTo:   jc.HaveTo,
+					ToDate:   jc.ToDate,
+				},
+				Job: jobIds,
+			},
+			jc.Verbose,
+		)
+		if err != nil {
+			if jc.Verbose {
+				Log.Warningf("Slurm data query failed: %v", err)
+			}
+			// Oh well
+			return discarded
+		}
+
+		if slurmFilter != nil {
+			var err error
+			bJobs, err = slurmjob.FilterJobs(
+				aJobs,
+				*slurmFilter,
+				jc.Verbose,
+			)
+			if err != nil {
+				if jc.Verbose {
+					Log.Warningf("Slurm data filter failed (bizarrely): %v", err)
+				}
+				bJobs = aJobs
+				// Ignore it, fall through to attach job info
+			} else {
+				bMap = make(map[uint32]*slurmjob.SlurmJob)
+				for _, j := range bJobs {
+					bMap[j.Id] = j
+				}
+				cullSet := make(map[uint32]bool)
+				for _, a := range aJobs {
+					if bMap[a.Id] == nil {
+						cullSet[a.Id] = true
+					}
+				}
+				summaries = slices.DeleteFunc(summaries, func(s *jobSummary) bool {
+					return cullSet[s.JobId]
+				})
+			}
+		} else {
+			bJobs = aJobs
+		}
+
+		if bMap == nil {
+			bMap = make(map[uint32]*slurmjob.SlurmJob)
+			for _, j := range bJobs {
+				bMap[j.Id] = j
+			}
+		}
+
+		for _, summary := range summaries {
+			if probe, found := bMap[summary.JobId]; found {
+				summary.sacctInfo = probe.Main // Hm
+			}
+		}
+	} else {
+		if jc.Verbose {
+			Log.Warningf("Needed slurm data but can't read those from transient cluster")
+		}
+	}
+	return discarded
+}
+
+// Merge mergeable streams as if by --merge-all; the remaining streams are merged as if by
+// --merge-none, and the two sets of merged jobs are combined into one set.
+
+func mergeAcrossSomeNodes(
+	streams sample.InputStreamSet,
+	bounds Timebounds,
+) (sample.SampleStreams, Timebounds) {
+	mergeable := make(sample.InputStreamSet)
+	mBounds := make(Timebounds)
+	solo := make(sample.InputStreamSet)
+	sBounds := make(Timebounds)
+	for k, v := range streams {
+		bound := bounds[k.Host]
+		if (*v)[0].Epoch == 0 {
+			mBounds[k.Host] = bound
+			mergeable[k] = v
+		} else {
+			sBounds[k.Host] = bound
+			solo[k] = v
+		}
+	}
+	mergedJobs, mergedBounds := sample.MergeByJob(mergeable, mBounds)
+	otherJobs := sample.MergeByHostAndJob(solo)
+	mergedJobs = append(mergedJobs, otherJobs...)
+	for k, v := range sBounds {
+		mergedBounds[k] = v
+	}
+	return mergedJobs, mergedBounds
+}
+
+// Container for computations we would prefer not to do but will need to do if certain names are
+// used for printing or in queries.
+
+type nameTester struct {
+	needCmd        bool
+	needHosts      bool
+	needJobAndMark bool
+	needSacctInfo  bool
+}
+
+func (nt *nameTester) testName(name string) {
+	switch name {
+	case "cmd", "Cmd":
+		nt.needCmd = true
+	case "host", "hosts", "Hosts":
+		nt.needHosts = true
+	case "jobm", "JobAndMark":
+		nt.needJobAndMark = true
+	case "Submit", "JobName", "State", "Account", "Layout", "Reservation",
+		"Partition", "RequestedGpus", "DiskReadAvgGB", "DiskWriteAvgGB",
+		"RequestedCpus", "RequestedMemGB", "RequestedNodes", "TimeLimit",
+		"ExitCode":
+		// Our names for the Slurm sacct data fields.  Mostly these are the same as in the sacct
+		// data, but there's no shame in sticking to proper naming.
+		nt.needSacctInfo = true
+	}
 }
 
 // Aggregation filters.

@@ -34,7 +34,7 @@ type SlurmJob struct {
 	Id uint32
 	// This is never nil, it is the "main" or top-level step, ie the one that has a non-blank User
 	Main *repr.SacctInfo
-	// The `Main` is not inclued here
+	// The `Main` is not included here
 	Steps []*repr.SacctInfo
 }
 
