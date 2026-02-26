@@ -32,6 +32,7 @@ FIELDS *config.NodeConfig
  Hostname    string desc:"Name that host is known by on the cluster" alias:"host"
  Description string desc:"End-user description, not parseable" alias:"desc"
  CpuCores    int    desc:"Total number of cores x threads" alias:"cores"
+ NumaNodes   int    desc:"NUMA nodes" alias:"numas"
  MemGB       int    desc:"GB of installed main RAM" alias:"mem"
  GpuCards    int    desc:"Number of installed cards" alias:"gpus"
  GpuMemGB    int    desc:"Total GPU memory across all cards" alias:"gpumem"
@@ -66,8 +67,8 @@ ALIASES
 
   default  host,cores,mem,gpus,gpumem,desc
   Default  Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,Description
-  all      timestamp,host,desc,cores,mem,gpus,gpumem,gpumempct,distances
-  All      Timestamp,Hostname,Description,CpuCores,MemGB,GpuCards,GpuMemGB,GpuMemPct,Distances
+  all      timestamp,host,desc,cores,numas,mem,gpus,gpumem,gpumempct,distances
+  All      Timestamp,Hostname,Description,CpuCores,NumaNodes,MemGB,GpuCards,GpuMemGB,GpuMemPct,Distances
 
 DEFAULTS default
 

@@ -21,6 +21,7 @@ type SysinfoNodeData struct {
 	OsName         string
 	OsRelease      string
 	Architecture   string
+	NumaNodes      uint64
 	Sockets        uint64
 	CoresPerSocket uint64
 	ThreadsPerCore uint64

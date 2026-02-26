@@ -79,9 +79,9 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 	},
 	"Pid": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
-			return FormatUint32((d.Pid), ctx)
+			return FormatUint64((d.Pid), ctx)
 		},
-		Help: "(uint32) Process ID",
+		Help: "(uint64) Process ID",
 	},
 	"Ppid": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
@@ -278,9 +278,9 @@ var parsePredicates = map[string]Predicate[sample.Sample]{
 		},
 	},
 	"Pid": Predicate[sample.Sample]{
-		Convert: CvtString2Uint32,
+		Convert: CvtString2Uint64,
 		Compare: func(d sample.Sample, v any) int {
-			return cmp.Compare((d.Pid), v.(uint32))
+			return cmp.Compare((d.Pid), v.(uint64))
 		},
 	},
 	"Ppid": Predicate[sample.Sample]{

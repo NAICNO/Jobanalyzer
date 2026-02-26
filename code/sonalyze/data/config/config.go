@@ -23,6 +23,7 @@ import (
 type NodeConfig struct {
 	repr.NodeSummary
 	Time      int64
+	NumaNodes int
 	Distances string
 	TopoSVG   string
 	TopoText  string
@@ -322,6 +323,7 @@ func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) 
 				// `Metadata` is unused by sonalyze.
 			},
 			Time:      parsedTime,
+			NumaNodes: int(r.node.NumaNodes),
 			Distances: distances,
 			TopoSVG:   r.node.TopoSVG,
 			TopoText:  r.node.TopoText,
