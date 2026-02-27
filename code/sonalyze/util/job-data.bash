@@ -22,8 +22,11 @@ fi
 # multiple of 24h.  The output format will be different, of course.  Job state reflects the state at
 # the end of the window.  No jobs are PENDING or CANCELLED - only RUNNING or COMPLETED.
 #
-# TODO
-# - "Time" should be timestamp of earliest record in data set
+# It is possible to enrich this with Sonar data fields, notably, some of the booleans about whether
+# the job is running at the beginning or end of the time window, so as to be able to know whether
+# Start, End, and Sumbit are valid.
+#
+# The only fields here are the ones that are computable from Sonar data.
 
 ${SONALYZE:-sonalyze} jobs \
                       -database-uri ${DATABASE_URI} \
