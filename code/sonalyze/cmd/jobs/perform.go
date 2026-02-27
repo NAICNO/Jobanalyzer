@@ -185,7 +185,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) []*jobSummary {
-	var jobs sample.SampleStreams
+	var jobs sample.MergedStreams
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
 	} else if !jc.MergeNone {
@@ -199,7 +199,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	summaryFilter, slurmFilter := jc.buildFilters()
 	nt := nameTester{
 		needSacctInfo: !jc.SacctFromSonar && slurmFilter != nil,
-		needHosts: jc.SacctFromSonar,
+		needHosts:     jc.SacctFromSonar,
 	}
 	summaries, discarded := jc.summarizeJobsFromSonarData(
 		cfg,
@@ -227,7 +227,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 func (jc *JobsCommand) summarizeJobsFromSonarData(
 	cfg *config.ConfigDataProvider,
 	bounds Timebounds,
-	jobs sample.SampleStreams,
+	jobs sample.MergedStreams,
 	summaryFilter *aggregationFilter,
 	nt *nameTester,
 ) ([]*jobSummary, int) {
@@ -252,8 +252,8 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 
 	discarded := 0
 	for _, job := range jobs {
-		if uint(len(job)) >= minSamples {
-			summary := jc.summarizeSingleJobFromSonarData(cfg, bounds, job, now, nt)
+		if uint(len(job.Samples)) >= minSamples {
+			summary := jc.summarizeSingleJobFromSonarData(cfg, bounds, job.Samples, now, nt)
 			if summaryFilter == nil || summaryFilter.apply(summary) {
 				summaries = append(summaries, summary)
 			} else {
@@ -330,16 +330,16 @@ func (jc *JobsCommand) summarizeSingleJobFromSonarData(
 	}
 	//numTasksInJob := 1.0 // FIXME
 	return &jobSummary{
-		jobAggregate:   aggregate,
-		JobId:          jobId,
-		JobAndMark:     jobAndMark,
-		User:           user,
-		CpuTime:        DurationValue(math.Round(aggregate.computed[kCpuPctAvg] * float64(duration) / 100)),
-		GpuTime:        DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(duration) / 100)),
-		Duration:       DurationValue(duration),
-		Now:            DateTimeValue(now),
-		Start:          DateTimeValue(first),
-		End:            DateTimeValue(last),
+		jobAggregate: aggregate,
+		JobId:        jobId,
+		JobAndMark:   jobAndMark,
+		User:         user,
+		CpuTime:      DurationValue(math.Round(aggregate.computed[kCpuPctAvg] * float64(duration) / 100)),
+		GpuTime:      DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(duration) / 100)),
+		Duration:     DurationValue(duration),
+		Now:          DateTimeValue(now),
+		Start:        DateTimeValue(first),
+		End:          DateTimeValue(last),
 		// FIXME
 		// AveCPU:         aggregate.computed[kCpuTimeSecTotal] / numTasksInJob,
 		// AveDiskRead:    aggregate.computed[kReadGBTotal] / numTasksInJob,
@@ -517,7 +517,6 @@ func (jc *JobsCommand) aggregateSingleJobFromSonarData(
 	return a
 }
 
-
 func (jc *JobsCommand) synthesizeSacctData(
 	summaries []*jobSummary,
 	slurmFilter *slurmjob.QueryFilter,
@@ -541,31 +540,31 @@ func (jc *JobsCommand) synthesizeSacctData(
 			requestedGpus = fmt.Sprintf("*=%d", s.Gpus.Size())
 		}
 		s.sacctInfo = &repr.SacctInfo{
-			Time: s.job[0].Timestamp,
-			Start: s.Start,  // Start is valid unless liveAtStart
-			End: s.End,  // End is valid unless liveAtEnd
-			Submit: s.Start, // Submit time is start time (note validity constraint)
+			Time:    s.job[0].Timestamp,
+			Start:   s.Start, // Start is valid unless liveAtStart
+			End:     s.End,   // End is valid unless liveAtEnd
+			Submit:  s.Start, // Submit time is start time (note validity constraint)
 			UserCPU: uint64(s.CpuTime),
 			// FIXME
 			//AveCPU: uint64(s.computed[kCpuSecAvg]),
-			MinCPU: uint64(s.MinCpu),
-			Version: s.job[0].Version,
-			User: s.User,
-			JobName: StringToUstr(s.User.String() + ": " + s.Cmd),
-			State: state,
-			Account: s.User,
-			NodeList: StringToUstr(FormatHostnames(s.Hosts, PrintModFixed)),
-			ReqGPUS: StringToUstr(requestedGpus),
-			JobID: s.JobId,
-			AveDiskRead: uint32(s.AveDiskRead),
+			MinCPU:       uint64(s.MinCpu),
+			Version:      s.job[0].Version,
+			User:         s.User,
+			JobName:      StringToUstr(s.User.String() + ": " + s.Cmd),
+			State:        state,
+			Account:      s.User,
+			NodeList:     StringToUstr(FormatHostnames(s.Hosts, PrintModFixed)),
+			ReqGPUS:      StringToUstr(requestedGpus),
+			JobID:        s.JobId,
+			AveDiskRead:  uint32(s.AveDiskRead),
 			AveDiskWrite: uint32(s.AveDiskWrite),
-			AveRSS: uint32(s.computed[kRssAnonGBAvg]),
-			AveVMSize: uint32(s.computed[kCpuGBAvg]),
-			ElapsedRaw: uint32(s.computed[kDuration]),
-			MaxRSS: uint32(s.computed[kRssAnonGBPeak]),
-			MaxVMSize: uint32(s.computed[kCpuGBPeak]),
-			ReqCPUS: uint32(s.computed[kThreadPeak]),
-			ReqMem: uint32(s.computed[kCpuGBPeak]),
+			AveRSS:       uint32(s.computed[kRssAnonGBAvg]),
+			AveVMSize:    uint32(s.computed[kCpuGBAvg]),
+			ElapsedRaw:   uint32(s.computed[kDuration]),
+			MaxRSS:       uint32(s.computed[kRssAnonGBPeak]),
+			MaxVMSize:    uint32(s.computed[kCpuGBPeak]),
+			ReqCPUS:      uint32(s.computed[kThreadPeak]),
+			ReqMem:       uint32(s.computed[kCpuGBPeak]),
 			// We don't have these:
 			// ArrayIndex
 			// ArrayJobID
@@ -706,7 +705,7 @@ func (jc *JobsCommand) joinSacctData(
 func mergeAcrossSomeNodes(
 	streams sample.InputStreamSet,
 	bounds Timebounds,
-) (sample.SampleStreams, Timebounds) {
+) (sample.MergedStreams, Timebounds) {
 	mergeable := make(sample.InputStreamSet)
 	mBounds := make(Timebounds)
 	solo := make(sample.InputStreamSet)

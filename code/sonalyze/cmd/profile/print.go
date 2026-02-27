@@ -66,7 +66,7 @@ func (pc *ProfileCommand) printProfile(
 	host, user string,
 	hasRolledup bool,
 	m *profData,
-	processes sample.SampleStreams,
+	processes []sample.SampleStream,
 	pif *processIndexFactory,
 ) error {
 	// Add the "nproc" field if it is required (we can't do it until rollup has happened) and the
@@ -148,7 +148,7 @@ func (pc *ProfileCommand) printProfile(
 
 func (pc *ProfileCommand) collectHtml(
 	m *profData,
-	processes sample.SampleStreams,
+	processes []sample.SampleStream,
 	pif *processIndexFactory,
 ) (labels []string, rows []string, err error) {
 	var formatter func(*profDatum) string
@@ -203,7 +203,7 @@ func (pc *ProfileCommand) collectHtml(
 
 func (pc *ProfileCommand) collectCsvOrAwk(
 	m *profData,
-	processes sample.SampleStreams,
+	processes []sample.SampleStream,
 	pif *processIndexFactory,
 ) (header []string, matrix [][]string, err error) {
 	var formatter func(*profDatum) string
@@ -307,7 +307,7 @@ ELBAT*/
 
 func (pc *ProfileCommand) collectFixed(
 	m *profData,
-	processes sample.SampleStreams,
+	processes []sample.SampleStream,
 	pif *processIndexFactory,
 ) (data []*fixedLine, err error) {
 	rowNames := m.rows()
@@ -497,7 +497,7 @@ function render() {
 func formatJson(
 	out io.Writer,
 	m *profData,
-	processes sample.SampleStreams,
+	processes []sample.SampleStream,
 	pif *processIndexFactory,
 	noMemory bool,
 ) {

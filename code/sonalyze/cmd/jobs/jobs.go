@@ -233,21 +233,21 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	FormatArgs
 
 	// Filter args
-	Uints         map[string]*uint
-	NoGpu         bool
-	SomeGpu       bool
-	Completed     bool
-	Running       bool
-	Zombie        bool
-	Partition     []string
-	Account       []string
-	Reservation   []string
-	State         []string
-	GpuType       []string
-	MergeAll      bool
-	MergeNone     bool
+	Uints          map[string]*uint
+	NoGpu          bool
+	SomeGpu        bool
+	Completed      bool
+	Running        bool
+	Zombie         bool
+	Partition      []string
+	Account        []string
+	Reservation    []string
+	State          []string
+	GpuType        []string
+	MergeAll       bool
+	MergeNone      bool
 	SacctFromSonar bool
-	MinRuntimeSec int64
+	MinRuntimeSec  int64
 
 	// Print args
 	NumJobs uint

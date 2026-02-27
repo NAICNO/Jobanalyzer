@@ -19,10 +19,15 @@ type Sample struct {
 
 type SampleStream []Sample
 
-// A bag of streams.  The constraints on the individual streams in terms of uniqueness and so on
-// depends on how they were merged and are not implied by the type.
+// A bag of merged streams.  The constraints on the individual streams in terms of uniqueness and so
+// on depends on how they were merged and are not implied by the type.
 
-type SampleStreams []SampleStream
+type MergedStreams []MergedStream
+
+type MergedStream struct {
+	Samples  SampleStream // The merged stream
+	NumTasks int          // The number of tasks that went into the merge
+}
 
 type indirectStreams []*SampleStream
 

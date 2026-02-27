@@ -178,7 +178,7 @@ func (pc *ParseCommand) Perform(
 	if err != nil {
 		return err
 	}
-	var mergedSamples []sample.SampleStream
+	var mergedSamples []sample.MergedStream
 	var samples sample.SampleStream
 
 	if pc.Clean || pc.MergeByJob || pc.MergeByHostAndJob {
@@ -209,9 +209,9 @@ func (pc *ParseCommand) Perform(
 
 		switch {
 		case pc.Clean:
-			mergedSamples = make([]sample.SampleStream, 0, len(streams))
+			mergedSamples = make([]sample.MergedStream, 0, len(streams))
 			for _, v := range streams {
-				mergedSamples = append(mergedSamples, *v)
+				mergedSamples = append(mergedSamples, sample.MergedStream{Samples: *v, NumTasks: 1})
 			}
 
 		case pc.MergeByJob:
@@ -258,28 +258,28 @@ func (pc *ParseCommand) Perform(
 		if pc.LastN > 0 {
 			// The samples are already sorted by time, so pick the last of each run.
 			for i := range mergedSamples {
-				if len(mergedSamples[i]) > int(pc.LastN) {
-					mergedSamples[i] = mergedSamples[i][len(mergedSamples[i])-int(pc.LastN):]
+				if len(mergedSamples[i].Samples) > int(pc.LastN) {
+					mergedSamples[i].Samples = mergedSamples[i].Samples[len(mergedSamples[i].Samples)-int(pc.LastN):]
 				}
 			}
 		}
 
 		// All elements that are part of the InputStreamKey must be part of the sort key here.
-		slices.SortStableFunc(mergedSamples, func(a, b sample.SampleStream) int {
-			c := cmp.Compare(a[0].Hostname.String(), b[0].Hostname.String())
+		slices.SortStableFunc(mergedSamples, func(a, b sample.MergedStream) int {
+			c := cmp.Compare(a.Samples[0].Hostname.String(), b.Samples[0].Hostname.String())
 			if c == 0 {
-				c = cmp.Compare(a[0].Timestamp, b[0].Timestamp)
+				c = cmp.Compare(a.Samples[0].Timestamp, b.Samples[0].Timestamp)
 				if c == 0 {
-					c = cmp.Compare(a[0].Job, b[0].Job)
+					c = cmp.Compare(a.Samples[0].Job, b.Samples[0].Job)
 					if c == 0 {
-						c = cmp.Compare(a[0].Cmd.String(), b[0].Cmd.String())
+						c = cmp.Compare(a.Samples[0].Cmd.String(), b.Samples[0].Cmd.String())
 					}
 				}
 			}
 			return c
 		})
 		for _, stream := range mergedSamples {
-			xs := stream
+			xs := stream.Samples
 			if queryNeg != nil {
 				xs = slices.DeleteFunc(xs, queryNeg)
 			}
