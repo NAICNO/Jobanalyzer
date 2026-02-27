@@ -112,6 +112,9 @@ FIELDS *jobSummary
   # real, synthesized, or absent.  UTSL when in doubt.
 
   Account            Ustr          desc:"Name of job's account (Slurm)" indirect:"sacctInfo"
+  ArrayIndex         uint32        desc:"" indirect:"sacctInfo"
+  ArrayJobID         uint32        desc:"" indirect:"sacctInfo"
+  ArrayStep          Ustr          desc:"" indirect:"sacctInfo"
   AveCPU             uint64        desc:"Average (system + user) CPU time of all tasks in job (sec) (Slurm)" \
                                    indirect:"sacctInfo"
   AveDiskRead        uint64        desc:"Average number of KB read by all tasks in job (Slurm)" indirect:"sacctInfo"
@@ -120,20 +123,35 @@ FIELDS *jobSummary
   AveVMSize          uint64        desc:"Average Virtual Memory size of all tasks in job (KB) (Slurm)" indirect:"sacctInfo"
   ElapsedRaw         uint32        desc:"The job's elapsed time (sec) (Slurm)" indirect:"sacctInfo"
   # End above
+  ExitCode           uint8         desc:"Exit code of job (Slurm)" indirect:"sacctInfo"
+  ExitSignal         uint8         desc:"" indirect:"sacctInfo"
+  HetJobID           uint32        desc:"" indirect:"sacctInfo"
+  HetOffset          uint32        desc:"" indirect:"sacctInfo"
+  HetStep            Ustr          desc:"" indirect:"sacctInfo"
   # JobID above
   JobName            Ustr          desc:"Name of the job (Slurm)" indirect:"sacctInfo"
-
-  Submit             DateTimeValue desc:"Submit time of job (Slurm)" indirect:"sacctInfo"
-  State              Ustr          desc:"Completion state of job (Slurm)" indirect:"sacctInfo"
+  JobStep            Ustr          desc:"" indirect:"sacctInfo"
   Layout             Ustr          desc:"Layout spec of job (Slurm)" indirect:"sacctInfo"
-  Reservation        Ustr          desc:"Name of job's reservation (Slurm)" indirect:"sacctInfo"
+  MaxRSS             uint64        desc:"" indirect:"sacctInfo"
+  MaxVMSize          uint64        desc:"" indirect:"sacctInfo"
+  MinCPU             uint64        desc:"" indirect:"sacctInfo"
+  NodeList           Ustr          desc:"" indirect:"sacctInfo"
   Partition          Ustr          desc:"Partition of job (Slurm)" indirect:"sacctInfo"
-  RequestedGpus      Ustr          desc:"Names of requested GPUs (Slurm AllocTRES)" indirect:"sacctInfo" field:"ReqGPUS"
-  RequestedCpus      uint32        desc:"Number of requested CPUs (Slurm)" indirect:"sacctInfo" field:"ReqCPUS"
-  RequestedMemGB     uint64        desc:"Requested memory (Slurm)" indirect:"sacctInfo" field:"ReqMem"
-  RequestedNodes     uint32        desc:"Number of requested nodes (Slurm)" indirect:"sacctInfo" field:"ReqNodes"
-  TimeLimit          U32Duration   desc:"Elapsed time limit (Slurm)" indirect:"sacctInfo" field:"TimelimitRaw"
-  ExitCode           uint8         desc:"Exit code of job (Slurm)" indirect:"sacctInfo"
+  ReqCPUS            uint32        desc:"Number of requested CPUs (Slurm)" indirect:"sacctInfo"
+  ReqGPUS            Ustr          desc:"Names of requested GPUs (Slurm AllocTRES)" indirect:"sacctInfo"
+  ReqMem             uint64        desc:"Requested memory in KB (Slurm)" indirect:"sacctInfo"
+  ReqNodes           uint32        desc:"Number of requested nodes (Slurm)" indirect:"sacctInfo"
+  Reservation        Ustr          desc:"Name of job's reservation (Slurm)" indirect:"sacctInfo"
+  # Start above
+  State              Ustr          desc:"Completion state of job (Slurm)" indirect:"sacctInfo"
+  Submit             DateTimeValue desc:"Submit time of job (Slurm)" indirect:"sacctInfo"
+  Suspended          uint32        desc:"" indirect:"sacctInfo"
+  SystemCPU          uint64        desc:"" indirect:"sacctInfo"
+  Time               DateTimeValue desc:"" indirect:"sacctInfo"
+  TimelimitRaw       U32Duration   desc:"Elapsed time limit (Slurm)" indirect:"sacctInfo"
+  UserCPU            uint64        desc:"" indirect:"sacctInfo"
+  # User above
+  Version            Ustr          desc:"" indirect:"sacctInfo"
 
 SUMMARY JobsCommand
 

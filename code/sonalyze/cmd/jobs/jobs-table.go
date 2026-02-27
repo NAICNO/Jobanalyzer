@@ -338,6 +338,30 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(string) Name of job's account (Slurm)",
 	},
+	"ArrayIndex": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint32((d.sacctInfo.ArrayIndex), ctx)
+			}
+			return "?"
+		},
+	},
+	"ArrayJobID": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint32((d.sacctInfo.ArrayJobID), ctx)
+			}
+			return "?"
+		},
+	},
+	"ArrayStep": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUstr((d.sacctInfo.ArrayStep), ctx)
+			}
+			return "?"
+		},
+	},
 	"AveCPU": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
@@ -392,6 +416,47 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(uint32) The job's elapsed time (sec) (Slurm)",
 	},
+	"ExitCode": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint8((d.sacctInfo.ExitCode), ctx)
+			}
+			return "?"
+		},
+		Help: "(uint8) Exit code of job (Slurm)",
+	},
+	"ExitSignal": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint8((d.sacctInfo.ExitSignal), ctx)
+			}
+			return "?"
+		},
+	},
+	"HetJobID": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint32((d.sacctInfo.HetJobID), ctx)
+			}
+			return "?"
+		},
+	},
+	"HetOffset": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint32((d.sacctInfo.HetOffset), ctx)
+			}
+			return "?"
+		},
+	},
+	"HetStep": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUstr((d.sacctInfo.HetStep), ctx)
+			}
+			return "?"
+		},
+	},
 	"JobName": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
@@ -401,23 +466,13 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(string) Name of the job (Slurm)",
 	},
-	"Submit": {
+	"JobStep": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
-				return FormatDateTimeValue((d.sacctInfo.Submit), ctx)
+				return FormatUstr((d.sacctInfo.JobStep), ctx)
 			}
 			return "?"
 		},
-		Help: "(DateTimeValue) Submit time of job (Slurm)",
-	},
-	"State": {
-		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			if (d.sacctInfo) != nil {
-				return FormatUstr((d.sacctInfo.State), ctx)
-			}
-			return "?"
-		},
-		Help: "(string) Completion state of job (Slurm)",
 	},
 	"Layout": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -428,14 +483,37 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(string) Layout spec of job (Slurm)",
 	},
-	"Reservation": {
+	"MaxRSS": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
-				return FormatUstr((d.sacctInfo.Reservation), ctx)
+				return FormatUint64((d.sacctInfo.MaxRSS), ctx)
 			}
 			return "?"
 		},
-		Help: "(string) Name of job's reservation (Slurm)",
+	},
+	"MaxVMSize": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint64((d.sacctInfo.MaxVMSize), ctx)
+			}
+			return "?"
+		},
+	},
+	"MinCPU": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint64((d.sacctInfo.MinCPU), ctx)
+			}
+			return "?"
+		},
+	},
+	"NodeList": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUstr((d.sacctInfo.NodeList), ctx)
+			}
+			return "?"
+		},
 	},
 	"Partition": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -446,16 +524,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(string) Partition of job (Slurm)",
 	},
-	"RequestedGpus": {
-		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			if (d.sacctInfo) != nil {
-				return FormatUstr((d.sacctInfo.ReqGPUS), ctx)
-			}
-			return "?"
-		},
-		Help: "(string) Names of requested GPUs (Slurm AllocTRES)",
-	},
-	"RequestedCpus": {
+	"ReqCPUS": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
 				return FormatUint32((d.sacctInfo.ReqCPUS), ctx)
@@ -464,16 +533,25 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(uint32) Number of requested CPUs (Slurm)",
 	},
-	"RequestedMemGB": {
+	"ReqGPUS": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUstr((d.sacctInfo.ReqGPUS), ctx)
+			}
+			return "?"
+		},
+		Help: "(string) Names of requested GPUs (Slurm AllocTRES)",
+	},
+	"ReqMem": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
 				return FormatUint64((d.sacctInfo.ReqMem), ctx)
 			}
 			return "?"
 		},
-		Help: "(uint64) Requested memory (Slurm)",
+		Help: "(uint64) Requested memory in KB (Slurm)",
 	},
-	"RequestedNodes": {
+	"ReqNodes": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
 				return FormatUint32((d.sacctInfo.ReqNodes), ctx)
@@ -482,7 +560,58 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(uint32) Number of requested nodes (Slurm)",
 	},
-	"TimeLimit": {
+	"Reservation": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUstr((d.sacctInfo.Reservation), ctx)
+			}
+			return "?"
+		},
+		Help: "(string) Name of job's reservation (Slurm)",
+	},
+	"State": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUstr((d.sacctInfo.State), ctx)
+			}
+			return "?"
+		},
+		Help: "(string) Completion state of job (Slurm)",
+	},
+	"Submit": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatDateTimeValue((d.sacctInfo.Submit), ctx)
+			}
+			return "?"
+		},
+		Help: "(DateTimeValue) Submit time of job (Slurm)",
+	},
+	"Suspended": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint32((d.sacctInfo.Suspended), ctx)
+			}
+			return "?"
+		},
+	},
+	"SystemCPU": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint64((d.sacctInfo.SystemCPU), ctx)
+			}
+			return "?"
+		},
+	},
+	"Time": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatDateTimeValue((d.sacctInfo.Time), ctx)
+			}
+			return "?"
+		},
+	},
+	"TimelimitRaw": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
 				return FormatU32Duration((d.sacctInfo.TimelimitRaw), ctx)
@@ -491,14 +620,21 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(U32Duration) Elapsed time limit (Slurm)",
 	},
-	"ExitCode": {
+	"UserCPU": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
-				return FormatUint8((d.sacctInfo.ExitCode), ctx)
+				return FormatUint64((d.sacctInfo.UserCPU), ctx)
 			}
 			return "?"
 		},
-		Help: "(uint8) Exit code of job (Slurm)",
+	},
+	"Version": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUstr((d.sacctInfo.Version), ctx)
+			}
+			return "?"
+		},
 	},
 }
 
@@ -851,6 +987,33 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
+	"ArrayIndex": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ArrayIndex), v.(uint32))
+			}
+			return -1
+		},
+	},
+	"ArrayJobID": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ArrayJobID), v.(uint32))
+			}
+			return -1
+		},
+	},
+	"ArrayStep": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ArrayStep), v.(Ustr))
+			}
+			return -1
+		},
+	},
 	"AveCPU": Predicate[*jobSummary]{
 		Convert: CvtString2Uint64,
 		Compare: func(d *jobSummary, v any) int {
@@ -905,6 +1068,51 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
+	"ExitCode": Predicate[*jobSummary]{
+		Convert: CvtString2Uint8,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ExitCode), v.(uint8))
+			}
+			return -1
+		},
+	},
+	"ExitSignal": Predicate[*jobSummary]{
+		Convert: CvtString2Uint8,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ExitSignal), v.(uint8))
+			}
+			return -1
+		},
+	},
+	"HetJobID": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.HetJobID), v.(uint32))
+			}
+			return -1
+		},
+	},
+	"HetOffset": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.HetOffset), v.(uint32))
+			}
+			return -1
+		},
+	},
+	"HetStep": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.HetStep), v.(Ustr))
+			}
+			return -1
+		},
+	},
 	"JobName": Predicate[*jobSummary]{
 		Convert: CvtString2Ustr,
 		Compare: func(d *jobSummary, v any) int {
@@ -914,20 +1122,11 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"Submit": Predicate[*jobSummary]{
-		Convert: CvtString2DateTimeValue,
-		Compare: func(d *jobSummary, v any) int {
-			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.Submit), v.(DateTimeValue))
-			}
-			return -1
-		},
-	},
-	"State": Predicate[*jobSummary]{
+	"JobStep": Predicate[*jobSummary]{
 		Convert: CvtString2Ustr,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.State), v.(Ustr))
+				return cmp.Compare((d.sacctInfo.JobStep), v.(Ustr))
 			}
 			return -1
 		},
@@ -941,11 +1140,38 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"Reservation": Predicate[*jobSummary]{
+	"MaxRSS": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.MaxRSS), v.(uint64))
+			}
+			return -1
+		},
+	},
+	"MaxVMSize": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.MaxVMSize), v.(uint64))
+			}
+			return -1
+		},
+	},
+	"MinCPU": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.MinCPU), v.(uint64))
+			}
+			return -1
+		},
+	},
+	"NodeList": Predicate[*jobSummary]{
 		Convert: CvtString2Ustr,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.Reservation), v.(Ustr))
+				return cmp.Compare((d.sacctInfo.NodeList), v.(Ustr))
 			}
 			return -1
 		},
@@ -959,16 +1185,7 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"RequestedGpus": Predicate[*jobSummary]{
-		Convert: CvtString2Ustr,
-		Compare: func(d *jobSummary, v any) int {
-			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.ReqGPUS), v.(Ustr))
-			}
-			return -1
-		},
-	},
-	"RequestedCpus": Predicate[*jobSummary]{
+	"ReqCPUS": Predicate[*jobSummary]{
 		Convert: CvtString2Uint32,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
@@ -977,7 +1194,16 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"RequestedMemGB": Predicate[*jobSummary]{
+	"ReqGPUS": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ReqGPUS), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"ReqMem": Predicate[*jobSummary]{
 		Convert: CvtString2Uint64,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
@@ -986,7 +1212,7 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"RequestedNodes": Predicate[*jobSummary]{
+	"ReqNodes": Predicate[*jobSummary]{
 		Convert: CvtString2Uint32,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
@@ -995,7 +1221,61 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"TimeLimit": Predicate[*jobSummary]{
+	"Reservation": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Reservation), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"State": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.State), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"Submit": Predicate[*jobSummary]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Submit), v.(DateTimeValue))
+			}
+			return -1
+		},
+	},
+	"Suspended": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Suspended), v.(uint32))
+			}
+			return -1
+		},
+	},
+	"SystemCPU": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.SystemCPU), v.(uint64))
+			}
+			return -1
+		},
+	},
+	"Time": Predicate[*jobSummary]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Time), v.(DateTimeValue))
+			}
+			return -1
+		},
+	},
+	"TimelimitRaw": Predicate[*jobSummary]{
 		Convert: CvtString2U32Duration,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
@@ -1004,11 +1284,20 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"ExitCode": Predicate[*jobSummary]{
-		Convert: CvtString2Uint8,
+	"UserCPU": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.ExitCode), v.(uint8))
+				return cmp.Compare((d.sacctInfo.UserCPU), v.(uint64))
+			}
+			return -1
+		},
+	},
+	"Version": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Version), v.(Ustr))
 			}
 			return -1
 		},
