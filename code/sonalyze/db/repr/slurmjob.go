@@ -31,10 +31,7 @@ import (
 //     But 170K cores (Betzy) running flat out for a week comes to about 24 times that.  So fields for
 //     total consumed CPU time must be 64 bits.
 //
-//   - No doubt something can be made of sub-gigabyte memory sizes, but everything here is rounded up
-//     to the nearest GB.
-//
-// - I/O is also presented in GB (anything less isn't meaningful), rounded up to nearest GB.
+//   - Memory sizes and I/O have been kept in KB for compatibility, even though this is probably silly.
 //
 //   - The state field has been stripped of extraneous information, eg, "CANCELLED by ..." is just
 //     CANCELLED.
@@ -58,6 +55,13 @@ type SacctInfo struct {
 	UserCPU      uint64 // seconds of cpu time
 	AveCPU       uint64 // seconds of cpu time
 	MinCPU       uint64 // seconds of cpu time
+	AveDiskRead  uint64 // KB
+	AveDiskWrite uint64 // KB
+	AveRSS       uint64 // KB
+	AveVMSize    uint64 // KB
+	MaxRSS       uint64 // KB
+	MaxVMSize    uint64 // KB
+	ReqMem       uint64 // KB
 	Version      Ustr
 	User         Ustr // only for the "main" record for the job
 	JobName      Ustr
@@ -76,15 +80,8 @@ type SacctInfo struct {
 	ArrayIndex   uint32
 	HetJobID     uint32
 	HetOffset    uint32
-	AveDiskRead  uint32 // GB
-	AveDiskWrite uint32 // GB
-	AveRSS       uint32 // GB
-	AveVMSize    uint32 // GB
 	ElapsedRaw   uint32 // seconds of real time
-	MaxRSS       uint32 // GB
-	MaxVMSize    uint32 // GB
 	ReqCPUS      uint32
-	ReqMem       uint32 // GB
 	ReqNodes     uint32
 	Suspended    uint32 // seconds of real time
 	TimelimitRaw uint32 // *seconds* of real time (input data has minutes)

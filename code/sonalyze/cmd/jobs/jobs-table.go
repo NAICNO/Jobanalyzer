@@ -277,15 +277,15 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	},
 	"ReadGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kReadGBTotal]), ctx)
+			return FormatUint64((d.u64[uReadGBTotal]), ctx)
 		},
-		Help: "(int) Total read traffic",
+		Help: "(uint64) Total read traffic",
 	},
 	"WrittenGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kWrittenGBTotal]), ctx)
+			return FormatUint64((d.u64[uWrittenGBTotal]), ctx)
 		},
-		Help: "(int) Total read traffic",
+		Help: "(uint64) Total read traffic",
 	},
 	"SomeGpu": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -329,6 +329,78 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(bool) True iff the process appears not to have been alive at the start of the time window",
 	},
+	"Account": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUstr((d.sacctInfo.Account), ctx)
+			}
+			return "?"
+		},
+		Help: "(string) Name of job's account (Slurm)",
+	},
+	"AveCPU": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint64((d.sacctInfo.AveCPU), ctx)
+			}
+			return "?"
+		},
+		Help: "(uint64) Average (system + user) CPU time of all tasks in job (sec) (Slurm)",
+	},
+	"AveDiskRead": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint64((d.sacctInfo.AveDiskRead), ctx)
+			}
+			return "?"
+		},
+		Help: "(uint64) Average number of KB read by all tasks in job (Slurm)",
+	},
+	"AveDiskWrite": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint64((d.sacctInfo.AveDiskWrite), ctx)
+			}
+			return "?"
+		},
+		Help: "(uint64) Average number of KB written by all tasks in job (Slurm)",
+	},
+	"AveRSS": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint64((d.sacctInfo.AveRSS), ctx)
+			}
+			return "?"
+		},
+		Help: "(uint64) Average resident set size of all tasks in job (KB) (Slurm)",
+	},
+	"AveVMSize": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint64((d.sacctInfo.AveVMSize), ctx)
+			}
+			return "?"
+		},
+		Help: "(uint64) Average Virtual Memory size of all tasks in job (KB) (Slurm)",
+	},
+	"ElapsedRaw": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint32((d.sacctInfo.ElapsedRaw), ctx)
+			}
+			return "?"
+		},
+		Help: "(uint32) The job's elapsed time (sec) (Slurm)",
+	},
+	"JobName": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUstr((d.sacctInfo.JobName), ctx)
+			}
+			return "?"
+		},
+		Help: "(string) Name of the job (Slurm)",
+	},
 	"Submit": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
@@ -338,15 +410,6 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(DateTimeValue) Submit time of job (Slurm)",
 	},
-	"JobName": {
-		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			if (d.sacctInfo) != nil {
-				return FormatUstr((d.sacctInfo.JobName), ctx)
-			}
-			return "?"
-		},
-		Help: "(string) Name of job (Slurm)",
-	},
 	"State": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
@@ -355,15 +418,6 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			return "?"
 		},
 		Help: "(string) Completion state of job (Slurm)",
-	},
-	"Account": {
-		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			if (d.sacctInfo) != nil {
-				return FormatUstr((d.sacctInfo.Account), ctx)
-			}
-			return "?"
-		},
-		Help: "(string) Name of job's account (Slurm)",
 	},
 	"Layout": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -401,24 +455,6 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(string) Names of requested GPUs (Slurm AllocTRES)",
 	},
-	"DiskReadAvgGB": {
-		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			if (d.sacctInfo) != nil {
-				return FormatUint32((d.sacctInfo.AveDiskRead), ctx)
-			}
-			return "?"
-		},
-		Help: "(uint32) Average disk read activity in GB/s (Slurm AveDiskRead)",
-	},
-	"DiskWriteAvgGB": {
-		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			if (d.sacctInfo) != nil {
-				return FormatUint32((d.sacctInfo.AveDiskWrite), ctx)
-			}
-			return "?"
-		},
-		Help: "(uint32) Average disk write activity in GB/s (Slurm AveDiskWrite)",
-	},
 	"RequestedCpus": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
@@ -431,11 +467,11 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	"RequestedMemGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
-				return FormatUint32((d.sacctInfo.ReqMem), ctx)
+				return FormatUint64((d.sacctInfo.ReqMem), ctx)
 			}
 			return "?"
 		},
-		Help: "(uint32) Requested memory (Slurm)",
+		Help: "(uint64) Requested memory (Slurm)",
 	},
 	"RequestedNodes": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -753,15 +789,15 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 		},
 	},
 	"ReadGB": Predicate[*jobSummary]{
-		Convert: CvtString2Float64,
+		Convert: CvtString2Uint64,
 		Compare: func(d *jobSummary, v any) int {
-			return cmp.Compare((d.computed[kReadGBTotal]), v.(F64Ceil))
+			return cmp.Compare((d.u64[uReadGBTotal]), v.(uint64))
 		},
 	},
 	"WrittenGB": Predicate[*jobSummary]{
-		Convert: CvtString2Float64,
+		Convert: CvtString2Uint64,
 		Compare: func(d *jobSummary, v any) int {
-			return cmp.Compare((d.computed[kWrittenGBTotal]), v.(F64Ceil))
+			return cmp.Compare((d.u64[uWrittenGBTotal]), v.(uint64))
 		},
 	},
 	"SomeGpu": Predicate[*jobSummary]{
@@ -806,11 +842,65 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return CompareBool((d.computedFlags&kIsNotLiveAtStart != 0), v.(bool))
 		},
 	},
-	"Submit": Predicate[*jobSummary]{
-		Convert: CvtString2DateTimeValue,
+	"Account": Predicate[*jobSummary]{
+		Convert: CvtString2Ustr,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.Submit), v.(DateTimeValue))
+				return cmp.Compare((d.sacctInfo.Account), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"AveCPU": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.AveCPU), v.(uint64))
+			}
+			return -1
+		},
+	},
+	"AveDiskRead": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.AveDiskRead), v.(uint64))
+			}
+			return -1
+		},
+	},
+	"AveDiskWrite": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.AveDiskWrite), v.(uint64))
+			}
+			return -1
+		},
+	},
+	"AveRSS": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.AveRSS), v.(uint64))
+			}
+			return -1
+		},
+	},
+	"AveVMSize": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.AveVMSize), v.(uint64))
+			}
+			return -1
+		},
+	},
+	"ElapsedRaw": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ElapsedRaw), v.(uint32))
 			}
 			return -1
 		},
@@ -824,20 +914,20 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
+	"Submit": Predicate[*jobSummary]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Submit), v.(DateTimeValue))
+			}
+			return -1
+		},
+	},
 	"State": Predicate[*jobSummary]{
 		Convert: CvtString2Ustr,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
 				return cmp.Compare((d.sacctInfo.State), v.(Ustr))
-			}
-			return -1
-		},
-	},
-	"Account": Predicate[*jobSummary]{
-		Convert: CvtString2Ustr,
-		Compare: func(d *jobSummary, v any) int {
-			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.Account), v.(Ustr))
 			}
 			return -1
 		},
@@ -878,24 +968,6 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"DiskReadAvgGB": Predicate[*jobSummary]{
-		Convert: CvtString2Uint32,
-		Compare: func(d *jobSummary, v any) int {
-			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.AveDiskRead), v.(uint32))
-			}
-			return -1
-		},
-	},
-	"DiskWriteAvgGB": Predicate[*jobSummary]{
-		Convert: CvtString2Uint32,
-		Compare: func(d *jobSummary, v any) int {
-			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.AveDiskWrite), v.(uint32))
-			}
-			return -1
-		},
-	},
 	"RequestedCpus": Predicate[*jobSummary]{
 		Convert: CvtString2Uint32,
 		Compare: func(d *jobSummary, v any) int {
@@ -906,10 +978,10 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 		},
 	},
 	"RequestedMemGB": Predicate[*jobSummary]{
-		Convert: CvtString2Uint32,
+		Convert: CvtString2Uint64,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.ReqMem), v.(uint32))
+				return cmp.Compare((d.sacctInfo.ReqMem), v.(uint64))
 			}
 			return -1
 		},

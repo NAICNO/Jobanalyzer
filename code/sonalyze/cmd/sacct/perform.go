@@ -12,7 +12,7 @@ import (
 
 type sacctSummary struct {
 	*slurmjob.SlurmJob
-	maxrss       uint32
+	maxrss       uint64
 	requestedCpu uint64
 	usedCpu      uint64
 }
@@ -106,9 +106,9 @@ func (sc *SacctCommand) sacctRegularJobs(stdout io.Writer, regularJobs []*slurmj
 		r := make([]*sacctSummary, 0)
 		for _, j := range regular {
 			switch {
-			case j.Main.ReqMem < uint32(sc.MinReservedMem):
+			case j.Main.ReqMem < uint64(sc.MinReservedMem):
 				toosmall++
-			case j.Main.ReqMem > uint32(sc.MaxReservedMem):
+			case j.Main.ReqMem > uint64(sc.MaxReservedMem):
 				toobig++
 			case j.Main.ReqCPUS*j.Main.ReqNodes < uint32(sc.MinReservedCores):
 				toofeeble++

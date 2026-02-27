@@ -18,10 +18,17 @@ if [[ -z $CLUSTER_NAME || -z $DATABASE_URI ]]; then
     exit 1
 fi
 
+# The logic here is that we're basically getting a `sonar jobs` run with a large time window, some
+# multiple of 24h.  The output format will be different, of course.  Job state reflects the state at
+# the end of the window.  No jobs are PENDING or CANCELLED - only RUNNING or COMPLETED.
+#
+# TODO
+# - "Time" should be timestamp of earliest record in data set
+
 ${SONALYZE:-sonalyze} jobs \
                       -database-uri ${DATABASE_URI} \
                       -cluster ${CLUSTER_NAME} \
                       -user - \
                       -sacct-from-sonar \
-                      -fmt json,Job,Running,Completed,User,Start,Hosts,End,ResidentMemAvgGB,MemAvgGB,Duration,ResidentMemPeakGB,MemPeakGB
+                      -fmt json,AveCPU,AveDiskRead,AveDiskWrite,AveRSS,AveVMSize,ElapsedRaw,End,JobID,JobName,MaxRSS,MaxVMSize,MinCPU,NodeList,ReqCPUS,ReqGPUS,ReqMem,Start,State,Submit,Time,UserCPU,User,Version
 

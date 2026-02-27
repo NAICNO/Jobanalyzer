@@ -213,17 +213,22 @@ func TestParseSlurmElapsed(t *testing.T) {
 func TestParseSlurmBytes(t *testing.T) {
 	type test struct {
 		s string
-		r uint32
+		r uint64
 	}
+	const (
+		gb = 1024 * 1024
+		mb = 1024
+		kb = 1
+	)
 	tests := []test{
 		{"125", 1},
-		{"125G", 125},
-		{"12.5G", 13},
-		{"0.01G", 1},
-		{"125M", 1},
-		{"1250M", 2},
-		{"125K", 1},
-		{"1250000.0001K", 2},
+		{"125G", 125 * gb},
+		{"12.5G", uint64(math.Ceil(12.5 * gb))},
+		{"0.01G", uint64(math.Ceil(0.01 * gb))},
+		{"125M", 125 * mb},
+		{"1250M", 1250 * mb},
+		{"125K", 125 * kb},
+		{"1250000.0001K", 1250001 * kb},
 	}
 	for _, x := range tests {
 		n, err := parseSlurmBytes([]byte(x.s))
@@ -231,7 +236,7 @@ func TestParseSlurmBytes(t *testing.T) {
 			t.Fatal(err)
 		}
 		if n != x.r {
-			t.Fatalf("Bad size %d for %s", n, x.s)
+			t.Fatalf("Bad size %d for %s (%d)", n, x.s, x.r)
 		}
 	}
 }
