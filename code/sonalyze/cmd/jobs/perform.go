@@ -206,6 +206,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	summaryFilter, slurmFilter := jc.buildFilters()
 	nt := nameTester{
 		needSacctInfo: !jc.SacctFromSonar && slurmFilter != nil,
+		needCmd:       jc.SacctFromSonar,
 		needHosts:     jc.SacctFromSonar,
 	}
 	summaries, discarded := jc.summarizeJobsFromSonarData(

@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 
-USAGE="Usage: job-data.bash -c cluster-name -d database-uri"
+USAGE="Usage: job-data.bash -c cluster-name -d database-uri [-w date]"
 
 DATABASE_URI=
 CLUSTER_NAME=
-while getopts c:d:h opt $@; do
+WHEN=$(date +%F)
+while getopts c:d:w:h opt $@; do
     case $opt in
         c) CLUSTER_NAME=$OPTARG ;;
         d) DATABASE_URI=$OPTARG ;;
+        w) WHEN=$OPTARG ;;
         h) echo $USAGE; exit 0 ;;
         *) exit 1 ;;
     esac
@@ -27,11 +29,15 @@ fi
 # Start, End, and Sumbit are valid.
 #
 # The only fields here are the ones that are computable from Sonar data.
+#
+# TODO: Possibly Start/End/Submit should be using the /iso modifier
 
 ${SONALYZE:-sonalyze} jobs \
                       -database-uri ${DATABASE_URI} \
                       -cluster ${CLUSTER_NAME} \
                       -user - \
                       -sacct-from-sonar \
+                      -from $WHEN \
+                      -to $WHEN \
                       -fmt json,AveCPU,AveDiskRead,AveDiskWrite,AveRSS,AveVMSize,ElapsedRaw,End,JobID,JobName,MaxRSS,MaxVMSize,MinCPU,NodeList,ReqCPUS,ReqGPUS,ReqMem,Start,State,Submit,Time,UserCPU,User,Version
 

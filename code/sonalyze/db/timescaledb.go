@@ -174,9 +174,9 @@ func (cdb *connectedDB) ReadProcessSamples(
 	)
 
 	// Alpha order and KEEP THE FIELD AND BOX LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	t1Fields := "t1.cancelled, t1.cmd, t1.cpu_avg, t1.cpu_time, t1.cpu_util, t1.epoch, t1.job, " +
-		"t1.node, t1.num_threads, t1.pid, t1.ppid, t1.read, t1.resident_memory, t1.rolledup, " +
-		"t1.time, t1.user, t1.written, t1.virtual_memory"
+	t1Fields := "t1.data_cancelled, t1.cmd, t1.cpu_avg, t1.cpu_time, t1.cpu_util, t1.epoch, t1.job, " +
+		"t1.node, t1.num_threads, t1.pid, t1.ppid, t1.data_read, t1.resident_memory, t1.rolledup, " +
+		"t1.time, t1.user, t1.data_written, t1.virtual_memory"
 	t1Boxes := []any{
 		&cancelled, &cmd, &cpuAvg, &cpuTime, &cpuUtil, &epoch, &job,
 		&node, &numThreads, &pid, &ppid, &read, &residentMemory, &rolledup,
