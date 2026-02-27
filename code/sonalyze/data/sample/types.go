@@ -19,14 +19,14 @@ type Sample struct {
 
 type SampleStream []Sample
 
-// A bag of merged streams.  The constraints on the individual streams in terms of uniqueness and so
-// on depends on how they were merged and are not implied by the type.
+type MergedJobs []MergedJob
 
-type MergedStreams []MergedStream
-
-type MergedStream struct {
-	Samples  SampleStream // The merged stream
-	NumTasks int          // The number of tasks that went into the merge
+// A job merged from individual streams.  The constraints on the samples in terms of uniqueness and
+// so on depends on how they were merged and are not implied by the type.
+type MergedJob struct {
+	Samples  SampleStream   // Synthesized/merged samples
+	NumTasks int            // The number of tasks that went into the merge
+	Tasks    []SampleStream // The individual input streams
 }
 
 type indirectStreams []*SampleStream

@@ -25,35 +25,36 @@ import (
 // Computed float64 fields in jobAggregate.computed.  These are for the job as a whole, being
 // computed from the single stream that is the synthesized / merged job.
 const (
-	kCpuPctAvg      = iota // Average CPU utilization, 1 core == 100%
-	kCpuPctPeak            // Peak CPU utilization ditto
-	kRcpuPctAvg            // Average CPU utilization, all cores == 100%
-	kRcpuPctPeak           // Peak CPU utilization ditto
-	kCpuGBAvg              // Average main memory utilization, GiB
-	kCpuGBPeak             // Peak memory utilization ditto
-	kRcpuGBAvg             // Average main memory utilization, all memory = 100%
-	kRcpuGBPeak            // Peak memory utilization ditto
-	kRssAnonGBAvg          // Average resident main memory utilization, GiB
-	kRssAnonGBPeak         // Peak memory utilization ditto
-	kRrssAnonGBAvg         // Average resident main memory utilization, all memory = 100%
-	kRrssAnonGBPeak        // Peak memory utilization ditto
-	kGpuPctAvg             // Average GPU utilization, 1 card == 100%
-	kGpuPctPeak            // Peak GPU utilization ditto
-	kRgpuPctAvg            // Average GPU utilization, all cards == 100%
-	kRgpuPctPeak           // Peak GPU utilization ditto
-	kGpuGBAvg              // Average GPU memory utilization, GiB
-	kGpuGBPeak             // Peak memory utilization ditto
-	kRgpuGBAvg             // Average GPU memory utilization, all cards == 100%
-	kRgpuGBPeak            // Peak GPU memory utilization ditto
-	kSgpuPctAvg            // Average GPU utilization, all cards used by job == 100%
-	kSgpuPctPeak           // Peak GPU utilization, all cards used by job == 100%
-	kSgpuGBAvg             // Average GPU memory utilization, all cards used by job == 100%
-	kSgpuGBPeak            // Peak GPU memory utilization ditto
-	kThreadAvg             // Average number of active threads (summed across all processes)
-	kThreadPeak            // Peak number of active threads (ditto)
-	kReadGB                // Total amount of read traffic
-	kWrittenGB             // Total amount of write traffic
-	kDuration              // Duration of job in seconds (wall clock, not CPU)
+	kCpuPctAvg       = iota // Average CPU utilization, 1 core == 100%
+	kCpuPctPeak             // Peak CPU utilization ditto
+	kRcpuPctAvg             // Average CPU utilization, all cores == 100%
+	kRcpuPctPeak            // Peak CPU utilization ditto
+	kCpuGBAvg               // Average main memory utilization, GiB
+	kCpuGBPeak              // Peak memory utilization ditto
+	kRcpuGBAvg              // Average main memory utilization, all memory = 100%
+	kRcpuGBPeak             // Peak memory utilization ditto
+	kRssAnonGBAvg           // Average resident main memory utilization, GiB
+	kRssAnonGBPeak          // Peak memory utilization ditto
+	kRrssAnonGBAvg          // Average resident main memory utilization, all memory = 100%
+	kRrssAnonGBPeak         // Peak memory utilization ditto
+	kGpuPctAvg              // Average GPU utilization, 1 card == 100%
+	kGpuPctPeak             // Peak GPU utilization ditto
+	kRgpuPctAvg             // Average GPU utilization, all cards == 100%
+	kRgpuPctPeak            // Peak GPU utilization ditto
+	kGpuGBAvg               // Average GPU memory utilization, GiB
+	kGpuGBPeak              // Peak memory utilization ditto
+	kRgpuGBAvg              // Average GPU memory utilization, all cards == 100%
+	kRgpuGBPeak             // Peak GPU memory utilization ditto
+	kSgpuPctAvg             // Average GPU utilization, all cards used by job == 100%
+	kSgpuPctPeak            // Peak GPU utilization, all cards used by job == 100%
+	kSgpuGBAvg              // Average GPU memory utilization, all cards used by job == 100%
+	kSgpuGBPeak             // Peak GPU memory utilization ditto
+	kThreadAvg              // Average number of active threads (summed across all processes)
+	kThreadPeak             // Peak number of active threads (ditto)
+	kReadGBTotal            // Total amount of read traffic
+	kWrittenGBTotal         // Total amount of write traffic
+	kCpuTimeSecTotal        // Total amount of CPU time
+	kDuration               // Duration of job in seconds (wall clock, not CPU)
 	numF64Fields
 )
 
@@ -83,12 +84,12 @@ type jobSummary struct {
 	End            DateTimeValue // Latest time ditto
 	CpuTime        DurationValue
 	GpuTime        DurationValue
-	AveCPU         float64
 	AveDiskRead    float64
 	AveDiskWrite   float64
-	MinCpu         float64
+	AveCpu         float64
+	MinCpu         uint64
 	Classification int // Bit vector of flags
-	job            sample.SampleStream
+	job            sample.MergedJob
 	computedFlags  int
 	selected       bool // Initially true, used to deselect the record before printing
 	sacctInfo      *repr.SacctInfo
@@ -185,7 +186,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) []*jobSummary {
-	var jobs sample.MergedStreams
+	var jobs sample.MergedJobs
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
 	} else if !jc.MergeNone {
@@ -227,7 +228,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 func (jc *JobsCommand) summarizeJobsFromSonarData(
 	cfg *config.ConfigDataProvider,
 	bounds Timebounds,
-	jobs sample.MergedStreams,
+	jobs sample.MergedJobs,
 	summaryFilter *aggregationFilter,
 	nt *nameTester,
 ) ([]*jobSummary, int) {
@@ -253,7 +254,7 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	discarded := 0
 	for _, job := range jobs {
 		if uint(len(job.Samples)) >= minSamples {
-			summary := jc.summarizeSingleJobFromSonarData(cfg, bounds, job.Samples, now, nt)
+			summary := jc.summarizeSingleJobFromSonarData(cfg, bounds, job, now, nt)
 			if summaryFilter == nil || summaryFilter.apply(summary) {
 				summaries = append(summaries, summary)
 			} else {
@@ -269,17 +270,18 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 func (jc *JobsCommand) summarizeSingleJobFromSonarData(
 	cfg *config.ConfigDataProvider,
 	bounds Timebounds,
-	job sample.SampleStream,
+	job sample.MergedJob,
 	now int64,
 	nt *nameTester,
 ) *jobSummary {
-	host := job[0].Hostname
-	jobId := job[0].Job
-	user := job[0].User
-	first := job[0].Timestamp
-	last := job[len(job)-1].Timestamp
+	samples := job.Samples
+	host := samples[0].Hostname
+	jobId := samples[0].Job
+	user := samples[0].User
+	first := samples[0].Timestamp
+	last := samples[len(samples)-1].Timestamp
 	duration := last - first
-	aggregate := jc.aggregateSingleJobFromSonarData(cfg, host, job, nt.needCmd, nt.needHosts, jc.Zombie)
+	aggregate := jc.aggregateSingleJobFromSonarData(cfg, host, samples, nt.needCmd, nt.needHosts, jc.Zombie)
 	aggregate.computed[kDuration] = float64(duration)
 	usesGpu := !aggregate.Gpus.IsEmpty()
 	flags := 0
@@ -328,23 +330,28 @@ func (jc *JobsCommand) summarizeSingleJobFromSonarData(
 	if (flags & kIsLiveAtEnd) != 0 {
 		classification |= sonalyze.LIVE_AT_END
 	}
-	//numTasksInJob := 1.0 // FIXME
+	minCpu := uint64(math.MaxUint64)
+	for _, t := range job.Tasks {
+		minCpu = min(minCpu, t[len(t)-1].CpuTimeSec)
+	}
+	if minCpu == math.MaxUint64 {
+		minCpu = 0
+	}
 	return &jobSummary{
-		jobAggregate: aggregate,
-		JobId:        jobId,
-		JobAndMark:   jobAndMark,
-		User:         user,
-		CpuTime:      DurationValue(math.Round(aggregate.computed[kCpuPctAvg] * float64(duration) / 100)),
-		GpuTime:      DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(duration) / 100)),
-		Duration:     DurationValue(duration),
-		Now:          DateTimeValue(now),
-		Start:        DateTimeValue(first),
-		End:          DateTimeValue(last),
-		// FIXME
-		// AveCPU:         aggregate.computed[kCpuTimeSecTotal] / numTasksInJob,
-		// AveDiskRead:    aggregate.computed[kReadGBTotal] / numTasksInJob,
-		// AveDiskWrite:   aggregate.computed[kWrittenGBTotal] / numTasksInJob,
-		//MinCpu:         ...,
+		jobAggregate:   aggregate,
+		JobId:          jobId,
+		JobAndMark:     jobAndMark,
+		User:           user,
+		CpuTime:        DurationValue(aggregate.computed[kCpuTimeSecTotal]),
+		GpuTime:        DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(duration) / 100)),
+		Duration:       DurationValue(duration),
+		Now:            DateTimeValue(now),
+		Start:          DateTimeValue(first),
+		End:            DateTimeValue(last),
+		AveCpu:         aggregate.computed[kCpuTimeSecTotal] / float64(job.NumTasks),
+		AveDiskRead:    aggregate.computed[kReadGBTotal] / float64(job.NumTasks),
+		AveDiskWrite:   aggregate.computed[kWrittenGBTotal] / float64(job.NumTasks),
+		MinCpu:         minCpu,
 		selected:       true,
 		Classification: classification,
 		job:            job,
@@ -360,7 +367,7 @@ func (jc *JobsCommand) summarizeSingleJobFromSonarData(
 func (jc *JobsCommand) aggregateSingleJobFromSonarData(
 	cfg *config.ConfigDataProvider,
 	host Ustr,
-	job sample.SampleStream,
+	job []sample.Sample,
 	needCmd, needHosts, needZombie bool,
 ) jobAggregate {
 	gpus := gpuset.EmptyGpuSet()
@@ -511,8 +518,9 @@ func (jc *JobsCommand) aggregateSingleJobFromSonarData(
 
 	a.computed[kThreadAvg] = float64(threadAvg) / n
 	a.computed[kThreadPeak] = float64(threadPeak)
-	a.computed[kReadGB] = dataRead
-	a.computed[kWrittenGB] = dataWritten
+	a.computed[kReadGBTotal] = dataRead
+	a.computed[kWrittenGBTotal] = dataWritten
+	a.computed[kCpuTimeSecTotal] = cpuTime
 
 	return a
 }
@@ -540,15 +548,14 @@ func (jc *JobsCommand) synthesizeSacctData(
 			requestedGpus = fmt.Sprintf("*=%d", s.Gpus.Size())
 		}
 		s.sacctInfo = &repr.SacctInfo{
-			Time:    s.job[0].Timestamp,
-			Start:   s.Start, // Start is valid unless liveAtStart
-			End:     s.End,   // End is valid unless liveAtEnd
-			Submit:  s.Start, // Submit time is start time (note validity constraint)
-			UserCPU: uint64(s.CpuTime),
-			// FIXME
-			//AveCPU: uint64(s.computed[kCpuSecAvg]),
+			Time:         s.job.Samples[0].Timestamp,
+			Start:        s.Start, // Start is valid unless liveAtStart
+			End:          s.End,   // End is valid unless liveAtEnd
+			Submit:       s.Start, // Submit time is start time (note validity constraint)
+			UserCPU:      uint64(s.CpuTime),
+			AveCPU:       uint64(s.AveCpu),
 			MinCPU:       uint64(s.MinCpu),
-			Version:      s.job[0].Version,
+			Version:      s.job.Samples[0].Version,
 			User:         s.User,
 			JobName:      StringToUstr(s.User.String() + ": " + s.Cmd),
 			State:        state,
@@ -705,7 +712,7 @@ func (jc *JobsCommand) joinSacctData(
 func mergeAcrossSomeNodes(
 	streams sample.InputStreamSet,
 	bounds Timebounds,
-) (sample.MergedStreams, Timebounds) {
+) (sample.MergedJobs, Timebounds) {
 	mergeable := make(sample.InputStreamSet)
 	mBounds := make(Timebounds)
 	solo := make(sample.InputStreamSet)

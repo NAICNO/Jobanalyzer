@@ -178,7 +178,7 @@ func (pc *ParseCommand) Perform(
 	if err != nil {
 		return err
 	}
-	var mergedSamples []sample.MergedStream
+	var mergedSamples []sample.MergedJob
 	var samples sample.SampleStream
 
 	if pc.Clean || pc.MergeByJob || pc.MergeByHostAndJob {
@@ -209,9 +209,15 @@ func (pc *ParseCommand) Perform(
 
 		switch {
 		case pc.Clean:
-			mergedSamples = make([]sample.MergedStream, 0, len(streams))
+			mergedSamples = make([]sample.MergedJob, 0, len(streams))
 			for _, v := range streams {
-				mergedSamples = append(mergedSamples, sample.MergedStream{Samples: *v, NumTasks: 1})
+				mergedSamples = append(
+					mergedSamples,
+					sample.MergedJob{
+						Samples:  *v,
+						NumTasks: 1,
+						Tasks:    []sample.SampleStream{sample.SampleStream{}},
+					})
 			}
 
 		case pc.MergeByJob:
@@ -265,7 +271,7 @@ func (pc *ParseCommand) Perform(
 		}
 
 		// All elements that are part of the InputStreamKey must be part of the sort key here.
-		slices.SortStableFunc(mergedSamples, func(a, b sample.MergedStream) int {
+		slices.SortStableFunc(mergedSamples, func(a, b sample.MergedJob) int {
 			c := cmp.Compare(a.Samples[0].Hostname.String(), b.Samples[0].Hostname.String())
 			if c == 0 {
 				c = cmp.Compare(a.Samples[0].Timestamp, b.Samples[0].Timestamp)

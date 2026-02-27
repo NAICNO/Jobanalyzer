@@ -79,8 +79,8 @@ FIELDS *jobSummary
   Classification     int           desc:"Bit vector of live-at-start (2) and live-at-end (1) flags" alias:"classification"
   CpuTime            DurationValue desc:"Total CPU time of the job across all cores" alias:"cputime"
   GpuTime            DurationValue desc:"Total GPU time of the job across all cards" alias:"gputime"
-  ReadGB             F64Ceil       desc:"Total read traffic" field:"computed[kReadGB]" alias:"read"
-  WrittenGB          F64Ceil       desc:"Total read traffic" field:"computed[kWrittenGB]" alias:"written"
+  ReadGB             F64Ceil       desc:"Total read traffic" field:"computed[kReadGBTotal]" alias:"read"
+  WrittenGB          F64Ceil       desc:"Total read traffic" field:"computed[kWrittenGBTotal]" alias:"written"
 
   # The expressions extracting bit flags happen to work for well-understood reasons, but this is
   # brittle and works in Go only because the operator precedence is right (in C it would not work).
@@ -225,7 +225,7 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*jobSummary)
 		}
 		counts := make(map[Ustr]uint)
 		for i := len(summaries) - 1; i >= 0; i-- {
-			u := summaries[i].job[0].User
+			u := summaries[i].job.Samples[0].User
 			c := counts[u] + 1
 			counts[u] = c
 			if c > jc.NumJobs {

@@ -277,13 +277,13 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 	},
 	"ReadGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kReadGB]), ctx)
+			return FormatF64Ceil((d.computed[kReadGBTotal]), ctx)
 		},
 		Help: "(int) Total read traffic",
 	},
 	"WrittenGB": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kWrittenGB]), ctx)
+			return FormatF64Ceil((d.computed[kWrittenGBTotal]), ctx)
 		},
 		Help: "(int) Total read traffic",
 	},
@@ -755,13 +755,13 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 	"ReadGB": Predicate[*jobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *jobSummary, v any) int {
-			return cmp.Compare((d.computed[kReadGB]), v.(F64Ceil))
+			return cmp.Compare((d.computed[kReadGBTotal]), v.(F64Ceil))
 		},
 	},
 	"WrittenGB": Predicate[*jobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *jobSummary, v any) int {
-			return cmp.Compare((d.computed[kWrittenGB]), v.(F64Ceil))
+			return cmp.Compare((d.computed[kWrittenGBTotal]), v.(F64Ceil))
 		},
 	},
 	"SomeGpu": Predicate[*jobSummary]{

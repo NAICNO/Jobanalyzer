@@ -70,9 +70,9 @@ func (lc *LoadCommand) Perform(
 
 	// Bucket the data, if applicable
 	if lc.bucketing != bNone {
-		newStreams := make([]sample.MergedStream, 0)
+		newStreams := make([]sample.MergedJob, 0)
 		for _, s := range mergedStreams {
-			var newS sample.MergedStream
+			var newS sample.MergedJob
 			switch lc.bucketing {
 			case bHalfHourly:
 				newS = sample.FoldSamplesHalfHourly(s.Samples)
