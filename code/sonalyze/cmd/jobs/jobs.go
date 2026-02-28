@@ -233,20 +233,21 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	FormatArgs
 
 	// Filter args
-	Uints         map[string]*uint
-	NoGpu         bool
-	SomeGpu       bool
-	Completed     bool
-	Running       bool
-	Zombie        bool
-	Partition     []string
-	Account       []string
-	Reservation   []string
-	State         []string
-	GpuType       []string
-	MergeAll      bool
-	MergeNone     bool
-	MinRuntimeSec int64
+	Uints          map[string]*uint
+	NoGpu          bool
+	SomeGpu        bool
+	Completed      bool
+	Running        bool
+	Zombie         bool
+	Partition      []string
+	Account        []string
+	Reservation    []string
+	State          []string
+	GpuType        []string
+	MergeAll       bool
+	MergeNone      bool
+	SacctFromSonar bool
+	MinRuntimeSec  int64
 
 	// Print args
 	NumJobs uint
@@ -295,6 +296,7 @@ func (jc *JobsCommand) Add(fs *CLI) {
 			"optional [default: 0m]")
 
 	fs.Group("aggregation")
+	fs.BoolVar(&jc.SacctFromSonar, "sacct-from-sonar", false, "Use Sonar data to synthesize sacct data")
 	fs.BoolVar(&jc.MergeAll, "merge-all", false,
 		"Aggregate data across all hosts (appropriate for batch systems, but usually specified in the\n"+
 			"config file, not here")

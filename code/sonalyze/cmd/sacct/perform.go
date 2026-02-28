@@ -12,7 +12,7 @@ import (
 
 type sacctSummary struct {
 	*slurmjob.SlurmJob
-	maxrss       uint32
+	maxrss       uint64
 	requestedCpu uint64
 	usedCpu      uint64
 }
@@ -106,9 +106,9 @@ func (sc *SacctCommand) sacctRegularJobs(stdout io.Writer, regularJobs []*slurmj
 		r := make([]*sacctSummary, 0)
 		for _, j := range regular {
 			switch {
-			case j.Main.ReqMem < uint32(sc.MinReservedMem):
+			case j.Main.ReqMem < uint64(sc.MinReservedMem):
 				toosmall++
-			case j.Main.ReqMem > uint32(sc.MaxReservedMem):
+			case j.Main.ReqMem > uint64(sc.MaxReservedMem):
 				toobig++
 			case j.Main.ReqCPUS*j.Main.ReqNodes < uint32(sc.MinReservedCores):
 				toofeeble++
@@ -158,7 +158,7 @@ func (sc *SacctCommand) sacctArrayJobs(stdout io.Writer, arrays map[uint32][]*sl
 				fmt.Fprintf(
 					stdout,
 					"  index=%d, id=%d %d steps\n",
-					j.main.ArrayIndex, j.main.JobID, len(j.steps))
+					j.main.ArrayTaskID, j.main.JobID, len(j.steps))
 				for _, s := range j.steps {
 					fmt.Fprintf(stdout, "    step %s %s\n", s.JobStep, s.State)
 				}

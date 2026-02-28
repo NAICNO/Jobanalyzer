@@ -12,12 +12,13 @@ package sample
 
 import (
 	"math"
+	"slices"
 	"strings"
 
 	"go-utils/gpuset"
 	"go-utils/hostglob"
 	"go-utils/maps"
-	"go-utils/slices"
+	uslices "go-utils/slices"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
 )
@@ -34,7 +35,7 @@ const (
 // The command name for synthesized data collects all the commands that went into the synthesized
 // stream.
 
-func MergeByHostAndJob(streams InputStreamSet) SampleStreams {
+func MergeByHostAndJob(streams InputStreamSet) MergedJobs {
 	type HostAndJob struct {
 		host Ustr
 		job  uint32
@@ -76,18 +77,22 @@ func MergeByHostAndJob(streams InputStreamSet) SampleStreams {
 		}
 	}
 
-	merged := make(SampleStreams, 0)
+	merged := make(MergedJobs, 0)
 	for key, cmdsAndStreams := range collections {
 		if zeroes, found := zero[key.host]; found {
 			delete(zero, key.host)
 			for _, v := range *zeroes {
-				merged = append(merged, *v)
+				merged = append(merged, MergedJob{
+					Samples:  slices.Clone(*v),
+					NumTasks: 1,
+					Tasks:    []SampleStream{SampleStream{}},
+				})
 			}
 		}
 		commands := maps.Keys(cmdsAndStreams.commands)
 		UstrSortAscending(commands)
 		username := mergedUserName(cmdsAndStreams.streams)
-		merged = append(merged, *mergeStreams(
+		merged = append(merged, mergeStreams(
 			key.host,
 			UstrJoin(commands, StringToUstr(",")),
 			username,
@@ -125,7 +130,7 @@ func mergedUserName(streams indirectStreams) Ustr {
 // stream, the "earliest" time is the min across the earliest times for the different host streams
 // that go into the merged stream, and the "latest" time is the max across the latest times ditto.
 
-func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timebounds) {
+func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timebounds) {
 	type jobDataTy struct {
 		commands map[Ustr]bool
 		hosts    map[Ustr]bool
@@ -173,9 +178,13 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 	}
 
 	// Initialize the set of result streams with the zero jobs
-	newStreams := make(SampleStreams, 0, len(zero)+len(collections))
+	newStreams := make(MergedJobs, 0, len(zero)+len(collections))
 	for _, z := range zero {
-		newStreams = append(newStreams, *z)
+		newStreams = append(newStreams, MergedJob{
+			Samples:  slices.Clone(*z),
+			NumTasks: 1,
+			Tasks:    []SampleStream{*z},
+		})
 	}
 
 	// Iterate across the non-zero jobs and update newBounds with merged bounds and newStreams with
@@ -199,7 +208,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 		commands := maps.Keys(jobData.commands)
 		UstrSortAscending(commands)
 		user := mergedUserName(jobData.streams)
-		newStreams = append(newStreams, *mergeStreams(
+		newStreams = append(newStreams, mergeStreams(
 			hostname,
 			UstrJoin(commands, StringToUstr(",")),
 			user,
@@ -222,7 +231,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (SampleStreams, Timeb
 // The job ID for synthesized data is 0, which is not ideal but probably OK so long as the consumer
 // knows it.
 
-func MergeByHost(streams InputStreamSet) SampleStreams {
+func MergeByHost(streams InputStreamSet) MergedJobs {
 	// The key is the host name.
 	collections := make(map[Ustr]indirectStreams)
 
@@ -235,12 +244,12 @@ func MergeByHost(streams InputStreamSet) SampleStreams {
 		}
 	}
 
-	vs := make(SampleStreams, 0)
+	vs := make(MergedJobs, 0)
 	cmdname := StringToUstr("_merged_")
 	username := cmdname
 	jobId := uint32(0)
 	for hostname, streams := range collections {
-		vs = append(vs, *mergeStreams(hostname, cmdname, username, jobId, streams))
+		vs = append(vs, mergeStreams(hostname, cmdname, username, jobId, streams))
 	}
 
 	return vs
@@ -248,17 +257,17 @@ func MergeByHost(streams InputStreamSet) SampleStreams {
 
 // TODO: DOCUMENTME
 
-func MergeAcrossHostsByTime(streams SampleStreams) SampleStreams {
+func MergeAcrossHostsByTime(streams MergedJobs) MergedJobs {
 	if len(streams) == 0 {
 		return streams
 	}
-	names := slices.Map(streams, func(s SampleStream) string {
-		return s[0].Hostname.String()
+	names := uslices.Map(streams, func(s MergedJob) string {
+		return s.Samples[0].Hostname.String()
 	})
 	hostname := StringToUstr(strings.Join(hostglob.CompressHostnames(names), ","))
 	istreams := make(indirectStreams, 0, len(streams))
 	for _, v := range streams {
-		istreams = append(istreams, &v)
+		istreams = append(istreams, &v.Samples)
 	}
 	tmp := mergeStreams(
 		hostname,
@@ -267,7 +276,7 @@ func MergeAcrossHostsByTime(streams SampleStreams) SampleStreams {
 		0,
 		istreams,
 	)
-	return SampleStreams([]SampleStream{*tmp})
+	return MergedJobs([]MergedJob{tmp})
 }
 
 // What does it mean to sample a job that runs on multiple hosts, or to sample a host that runs
@@ -362,7 +371,7 @@ func mergeStreams(
 	username Ustr,
 	jobId uint32,
 	streams indirectStreams,
-) *SampleStream {
+) MergedJob {
 	// Generated records
 	records := make(SampleStream, 0)
 
@@ -589,7 +598,13 @@ func mergeStreams(
 		selected = selected[0:0]
 	}
 
-	return &records
+	return MergedJob{
+		Samples:  records,
+		NumTasks: len(streams),
+		Tasks: uslices.Map(streams, func(s *SampleStream) SampleStream {
+			return *s
+		}),
+	}
 }
 
 func MergeGpuFail(a, b uint8) uint8 {
@@ -670,27 +685,27 @@ func sumRecords(
 	}
 }
 
-func FoldSamplesHalfHourly(samples SampleStream) SampleStream {
+func FoldSamplesHalfHourly(samples SampleStream) MergedJob {
 	return foldSamples(samples, TruncateToHalfHour)
 }
 
-func FoldSamplesHourly(samples SampleStream) SampleStream {
+func FoldSamplesHourly(samples SampleStream) MergedJob {
 	return foldSamples(samples, TruncateToHour)
 }
 
-func FoldSamplesHalfDaily(samples SampleStream) SampleStream {
+func FoldSamplesHalfDaily(samples SampleStream) MergedJob {
 	return foldSamples(samples, TruncateToHalfDay)
 }
 
-func FoldSamplesDaily(samples SampleStream) SampleStream {
+func FoldSamplesDaily(samples SampleStream) MergedJob {
 	return foldSamples(samples, TruncateToDay)
 }
 
-func FoldSamplesWeekly(samples SampleStream) SampleStream {
+func FoldSamplesWeekly(samples SampleStream) MergedJob {
 	return foldSamples(samples, TruncateToWeek)
 }
 
-func foldSamples(samples SampleStream, truncTime func(int64) int64) SampleStream {
+func foldSamples(samples SampleStream, truncTime func(int64) int64) MergedJob {
 	result := make(SampleStream, 0)
 	i := 0
 	v000 := StringToUstr("0.0.0")
@@ -726,5 +741,9 @@ func foldSamples(samples SampleStream, truncTime func(int64) int64) SampleStream
 		result = append(result, r)
 	}
 
-	return result
+	return MergedJob{
+		Samples:  result,
+		NumTasks: 1,
+		Tasks:    []SampleStream{samples},
+	}
 }

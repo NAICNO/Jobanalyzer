@@ -70,20 +70,20 @@ func (lc *LoadCommand) Perform(
 
 	// Bucket the data, if applicable
 	if lc.bucketing != bNone {
-		newStreams := make(sample.SampleStreams, 0)
+		newStreams := make([]sample.MergedJob, 0)
 		for _, s := range mergedStreams {
-			var newS sample.SampleStream
+			var newS sample.MergedJob
 			switch lc.bucketing {
 			case bHalfHourly:
-				newS = sample.FoldSamplesHalfHourly(s)
+				newS = sample.FoldSamplesHalfHourly(s.Samples)
 			case bHourly:
-				newS = sample.FoldSamplesHourly(s)
+				newS = sample.FoldSamplesHourly(s.Samples)
 			case bHalfDaily:
-				newS = sample.FoldSamplesHalfDaily(s)
+				newS = sample.FoldSamplesHalfDaily(s.Samples)
 			case bDaily:
-				newS = sample.FoldSamplesDaily(s)
+				newS = sample.FoldSamplesDaily(s.Samples)
 			case bWeekly:
-				newS = sample.FoldSamplesWeekly(s)
+				newS = sample.FoldSamplesWeekly(s.Samples)
 			default:
 				panic("Unexpected case")
 			}
@@ -98,7 +98,7 @@ func (lc *LoadCommand) Perform(
 	var mergedConf *repr.NodeSummary
 	if lc.Group {
 		for _, stream := range mergedStreams {
-			probe := cfg.LookupHostByTime(stream[0].Hostname, stream[0].Timestamp)
+			probe := cfg.LookupHostByTime(stream.Samples[0].Hostname, stream.Samples[0].Timestamp)
 			if probe == nil {
 				continue
 			}
@@ -121,7 +121,7 @@ func (lc *LoadCommand) Perform(
 	// If not printing compactly then insert missing record in the streams
 	if !lc.Compact && lc.All && lc.bucketing != bNone {
 		for i := range mergedStreams {
-			mergedStreams[i] = lc.insertMissingRecords(mergedStreams[i], fromIncl, toIncl)
+			mergedStreams[i].Samples = lc.insertMissingRecords(mergedStreams[i].Samples, fromIncl, toIncl)
 		}
 	}
 
@@ -137,13 +137,13 @@ func (lc *LoadCommand) Perform(
 	// Generate data to be printed
 	reports := make([]LoadReport, 0)
 	for _, stream := range mergedStreams {
-		hn := stream[0].Hostname
-		ts := stream[0].Timestamp
+		hn := stream.Samples[0].Hostname
+		ts := stream.Samples[0].Timestamp
 		conf := mergedConf
 		if conf == nil {
 			conf = cfg.LookupHostByTime(hn, ts)
 		}
-		rs := generateReport(stream, time.Now().Unix(), conf)
+		rs := generateReport(stream.Samples, time.Now().Unix(), conf)
 		if queryNeg != nil {
 			rs = slices.DeleteFunc(rs, queryNeg)
 		}

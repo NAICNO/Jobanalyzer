@@ -273,9 +273,9 @@ func parseRFC3339(bs []byte) (t int64, err error) {
 }
 
 // The format is an integer or floating point value possibly followed by K, M, G.  The
-// result is always in gigabytes, always rounded up.
+// result is always in kilobytes, always rounded up to a kilobyte boundary.
 
-func parseSlurmBytes(bs []byte) (bytes uint32, err error) {
+func parseSlurmBytes(bs []byte) (bytes uint64, err error) {
 	mpy := float64(1)
 	switch bs[len(bs)-1] {
 	case 'G':
@@ -292,5 +292,5 @@ func parseSlurmBytes(bs []byte) (bytes uint32, err error) {
 	if err != nil {
 		return 0, err
 	}
-	return uint32(math.Ceil((n * mpy) / (1024 * 1024 * 1024))), nil
+	return uint64(math.Ceil((n * mpy) / 1024)), nil
 }

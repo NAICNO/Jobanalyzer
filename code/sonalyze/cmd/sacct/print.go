@@ -44,7 +44,7 @@ FIELDS *SacctRegular
  Wait                int                  desc:"Wait time of job (start - submit), in seconds"
  Partition           Ustr                 desc:"Requested partition"
  ArrayJobID          int                  desc:"ID of the overarching array job"
- ArrayIndex          int                  desc:"Index of this job within an array job"
+ ArrayTaskID         int                  desc:"Index of this job within an array job"
 
 GENERATE SacctRegular
 
@@ -114,7 +114,7 @@ func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSumma
 			Partition:           r.Main.Partition,
 			ReqGPUS:             r.Main.ReqGPUS,
 			ArrayJobID:          int(r.Main.ArrayJobID),
-			ArrayIndex:          int(r.Main.ArrayIndex),
+			ArrayTaskID:         int(r.Main.ArrayTaskID),
 		}
 	}
 	toPrint, err := ApplyQuery(sc.ParsedQuery, sacctFormatters, sacctPredicates, toPrint)
