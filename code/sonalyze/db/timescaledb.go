@@ -162,7 +162,7 @@ func (cdb *connectedDB) ReadProcessSamples(
 	var (
 		cmd, node, user                                                           string
 		cpuTime, epoch, job, numThreads, pid, ppid, residentMemory, virtualMemory pgtype.Int8
-		cancelled, read, written                                                  pgtype.Int8
+		dataCancelled, dataRead, dataWritten                                      pgtype.Int8
 		cpuAvg, cpuUtil                                                           float64
 		rolledup, gpuCount                                                        int
 		timestamp                                                                 time.Time
@@ -174,13 +174,13 @@ func (cdb *connectedDB) ReadProcessSamples(
 	)
 
 	// Alpha order and KEEP THE FIELD AND BOX LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-	t1Fields := "t1.data_cancelled, t1.cmd, t1.cpu_avg, t1.cpu_time, t1.cpu_util, t1.epoch, t1.job, " +
-		"t1.node, t1.num_threads, t1.pid, t1.ppid, t1.data_read, t1.resident_memory, t1.rolledup, " +
-		"t1.time, t1.user, t1.data_written, t1.virtual_memory"
+	t1Fields := "t1.cmd, t1.cpu_avg, t1.cpu_time, t1.cpu_util, t1.data_cancelled, t1.data_read, " +
+		"t1.data_written, t1.epoch, t1.job, t1.node, t1.num_threads, t1.pid, t1.ppid, " +
+		"t1.resident_memory, t1.rolledup, t1.time, t1.user, t1.virtual_memory"
 	t1Boxes := []any{
-		&cancelled, &cmd, &cpuAvg, &cpuTime, &cpuUtil, &epoch, &job,
-		&node, &numThreads, &pid, &ppid, &read, &residentMemory, &rolledup,
-		&timestamp, &user, &written, &virtualMemory,
+		&cmd, &cpuAvg, &cpuTime, &cpuUtil, &dataCancelled, &dataRead,
+		&dataWritten, &epoch, &job, &node, &numThreads, &pid, &ppid,
+		&residentMemory, &rolledup, &timestamp, &user, &virtualMemory,
 	}
 	t2Fields := "sum(t2.gpu_memory), sum(t2.gpu_util), sum(t2.gpu_memory_util), count(t2.uuid)"
 	t2Boxes := []any{&gpuMemoryp, &gpuUtilp, &gpuMemoryUtilp, &gpuCount}
@@ -250,9 +250,9 @@ func (cdb *connectedDB) ReadProcessSamples(
 			GpuKB:             gpuMemory,
 			InContainer:       inContainer,
 			CpuSampledUtilPct: float32(cpuUtil),
-			DataReadKB:        uint64(read.Int),
-			DataWrittenKB:     uint64(written.Int),
-			DataCancelledKB:   uint64(cancelled.Int),
+			DataReadKB:        uint64(dataRead.Int),
+			DataWrittenKB:     uint64(dataWritten.Int),
+			DataCancelledKB:   uint64(dataCancelled.Int),
 		}
 	}
 	return querySlice[repr.Sample](cdb, &q, verbose, unbox)
@@ -698,9 +698,9 @@ func (cdb *connectedDB) ReadSacctData(
 			ReqGPUS:      StringToUstr(reqGpu),
 			JobID:        uint32(jobId.Int),
 			ArrayJobID:   ajob,
-			ArrayIndex:   uint32(arrayTaskId),
+			ArrayTaskID:  uint32(arrayTaskId),
 			HetJobID:     uint32(hetJobId.Int),
-			HetOffset:    uint32(hetJobOffset),
+			HetJobOffset: uint32(hetJobOffset),
 			AveDiskRead:  uint64(aveDiskRead.Int),
 			AveDiskWrite: uint64(aveDiskWrite.Int),
 			AveRSS:       uint64(aveRSS.Int),

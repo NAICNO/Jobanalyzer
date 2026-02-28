@@ -20,9 +20,10 @@ if [[ -z $CLUSTER_NAME || -z $DATABASE_URI ]]; then
     exit 1
 fi
 
-# The logic here is that we're basically getting a `sonar jobs` run with a large time window, some
-# multiple of 24h.  The output format will be different, of course.  Job state reflects the state at
-# the end of the window.  No jobs are PENDING or CANCELLED - only RUNNING or COMPLETED.
+# The logic here is that we're basically getting the effect of a `sonar jobs` run with a large time
+# window, some multiple of 24h.  The output format will be different from Sonar's, of course.  Job
+# state reflects the state at the end of the window.  No jobs are PENDING or CANCELLED - only
+# RUNNING or COMPLETED.
 #
 # It is possible to enrich this with Sonar data fields, notably, some of the booleans about whether
 # the job is running at the beginning or end of the time window, so as to be able to know whether
@@ -30,7 +31,7 @@ fi
 #
 # The only fields here are the ones that are computable from Sonar data.
 #
-# TODO: Possibly Start/End/Submit should be using the /iso modifier
+# TODO: Possibly Start/End/Submit should be using the /iso modifier to get a different time stamp.
 
 ${SONALYZE:-sonalyze} jobs \
                       -database-uri ${DATABASE_URI} \

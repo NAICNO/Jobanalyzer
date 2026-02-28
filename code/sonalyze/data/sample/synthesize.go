@@ -12,12 +12,13 @@ package sample
 
 import (
 	"math"
+	"slices"
 	"strings"
 
 	"go-utils/gpuset"
 	"go-utils/hostglob"
 	"go-utils/maps"
-	"go-utils/slices"
+	uslices "go-utils/slices"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
 )
@@ -82,7 +83,7 @@ func MergeByHostAndJob(streams InputStreamSet) MergedJobs {
 			delete(zero, key.host)
 			for _, v := range *zeroes {
 				merged = append(merged, MergedJob{
-					Samples:  *v,
+					Samples:  slices.Clone(*v),
 					NumTasks: 1,
 					Tasks:    []SampleStream{SampleStream{}},
 				})
@@ -180,9 +181,9 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timeboun
 	newStreams := make(MergedJobs, 0, len(zero)+len(collections))
 	for _, z := range zero {
 		newStreams = append(newStreams, MergedJob{
-			Samples:  *z,
+			Samples:  slices.Clone(*z),
 			NumTasks: 1,
-			Tasks:    []SampleStream{SampleStream{}},
+			Tasks:    []SampleStream{*z},
 		})
 	}
 
@@ -260,7 +261,7 @@ func MergeAcrossHostsByTime(streams MergedJobs) MergedJobs {
 	if len(streams) == 0 {
 		return streams
 	}
-	names := slices.Map(streams, func(s MergedJob) string {
+	names := uslices.Map(streams, func(s MergedJob) string {
 		return s.Samples[0].Hostname.String()
 	})
 	hostname := StringToUstr(strings.Join(hostglob.CompressHostnames(names), ","))
@@ -600,7 +601,7 @@ func mergeStreams(
 	return MergedJob{
 		Samples:  records,
 		NumTasks: len(streams),
-		Tasks: slices.Map(streams, func(s *SampleStream) SampleStream {
+		Tasks: uslices.Map(streams, func(s *SampleStream) SampleStream {
 			return *s
 		}),
 	}

@@ -112,9 +112,9 @@ FIELDS *jobSummary
   # real, synthesized, or absent.  UTSL when in doubt.
 
   Account            Ustr          desc:"Name of job's account (Slurm)" indirect:"sacctInfo"
-  ArrayIndex         uint32        desc:"" indirect:"sacctInfo"
-  ArrayJobID         uint32        desc:"" indirect:"sacctInfo"
-  ArrayStep          Ustr          desc:"" indirect:"sacctInfo"
+  ArrayJobID         uint32        desc:"The overarching ID of an array job, or 0 (Slurm)" indirect:"sacctInfo"
+  ArrayStep          Ustr          desc:"The name of the step, or empty string (Slurm)" indirect:"sacctInfo"
+  ArrayTaskID        uint32        desc:"The index of the array element (Slurm)" indirect:"sacctInfo"
   AveCPU             uint64        desc:"Average (system + user) CPU time of all tasks in job (sec) (Slurm)" \
                                    indirect:"sacctInfo"
   AveDiskRead        uint64        desc:"Average number of KB read by all tasks in job (Slurm)" indirect:"sacctInfo"
@@ -124,18 +124,18 @@ FIELDS *jobSummary
   ElapsedRaw         uint32        desc:"The job's elapsed time (sec) (Slurm)" indirect:"sacctInfo"
   # End above
   ExitCode           uint8         desc:"Exit code of job (Slurm)" indirect:"sacctInfo"
-  ExitSignal         uint8         desc:"" indirect:"sacctInfo"
-  HetJobID           uint32        desc:"" indirect:"sacctInfo"
-  HetOffset          uint32        desc:"" indirect:"sacctInfo"
-  HetStep            Ustr          desc:"" indirect:"sacctInfo"
+  ExitSignal         uint8         desc:"Exit signal of job (Slurm)" indirect:"sacctInfo"
+  HetJobID           uint32        desc:"The overarching ID of a heterogenous job, or 0 (Slurm)." indirect:"sacctInfo"
+  HetJobOffset       uint32        desc:"The het job element's index (Slurm)" indirect:"sacctInfo"
+  HetStep            Ustr          desc:"The name of the step, or empty string (Slurm)" indirect:"sacctInfo"
   # JobID above
   JobName            Ustr          desc:"Name of the job (Slurm)" indirect:"sacctInfo"
-  JobStep            Ustr          desc:"" indirect:"sacctInfo"
+  JobStep            Ustr          desc:"Name of step if any (Slurm)" indirect:"sacctInfo"
   Layout             Ustr          desc:"Layout spec of job (Slurm)" indirect:"sacctInfo"
-  MaxRSS             uint64        desc:"" indirect:"sacctInfo"
-  MaxVMSize          uint64        desc:"" indirect:"sacctInfo"
-  MinCPU             uint64        desc:"" indirect:"sacctInfo"
-  NodeList           Ustr          desc:"" indirect:"sacctInfo"
+  MaxRSS             uint64        desc:"Maximum resident set size of all tasks in job (KB) (Slurm)" indirect:"sacctInfo"
+  MaxVMSize          uint64        desc:"Maximum Virtual Memory size of all tasks in job (KB) (Slurm)" indirect:"sacctInfo"
+  MinCPU             uint64        desc:"Minimum (system + user) CPU time of all tasks in job (KB) (Slurm)" indirect:"sacctInfo"
+  NodeList           Ustr          desc:"The nodes allocated to the job or step (Slurm)" indirect:"sacctInfo"
   Partition          Ustr          desc:"Partition of job (Slurm)" indirect:"sacctInfo"
   ReqCPUS            uint32        desc:"Number of requested CPUs (Slurm)" indirect:"sacctInfo"
   ReqGPUS            Ustr          desc:"Names of requested GPUs (Slurm AllocTRES)" indirect:"sacctInfo"
@@ -145,11 +145,13 @@ FIELDS *jobSummary
   # Start above
   State              Ustr          desc:"Completion state of job (Slurm)" indirect:"sacctInfo"
   Submit             DateTimeValue desc:"Submit time of job (Slurm)" indirect:"sacctInfo"
-  Suspended          uint32        desc:"" indirect:"sacctInfo"
-  SystemCPU          uint64        desc:"" indirect:"sacctInfo"
-  Time               DateTimeValue desc:"" indirect:"sacctInfo"
+  Suspended          uint32        desc:"Number of seconds the job was suspended (Slurm)" indirect:"sacctInfo"
+  SystemCPU          uint64        desc:"The amount of system CPU time used by the job or job step (sec) (Slurm)" \
+                                   indirect:"sacctInfo"
+  Time               DateTimeValue desc:"Time stamp of reading (Slurm)" indirect:"sacctInfo"
   TimelimitRaw       U32Duration   desc:"Elapsed time limit (Slurm)" indirect:"sacctInfo"
-  UserCPU            uint64        desc:"" indirect:"sacctInfo"
+  UserCPU            uint64        desc:"The amount of user CPU time used by the job or job step (sec) (Slurm)" \
+                                   indirect:"sacctInfo"
   # User above
   Version            Ustr          desc:"" indirect:"sacctInfo"
 

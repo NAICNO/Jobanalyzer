@@ -338,14 +338,6 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(string) Name of job's account (Slurm)",
 	},
-	"ArrayIndex": {
-		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			if (d.sacctInfo) != nil {
-				return FormatUint32((d.sacctInfo.ArrayIndex), ctx)
-			}
-			return "?"
-		},
-	},
 	"ArrayJobID": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
@@ -353,6 +345,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(uint32) The overarching ID of an array job, or 0 (Slurm)",
 	},
 	"ArrayStep": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -361,6 +354,16 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(string) The name of the step, or empty string (Slurm)",
+	},
+	"ArrayTaskID": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint32((d.sacctInfo.ArrayTaskID), ctx)
+			}
+			return "?"
+		},
+		Help: "(uint32) The index of the array element (Slurm)",
 	},
 	"AveCPU": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -432,6 +435,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(uint8) Exit signal of job (Slurm)",
 	},
 	"HetJobID": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -440,14 +444,16 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(uint32) The overarching ID of a heterogenous job, or 0 (Slurm).",
 	},
-	"HetOffset": {
+	"HetJobOffset": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
-				return FormatUint32((d.sacctInfo.HetOffset), ctx)
+				return FormatUint32((d.sacctInfo.HetJobOffset), ctx)
 			}
 			return "?"
 		},
+		Help: "(uint32) The het job element's index (Slurm)",
 	},
 	"HetStep": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -456,6 +462,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(string) The name of the step, or empty string (Slurm)",
 	},
 	"JobName": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -473,6 +480,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(string) Name of step if any (Slurm)",
 	},
 	"Layout": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -490,6 +498,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(uint64) Maximum resident set size of all tasks in job (KB) (Slurm)",
 	},
 	"MaxVMSize": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -498,6 +507,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(uint64) Maximum Virtual Memory size of all tasks in job (KB) (Slurm)",
 	},
 	"MinCPU": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -506,6 +516,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(uint64) Minimum (system + user) CPU time of all tasks in job (KB) (Slurm)",
 	},
 	"NodeList": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -514,6 +525,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(string) The nodes allocated to the job or step (Slurm)",
 	},
 	"Partition": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -594,6 +606,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(uint32) Number of seconds the job was suspended (Slurm)",
 	},
 	"SystemCPU": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -602,6 +615,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(uint64) The amount of system CPU time used by the job or job step (sec) (Slurm)",
 	},
 	"Time": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -610,6 +624,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(DateTimeValue) Time stamp of reading (Slurm)",
 	},
 	"TimelimitRaw": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -627,6 +642,7 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			}
 			return "?"
 		},
+		Help: "(uint64) The amount of user CPU time used by the job or job step (sec) (Slurm)",
 	},
 	"Version": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -987,15 +1003,6 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"ArrayIndex": Predicate[*jobSummary]{
-		Convert: CvtString2Uint32,
-		Compare: func(d *jobSummary, v any) int {
-			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.ArrayIndex), v.(uint32))
-			}
-			return -1
-		},
-	},
 	"ArrayJobID": Predicate[*jobSummary]{
 		Convert: CvtString2Uint32,
 		Compare: func(d *jobSummary, v any) int {
@@ -1010,6 +1017,15 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
 				return cmp.Compare((d.sacctInfo.ArrayStep), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"ArrayTaskID": Predicate[*jobSummary]{
+		Convert: CvtString2Uint32,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.ArrayTaskID), v.(uint32))
 			}
 			return -1
 		},
@@ -1095,11 +1111,11 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"HetOffset": Predicate[*jobSummary]{
+	"HetJobOffset": Predicate[*jobSummary]{
 		Convert: CvtString2Uint32,
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.HetOffset), v.(uint32))
+				return cmp.Compare((d.sacctInfo.HetJobOffset), v.(uint32))
 			}
 			return -1
 		},

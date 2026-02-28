@@ -204,18 +204,14 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 		Log.Infof("Jobs constructed by merging: %d", len(jobs))
 	}
 	summaryFilter, slurmFilter := jc.buildFilters()
-	nt := nameTester{
+	fb := flagBag{
 		needSacctInfo: !jc.SacctFromSonar && slurmFilter != nil,
 		needCmd:       jc.SacctFromSonar,
 		needHosts:     jc.SacctFromSonar,
+		needZombie:    jc.Zombie,
 	}
-	summaries, discarded := jc.summarizeJobsFromSonarData(
-		cfg,
-		bounds,
-		jobs,
-		summaryFilter,
-		&nt,
-	)
+	summaries, discarded :=
+		jc.summarizeJobsFromSonarData(cfg, bounds, jobs, summaryFilter, fb)
 	if jc.Verbose {
 		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
 	}
@@ -223,10 +219,10 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	if jc.SacctFromSonar {
 		slurmDiscarded = synthesizeAdditionalSacctData(summaries, slurmFilter)
 	}
-	if nt.needSacctInfo {
+	if fb.needSacctInfo {
 		slurmDiscarded = jc.joinSacctData(meta, summaries, slurmFilter)
 	}
-	if (jc.SacctFromSonar || nt.needSacctInfo) && jc.Verbose {
+	if (jc.SacctFromSonar || fb.needSacctInfo) && jc.Verbose {
 		Log.Infof("Jobs discarded by aggregation filtering: %d", slurmDiscarded)
 	}
 	return summaries
@@ -237,7 +233,7 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	bounds Timebounds,
 	jobs sample.MergedJobs,
 	summaryFilter *aggregationFilter,
-	nt *nameTester,
+	fb flagBag,
 ) ([]*jobSummary, int) {
 	var now = time.Now().UTC().Unix()
 	summaries := make([]*jobSummary, 0)
@@ -247,21 +243,21 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	}
 	if !jc.SacctFromSonar {
 		for _, f := range jc.PrintFields {
-			nt.testName(f.Name)
+			fb.setFromFieldName(f.Name)
 		}
 	}
 	if jc.ParsedQuery != nil {
 		names := make(map[string]bool)
 		QueryNames(jc.ParsedQuery, names)
 		for name := range names {
-			nt.testName(name)
+			fb.setFromFieldName(name)
 		}
 	}
 
 	discarded := 0
 	for _, job := range jobs {
 		if uint(len(job.Samples)) >= minSamples {
-			summary := summarizeSingleJobFromSonarData(cfg, bounds, job, now, nt, jc.Zombie)
+			summary := summarizeSingleJobFromSonarData(cfg, bounds, job, now, fb)
 			if summaryFilter == nil || summaryFilter.apply(summary) {
 				summaries = append(summaries, summary)
 			} else {
@@ -280,8 +276,7 @@ func summarizeSingleJobFromSonarData(
 	bounds Timebounds,
 	job sample.MergedJob,
 	now int64,
-	nt *nameTester,
-	needZombie bool,
+	fb flagBag,
 ) *jobSummary {
 	samples := job.Samples
 	host := samples[0].Hostname
@@ -290,7 +285,7 @@ func summarizeSingleJobFromSonarData(
 	first := samples[0].Timestamp
 	last := samples[len(samples)-1].Timestamp
 	duration := last - first
-	aggregate := aggregateSingleJobFromSonarData(cfg, host, samples, nt.needCmd, nt.needHosts, needZombie)
+	aggregate := aggregateSingleJobFromSonarData(cfg, host, samples, fb)
 	aggregate.u64[uDurationSec] = uint64(duration)
 	usesGpu := !aggregate.Gpus.IsEmpty()
 	flags := 0
@@ -320,7 +315,7 @@ func summarizeSingleJobFromSonarData(
 		flags |= kIsZombie
 	}
 	jobAndMark := ""
-	if nt.needJobAndMark {
+	if fb.needJobAndMark {
 		mark := ""
 		switch {
 		case flags&(kIsLiveAtStart|kIsLiveAtEnd) == (kIsLiveAtStart | kIsLiveAtEnd):
@@ -366,7 +361,7 @@ func aggregateSingleJobFromSonarData(
 	cfg *config.ConfigDataProvider,
 	host Ustr,
 	job []sample.Sample,
-	needCmd, needHosts, needZombie bool,
+	fb flagBag,
 ) jobAggregate {
 	gpus := gpuset.EmptyGpuSet()
 	var (
@@ -416,7 +411,7 @@ func aggregateSingleJobFromSonarData(
 		residentSizeKBPeak = max(residentSizeKBPeak, s.RssAnonKB)
 		vmSizeKBPeak = max(vmSizeKBPeak, s.CpuKB)
 
-		if needZombie && !isZombie {
+		if fb.needZombie && !isZombie {
 			cmd := s.Cmd.String()
 			isZombie = strings.Contains(cmd, "<defunct>") || strings.HasPrefix(cmd, "_zombie_")
 		}
@@ -460,7 +455,7 @@ func aggregateSingleJobFromSonarData(
 	}
 
 	cmd := ""
-	if needCmd {
+	if fb.needCmd {
 		names := make(map[Ustr]bool)
 		for _, sample := range job {
 			if _, found := names[sample.Cmd]; found {
@@ -475,7 +470,7 @@ func aggregateSingleJobFromSonarData(
 	}
 
 	var hosts *Hostnames
-	if needHosts {
+	if fb.needHosts {
 		hosts = NewHostnames()
 		for _, s := range job {
 			hosts.Add(s.Hostname.String())
@@ -600,13 +595,13 @@ func synthesizeAdditionalSacctData(
 			Version:      s.job.Samples[0].Version,
 
 			// We don't have these:
-			// ArrayIndex
 			// ArrayJobID
 			// ArrayStep
+			// ArrayTaskID
 			// ExitCode
 			// ExitSignal
 			// HetJobID
-			// HetOffset
+			// HetJobOffset
 			// HetStep
 			// JobStep
 			// Layout
@@ -766,14 +761,15 @@ func mergeAcrossSomeNodes(
 // Container for computations we would prefer not to do but will need to do if certain names are
 // used for printing or in queries.
 
-type nameTester struct {
+type flagBag struct {
 	needCmd        bool
 	needHosts      bool
 	needJobAndMark bool
 	needSacctInfo  bool
+	needZombie     bool
 }
 
-func (nt *nameTester) testName(name string) {
+func (nt *flagBag) setFromFieldName(name string) {
 	switch name {
 	case "cmd", "Cmd":
 		nt.needCmd = true

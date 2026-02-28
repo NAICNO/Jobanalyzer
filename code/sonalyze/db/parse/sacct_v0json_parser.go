@@ -100,9 +100,9 @@ func ParseSlurmV0JSON(
 				ReqGPUS:      allocGPUS, // "ReqGPUS" is misnamed
 				JobID:        uint32(job.JobID),
 				ArrayJobID:   uint32(job.ArrayJobID),
-				ArrayIndex:   uint32(job.ArrayTaskID),
+				ArrayTaskID:  uint32(job.ArrayTaskID),
 				HetJobID:     uint32(job.HetJobID),
-				HetOffset:    uint32(job.HetJobOffset),
+				HetJobOffset: uint32(job.HetJobOffset),
 				AveDiskRead:  sacct.AveDiskRead,
 				AveDiskWrite: sacct.AveDiskWrite,
 				AveRSS:       sacct.AveRSS,

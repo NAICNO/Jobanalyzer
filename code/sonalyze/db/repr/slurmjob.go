@@ -24,8 +24,8 @@ import (
 //
 //   - the JobIDRaw field is split here into JobID (integer) and JobStep (string), with the latter
 //     being empty for the "main" record for the job.  For array jobs, JobID is parsed into
-//     ArrayJobID, ArrayIndex, and ArrayStep.  For het jobs, JobID is parsed into HetJobID,
-//     HetOffset, and HetStep.  For normal jobs, the array and het fields are zero/blank.
+//     ArrayJobID, ArrayTaskID, and ArrayStep.  For het jobs, JobID is parsed into HetJobID,
+//     HetJobOffset, and HetStep.  For normal jobs, the array and het fields are zero/blank.
 //
 //   - 2^32-1 seconds is about 136 years; it seems like a long time and is fine for elapsed/real time.
 //     But 170K cores (Betzy) running flat out for a week comes to about 24 times that.  So fields for
@@ -77,9 +77,9 @@ type SacctInfo struct {
 	ReqGPUS      Ustr // comma-separated list of model=n and/or *=n from AllocTRES field
 	JobID        uint32
 	ArrayJobID   uint32
-	ArrayIndex   uint32
+	ArrayTaskID  uint32
 	HetJobID     uint32
-	HetOffset    uint32
+	HetJobOffset uint32
 	ElapsedRaw   uint32 // seconds of real time
 	ReqCPUS      uint32
 	ReqNodes     uint32

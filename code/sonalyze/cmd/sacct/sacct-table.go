@@ -185,9 +185,9 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		},
 		Help: "(int) ID of the overarching array job",
 	},
-	"ArrayIndex": {
+	"ArrayTaskID": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
-			return FormatInt((d.ArrayIndex), ctx)
+			return FormatInt((d.ArrayTaskID), ctx)
 		},
 		Help: "(int) Index of this job within an array job",
 	},
@@ -362,10 +362,10 @@ var sacctPredicates = map[string]Predicate[*SacctRegular]{
 			return cmp.Compare((d.ArrayJobID), v.(int))
 		},
 	},
-	"ArrayIndex": Predicate[*SacctRegular]{
+	"ArrayTaskID": Predicate[*SacctRegular]{
 		Convert: CvtString2Int,
 		Compare: func(d *SacctRegular, v any) int {
-			return cmp.Compare((d.ArrayIndex), v.(int))
+			return cmp.Compare((d.ArrayTaskID), v.(int))
 		},
 	},
 }
@@ -398,7 +398,7 @@ type SacctRegular struct {
 	Wait                int
 	Partition           Ustr
 	ArrayJobID          int
-	ArrayIndex          int
+	ArrayTaskID         int
 }
 
 func (c *SacctCommand) Summary(out io.Writer) {

@@ -214,9 +214,9 @@ func (pc *ParseCommand) Perform(
 				mergedSamples = append(
 					mergedSamples,
 					sample.MergedJob{
-						Samples:  *v,
+						Samples:  slices.Clone(*v),
 						NumTasks: 1,
-						Tasks:    []sample.SampleStream{sample.SampleStream{}},
+						Tasks:    []sample.SampleStream{*v},
 					})
 			}
 

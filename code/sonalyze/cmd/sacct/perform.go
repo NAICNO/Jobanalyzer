@@ -158,7 +158,7 @@ func (sc *SacctCommand) sacctArrayJobs(stdout io.Writer, arrays map[uint32][]*sl
 				fmt.Fprintf(
 					stdout,
 					"  index=%d, id=%d %d steps\n",
-					j.main.ArrayIndex, j.main.JobID, len(j.steps))
+					j.main.ArrayTaskID, j.main.JobID, len(j.steps))
 				for _, s := range j.steps {
 					fmt.Fprintf(stdout, "    step %s %s\n", s.JobStep, s.State)
 				}

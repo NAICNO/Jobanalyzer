@@ -128,7 +128,7 @@ LineLoop:
 				}
 			case 'J':
 				if val, ok := match(tokenizer, start, lim, eqloc, "JobID"); ok {
-					// If the ID indicates an array job then set ArrayJobID, ArrayIndex, and
+					// If the ID indicates an array job then set ArrayJobID, ArrayTaskID, and
 					// ArrayStep.
 					//
 					// If the ID indicates a het job then set HetJobID, HetJobOffset, and
@@ -150,11 +150,11 @@ LineLoop:
 						err = errors.Join(e1, e2)
 						if val[specialSep] == '_' {
 							info.ArrayJobID = jobid
-							info.ArrayIndex = jobix
+							info.ArrayTaskID = jobix
 							info.ArrayStep = step
 						} else {
 							info.HetJobID = jobid
-							info.HetOffset = jobix
+							info.HetJobOffset = jobix
 							info.HetStep = step
 						}
 					}
