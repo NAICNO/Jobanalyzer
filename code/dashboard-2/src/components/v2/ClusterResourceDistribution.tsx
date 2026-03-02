@@ -1,4 +1,4 @@
-import { VStack, HStack, Text, SimpleGrid, Box, Progress, Stat, Tag } from '@chakra-ui/react'
+import { VStack, HStack, Text, SimpleGrid, Box, Progress, Tag, Skeleton, Tooltip } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 
 import type { PartitionResponse, NodeInfoResponse, NodeStateResponse } from '../../client'
@@ -12,6 +12,9 @@ export const ClusterResourceDistribution = () => {
     nodesInfoQuery: infoQ,
     nodesStatesQuery: statesQ,
   } = useClusterOverviewContext()
+
+  // Check loading states
+  const isLoading = partitionsQ.isLoading || infoQ.isLoading || statesQ.isLoading
 
   const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponse>
   const partitions = Object.values(partitionsMap).sort((a, b) => (b.total_gpus ?? 0) - (a.total_gpus ?? 0))
@@ -47,11 +50,25 @@ export const ClusterResourceDistribution = () => {
     nodeStateMap.set(s.node ?? '', s.states ?? [])
   }
 
+  // Early return for loading state
+  if (isLoading) {
+    return (
+      <VStack w="100%" align="start" gap={4}>
+        <Text fontSize="lg" fontWeight="semibold">Resource Distribution</Text>
+        <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} gap={4} w="100%">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} height="300px" rounded="md" />
+          ))}
+        </SimpleGrid>
+      </VStack>
+    )
+  }
+
   return (
     <VStack w="100%" align="start" gap={4}>
       <Text fontSize="lg" fontWeight="semibold">Resource Distribution</Text>
 
-      <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4} w="100%">
+      <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} gap={4} w="100%">
         {/* Partition Resources */}
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <VStack align="start" gap={2} w="100%">
@@ -128,10 +145,15 @@ export const ClusterResourceDistribution = () => {
                   .sort((a, b) => b[1] - a[1])
                   .map(([model, count]) => (
                     <HStack key={model} justify="space-between" w="100%">
-                      <Text fontSize="xs" color="gray.700" truncate flex={1}>{model}</Text>
-                      <Stat.Root>
-                        <Stat.ValueText fontSize="md" fontWeight="semibold">{count}</Stat.ValueText>
-                      </Stat.Root>
+                      <Tooltip.Root openDelay={300}>
+                        <Tooltip.Trigger asChild>
+                          <Text fontSize="xs" color="gray.700" truncate flex={1} cursor="default">{model}</Text>
+                        </Tooltip.Trigger>
+                        <Tooltip.Positioner>
+                          <Tooltip.Content>{model}</Tooltip.Content>
+                        </Tooltip.Positioner>
+                      </Tooltip.Root>
+                      <Text fontSize="md" fontWeight="semibold" color="gray.900">{count}</Text>
                     </HStack>
                   ))
               )}

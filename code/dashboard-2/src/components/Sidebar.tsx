@@ -76,7 +76,7 @@ const transformSidebarItemsToTree = (selectedClusters: string[]) => {
     { text: 'Overview', route: '/overview' },
     { text: 'Partitions', route: '/partitions' },
     { text: 'Nodes', route: '/nodes' },
-    { 
+    {
       text: 'Jobs', 
       route: '/jobs',
       children: [

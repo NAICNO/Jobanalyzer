@@ -51,6 +51,8 @@ export const useClusterNodes = ({ cluster, client, enabled = true }: ClusterNode
       client: client || undefined,
     }),
     enabled: enabled && !!client && !!cluster,
+    staleTime: 5 * 60 * 1000,  // 5 min - node list rarely changes
+    gcTime: 30 * 60 * 1000,    // 30 min - keep in cache longer
   })
 }
 
@@ -61,6 +63,8 @@ export const useClusterNodesInfo = ({ cluster, client, enabled = true }: Cluster
       client: client || undefined,
     }),
     enabled: enabled && !!client && !!cluster,
+    staleTime: 15 * 60 * 1000, // 15 min - hardware specs are static
+    gcTime: 60 * 60 * 1000,    // 60 min - very safe to cache long
   })
 }
 
@@ -113,6 +117,8 @@ export const useClusterNodesLastProbeTimestamp = ({ cluster, client, enabled = t
       client: client || undefined,
     }),
     enabled: enabled && !!client && !!cluster,
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 2 * 60 * 1000,    // 2 min - probe timestamps update slowly
   })
 }
 
@@ -135,6 +141,7 @@ export const useClusterNodesMemoryTimeseries = ({ cluster, client, enabled = tru
     }),
     enabled: enabled && !!client && !!cluster,
     staleTime: NODE_TIMESERIES_STALE_TIME_MS,
+    gcTime: NODE_TIMESERIES_GC_TIME_MS,
   })
 }
 
@@ -205,7 +212,8 @@ export const useMultiNodeInfo = ({
   })
 }
 
-const NODE_TIMESERIES_STALE_TIME_MS = 60_000 // 60 seconds
+const NODE_TIMESERIES_STALE_TIME_MS = 5 * 60 * 1000 // 5 minutes
+const NODE_TIMESERIES_GC_TIME_MS = 30 * 60 * 1000 // 30 minutes
 
 export const useNodeCpuTimeseries = ({ cluster, nodename, client, resolutionSec, enabled = true }: NodeTimeseriesOptions) => {
   return useQuery({
@@ -216,6 +224,7 @@ export const useNodeCpuTimeseries = ({ cluster, nodename, client, resolutionSec,
     }),
     enabled: enabled && !!client && !!cluster && !!nodename,
     staleTime: NODE_TIMESERIES_STALE_TIME_MS,
+    gcTime: NODE_TIMESERIES_GC_TIME_MS,
   })
 }
 
@@ -228,6 +237,7 @@ export const useNodeDiskstatsTimeseries = ({ cluster, nodename, client, resoluti
     }),
     enabled: enabled && !!client && !!cluster && !!nodename,
     staleTime: NODE_TIMESERIES_STALE_TIME_MS,
+    gcTime: NODE_TIMESERIES_GC_TIME_MS,
   })
 }
 
@@ -240,6 +250,7 @@ export const useNodeMemoryTimeseries = ({ cluster, nodename, client, resolutionS
     }),
     enabled: enabled && !!client && !!cluster && !!nodename,
     staleTime: NODE_TIMESERIES_STALE_TIME_MS,
+    gcTime: NODE_TIMESERIES_GC_TIME_MS,
   })
 }
 
@@ -252,6 +263,7 @@ export const useNodeGpuTimeseries = ({ cluster, nodename, client, resolutionSec,
     }),
     enabled: enabled && !!client && !!cluster && !!nodename,
     staleTime: NODE_TIMESERIES_STALE_TIME_MS,
+    gcTime: NODE_TIMESERIES_GC_TIME_MS,
   })
 }
 

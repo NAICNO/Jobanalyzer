@@ -1,4 +1,4 @@
-import { VStack, Text, SimpleGrid, Box } from '@chakra-ui/react'
+import { VStack, Text, SimpleGrid, Box, Skeleton } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 import { AgGridReact } from 'ag-grid-react'
 import type { ColDef, ICellRendererParams, RowClickedEvent } from 'ag-grid-community'
@@ -10,6 +10,23 @@ import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext
 export const ClusterQueueActivity = () => {
   const navigate = useNavigate()
   const { cluster, partitionsQuery: partitionsQ } = useClusterOverviewContext()
+
+  // Check loading state
+  const isLoading = partitionsQ.isLoading
+
+  // Early return for loading state
+  if (isLoading) {
+    return (
+      <VStack w="100%" align="start" gap={4}>
+        <Text fontSize="lg" fontWeight="semibold">Queue Activity</Text>
+        <SimpleGrid columns={{ base: 1, lg: 3 }} gap={4} w="100%">
+          <Skeleton height="330px" rounded="md" />
+          <Skeleton height="330px" rounded="md" />
+          <Skeleton height="330px" rounded="md" />
+        </SimpleGrid>
+      </VStack>
+    )
+  }
 
   const partitionsMap = (partitionsQ.data ?? {}) as Record<string, PartitionResponse>
   const partitions = Object.values(partitionsMap)
@@ -226,30 +243,29 @@ export const ClusterQueueActivity = () => {
     <VStack w="100%" align="start" gap={4}>
       <Text fontSize="lg" fontWeight="semibold">Queue Activity</Text>
 
-      {/* Top Active Users */}
-      {activeUsers.length > 0 && (
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%">
-          <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Top Active Users (Running Now)</Text>
-            <Box w="100%" h="250px">
-              <AgGridReact
-                theme={themeQuartz}
-                rowData={activeUsers}
-                columnDefs={activeUserColumns}
-                defaultColDef={{ resizable: true, sortable: true }}
-                domLayout="normal"
-                suppressCellFocus
-                onRowClicked={(e: RowClickedEvent) => {
-                  if (e.data?.user) navigate(`/v2/${cluster}/jobs/query`)
-                }}
-              />
-            </Box>
-          </VStack>
-        </Box>
-      )}
+      <SimpleGrid columns={{ base: 1, lg: activeUsers.length > 0 ? 3 : 2 }} gap={4} w="100%">
+        {/* Top Active Users */}
+        {activeUsers.length > 0 && (
+          <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+            <VStack align="start" gap={2} w="100%">
+              <Text fontSize="sm" fontWeight="semibold" color="gray.700">Top Active Users (Running Now)</Text>
+              <Box w="100%" h="300px">
+                <AgGridReact
+                  theme={themeQuartz}
+                  rowData={activeUsers}
+                  columnDefs={activeUserColumns}
+                  defaultColDef={{ resizable: true, sortable: true }}
+                  domLayout="normal"
+                  suppressCellFocus
+                  onRowClicked={(e: RowClickedEvent) => {
+                    if (e.data?.user) navigate(`/v2/${cluster}/jobs/query`)
+                  }}
+                />
+              </Box>
+            </VStack>
+          </Box>
+        )}
 
-      {/* Jobs by Partition and User Tables */}
-      <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4} w="100%">
         {/* Jobs by Partition */}
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <VStack align="start" gap={2} w="100%">

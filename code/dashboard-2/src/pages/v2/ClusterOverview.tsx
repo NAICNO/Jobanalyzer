@@ -11,6 +11,7 @@ import { ClusterQueueActivity } from '../../components/v2/ClusterQueueActivity'
 import { ClusterTimebasedActivity } from '../../components/v2/ClusterTimebasedActivity'
 import { ClusterJobAnalytics } from '../../components/v2/ClusterJobAnalytics'
 import { ClusterWaitTimeAnalysis } from '../../components/v2/ClusterWaitTimeAnalysis'
+import { ClusterDiskStats } from '../../components/v2/ClusterDiskStats'
 import { LazySection } from '../../components/v2/LazySection'
 
 const ClusterOverviewContent = () => {
@@ -50,6 +51,10 @@ const ClusterOverviewContent = () => {
 
       <LazySection minHeight="700px">
         {(isVisible) => <ClusterTimebasedActivity cluster={cluster} enabled={isVisible} />}
+      </LazySection>
+
+      <LazySection minHeight="800px">
+        {(isVisible) => <ClusterDiskStats cluster={cluster} enabled={isVisible} />}
       </LazySection>
     </VStack>
   )

@@ -1,13 +1,16 @@
 import { VStack, Text, SimpleGrid, Box, Spinner } from '@chakra-ui/react'
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush, ReferenceLine } from 'recharts'
-import type { SampleGpuTimeseriesResponse, SampleProcessAccResponse, NodeDiskTimeseriesResponse } from '../../client'
+import type { SampleGpuTimeseriesResponse, SampleProcessAccResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
-import { useClusterTimeseries } from '../../hooks/v2/useClusterQueries'
+import { useClusterGpuTimeseries, useClusterCpuTimeseries, useClusterMemoryTimeseries } from '../../hooks/v2/useClusterQueries'
 import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
-import { transformClusterDiskstatsTimeseries } from '../../util/timeseriesTransformers'
 
 const DATA_RESOLUTION = 3600 // 1 hour
+
+/** Round a Unix timestamp (seconds) down to the nearest hour boundary */
+const toHourBucket = (tsInSeconds: number): number =>
+  Math.floor(tsInSeconds / DATA_RESOLUTION) * DATA_RESOLUTION
 
 // Static utilization thresholds for reference lines
 const THRESHOLDS = {
@@ -24,20 +27,15 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
   const client = useClusterClient(cluster)
   const { startTimeInS, endTimeInS, timeRange } = useClusterOverviewContext()
 
-  const { gpuQuery: gpuTimeseriesQ, cpuQuery: cpuTimeseriesQ, memoryQuery: memoryTimeseriesQ, diskQuery: diskTimeseriesQ } = useClusterTimeseries({
-    cluster,
-    client,
-    startTimeInS,
-    endTimeInS,
-    resolutionInS: DATA_RESOLUTION,
-    enabled,
-  })
+  const tsOpts = { cluster, client, startTimeInS, endTimeInS, resolutionInS: DATA_RESOLUTION, enabled }
+  const gpuTimeseriesQ = useClusterGpuTimeseries(tsOpts)
+  const cpuTimeseriesQ = useClusterCpuTimeseries(tsOpts)
+  const memoryTimeseriesQ = useClusterMemoryTimeseries(tsOpts)
 
   const gpuData = (gpuTimeseriesQ.data ?? {}) as Record<string, Array<SampleGpuTimeseriesResponse>>
   const cpuData = (cpuTimeseriesQ.data ?? {}) as Record<string, Array<SampleProcessAccResponse>>
   const memoryData = (memoryTimeseriesQ.data ?? {}) as Record<string, Array<SampleProcessAccResponse>>
-  const diskData = diskTimeseriesQ.data as NodeDiskTimeseriesResponse | undefined
-  const diskTimeSeriesData = transformClusterDiskstatsTimeseries(diskData)
+
 
   // Process GPU timeseries data
   const gpuTimeSeriesData: Array<{
@@ -45,6 +43,7 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
     avgUtil: number
     maxUtil: number
     gpuCount: number
+    activeGpuCount: number
   }> = []
 
   // Process CPU timeseries data
@@ -62,7 +61,7 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
   }> = []
 
   // Aggregate GPU by timestamp across all nodes
-  const gpuTimestampMap = new Map<number, { totalUtil: number; maxUtil: number; count: number }>()
+  const gpuTimestampMap = new Map<number, { totalUtil: number; maxUtil: number; count: number; activeCount: number }>()
 
   for (const gpuArrays of Object.values(gpuData)) {
     if (Array.isArray(gpuArrays)) {
@@ -74,13 +73,16 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
             const util = sample.ce_util ?? 0
 
             if (!gpuTimestampMap.has(ts)) {
-              gpuTimestampMap.set(ts, {totalUtil: 0, maxUtil: 0, count: 0})
+              gpuTimestampMap.set(ts, {totalUtil: 0, maxUtil: 0, count: 0, activeCount: 0})
             }
 
             const entry = gpuTimestampMap.get(ts)!
             entry.totalUtil += util
             entry.maxUtil = Math.max(entry.maxUtil, util)
             entry.count++
+            if (util > 0) {
+              entry.activeCount++
+            }
           }
         }
       }
@@ -95,6 +97,7 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
       avgUtil: Math.round(data.totalUtil / data.count),
       maxUtil: Math.round(data.maxUtil),
       gpuCount: data.count,
+      activeGpuCount: data.activeCount,
     })
   }
 
@@ -104,8 +107,8 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
   for (const samples of Object.values(cpuData)) {
     if (Array.isArray(samples)) {
       for (const sample of samples) {
-        // Convert ISO 8601 string to timestamp
-        const ts = new Date(sample.time).getTime() / 1000
+        // Convert ISO 8601 string to timestamp, bucketed to hourly resolution
+        const ts = toHourBucket(new Date(sample.time).getTime() / 1000)
         // cpu_util represents total CPU usage across all cores (e.g., 35737% = 357 full CPUs)
         // Divide by 100 to get "equivalent full CPUs" as a more readable metric
         const util = (sample.cpu_util ?? 0) / 100
@@ -138,8 +141,8 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
   for (const samples of Object.values(memoryData)) {
     if (Array.isArray(samples)) {
       for (const sample of samples) {
-        // Convert ISO 8601 string to timestamp
-        const ts = new Date(sample.time).getTime() / 1000
+        // Convert ISO 8601 string to timestamp, bucketed to hourly resolution
+        const ts = toHourBucket(new Date(sample.time).getTime() / 1000)
         const util = sample.memory_util ?? 0
 
         if (!memoryTimestampMap.has(ts)) {
@@ -167,7 +170,6 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
   const hasGpuData = gpuTimeSeriesData.length > 0
   const hasCpuData = cpuTimeSeriesData.length > 0
   const hasMemoryData = memoryTimeSeriesData.length > 0
-  const hasDiskData = diskTimeSeriesData.length > 0
 
   return (
     <VStack w="100%" align="start" gap={4}>
@@ -258,7 +260,7 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
                   />
                   <Tooltip
                     contentStyle={{fontSize: 12}}
-                    formatter={(value: number) => `${value}%`}
+                    formatter={(value: number) => `${value} cores`}
                   />
                   <Legend wrapperStyle={{fontSize: 12}}/>
                   <Line
@@ -342,9 +344,9 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
         </Box>
 
         {/* GPU Count Over Time */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="Active GPUs trend chart">
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="GPU count trend chart">
           <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Active GPUs Trend</Text>
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">GPU Count Trend</Text>
             {gpuTimeseriesQ.isLoading ? (
               <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
                 <Spinner size="lg"/>
@@ -373,110 +375,17 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
                   <Line
                     type="monotone"
                     dataKey="gpuCount"
-                    stroke="#38a169"
-                    name="Active GPUs"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Brush dataKey="time" height={25} stroke="#718096" />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </VStack>
-        </Box>
-
-        {/* Disk I/O Utilization Over Time */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="Disk I/O utilization trend chart">
-          <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Disk I/O Utilization Trend</Text>
-            {diskTimeseriesQ.isLoading ? (
-              <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
-                <Spinner size="lg"/>
-              </Box>
-            ) : !hasDiskData ? (
-              <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
-                <Text fontSize="sm" color="gray.500">No disk data available</Text>
-              </Box>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={diskTimeSeriesData}>
-                  <CartesianGrid strokeDasharray="3 3"/>
-                  <XAxis
-                    dataKey="time"
-                    tick={{fontSize: 10}}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{fontSize: 10}}
-                    label={{value: 'Disk Util %', angle: -90, position: 'insideLeft', style: {fontSize: 10}}}
-                  />
-                  <Tooltip contentStyle={{fontSize: 12}}/>
-                  <Legend wrapperStyle={{fontSize: 12}}/>
-                  <Line
-                    type="monotone"
-                    dataKey="avgUtilization"
-                    stroke="#d69e2e"
-                    name="Avg Utilization"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="maxUtilization"
-                    stroke="#e53e3e"
-                    name="Max Utilization"
+                    stroke="#718096"
+                    name="Reporting GPUs"
                     strokeWidth={1}
                     strokeDasharray="5 5"
                     dot={false}
                   />
-                  <Brush dataKey="time" height={25} stroke="#718096" />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </VStack>
-        </Box>
-
-        {/* Disk IOPS Over Time */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="Disk IOPS trend chart">
-          <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Disk IOPS Trend</Text>
-            {diskTimeseriesQ.isLoading ? (
-              <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
-                <Spinner size="lg"/>
-              </Box>
-            ) : !hasDiskData ? (
-              <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
-                <Text fontSize="sm" color="gray.500">No disk data available</Text>
-              </Box>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={diskTimeSeriesData}>
-                  <CartesianGrid strokeDasharray="3 3"/>
-                  <XAxis
-                    dataKey="time"
-                    tick={{fontSize: 10}}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tick={{fontSize: 10}}
-                    label={{value: 'IOPS', angle: -90, position: 'insideLeft', style: {fontSize: 10}}}
-                  />
-                  <Tooltip contentStyle={{fontSize: 12}}/>
-                  <Legend wrapperStyle={{fontSize: 12}}/>
                   <Line
                     type="monotone"
-                    dataKey="readIOPS"
-                    stroke="#3182ce"
-                    name="Read IOPS"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="writeIOPS"
-                    stroke="#dd6b20"
-                    name="Write IOPS"
+                    dataKey="activeGpuCount"
+                    stroke="#38a169"
+                    name="Active GPUs (util > 0%)"
                     strokeWidth={2}
                     dot={false}
                   />
