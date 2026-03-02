@@ -826,11 +826,11 @@ export type JobsResponse = {
  */
 export type ListenSettings = {
     /**
-     * Cluster Name
+     * Cluster
      *
      * Name of cluster
      */
-    CLUSTER_NAME?: string | null;
+    cluster?: string | null;
     /**
      * Lookback
      *
@@ -844,7 +844,7 @@ export type ListenSettings = {
     /**
      * Connection to kafka broker
      */
-    KAFKA_BROKER?: ServerSettings;
+    kafka?: ServerSettings;
     stats?: ListenStatsSettings;
 };
 
