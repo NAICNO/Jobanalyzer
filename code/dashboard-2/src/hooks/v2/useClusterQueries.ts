@@ -69,15 +69,17 @@ export const useClusterErrorMessages = ({ cluster, client, enabled = true }: Clu
       client: client || undefined,
     }),
     enabled: enabled && !!client && !!cluster,
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 2 * 60 * 1000,    // 2 min - errors don't need immediate updates
   })
 }
 
 // ---------------------------------------------------------------------------
-// useClusterTimeseries (composite: GPU + CPU + Memory)
+// Timeseries hooks
 // ---------------------------------------------------------------------------
 
 const TIMESERIES_STALE_TIME_MS = 5 * 60 * 1000 // 5 minutes
-const TIMESERIES_GC_TIME_MS = 10 * 60 * 1000 // 10 minutes
+const TIMESERIES_GC_TIME_MS = 30 * 60 * 1000 // 30 minutes
 
 interface UseClusterTimeseriesOptions extends ClusterQueryOptions {
   startTimeInS: number
@@ -85,75 +87,78 @@ interface UseClusterTimeseriesOptions extends ClusterQueryOptions {
   resolutionInS: number
 }
 
-export const useClusterTimeseries = ({
-  cluster,
-  client,
-  startTimeInS,
-  endTimeInS,
-  resolutionInS,
-  enabled = true,
-}: UseClusterTimeseriesOptions) => {
-  const isEnabled = enabled && !!client && !!cluster
+// ---------------------------------------------------------------------------
+// useClusterGpuTimeseries
+// ---------------------------------------------------------------------------
 
-  const gpuQuery = useQuery({
+export const useClusterGpuTimeseries = ({
+  cluster, client, startTimeInS, endTimeInS, resolutionInS, enabled = true,
+}: UseClusterTimeseriesOptions) => {
+  return useQuery({
     ...getClusterByClusterNodesGpuTimeseriesOptions({
       path: { cluster },
-      query: {
-        start_time_in_s: startTimeInS,
-        end_time_in_s: endTimeInS,
-        resolution_in_s: resolutionInS,
-      },
+      query: { start_time_in_s: startTimeInS, end_time_in_s: endTimeInS, resolution_in_s: resolutionInS },
       client: client || undefined,
     }),
-    enabled: isEnabled,
+    enabled: enabled && !!client && !!cluster,
     staleTime: TIMESERIES_STALE_TIME_MS,
     gcTime: TIMESERIES_GC_TIME_MS,
   })
+}
 
-  const cpuQuery = useQuery({
+// ---------------------------------------------------------------------------
+// useClusterCpuTimeseries
+// ---------------------------------------------------------------------------
+
+export const useClusterCpuTimeseries = ({
+  cluster, client, startTimeInS, endTimeInS, resolutionInS, enabled = true,
+}: UseClusterTimeseriesOptions) => {
+  return useQuery({
     ...getClusterByClusterNodesCpuTimeseriesOptions({
       path: { cluster },
-      query: {
-        start_time_in_s: startTimeInS,
-        end_time_in_s: endTimeInS,
-        resolution_in_s: resolutionInS,
-      },
+      query: { start_time_in_s: startTimeInS, end_time_in_s: endTimeInS, resolution_in_s: resolutionInS },
       client: client || undefined,
     }),
-    enabled: isEnabled,
+    enabled: enabled && !!client && !!cluster,
     staleTime: TIMESERIES_STALE_TIME_MS,
     gcTime: TIMESERIES_GC_TIME_MS,
   })
+}
 
-  const memoryQuery = useQuery({
+// ---------------------------------------------------------------------------
+// useClusterMemoryTimeseries
+// ---------------------------------------------------------------------------
+
+export const useClusterMemoryTimeseries = ({
+  cluster, client, startTimeInS, endTimeInS, resolutionInS, enabled = true,
+}: UseClusterTimeseriesOptions) => {
+  return useQuery({
     ...getClusterByClusterNodesMemoryTimeseriesOptions({
       path: { cluster },
-      query: {
-        start_time_in_s: startTimeInS,
-        end_time_in_s: endTimeInS,
-        resolution_in_s: resolutionInS,
-      },
+      query: { start_time_in_s: startTimeInS, end_time_in_s: endTimeInS, resolution_in_s: resolutionInS },
       client: client || undefined,
     }),
-    enabled: isEnabled,
+    enabled: enabled && !!client && !!cluster,
     staleTime: TIMESERIES_STALE_TIME_MS,
     gcTime: TIMESERIES_GC_TIME_MS,
   })
+}
 
-  const diskQuery = useQuery({
+// ---------------------------------------------------------------------------
+// useClusterDiskTimeseries
+// ---------------------------------------------------------------------------
+
+export const useClusterDiskTimeseries = ({
+  cluster, client, startTimeInS, endTimeInS, resolutionInS, enabled = true,
+}: UseClusterTimeseriesOptions) => {
+  return useQuery({
     ...getClusterByClusterNodesDiskstatsTimeseriesOptions({
       path: { cluster },
-      query: {
-        start_time_in_s: startTimeInS,
-        end_time_in_s: endTimeInS,
-        resolution_in_s: resolutionInS,
-      },
+      query: { start_time_in_s: startTimeInS, end_time_in_s: endTimeInS, resolution_in_s: resolutionInS },
       client: client || undefined,
     }),
-    enabled: isEnabled,
+    enabled: enabled && !!client && !!cluster,
     staleTime: TIMESERIES_STALE_TIME_MS,
     gcTime: TIMESERIES_GC_TIME_MS,
   })
-
-  return { gpuQuery, cpuQuery, memoryQuery, diskQuery }
 }
