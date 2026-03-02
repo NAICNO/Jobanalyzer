@@ -16,7 +16,10 @@ export {
   useClusterPartitions,
   useClusterJobs,
   useClusterErrorMessages,
-  useClusterTimeseries,
+  useClusterGpuTimeseries,
+  useClusterCpuTimeseries,
+  useClusterMemoryTimeseries,
+  useClusterDiskTimeseries,
 } from './useClusterQueries'
 
 export {

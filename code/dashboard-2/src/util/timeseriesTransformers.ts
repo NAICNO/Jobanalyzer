@@ -561,10 +561,28 @@ export const calculateDiskStats = (
  */
 export interface ClusterDiskDataPoint {
   time: string
+  // Utilization
   avgUtilization: number
   maxUtilization: number
+  // IOPS
   readIOPS: number
   writeIOPS: number
+  // Throughput (MB/s)
+  readThroughputMB: number
+  writeThroughputMB: number
+  // Latency (ms per operation)
+  readLatencyMs: number
+  writeLatencyMs: number
+  // Queue depth (instantaneous)
+  queueDepth: number
+  // Merge rate (merges/s)
+  readMergeRate: number
+  writeMergeRate: number
+  // Average I/O size (KB per operation)
+  avgReadIOSizeKB: number
+  avgWriteIOSizeKB: number
+  // Average wait time (ms)
+  avgWaitTimeMs: number
 }
 
 /**
@@ -580,13 +598,30 @@ export const transformClusterDiskstatsTimeseries = (
   if (!response) return []
 
   // Aggregate by timestamp across all nodes and disks
-  const tsMap = new Map<number, {
+  interface TsBucket {
     totalUtil: number
     maxUtil: number
     totalReadIOPS: number
     totalWriteIOPS: number
+    totalReadThroughputMB: number
+    totalWriteThroughputMB: number
+    totalReadLatencyMs: number
+    readLatencyCount: number // number of entries with reads > 0
+    totalWriteLatencyMs: number
+    writeLatencyCount: number // number of entries with writes > 0
+    totalQueueDepth: number
+    totalReadMergeRate: number
+    totalWriteMergeRate: number
+    totalAvgReadIOSizeKB: number
+    readIOSizeCount: number
+    totalAvgWriteIOSizeKB: number
+    writeIOSizeCount: number
+    totalWaitTimeMs: number
+    waitTimeCount: number
     count: number
-  }>()
+  }
+
+  const tsMap = new Map<number, TsBucket>()
 
   for (const diskArrays of Object.values(response)) {
     if (!Array.isArray(diskArrays)) continue
@@ -603,37 +638,123 @@ export const transformClusterDiskstatsTimeseries = (
         const ts = Math.floor(time.getTime() / 1000)
 
         const deltaTimeSec = (current as { delta_time_in_s?: number }).delta_time_in_s
+        const weighted = (current as { weighted_ms_spent_doing_ios?: number }).weighted_ms_spent_doing_ios ?? 0
 
         let utilization = 0
         let readIops = 0
         let writeIops = 0
+        let readThroughputMB = 0
+        let writeThroughputMB = 0
+        let readLatencyMs = 0
+        let writeLatencyMs = 0
+        let readMergeRate = 0
+        let writeMergeRate = 0
+        let avgReadIOSizeKB = 0
+        let avgWriteIOSizeKB = 0
+        let avgWaitTimeMs = 0
+        let hasReads = false
+        let hasWrites = false
+        let hasTotalOps = false
 
         if (deltaTimeSec && deltaTimeSec > 0) {
           utilization = Math.min(100, (current.ms_spent_doing_ios / (deltaTimeSec * 1000)) * 100)
           readIops = current.reads_completed / deltaTimeSec
           writeIops = current.writes_completed / deltaTimeSec
+          readThroughputMB = (current.sectors_read * 512) / (1024 * 1024) / deltaTimeSec
+          writeThroughputMB = (current.sectors_written * 512) / (1024 * 1024) / deltaTimeSec
+          readMergeRate = current.reads_merged / deltaTimeSec
+          writeMergeRate = current.writes_merged / deltaTimeSec
+
+          if (current.reads_completed > 0) {
+            readLatencyMs = current.ms_spent_reading / current.reads_completed
+            avgReadIOSizeKB = (current.sectors_read * 512) / 1024 / current.reads_completed
+            hasReads = true
+          }
+          if (current.writes_completed > 0) {
+            writeLatencyMs = current.ms_spent_writing / current.writes_completed
+            avgWriteIOSizeKB = (current.sectors_written * 512) / 1024 / current.writes_completed
+            hasWrites = true
+          }
+          const totalOps = current.reads_completed + current.writes_completed
+          if (totalOps > 0) {
+            avgWaitTimeMs = weighted / totalOps
+            hasTotalOps = true
+          }
         } else if (prev?.time) {
           const timeDeltaSec = (time.getTime() - new Date(prev.time).getTime()) / 1000
           if (timeDeltaSec > 0) {
+            const readsDelta = current.reads_completed - prev.reads_completed
+            const writesDelta = current.writes_completed - prev.writes_completed
             const ioMsDelta = current.ms_spent_doing_ios - prev.ms_spent_doing_ios
+
             utilization = Math.min(100, (ioMsDelta / (timeDeltaSec * 1000)) * 100)
-            readIops = (current.reads_completed - prev.reads_completed) / timeDeltaSec
-            writeIops = (current.writes_completed - prev.writes_completed) / timeDeltaSec
+            readIops = readsDelta / timeDeltaSec
+            writeIops = writesDelta / timeDeltaSec
+            readThroughputMB = ((current.sectors_read - prev.sectors_read) * 512) / (1024 * 1024) / timeDeltaSec
+            writeThroughputMB = ((current.sectors_written - prev.sectors_written) * 512) / (1024 * 1024) / timeDeltaSec
+            readMergeRate = (current.reads_merged - prev.reads_merged) / timeDeltaSec
+            writeMergeRate = (current.writes_merged - prev.writes_merged) / timeDeltaSec
+
+            if (readsDelta > 0) {
+              readLatencyMs = (current.ms_spent_reading - prev.ms_spent_reading) / readsDelta
+              avgReadIOSizeKB = ((current.sectors_read - prev.sectors_read) * 512) / 1024 / readsDelta
+              hasReads = true
+            }
+            if (writesDelta > 0) {
+              writeLatencyMs = (current.ms_spent_writing - prev.ms_spent_writing) / writesDelta
+              avgWriteIOSizeKB = ((current.sectors_written - prev.sectors_written) * 512) / 1024 / writesDelta
+              hasWrites = true
+            }
+            const totalOpsDelta = readsDelta + writesDelta
+            if (totalOpsDelta > 0) {
+              const weightedDelta = weighted - ((prev as { weighted_ms_spent_doing_ios?: number }).weighted_ms_spent_doing_ios ?? 0)
+              avgWaitTimeMs = weightedDelta / totalOpsDelta
+              hasTotalOps = true
+            }
           }
         }
 
-        utilization = Math.max(0, utilization)
-        readIops = Math.max(0, readIops)
-        writeIops = Math.max(0, writeIops)
-
         if (!tsMap.has(ts)) {
-          tsMap.set(ts, { totalUtil: 0, maxUtil: 0, totalReadIOPS: 0, totalWriteIOPS: 0, count: 0 })
+          tsMap.set(ts, {
+            totalUtil: 0, maxUtil: 0,
+            totalReadIOPS: 0, totalWriteIOPS: 0,
+            totalReadThroughputMB: 0, totalWriteThroughputMB: 0,
+            totalReadLatencyMs: 0, readLatencyCount: 0,
+            totalWriteLatencyMs: 0, writeLatencyCount: 0,
+            totalQueueDepth: 0,
+            totalReadMergeRate: 0, totalWriteMergeRate: 0,
+            totalAvgReadIOSizeKB: 0, readIOSizeCount: 0,
+            totalAvgWriteIOSizeKB: 0, writeIOSizeCount: 0,
+            totalWaitTimeMs: 0, waitTimeCount: 0,
+            count: 0,
+          })
         }
         const entry = tsMap.get(ts)!
-        entry.totalUtil += utilization
-        entry.maxUtil = Math.max(entry.maxUtil, utilization)
-        entry.totalReadIOPS += readIops
-        entry.totalWriteIOPS += writeIops
+        entry.totalUtil += Math.max(0, utilization)
+        entry.maxUtil = Math.max(entry.maxUtil, Math.max(0, utilization))
+        entry.totalReadIOPS += Math.max(0, readIops)
+        entry.totalWriteIOPS += Math.max(0, writeIops)
+        entry.totalReadThroughputMB += Math.max(0, readThroughputMB)
+        entry.totalWriteThroughputMB += Math.max(0, writeThroughputMB)
+        entry.totalQueueDepth += current.ios_currently_in_progress
+        entry.totalReadMergeRate += Math.max(0, readMergeRate)
+        entry.totalWriteMergeRate += Math.max(0, writeMergeRate)
+        if (hasReads) {
+          entry.totalReadLatencyMs += Math.max(0, readLatencyMs)
+          entry.readLatencyCount++
+          entry.totalAvgReadIOSizeKB += Math.max(0, avgReadIOSizeKB)
+          entry.readIOSizeCount++
+        }
+        if (hasWrites) {
+          entry.totalWriteLatencyMs += Math.max(0, writeLatencyMs)
+          entry.writeLatencyCount++
+          entry.totalAvgWriteIOSizeKB += Math.max(0, avgWriteIOSizeKB)
+          entry.writeIOSizeCount++
+        }
+        if (hasTotalOps) {
+          entry.totalWaitTimeMs += Math.max(0, avgWaitTimeMs)
+          entry.waitTimeCount++
+        }
         entry.count++
       }
     }
@@ -641,11 +762,21 @@ export const transformClusterDiskstatsTimeseries = (
 
   return Array.from(tsMap.entries())
     .sort((a, b) => a[0] - b[0])
-    .map(([ts, data]) => ({
+    .map(([ts, d]) => ({
       time: new Date(ts * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      avgUtilization: data.count > 0 ? Math.round(data.totalUtil / data.count) : 0,
-      maxUtilization: Math.round(data.maxUtil),
-      readIOPS: data.count > 0 ? Math.round(data.totalReadIOPS / data.count) : 0,
-      writeIOPS: data.count > 0 ? Math.round(data.totalWriteIOPS / data.count) : 0,
+      avgUtilization: d.count > 0 ? Math.round(d.totalUtil / d.count) : 0,
+      maxUtilization: Math.round(d.maxUtil),
+      readIOPS: d.count > 0 ? Math.round(d.totalReadIOPS / d.count) : 0,
+      writeIOPS: d.count > 0 ? Math.round(d.totalWriteIOPS / d.count) : 0,
+      readThroughputMB: d.count > 0 ? +(d.totalReadThroughputMB / d.count).toFixed(2) : 0,
+      writeThroughputMB: d.count > 0 ? +(d.totalWriteThroughputMB / d.count).toFixed(2) : 0,
+      readLatencyMs: d.readLatencyCount > 0 ? +(d.totalReadLatencyMs / d.readLatencyCount).toFixed(2) : 0,
+      writeLatencyMs: d.writeLatencyCount > 0 ? +(d.totalWriteLatencyMs / d.writeLatencyCount).toFixed(2) : 0,
+      queueDepth: d.count > 0 ? +(d.totalQueueDepth / d.count).toFixed(1) : 0,
+      readMergeRate: d.count > 0 ? +(d.totalReadMergeRate / d.count).toFixed(2) : 0,
+      writeMergeRate: d.count > 0 ? +(d.totalWriteMergeRate / d.count).toFixed(2) : 0,
+      avgReadIOSizeKB: d.readIOSizeCount > 0 ? +(d.totalAvgReadIOSizeKB / d.readIOSizeCount).toFixed(1) : 0,
+      avgWriteIOSizeKB: d.writeIOSizeCount > 0 ? +(d.totalAvgWriteIOSizeKB / d.writeIOSizeCount).toFixed(1) : 0,
+      avgWaitTimeMs: d.waitTimeCount > 0 ? +(d.totalWaitTimeMs / d.waitTimeCount).toFixed(2) : 0,
     }))
 }

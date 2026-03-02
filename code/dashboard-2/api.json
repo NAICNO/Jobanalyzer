@@ -5140,7 +5140,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 1772007906,
+              "default": 1772117914,
               "title": "Timestamp"
             }
           },
@@ -6426,7 +6426,7 @@
       },
       "ListenSettings": {
         "properties": {
-          "CLUSTER_NAME": {
+          "cluster": {
             "anyOf": [
               {
                 "type": "string"
@@ -6435,7 +6435,7 @@
                 "type": "null"
               }
             ],
-            "title": "Cluster Name",
+            "title": "Cluster",
             "description": "Name of cluster"
           },
           "lookback": {
@@ -6458,7 +6458,7 @@
               "port": 25052
             }
           },
-          "KAFKA_BROKER": {
+          "kafka": {
             "$ref": "#/components/schemas/ServerSettings",
             "description": "Connection to kafka broker",
             "default": {
