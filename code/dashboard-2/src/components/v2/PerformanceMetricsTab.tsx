@@ -26,17 +26,20 @@ export const PerformanceMetricsTab = memo(({ job, report, elapsed }: Performance
 
   const wastedResources = useMemo(() => {
     return {
-      cpuHours: calculateWastedCpuHours(job, elapsed),
-      memory: calculateWastedMemory(job),
+      cpuHours: calculateWastedCpuHours(job, elapsed, report),
+      memory: calculateWastedMemory(job, report),
     }
-  }, [job, elapsed])
+  }, [job, elapsed, report])
 
-  // Parse stats from report
+  // Parse stats from report — API may return values as strings or numbers
   const parseStats = (stats: { [key: string]: number } | undefined) => {
-    if (!stats) return { mean: 0, stddev: 0 }
-    const mean = typeof stats.mean === 'number' ? stats.mean : 0
-    const stddev = typeof stats.stddev === 'number' ? stats.stddev : 0
-    return { mean, stddev }
+    if (!stats) return { mean: 0, stddev: 0, max: 0, min: 0 }
+    return {
+      mean: Number(stats.mean) || 0,
+      stddev: Number(stats.stddev) || 0,
+      max: Number(stats.max) || 0,
+      min: Number(stats.min) || 0,
+    }
   }
 
   const cpuUtil = parseStats(report?.cpu_util)
@@ -108,9 +111,9 @@ export const PerformanceMetricsTab = memo(({ job, report, elapsed }: Performance
 
           <JobStatCard
             label="I/O Bandwidth"
-            value={formatIORate((dataRead.mean + dataWritten.mean) / elapsed)}
-            helpText="Read + Write"
-            tooltip="Combined read and write I/O throughput. Calculated as total data transferred divided by job elapsed time."
+            value={dataRead.mean === 0 && dataWritten.mean === 0 ? 'Not monitored' : formatIORate((dataRead.mean + dataWritten.mean) / elapsed)}
+            helpText={dataRead.mean === 0 && dataWritten.mean === 0 ? undefined : 'Read + Write'}
+            tooltip="Combined read and write I/O throughput. Shows 'Not monitored' when no I/O data is available from the monitoring system."
           />
         </SimpleGrid>
       </Box>
@@ -343,7 +346,7 @@ export const PerformanceMetricsTab = memo(({ job, report, elapsed }: Performance
                   Peak Used Memory:
                 </Text>
                 <Text fontSize="sm" fontWeight="medium">
-                  {formatMemory(residentMemory.mean / 1024)}
+                  {formatMemory(residentMemory.max / 1024)}
                 </Text>
               </HStack>
               {wastedResources.memory > 0 && (
