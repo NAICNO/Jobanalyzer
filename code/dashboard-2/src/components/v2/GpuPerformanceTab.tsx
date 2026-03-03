@@ -46,6 +46,9 @@ interface Props {
   jobId: number;
   client: Client | null;
   gpuUuids: string[];
+  jobStartTime?: Date | string | null;
+  jobEndTime?: Date | string | null;
+  elapsed?: number;
 }
 
 const RESOLUTION_OPTIONS = [
@@ -105,15 +108,41 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   )
 }
 
-export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
-  const [timeRange, setTimeRange] = useState<TimeRange>({
-    type: 'relative',
-    label: 'Last 1 hour',
-    value: '1h',
-    endAt: 'now',
-  })
-  const [resolution, setResolution] = useState(30)
+const computeSmartDefault = (
+  elapsed?: number,
+  jobStartTime?: Date | string | null,
+  jobEndTime?: Date | string | null,
+): { timeRange: TimeRange; resolution: number } => {
+  if (elapsed && elapsed > 86400 && jobStartTime) {
+    const start = new Date(jobStartTime)
+    const end = jobEndTime ? new Date(jobEndTime) : new Date()
+    return {
+      timeRange: { type: 'absolute', label: 'Full job', value: 'full-job', start, end, endAt: jobEndTime ? 'fixed' : 'now' },
+      resolution: 300,
+    }
+  }
+  if (elapsed && elapsed > 21600) return { timeRange: { type: 'relative', label: 'Last 1 day', value: '1d', endAt: 'now' }, resolution: 60 }
+  if (elapsed && elapsed > 3600) return { timeRange: { type: 'relative', label: 'Last 3 hours', value: '3h', endAt: 'now' }, resolution: 30 }
+  return { timeRange: { type: 'relative', label: 'Last 1 hour', value: '1h', endAt: 'now' }, resolution: 30 }
+}
+
+export const GpuPerformanceTab = memo(({ cluster, jobId, client, jobStartTime, jobEndTime, elapsed }: Props) => {
+  const defaults = useMemo(() => computeSmartDefault(elapsed, jobStartTime, jobEndTime), [elapsed, jobStartTime, jobEndTime])
+  const [timeRange, setTimeRange] = useState<TimeRange>(defaults.timeRange)
+  const [resolution, setResolution] = useState(defaults.resolution)
   const [selectedGpu, setSelectedGpu] = useState<string | 'all'>('all')
+
+  const handleFullJobDuration = () => {
+    if (!jobStartTime) return
+    const start = new Date(jobStartTime)
+    const end = jobEndTime ? new Date(jobEndTime) : new Date()
+    const durationSec = (end.getTime() - start.getTime()) / 1000
+    setTimeRange({ type: 'absolute', label: 'Full job', value: 'full-job', start, end, endAt: jobEndTime ? 'fixed' : 'now' })
+    if (durationSec > 86400) setResolution(300)
+    else if (durationSec > 21600) setResolution(60)
+    else if (durationSec > 3600) setResolution(30)
+    else setResolution(10)
+  }
 
   // Convert time range to timestamps
   const { startTimeInS, endTimeInS } = useMemo(
@@ -294,6 +323,11 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
           </HStack>
 
           {/* Time Range Picker */}
+          {jobStartTime && (
+            <Button size="sm" variant={timeRange.value === 'full-job' ? 'solid' : 'outline'} onClick={handleFullJobDuration}>
+              Full Job
+            </Button>
+          )}
           <TimeRangePicker value={timeRange} onChange={setTimeRange} />
         </HStack>
       </HStack>
@@ -415,6 +449,11 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
                           <Text fontSize="lg" fontWeight="bold">
                             {formatMemory(stats.avgGpuMemory)}
                           </Text>
+                          {card?.memory && stats.avgGpuMemory > 0 && (
+                            <Text fontSize="xs" color="fg.muted">
+                              / {formatMemory(card.memory / 1024)} ({((stats.avgGpuMemory / (card.memory / 1024)) * 100).toFixed(0)}%)
+                            </Text>
+                          )}
                         </Box>
                         <Box>
                           <Text fontSize="xs" color="fg.muted">
@@ -423,6 +462,11 @@ export const GpuPerformanceTab = memo(({ cluster, jobId, client }: Props) => {
                           <Text fontSize="lg" fontWeight="bold">
                             {formatMemory(stats.maxGpuMemory)}
                           </Text>
+                          {card?.memory && stats.maxGpuMemory > 0 && (
+                            <Text fontSize="xs" color="fg.muted">
+                              / {formatMemory(card.memory / 1024)} ({((stats.maxGpuMemory / (card.memory / 1024)) * 100).toFixed(0)}%)
+                            </Text>
+                          )}
                         </Box>
                       </SimpleGrid>
 

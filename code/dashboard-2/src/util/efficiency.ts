@@ -1,6 +1,11 @@
 import type { JobReport, JobResponse } from '../client/types.gen'
 
 /**
+ * Safely parse a report stat value that may be a string or number
+ */
+const toNum = (v: unknown): number => Number(v) || 0
+
+/**
  * Statistics data structure with mean and standard deviation
  */
 export type Stats = {
@@ -20,15 +25,21 @@ export type Stats = {
  * @TODO Test with real API responses from different job types (single-node, multi-node, GPU jobs)
  * @TODO Write test cases for edge cases: zero elapsed time, missing sacct data, etc
  */
-export const calculateCpuEfficiency = (job: JobResponse, elapsed: number): number | null => {
-  if (!job.sacct || !job.requested_cpus || elapsed <= 0) return null
-  
-  const actualCpuTime = (job.sacct.SystemCPU ?? 0) + (job.sacct.UserCPU ?? 0)
-  const allocatedTime = job.requested_cpus * elapsed
-  
-  if (allocatedTime === 0) return null
-  
-  return Math.min((actualCpuTime / allocatedTime) * 100, 100)
+export const calculateCpuEfficiency = (
+  job: JobResponse, elapsed: number, report?: JobReport
+): number | null => {
+  // Primary: use sacct data
+  if (job.sacct && job.requested_cpus && elapsed > 0) {
+    const actualCpuTime = (job.sacct.SystemCPU ?? 0) + (job.sacct.UserCPU ?? 0)
+    const allocatedTime = job.requested_cpus * elapsed
+    if (allocatedTime > 0) return Math.min((actualCpuTime / allocatedTime) * 100, 100)
+  }
+  // Fallback: use report cpu_util mean (percentage of a single CPU, e.g. 1578% for 16 cores)
+  if (report?.cpu_util && job.requested_cpus && job.requested_cpus > 0) {
+    const avgUtil = toNum(report.cpu_util.mean)
+    return Math.min(avgUtil / job.requested_cpus, 100)
+  }
+  return null
 }
 
 /**
@@ -42,17 +53,20 @@ export const calculateCpuEfficiency = (job: JobResponse, elapsed: number): numbe
  * @TODO Test with real API responses including multi-node jobs with different memory configs
  * @TODO Write test cases for missing MaxRSS, zero memory allocation, over-subscription scenarios
  */
-export const calculateMemoryEfficiency = (job: JobResponse): number | null => {
-  if (!job.sacct?.MaxRSS || !job.requested_memory_per_node || !job.requested_node_count) {
-    return null
+export const calculateMemoryEfficiency = (job: JobResponse, report?: JobReport): number | null => {
+  const allocatedMemory = (job.requested_memory_per_node ?? 0) * (job.requested_node_count ?? 1)
+  if (allocatedMemory <= 0) return null
+
+  // Primary: use sacct MaxRSS (KiB)
+  if (job.sacct?.MaxRSS) {
+    return Math.min((job.sacct.MaxRSS / allocatedMemory) * 100, 100)
   }
-  
-  const peakMemory = job.sacct.MaxRSS
-  const allocatedMemory = job.requested_memory_per_node * job.requested_node_count
-  
-  if (allocatedMemory === 0) return null
-  
-  return Math.min((peakMemory / allocatedMemory) * 100, 100)
+  // Fallback: use report resident_memory.max (KiB)
+  if (report?.resident_memory) {
+    const peakMemory = toNum(report.resident_memory.max)
+    if (peakMemory > 0) return Math.min((peakMemory / allocatedMemory) * 100, 100)
+  }
+  return null
 }
 
 /**
@@ -181,8 +195,8 @@ export const calculateEfficiencyMetrics = (
   report: JobReport | undefined,
   elapsed: number
 ): EfficiencyMetrics => {
-  const cpu = calculateCpuEfficiency(job, elapsed)
-  const memory = calculateMemoryEfficiency(job)
+  const cpu = calculateCpuEfficiency(job, elapsed, report)
+  const memory = calculateMemoryEfficiency(job, report)
   const gpu = calculateGpuEfficiency(report)
   const time = calculateTimeEfficiency(elapsed, job.time_limit)
   
@@ -261,10 +275,10 @@ export const calculateGpuHours = (elapsed: number, gpus: number): number => {
  * @TODO Test with real job data showing various efficiency levels (20%, 50%, 80%, 100%)
  * @TODO Write test cases for zero waste scenarios and extreme waste scenarios
  */
-export const calculateWastedCpuHours = (job: JobResponse, elapsed: number): number => {
-  const efficiency = calculateCpuEfficiency(job, elapsed)
+export const calculateWastedCpuHours = (job: JobResponse, elapsed: number, report?: JobReport): number => {
+  const efficiency = calculateCpuEfficiency(job, elapsed, report)
   if (efficiency === null || !job.requested_cpus) return 0
-  
+
   const totalCpuHours = calculateCpuHours(elapsed, job.requested_cpus)
   return totalCpuHours * (1 - efficiency / 100)
 }
@@ -278,12 +292,12 @@ export const calculateWastedCpuHours = (job: JobResponse, elapsed: number): numb
  * @TODO Test with real API responses from jobs with different memory usage patterns
  * @TODO Write test cases for multi-node jobs to ensure correct total memory calculation
  */
-export const calculateWastedMemory = (job: JobResponse): number => {
-  const efficiency = calculateMemoryEfficiency(job)
+export const calculateWastedMemory = (job: JobResponse, report?: JobReport): number => {
+  const efficiency = calculateMemoryEfficiency(job, report)
   if (efficiency === null || !job.requested_memory_per_node || !job.requested_node_count) {
     return 0
   }
-  
+
   const totalMemory = job.requested_memory_per_node * job.requested_node_count
   return totalMemory * (1 - efficiency / 100)
 }

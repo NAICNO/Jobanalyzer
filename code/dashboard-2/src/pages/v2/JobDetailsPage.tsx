@@ -1,11 +1,12 @@
 import { useMemo, lazy, Suspense, useState, useEffect } from 'react'
-import { Box, Text, VStack, HStack, Spinner, Alert, Badge, SimpleGrid, Separator, Stat, Tabs, Tooltip, Icon } from '@chakra-ui/react'
+import { Box, Text, VStack, HStack, Spinner, Alert, Badge, SimpleGrid, Separator, Stat, Tabs, Tooltip, Icon, Progress } from '@chakra-ui/react'
 import { useParams, useLocation } from 'react-router'
 import { HiInformationCircle } from 'react-icons/hi2'
 
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useJobDetails, useJobReport } from '../../hooks/v2/useJobQueries'
 import { formatDuration, formatMemory, getJobStateColor } from '../../util/formatters'
+import { getEfficiencyColor } from '../../util/efficiency'
 import { JobStatCard } from '../../components/v2/JobStatCard'
 import { NavigateBackButton } from '../../components/NavigateBackButton'
 
@@ -45,6 +46,13 @@ export const JobDetailsPage = () => {
     const end = job.end_time ? new Date(job.end_time).getTime() : Date.now()
     return Math.floor((end - start) / 1000)
   }, [job?.start_time, job?.end_time])
+
+  const queueWaitTime = useMemo(() => {
+    if (!job?.start_time || !job?.submit_time) return 0
+    const start = new Date(job.start_time).getTime()
+    const submit = new Date(job.submit_time).getTime()
+    return Math.max(0, Math.floor((start - submit) / 1000))
+  }, [job?.start_time, job?.submit_time])
 
   // Extract GPU count from resource strings
   const gpuInfo = useMemo(() => {
@@ -201,7 +209,7 @@ export const JobDetailsPage = () => {
         w="100%"
         py={2}
       >
-        <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} gap={3}>
+        <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} gap={3}>
           <Stat.Root borderWidth="1px" borderColor="border" rounded="md" p={3}>
             <Stat.Label fontSize="sm" color="fg.muted">Status</Stat.Label>
             <Stat.ValueText>
@@ -211,11 +219,26 @@ export const JobDetailsPage = () => {
             </Stat.ValueText>
           </Stat.Root>
 
-          <JobStatCard
-            label="Elapsed Time"
-            value={formatDuration(elapsed)}
-            tooltip="Total time from job start to completion or current time for running jobs"
-          />
+          <Stat.Root borderWidth="1px" borderColor="border" rounded="md" p={3}>
+            <Stat.Label fontSize="sm" color="fg.muted">Elapsed Time</Stat.Label>
+            <Stat.ValueText>{formatDuration(elapsed)}</Stat.ValueText>
+            {job.time_limit > 0 && (
+              <>
+                <Progress.Root
+                  value={Math.min((elapsed / job.time_limit) * 100, 100)}
+                  max={100}
+                  size="xs"
+                  colorPalette={getEfficiencyColor(Math.min((elapsed / job.time_limit) * 100, 100))}
+                  mt={1}
+                >
+                  <Progress.Track>
+                    <Progress.Range />
+                  </Progress.Track>
+                </Progress.Root>
+                <Text fontSize="xs" color="fg.muted">Time limit: {formatDuration(job.time_limit)}</Text>
+              </>
+            )}
+          </Stat.Root>
 
           <JobStatCard
             label="CPU Hours"
@@ -225,9 +248,23 @@ export const JobDetailsPage = () => {
 
           <JobStatCard
             label="Peak Memory"
-            value={job.sacct?.MaxRSS ? formatMemory(job.sacct.MaxRSS) : 'N/A'}
-            tooltip="Maximum resident memory used (MaxRSS from SLURM accounting). Shows actual memory footprint."
+            value={
+              job.sacct?.MaxRSS
+                ? formatMemory(job.sacct.MaxRSS / 1024)
+                : report?.resident_memory
+                  ? formatMemory(Number(report.resident_memory.max) / 1024)
+                  : 'N/A'
+            }
+            tooltip="Maximum resident memory used. Shows actual memory footprint from SLURM accounting or monitoring data."
           />
+
+          {queueWaitTime > 0 && (
+            <JobStatCard
+              label="Queue Wait"
+              value={formatDuration(queueWaitTime)}
+              tooltip="Time spent waiting in the queue before the job started (start time - submit time)."
+            />
+          )}
 
           {gpuInfo.allocated > 0 && (
             <JobStatCard
@@ -275,7 +312,7 @@ export const JobDetailsPage = () => {
                 <Spinner size="lg" />
               </Box>
             }>
-              <OverviewTab job={job} elapsed={elapsed} gpuInfo={gpuInfo} />
+              <OverviewTab job={job} elapsed={elapsed} gpuInfo={gpuInfo} queueWaitTime={queueWaitTime} cluster={clusterName} client={client} />
             </Suspense>
           </Tabs.Content>
 
@@ -295,10 +332,13 @@ export const JobDetailsPage = () => {
                 <Spinner size="lg" />
               </Box>
             }>
-              <ResourceTimelineTab 
-                cluster={clusterName} 
-                jobId={jobIdNum} 
-                client={client} 
+              <ResourceTimelineTab
+                cluster={clusterName}
+                jobId={jobIdNum}
+                client={client}
+                jobStartTime={job.start_time}
+                jobEndTime={job.end_time}
+                elapsed={elapsed}
               />
             </Suspense>
           </Tabs.Content>
@@ -310,11 +350,14 @@ export const JobDetailsPage = () => {
                   <Spinner size="lg" />
                 </Box>
               }>
-                <GpuPerformanceTab 
-                  cluster={clusterName} 
-                  jobId={jobIdNum} 
+                <GpuPerformanceTab
+                  cluster={clusterName}
+                  jobId={jobIdNum}
                   client={client}
                   gpuUuids={gpuInfo.uuids}
+                  jobStartTime={job.start_time}
+                  jobEndTime={job.end_time}
+                  elapsed={elapsed}
                 />
               </Suspense>
             </Tabs.Content>
