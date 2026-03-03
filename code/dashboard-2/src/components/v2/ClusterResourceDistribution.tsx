@@ -1,7 +1,8 @@
-import { VStack, HStack, Text, SimpleGrid, Box, Progress, Tag, Skeleton, Tooltip } from '@chakra-ui/react'
+import { useState } from 'react'
+import { VStack, HStack, Text, SimpleGrid, Box, Progress, Tag, Skeleton, Tooltip, Button } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 
-import type { PartitionResponse, NodeInfoResponse, NodeStateResponse } from '../../client'
+import type { PartitionResponse, NodeInfoResponse, NodeStateResponse, NodeSampleProcessGpuAccResponse } from '../../client'
 import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
 
 export const ClusterResourceDistribution = () => {
@@ -11,7 +12,10 @@ export const ClusterResourceDistribution = () => {
     partitionsQuery: partitionsQ,
     nodesInfoQuery: infoQ,
     nodesStatesQuery: statesQ,
+    gpuUtilQuery: gpuUtilQ,
   } = useClusterOverviewContext()
+
+  const [showAllPartitions, setShowAllPartitions] = useState(false)
 
   // Check loading states
   const isLoading = partitionsQ.isLoading || infoQ.isLoading || statesQ.isLoading
@@ -22,13 +26,61 @@ export const ClusterResourceDistribution = () => {
   const infoMap = (infoQ.data ?? {}) as Record<string, NodeInfoResponse>
   const statesArr = (statesQ.data ?? []) as NodeStateResponse[]
 
-  // Calculate GPU types distribution
-  const gpuTypes: Record<string, number> = {}
+  // Filter to active partitions (with running or pending jobs) or show all
+  const activePartitions = partitions.filter(p =>
+    (p.jobs_running?.length ?? 0) > 0 || (p.jobs_pending?.length ?? 0) > 0
+  )
+  const displayPartitions = showAllPartitions
+    ? partitions
+    : (activePartitions.length > 0 ? activePartitions : partitions.slice(0, 5))
+
+  // Build GPU UUID to model map
+  const gpuUuidToModel = new Map<string, string>()
+  for (const node of Object.values(infoMap)) {
+    if (Array.isArray(node.cards)) {
+      for (const card of node.cards) {
+        if (card.uuid) {
+          gpuUuidToModel.set(card.uuid, card.model ?? 'Unknown')
+        }
+      }
+    }
+  }
+
+  // Get GPU utilization data
+  const utilData = (gpuUtilQ.data ?? undefined) as Record<string, Record<string, { gpu_util?: number }>> | undefined
+
+  // Calculate GPU types with utilization
+  const gpuTypeStats: Record<string, { total: number; active: number; totalUtil: number; count: number }> = {}
+
+  // First, count all GPUs by type
   for (const node of Object.values(infoMap)) {
     if (Array.isArray(node.cards)) {
       for (const card of node.cards) {
         const model = card.model ?? 'Unknown'
-        gpuTypes[model] = (gpuTypes[model] ?? 0) + 1
+        if (!gpuTypeStats[model]) {
+          gpuTypeStats[model] = { total: 0, active: 0, totalUtil: 0, count: 0 }
+        }
+        gpuTypeStats[model].total++
+      }
+    }
+  }
+
+  // Then, add utilization data
+  if (utilData && typeof utilData === 'object') {
+    for (const [, nodeMap] of Object.entries(utilData)) {
+      for (const [uuid, sample] of Object.entries(nodeMap)) {
+        const util = sample.gpu_util ?? 0
+        const model = gpuUuidToModel.get(uuid) ?? 'Unknown'
+
+        if (!gpuTypeStats[model]) {
+          gpuTypeStats[model] = { total: 0, active: 0, totalUtil: 0, count: 0 }
+        }
+
+        if (util > 0) {
+          gpuTypeStats[model].active++
+        }
+        gpuTypeStats[model].totalUtil += util
+        gpuTypeStats[model].count++
       }
     }
   }
@@ -77,85 +129,151 @@ export const ClusterResourceDistribution = () => {
               {partitions.length === 0 ? (
                 <Text fontSize="xs" color="gray.500">No partition data available</Text>
               ) : (
-                partitions.map((partition) => {
-                  const cpuTotal = partition.total_cpus ?? 0
-                  const gpuTotal = partition.total_gpus ?? 0
-                  const gpuInUse = partition.gpus_in_use?.length ?? 0
-                  const gpuReserved = partition.gpus_reserved ?? 0
-                  const gpuUtilPct = gpuTotal > 0 ? Math.round((gpuInUse / gpuTotal) * 100) : 0
-                  const gpuColor = gpuUtilPct > 90 ? 'red' : gpuUtilPct > 50 ? 'yellow' : 'green'
+                <>
+                  {displayPartitions.map((partition) => {
+                    const cpuTotal = partition.total_cpus ?? 0
+                    const gpuTotal = partition.total_gpus ?? 0
+                    const gpuInUse = partition.gpus_in_use?.length ?? 0
+                    const gpuReserved = partition.gpus_reserved ?? 0
+                    const gpuUtilPct = gpuTotal > 0 ? Math.round((gpuInUse / gpuTotal) * 100) : 0
+                    const gpuColor = gpuUtilPct > 90 ? 'red' : gpuUtilPct > 50 ? 'yellow' : 'green'
 
-                  return (
-                    <Box key={partition.name} w="100%" borderBottomWidth="1px" borderColor="gray.100" pb={2}>
-                      <HStack justify="space-between" w="100%" mb={1}>
-                        <Text
-                          fontSize="xs"
-                          fontWeight="medium"
-                          color="gray.700"
-                          cursor="pointer"
-                          _hover={{ color: 'blue.600', textDecoration: 'underline' }}
-                          onClick={() => navigate(`/v2/${cluster}/partitions/${partition.name}`)}
-                        >
-                          {partition.name}
-                        </Text>
-                        <HStack gap={1}>
-                          <Tag.Root size="sm" variant="subtle">
-                            <Tag.Label>{cpuTotal} CPUs</Tag.Label>
-                          </Tag.Root>
-                          <Tag.Root size="sm" variant="subtle">
-                            <Tag.Label>{gpuTotal} GPUs</Tag.Label>
-                          </Tag.Root>
-                        </HStack>
-                      </HStack>
-                      {gpuTotal > 0 && (
-                        <>
-                          <HStack gap={2} w="100%">
-                            <Text fontSize="2xs" color="gray.600" minW="60px">GPU: {gpuInUse}/{gpuTotal}</Text>
-                            <Progress.Root value={gpuUtilPct} max={100} colorPalette={gpuColor} flex={1} size="xs">
-                              <Progress.Track>
-                                <Progress.Range />
-                              </Progress.Track>
-                            </Progress.Root>
-                            <Text fontSize="2xs" color="gray.600" minW="35px" textAlign="right">{gpuUtilPct}%</Text>
+                    // Calculate CPU allocation
+                    let allocatedCpus = 0
+                    for (const job of partition.jobs_running ?? []) {
+                      allocatedCpus += job.requested_cpus ?? 0
+                    }
+                    const cpuAllocPct = cpuTotal > 0 ? Math.round((allocatedCpus / cpuTotal) * 100) : 0
+                    const cpuDotColor = cpuAllocPct > 80 ? 'red' : cpuAllocPct > 50 ? 'yellow' : 'green'
+
+                    const idleGpus = gpuReserved - gpuInUse
+
+                    return (
+                      <Box key={partition.name} w="100%" borderBottomWidth="1px" borderColor="gray.100" pb={2}>
+                        <HStack justify="space-between" w="100%" mb={1}>
+                          <Text
+                            fontSize="xs"
+                            fontWeight="medium"
+                            color="gray.700"
+                            cursor="pointer"
+                            _hover={{ color: 'blue.600', textDecoration: 'underline' }}
+                            onClick={() => navigate(`/v2/${cluster}/partitions/${partition.name}`)}
+                          >
+                            {partition.name}
+                          </Text>
+                          <HStack gap={1}>
+                            <Tag.Root size="sm" variant="subtle">
+                              <Tag.Label>{cpuTotal} CPUs</Tag.Label>
+                            </Tag.Root>
+                            <Tag.Root size="sm" variant="subtle">
+                              <Tag.Label>{gpuTotal} GPUs</Tag.Label>
+                            </Tag.Root>
                           </HStack>
-                          {gpuReserved > 0 && gpuReserved !== gpuInUse && (
-                            <Text fontSize="2xs" color="gray.500">
-                              Reserved: {gpuReserved} · In Use: {gpuInUse} · Idle: {gpuReserved - gpuInUse}
+                        </HStack>
+                        {gpuTotal > 0 && (
+                          <>
+                            <HStack gap={2} w="100%">
+                              <Text fontSize="2xs" color="gray.600" minW="60px">GPU: {gpuInUse}/{gpuTotal}</Text>
+                              <Progress.Root value={gpuUtilPct} max={100} colorPalette={gpuColor} flex={1} size="xs">
+                                <Progress.Track>
+                                  <Progress.Range />
+                                </Progress.Track>
+                              </Progress.Root>
+                              <Text fontSize="2xs" color="gray.600" minW="35px" textAlign="right">{gpuUtilPct}%</Text>
+                            </HStack>
+                            {gpuReserved > 0 && gpuReserved !== gpuInUse && (
+                              <Text fontSize="2xs" color={idleGpus < 0 ? 'red.500' : 'gray.500'}>
+                                Reserved: {gpuReserved} · In Use: {gpuInUse} · Idle: {idleGpus}
+                              </Text>
+                            )}
+                          </>
+                        )}
+                        {allocatedCpus > 0 && (
+                          <HStack gap={1}>
+                            <Text fontSize="2xs" color="gray.600">
+                              CPU: {allocatedCpus}/{cpuTotal} ({cpuAllocPct}%)
                             </Text>
-                          )}
-                        </>
-                      )}
-                    </Box>
-                  )
-                })
+                            <Box
+                              w="8px"
+                              h="8px"
+                              rounded="full"
+                              bg={`${cpuDotColor}.500`}
+                            />
+                          </HStack>
+                        )}
+                      </Box>
+                    )
+                  })}
+                  {!showAllPartitions && displayPartitions.length < partitions.length && (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => setShowAllPartitions(true)}
+                      w="100%"
+                    >
+                      Show all {partitions.length} partitions
+                    </Button>
+                  )}
+                  {showAllPartitions && partitions.length > activePartitions.length && activePartitions.length > 0 && (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => setShowAllPartitions(false)}
+                      w="100%"
+                    >
+                      Show only active partitions
+                    </Button>
+                  )}
+                </>
               )}
             </VStack>
           </VStack>
         </Box>
 
-        {/* GPU Types Distribution */}
+        {/* GPU Types & Utilization */}
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">GPU Types</Text>
-            <VStack align="start" gap={1} w="100%" maxH="300px" overflowY="auto">
-              {Object.entries(gpuTypes).length === 0 ? (
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">GPU Types & Utilization</Text>
+            <VStack align="start" gap={2} w="100%" maxH="300px" overflowY="auto">
+              {Object.entries(gpuTypeStats).length === 0 ? (
                 <Text fontSize="xs" color="gray.500">No GPU data available</Text>
               ) : (
-                Object.entries(gpuTypes)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([model, count]) => (
-                    <HStack key={model} justify="space-between" w="100%">
-                      <Tooltip.Root openDelay={300}>
-                        <Tooltip.Trigger asChild>
-                          <Text fontSize="xs" color="gray.700" truncate flex={1} cursor="default">{model}</Text>
-                        </Tooltip.Trigger>
-                        <Tooltip.Positioner>
-                          <Tooltip.Content>{model}</Tooltip.Content>
-                        </Tooltip.Positioner>
-                      </Tooltip.Root>
-                      <Text fontSize="md" fontWeight="semibold" color="gray.900">{count}</Text>
-                    </HStack>
-                  ))
+                Object.entries(gpuTypeStats)
+                  .sort((a, b) => b[1].total - a[1].total)
+                  .map(([model, stats]) => {
+                    const utilPct = stats.count > 0 ? Math.round(stats.totalUtil / stats.count) : 0
+                    const utilColor = utilPct > 80 ? 'green' : utilPct > 40 ? 'yellow' : 'gray'
+
+                    return (
+                      <Box key={model} w="100%" borderBottomWidth="1px" borderColor="gray.100" pb={1}>
+                        <Tooltip.Root openDelay={300}>
+                          <Tooltip.Trigger asChild>
+                            <HStack justify="space-between" w="100%" mb={1}>
+                              <Text fontSize="xs" color="gray.700" truncate flex={1} cursor="default">{model}</Text>
+                              <HStack gap={2}>
+                                <Text fontSize="xs" fontWeight="semibold" color="gray.900">
+                                  {stats.active}/{stats.total}
+                                </Text>
+                              </HStack>
+                            </HStack>
+                          </Tooltip.Trigger>
+                          <Tooltip.Positioner>
+                            <Tooltip.Content>{model}</Tooltip.Content>
+                          </Tooltip.Positioner>
+                        </Tooltip.Root>
+                        {stats.count > 0 && (
+                          <HStack gap={2} w="100%">
+                            <Progress.Root value={utilPct} max={100} colorPalette={utilColor} flex={1} size="xs">
+                              <Progress.Track>
+                                <Progress.Range />
+                              </Progress.Track>
+                            </Progress.Root>
+                            <Text fontSize="2xs" color="gray.600" minW="35px" textAlign="right">{utilPct}%</Text>
+                          </HStack>
+                        )}
+                      </Box>
+                    )
+                  })
               )}
             </VStack>
           </VStack>

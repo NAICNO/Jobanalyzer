@@ -162,7 +162,7 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
     const date = new Date(ts * 1000)
     memoryTimeSeriesData.push({
       time: date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
-      avgUtil: Math.round(data.totalUtil / data.count),
+      avgUtil: Math.min(Math.round(data.totalUtil / data.count), 100),
       maxUtil: Math.round(data.maxUtil),
     })
   }
@@ -290,7 +290,10 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
         {/* Memory Utilization Over Time */}
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="Memory utilization trend chart">
           <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Memory Utilization Trend</Text>
+            <VStack align="start" gap={0}>
+              <Text fontSize="sm" fontWeight="semibold" color="gray.700">Memory Utilization Trend</Text>
+              <Text fontSize="2xs" color="gray.400">Max values may exceed 100% due to shared/virtual memory</Text>
+            </VStack>
             {memoryTimeseriesQ.isLoading ? (
               <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
                 <Spinner size="lg"/>
@@ -309,9 +312,9 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
                     interval="preserveStartEnd"
                   />
                   <YAxis
-                    domain={[0, 100]}
+                    domain={[0, 'auto']}
                     tick={{fontSize: 10}}
-                    label={{value: 'Memory Util %', angle: -90, position: 'insideLeft', style: {fontSize: 10}}}
+                    label={{value: 'Memory Usage %', angle: -90, position: 'insideLeft', style: {fontSize: 10}}}
                   />
                   <Tooltip
                     contentStyle={{fontSize: 12}}
@@ -346,7 +349,7 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
         {/* GPU Count Over Time */}
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" role="img" aria-label="GPU count trend chart">
           <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">GPU Count Trend</Text>
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Active vs Available GPUs</Text>
             {gpuTimeseriesQ.isLoading ? (
               <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
                 <Spinner size="lg"/>
@@ -376,7 +379,7 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
                     type="monotone"
                     dataKey="gpuCount"
                     stroke="#718096"
-                    name="Reporting GPUs"
+                    name="Available GPUs"
                     strokeWidth={1}
                     strokeDasharray="5 5"
                     dot={false}
@@ -385,7 +388,7 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
                     type="monotone"
                     dataKey="activeGpuCount"
                     stroke="#38a169"
-                    name="Active GPUs (util > 0%)"
+                    name="Active GPUs"
                     strokeWidth={2}
                     dot={false}
                   />
@@ -395,6 +398,7 @@ export const ClusterTimebasedActivity = ({cluster, enabled}: Props) => {
             )}
           </VStack>
         </Box>
+
       </SimpleGrid>
     </VStack>
   )
