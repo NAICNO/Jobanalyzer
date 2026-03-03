@@ -90,7 +90,7 @@ export const ClusterWaitTimeAnalysis = () => {
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <Stat.Root>
             <Stat.Label fontSize="sm" color="gray.600">Total Pending</Stat.Label>
-            <Stat.ValueText fontSize="2xl" fontWeight="bold" color="orange.600">
+            <Stat.ValueText fontSize="2xl" fontWeight="bold" color={totalPending === 0 ? 'green.600' : totalPending > 10 ? 'red.600' : 'orange.600'}>
               {totalPending}
             </Stat.ValueText>
           </Stat.Root>
@@ -99,7 +99,7 @@ export const ClusterWaitTimeAnalysis = () => {
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <Stat.Root>
             <Stat.Label fontSize="sm" color="gray.600">Avg Wait Time</Stat.Label>
-            <Stat.ValueText fontSize="2xl" fontWeight="bold">
+            <Stat.ValueText fontSize="2xl" fontWeight="bold" color={avgWaitTime === 0 ? 'inherit' : avgWaitTime > 120 ? 'red.600' : avgWaitTime > 30 ? 'orange.600' : 'green.600'}>
               {avgWaitTime > 0 ? formatTime(avgWaitTime) : 'N/A'}
             </Stat.ValueText>
           </Stat.Root>
@@ -108,7 +108,7 @@ export const ClusterWaitTimeAnalysis = () => {
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <Stat.Root>
             <Stat.Label fontSize="sm" color="gray.600">Max Wait Time</Stat.Label>
-            <Stat.ValueText fontSize="2xl" fontWeight="bold" color={maxWaitTime > 60 ? 'red.600' : 'inherit'}>
+            <Stat.ValueText fontSize="2xl" fontWeight="bold" color={maxWaitTime === 0 ? 'inherit' : maxWaitTime > 60 ? 'red.600' : maxWaitTime > 15 ? 'orange.600' : 'green.600'}>
               {maxWaitTime > 0 ? formatTime(maxWaitTime) : 'N/A'}
             </Stat.ValueText>
           </Stat.Root>
@@ -117,7 +117,7 @@ export const ClusterWaitTimeAnalysis = () => {
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <Stat.Root>
             <Stat.Label fontSize="sm" color="gray.600">Longest Pending</Stat.Label>
-            <Stat.ValueText fontSize="2xl" fontWeight="bold" color={maxOldestPending > 120 ? 'red.600' : 'inherit'}>
+            <Stat.ValueText fontSize="2xl" fontWeight="bold" color={maxOldestPending === 0 ? 'inherit' : maxOldestPending > 120 ? 'red.600' : maxOldestPending > 30 ? 'orange.600' : 'green.600'}>
               {maxOldestPending > 0 ? formatTime(maxOldestPending) : 'N/A'}
             </Stat.ValueText>
           </Stat.Root>
@@ -128,7 +128,7 @@ export const ClusterWaitTimeAnalysis = () => {
         {/* Wait Time Chart */}
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Latest Wait Times by Partition</Text>
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Wait Times for Recently Completed Jobs by Partition</Text>
             {partitionsQ.isLoading ? (
               <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
                 <Spinner size="lg" />
@@ -141,9 +141,9 @@ export const ClusterWaitTimeAnalysis = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="partition" 
-                    tick={{ fontSize: 10 }}
+                  <XAxis
+                    dataKey="partition"
+                    tick={{ fontSize: 10, dy: 20 }}
                     angle={-45}
                     textAnchor="end"
                     height={80}
@@ -162,7 +162,6 @@ export const ClusterWaitTimeAnalysis = () => {
                     fill="#ed8936"
                     name="Wait Time"
                   />
-                  <Brush dataKey="partition" height={25} stroke="#718096" />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -186,7 +185,10 @@ export const ClusterWaitTimeAnalysis = () => {
                   {sortedByOldestPending.length === 0 ? (
                     <Table.Row>
                       <Table.Cell colSpan={3}>
-                        <Text fontSize="xs" color="gray.500" textAlign="center">No pending jobs</Text>
+                        <VStack gap={0} py={2}>
+                          <Text fontSize="xs" color="gray.500" textAlign="center">No pending jobs</Text>
+                          <Text fontSize="xs" color="gray.400" textAlign="center">Wait times above reflect recently completed jobs</Text>
+                        </VStack>
                       </Table.Cell>
                     </Table.Row>
                   ) : (

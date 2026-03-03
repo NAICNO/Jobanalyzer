@@ -15,6 +15,7 @@ export interface OIDCEndpoints {
 export interface ClusterConfig {
   id: string
   name: string
+  shortName: string
   description?: string
   icon: IconType
   apiBaseUrl: string
@@ -26,7 +27,8 @@ export interface ClusterConfig {
 export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
   {
     id: 'ex3.simula.no',
-    name: 'eX3 (Auth)',
+    name: 'Simula eX3 Cluster',
+    shortName: 'eX3',
     description: 'eX3 Cluster with Authentication',
     icon: LuServer,
     apiBaseUrl: 'https://localhost:12201/api/v2',
@@ -42,7 +44,8 @@ export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
   },
   {
     id: 'mlx.hpc.uio.no',
-    name: 'ML Nodes',
+    name: 'UiO ML Nodes',
+    shortName: 'ML Nodes',
     description: 'Machine Learning Cluster at UiO',
     icon: GrNodes,
     apiBaseUrl: 'https://naic-monitor.uio.no/api/v2',
@@ -58,7 +61,8 @@ export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
   },
   {
     id: 'fox.educloud.no',
-    name: 'Fox',
+    name: 'UiO Fox Cluster',
+    shortName: 'Fox',
     description: 'Fox Cluster at EduCloud',
     icon: GiFox,
     apiBaseUrl: 'https://naic-monitor.uio.no/api/v2',

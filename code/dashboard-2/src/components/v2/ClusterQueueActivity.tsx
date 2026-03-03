@@ -19,8 +19,7 @@ export const ClusterQueueActivity = () => {
     return (
       <VStack w="100%" align="start" gap={4}>
         <Text fontSize="lg" fontWeight="semibold">Queue Activity</Text>
-        <SimpleGrid columns={{ base: 1, lg: 3 }} gap={4} w="100%">
-          <Skeleton height="330px" rounded="md" />
+        <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4} w="100%">
           <Skeleton height="330px" rounded="md" />
           <Skeleton height="330px" rounded="md" />
         </SimpleGrid>
@@ -70,26 +69,17 @@ export const ClusterQueueActivity = () => {
     }
   }
 
-  // Sort users by total jobs
-  const topUsers = Object.entries(jobsByUser)
+  // Merged users table with all columns
+  const mergedUsers = Object.entries(jobsByUser)
     .map(([user, counts]) => ({
       user,
       running: counts.running,
       pending: counts.pending,
-      total: counts.running + counts.pending
-    }))
-    .sort((a, b) => b.total - a.total)
-
-  // Active users with resource usage (running jobs only)
-  const activeUsers = Object.entries(jobsByUser)
-    .filter(([, counts]) => counts.running > 0)
-    .map(([user, counts]) => ({
-      user,
-      runningJobs: counts.running,
+      total: counts.running + counts.pending,
       cpusInUse: counts.cpusInUse,
       gpusInUse: counts.gpusInUse,
     }))
-    .sort((a, b) => b.gpusInUse - a.gpusInUse || b.runningJobs - a.runningJobs)
+    .sort((a, b) => b.total - a.total)
 
   // Sort partitions by total jobs
   const sortedPartitions = jobsByPartition
@@ -185,11 +175,19 @@ export const ClusterQueueActivity = () => {
     )
   }
 
-  const activeUserColumns: ColDef[] = [
+  const mergedUserColumns: ColDef[] = [
     { field: 'user', headerName: 'User', flex: 2, sortable: true, filter: true, cellStyle: { fontWeight: '500' } },
     {
-      field: 'runningJobs', headerName: 'Running', flex: 1, sortable: true, type: 'numericColumn',
+      field: 'running', headerName: 'Run', flex: 1, sortable: true, type: 'numericColumn',
       cellRenderer: runningCellRenderer, cellStyle: { textAlign: 'center' },
+    },
+    {
+      field: 'pending', headerName: 'Pend', flex: 1, sortable: true, type: 'numericColumn',
+      cellRenderer: pendingCellRenderer, cellStyle: { textAlign: 'center' },
+    },
+    {
+      field: 'total', headerName: 'Total', flex: 1, sortable: true, type: 'numericColumn',
+      cellRenderer: totalCellRenderer, cellStyle: { textAlign: 'center' },
     },
     {
       field: 'cpusInUse', headerName: 'CPUs', flex: 1, sortable: true, type: 'numericColumn',
@@ -201,70 +199,30 @@ export const ClusterQueueActivity = () => {
     },
   ]
 
-  const userColumns: ColDef[] = [
-    { 
-      field: 'user', 
-      headerName: 'User', 
-      flex: 2, 
-      sortable: true, 
-      filter: true,
-      cellStyle: { fontWeight: '500' }
-    },
-    { 
-      field: 'running', 
-      headerName: 'Running', 
-      flex: 1, 
-      sortable: true, 
-      type: 'numericColumn',
-      cellRenderer: runningCellRenderer,
-      cellStyle: { textAlign: 'center' }
-    },
-    { 
-      field: 'pending', 
-      headerName: 'Pending', 
-      flex: 1, 
-      sortable: true, 
-      type: 'numericColumn',
-      cellRenderer: pendingCellRenderer,
-      cellStyle: { textAlign: 'center' }
-    },
-    { 
-      field: 'total', 
-      headerName: 'Total', 
-      flex: 1, 
-      sortable: true, 
-      type: 'numericColumn',
-      cellRenderer: totalCellRenderer,
-      cellStyle: { textAlign: 'center' }
-    }
-  ]
-
   return (
     <VStack w="100%" align="start" gap={4}>
       <Text fontSize="lg" fontWeight="semibold">Queue Activity</Text>
 
-      <SimpleGrid columns={{ base: 1, lg: activeUsers.length > 0 ? 3 : 2 }} gap={4} w="100%">
-        {/* Top Active Users */}
-        {activeUsers.length > 0 && (
-          <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-            <VStack align="start" gap={2} w="100%">
-              <Text fontSize="sm" fontWeight="semibold" color="gray.700">Top Active Users (Running Now)</Text>
-              <Box w="100%" h="300px">
-                <AgGridReact
-                  theme={themeQuartz}
-                  rowData={activeUsers}
-                  columnDefs={activeUserColumns}
-                  defaultColDef={{ resizable: true, sortable: true }}
-                  domLayout="normal"
-                  suppressCellFocus
-                  onRowClicked={(e: RowClickedEvent) => {
-                    if (e.data?.user) navigate(`/v2/${cluster}/jobs/query`)
-                  }}
-                />
-              </Box>
-            </VStack>
-          </Box>
-        )}
+      <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4} w="100%">
+        {/* Users Table - Merged with all columns */}
+        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
+          <VStack align="start" gap={2} w="100%">
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Users</Text>
+            <Box w="100%" h="300px">
+              <AgGridReact
+                theme={themeQuartz}
+                rowData={mergedUsers}
+                columnDefs={mergedUserColumns}
+                defaultColDef={{ resizable: true, sortable: true }}
+                domLayout="normal"
+                suppressCellFocus
+                onRowClicked={(e: RowClickedEvent) => {
+                  if (e.data?.user) navigate(`/v2/${cluster}/jobs/query`)
+                }}
+              />
+            </Box>
+          </VStack>
+        </Box>
 
         {/* Jobs by Partition */}
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
@@ -283,29 +241,6 @@ export const ClusterQueueActivity = () => {
                 suppressCellFocus
                 onRowClicked={(e: RowClickedEvent) => {
                   if (e.data?.partition) navigate(`/v2/${cluster}/partitions/${e.data.partition}`)
-                }}
-              />
-            </Box>
-          </VStack>
-        </Box>
-
-        {/* Jobs by User */}
-        <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-          <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Top Users (by total jobs)</Text>
-            <Box w="100%" h="300px">
-              <AgGridReact
-                theme={themeQuartz}
-                rowData={topUsers}
-                columnDefs={userColumns}
-                defaultColDef={{
-                  resizable: true,
-                  sortable: true,
-                }}
-                domLayout="normal"
-                suppressCellFocus
-                onRowClicked={(e: RowClickedEvent) => {
-                  if (e.data?.user) navigate(`/v2/${cluster}/jobs/query`)
                 }}
               />
             </Box>

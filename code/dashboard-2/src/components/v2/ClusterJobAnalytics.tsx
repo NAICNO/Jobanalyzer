@@ -6,9 +6,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ReferenceLine,
 } from 'recharts'
 
-import type { JobsResponse } from '../../client'
+import type { JobsResponse, SampleGpuTimeseriesResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
-import { useClusterJobs } from '../../hooks/v2/useClusterQueries'
+import { useClusterJobs, useClusterGpuTimeseries } from '../../hooks/v2/useClusterQueries'
 import { getJobStateColor } from '../../util/formatters'
 import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
 import { calculateCpuEfficiency, getEfficiencyColor } from '../../util/efficiency'
@@ -34,6 +34,14 @@ export const ClusterJobAnalytics = ({ cluster, enabled }: Props) => {
   const { startTimeInS, endTimeInS, timeRange } = useClusterOverviewContext()
 
   const jobsQ = useClusterJobs({ cluster, client, startTimeInS, endTimeInS, enabled })
+
+  // Adaptive resolution for GPU timeseries (matches CPU efficiency bucketing)
+  const rangeSeconds = (endTimeInS ?? 0) - (startTimeInS ?? 0)
+  const gpuResolution = rangeSeconds > 7 * 86400 ? 86400 : rangeSeconds > 86400 ? 14400 : 3600
+  const gpuTimeseriesQ = useClusterGpuTimeseries({
+    cluster, client, startTimeInS, endTimeInS, resolutionInS: gpuResolution, enabled,
+  })
+  const gpuData = (gpuTimeseriesQ.data ?? {}) as Record<string, Array<SampleGpuTimeseriesResponse>>
 
   const jobsData = (jobsQ.data as JobsResponse) ?? { jobs: [] }
   const jobs = jobsData.jobs ?? []
@@ -411,58 +419,183 @@ export const ClusterJobAnalytics = ({ cluster, enabled }: Props) => {
           <VStack align="start" gap={2} w="100%">
             <Text fontSize="sm" fontWeight="semibold" color="gray.700">CPU Efficiency Trends</Text>
 
-            <SimpleGrid columns={{ base: 2, md: 3 }} gap={3} w="100%">
-              <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-                <Stat.Root>
-                  <Stat.Label fontSize="sm" color="gray.600">Avg CPU Efficiency</Stat.Label>
-                  <Stat.ValueText fontSize="2xl" fontWeight="bold" color={`${getEfficiencyColor(overallAvgEff)}.600`}>
-                    {overallAvgEff}%
-                  </Stat.ValueText>
-                </Stat.Root>
-              </Box>
-              <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-                <Stat.Root>
-                  <Stat.Label fontSize="sm" color="gray.600">Low Efficiency Jobs (&lt;20%)</Stat.Label>
-                  <Stat.ValueText fontSize="2xl" fontWeight="bold" color={lowEffCount > 0 ? 'red.600' : 'green.600'}>
-                    {lowEffCount}
-                  </Stat.ValueText>
-                </Stat.Root>
-              </Box>
-              <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
-                <Stat.Root>
-                  <Stat.Label fontSize="sm" color="gray.600">Jobs Analyzed</Stat.Label>
-                  <Stat.ValueText fontSize="2xl" fontWeight="bold">
-                    {jobsWithEfficiency.length}
-                  </Stat.ValueText>
-                </Stat.Root>
-              </Box>
-            </SimpleGrid>
+            <HStack align="start" gap={4} w="100%" h="280px">
+              <VStack gap={3} flexShrink={0} w="200px" h="100%">
+                <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%" flex={1}>
+                  <Stat.Root>
+                    <Stat.Label fontSize="sm" color="gray.600">Avg CPU Efficiency</Stat.Label>
+                    <Stat.ValueText fontSize="2xl" fontWeight="bold" color={`${getEfficiencyColor(overallAvgEff)}.600`}>
+                      {overallAvgEff}%
+                    </Stat.ValueText>
+                  </Stat.Root>
+                </Box>
+                <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%" flex={1}>
+                  <Stat.Root>
+                    <Stat.Label fontSize="sm" color="gray.600">Low Efficiency Jobs (&lt;20%)</Stat.Label>
+                    <Stat.ValueText fontSize="2xl" fontWeight="bold" color={lowEffCount > 0 ? 'red.600' : 'green.600'}>
+                      {lowEffCount}
+                    </Stat.ValueText>
+                  </Stat.Root>
+                </Box>
+                <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%" flex={1}>
+                  <Stat.Root>
+                    <Stat.Label fontSize="sm" color="gray.600">Jobs Analyzed</Stat.Label>
+                    <Stat.ValueText fontSize="2xl" fontWeight="bold">
+                      {jobsWithEfficiency.length}
+                    </Stat.ValueText>
+                  </Stat.Root>
+                </Box>
+              </VStack>
 
-            <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%">
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{ fontSize: 10 }}
-                    label={{ value: 'Efficiency %', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
-                  />
-                  <RechartsTooltip contentStyle={{ fontSize: 12 }} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <ReferenceLine y={20} stroke="#E53E3E" strokeDasharray="5 5" label={{ value: 'Low', fontSize: 10 }} />
-                  <ReferenceLine y={80} stroke="#38A169" strokeDasharray="5 5" label={{ value: 'Target', fontSize: 10 }} />
-                  <Line
-                    type="monotone"
-                    dataKey="avgEfficiency"
-                    stroke="#3182CE"
-                    name="Avg CPU Efficiency"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </Box>
+              <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" flex={1} minW={0} h="100%">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                    <YAxis
+                      domain={[0, 100]}
+                      tick={{ fontSize: 10 }}
+                      label={{ value: 'Efficiency %', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
+                    />
+                    <RechartsTooltip contentStyle={{ fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <ReferenceLine y={20} stroke="#E53E3E" strokeDasharray="5 5" label={{ value: 'Low', fontSize: 10 }} />
+                    <ReferenceLine y={80} stroke="#38A169" strokeDasharray="5 5" label={{ value: 'Target', fontSize: 10 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="avgEfficiency"
+                      stroke="#3182CE"
+                      name="Avg CPU Efficiency"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
+            </HStack>
+          </VStack>
+        )
+      })()}
+
+      {/* Cluster-wide GPU Utilization Trends */}
+      {(() => {
+        // Aggregate GPU utilization by adaptive time buckets
+        const bucketMs = rangeSeconds > 7 * 86400
+          ? 24 * 60 * 60 * 1000
+          : rangeSeconds > 86400
+            ? 4 * 60 * 60 * 1000
+            : 60 * 60 * 1000
+
+        const gpuBuckets = new Map<number, { totalUtil: number; maxUtil: number; count: number; activeCount: number }>()
+
+        for (const gpuArrays of Object.values(gpuData)) {
+          if (Array.isArray(gpuArrays)) {
+            for (const gpuTimeseries of gpuArrays) {
+              if (Array.isArray(gpuTimeseries.data)) {
+                for (const sample of gpuTimeseries.data) {
+                  const ts = new Date(sample.time).getTime()
+                  const key = Math.floor(ts / bucketMs) * bucketMs
+                  const util = sample.ce_util ?? 0
+
+                  if (!gpuBuckets.has(key)) {
+                    gpuBuckets.set(key, { totalUtil: 0, maxUtil: 0, count: 0, activeCount: 0 })
+                  }
+                  const b = gpuBuckets.get(key)!
+                  b.totalUtil += util
+                  b.maxUtil = Math.max(b.maxUtil, util)
+                  b.count++
+                  if (util > 0) b.activeCount++
+                }
+              }
+            }
+          }
+        }
+
+        if (gpuBuckets.size === 0) return null
+
+        const gpuTrendData = Array.from(gpuBuckets.entries())
+          .map(([ts, b]) => ({
+            time: new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' }),
+            timestamp: ts,
+            avgUtil: Math.round(b.totalUtil / b.count),
+            peakUtil: Math.round(b.maxUtil),
+            gpuCount: b.count,
+          }))
+          .sort((a, b) => a.timestamp - b.timestamp)
+
+        const totalSamples = Array.from(gpuBuckets.values()).reduce((s, b) => s + b.count, 0)
+        const totalUtil = Array.from(gpuBuckets.values()).reduce((s, b) => s + b.totalUtil, 0)
+        const overallAvgUtil = totalSamples > 0 ? Math.round(totalUtil / totalSamples) : 0
+        const peakUtil = Math.max(...gpuTrendData.map(d => d.peakUtil))
+        // Estimate unique GPUs from the max count in any single bucket
+        const gpusAnalyzed = Math.max(...Array.from(gpuBuckets.values()).map(b => b.count))
+
+        return (
+          <VStack align="start" gap={2} w="100%">
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Cluster-wide GPU Utilization Trends</Text>
+
+            <HStack align="start" gap={4} w="100%" h="280px">
+              <VStack gap={3} flexShrink={0} w="200px" h="100%">
+                <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%" flex={1}>
+                  <Stat.Root>
+                    <Stat.Label fontSize="sm" color="gray.600">Avg GPU Utilization</Stat.Label>
+                    <Stat.ValueText fontSize="2xl" fontWeight="bold" color={overallAvgUtil >= 80 ? 'green.600' : overallAvgUtil >= 50 ? 'orange.600' : 'red.600'}>
+                      {overallAvgUtil}%
+                    </Stat.ValueText>
+                  </Stat.Root>
+                </Box>
+                <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%" flex={1}>
+                  <Stat.Root>
+                    <Stat.Label fontSize="sm" color="gray.600">Peak GPU Utilization</Stat.Label>
+                    <Stat.ValueText fontSize="2xl" fontWeight="bold">
+                      {peakUtil}%
+                    </Stat.ValueText>
+                  </Stat.Root>
+                </Box>
+                <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%" flex={1}>
+                  <Stat.Root>
+                    <Stat.Label fontSize="sm" color="gray.600">GPUs Analyzed</Stat.Label>
+                    <Stat.ValueText fontSize="2xl" fontWeight="bold">
+                      {gpusAnalyzed}
+                    </Stat.ValueText>
+                  </Stat.Root>
+                </Box>
+              </VStack>
+
+              <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" flex={1} minW={0} h="100%">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={gpuTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                    <YAxis
+                      domain={[0, 100]}
+                      tick={{ fontSize: 10 }}
+                      label={{ value: 'GPU Util %', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
+                    />
+                    <RechartsTooltip contentStyle={{ fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <ReferenceLine y={80} stroke="#38A169" strokeDasharray="5 5" label={{ value: 'Target', fontSize: 10 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="avgUtil"
+                      stroke="#805AD5"
+                      name="Avg GPU Utilization"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="peakUtil"
+                      stroke="#D69E2E"
+                      name="Peak GPU Utilization"
+                      strokeWidth={1}
+                      strokeDasharray="4 4"
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
+            </HStack>
           </VStack>
         )
       })()}
