@@ -206,7 +206,14 @@ export const ClusterOverviewCards = () => {
           bg="white"
         >
           <HStack gap={1} justify="space-between">
-            <Stat.Label fontSize="sm" color="gray.600">CPUs</Stat.Label>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <Stat.Label fontSize="sm" color="gray.600" cursor="help">CPU Allocation</Stat.Label>
+              </Tooltip.Trigger>
+              <Tooltip.Positioner>
+                <Tooltip.Content>Cores allocated to running jobs vs total cores across all partitions</Tooltip.Content>
+              </Tooltip.Positioner>
+            </Tooltip.Root>
             {partitionsQ.isError && (
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
@@ -244,7 +251,14 @@ export const ClusterOverviewCards = () => {
           onClick={() => navigate(`/v2/${cluster}/nodes`)}
         >
           <HStack gap={1} justify="space-between">
-            <Stat.Label fontSize="sm" color="gray.600">GPUs</Stat.Label>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <Stat.Label fontSize="sm" color="gray.600" cursor="help">GPU Usage</Stat.Label>
+              </Tooltip.Trigger>
+              <Tooltip.Positioner>
+                <Tooltip.Content>GPUs with utilization greater than 0% vs total GPUs available</Tooltip.Content>
+              </Tooltip.Positioner>
+            </Tooltip.Root>
             {(gpuUtilQ.isError || infoQ.isError) && (
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
@@ -287,7 +301,14 @@ export const ClusterOverviewCards = () => {
           onClick={() => navigate(`/v2/${cluster}/nodes`)}
         >
           <HStack gap={1} justify="space-between">
-            <Stat.Label fontSize="sm" color="gray.600">Memory</Stat.Label>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <Stat.Label fontSize="sm" color="gray.600" cursor="help">Memory Usage</Stat.Label>
+              </Tooltip.Trigger>
+              <Tooltip.Positioner>
+                <Tooltip.Content>Actual memory utilization averaged across reporting nodes</Tooltip.Content>
+              </Tooltip.Positioner>
+            </Tooltip.Root>
             {(memoryUtilQ.isError || infoQ.isError) && (
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
