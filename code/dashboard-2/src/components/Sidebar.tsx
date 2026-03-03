@@ -77,7 +77,7 @@ const transformSidebarItemsToTree = (selectedClusters: string[]) => {
     { text: 'Partitions', route: '/partitions' },
     { text: 'Nodes', route: '/nodes' },
     {
-      text: 'Jobs', 
+      text: 'Jobs',
       route: '/jobs',
       children: [
         { text: 'Running', route: '/jobs/running' },
@@ -96,7 +96,7 @@ const transformSidebarItemsToTree = (selectedClusters: string[]) => {
 
     const node: TreeNode = {
       id: `cluster-${clusterId}`,
-      name: config.name,
+      name: config.shortName,
       path: `/dashboard/${clusterId}`,
       matches: clusterFullName,
       icon: config.icon,
@@ -229,7 +229,7 @@ const SideBarContent = () => {
               render={({ node, nodeState }) => {
                 const treeNode = node as TreeNode
                 const clusterId = treeNode.id.replace('cluster-', '')
-                
+
                 // Check if this is a top-level cluster node (draggable)
                 const isTopLevelCluster = treeNode.id.startsWith('cluster-') && !treeNode.id.includes('-sub-')
 
@@ -242,7 +242,6 @@ const SideBarContent = () => {
                     />
                   )
                 }
-                
                 if (nodeState.isBranch) {
                   return (
                     <TreeView.BranchControl>
@@ -255,7 +254,7 @@ const SideBarContent = () => {
                     </TreeView.BranchControl>
                   )
                 }
-                
+
                 return (
                   <TreeView.Item asChild>
                     <NavLink to={treeNode.path || '#'}>

@@ -4,6 +4,7 @@ import { useParams } from 'react-router'
 import { ClusterOverviewProvider, useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
 import { TimeRangePicker } from '../../components/TimeRangePicker'
 import { ClusterStalenessIndicator } from '../../components/v2/ClusterStalenessIndicator'
+import { getClusterConfig } from '../../config/clusters'
 import { ClusterOverviewCards } from '../../components/v2/ClusterOverviewCards'
 import { ClusterHealthStatus } from '../../components/v2/ClusterHealthStatus'
 import { ClusterResourceDistribution } from '../../components/v2/ClusterResourceDistribution'
@@ -16,13 +17,19 @@ import { LazySection } from '../../components/v2/LazySection'
 
 const ClusterOverviewContent = () => {
   const { cluster, timeRange, setTimeRange, refetchAll, isFetching, oldestDataUpdatedAt } = useClusterOverviewContext()
+  const config = getClusterConfig(cluster)
 
   return (
     <VStack w="100%" align="start" gap={6} p={4}>
       <HStack w="100%" justify="space-between" align="center" flexWrap="wrap" gap={3}>
-        <Text fontSize="2xl" fontWeight="bold">
-          {cluster}
-        </Text>
+        <VStack align="start" gap={0}>
+          <Text fontSize="2xl" fontWeight="bold">
+            {config?.name ?? cluster}
+          </Text>
+          <Text fontSize="xs" color="gray.500">
+            {cluster}
+          </Text>
+        </VStack>
         <HStack gap={3} align="center">
           <ClusterStalenessIndicator
             oldestDataUpdatedAt={oldestDataUpdatedAt}
@@ -39,15 +46,15 @@ const ClusterOverviewContent = () => {
         {(isVisible) => <ClusterHealthStatus cluster={cluster} enabled={isVisible} />}
       </LazySection>
 
-      <ClusterResourceDistribution />
-
       <ClusterQueueActivity />
+
+      <ClusterWaitTimeAnalysis />
 
       <LazySection minHeight="500px">
         {(isVisible) => <ClusterJobAnalytics cluster={cluster} enabled={isVisible} />}
       </LazySection>
 
-      <ClusterWaitTimeAnalysis />
+      <ClusterResourceDistribution />
 
       <LazySection minHeight="700px">
         {(isVisible) => <ClusterTimebasedActivity cluster={cluster} enabled={isVisible} />}
