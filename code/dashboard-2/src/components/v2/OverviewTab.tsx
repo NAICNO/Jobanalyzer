@@ -1,7 +1,10 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { VStack, SimpleGrid, Card, Text, DataList, Separator } from '@chakra-ui/react'
+import { Link } from 'react-router'
 import type { JobResponse } from '../../client/types.gen'
+import type { Client } from '../../client/client/types.gen'
 import { formatDuration, formatMemory } from '../../util/formatters'
+import { useNodeInfo } from '../../hooks/v2/useNodeQueries'
 
 type OverviewTabProps = {
   job: JobResponse
@@ -12,9 +15,35 @@ type OverviewTabProps = {
     uuids: string[]
     gresDetail: string[] | null | undefined
   }
+  queueWaitTime?: number
+  cluster?: string
+  client?: Client | null
 }
 
-export const OverviewTab = memo(({ job, elapsed, gpuInfo }: OverviewTabProps) => {
+export const OverviewTab = memo(({ job, elapsed, gpuInfo, queueWaitTime, cluster, client }: OverviewTabProps) => {
+  const firstNode = Array.isArray(job.nodes) && job.nodes.length > 0 ? job.nodes[0] : null
+
+  const { data: nodeInfoData } = useNodeInfo({
+    cluster: cluster ?? job.cluster ?? '',
+    nodename: firstNode ?? '',
+    client: client ?? null,
+    enabled: !!firstNode,
+  })
+
+  const nodeInfo = useMemo(() => {
+    if (!nodeInfoData || !firstNode) return null
+    const info = (nodeInfoData as Record<string, unknown>)[firstNode]
+    return info as {
+      cpu_model?: string
+      memory?: number
+      sockets?: number
+      cores_per_socket?: number
+      threads_per_core?: number
+      os_release?: string
+      cards?: Array<{ model?: string; memory?: number }>
+      partitions?: string[]
+    } | null
+  }, [nodeInfoData, firstNode])
   return (
     <VStack align="start" gap={6} w="100%">
       {/* Job Details Grid */}
@@ -99,6 +128,14 @@ export const OverviewTab = memo(({ job, elapsed, gpuInfo }: OverviewTabProps) =>
                   {formatDuration(job.suspend_time)}
                 </DataList.ItemValue>
               </DataList.Item>
+              {queueWaitTime !== undefined && queueWaitTime > 0 && (
+                <DataList.Item>
+                  <DataList.ItemLabel>Queue Wait</DataList.ItemLabel>
+                  <DataList.ItemValue fontWeight="medium">
+                    {formatDuration(queueWaitTime)}
+                  </DataList.ItemValue>
+                </DataList.Item>
+              )}
               <DataList.Item>
                 <DataList.ItemLabel>Time Limit</DataList.ItemLabel>
                 <DataList.ItemValue fontWeight="medium">
@@ -156,10 +193,51 @@ export const OverviewTab = memo(({ job, elapsed, gpuInfo }: OverviewTabProps) =>
               <DataList.Item>
                 <DataList.ItemLabel>Nodes</DataList.ItemLabel>
                 <DataList.ItemValue fontWeight="medium">
-                  {Array.isArray(job.nodes) ? job.nodes.join(', ') : job.nodes || 'N/A'}
+                  {Array.isArray(job.nodes)
+                    ? job.nodes.map((n, i) => (
+                      <span key={n}>
+                        {i > 0 && ', '}
+                        <Link to={`/v2/${cluster || job.cluster}/nodes/${n}`} style={{ color: 'var(--chakra-colors-blue-600)', textDecoration: 'underline' }}>
+                          {n}
+                        </Link>
+                      </span>
+                    ))
+                    : job.nodes || 'N/A'}
                 </DataList.ItemValue>
               </DataList.Item>
             </DataList.Root>
+            {nodeInfo && (
+              <DataList.Root orientation="horizontal" size="md">
+                <DataList.Item>
+                  <DataList.ItemLabel>CPU</DataList.ItemLabel>
+                  <DataList.ItemValue fontWeight="medium">
+                    {nodeInfo.cpu_model || 'N/A'}
+                  </DataList.ItemValue>
+                </DataList.Item>
+                <DataList.Item>
+                  <DataList.ItemLabel>Topology</DataList.ItemLabel>
+                  <DataList.ItemValue fontWeight="medium">
+                    {nodeInfo.sockets && nodeInfo.cores_per_socket && nodeInfo.threads_per_core
+                      ? `${nodeInfo.sockets}S × ${nodeInfo.cores_per_socket}C × ${nodeInfo.threads_per_core}T (${nodeInfo.sockets * nodeInfo.cores_per_socket * nodeInfo.threads_per_core} threads)`
+                      : 'N/A'}
+                  </DataList.ItemValue>
+                </DataList.Item>
+                <DataList.Item>
+                  <DataList.ItemLabel>Total Memory</DataList.ItemLabel>
+                  <DataList.ItemValue fontWeight="medium">
+                    {nodeInfo.memory ? formatMemory(nodeInfo.memory / 1024) : 'N/A'}
+                  </DataList.ItemValue>
+                </DataList.Item>
+                {nodeInfo.cards && nodeInfo.cards.length > 0 && (
+                  <DataList.Item>
+                    <DataList.ItemLabel>GPUs on Node</DataList.ItemLabel>
+                    <DataList.ItemValue fontWeight="medium">
+                      {nodeInfo.cards.length}× {nodeInfo.cards[0]?.model || 'Unknown'}
+                    </DataList.ItemValue>
+                  </DataList.Item>
+                )}
+              </DataList.Root>
+            )}
           </Card.Body>
         </Card.Root>
       </SimpleGrid>
