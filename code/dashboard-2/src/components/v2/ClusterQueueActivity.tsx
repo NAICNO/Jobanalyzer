@@ -1,4 +1,4 @@
-import { VStack, Text, SimpleGrid, Box, Skeleton } from '@chakra-ui/react'
+import { VStack, Text, SimpleGrid, Box, Skeleton, Tag } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 import { AgGridReact } from 'ag-grid-react'
 import type { ColDef, ICellRendererParams, RowClickedEvent } from 'ag-grid-community'
@@ -6,6 +6,140 @@ import { themeQuartz } from 'ag-grid-community'
 
 import type { PartitionResponse } from '../../client'
 import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
+
+// Cell renderer for running jobs (green badge)
+const runningCellRenderer = (params: ICellRendererParams) => {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+      <Tag.Root size="lg" colorPalette="green" variant="solid">
+        <Tag.Label>{params.value}</Tag.Label>
+      </Tag.Root>
+    </div>
+  )
+}
+
+// Cell renderer for pending jobs (orange badge)
+const pendingCellRenderer = (params: ICellRendererParams) => {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+      <Tag.Root size="lg" colorPalette="orange" variant="solid">
+        <Tag.Label>{params.value}</Tag.Label>
+      </Tag.Root>
+    </div>
+  )
+}
+
+// Cell renderer for total (bold)
+const totalCellRenderer = (params: ICellRendererParams) => {
+  return <span style={{ fontWeight: '600' }}>{params.value}</span>
+}
+
+// Cell renderer for GPU count
+const gpuCellRenderer = (params: ICellRendererParams) => {
+  return (
+    <span style={{
+      fontWeight: '600',
+      color: params.value > 0 ? '#3182CE' : undefined,
+    }}>
+      {params.value}
+    </span>
+  )
+}
+
+// AG Grid column definitions for partitions
+const partitionColumns: ColDef[] = [
+  {
+    field: 'partition',
+    headerName: 'Partition',
+    flex: 2,
+    sortable: true,
+    filter: true,
+    cellStyle: { fontWeight: '500' }
+  },
+  {
+    field: 'running',
+    headerName: 'Running',
+    flex: 1,
+    sortable: true,
+    type: 'numericColumn',
+    cellRenderer: runningCellRenderer,
+    cellStyle: { textAlign: 'center' }
+  },
+  {
+    field: 'pending',
+    headerName: 'Pending',
+    flex: 1,
+    sortable: true,
+    type: 'numericColumn',
+    cellRenderer: pendingCellRenderer,
+    cellStyle: { textAlign: 'center' }
+  },
+  {
+    field: 'total',
+    headerName: 'Total',
+    flex: 1,
+    sortable: true,
+    type: 'numericColumn',
+    cellRenderer: totalCellRenderer,
+    cellStyle: { textAlign: 'center' }
+  }
+]
+
+// AG Grid column definitions for merged users
+const mergedUserColumns: ColDef[] = [
+  {
+    field: 'user',
+    headerName: 'User',
+    flex: 2,
+    sortable: true,
+    filter: true,
+    cellStyle: { fontWeight: '500' }
+  },
+  {
+    field: 'running',
+    headerName: 'Run',
+    flex: 1,
+    sortable: true,
+    type: 'numericColumn',
+    cellRenderer: runningCellRenderer,
+    cellStyle: { textAlign: 'center' }
+  },
+  {
+    field: 'pending',
+    headerName: 'Pend',
+    flex: 1,
+    sortable: true,
+    type: 'numericColumn',
+    cellRenderer: pendingCellRenderer,
+    cellStyle: { textAlign: 'center' }
+  },
+  {
+    field: 'total',
+    headerName: 'Total',
+    flex: 1,
+    sortable: true,
+    type: 'numericColumn',
+    cellRenderer: totalCellRenderer,
+    cellStyle: { textAlign: 'center' }
+  },
+  {
+    field: 'cpusInUse',
+    headerName: 'CPUs',
+    flex: 1,
+    sortable: true,
+    type: 'numericColumn',
+    cellStyle: { textAlign: 'center' }
+  },
+  {
+    field: 'gpusInUse',
+    headerName: 'GPUs',
+    flex: 1,
+    sortable: true,
+    type: 'numericColumn',
+    cellRenderer: gpuCellRenderer,
+    cellStyle: { textAlign: 'center' }
+  }
+]
 
 export const ClusterQueueActivity = () => {
   const navigate = useNavigate()
@@ -31,17 +165,12 @@ export const ClusterQueueActivity = () => {
   const partitions = Object.values(partitionsMap)
 
   // Aggregate job counts across all partitions
-  let totalRunning = 0
-  let totalPending = 0
   const jobsByUser: Record<string, { running: number; pending: number; cpusInUse: number; gpusInUse: number }> = {}
   const jobsByPartition: Array<{ partition: string; running: number; pending: number }> = []
 
   for (const partition of partitions) {
     const runningJobs = partition.jobs_running ?? []
     const pendingJobs = partition.jobs_pending ?? []
-
-    totalRunning += runningJobs.length
-    totalPending += pendingJobs.length
 
     jobsByPartition.push({
       partition: partition.name ?? 'Unknown',
@@ -85,119 +214,6 @@ export const ClusterQueueActivity = () => {
   const sortedPartitions = jobsByPartition
     .map(p => ({ ...p, total: p.running + p.pending }))
     .sort((a, b) => b.total - a.total)
-
-  // Cell renderer for running jobs (green badge)
-  const runningCellRenderer = (params: ICellRendererParams) => {
-    return (
-      <span style={{
-        display: 'inline-block',
-        padding: '0.5px 8px',
-        backgroundColor: '#22c55e',
-        color: 'white',
-        borderRadius: '4px',
-        fontSize: '12px',
-        fontWeight: '500'
-      }}>
-        {params.value}
-      </span>
-    )
-  }
-
-  // Cell renderer for pending jobs (orange badge)
-  const pendingCellRenderer = (params: ICellRendererParams) => {
-    return (
-      <span style={{
-        display: 'inline-block',
-        padding: '0.5px 8px',
-        backgroundColor: '#f97316',
-        color: 'white',
-        borderRadius: '4px',
-        fontSize: '12px',
-        fontWeight: '500'
-      }}>
-        {params.value}
-      </span>
-    )
-  }
-
-  // Cell renderer for total (bold)
-  const totalCellRenderer = (params: ICellRendererParams) => {
-    return <span style={{ fontWeight: '600' }}>{params.value}</span>
-  }
-
-  // AG Grid column definitions
-  const partitionColumns: ColDef[] = [
-    {
-      field: 'partition',
-      headerName: 'Partition',
-      flex: 2,
-      sortable: true,
-      filter: true,
-      cellStyle: { fontWeight: '500' }
-    },
-    { 
-      field: 'running', 
-      headerName: 'Running', 
-      flex: 1, 
-      sortable: true, 
-      type: 'numericColumn',
-      cellRenderer: runningCellRenderer,
-      cellStyle: { textAlign: 'center' }
-    },
-    { 
-      field: 'pending', 
-      headerName: 'Pending', 
-      flex: 1, 
-      sortable: true, 
-      type: 'numericColumn',
-      cellRenderer: pendingCellRenderer,
-      cellStyle: { textAlign: 'center' }
-    },
-    { 
-      field: 'total', 
-      headerName: 'Total', 
-      flex: 1, 
-      sortable: true, 
-      type: 'numericColumn',
-      cellRenderer: totalCellRenderer,
-      cellStyle: { textAlign: 'center' }
-    }
-  ]
-
-  const gpuCellRenderer = (params: ICellRendererParams) => {
-    return (
-      <span style={{
-        fontWeight: '600',
-        color: params.value > 0 ? '#3182CE' : undefined,
-      }}>
-        {params.value}
-      </span>
-    )
-  }
-
-  const mergedUserColumns: ColDef[] = [
-    { field: 'user', headerName: 'User', flex: 2, sortable: true, filter: true, cellStyle: { fontWeight: '500' } },
-    {
-      field: 'running', headerName: 'Run', flex: 1, sortable: true, type: 'numericColumn',
-      cellRenderer: runningCellRenderer, cellStyle: { textAlign: 'center' },
-    },
-    {
-      field: 'pending', headerName: 'Pend', flex: 1, sortable: true, type: 'numericColumn',
-      cellRenderer: pendingCellRenderer, cellStyle: { textAlign: 'center' },
-    },
-    {
-      field: 'total', headerName: 'Total', flex: 1, sortable: true, type: 'numericColumn',
-      cellRenderer: totalCellRenderer, cellStyle: { textAlign: 'center' },
-    },
-    {
-      field: 'cpusInUse', headerName: 'CPUs', flex: 1, sortable: true, type: 'numericColumn',
-      cellStyle: { textAlign: 'center' },
-    },
-    {
-      field: 'gpusInUse', headerName: 'GPUs', flex: 1, sortable: true, type: 'numericColumn',
-      cellRenderer: gpuCellRenderer, cellStyle: { textAlign: 'center' },
-    },
-  ]
 
   return (
     <VStack w="100%" align="start" gap={4}>

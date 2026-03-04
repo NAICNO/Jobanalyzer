@@ -1,6 +1,8 @@
-import { VStack, HStack, Text, SimpleGrid, Box, Table, Tag, Stat, Spinner } from '@chakra-ui/react'
-import { useNavigate } from 'react-router'
-import { LuCircleCheck, LuCircleX, LuCircleMinus, LuClock } from 'react-icons/lu'
+import { VStack, HStack, Text, SimpleGrid, Box, Tag, Stat, Spinner } from '@chakra-ui/react'
+import { useMemo } from 'react'
+import { AgGridReact } from 'ag-grid-react'
+import type { ColDef, ICellRendererParams } from 'ag-grid-community'
+import { themeQuartz } from 'ag-grid-community'
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ReferenceLine,
@@ -23,13 +25,124 @@ const CHAKRA_TO_HEX: Record<string, string> = {
   gray: '#A0AEC0',
 }
 
+// Cell renderer for job state
+const JobStateCellRenderer = (props: ICellRendererParams) => {
+  const state = props.value || ''
+  const color = getJobStateColor(state)
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+      <Tag.Root size="sm" colorPalette={color}>
+        <Tag.Label>{state}</Tag.Label>
+      </Tag.Root>
+    </div>
+  )
+}
+
+// Cell renderer for success rate
+const SuccessRateCellRenderer = (props: ICellRendererParams) => {
+  const rate = props.value || 0
+  const color = rate >= 80 ? 'green' : 'orange'
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+      <Tag.Root size="sm" colorPalette={color}>
+        <Tag.Label>{rate}%</Tag.Label>
+      </Tag.Root>
+    </div>
+  )
+}
+
+const formatDuration = (minutes: number) => {
+  if (minutes < 60) return `${Math.round(minutes)}m`
+  const hours = Math.floor(minutes / 60)
+  const mins = Math.round(minutes % 60)
+  return `${hours}h ${mins}m`
+}
+
+// Column definitions for Recent Jobs table
+const createRecentJobsColDefs = (
+  cluster: string
+): ColDef[] => [
+  {
+    field: 'job_id',
+    headerName: 'Job ID',
+    flex: 1,
+    minWidth: 85,
+    cellStyle: { cursor: 'pointer', color: '#3182CE' },
+    onCellClicked: (params) => {
+      if (params.data?.job_id) {
+        window.open(`/v2/${cluster}/jobs/${params.data.job_id}`, '_blank')
+      }
+    },
+  },
+  {
+    field: 'user_name',
+    headerName: 'User',
+    flex: 1,
+    minWidth: 100,
+  },
+  {
+    field: 'job_state',
+    headerName: 'State',
+    flex: 1,
+    minWidth: 120,
+    cellRenderer: JobStateCellRenderer,
+  },
+  {
+    headerName: 'Duration',
+    flex: 1,
+    minWidth: 100,
+    valueGetter: (params) => {
+      const job = params.data
+      if (!job?.start_time || !job?.end_time) return 0
+      const duration = (new Date(job.end_time).getTime() - new Date(job.start_time).getTime()) / (1000 * 60)
+      return duration
+    },
+    valueFormatter: (params) => {
+      const duration = params.value as number
+      return duration > 0 ? formatDuration(duration) : 'N/A'
+    },
+  },
+]
+
+// Column definitions for Top Users table
+const createTopUsersColDefs = (cluster: string): ColDef[] => [
+  {
+    field: 'user',
+    headerName: 'User',
+    flex: 2,
+    minWidth: 100,
+    cellStyle: { cursor: 'pointer', color: '#3182CE' },
+    onCellClicked: (params) => {
+      if (params.data?.user) {
+        window.open(`/v2/${cluster}/jobs/query?user=${encodeURIComponent(params.data.user)}&searched=1`, '_blank')
+      }
+    },
+  },
+  {
+    field: 'total',
+    headerName: 'Total',
+    flex: 1,
+    minWidth: 80,
+    cellStyle: { textAlign: 'center' },
+  },
+  {
+    field: 'successRate',
+    headerName: 'Success %',
+    flex: 1,
+    minWidth: 120,
+    cellStyle: { textAlign: 'center' },
+    cellRenderer: SuccessRateCellRenderer,
+  },
+]
+
 interface Props {
   cluster: string
   enabled?: boolean
 }
 
 export const ClusterJobAnalytics = ({ cluster, enabled }: Props) => {
-  const navigate = useNavigate()
   const client = useClusterClient(cluster)
   const { startTimeInS, endTimeInS, timeRange } = useClusterOverviewContext()
 
@@ -88,6 +201,7 @@ export const ClusterJobAnalytics = ({ cluster, enabled }: Props) => {
     if (job.job_state === 'FAILED') userStats[user].failed++
   }
 
+  // TODO: There is a row which has no username.  Usually it has the highest job count, which is suspicious.  Need to investigate if this is a data issue or a bug in the grouping logic.
   const topUsers = Object.entries(userStats)
     .map(([user, stats]) => ({
       user,
@@ -97,32 +211,45 @@ export const ClusterJobAnalytics = ({ cluster, enabled }: Props) => {
     .sort((a, b) => b.total - a.total)
     .slice(0, 10)
 
-  // Recent jobs for table (last 20)
-  const recentJobs = jobs
-    .filter(j => j.end_time)
-    .sort((a, b) => {
-      const aTime = a.end_time ? new Date(a.end_time).getTime() : 0
-      const bTime = b.end_time ? new Date(b.end_time).getTime() : 0
-      return bTime - aTime
-    })
-    .slice(0, 20)
+  // Recent jobs for table (last 20) - deduplicated by job_id, only with user
+  const recentJobs = (() => {
+    const jobsWithEndTimeAndUser = jobs.filter(j => j.end_time && j.user_name)
 
-  const getJobStateIcon = (state: string) => {
-    switch (state) {
-      case 'COMPLETED': return <LuCircleCheck />
-      case 'FAILED': return <LuCircleX />
-      case 'CANCELLED': return <LuCircleMinus />
-      case 'TIMEOUT': return <LuClock />
-      default: return null
+    // Group by job_id and take the most recent entry for each
+    const uniqueJobsMap = new Map()
+    for (const job of jobsWithEndTimeAndUser) {
+      const existingJob = uniqueJobsMap.get(job.job_id)
+      if (!existingJob) {
+        uniqueJobsMap.set(job.job_id, job)
+      } else {
+        // Keep the job with the more recent end_time
+        const existingTime = existingJob.end_time ? new Date(existingJob.end_time).getTime() : 0
+        const currentTime = job.end_time ? new Date(job.end_time).getTime() : 0
+        if (currentTime > existingTime) {
+          uniqueJobsMap.set(job.job_id, job)
+        }
+      }
     }
-  }
 
-  const formatDuration = (minutes: number) => {
-    if (minutes < 60) return `${Math.round(minutes)}m`
-    const hours = Math.floor(minutes / 60)
-    const mins = Math.round(minutes % 60)
-    return `${hours}h ${mins}m`
-  }
+    return Array.from(uniqueJobsMap.values())
+      .sort((a, b) => {
+        const aTime = a.end_time ? new Date(a.end_time).getTime() : 0
+        const bTime = b.end_time ? new Date(b.end_time).getTime() : 0
+        return bTime - aTime
+      })
+      .slice(0, 20)
+  })()
+
+  // Use column definitions from outside the component
+  const recentJobsColDefs = useMemo<ColDef[]>(
+    () => createRecentJobsColDefs(cluster),
+    [cluster]
+  )
+
+  const topUsersColDefs = useMemo<ColDef[]>(
+    () => createTopUsersColDefs(cluster),
+    [cluster]
+  )
 
   return (
     <VStack w="100%" align="start" gap={4}>
@@ -266,61 +393,25 @@ export const ClusterJobAnalytics = ({ cluster, enabled }: Props) => {
         {/* Recent Jobs Table */}
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Recent Completed Jobs</Text>
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Recent Completed Jobs (Top 20)</Text>
             {jobsQ.isLoading ? (
               <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
                 <Spinner size="lg" />
               </Box>
+            ) : recentJobs.length === 0 ? (
+              <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
+                <Text fontSize="xs" color="gray.500">No completed jobs</Text>
+              </Box>
             ) : (
-              <Box w="100%" maxH="300px" overflowY="auto">
-                <Table.Root size="sm" variant="outline">
-                  <Table.Header>
-                    <Table.Row bg="gray.50">
-                      <Table.ColumnHeader fontSize="xs">Job ID</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">User</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">State</Table.ColumnHeader>
-                      <Table.ColumnHeader fontSize="xs">Duration</Table.ColumnHeader>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {recentJobs.length === 0 ? (
-                      <Table.Row>
-                        <Table.Cell colSpan={4}>
-                          <Text fontSize="xs" color="gray.500" textAlign="center">No completed jobs in last 24h</Text>
-                        </Table.Cell>
-                      </Table.Row>
-                    ) : (
-                      recentJobs.map((job) => {
-                        const duration = job.start_time && job.end_time
-                          ? (new Date(job.end_time).getTime() - new Date(job.start_time).getTime()) / (1000 * 60)
-                          : 0
-
-                        return (
-                          <Table.Row key={`${job.job_id}-${job.job_step}`}>
-                            <Table.Cell fontSize="xs" fontWeight="medium">
-                              <Text
-                                as="span"
-                                cursor="pointer"
-                                _hover={{ color: 'blue.600', textDecoration: 'underline' }}
-                                onClick={() => navigate(`/v2/${cluster}/jobs/${job.job_id}`)}
-                              >
-                                {job.job_id}
-                              </Text>
-                            </Table.Cell>
-                            <Table.Cell fontSize="xs" truncate>{job.user_name}</Table.Cell>
-                            <Table.Cell fontSize="xs">
-                              <Tag.Root size="sm" colorPalette={getJobStateColor(job.job_state ?? '')}>
-                                {getJobStateIcon(job.job_state ?? '')}
-                                <Tag.Label>{job.job_state}</Tag.Label>
-                              </Tag.Root>
-                            </Table.Cell>
-                            <Table.Cell fontSize="xs">{duration > 0 ? formatDuration(duration) : 'N/A'}</Table.Cell>
-                          </Table.Row>
-                        )
-                      })
-                    )}
-                  </Table.Body>
-                </Table.Root>
+              <Box w="100%" h="300px">
+                <AgGridReact
+                  theme={themeQuartz}
+                  rowData={recentJobs}
+                  columnDefs={recentJobsColDefs}
+                  domLayout="normal"
+                  rowHeight={32}
+                  headerHeight={36}
+                />
               </Box>
             )}
           </VStack>
@@ -329,39 +420,23 @@ export const ClusterJobAnalytics = ({ cluster, enabled }: Props) => {
         {/* User Statistics */}
         <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
           <VStack align="start" gap={2} w="100%">
-            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Top Users by Job Count</Text>
-            <Box w="100%" maxH="300px" overflowY="auto">
-              <Table.Root size="sm" variant="outline">
-                <Table.Header>
-                  <Table.Row bg="gray.50">
-                    <Table.ColumnHeader fontSize="xs">User</Table.ColumnHeader>
-                    <Table.ColumnHeader fontSize="xs" textAlign="center">Total</Table.ColumnHeader>
-                    <Table.ColumnHeader fontSize="xs" textAlign="center">Success %</Table.ColumnHeader>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {topUsers.length === 0 ? (
-                    <Table.Row>
-                      <Table.Cell colSpan={3}>
-                        <Text fontSize="xs" color="gray.500" textAlign="center">No user data</Text>
-                      </Table.Cell>
-                    </Table.Row>
-                  ) : (
-                    topUsers.map((u) => (
-                      <Table.Row key={u.user}>
-                        <Table.Cell fontSize="xs" fontWeight="medium" truncate>{u.user}</Table.Cell>
-                        <Table.Cell fontSize="xs" textAlign="center">{u.total}</Table.Cell>
-                        <Table.Cell fontSize="xs" textAlign="center">
-                          <Tag.Root size="sm" colorPalette={u.successRate >= 80 ? 'green' : 'orange'}>
-                            <Tag.Label>{u.successRate}%</Tag.Label>
-                          </Tag.Root>
-                        </Table.Cell>
-                      </Table.Row>
-                    ))
-                  )}
-                </Table.Body>
-              </Table.Root>
-            </Box>
+            <Text fontSize="sm" fontWeight="semibold" color="gray.700">Top Users by Job Count (Top 10)</Text>
+            {topUsers.length === 0 ? (
+              <Box w="100%" h="300px" display="flex" alignItems="center" justifyContent="center">
+                <Text fontSize="xs" color="gray.500">No user data</Text>
+              </Box>
+            ) : (
+              <Box w="100%" h="300px">
+                <AgGridReact
+                  theme={themeQuartz}
+                  rowData={topUsers}
+                  columnDefs={topUsersColDefs}
+                  domLayout="normal"
+                  rowHeight={32}
+                  headerHeight={36}
+                />
+              </Box>
+            )}
           </VStack>
         </Box>
       </SimpleGrid>
@@ -419,7 +494,7 @@ export const ClusterJobAnalytics = ({ cluster, enabled }: Props) => {
           <VStack align="start" gap={2} w="100%">
             <Text fontSize="sm" fontWeight="semibold" color="gray.700">CPU Efficiency Trends</Text>
 
-            <HStack align="start" gap={4} w="100%" h="280px">
+            <HStack align="start" gap={4} w="100%" h="28§0px">
               <VStack gap={3} flexShrink={0} w="200px" h="100%">
                 <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%" flex={1}>
                   <Stat.Root>
