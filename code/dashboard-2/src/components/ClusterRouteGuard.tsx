@@ -59,7 +59,7 @@ export const ClusterRouteGuard = () => {
 
             try {
               // Store the current path to return after auth
-              await login(clusterName, location.pathname)
+              await login(clusterName, location.pathname + location.search)
               setIsCheckingAuth(false)
               return
             } catch (error) {

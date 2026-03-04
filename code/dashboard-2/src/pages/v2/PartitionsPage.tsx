@@ -11,6 +11,7 @@ import { PartitionNodes } from '../../components/v2/PartitionNodes'
 import { PartitionGpus } from '../../components/v2/PartitionGpus'
 import { PartitionOverviewCards } from '../../components/v2/PartitionOverviewCards'
 import type { PartitionResponse } from '../../client'
+type PartitionItem = { value: string; label: string; data: PartitionResponse }
 
 export const PartitionsPage = () => {
   const { clusterName, partitionName } = useParams()
@@ -22,7 +23,6 @@ export const PartitionsPage = () => {
   const partitionsMap = (data ?? {}) as Record<string, PartitionResponse>
   const partitions = Object.values(partitionsMap)
 
-  type PartitionItem = { value: string; label: string; data: PartitionResponse }
   const items = useMemo<PartitionItem[]>(
     () => partitions.map(p => ({ value: p.name ?? '', label: p.name ?? '', data: p })),
     [partitions]
