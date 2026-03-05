@@ -25,6 +25,7 @@ import { QueriesPage } from './pages/v2/QueriesPage.tsx'
 import { NodeTopologyPage } from './pages/v2/NodeTopologyPage.tsx'
 import { ClusterSelectionPage } from './pages/v2/ClusterSelectionPage.tsx'
 import { ProcessTreeFullViewPage } from './pages/v2/ProcessTreeFullViewPage.tsx'
+import { BenchmarksPage } from './pages/v2/BenchmarksPage.tsx'
 import { ClusterRouteGuard } from './components/ClusterRouteGuard.tsx'
 import { CallbackPage } from './pages/auth/CallbackPage.tsx'
 
@@ -116,6 +117,10 @@ const router = createBrowserRouter([
               {
                 path: 'jobs/:jobId',
                 element: <JobDetailsPage />,
+              },
+              {
+                path: 'benchmarks',
+                element: <BenchmarksPage />,
               }
             ]
           }
