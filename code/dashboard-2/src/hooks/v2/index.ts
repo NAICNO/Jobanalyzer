@@ -28,3 +28,5 @@ export {
   useJobQueryPages,
   useJobProcessTree,
 } from './useJobQueries'
+
+export { useBenchmarks } from './useBenchmarkQueries'
