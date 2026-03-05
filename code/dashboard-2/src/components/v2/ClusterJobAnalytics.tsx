@@ -494,7 +494,7 @@ export const ClusterJobAnalytics = ({ cluster, enabled }: Props) => {
           <VStack align="start" gap={2} w="100%">
             <Text fontSize="sm" fontWeight="semibold" color="gray.700">CPU Efficiency Trends</Text>
 
-            <HStack align="start" gap={4} w="100%" h="28§0px">
+            <HStack align="start" gap={4} w="100%" h="280px">
               <VStack gap={3} flexShrink={0} w="200px" h="100%">
                 <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white" w="100%" flex={1}>
                   <Stat.Root>
