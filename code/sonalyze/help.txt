@@ -128,8 +128,8 @@ records to print.
 Sonalyze has a rich formatting system for the data.  Without options, most
 commands print in a human-readable fixed-column format.  For data that are
 going to be processed subsequently, it is possible to select other formats:
-CSV, CSV with name tags, AWK (space-separated), JSON, and (in some cases)
-HTML with embedded JavaScript.
+CSV, CSV with name tags, AWK (space-separated), JSON (two kinds), and (in
+some cases) HTML with embedded JavaScript.
 
 Fields can be selected, and the printing of headers can be controlled:
 whether headers are on by default depends on the output format and the
@@ -151,8 +151,9 @@ Summary of control options:
   csv         csv, values only
   csvnamed    csv, with field tags eg duration=37
   fixed       fixed-format
-  json        json
-  header      print a header line (not for json)
+  json        json, with all string values
+  native      json, with native json values
+  header      print a header line (not for json formats)
   nodefaults  do not print fields that have default (zero/blank) values
   noheader    do not print a header line
   separator   for some commands, print a '*' separator line between natural
