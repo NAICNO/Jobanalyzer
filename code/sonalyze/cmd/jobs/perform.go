@@ -217,7 +217,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	}
 	var slurmDiscarded int
 	if jc.SacctFromSonar {
-		slurmDiscarded = synthesizeAdditionalSacctData(summaries, slurmFilter)
+		slurmDiscarded = synthesizeSacctDataFromSonarData(summaries, slurmFilter)
 	}
 	if fb.needSacctInfo {
 		slurmDiscarded = jc.joinSacctData(meta, summaries, slurmFilter)
@@ -528,7 +528,8 @@ func aggregateSingleJobFromSonarData(
 	return a
 }
 
-func synthesizeAdditionalSacctData(
+// The synthesis is imperfect, and would be so even if the Slurm documentation were better.
+func synthesizeSacctDataFromSonarData(
 	summaries []*jobSummary,
 	slurmFilter *slurmjob.QueryFilter,
 ) int {
@@ -551,6 +552,7 @@ func synthesizeAdditionalSacctData(
 
 		var (
 			minCpu        = uint64(math.MaxUint64)
+			maxRSS, maxVM uint64
 			aveRSS, aveVM uint64
 		)
 		for _, t := range s.job.Tasks {
@@ -559,6 +561,8 @@ func synthesizeAdditionalSacctData(
 			for _, sample := range t {
 				sumRSS += sample.RssAnonKB
 				sumVM += sample.CpuKB
+				maxVM = max(maxVM, sample.CpuKB)
+				maxRSS = max(maxRSS, sample.RssAnonKB)
 			}
 			aveVM += sumVM / uint64(len(t))
 			aveRSS += sumRSS / uint64(len(t))
@@ -579,20 +583,20 @@ func synthesizeAdditionalSacctData(
 			End:          s.End,
 			JobID:        s.JobId,
 			JobName:      StringToUstr(s.User.String() + ": " + s.Cmd),
-			MaxRSS:       uint64(s.computed[kRssAnonGBPeak]) * 1024 * 1024,
-			MaxVMSize:    uint64(s.computed[kCpuGBPeak]) * 1024 * 1024,
+			MaxRSS:       maxRSS,
+			MaxVMSize:    maxVM,
 			MinCPU:       minCpu,
 			NodeList:     StringToUstr(FormatHostnames(s.Hosts, PrintModFixed)),
-			ReqCPUS:      uint32(s.computed[kThreadPeak]),
+			ReqCPUS:      uint32(s.computed[kThreadPeak]), // Requested = peak threads observed, not great
 			ReqGPUS:      StringToUstr(requestedGpus),
-			ReqMem:       uint64(s.computed[kCpuGBPeak]),
+			ReqMem:       maxVM, // Requested = max of any task at any time
 			Start:        s.Start,
 			State:        state,
 			Submit:       s.Start,
-			Time:         s.job.Samples[0].Timestamp, // why not last timestamp?
+			Time:         s.job.Samples[len(s.job.Samples)-1].Timestamp, // Last synthesized time
 			UserCPU:      uint64(s.CpuTime),
 			User:         s.User,
-			Version:      s.job.Samples[0].Version,
+			Version:      s.job.Samples[0].Version, // For synthesized data, always 0.0.0
 
 			// We don't have these:
 			// ArrayJobID
