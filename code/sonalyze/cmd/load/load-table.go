@@ -25,11 +25,17 @@ var loadFormatters = map[string]Formatter[*ReportRecord]{
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatDateTimeValue((d.Now), ctx)
 		},
+		Xtract: func(d *ReportRecord) any {
+			return d.Now
+		},
 		Help: "(DateTimeValue) The current time",
 	},
 	"DateTime": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatDateTimeValue((d.DateTime), ctx)
+		},
+		Xtract: func(d *ReportRecord) any {
+			return d.DateTime
 		},
 		Help: "(DateTimeValue) The starting date and time of the aggregation window",
 	},
@@ -37,11 +43,17 @@ var loadFormatters = map[string]Formatter[*ReportRecord]{
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatDateValue((d.Date), ctx)
 		},
+		Xtract: func(d *ReportRecord) any {
+			return d.Date
+		},
 		Help: "(DateValue) The starting date of the aggregation window",
 	},
 	"Time": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatTimeValue((d.Time), ctx)
+		},
+		Xtract: func(d *ReportRecord) any {
+			return d.Time
 		},
 		Help: "(TimeValue) The startint time of the aggregation window",
 	},
@@ -49,11 +61,17 @@ var loadFormatters = map[string]Formatter[*ReportRecord]{
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatInt((d.Cpu), ctx)
 		},
+		Xtract: func(d *ReportRecord) any {
+			return d.Cpu
+		},
 		Help: "(int) Average CPU utilization in percent in the aggregation window (100% = 1 core)",
 	},
 	"RelativeCpu": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatInt((d.RelativeCpu), ctx)
+		},
+		Xtract: func(d *ReportRecord) any {
+			return d.RelativeCpu
 		},
 		Help:        "(int) Average relative CPU utilization in percent in the aggregation window (100% = all cores)",
 		NeedsConfig: true,
@@ -62,11 +80,17 @@ var loadFormatters = map[string]Formatter[*ReportRecord]{
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatInt((d.VirtualGB), ctx)
 		},
+		Xtract: func(d *ReportRecord) any {
+			return d.VirtualGB
+		},
 		Help: "(int) Average virtual memory utilization in GiB in the aggregation window",
 	},
 	"RelativeVirtualMem": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatInt((d.RelativeVirtualMem), ctx)
+		},
+		Xtract: func(d *ReportRecord) any {
+			return d.RelativeVirtualMem
 		},
 		Help:        "(int) Relative virtual memory utilization in GiB in the aggregation window (100% = system RAM)",
 		NeedsConfig: true,
@@ -75,11 +99,17 @@ var loadFormatters = map[string]Formatter[*ReportRecord]{
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatInt((d.ResidentGB), ctx)
 		},
+		Xtract: func(d *ReportRecord) any {
+			return d.ResidentGB
+		},
 		Help: "(int) Average resident memory utilization in GiB in the aggregation window",
 	},
 	"RelativeResidentMem": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatInt((d.RelativeResidentMem), ctx)
+		},
+		Xtract: func(d *ReportRecord) any {
+			return d.RelativeResidentMem
 		},
 		Help:        "(int) Relative resident memory utilization in GiB in the aggregation window (100% = system RAM)",
 		NeedsConfig: true,
@@ -88,11 +118,17 @@ var loadFormatters = map[string]Formatter[*ReportRecord]{
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatInt((d.Gpu), ctx)
 		},
+		Xtract: func(d *ReportRecord) any {
+			return d.Gpu
+		},
 		Help: "(int) Average GPU utilization in percent in the aggregation window (100% = 1 card)",
 	},
 	"RelativeGpu": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatInt((d.RelativeGpu), ctx)
+		},
+		Xtract: func(d *ReportRecord) any {
+			return d.RelativeGpu
 		},
 		Help:        "(int) Average relative GPU utilization in percent in the aggregation window (100% = all cards)",
 		NeedsConfig: true,
@@ -101,11 +137,17 @@ var loadFormatters = map[string]Formatter[*ReportRecord]{
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatInt((d.GpuGB), ctx)
 		},
+		Xtract: func(d *ReportRecord) any {
+			return d.GpuGB
+		},
 		Help: "(int) Average gpu memory utilization in GiB in the aggregation window",
 	},
 	"RelativeGpuMem": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatInt((d.RelativeGpuMem), ctx)
+		},
+		Xtract: func(d *ReportRecord) any {
+			return d.RelativeGpuMem
 		},
 		Help:        "(int) Average relative gpu memory utilization in GiB in the aggregation window (100% = all GPU RAM)",
 		NeedsConfig: true,
@@ -114,11 +156,17 @@ var loadFormatters = map[string]Formatter[*ReportRecord]{
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatGpuSet((d.Gpus), ctx)
 		},
+		Xtract: func(d *ReportRecord) any {
+			return d.Gpus
+		},
 		Help: "(GpuSet) GPU device numbers used by the job, 'none' if none or 'unknown' in error states",
 	},
 	"Hostname": {
 		Fmt: func(d *ReportRecord, ctx PrintMods) string {
 			return FormatUstr((d.Hostname), ctx)
+		},
+		Xtract: func(d *ReportRecord) any {
+			return d.Hostname
 		},
 		Help: "(string) Combined host names of jobs active in the aggregation window",
 	},

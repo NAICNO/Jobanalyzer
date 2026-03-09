@@ -25,17 +25,26 @@ var metadataFormatters = map[string]Formatter[*metadataItem]{
 		Fmt: func(d *metadataItem, ctx PrintMods) string {
 			return FormatString((d.Hostname), ctx)
 		},
+		Xtract: func(d *metadataItem) any {
+			return d.Hostname
+		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
 	"Earliest": {
 		Fmt: func(d *metadataItem, ctx PrintMods) string {
 			return FormatDateTimeValue((d.Earliest), ctx)
 		},
+		Xtract: func(d *metadataItem) any {
+			return d.Earliest
+		},
 		Help: "(DateTimeValue) Timestamp of earliest sample for host",
 	},
 	"Latest": {
 		Fmt: func(d *metadataItem, ctx PrintMods) string {
 			return FormatDateTimeValue((d.Latest), ctx)
+		},
+		Xtract: func(d *metadataItem) any {
+			return d.Latest
 		},
 		Help: "(DateTimeValue) Timestamp of latest sample for host",
 	},

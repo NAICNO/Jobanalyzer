@@ -27,11 +27,17 @@ var nodeFormatters = map[string]Formatter[*config.NodeConfig]{
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.Timestamp), ctx)
 		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.Timestamp
+		},
 		Help: "(string) Full ISO timestamp of when the reading was taken",
 	},
 	"Hostname": {
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.Hostname), ctx)
+		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.Hostname
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
@@ -39,11 +45,17 @@ var nodeFormatters = map[string]Formatter[*config.NodeConfig]{
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.Description), ctx)
 		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.Description
+		},
 		Help: "(string) End-user description, not parseable",
 	},
 	"CpuCores": {
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatInt((d.CpuCores), ctx)
+		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.CpuCores
 		},
 		Help: "(int) Total number of cores x threads",
 	},
@@ -51,11 +63,17 @@ var nodeFormatters = map[string]Formatter[*config.NodeConfig]{
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatInt((d.NumaNodes), ctx)
 		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.NumaNodes
+		},
 		Help: "(int) NUMA nodes",
 	},
 	"MemGB": {
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatInt((d.MemGB), ctx)
+		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.MemGB
 		},
 		Help: "(int) GB of installed main RAM",
 	},
@@ -63,11 +81,17 @@ var nodeFormatters = map[string]Formatter[*config.NodeConfig]{
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatInt((d.GpuCards), ctx)
 		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.GpuCards
+		},
 		Help: "(int) Number of installed cards",
 	},
 	"GpuMemGB": {
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatInt((d.GpuMemGB), ctx)
+		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.GpuMemGB
 		},
 		Help: "(int) Total GPU memory across all cards",
 	},
@@ -75,11 +99,17 @@ var nodeFormatters = map[string]Formatter[*config.NodeConfig]{
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatBool((d.GpuMemPct), ctx)
 		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.GpuMemPct
+		},
 		Help: "(bool) True if GPUs report accurate memory usage in percent",
 	},
 	"Distances": {
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.Distances), ctx)
+		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.Distances
 		},
 		Help: "(string) NUMA distance matrix",
 	},
@@ -87,11 +117,17 @@ var nodeFormatters = map[string]Formatter[*config.NodeConfig]{
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.TopoSVG), ctx)
 		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.TopoSVG
+		},
 		Help: "(string) SVG encoding of node topology",
 	},
 	"TopoText": {
 		Fmt: func(d *config.NodeConfig, ctx PrintMods) string {
 			return FormatString((d.TopoText), ctx)
+		},
+		Xtract: func(d *config.NodeConfig) any {
+			return d.TopoText
 		},
 		Help: "(string) Text encoding of node topology",
 	},

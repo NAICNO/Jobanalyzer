@@ -25,11 +25,17 @@ var gpuFormatters = map[string]Formatter[*ReportLine]{
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
 			return FormatDateTimeValue((d.Timestamp), ctx)
 		},
+		Xtract: func(d *ReportLine) any {
+			return d.Timestamp
+		},
 		Help: "(DateTimeValue) Timestamp of when the reading was taken",
 	},
 	"Hostname": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
 			return FormatUstr((d.Hostname), ctx)
+		},
+		Xtract: func(d *ReportLine) any {
+			return d.Hostname
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
@@ -37,11 +43,17 @@ var gpuFormatters = map[string]Formatter[*ReportLine]{
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
 			return FormatUint64((d.Index), ctx)
 		},
+		Xtract: func(d *ReportLine) any {
+			return d.Index
+		},
 		Help: "(uint64) Card index on the host",
 	},
 	"Fan": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
 			return FormatUint64((d.Fan), ctx)
+		},
+		Xtract: func(d *ReportLine) any {
+			return d.Fan
 		},
 		Help: "(uint64) Fan speed in percent of max",
 	},
@@ -49,11 +61,17 @@ var gpuFormatters = map[string]Formatter[*ReportLine]{
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
 			return FormatUint64((d.Memory), ctx)
 		},
+		Xtract: func(d *ReportLine) any {
+			return d.Memory
+		},
 		Help: "(uint64) Amount of memory in use",
 	},
 	"Temperature": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
 			return FormatInt64((d.Temperature), ctx)
+		},
+		Xtract: func(d *ReportLine) any {
+			return d.Temperature
 		},
 		Help: "(int64) Card temperature in degrees C",
 	},
@@ -61,11 +79,17 @@ var gpuFormatters = map[string]Formatter[*ReportLine]{
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
 			return FormatUint64((d.Power), ctx)
 		},
+		Xtract: func(d *ReportLine) any {
+			return d.Power
+		},
 		Help: "(uint64) Current power draw in Watts",
 	},
 	"PowerLimit": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
 			return FormatUint64((d.PowerLimit), ctx)
+		},
+		Xtract: func(d *ReportLine) any {
+			return d.PowerLimit
 		},
 		Help: "(uint64) Current power limit in Watts",
 	},
@@ -73,11 +97,17 @@ var gpuFormatters = map[string]Formatter[*ReportLine]{
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
 			return FormatUint64((d.CEClock), ctx)
 		},
+		Xtract: func(d *ReportLine) any {
+			return d.CEClock
+		},
 		Help: "(uint64) Current compute element clock in MHz",
 	},
 	"MemoryClock": {
 		Fmt: func(d *ReportLine, ctx PrintMods) string {
 			return FormatUint64((d.MemoryClock), ctx)
+		},
+		Xtract: func(d *ReportLine) any {
+			return d.MemoryClock
 		},
 		Help: "(uint64) Current memory clock in MHz",
 	},

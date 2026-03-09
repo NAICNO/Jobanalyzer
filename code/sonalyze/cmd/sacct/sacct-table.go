@@ -25,11 +25,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatIsoDateTimeOrUnknown((d.Start), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Start
+		},
 		Help: "(IsoDateTimeValue) Start time of job, if any",
 	},
 	"End": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatIsoDateTimeOrUnknown((d.End), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.End
 		},
 		Help: "(IsoDateTimeValue) End time of job",
 	},
@@ -37,11 +43,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatIsoDateTimeOrUnknown((d.Submit), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Submit
+		},
 		Help: "(IsoDateTimeValue) Submit time of job",
 	},
 	"RequestedCPU": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.RequestedCPU), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.RequestedCPU
 		},
 		Help: "(int) Requested CPU time (elapsed * cores * nodes)",
 	},
@@ -49,11 +61,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.UsedCPU), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.UsedCPU
+		},
 		Help: "(int) Used CPU time",
 	},
 	"RelativeCPU": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.RelativeCPU), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.RelativeCPU
 		},
 		Help:        "(int) Percent cpu utilization: UsedCPU/RequestedCPU*100",
 		NeedsConfig: true,
@@ -62,6 +80,9 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.RelativeResidentMem), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.RelativeResidentMem
+		},
 		Help:        "(int) Percent memory utilization: MaxRSS/ReqMem*100",
 		NeedsConfig: true,
 	},
@@ -69,11 +90,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr((d.User), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.User
+		},
 		Help: "(string) Job's user",
 	},
 	"JobName": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstrMax30((d.JobName), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.JobName
 		},
 		Help: "(string) Job name",
 	},
@@ -81,11 +108,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr((d.State), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.State
+		},
 		Help: "(string) Job completion state",
 	},
 	"Account": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr((d.Account), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Account
 		},
 		Help: "(string) Job's account",
 	},
@@ -93,11 +126,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr((d.Reservation), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Reservation
+		},
 		Help: "(string) Job's reservation, if any",
 	},
 	"Layout": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr((d.Layout), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Layout
 		},
 		Help: "(string) Job's layout, if any",
 	},
@@ -105,11 +144,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr((d.NodeList), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.NodeList
+		},
 		Help: "(string) Job's node list",
 	},
 	"JobID": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.JobID), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.JobID
 		},
 		Help: "(int) Primary Job ID",
 	},
@@ -117,11 +162,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.MaxRSS), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.MaxRSS
+		},
 		Help: "(int) Max resident set size (RSS) across all steps (GB)",
 	},
 	"ReqMem": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.ReqMem), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.ReqMem
 		},
 		Help: "(int) Raw requested memory (GB)",
 	},
@@ -129,11 +180,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.ReqCPUS), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.ReqCPUS
+		},
 		Help: "(int) Raw requested CPU cores",
 	},
 	"ReqGPUS": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr((d.ReqGPUS), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.ReqGPUS
 		},
 		Help: "(string) Raw requested GPU cards",
 	},
@@ -141,11 +198,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.ReqNodes), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.ReqNodes
+		},
 		Help: "(int) Raw requested system nodes",
 	},
 	"Elapsed": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.Elapsed), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Elapsed
 		},
 		Help: "(int) Time elapsed",
 	},
@@ -153,11 +216,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.Suspended), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Suspended
+		},
 		Help: "(int) Time suspended",
 	},
 	"Timelimit": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.Timelimit), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Timelimit
 		},
 		Help: "(int) Time limit in seconds",
 	},
@@ -165,11 +234,17 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.ExitCode), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.ExitCode
+		},
 		Help: "(int) Exit code",
 	},
 	"Wait": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.Wait), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Wait
 		},
 		Help: "(int) Wait time of job (start - submit), in seconds",
 	},
@@ -177,17 +252,26 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatUstr((d.Partition), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Partition
+		},
 		Help: "(string) Requested partition",
 	},
 	"ArrayJobID": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.ArrayJobID), ctx)
 		},
+		Xtract: func(d *SacctRegular) any {
+			return d.ArrayJobID
+		},
 		Help: "(int) ID of the overarching array job",
 	},
 	"ArrayTaskID": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.ArrayTaskID), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.ArrayTaskID
 		},
 		Help: "(int) Index of this job within an array job",
 	},

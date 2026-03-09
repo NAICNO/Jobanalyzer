@@ -304,6 +304,17 @@ func fieldFormatters(tableName string, fields *parser.FieldSect) (fieldList []fi
 			fmt.Fprintf(output, "\t\t\treturn %s((d.%s), ctx)\n", formatter, actualFieldName)
 		}
 		fmt.Fprintf(output, "\t\t},\n")
+		fmt.Fprintf(output, "\t\tXtract: func(d %s) any {\n", fields.Type)
+		if ptrName := attrs["indirect"]; ptrName != "" {
+			fmt.Fprintf(output, "\t\t\tif (d.%s) != nil {\n", ptrName)
+			fmt.Fprintf(
+				output, "\t\t\t\treturn d.%s.%s\n", ptrName, actualFieldName)
+			fmt.Fprintf(output, "\t\t\t}\n")
+			fmt.Fprintf(output, "\t\t\treturn \"?\"\n")
+		} else {
+			fmt.Fprintf(output, "\t\t\treturn d.%s\n", actualFieldName)
+		}
+		fmt.Fprintf(output, "\t\t},\n")
 		if d := attrs["desc"]; d != "" {
 			fmt.Fprintf(output, "\t\tHelp: \"(%s) %s\",\n", userFacingTypeName(field.Type), d)
 		}
