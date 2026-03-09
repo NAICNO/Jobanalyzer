@@ -50,18 +50,11 @@ fi
 # state reflects the state at the end of the window.  No jobs are PENDING or CANCELLED - only
 # RUNNING or COMPLETED.
 #
-# It is possible to enrich this with Sonar data fields, notably, some of the booleans about whether
-# the job is running at the beginning or end of the time window, so as to be able to know whether
-# Start, End, and Sumbit are valid.
-#
 # The only fields here are the ones that are computable from Sonar data.
 #
-# There are several pitfalls:
+# Note:
 #
-# - since this asks for the time fields on ISO format with the /iso modifier, the field names in the
-#   JSON are called eg "End/iso", not just "End".
-#
-# - Numeric fields are represented as strings due to how sonalyze formats JSON.
+# - All time stamps are Unix seconds
 #
 # - MinCPU is basically pointless if Sonar rolls up jobs, esp MPI jobs.
 #
@@ -77,11 +70,15 @@ fi
 #   step back in time to find the start of the job and then run a query for the job for the entire
 #   time window it is running.  Even for one-day time windows, many (most?) jobs will start and end
 #   in the time window; so having to iterate need not be bad.  We print the Primordial flag here,
-#   which is set if a job was believed to be alive at the beginning of the time window.
+#   which is set if a job was believed to be alive at the beginning of the time window.  There are
+#   other flags that may also be helpful.
 #
 #   It would be possible to enrich Sonalyze with the logic to search back in time for the start of
 #   jobs that are found in the initial time window (and for that matter, to search forward for the
 #   end, if the end of the window is in the past), removing that burden from the client code.
+#
+# - The output format "native" is JSON with numbers represented as numbers, not as strings (unlike
+#   the normal JSON format, for historical reasons).
 
 ${SONALYZE:-sonalyze} jobs \
                       -database-uri ${DATABASE_URI} \
@@ -90,5 +87,5 @@ ${SONALYZE:-sonalyze} jobs \
                       -sacct-from-sonar \
                       -from ${FROM} \
                       -to ${TO} \
-                      -fmt json,AveCPU,AveDiskRead,AveDiskWrite,AveRSS,AveVMSize,ElapsedRaw,End/iso,JobID,JobName,MaxRSS,MaxVMSize,MinCPU,NodeList,Primordial,ReqCPUS,ReqGPUS,ReqMem,Start/iso,State,Submit/iso,Time/iso,UserCPU,User
+                      -fmt native,AveCPU,AveDiskRead,AveDiskWrite,AveRSS,AveVMSize,ElapsedRaw,End,JobID,JobName,MaxRSS,MaxVMSize,MinCPU,NodeList,Primordial,ReqCPUS,ReqGPUS,ReqMem,Start,State,Submit,Time,UserCPU,User
 

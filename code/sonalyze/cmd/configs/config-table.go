@@ -27,11 +27,17 @@ var configFormatters = map[string]Formatter[*repr.NodeSummary]{
 		Fmt: func(d *repr.NodeSummary, ctx PrintMods) string {
 			return FormatString((d.Timestamp), ctx)
 		},
+		Xtract: func(d *repr.NodeSummary) any {
+			return d.Timestamp
+		},
 		Help: "(string) Full ISO timestamp of when the reading was taken",
 	},
 	"Hostname": {
 		Fmt: func(d *repr.NodeSummary, ctx PrintMods) string {
 			return FormatString((d.Hostname), ctx)
+		},
+		Xtract: func(d *repr.NodeSummary) any {
+			return d.Hostname
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
@@ -39,11 +45,17 @@ var configFormatters = map[string]Formatter[*repr.NodeSummary]{
 		Fmt: func(d *repr.NodeSummary, ctx PrintMods) string {
 			return FormatString((d.Description), ctx)
 		},
+		Xtract: func(d *repr.NodeSummary) any {
+			return d.Description
+		},
 		Help: "(string) End-user description, not parseable",
 	},
 	"CpuCores": {
 		Fmt: func(d *repr.NodeSummary, ctx PrintMods) string {
 			return FormatInt((d.CpuCores), ctx)
+		},
+		Xtract: func(d *repr.NodeSummary) any {
+			return d.CpuCores
 		},
 		Help: "(int) Total number of cores x threads",
 	},
@@ -51,11 +63,17 @@ var configFormatters = map[string]Formatter[*repr.NodeSummary]{
 		Fmt: func(d *repr.NodeSummary, ctx PrintMods) string {
 			return FormatInt((d.MemGB), ctx)
 		},
+		Xtract: func(d *repr.NodeSummary) any {
+			return d.MemGB
+		},
 		Help: "(int) GB of installed main RAM",
 	},
 	"GpuCards": {
 		Fmt: func(d *repr.NodeSummary, ctx PrintMods) string {
 			return FormatInt((d.GpuCards), ctx)
+		},
+		Xtract: func(d *repr.NodeSummary) any {
+			return d.GpuCards
 		},
 		Help: "(int) Number of installed cards",
 	},
@@ -63,11 +81,17 @@ var configFormatters = map[string]Formatter[*repr.NodeSummary]{
 		Fmt: func(d *repr.NodeSummary, ctx PrintMods) string {
 			return FormatInt((d.GpuMemGB), ctx)
 		},
+		Xtract: func(d *repr.NodeSummary) any {
+			return d.GpuMemGB
+		},
 		Help: "(int) Total GPU memory across all cards",
 	},
 	"GpuMemPct": {
 		Fmt: func(d *repr.NodeSummary, ctx PrintMods) string {
 			return FormatBool((d.GpuMemPct), ctx)
+		},
+		Xtract: func(d *repr.NodeSummary) any {
+			return d.GpuMemPct
 		},
 		Help: "(bool) True if GPUs report accurate memory usage in percent",
 	},

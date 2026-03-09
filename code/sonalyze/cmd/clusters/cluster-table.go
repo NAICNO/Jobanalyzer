@@ -27,17 +27,26 @@ var clusterFormatters = map[string]Formatter[*repr.Cluster]{
 		Fmt: func(d *repr.Cluster, ctx PrintMods) string {
 			return FormatString((d.Name), ctx)
 		},
+		Xtract: func(d *repr.Cluster) any {
+			return d.Name
+		},
 		Help: "(string) Cluster name",
 	},
 	"Description": {
 		Fmt: func(d *repr.Cluster, ctx PrintMods) string {
 			return FormatString((d.Description), ctx)
 		},
+		Xtract: func(d *repr.Cluster) any {
+			return d.Description
+		},
 		Help: "(string) Human-consumable cluster summary",
 	},
 	"Aliases": {
 		Fmt: func(d *repr.Cluster, ctx PrintMods) string {
 			return FormatStrings((d.Aliases), ctx)
+		},
+		Xtract: func(d *repr.Cluster) any {
+			return d.Aliases
 		},
 		Help: "(string list) Aliases of cluster",
 	},

@@ -25,17 +25,26 @@ var spartFormatters = map[string]Formatter[SpartData]{
 		Fmt: func(d SpartData, ctx PrintMods) string {
 			return FormatString((d.Timestamp), ctx)
 		},
+		Xtract: func(d SpartData) any {
+			return d.Timestamp
+		},
 		Help: "(string) Full ISO timestamp of when the reading was taken",
 	},
 	"Partition": {
 		Fmt: func(d SpartData, ctx PrintMods) string {
 			return FormatString((d.Partition), ctx)
 		},
+		Xtract: func(d SpartData) any {
+			return d.Partition
+		},
 		Help: "(string) Name of the partition",
 	},
 	"Nodes": {
 		Fmt: func(d SpartData, ctx PrintMods) string {
 			return FormatStrings((d.Nodes), ctx)
+		},
+		Xtract: func(d SpartData) any {
+			return d.Nodes
 		},
 		Help: "(string list) Node list",
 	},

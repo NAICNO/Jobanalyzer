@@ -25,17 +25,26 @@ var snodeFormatters = map[string]Formatter[SnodeData]{
 		Fmt: func(d SnodeData, ctx PrintMods) string {
 			return FormatString((d.Timestamp), ctx)
 		},
+		Xtract: func(d SnodeData) any {
+			return d.Timestamp
+		},
 		Help: "(string) Full ISO timestamp of when the reading was taken",
 	},
 	"Nodes": {
 		Fmt: func(d SnodeData, ctx PrintMods) string {
 			return FormatStrings((d.Nodes), ctx)
 		},
+		Xtract: func(d SnodeData) any {
+			return d.Nodes
+		},
 		Help: "(string list) Node list",
 	},
 	"States": {
 		Fmt: func(d SnodeData, ctx PrintMods) string {
 			return FormatStrings((d.States), ctx)
+		},
+		Xtract: func(d SnodeData) any {
+			return d.States
 		},
 		Help: "(string list) State list",
 	},

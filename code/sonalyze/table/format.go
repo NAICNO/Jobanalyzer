@@ -52,8 +52,10 @@ func ComputePrintMods(opts *FormatOptions) PrintMods {
 		x = PrintModAwk
 	case opts.Fixed:
 		x = PrintModFixed
+	case opts.Native:
+		// nothing?
 	}
-	if opts.NoDefaults && (opts.Csv || opts.Json) {
+	if opts.NoDefaults && (opts.Csv || opts.Json || opts.Native) {
 		x |= PrintModNoDefaults
 	}
 	return x
@@ -66,6 +68,7 @@ func ComputePrintMods(opts *FormatOptions) PrintMods {
 type FormatOptions struct {
 	Tag        string // if not ""
 	Json       bool   // json explicitly requested
+	Native     bool   // native (= json with natural format) explicitly requested
 	Csv        bool   // csv or csvnamed explicitly requested
 	Awk        bool   // awk explicitly requested
 	Fixed      bool   // fixed output explicitly requested
@@ -76,7 +79,7 @@ type FormatOptions struct {
 }
 
 func (fo *FormatOptions) IsDefaultFormat() bool {
-	return !fo.Json && !fo.Csv && !fo.Awk && !fo.Fixed
+	return !fo.Json && !fo.Native && !fo.Csv && !fo.Awk && !fo.Fixed
 }
 
 // If fmtOpt is "" or "help" then the spec is the defaults, otherwise the spec is fmtOpt.
@@ -206,7 +209,8 @@ func StandardFormatOptions(others map[string]bool, def DefaultFormat) *FormatOpt
 	csv := others["csv"] || csvnamed
 	json := others["json"] && !csv
 	awk := others["awk"] && !csv && !json
-	fixed := others["fixed"] && !csv && !json && !awk
+	native := others["native"] && !csv && !json && !awk
+	fixed := others["fixed"] && !csv && !json && !awk && !native
 	nodefaults := others["nodefaults"]
 	separator := others["separator"]
 	tag := ""
@@ -216,7 +220,7 @@ func StandardFormatOptions(others map[string]bool, def DefaultFormat) *FormatOpt
 			break
 		}
 	}
-	if !csv && !json && !awk && !fixed {
+	if !csv && !json && !awk && !fixed && !native {
 		switch def {
 		case DefaultFixed:
 			fixed = true
@@ -232,6 +236,7 @@ func StandardFormatOptions(others map[string]bool, def DefaultFormat) *FormatOpt
 	return &FormatOptions{
 		Csv:        csv,
 		Json:       json,
+		Native:     native,
 		Awk:        awk,
 		Fixed:      fixed,
 		Header:     header,
@@ -252,6 +257,25 @@ func FormatData[T any](
 	data []T,
 ) {
 	ctx := ComputePrintMods(opts)
+
+	if opts.Native {
+		// No data conversion...
+		cols := make([][]any, len(fields))
+		for i := range fields {
+			cols[i] = make([]any, len(data))
+		}
+		extracts := make([]func(T) any, len(fields))
+		for c, f := range fields {
+			extracts[c] = formatters[f.Name].Xtract
+		}
+		for r, x := range data {
+			for c := range fields {
+				cols[c][r] = extracts[c](x)
+			}
+		}
+		formatNative(out, fields, opts, cols)
+		return
+	}
 
 	// TODO: OPTIMIZEME: Instead of creating this huge matrix up-front and serializing field
 	// formatting and output formatting, it might be better to set up some kind of
@@ -286,6 +310,8 @@ func FormatData[T any](
 		formatJson(out, fields, opts, cols)
 	} else if opts.Awk {
 		formatAwk(out, fields, opts, cols)
+	} else if opts.Native {
+		panic("Should not happen")
 	} else {
 		formatFixed(out, fields, opts, cols)
 	}
@@ -489,6 +515,60 @@ func QuoteJson(s string) string {
 	return t
 }
 
+func formatNative(unbufOut io.Writer, fields []FieldSpec, opts *FormatOptions, cols [][]any) {
+	out := Buffered(unbufOut)
+	defer out.Flush()
+
+	quotedFields := make([]string, len(fields))
+	for i := range fields {
+		quotedFields[i] = "\"" + QuoteJson(fields[i].Header) + "\""
+	}
+	quotedTag := ""
+	if opts.Tag != "" {
+		quotedTag = "\"tag\":\"" + QuoteJson(opts.Tag) + "\""
+	}
+
+	fmt.Fprint(out, "[")
+	rowSep := ""
+	var s strings.Builder
+	for row := range cols[0] {
+		s.Reset()
+		s.WriteString(rowSep)
+		s.WriteRune('{')
+		fieldSep := ""
+		for col := range quotedFields {
+			val := cols[col][row]
+			if opts.NoDefaults && val == "*skip*" {
+				continue
+			}
+			s.WriteString(fieldSep)
+			s.WriteString(quotedFields[col])
+			s.WriteRune(':')
+			switch x := val.(type) {
+			case string:
+				s.WriteRune('"')
+				s.WriteString(QuoteJson(x))
+				s.WriteRune('"')
+			case fmt.Stringer:
+				s.WriteRune('"')
+				s.WriteString(QuoteJson(x.String()))
+				s.WriteRune('"')
+			default:
+				s.WriteString(fmt.Sprint(x))
+			}
+			fieldSep = ","
+		}
+		if quotedTag != "" {
+			s.WriteString(fieldSep)
+			s.WriteString(quotedTag)
+		}
+		s.WriteRune('}')
+		fmt.Fprint(out, s.String())
+		rowSep = ","
+	}
+	fmt.Fprintln(out, "]")
+}
+
 // awk output: fields are space-separated and spaces are not allowed within fields, they
 // are replaced by `_`.  For good perf we count on ReplaceAll returning the input string if
 // there are no replacements (current Go libraries do this correctly).
@@ -582,6 +662,7 @@ type FormatHelp struct {
 
 type Formatter[T any] struct {
 	Fmt         func(data T, ctx PrintMods) string
+	Xtract      func(data T) any
 	Help        string
 	AliasOf     string
 	NeedsConfig bool

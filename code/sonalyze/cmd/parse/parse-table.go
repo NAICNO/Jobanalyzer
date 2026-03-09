@@ -27,11 +27,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUstr((d.Version), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.Version
+		},
 		Help: "(string) Semver string (MAJOR.MINOR.BUGFIX)",
 	},
 	"Timestamp": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatDateTimeValue((d.Timestamp), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.Timestamp
 		},
 		Help: "(DateTimeValue) Timestamp of record ",
 	},
@@ -39,11 +45,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatIsoDateTimeValue((d.Timestamp), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.Timestamp
+		},
 		Help: "(IsoDateTimeValue) Timestamp of record",
 	},
 	"Hostname": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUstr((d.Hostname), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.Hostname
 		},
 		Help: "(string) Host name (FQDN)",
 	},
@@ -51,11 +63,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint32((d.NumCores), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.NumCores
+		},
 		Help: "(uint32) Total number of cores (including hyperthreads)",
 	},
 	"NumThreads": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint32((d.NumThreads), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.NumThreads
 		},
 		Help: "(uint32) Number of threads active",
 	},
@@ -63,11 +81,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.MemtotalKB), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.MemtotalKB
+		},
 		Help: "(uint64) Installed main memory",
 	},
 	"memtotal": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatU64Div1M((d.MemtotalKB), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.MemtotalKB
 		},
 		Help: "(int) Installed main memory (GB)",
 	},
@@ -75,11 +99,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUstr((d.User), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.User
+		},
 		Help: "(string) Username of process owner",
 	},
 	"Pid": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.Pid), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.Pid
 		},
 		Help: "(uint64) Process ID",
 	},
@@ -87,11 +117,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint32((d.Ppid), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.Ppid
+		},
 		Help: "(uint32) Process parent ID",
 	},
 	"Job": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint32((d.Job), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.Job
 		},
 		Help: "(uint32) Job ID",
 	},
@@ -99,11 +135,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUstr((d.Cmd), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.Cmd
+		},
 		Help: "(string) Command name",
 	},
 	"CpuPct": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatFloat32((d.CpuPct), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.CpuPct
 		},
 		Help: "(float32) cpu% reading (CONSULT DOCUMENTATION)",
 	},
@@ -111,11 +153,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.CpuKB), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.CpuKB
+		},
 		Help: "(uint64) Virtual memory reading",
 	},
 	"mem_gb": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatU64Div1M((d.CpuKB), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.CpuKB
 		},
 		Help: "(int) Virtual memory reading",
 	},
@@ -123,11 +171,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.RssAnonKB), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.RssAnonKB
+		},
 		Help: "(uint64) RssAnon reading",
 	},
 	"res_gb": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatU64Div1M((d.RssAnonKB), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.RssAnonKB
 		},
 		Help: "(int) RssAnon reading",
 	},
@@ -135,11 +189,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatGpuSet((d.Gpus), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.Gpus
+		},
 		Help: "(GpuSet) GPU set (`none`,`unknown`,list)",
 	},
 	"GpuPct": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatFloat32((d.GpuPct), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.GpuPct
 		},
 		Help: "(float32) GPU utilization reading",
 	},
@@ -147,11 +207,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatFloat32((d.GpuMemPct), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.GpuMemPct
+		},
 		Help: "(float32) GPU memory percentage reading",
 	},
 	"GpuKB": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.GpuKB), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.GpuKB
 		},
 		Help: "(uint64) GPU memory utilization reading",
 	},
@@ -159,11 +225,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatU64Div1M((d.GpuKB), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.GpuKB
+		},
 		Help: "(int) GPU memory utilization reading",
 	},
 	"GpuFail": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint8((d.GpuFail), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.GpuFail
 		},
 		Help: "(uint8) GPU status flag (0=ok, 1=error state)",
 	},
@@ -171,11 +243,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.CpuTimeSec), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.CpuTimeSec
+		},
 		Help: "(uint64) CPU time since last reading (seconds, CONSULT DOCUMENTATION)",
 	},
 	"Rolledup": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint32((d.Rolledup), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.Rolledup
 		},
 		Help: "(uint32) Number of rolled-up processes, minus 1",
 	},
@@ -183,11 +261,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint8((d.Flags), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.Flags
+		},
 		Help: "(uint8) Bit vector of flags, UTSL",
 	},
 	"CpuUtilPct": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatFloat32((d.CpuUtilPct), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.CpuUtilPct
 		},
 		Help: "(float32) CPU utilization since last reading (percent, CONSULT DOCUMENTATION)",
 	},
@@ -195,11 +279,17 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatBool((d.InContainer), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.InContainer
+		},
 		Help: "(bool) True if process runs in container",
 	},
 	"CpuSampledUtilPct": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatFloat32((d.CpuSampledUtilPct), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.CpuSampledUtilPct
 		},
 		Help: "(float32) Sampled CPU utilization (percent, CONSULT DOCUMENTATION)",
 	},
@@ -207,17 +297,26 @@ var parseFormatters = map[string]Formatter[sample.Sample]{
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.DataReadKB), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.DataReadKB
+		},
 		Help: "(uint64) All read traffic",
 	},
 	"DataWrittenKB": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.DataWrittenKB), ctx)
 		},
+		Xtract: func(d sample.Sample) any {
+			return d.DataWrittenKB
+		},
 		Help: "(uint64) All write traffic",
 	},
 	"DataCancelledKB": {
 		Fmt: func(d sample.Sample, ctx PrintMods) string {
 			return FormatUint64((d.DataCancelledKB), ctx)
+		},
+		Xtract: func(d sample.Sample) any {
+			return d.DataCancelledKB
 		},
 		Help: "(uint64) All cancelled write traffic",
 	},

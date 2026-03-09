@@ -27,11 +27,17 @@ var nodeprofFormatters = map[string]Formatter[*repr.NodeSample]{
 		Fmt: func(d *repr.NodeSample, ctx PrintMods) string {
 			return FormatDateTimeValue((d.Timestamp), ctx)
 		},
+		Xtract: func(d *repr.NodeSample) any {
+			return d.Timestamp
+		},
 		Help: "(DateTimeValue) Full ISO timestamp of when the reading was taken",
 	},
 	"Hostname": {
 		Fmt: func(d *repr.NodeSample, ctx PrintMods) string {
 			return FormatUstr((d.Hostname), ctx)
+		},
+		Xtract: func(d *repr.NodeSample) any {
+			return d.Hostname
 		},
 		Help: "(string) Name that host is known by on the cluster",
 	},
@@ -39,11 +45,17 @@ var nodeprofFormatters = map[string]Formatter[*repr.NodeSample]{
 		Fmt: func(d *repr.NodeSample, ctx PrintMods) string {
 			return FormatUint64((d.UsedMemory), ctx)
 		},
+		Xtract: func(d *repr.NodeSample) any {
+			return d.UsedMemory
+		},
 		Help: "(uint64) Amount of memory in use",
 	},
 	"Load1": {
 		Fmt: func(d *repr.NodeSample, ctx PrintMods) string {
 			return FormatFloat64((d.Load1), ctx)
+		},
+		Xtract: func(d *repr.NodeSample) any {
+			return d.Load1
 		},
 		Help: "(float64) 1-minute load average",
 	},
@@ -51,11 +63,17 @@ var nodeprofFormatters = map[string]Formatter[*repr.NodeSample]{
 		Fmt: func(d *repr.NodeSample, ctx PrintMods) string {
 			return FormatFloat64((d.Load5), ctx)
 		},
+		Xtract: func(d *repr.NodeSample) any {
+			return d.Load5
+		},
 		Help: "(float64) 5-minute load average",
 	},
 	"Load15": {
 		Fmt: func(d *repr.NodeSample, ctx PrintMods) string {
 			return FormatFloat64((d.Load15), ctx)
+		},
+		Xtract: func(d *repr.NodeSample) any {
+			return d.Load15
 		},
 		Help: "(float64) 15-minute load average",
 	},
@@ -63,11 +81,17 @@ var nodeprofFormatters = map[string]Formatter[*repr.NodeSample]{
 		Fmt: func(d *repr.NodeSample, ctx PrintMods) string {
 			return FormatUint64((d.RunnableEntities), ctx)
 		},
+		Xtract: func(d *repr.NodeSample) any {
+			return d.RunnableEntities
+		},
 		Help: "(uint64) Number of runnable entities on system (threads)",
 	},
 	"ExistingEntities": {
 		Fmt: func(d *repr.NodeSample, ctx PrintMods) string {
 			return FormatUint64((d.ExistingEntities), ctx)
+		},
+		Xtract: func(d *repr.NodeSample) any {
+			return d.ExistingEntities
 		},
 		Help: "(uint64) Number of entities on system",
 	},

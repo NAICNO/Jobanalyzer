@@ -257,7 +257,7 @@ func FormatYyyyMmDdHhMmUtc(t int64) string {
 	return time.Unix(t, 0).UTC().Format("2006-01-02 15:04")
 }
 
-func FormatIsoUtc(t int64) string {
+func FormatIsoUtc(t DateTimeValue) string {
 	return time.Unix(t, 0).UTC().Format(time.RFC3339)
 }
 

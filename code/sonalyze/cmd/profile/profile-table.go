@@ -25,11 +25,17 @@ var profileFormatters = map[string]Formatter[*fixedLine]{
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatDateTimeValueOrBlank((d.Timestamp), ctx)
 		},
+		Xtract: func(d *fixedLine) any {
+			return d.Timestamp
+		},
 		Help: "(DateTimeValue) Time of the start of the profiling bucket",
 	},
 	"Hostname": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatUstr((d.Hostname), ctx)
+		},
+		Xtract: func(d *fixedLine) any {
+			return d.Hostname
 		},
 		Help: "(string) Host on which process ran",
 	},
@@ -37,11 +43,17 @@ var profileFormatters = map[string]Formatter[*fixedLine]{
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt((d.CpuUtilPct), ctx)
 		},
+		Xtract: func(d *fixedLine) any {
+			return d.CpuUtilPct
+		},
 		Help: "(int) CPU utilization in percent, 100% = 1 core (except for HTML)",
 	},
 	"VirtualMemGB": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt((d.VirtualMemGB), ctx)
+		},
+		Xtract: func(d *fixedLine) any {
+			return d.VirtualMemGB
 		},
 		Help: "(int) Main virtual memory usage in GiB",
 	},
@@ -49,11 +61,17 @@ var profileFormatters = map[string]Formatter[*fixedLine]{
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt((d.ResidentMemGB), ctx)
 		},
+		Xtract: func(d *fixedLine) any {
+			return d.ResidentMemGB
+		},
 		Help: "(int) Main resident memory usage in GiB",
 	},
 	"Gpu": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt((d.Gpu), ctx)
+		},
+		Xtract: func(d *fixedLine) any {
+			return d.Gpu
 		},
 		Help: "(int) GPU utilization in percent, 100% = 1 card (except for HTML)",
 	},
@@ -61,17 +79,26 @@ var profileFormatters = map[string]Formatter[*fixedLine]{
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatInt((d.GpuMemGB), ctx)
 		},
+		Xtract: func(d *fixedLine) any {
+			return d.GpuMemGB
+		},
 		Help: "(int) GPU resident memory usage in GiB (across all cards)",
 	},
 	"Command": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatUstr((d.Command), ctx)
 		},
+		Xtract: func(d *fixedLine) any {
+			return d.Command
+		},
 		Help: "(string) Name of executable starting the process",
 	},
 	"NumProcs": {
 		Fmt: func(d *fixedLine, ctx PrintMods) string {
 			return FormatIntOrEmpty((d.NumProcs), ctx)
+		},
+		Xtract: func(d *fixedLine) any {
+			return d.NumProcs
 		},
 		Help: "(int) Number of rolled-up processes, blank for zero",
 	},

@@ -27,11 +27,17 @@ var cardFormatters = map[string]Formatter[*repr.SysinfoCardData]{
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatString((d.Time), ctx)
 		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.Time
+		},
 		Help: "(string) Full ISO timestamp of when the reading was taken",
 	},
 	"Node": {
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatString((d.Node), ctx)
+		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.Node
 		},
 		Help: "(string) Card's node at this time",
 	},
@@ -39,11 +45,17 @@ var cardFormatters = map[string]Formatter[*repr.SysinfoCardData]{
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatUint64((d.Index), ctx)
 		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.Index
+		},
 		Help: "(uint64) Card's index on its node at this time",
 	},
 	"UUID": {
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatString((d.UUID), ctx)
+		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.UUID
 		},
 		Help: "(string) Card's unique identifier (but not necessarily its only unique identifier)",
 	},
@@ -51,11 +63,17 @@ var cardFormatters = map[string]Formatter[*repr.SysinfoCardData]{
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatString((d.Address), ctx)
 		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.Address
+		},
 		Help: "(string) Card's address on its node at this time",
 	},
 	"Manufacturer": {
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatString((d.Manufacturer), ctx)
+		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.Manufacturer
 		},
 		Help: "(string) Card's manufacturer's name",
 	},
@@ -63,11 +81,17 @@ var cardFormatters = map[string]Formatter[*repr.SysinfoCardData]{
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatString((d.Model), ctx)
 		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.Model
+		},
 		Help: "(string) Card model",
 	},
 	"Architecture": {
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatString((d.Architecture), ctx)
+		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.Architecture
 		},
 		Help: "(string) Card's architecture name",
 	},
@@ -75,11 +99,17 @@ var cardFormatters = map[string]Formatter[*repr.SysinfoCardData]{
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatString((d.Driver), ctx)
 		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.Driver
+		},
 		Help: "(string) Card driver's version at this time",
 	},
 	"Firmware": {
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatString((d.Firmware), ctx)
+		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.Firmware
 		},
 		Help: "(string) Card firmware's version at this time",
 	},
@@ -87,11 +117,17 @@ var cardFormatters = map[string]Formatter[*repr.SysinfoCardData]{
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatUint64((d.Memory), ctx)
 		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.Memory
+		},
 		Help: "(uint64) Card's memory in KB",
 	},
 	"PowerLimit": {
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatUint64((d.PowerLimit), ctx)
+		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.PowerLimit
 		},
 		Help: "(uint64) Card's power limit at this time",
 	},
@@ -99,11 +135,17 @@ var cardFormatters = map[string]Formatter[*repr.SysinfoCardData]{
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatUint64((d.MaxPowerLimit), ctx)
 		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.MaxPowerLimit
+		},
 		Help: "(uint64) Card's maximum power limit",
 	},
 	"MinPowerLimit": {
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatUint64((d.MinPowerLimit), ctx)
+		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.MinPowerLimit
 		},
 		Help: "(uint64) Card's minimum power limit",
 	},
@@ -111,11 +153,17 @@ var cardFormatters = map[string]Formatter[*repr.SysinfoCardData]{
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatUint64((d.MaxCEClock), ctx)
 		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.MaxCEClock
+		},
 		Help: "(uint64) Card's maximum compute element clock speed",
 	},
 	"MaxMemoryClock": {
 		Fmt: func(d *repr.SysinfoCardData, ctx PrintMods) string {
 			return FormatUint64((d.MaxMemoryClock), ctx)
+		},
+		Xtract: func(d *repr.SysinfoCardData) any {
+			return d.MaxMemoryClock
 		},
 		Help: "(uint64) Card's maximum memory clock speed",
 	},
