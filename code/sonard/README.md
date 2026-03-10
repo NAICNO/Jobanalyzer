@@ -1,7 +1,19 @@
+# Sonard
+
 This is a small program that runs sonar repeatedly with sensible options for a given scenario.
+
+**THIS PROGRAM IS CONSIDERED OBSOLETE.** Instead, run Sonar in its daemon mode using a suitable
+configuration file, either via systemd or from the command line.  See explanations in
+doc/HOWTO-DEPLOY.md in the Sonar source tree.
+
+sonard will be removed "soon".
+
+## Usage
 
 There is some documentation about how to use this in [the sonalyze manual](../sonalyze/MANUAL.md),
 look for the section "CRUDE, HIGH-LEVEL PROFILING".
+
+## More
 
 Additionally, an email sent to a colleague, slightly updated:
 
