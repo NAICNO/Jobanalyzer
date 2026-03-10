@@ -118,7 +118,7 @@ LineLoop:
 					} else {
 						var e1, e2 error
 						info.ExitCode, e1 = parseUint8(val[:sep])
-						info.ExitSignal, e2 = parseUint8(val[sep+1:])
+						_, e2 = parseUint8(val[sep+1:]) // ExitSignal, in older data
 						err = errors.Join(e1, e2)
 					}
 					matched = true

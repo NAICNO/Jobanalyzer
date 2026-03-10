@@ -46,6 +46,11 @@ func ParseSamplesV0JSON(
 			return
 		}
 		timestamp := ti.Unix()
+		bo, err := time.Parse(time.RFC3339, string(data.System.Boot))
+		var boot int64
+		if err != nil {
+			boot = bo.Unix()
+		}
 		cluster := ustrs.Alloc(string(data.Cluster))
 		node := ustrs.Alloc(string(data.Node))
 		cpus := data.System.Cpus
@@ -80,6 +85,7 @@ func ParseSamplesV0JSON(
 		}
 		nodeSamples = append(nodeSamples, &repr.NodeSample{
 			Timestamp:        timestamp,
+			Boot:             boot,
 			Hostname:         node,
 			UsedMemory:       data.System.UsedMemory,
 			Load1:            data.System.Load1,

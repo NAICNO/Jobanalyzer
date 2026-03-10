@@ -641,21 +641,6 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 		},
 		Help: "(uint8) Exit code of job (Slurm)",
 	},
-	"ExitSignal": {
-		Fmt: func(d *jobSummary, ctx PrintMods) string {
-			if (d.sacctInfo) != nil {
-				return FormatUint8((d.sacctInfo.ExitSignal), ctx)
-			}
-			return "?"
-		},
-		Xtract: func(d *jobSummary) any {
-			if (d.sacctInfo) != nil {
-				return d.sacctInfo.ExitSignal
-			}
-			return "?"
-		},
-		Help: "(uint8) Exit signal of job (Slurm)",
-	},
 	"HetJobID": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
 			if (d.sacctInfo) != nil {
@@ -820,6 +805,21 @@ var jobsFormatters = map[string]Formatter[*jobSummary]{
 			return "?"
 		},
 		Help: "(string) Partition of job (Slurm)",
+	},
+	"Priority": {
+		Fmt: func(d *jobSummary, ctx PrintMods) string {
+			if (d.sacctInfo) != nil {
+				return FormatUint64((d.sacctInfo.Priority), ctx)
+			}
+			return "?"
+		},
+		Xtract: func(d *jobSummary) any {
+			if (d.sacctInfo) != nil {
+				return d.sacctInfo.Priority
+			}
+			return "?"
+		},
+		Help: "(uint64) Job priority (Slurm)",
 	},
 	"ReqCPUS": {
 		Fmt: func(d *jobSummary, ctx PrintMods) string {
@@ -1456,15 +1456,6 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 			return -1
 		},
 	},
-	"ExitSignal": Predicate[*jobSummary]{
-		Convert: CvtString2Uint8,
-		Compare: func(d *jobSummary, v any) int {
-			if (d.sacctInfo) != nil {
-				return cmp.Compare((d.sacctInfo.ExitSignal), v.(uint8))
-			}
-			return -1
-		},
-	},
 	"HetJobID": Predicate[*jobSummary]{
 		Convert: CvtString2Uint32,
 		Compare: func(d *jobSummary, v any) int {
@@ -1560,6 +1551,15 @@ var jobsPredicates = map[string]Predicate[*jobSummary]{
 		Compare: func(d *jobSummary, v any) int {
 			if (d.sacctInfo) != nil {
 				return cmp.Compare((d.sacctInfo.Partition), v.(Ustr))
+			}
+			return -1
+		},
+	},
+	"Priority": Predicate[*jobSummary]{
+		Convert: CvtString2Uint64,
+		Compare: func(d *jobSummary, v any) int {
+			if (d.sacctInfo) != nil {
+				return cmp.Compare((d.sacctInfo.Priority), v.(uint64))
 			}
 			return -1
 		},

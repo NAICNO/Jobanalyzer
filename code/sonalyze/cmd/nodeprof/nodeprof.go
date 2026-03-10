@@ -27,6 +27,7 @@ import "sonalyze/db/repr"
 FIELDS *repr.NodeSample
 
   Timestamp        DateTimeValue desc:"Full ISO timestamp of when the reading was taken" alias:"timestamp"
+  Boot             DateTimeValue desc:"Full ISO timestamp for node's boot time" alias:"boot"
   Hostname         Ustr          desc:"Name that host is known by on the cluster" alias:"host"
   UsedMemory       uint64        desc:"Amount of memory in use" alias:"usedmem"
   Load1            float64       desc:"1-minute load average" alias:"load1"
@@ -52,7 +53,7 @@ HELP NodeProfCommand
 ALIASES
 
   Default Timestamp,Hostname,UsedMemory,Load1,Load5,RunnableEntities
-  All     Timestamp,Hostname,UsedMemory,Load1,Load5,Load15,RunnableEntities,ExistingEntities
+  All     Timestamp,Boot,Hostname,UsedMemory,Load1,Load5,Load15,RunnableEntities,ExistingEntities
 
 DEFAULTS Default
 

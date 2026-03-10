@@ -203,6 +203,24 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 		},
 		Help: "(int) Raw requested system nodes",
 	},
+	"ReqRes": {
+		Fmt: func(d *SacctRegular, ctx PrintMods) string {
+			return FormatUstr((d.ReqRes), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.ReqRes
+		},
+		Help: "(string) Raw requested resources",
+	},
+	"AllocRes": {
+		Fmt: func(d *SacctRegular, ctx PrintMods) string {
+			return FormatUstr((d.AllocRes), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.AllocRes
+		},
+		Help: "(string) Raw allocated resources",
+	},
 	"Elapsed": {
 		Fmt: func(d *SacctRegular, ctx PrintMods) string {
 			return FormatInt((d.Elapsed), ctx)
@@ -274,6 +292,15 @@ var sacctFormatters = map[string]Formatter[*SacctRegular]{
 			return d.ArrayTaskID
 		},
 		Help: "(int) Index of this job within an array job",
+	},
+	"Priority": {
+		Fmt: func(d *SacctRegular, ctx PrintMods) string {
+			return FormatInt((d.Priority), ctx)
+		},
+		Xtract: func(d *SacctRegular) any {
+			return d.Priority
+		},
+		Help: "(int) Job's priority, if any",
 	},
 }
 
@@ -404,6 +431,18 @@ var sacctPredicates = map[string]Predicate[*SacctRegular]{
 			return cmp.Compare((d.ReqNodes), v.(int))
 		},
 	},
+	"ReqRes": Predicate[*SacctRegular]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare((d.ReqRes), v.(Ustr))
+		},
+	},
+	"AllocRes": Predicate[*SacctRegular]{
+		Convert: CvtString2Ustr,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare((d.AllocRes), v.(Ustr))
+		},
+	},
 	"Elapsed": Predicate[*SacctRegular]{
 		Convert: CvtString2Int,
 		Compare: func(d *SacctRegular, v any) int {
@@ -452,6 +491,12 @@ var sacctPredicates = map[string]Predicate[*SacctRegular]{
 			return cmp.Compare((d.ArrayTaskID), v.(int))
 		},
 	},
+	"Priority": Predicate[*SacctRegular]{
+		Convert: CvtString2Int,
+		Compare: func(d *SacctRegular, v any) int {
+			return cmp.Compare((d.Priority), v.(int))
+		},
+	},
 }
 
 type SacctRegular struct {
@@ -475,6 +520,8 @@ type SacctRegular struct {
 	ReqCPUS             int
 	ReqGPUS             Ustr
 	ReqNodes            int
+	ReqRes              Ustr
+	AllocRes            Ustr
 	Elapsed             int
 	Suspended           int
 	Timelimit           int
@@ -483,6 +530,7 @@ type SacctRegular struct {
 	Partition           Ustr
 	ArrayJobID          int
 	ArrayTaskID         int
+	Priority            int
 }
 
 func (c *SacctCommand) Summary(out io.Writer) {

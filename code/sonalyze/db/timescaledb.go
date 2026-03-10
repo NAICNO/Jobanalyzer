@@ -17,7 +17,7 @@
 // As of 2026-02-20 the following fields can be null (the 2nd column is their status in this code):
 //
 //  sample_gpu.index                             ok
-//  sample_process.in_container                  not used
+//  sample_process.in_container                  ok
 //  sample_slurm_job.array_job_id                ok
 //  sample_slurm_job.array_task_id               ok
 //  sample_slurm_job.start_time                  ok
@@ -28,7 +28,7 @@
 //  sample_slurm_job.requested_resources         ok
 //  sample_slurm_job.allocated_resources         ok
 //  sample_slurm_job.minimum_cpus_per_node       ok
-//  sample_system.boot                           not used
+//  sample_system.boot                           ok
 //  sysinfo_attributes.topo_svg                  ok
 //  sysinfo_attributes.topo_text                 ok
 //  sysinfo_attributes.numa_nodes                ok
@@ -71,8 +71,8 @@ import (
 	"time"
 
 	"github.com/NordicHPC/sonar/util/formats/newfmt"
-	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"go-utils/gpuset"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
@@ -213,8 +213,8 @@ func (cdb *connectedDB) ReadProcessSamples(
 			}
 		}
 		var gpuMemory uint64
-		if gpuMemoryp.Status == pgtype.Present {
-			gpuMemory = uint64(gpuMemoryp.Int)
+		if gpuMemoryp.Valid {
+			gpuMemory = uint64(gpuMemoryp.Int64)
 		}
 		var gpuUtil, gpuMemoryUtil float32
 		if gpuUtilp != nil {
@@ -232,27 +232,27 @@ func (cdb *connectedDB) ReadProcessSamples(
 			Cluster:           cluster,
 			Cmd:               StringToUstr(cmd),
 			CpuPct:            float32(cpuAvg),
-			CpuTimeSec:        uint64(cpuTime.Int),
-			Epoch:             uint64(epoch.Int),
-			Job:               uint32(job.Int),
+			CpuTimeSec:        uint64(cpuTime.Int64),
+			Epoch:             uint64(epoch.Int64),
+			Job:               uint32(job.Int64),
 			Hostname:          StringToUstr(node),
-			NumThreads:        uint32(numThreads.Int) + 1,
-			Pid:               uint64(pid.Int),
-			Ppid:              uint32(ppid.Int),
-			RssAnonKB:         uint64(residentMemory.Int),
+			NumThreads:        uint32(numThreads.Int64) + 1,
+			Pid:               uint64(pid.Int64),
+			Ppid:              uint32(ppid.Int64),
+			RssAnonKB:         uint64(residentMemory.Int64),
 			Rolledup:          uint32(rolledup),
 			Timestamp:         timestamp.UTC().Unix(),
 			User:              StringToUstr(user),
-			CpuKB:             uint64(virtualMemory.Int),
+			CpuKB:             uint64(virtualMemory.Int64),
 			Gpus:              gpus,
 			GpuPct:            gpuUtil,
 			GpuMemPct:         gpuMemoryUtil,
 			GpuKB:             gpuMemory,
 			InContainer:       inContainer,
 			CpuSampledUtilPct: float32(cpuUtil),
-			DataReadKB:        uint64(dataRead.Int),
-			DataWrittenKB:     uint64(dataWritten.Int),
-			DataCancelledKB:   uint64(dataCancelled.Int),
+			DataReadKB:        uint64(dataRead.Int64),
+			DataWrittenKB:     uint64(dataWritten.Int64),
+			DataCancelledKB:   uint64(dataCancelled.Int64),
 		}
 	}
 	return querySlice[repr.Sample](cdb, &q, verbose, unbox)
@@ -268,6 +268,9 @@ func (cdb *connectedDB) ReadNodeSamples(
 		load1, load15, load5                           float64
 		node                                           string
 		timestamp                                      time.Time
+
+		// Nullable, ignore NULL and treat as zero
+		bootp pgtype.Timestamptz
 	)
 
 	q := query{
@@ -276,25 +279,30 @@ func (cdb *connectedDB) ReadNodeSamples(
 		toDate:   toDate,
 		hosts:    hosts,
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
-		fields: "existing_entities, load1, load15, load5, node, " +
+		fields: "boot, existing_entities, load1, load15, load5, node, " +
 			"runnable_entities, time, used_memory",
 		boxes: []any{
-			&existingEntities, &load1, &load15, &load5, &node,
+			&bootp, &existingEntities, &load1, &load15, &load5, &node,
 			&runnableEntities, &timestamp, &usedMemory,
 		},
 	}
 
 	// Reference: ParseSamplesV0JSON
 	unbox := func() *repr.NodeSample {
+		var boot time.Time
+		if bootp.Valid {
+			boot = bootp.Time
+		}
 		return &repr.NodeSample{
-			ExistingEntities: uint64(existingEntities.Int),
+			ExistingEntities: uint64(existingEntities.Int64),
 			Hostname:         StringToUstr(node),
 			Load1:            load1,
 			Load5:            load5,
 			Load15:           load15,
-			RunnableEntities: uint64(runnableEntities.Int),
+			RunnableEntities: uint64(runnableEntities.Int64),
 			Timestamp:        timestamp.UTC().Unix(),
-			UsedMemory:       uint64(usedMemory.Int),
+			Boot:             boot.UTC().Unix(),
+			UsedMemory:       uint64(usedMemory.Int64),
 		}
 	}
 	return querySlice[repr.NodeSample](cdb, &q, verbose, unbox)
@@ -325,7 +333,7 @@ func (cdb *connectedDB) ReadCpuSamples(
 	unbox := func() *repr.CpuSamples {
 		cpuLoad := make([]uint64, len(cpus))
 		for i, n := range cpus {
-			cpuLoad[i] = uint64(n.Int)
+			cpuLoad[i] = uint64(n.Int64)
 		}
 		return &repr.CpuSamples{
 			Hostname:  StringToUstr(node),
@@ -383,18 +391,18 @@ func (cdb *connectedDB) ReadGpuSamples(
 			SampleGpu: &newfmt.SampleGpu{
 				Index:            uint64(index),
 				UUID:             newfmt.NonemptyString(uuid),
-				Failing:          uint64(failing.Int),
-				Fan:              uint64(fan.Int),
+				Failing:          uint64(failing.Int64),
+				Fan:              uint64(fan.Int64),
 				ComputeMode:      compute_mode,
-				PerformanceState: newfmt.ExtendedUint(performance_state.Int),
-				Memory:           uint64(memory.Int),
-				CEUtil:           uint64(ce_util.Int),
-				MemoryUtil:       uint64(memory_util.Int),
+				PerformanceState: newfmt.ExtendedUint(performance_state.Int64),
+				Memory:           uint64(memory.Int64),
+				CEUtil:           uint64(ce_util.Int64),
+				MemoryUtil:       uint64(memory_util.Int64),
 				Temperature:      int64(temperature),
-				Power:            uint64(power.Int),
-				PowerLimit:       uint64(power_limit.Int),
-				CEClock:          uint64(ce_clock.Int),
-				MemoryClock:      uint64(memory_clock.Int),
+				Power:            uint64(power.Int64),
+				PowerLimit:       uint64(power_limit.Int64),
+				CEClock:          uint64(ce_clock.Int64),
+				MemoryClock:      uint64(memory_clock.Int64),
 			},
 		}
 		return &repr.GpuSamples{
@@ -450,8 +458,8 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 			}
 		}
 		var numaNodes uint64
-		if numaNodesBox.Status == pgtype.Present {
-			numaNodes = uint64(numaNodesBox.Int)
+		if numaNodesBox.Valid {
+			numaNodes = uint64(numaNodesBox.Int64)
 		}
 		var topoSvg string
 		if topoSvgp != nil {
@@ -487,16 +495,16 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 			Architecture:   architecture,
 			Cards:          cards,
 			Cluster:        cluster,
-			CoresPerSocket: uint64(coresPerSocket.Int),
+			CoresPerSocket: uint64(coresPerSocket.Int64),
 			CpuModel:       cpuModel,
 			Distances:      ds,
-			Memory:         uint64(memory.Int),
+			Memory:         uint64(memory.Int64),
 			Node:           node,
 			OsName:         osName,
 			OsRelease:      osRelease,
 			NumaNodes:      numaNodes,
-			Sockets:        uint64(sockets.Int),
-			ThreadsPerCore: uint64(threadsPerCore.Int),
+			Sockets:        uint64(sockets.Int64),
+			ThreadsPerCore: uint64(threadsPerCore.Int64),
 			Time:           timestamp.Format(time.RFC3339),
 			TopoSVG:        topoSvg,
 			TopoText:       topoText,
@@ -548,13 +556,13 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 				Firmware:       firmware,
 				Index:          uint64(index),
 				Manufacturer:   manufacturer,
-				MaxCEClock:     uint64(maxCeClock.Int),
-				MaxMemoryClock: uint64(maxMemoryClock.Int),
-				MaxPowerLimit:  uint64(maxPowerLimit.Int),
-				Memory:         uint64(memory.Int),
-				MinPowerLimit:  uint64(minPowerLimit.Int),
+				MaxCEClock:     uint64(maxCeClock.Int64),
+				MaxMemoryClock: uint64(maxMemoryClock.Int64),
+				MaxPowerLimit:  uint64(maxPowerLimit.Int64),
+				Memory:         uint64(memory.Int64),
+				MinPowerLimit:  uint64(minPowerLimit.Int64),
 				Model:          model,
-				PowerLimit:     uint64(powerLimit.Int),
+				PowerLimit:     uint64(powerLimit.Int64),
 				UUID:           uuid,
 			},
 		}
@@ -613,15 +621,15 @@ func (cdb *connectedDB) ReadSacctData(
 	// Reference: ParseSlurmV0JSON
 	unbox := func() *repr.SacctInfo {
 		var start, end int64
-		if startTime.Status == pgtype.Present {
+		if startTime.Valid {
 			start = startTime.Time.UTC().Unix()
 		}
-		if endTime.Status == pgtype.Present {
+		if endTime.Valid {
 			end = endTime.Time.UTC().Unix()
 		}
 		var ajob uint32
-		if arrayJobId.Status == pgtype.Present {
-			ajob = uint32(arrayJobId.Int)
+		if arrayJobId.Valid {
+			ajob = uint32(arrayJobId.Int64)
 		}
 		var allocatedResources, requestedResources string
 		if allocatedResourcesp != nil {
@@ -681,10 +689,10 @@ func (cdb *connectedDB) ReadSacctData(
 			Start:        start,
 			End:          end,
 			Submit:       submitTime.UTC().Unix(),
-			SystemCPU:    uint64(systemCPU.Int),
-			UserCPU:      uint64(userCPU.Int),
-			AveCPU:       uint64(aveCPU.Int),
-			MinCPU:       uint64(minCPU.Int),
+			SystemCPU:    uint64(systemCPU.Int64),
+			UserCPU:      uint64(userCPU.Int64),
+			AveCPU:       uint64(aveCPU.Int64),
+			MinCPU:       uint64(minCPU.Int64),
 			Version:      v0,
 			User:         StringToUstr(userName),
 			JobName:      StringToUstr(jobName),
@@ -696,24 +704,27 @@ func (cdb *connectedDB) ReadSacctData(
 			NodeList:     StringToUstr(nodeNames),
 			Partition:    StringToUstr(partition),
 			ReqGPUS:      StringToUstr(reqGpu),
-			JobID:        uint32(jobId.Int),
+			AllocRes:     StringToUstr(allocatedResources),
+			ReqRes:       StringToUstr(requestedResources),
+			JobID:        uint32(jobId.Int64),
 			ArrayJobID:   ajob,
 			ArrayTaskID:  uint32(arrayTaskId),
-			HetJobID:     uint32(hetJobId.Int),
+			HetJobID:     uint32(hetJobId.Int64),
 			HetJobOffset: uint32(hetJobOffset),
-			AveDiskRead:  uint64(aveDiskRead.Int),
-			AveDiskWrite: uint64(aveDiskWrite.Int),
-			AveRSS:       uint64(aveRSS.Int),
-			AveVMSize:    uint64(aveVMSize.Int),
-			ElapsedRaw:   uint32(elapsedRaw.Int),
-			MaxRSS:       uint64(maxRSS.Int),
-			MaxVMSize:    uint64(maxVMSize.Int),
+			AveDiskRead:  uint64(aveDiskRead.Int64),
+			AveDiskWrite: uint64(aveDiskWrite.Int64),
+			AveRSS:       uint64(aveRSS.Int64),
+			AveVMSize:    uint64(aveVMSize.Int64),
+			ElapsedRaw:   uint32(elapsedRaw.Int64),
+			MaxRSS:       uint64(maxRSS.Int64),
+			MaxVMSize:    uint64(maxVMSize.Int64),
 			ReqCPUS:      uint32(requestedCpus),
 			ReqMem:       uint64(requestedMemoryPerNode),
 			ReqNodes:     uint32(requestedNodeCount),
-			Suspended:    uint32(suspendTime.Int),
-			TimelimitRaw: uint32(timeLimit.Int),
+			Suspended:    uint32(suspendTime.Int64),
+			TimelimitRaw: uint32(timeLimit.Int64),
 			ExitCode:     uint8(exitCode),
+			Priority:     uint64(priority.Int64),
 		}
 	}
 

@@ -32,6 +32,15 @@ var nodeprofFormatters = map[string]Formatter[*repr.NodeSample]{
 		},
 		Help: "(DateTimeValue) Full ISO timestamp of when the reading was taken",
 	},
+	"Boot": {
+		Fmt: func(d *repr.NodeSample, ctx PrintMods) string {
+			return FormatDateTimeValue((d.Boot), ctx)
+		},
+		Xtract: func(d *repr.NodeSample) any {
+			return d.Boot
+		},
+		Help: "(DateTimeValue) Full ISO timestamp for node's boot time",
+	},
 	"Hostname": {
 		Fmt: func(d *repr.NodeSample, ctx PrintMods) string {
 			return FormatUstr((d.Hostname), ctx)
@@ -99,6 +108,7 @@ var nodeprofFormatters = map[string]Formatter[*repr.NodeSample]{
 
 func init() {
 	DefAlias(nodeprofFormatters, "Timestamp", "timestamp")
+	DefAlias(nodeprofFormatters, "Boot", "boot")
 	DefAlias(nodeprofFormatters, "Hostname", "host")
 	DefAlias(nodeprofFormatters, "UsedMemory", "usedmem")
 	DefAlias(nodeprofFormatters, "Load1", "load1")
@@ -114,6 +124,12 @@ var nodeprofPredicates = map[string]Predicate[*repr.NodeSample]{
 		Convert: CvtString2DateTimeValue,
 		Compare: func(d *repr.NodeSample, v any) int {
 			return cmp.Compare((d.Timestamp), v.(DateTimeValue))
+		},
+	},
+	"Boot": Predicate[*repr.NodeSample]{
+		Convert: CvtString2DateTimeValue,
+		Compare: func(d *repr.NodeSample, v any) int {
+			return cmp.Compare((d.Boot), v.(DateTimeValue))
 		},
 	},
 	"Hostname": Predicate[*repr.NodeSample]{
@@ -183,7 +199,7 @@ func (c *NodeProfCommand) MaybeFormatHelp() *FormatHelp {
 // MT: Constant after initialization; immutable
 var nodeprofAliases = map[string][]string{
 	"Default": []string{"Timestamp", "Hostname", "UsedMemory", "Load1", "Load5", "RunnableEntities"},
-	"All":     []string{"Timestamp", "Hostname", "UsedMemory", "Load1", "Load5", "Load15", "RunnableEntities", "ExistingEntities"},
+	"All":     []string{"Timestamp", "Boot", "Hostname", "UsedMemory", "Load1", "Load5", "Load15", "RunnableEntities", "ExistingEntities"},
 }
 
 const nodeprofDefaultFields = "Default"
