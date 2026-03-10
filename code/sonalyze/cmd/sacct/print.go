@@ -37,6 +37,8 @@ FIELDS *SacctRegular
  ReqCPUS             int                  desc:"Raw requested CPU cores"
  ReqGPUS             Ustr                 desc:"Raw requested GPU cards"
  ReqNodes            int                  desc:"Raw requested system nodes"
+ ReqRes              Ustr                 desc:"Raw requested resources"
+ AllocRes            Ustr                 desc:"Raw allocated resources"
  Elapsed             int                  desc:"Time elapsed"
  Suspended           int                  desc:"Time suspended"
  Timelimit           int                  desc:"Time limit in seconds"
@@ -45,6 +47,7 @@ FIELDS *SacctRegular
  Partition           Ustr                 desc:"Requested partition"
  ArrayJobID          int                  desc:"ID of the overarching array job"
  ArrayTaskID         int                  desc:"Index of this job within an array job"
+ Priority            int                  desc:"Job's priority, if any"
 
 GENERATE SacctRegular
 
@@ -115,6 +118,9 @@ func (sc *SacctCommand) printRegularJobs(stdout io.Writer, regular []*sacctSumma
 			ReqGPUS:             r.Main.ReqGPUS,
 			ArrayJobID:          int(r.Main.ArrayJobID),
 			ArrayTaskID:         int(r.Main.ArrayTaskID),
+			Priority:            int(r.Main.Priority),
+			AllocRes:            r.Main.AllocRes,
+			ReqRes:              r.Main.ReqRes,
 		}
 	}
 	toPrint, err := ApplyQuery(sc.ParsedQuery, sacctFormatters, sacctPredicates, toPrint)

@@ -124,7 +124,6 @@ FIELDS *jobSummary
   ElapsedRaw         uint32        desc:"The job's elapsed time (sec) (Slurm)" indirect:"sacctInfo"
   # End above
   ExitCode           uint8         desc:"Exit code of job (Slurm)" indirect:"sacctInfo"
-  ExitSignal         uint8         desc:"Exit signal of job (Slurm)" indirect:"sacctInfo"
   HetJobID           uint32        desc:"The overarching ID of a heterogenous job, or 0 (Slurm)." indirect:"sacctInfo"
   HetJobOffset       uint32        desc:"The het job element's index (Slurm)" indirect:"sacctInfo"
   HetStep            Ustr          desc:"The name of the step, or empty string (Slurm)" indirect:"sacctInfo"
@@ -137,6 +136,7 @@ FIELDS *jobSummary
   MinCPU             uint64        desc:"Minimum (system + user) CPU time of all tasks in job (KB) (Slurm)" indirect:"sacctInfo"
   NodeList           Ustr          desc:"The nodes allocated to the job or step (Slurm)" indirect:"sacctInfo"
   Partition          Ustr          desc:"Partition of job (Slurm)" indirect:"sacctInfo"
+  Priority           uint64        desc:"Job priority (Slurm)" indirect:"sacctInfo"
   ReqCPUS            uint32        desc:"Number of requested CPUs (Slurm)" indirect:"sacctInfo"
   ReqGPUS            Ustr          desc:"Names of requested GPUs (Slurm AllocTRES)" indirect:"sacctInfo"
   ReqMem             uint64        desc:"Requested memory in KB (Slurm)" indirect:"sacctInfo"

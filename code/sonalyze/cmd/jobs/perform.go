@@ -589,6 +589,7 @@ func synthesizeSacctDataFromSonarData(
 			NodeList:     StringToUstr(FormatHostnames(s.Hosts, PrintModFixed)),
 			ReqCPUS:      uint32(s.computed[kThreadPeak]), // Requested = peak threads observed, not great
 			ReqGPUS:      StringToUstr(requestedGpus),
+			ReqRes:       StringToUstr(requestedGpus),
 			ReqMem:       maxVM, // Requested = max of any task at any time
 			Start:        s.Start,
 			State:        state,
@@ -599,17 +600,18 @@ func synthesizeSacctDataFromSonarData(
 			Version:      s.job.Samples[0].Version, // For synthesized data, always 0.0.0
 
 			// We don't have these:
+			// AllocRes
 			// ArrayJobID
 			// ArrayStep
 			// ArrayTaskID
 			// ExitCode
-			// ExitSignal
 			// HetJobID
 			// HetJobOffset
 			// HetStep
 			// JobStep
 			// Layout
 			// Partition
+			// Priority
 			// ReqNodes
 			// Reservation
 			// Suspended

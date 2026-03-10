@@ -75,6 +75,8 @@ type SacctInfo struct {
 	NodeList     Ustr // compressed nodelist, for now, though this could be problematic
 	Partition    Ustr
 	ReqGPUS      Ustr // comma-separated list of model=n and/or *=n from AllocTRES field
+	AllocRes     Ustr
+	ReqRes       Ustr
 	JobID        uint32
 	ArrayJobID   uint32
 	ArrayTaskID  uint32
@@ -86,7 +88,7 @@ type SacctInfo struct {
 	Suspended    uint32 // seconds of real time
 	TimelimitRaw uint32 // *seconds* of real time (input data has minutes)
 	ExitCode     uint8  // the code part of code:signal
-	ExitSignal   uint8  // the signal part of code:signal - only in older data
+	Priority     uint64
 }
 
 var (

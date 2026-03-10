@@ -13,6 +13,7 @@ import (
 // newfmt=github.com/NordicHPC/sonar/util/formats/newfmt.
 type NodeSample struct {
 	Timestamp        int64
+	Boot             int64
 	Hostname         Ustr
 	UsedMemory       uint64
 	Load1            float64

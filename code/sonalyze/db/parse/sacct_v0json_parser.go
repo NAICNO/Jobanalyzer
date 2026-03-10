@@ -58,6 +58,10 @@ func ParseSlurmV0JSON(
 			if job.Timelimit >= newfmt.ExtendedUintBase {
 				timelimit, _ = job.Timelimit.ToUint()
 			}
+			priority := uint64(0)
+			if job.Priority >= newfmt.ExtendedUintBase {
+				priority, _ = job.Priority.ToUint()
+			}
 			// This is probably not quite the logic we want yet: it conflates requested and
 			// allocated, and we probably want to avoid that.
 			var allocGPUS Ustr
@@ -68,6 +72,16 @@ func ParseSlurmV0JSON(
 			// In older data, go to the sacct auxiliary data.
 			if allocGPUS == UstrEmpty {
 				allocGPUS, gputmp = ParseSlurmGPUResources([]byte(sacct.AllocTRES), ustrs, gputmp)
+			}
+			var allocRes Ustr
+			if job.AllocTRES != "" {
+				allocRes = ustrs.Alloc(job.AllocTRES)
+			} else if sacct.AllocTRES != "" {
+				allocRes = ustrs.Alloc(sacct.AllocTRES)
+			}
+			var reqRes Ustr
+			if job.ReqTRES != "" {
+				reqRes = ustrs.Alloc(job.ReqTRES)
 			}
 			var nodes strings.Builder
 			for _, v := range job.NodeList {
@@ -98,6 +112,8 @@ func ParseSlurmV0JSON(
 				NodeList:     ustrs.Alloc(nodes.String()),
 				Partition:    ustrs.Alloc(job.Partition),
 				ReqGPUS:      allocGPUS, // "ReqGPUS" is misnamed
+				AllocRes:     allocRes,
+				ReqRes:       reqRes,
 				JobID:        uint32(job.JobID),
 				ArrayJobID:   uint32(job.ArrayJobID),
 				ArrayTaskID:  uint32(job.ArrayTaskID),
@@ -116,7 +132,7 @@ func ParseSlurmV0JSON(
 				Suspended:    uint32(job.Suspended),
 				TimelimitRaw: uint32(timelimit),
 				ExitCode:     uint8(job.ExitCode),
-				ExitSignal:   0, // not available
+				Priority:     priority,
 			})
 		}
 	})
