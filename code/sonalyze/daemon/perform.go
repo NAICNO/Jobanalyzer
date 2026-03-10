@@ -30,6 +30,7 @@ import (
 	"go-utils/process"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/daemon/restapi"
 	"sonalyze/db"
 	"sonalyze/db/special"
 )
@@ -100,6 +101,10 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 		// upload infra already running on the clusters.  We'd like to get rid of them eventually.
 		http.HandleFunc("/sonar-freecsv", httpPostHandler(dc, "sample", "text/csv"))
 		http.HandleFunc("/sysinfo", httpPostHandler(dc, "sysinfo", "application/json"))
+	}
+
+	if dc.restAPI != "" {
+		go restapi.RestAPI(dc.restAPI)
 	}
 
 	var programFailed bool
