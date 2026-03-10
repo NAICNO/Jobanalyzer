@@ -80,6 +80,12 @@
 //   Kafka channel for the clusters found in the data directory.  It should be the only consumer
 //   for those data.  The broker-address is normally on the form hostname:port.
 //
+// -rest-api <interface>
+//
+//   EXPERIMENTAL.  The daemon will present a subset of the slurm-monitor REST API on the given
+//   interface (in the form interface:port, e.g. "localhost:8888").  Access the /openapi.json
+//   or /openapi.yaml endpoint on that interface to retrieve API documentation.
+//
 // Termination:
 //
 //  Sending SIGHUP or SIGTERM to `sonalyze daemon` will shut it down in an orderly manner.
@@ -129,6 +135,7 @@ type DaemonCommand struct {
 	matchUserAndCluster bool
 	kafkaBroker         string
 	noAdd               bool
+	restAPI             string
 
 	getAuthenticator  *auth.Authenticator
 	postAuthenticator *auth.Authenticator
@@ -153,6 +160,7 @@ func (dc *DaemonCommand) Add(fs *CLI) {
 	fs.StringVar(&dc.getAuthFile, "password-file", "", "Alias for -analysis-auth")
 	fs.StringVar(&dc.kafkaBroker, "kafka", "", "Ingest data from this broker for all known clusters")
 	fs.BoolVar(&dc.noAdd, "no-add", false, "Disable HTTPS ingestion")
+	fs.StringVar(&dc.restAPI, "rest-api", "", "Enable subset slurm-monitor API on this interface:port")
 }
 
 //go:embed summary.txt

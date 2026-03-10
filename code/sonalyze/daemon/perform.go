@@ -30,6 +30,7 @@ import (
 	"go-utils/process"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/daemon/restapi"
 	"sonalyze/db"
 	"sonalyze/db/special"
 )
@@ -102,6 +103,10 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 		http.HandleFunc("/sysinfo", httpPostHandler(dc, "sysinfo", "application/json"))
 	}
 
+	if dc.restAPI != "" {
+		go restapi.RestAPI(dc.restAPI)
+	}
+
 	var programFailed bool
 	s := httpsrv.New(dc.Verbose, int(dc.port), func(err error) {
 		programFailed = true
@@ -115,6 +120,9 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	// cache).  Really we must be purging the entire LogFile cache in this case too.
 	process.WaitForSignal(syscall.SIGHUP, syscall.SIGTERM)
 	s.Stop()
+	if dc.restAPI != "" {
+		restapi.StopRestAPI()
+	}
 
 	if programFailed {
 		return errors.New("HTTP server failed to start, or errored out")
