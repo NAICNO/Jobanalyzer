@@ -1,6 +1,0 @@
-# yaml-language-server: ...
-package: daemon
-generate:
-  std-http-server: true
-  models: true
-output: slurm-monitor-gen.go
