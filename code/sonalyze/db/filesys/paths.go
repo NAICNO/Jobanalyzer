@@ -5,9 +5,9 @@ import (
 )
 
 const (
-	dataDirName          = "data"
-	reportDirName        = "reports"
-	clusterConfigDirName = "cluster-config"
+	dataDirName            = "data"
+	reportDirName          = "reports"
+	clusterConfigDirName   = "cluster-config"
 	clusterAliasesFilename = "cluster-aliases.json"
 )
 
@@ -37,4 +37,3 @@ func MakeClusterDataDirPath(jobanalyzerDir string) string {
 func MakeClusterAliasesPath(jobanalyzerDir string) string {
 	return path.Join(jobanalyzerDir, clusterConfigDirName, clusterAliasesFilename)
 }
-
