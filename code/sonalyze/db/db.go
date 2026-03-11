@@ -61,15 +61,15 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 			return err
 		}
 		for _, e := range dirEntries {
-			if e.IsDir() {
-				c := special.NewClusterEntry()
-				c.Name = e.Name()
-				c.HaveDataDir = true
-				c.DataDir = filesys.MakeClusterDataPath(jobanalyzerDir, c.Name)
-				c.HaveReportDir = true
-				c.ReportDir = filesys.MakeReportDirPath(jobanalyzerDir, c.Name)
-				clusters[c.Name] = c
-			}
+			// We could filter on directories here but e.IsDir() is not by itself enough, as it
+			// returns false for symlinks and we should support symlinks to directories.
+			c := special.NewClusterEntry()
+			c.Name = e.Name()
+			c.HaveDataDir = true
+			c.DataDir = filesys.MakeClusterDataPath(jobanalyzerDir, c.Name)
+			c.HaveReportDir = true
+			c.ReportDir = filesys.MakeReportDirPath(jobanalyzerDir, c.Name)
+			clusters[c.Name] = c
 		}
 	}
 
