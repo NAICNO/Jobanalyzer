@@ -24,6 +24,7 @@ func ParseSamplesV0JSON(
 ) (
 	samples []*repr.Sample,
 	nodeSamples []*repr.NodeSample,
+	diskSamples []*repr.DiskSample,
 	loadData []*repr.CpuSamples,
 	gpuData []*repr.GpuSamples,
 	softErrors int,
@@ -31,6 +32,7 @@ func ParseSamplesV0JSON(
 ) {
 	samples = make([]*repr.Sample, 0)
 	nodeSamples = make([]*repr.NodeSample, 0)
+	diskSamples = make([]*repr.DiskSample, 0)
 	loadData = make([]*repr.CpuSamples, 0)
 	gpuData = make([]*repr.GpuSamples, 0)
 	err = newfmt.ConsumeJSONSamples(input, false, func(r *newfmt.SampleEnvelope) {
@@ -82,6 +84,36 @@ func ParseSamplesV0JSON(
 				Hostname:  node,
 				Encoded:   repr.EncodedGpuSamplesFromValues(encodedGpuData),
 			})
+		}
+		disks := data.System.Disks
+		if len(disks) > 0 {
+			for _, disk := range disks {
+				stats := disk.Stats
+				diskSamples = append(diskSamples, &repr.DiskSample{
+					Timestamp:         timestamp,
+					Hostname:          node,
+					Name:              StringToUstr(disk.Name),
+					Major:             disk.Major,
+					Minor:             disk.Minor,
+					ReadsCompleted:    maybe(stats, 0),
+					ReadsMerged:       maybe(stats, 1),
+					SectorsRead:       maybe(stats, 2),
+					MsReading:         maybe(stats, 3),
+					WritesCompleted:   maybe(stats, 4),
+					WritesMerged:      maybe(stats, 5),
+					SectorsWritten:    maybe(stats, 6),
+					MsWriting:         maybe(stats, 7),
+					IOsInProgress:     maybe(stats, 8),
+					MsDoingIO:         maybe(stats, 9),
+					WeightedMsDoingIO: maybe(stats, 10),
+					DiscardsCompleted: maybe(stats, 11),
+					DiscardsMerged:    maybe(stats, 12),
+					SectorsDiscarded:  maybe(stats, 13),
+					MsDiscarding:      maybe(stats, 14),
+					FlushesCompleted:  maybe(stats, 15),
+					MsFlushing:        maybe(stats, 16),
+				})
+			}
 		}
 		nodeSamples = append(nodeSamples, &repr.NodeSample{
 			Timestamp:        timestamp,
@@ -155,4 +187,11 @@ func ParseSamplesV0JSON(
 		}
 	})
 	return
+}
+
+func maybe(xs []uint64, x int) uint64 {
+	if x >= len(xs) {
+		return 0
+	}
+	return xs[x]
 }

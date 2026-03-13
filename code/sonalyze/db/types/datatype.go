@@ -22,6 +22,7 @@ const (
 	NodeSampleData
 	CpuSampleData
 	GpuSampleData
+	DiskSampleData
 	NodeData
 	CardData
 	SlurmJobData
@@ -31,7 +32,7 @@ const (
 
 	// Canonical sets of types: these are the data that are represented together in the same file,
 	// in a file-based store.
-	ProcessSampleData = SampleData | NodeSampleData | CpuSampleData | GpuSampleData
+	ProcessSampleData = SampleData | NodeSampleData | CpuSampleData | GpuSampleData | DiskSampleData
 	SysinfoData       = NodeData | CardData
 	SlurmSystemData   = SlurmNodeData | SlurmPartitionData | SlurmClusterData
 )

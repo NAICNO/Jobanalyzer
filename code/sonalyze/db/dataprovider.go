@@ -31,11 +31,12 @@ const (
 //
 // Time bounds given to readers and file name extractors must be UTC.
 
-// SampleDataProvider is a reader for data in "Sample" data streams, which carry process samples,
-// CPU load data, and GPU utilization data.
+// SampleDataProvider is a reader for data in "Sample" data streams, which carry process samples
+// and node, disk, CPU and GPU utilization data.
 type SampleDataProvider interface {
 	ProcessSampleDataProvider
 	NodeSampleDataProvider
+	DiskSampleDataProvider
 	CpuSampleDataProvider
 	GpuSampleDataProvider
 }
@@ -66,6 +67,14 @@ type NodeSampleDataProvider interface {
 		hosts *Hosts,
 		verbose bool,
 	) (sampleBlobs [][]*repr.NodeSample, softErrors int, err error)
+}
+
+type DiskSampleDataProvider interface {
+	ReadDiskSamples(
+		fromDate, toDate time.Time,
+		hosts *Hosts,
+		verbose bool,
+	) (dataBlobs [][]*repr.DiskSample, softErrors int, err error)
 }
 
 type CpuSampleDataProvider interface {

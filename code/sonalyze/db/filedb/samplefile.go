@@ -14,6 +14,7 @@ type SampleDataNeeded int
 const (
 	DataNeedSamples SampleDataNeeded = iota
 	DataNeedNodeSamples
+	DataNeedDiskSamples
 	DataNeedCpuSamples
 	DataNeedGpuSamples
 )
@@ -30,6 +31,7 @@ type SampleFileKind int
 const (
 	SampleFileKindSample SampleFileKind = iota
 	SampleFileKindNodeSample
+	SampleFileKindDiskSample
 	SampleFileKindCpuSamples
 	SampleFileKindGpuSamples
 )
@@ -40,6 +42,8 @@ func NewSampleFileMethods(kind SampleFileKind) *sampleFileReadSyncMethods {
 		return &sampleFileReadSyncMethods{DataNeedSamples}
 	case SampleFileKindNodeSample:
 		return &sampleFileReadSyncMethods{DataNeedNodeSamples}
+	case SampleFileKindDiskSample:
+		return &sampleFileReadSyncMethods{DataNeedDiskSamples}
 	case SampleFileKindCpuSamples:
 		return &sampleFileReadSyncMethods{DataNeedCpuSamples}
 	case SampleFileKindGpuSamples:
@@ -52,6 +56,7 @@ func NewSampleFileMethods(kind SampleFileKind) *sampleFileReadSyncMethods {
 type sampleData struct {
 	samples     []*repr.Sample
 	nodeSamples []*repr.NodeSample
+	diskSamples []*repr.DiskSample
 	cpuSamples  []*repr.CpuSamples
 	gpuSamples  []*repr.GpuSamples
 }
@@ -85,10 +90,11 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLocked(
 ) (payload any, softErrors int, err error) {
 	var samples []*repr.Sample
 	var nodeSamples []*repr.NodeSample
+	var diskSamples []*repr.DiskSample
 	var cpuSamples []*repr.CpuSamples
 	var gpuSamples []*repr.GpuSamples
 	if (attr & FileSampleV0JSON) != 0 {
-		samples, nodeSamples, cpuSamples, gpuSamples, softErrors, err =
+		samples, nodeSamples, diskSamples, cpuSamples, gpuSamples, softErrors, err =
 			parse.ParseSamplesV0JSON(inputFile, uf, verbose)
 	} else {
 		samples, cpuSamples, gpuSamples, softErrors, err =
@@ -97,7 +103,7 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLocked(
 	if err != nil {
 		return
 	}
-	payload = &sampleData{samples, nodeSamples, cpuSamples, gpuSamples}
+	payload = &sampleData{samples, nodeSamples, diskSamples, cpuSamples, gpuSamples}
 	return
 }
 
@@ -137,6 +143,14 @@ func readNodeSampleSlice(
 	reader ReadSyncMethods,
 ) (sampleBlobs [][]*repr.NodeSample, dropped int, err error) {
 	return readRecordsFromFiles[repr.NodeSample](files, verbose, reader)
+}
+
+func readDiskSampleSlice(
+	files []*LogFile,
+	verbose bool,
+	reader ReadSyncMethods,
+) (sampleBlobs [][]*repr.DiskSample, dropped int, err error) {
+	return readRecordsFromFiles[repr.DiskSample](files, verbose, reader)
 }
 
 func readCpuSamplesSlice(

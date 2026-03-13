@@ -91,6 +91,7 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 	// MT: Immutable after initialization
 	samplesMethods           ReadSyncMethods
 	nodeSamplesMethods       ReadSyncMethods
+	diskSamplesMethods       ReadSyncMethods
 	loadDataMethods          ReadSyncMethods
 	gpuDataMethods           ReadSyncMethods
 	sysinfoNodeDataMethods   ReadSyncMethods
@@ -147,6 +148,7 @@ func NewPersistentCluster(dataDir string, meta types.Context) *PersistentCluster
 	return &PersistentCluster{
 		samplesMethods:           NewSampleFileMethods(SampleFileKindSample),
 		nodeSamplesMethods:       NewSampleFileMethods(SampleFileKindNodeSample),
+		diskSamplesMethods:       NewSampleFileMethods(SampleFileKindDiskSample),
 		loadDataMethods:          NewSampleFileMethods(SampleFileKindCpuSamples),
 		gpuDataMethods:           NewSampleFileMethods(SampleFileKindGpuSamples),
 		sysinfoNodeDataMethods:   NewSysinfoFileMethods(SysinfoFileKindNodeData),
@@ -301,6 +303,21 @@ func (pc *PersistentCluster) ReadNodeSamples(
 	return readPersistentClusterRecords(
 		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.nodeSamplesMethods,
 		readNodeSampleSlice,
+	)
+}
+
+func (pc *PersistentCluster) ReadDiskSamples(
+	fromDate, toDate time.Time,
+	hosts *Hosts,
+	verbose bool,
+) (sampleBlobs [][]*repr.DiskSample, dropped int, err error) {
+	if DEBUG {
+		Assert(fromDate.Location() == time.UTC, "UTC expected")
+		Assert(toDate.Location() == time.UTC, "UTC expected")
+	}
+	return readPersistentClusterRecords(
+		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.diskSamplesMethods,
+		readDiskSampleSlice,
 	)
 }
 

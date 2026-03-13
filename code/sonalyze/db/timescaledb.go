@@ -308,6 +308,70 @@ func (cdb *connectedDB) ReadNodeSamples(
 	return querySlice[repr.NodeSample](cdb, &q, verbose, unbox)
 }
 
+func (cdb *connectedDB) ReadDiskSamples(
+	fromDate, toDate time.Time,
+	hosts *Hosts,
+	verbose bool,
+) (dataBlobs [][]*repr.DiskSample, softErrors int, err error) {
+	var (
+		name, node                                                                    string
+		timestamp                                                                     time.Time
+		discards_completed, discards_merged, flush_requests_completed                 pgtype.Int8
+		ios_currently_in_progress, major, minor, ms_spent_discarding                  pgtype.Int8
+		ms_spent_doing_ios, ms_spent_flushing, ms_spent_reading, ms_spent_writing     pgtype.Int8
+		reads_completed, reads_merged, sectors_discarded, sectors_read                pgtype.Int8
+		sectors_written, weighted_ms_spent_doing_ios, writes_completed, writes_merged pgtype.Int8
+	)
+
+	q := query{
+		table:    "sample_disk",
+		fromDate: fromDate,
+		toDate:   toDate,
+		hosts:    hosts,
+		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
+		fields: "discards_completed, discards_merged, flush_requests_completed, " +
+			"ios_currently_in_progress, major, minor, ms_spent_discarding, " +
+			"ms_spent_doing_ios, ms_spent_flushing, ms_spent_reading, ms_spent_writing, " +
+			"name, node, reads_completed, reads_merged, sectors_discarded, sectors_read, " +
+			"sectors_written, time, weighted_ms_spent_doing_ios, writes_completed, writes_merged",
+		boxes: []any{&discards_completed, &discards_merged, &flush_requests_completed,
+			&ios_currently_in_progress, &major, &minor, &ms_spent_discarding,
+			&ms_spent_doing_ios, &ms_spent_flushing, &ms_spent_reading, &ms_spent_writing,
+			&name, &node, &reads_completed, &reads_merged, &sectors_discarded, &sectors_read,
+			&sectors_written, &timestamp, &weighted_ms_spent_doing_ios, &writes_completed, &writes_merged,
+		},
+	}
+
+	// Reference: ParseSamplesV0JSON
+	unbox := func() *repr.DiskSample {
+		return &repr.DiskSample{
+			Timestamp:         timestamp.UTC().Unix(),
+			Hostname:          StringToUstr(node),
+			Name:              StringToUstr(name),
+			Major:             uint64(major.Int64),
+			Minor:             uint64(minor.Int64),
+			ReadsCompleted:    uint64(reads_completed.Int64),
+			ReadsMerged:       uint64(reads_merged.Int64),
+			SectorsRead:       uint64(sectors_read.Int64),
+			MsReading:         uint64(ms_spent_reading.Int64),
+			WritesCompleted:   uint64(writes_completed.Int64),
+			WritesMerged:      uint64(writes_merged.Int64),
+			SectorsWritten:    uint64(sectors_written.Int64),
+			MsWriting:         uint64(ms_spent_writing.Int64),
+			IOsInProgress:     uint64(ios_currently_in_progress.Int64),
+			MsDoingIO:         uint64(ms_spent_doing_ios.Int64),
+			WeightedMsDoingIO: uint64(weighted_ms_spent_doing_ios.Int64),
+			DiscardsCompleted: uint64(discards_completed.Int64),
+			DiscardsMerged:    uint64(discards_merged.Int64),
+			SectorsDiscarded:  uint64(sectors_discarded.Int64),
+			MsDiscarding:      uint64(ms_spent_discarding.Int64),
+			FlushesCompleted:  uint64(flush_requests_completed.Int64),
+			MsFlushing:        uint64(ms_spent_flushing.Int64),
+		}
+	}
+	return querySlice[repr.DiskSample](cdb, &q, verbose, unbox)
+}
+
 func (cdb *connectedDB) ReadCpuSamples(
 	fromDate, toDate time.Time,
 	hosts *Hosts,

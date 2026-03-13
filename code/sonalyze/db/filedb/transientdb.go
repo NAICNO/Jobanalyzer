@@ -47,6 +47,7 @@ type TransientSampleCluster struct /* implements SampleCluster */ {
 	// MT: Immutable after initialization
 	samplesMethods     ReadSyncMethods
 	nodeSamplesMethods ReadSyncMethods
+	diskSamplesMethods ReadSyncMethods
 	loadDataMethods    ReadSyncMethods
 	gpuDataMethods     ReadSyncMethods
 
@@ -61,6 +62,7 @@ func NewTransientSampleCluster(
 	return &TransientSampleCluster{
 		samplesMethods:     NewSampleFileMethods(SampleFileKindSample),
 		nodeSamplesMethods: NewSampleFileMethods(SampleFileKindNodeSample),
+		diskSamplesMethods: NewSampleFileMethods(SampleFileKindDiskSample),
 		loadDataMethods:    NewSampleFileMethods(SampleFileKindCpuSamples),
 		gpuDataMethods:     NewSampleFileMethods(SampleFileKindGpuSamples),
 		TransientCluster: TransientCluster{
@@ -91,6 +93,14 @@ func (tsc *TransientSampleCluster) ReadNodeSamples(
 	verbose bool,
 ) (sampleBlobs [][]*repr.NodeSample, dropped int, err error) {
 	return readNodeSampleSlice(tsc.files, verbose, tsc.nodeSamplesMethods)
+}
+
+func (tsc *TransientSampleCluster) ReadDiskSamples(
+	_, _ time.Time,
+	_ *Hosts,
+	verbose bool,
+) (sampleBlobs [][]*repr.DiskSample, dropped int, err error) {
+	return readDiskSampleSlice(tsc.files, verbose, tsc.diskSamplesMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadCpuSamples(
