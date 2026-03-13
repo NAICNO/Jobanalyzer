@@ -9,6 +9,7 @@ import (
 	"sonalyze/cmd/cards"
 	"sonalyze/cmd/clusters"
 	"sonalyze/cmd/configs"
+	"sonalyze/cmd/diskprof"
 	"sonalyze/cmd/gpus"
 	"sonalyze/cmd/jobs"
 	"sonalyze/cmd/load"
@@ -34,6 +35,7 @@ func CommandHelp(out io.Writer) {
 	fmt.Fprintf(out, "  card     - print card information extracted from sysinfo table\n")
 	fmt.Fprintf(out, "  cluster  - print cluster information\n")
 	fmt.Fprintf(out, "  config   - print node information extracted from cluster config\n")
+	fmt.Fprintf(out, "  diskprof - print disk profile information extracted from sample table\n")
 	fmt.Fprintf(out, "  gpu      - print per-gpu load information data across time\n")
 	fmt.Fprintf(out, "  jobs     - summarize and filter jobs\n")
 	fmt.Fprintf(out, "  load     - print system load across time\n")
@@ -66,6 +68,8 @@ func ConstructCommand(verb string) (command cmd.Command, actualVerb string) {
 		command = new(clusters.ClusterCommand)
 	case "config":
 		command = new(configs.ConfigCommand)
+	case "diskprof":
+		command = new(diskprof.DiskProfCommand)
 	case "gpu":
 		command = new(gpus.GpuCommand)
 	case "jobs":
