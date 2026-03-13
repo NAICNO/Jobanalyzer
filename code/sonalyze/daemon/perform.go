@@ -78,6 +78,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	http.HandleFunc("/card", httpGetHandler(dc, "card"))
 	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))
 	http.HandleFunc("/config", httpGetHandler(dc, "config"))
+	http.HandleFunc("/diskprof", httpGetHandler(dc, "diskprof"))
 	http.HandleFunc("/gpu", httpGetHandler(dc, "gpu"))
 	http.HandleFunc("/jobs", httpGetHandler(dc, "jobs"))
 	http.HandleFunc("/load", httpGetHandler(dc, "load"))
