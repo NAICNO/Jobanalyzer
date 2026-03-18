@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router'
 import { useFormik } from 'formik'
 import { AgGridReact } from 'ag-grid-react'
@@ -30,9 +30,13 @@ import {
 
 import type { JobResponse, GetClusterByClusterQueryJobsPagesData } from '../../client'
 import { useJobQueryPages } from '../../hooks/v2/useJobQueries'
+import { useUserSettings } from '../../hooks/v2/useUserSettings'
+import { useTableState } from '../../hooks/v2/useTableState'
 import { JobState } from '../../types/jobStates'
 import { getJobStateColor, formatDurationBetweenDates, formatDateTimeToLocaleString } from '../../util/formatters'
 import { LuChevronDown, LuChevronRight, LuChevronLeft } from 'react-icons/lu'
+import { QueryPresets, ActivePresetBadge } from '../../components/v2/QueryPresets'
+import type { JobQueryPresetFilters } from '../../types/userSettings'
 
 interface JobQueryFormValues {
   user: string
@@ -184,6 +188,18 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
 
   const [searchParams, setSearchParams] = useSearchParams()
   const client = useClusterClient(clusterName)
+  const { settings, updateSettings, isSaving } = useUserSettings({ client })
+  const { onGridReady: onQueryGridReady, onStateChanged: onQueryStateChanged } = useTableState({
+    tableKey: 'jobQuery',
+    settings,
+    updateSettings,
+  })
+
+  // Preset state
+  const [activePresetId, setActivePresetId] = useState<string | null>(null)
+  const [presetSnapshot, setPresetSnapshot] = useState<JobQueryPresetFilters | null>(null)
+  const [highlightedFields, setHighlightedFields] = useState<Set<string>>(new Set())
+
   if (!client) {
     return <Spinner />
   }
@@ -270,6 +286,68 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
       syncToUrl(values, 1, pageSize)
     },
   })
+
+  // Preset: detect dirty state (form changed after loading a preset)
+  const isDirty = useMemo(() => {
+    if (!presetSnapshot || !activePresetId) return false
+    const fields: (keyof JobQueryPresetFilters)[] = [
+      'user', 'userId', 'jobId', 'states',
+      'startAfter', 'startBefore', 'endAfter', 'endBefore',
+      'submitAfter', 'submitBefore', 'minDuration', 'maxDuration',
+    ]
+    return fields.some((key) => (formik.values[key] || '') !== (presetSnapshot[key] || ''))
+  }, [formik.values, presetSnapshot, activePresetId])
+
+  // Preset: load handler with diff-highlight animation
+  const handleLoadPreset = useCallback((filters: JobQueryPresetFilters) => {
+    const changedFields = new Set<string>()
+    const newValues: JobQueryFormValues = {
+      user: filters.user ?? '',
+      userId: filters.userId ?? '',
+      jobId: filters.jobId ?? '',
+      states: filters.states ?? '',
+      startAfter: filters.startAfter ?? '',
+      startBefore: filters.startBefore ?? '',
+      endAfter: filters.endAfter ?? '',
+      endBefore: filters.endBefore ?? '',
+      submitAfter: filters.submitAfter ?? '',
+      submitBefore: filters.submitBefore ?? '',
+      minDuration: filters.minDuration ?? '',
+      maxDuration: filters.maxDuration ?? '',
+    }
+
+    for (const [key, val] of Object.entries(newValues)) {
+      if (val !== formik.values[key as keyof JobQueryFormValues]) {
+        changedFields.add(key)
+      }
+    }
+
+    formik.setValues(newValues)
+    setPresetSnapshot(filters)
+
+    // Find the preset ID from the loaded filters
+    const preset = (settings.jobQueryPresets ?? []).find(
+      (p) => JSON.stringify(p.filters) === JSON.stringify(filters),
+    )
+    setActivePresetId(preset?.id ?? null)
+
+    // Trigger diff-highlight animation
+    if (changedFields.size > 0) {
+      setHighlightedFields(changedFields)
+      setTimeout(() => setHighlightedFields(new Set()), 400)
+    }
+
+    setIsFormOpen(true)
+  }, [formik, settings.jobQueryPresets])
+
+  // Helper: get highlight style for a field
+  const getHighlightStyle = (fieldName: string) => {
+    if (!highlightedFields.has(fieldName)) return {}
+    return {
+      bg: 'blue.50',
+      transition: 'background-color 0.4s ease-out',
+    }
+  }
 
   // Restore query on mount if URL has search params
   const hasRestoredRef = useRef(false)
@@ -360,31 +438,49 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
       <Box w="100%" borderWidth="1px" borderColor="gray.200" rounded="md" p={3} bg="white">
         <form onSubmit={formik.handleSubmit}>
           <Collapsible.Root open={isFormOpen} onOpenChange={(e) => setIsFormOpen(e.open)}>
-            <Collapsible.Trigger
-              width="100%"
-              display="flex"
-              alignItems="center"
-              gap={2}
-              py={2}
-              px={1}
-              _hover={{ bg: 'gray.50' }}
-              rounded="md"
-              transition="background 0.2s"
-            >
-              <Icon fontSize="xl">
-                <Collapsible.Context>
-                  {(api) => (api.open ? <LuChevronDown/> : <LuChevronRight />)}
-                </Collapsible.Context>
-              </Icon>
-              <VStack align="start" gap={0} flex="1">
-                <Text fontSize="lg" fontWeight="semibold">Search Criteria</Text>
-                {!isFormOpen && (
-                  <Text fontSize="xs" color="gray.500" truncate maxW="100%">
-                    {filterSummary}
-                  </Text>
-                )}
-              </VStack>
-            </Collapsible.Trigger>
+            <HStack w="100%" gap={0}>
+              <Collapsible.Trigger
+                flex="1"
+                display="flex"
+                alignItems="center"
+                gap={2}
+                py={2}
+                px={1}
+                _hover={{ bg: 'gray.50' }}
+                rounded="md"
+                transition="background 0.2s"
+              >
+                <Icon fontSize="xl">
+                  <Collapsible.Context>
+                    {(api) => (api.open ? <LuChevronDown/> : <LuChevronRight />)}
+                  </Collapsible.Context>
+                </Icon>
+                <VStack align="start" gap={0} flex="1">
+                  <HStack gap={2}>
+                    <Text fontSize="lg" fontWeight="semibold">Search Criteria</Text>
+                    <ActivePresetBadge
+                      preset={(settings.jobQueryPresets ?? []).find((p) => p.id === activePresetId)}
+                      isDirty={isDirty}
+                    />
+                  </HStack>
+                  {!isFormOpen && (
+                    <Text fontSize="xs" color="gray.500" truncate maxW="100%">
+                      {filterSummary}
+                    </Text>
+                  )}
+                </VStack>
+              </Collapsible.Trigger>
+
+              <QueryPresets
+                formValues={formik.values}
+                onLoadPreset={handleLoadPreset}
+                settings={settings}
+                updateSettings={updateSettings}
+                isSaving={isSaving}
+                activePresetId={activePresetId}
+                isDirty={isDirty}
+              />
+            </HStack>
 
             <Collapsible.Content>
               <VStack align="start" gap={2} w="100%" mt={2}>
@@ -400,6 +496,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                       size="sm"
                       borderLeftWidth={formik.values.user ? '3px' : undefined}
                       borderLeftColor={formik.values.user ? 'blue.500' : undefined}
+                      {...getHighlightStyle('user')}
                     />
                   </Field.Root>
 
@@ -414,6 +511,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                       size="sm"
                       borderLeftWidth={formik.values.userId ? '3px' : undefined}
                       borderLeftColor={formik.values.userId ? 'blue.500' : undefined}
+                      {...getHighlightStyle('userId')}
                     />
                   </Field.Root>
 
@@ -428,6 +526,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                       size="sm"
                       borderLeftWidth={formik.values.jobId ? '3px' : undefined}
                       borderLeftColor={formik.values.jobId ? 'blue.500' : undefined}
+                      {...getHighlightStyle('jobId')}
                     />
                   </Field.Root>
 
@@ -480,6 +579,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                       size="sm"
                       borderLeftWidth={formik.values.minDuration ? '3px' : undefined}
                       borderLeftColor={formik.values.minDuration ? 'blue.500' : undefined}
+                      {...getHighlightStyle('minDuration')}
                     />
                   </Field.Root>
 
@@ -494,6 +594,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                       size="sm"
                       borderLeftWidth={formik.values.maxDuration ? '3px' : undefined}
                       borderLeftColor={formik.values.maxDuration ? 'blue.500' : undefined}
+                      {...getHighlightStyle('maxDuration')}
                     />
                   </Field.Root>
                 </SimpleGrid>
@@ -513,6 +614,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                           size="sm"
                           borderLeftWidth={formik.values.startAfter ? '3px' : undefined}
                           borderLeftColor={formik.values.startAfter ? 'blue.500' : undefined}
+                          {...getHighlightStyle('startAfter')}
                         />
                       </Field.Root>
                       <Field.Root>
@@ -525,6 +627,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                           size="sm"
                           borderLeftWidth={formik.values.startBefore ? '3px' : undefined}
                           borderLeftColor={formik.values.startBefore ? 'blue.500' : undefined}
+                          {...getHighlightStyle('startBefore')}
                         />
                       </Field.Root>
                     </VStack>
@@ -543,6 +646,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                           size="sm"
                           borderLeftWidth={formik.values.endAfter ? '3px' : undefined}
                           borderLeftColor={formik.values.endAfter ? 'blue.500' : undefined}
+                          {...getHighlightStyle('endAfter')}
                         />
                       </Field.Root>
                       <Field.Root>
@@ -555,6 +659,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                           size="sm"
                           borderLeftWidth={formik.values.endBefore ? '3px' : undefined}
                           borderLeftColor={formik.values.endBefore ? 'blue.500' : undefined}
+                          {...getHighlightStyle('endBefore')}
                         />
                       </Field.Root>
                     </VStack>
@@ -573,6 +678,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                           size="sm"
                           borderLeftWidth={formik.values.submitAfter ? '3px' : undefined}
                           borderLeftColor={formik.values.submitAfter ? 'blue.500' : undefined}
+                          {...getHighlightStyle('submitAfter')}
                         />
                       </Field.Root>
                       <Field.Root>
@@ -585,6 +691,7 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                           size="sm"
                           borderLeftWidth={formik.values.submitBefore ? '3px' : undefined}
                           borderLeftColor={formik.values.submitBefore ? 'blue.500' : undefined}
+                          {...getHighlightStyle('submitBefore')}
                         />
                       </Field.Root>
                     </VStack>
@@ -611,6 +718,8 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                       setQueryParams({})
                       setIsFormOpen(true)
                       setSearchParams({}, { replace: true })
+                      setActivePresetId(null)
+                      setPresetSnapshot(null)
                     }}
                   >
                     Reset
@@ -665,6 +774,12 @@ export const QueriesPage = ({ filter }: QueriesPageProps = {}) => {
                     pagination={false}
                     animateRows={true}
                     enableCellTextSelection={true}
+                    onGridReady={(e) => onQueryGridReady(e.api)}
+                    onColumnMoved={(e) => onQueryStateChanged(e.api)}
+                    onColumnResized={(e) => onQueryStateChanged(e.api)}
+                    onColumnVisible={(e) => onQueryStateChanged(e.api)}
+                    onSortChanged={(e) => onQueryStateChanged(e.api)}
+                    onFilterChanged={(e) => onQueryStateChanged(e.api)}
                   />
                 </Box>
                 

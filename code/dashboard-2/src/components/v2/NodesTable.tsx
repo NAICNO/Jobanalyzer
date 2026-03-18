@@ -9,6 +9,8 @@ import type { NodeInfoResponse } from '../../client'
 import { createNodeNameRenderer, createCpuRenderer, createMemoryRenderer, createGpuRenderer } from '../../utils/nodeTableRenderers'
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useClusterNodesInfoPages, useClusterNodesLastProbeTimestamp } from '../../hooks/v2/useNodeQueries'
+import { useUserSettings } from '../../hooks/v2/useUserSettings'
+import { useTableState } from '../../hooks/v2/useTableState'
 
 interface NodesTableProps {
   clusterName: string
@@ -17,6 +19,12 @@ interface NodesTableProps {
 
 export const NodesTable = ({ clusterName, onNodeClick }: NodesTableProps) => {
   const client = useClusterClient(clusterName)
+  const { settings, updateSettings } = useUserSettings({ client })
+  const { onGridReady, onStateChanged } = useTableState({
+    tableKey: 'nodes',
+    settings,
+    updateSettings,
+  })
 
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
@@ -216,6 +224,12 @@ export const NodesTable = ({ clusterName, onNodeClick }: NodesTableProps) => {
           domLayout="normal"
           suppressCellFocus
           loading={isLoading}
+          onGridReady={(e) => onGridReady(e.api)}
+          onColumnMoved={(e) => onStateChanged(e.api)}
+          onColumnResized={(e) => onStateChanged(e.api)}
+          onColumnVisible={(e) => onStateChanged(e.api)}
+          onSortChanged={(e) => onStateChanged(e.api)}
+          onFilterChanged={(e) => onStateChanged(e.api)}
           onRowClicked={(event) => {
             const nodeName = event.data?.node
             if (nodeName && onNodeClick) {
