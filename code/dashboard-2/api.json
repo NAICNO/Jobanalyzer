@@ -5140,7 +5140,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 1772117914,
+              "default": 1773225321,
               "title": "Timestamp"
             }
           },
@@ -5285,6 +5285,166 @@
                 "schema": {
                   "$ref": "#/components/schemas/JobReport"
                 }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/settings": {
+      "get": {
+        "tags": [
+          "v2",
+          "user"
+        ],
+        "summary": "Get user settings",
+        "description": "Get user settings",
+        "operationId": "get_settings_user_settings_get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "v2",
+          "user"
+        ],
+        "summary": "Create user settings",
+        "description": "Post / Set the user settings",
+        "operationId": "set_settings_user_settings_post",
+        "parameters": [
+          {
+            "name": "settings",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Settings"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "v2",
+          "user"
+        ],
+        "summary": "Create user settings",
+        "description": "Post / Set the user settings",
+        "operationId": "set_settings_user_settings_put",
+        "parameters": [
+          {
+            "name": "settings",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Settings"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AppSettings"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "App Settings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },

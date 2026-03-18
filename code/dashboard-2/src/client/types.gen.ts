@@ -4182,3 +4182,91 @@ export type GetClusterByClusterJobsByJobIdReportResponses = {
 };
 
 export type GetClusterByClusterJobsByJobIdReportResponse = GetClusterByClusterJobsByJobIdReportResponses[keyof GetClusterByClusterJobsByJobIdReportResponses];
+
+export type GetUserSettingsData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path?: never;
+    query?: never;
+    url: '/user/settings';
+};
+
+export type GetUserSettingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetUserSettingsError = GetUserSettingsErrors[keyof GetUserSettingsErrors];
+
+export type GetUserSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type PostUserSettingsData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path?: never;
+    query: {
+        /**
+         * Settings
+         */
+        settings: unknown;
+    };
+    url: '/user/settings';
+};
+
+export type PostUserSettingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PostUserSettingsError = PostUserSettingsErrors[keyof PostUserSettingsErrors];
+
+export type PostUserSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type PutUserSettingsData = {
+    /**
+     * App Settings
+     */
+    body?: AppSettings | null;
+    path?: never;
+    query: {
+        /**
+         * Settings
+         */
+        settings: unknown;
+    };
+    url: '/user/settings';
+};
+
+export type PutUserSettingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutUserSettingsError = PutUserSettingsErrors[keyof PutUserSettingsErrors];
+
+export type PutUserSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};

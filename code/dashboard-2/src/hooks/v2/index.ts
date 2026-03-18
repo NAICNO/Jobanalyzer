@@ -30,3 +30,7 @@ export {
 } from './useJobQueries'
 
 export { useBenchmarks } from './useBenchmarkQueries'
+
+export { useUserSettings } from './useUserSettings'
+
+export { useTableState } from './useTableState'

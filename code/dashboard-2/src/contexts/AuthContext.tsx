@@ -65,6 +65,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    */
   const syncTokenStorage = useCallback(async (clusterId: string, user: User | null) => {
     if (user && !user.expired) {
+      const claims = JSON.parse(atob(user.access_token.split('.')[1]))
+      console.log(`[Auth] syncTokenStorage for ${clusterId}`, {
+        accessToken: user.access_token,
+        claims,
+      })
       // Store tokens in secureStorage
       await setClusterAuth(clusterId, {
         accessToken: user.access_token,
@@ -124,7 +129,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // User loaded event
       userManager.events.addUserLoaded(async (user) => {
-        console.log(`User loaded for cluster ${clusterId}`)
+        const claims = JSON.parse(atob(user.access_token.split('.')[1]))
+        console.log(`User loaded for cluster ${clusterId}`, {
+          accessToken: user.access_token,
+          claims,
+        })
         updateClusterAuthState(clusterId, {
           user,
           isAuthenticated: true,
