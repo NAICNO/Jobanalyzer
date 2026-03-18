@@ -1,12 +1,14 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useCallback } from 'react'
 import { Box, Text, VStack, HStack, Spinner, Alert, Button, Badge } from '@chakra-ui/react'
 import { useParams, useNavigate } from 'react-router'
 import { AgGridReact } from 'ag-grid-react'
-import type { ColDef, ValueFormatterParams, ICellRendererParams } from 'ag-grid-community'
+import type { ColDef, ValueFormatterParams, ICellRendererParams, GridApi } from 'ag-grid-community'
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community'
 
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useClusterJobs } from '../../hooks/v2/useClusterQueries'
+import { useUserSettings } from '../../hooks/v2/useUserSettings'
+import { useTableState } from '../../hooks/v2/useTableState'
 import type { JobResponse } from '../../client'
 import { formatDuration, formatMemory, getJobStateColor } from '../../util/formatters'
 import { JobState } from '../../types/jobStates'
@@ -26,8 +28,22 @@ export const JobsPage = () => {
   const navigate = useNavigate()
 
   const client = useClusterClient(clusterName)
+  const { settings, updateSettings } = useUserSettings({ client })
+  const { onGridReady, onStateChanged, savedPageSize } = useTableState({
+    tableKey: 'jobs',
+    settings,
+    updateSettings,
+  })
+  const gridApiRef = useRef<GridApi | null>(null)
 
   const { data, isLoading, isError, error, refetch } = useClusterJobs({ cluster: clusterName ?? '', client })
+
+  const filterByState = useCallback((state: string) => {
+    if (!gridApiRef.current) return
+    gridApiRef.current.setFilterModel({
+      job_state: { filterType: 'text', type: 'equals', filter: state },
+    })
+  }, [])
 
   // Deduplicate jobs: Each SLURM job returns 3 entries (main job + batch + step).
   // Keep only the main job entry (job_step="") which has complete metadata.
@@ -277,11 +293,25 @@ export const JobsPage = () => {
             {!isLoading && jobs.length > 0 && (
               <>
                 <Text fontSize="sm" color="fg.muted">•</Text>
-                <Text fontSize="sm" color="fg.muted">
+                <Text
+                  as="button"
+                  fontSize="sm"
+                  color="fg.muted"
+                  _hover={{ color: 'blue.500', textDecoration: 'underline' }}
+                  cursor="pointer"
+                  onClick={() => filterByState(JobState.RUNNING)}
+                >
                   {jobs.filter(j => j.job_state === JobState.RUNNING).length} running
                 </Text>
                 <Text fontSize="sm" color="fg.muted">•</Text>
-                <Text fontSize="sm" color="fg.muted">
+                <Text
+                  as="button"
+                  fontSize="sm"
+                  color="fg.muted"
+                  _hover={{ color: 'blue.500', textDecoration: 'underline' }}
+                  cursor="pointer"
+                  onClick={() => filterByState(JobState.PENDING)}
+                >
                   {jobs.filter(j => j.job_state === JobState.PENDING).length} pending
                 </Text>
               </>
@@ -306,10 +336,17 @@ export const JobsPage = () => {
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.job_id?.toString() ?? ''}
             pagination={true}
-            paginationPageSize={50}
+            paginationPageSize={savedPageSize ?? 50}
             paginationPageSizeSelector={[25, 50, 100, 200]}
             animateRows={true}
             enableCellTextSelection={true}
+            onGridReady={(e) => { gridApiRef.current = e.api; onGridReady(e.api) }}
+            onColumnMoved={(e) => onStateChanged(e.api)}
+            onColumnResized={(e) => onStateChanged(e.api)}
+            onColumnVisible={(e) => onStateChanged(e.api)}
+            onSortChanged={(e) => onStateChanged(e.api)}
+            onFilterChanged={(e) => onStateChanged(e.api)}
+            onPaginationChanged={(e) => onStateChanged(e.api)}
             onRowDoubleClicked={(event) => {
               if (event.data?.job_id) {
                 navigate(`/v2/${clusterName}/jobs/${event.data.job_id}`)
