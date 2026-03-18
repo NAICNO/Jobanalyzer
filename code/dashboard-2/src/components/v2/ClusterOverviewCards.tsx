@@ -170,21 +170,21 @@ export const ClusterOverviewCards = () => {
           value={totalNodes}
           loading={nodesQ.isLoading}
           errors={nodesQ.isError ? [getErrMsg(nodesQ.error)] : []}
-          onClick={() => navigate(`/v2/${cluster}/nodes`)}
+          onClick={() => navigate(`/${cluster}/nodes`)}
         />
         <Card
           label="Reporting Nodes"
           value={reportingNodes}
           loading={infoQ.isLoading}
           errors={infoQ.isError ? [getErrMsg(infoQ.error)] : []}
-          onClick={() => navigate(`/v2/${cluster}/nodes`)}
+          onClick={() => navigate(`/${cluster}/nodes`)}
         />
         <Card
           label="Idle Nodes"
           value={idleNodes}
           loading={statesQ.isLoading}
           errors={statesQ.isError ? [getErrMsg(statesQ.error)] : []}
-          onClick={() => navigate(`/v2/${cluster}/nodes`)}
+          onClick={() => navigate(`/${cluster}/nodes`)}
         />
 
         {/* Partitions metrics */}
@@ -193,7 +193,7 @@ export const ClusterOverviewCards = () => {
           value={totalPartitions}
           loading={partitionsQ.isLoading}
           errors={partitionsQ.isError ? [getErrMsg(partitionsQ.error)] : []}
-          onClick={() => navigate(`/v2/${cluster}/partitions`)}
+          onClick={() => navigate(`/${cluster}/partitions`)}
         />
 
         {/* Resource metrics */}
@@ -248,7 +248,7 @@ export const ClusterOverviewCards = () => {
           bg="white"
           cursor="pointer"
           _hover={{ borderColor: 'blue.300', bg: 'gray.50' }}
-          onClick={() => navigate(`/v2/${cluster}/nodes`)}
+          onClick={() => navigate(`/${cluster}/nodes`)}
         >
           <HStack gap={1} justify="space-between">
             <Tooltip.Root>
@@ -298,7 +298,7 @@ export const ClusterOverviewCards = () => {
           bg="white"
           cursor="pointer"
           _hover={{ borderColor: 'blue.300', bg: 'gray.50' }}
-          onClick={() => navigate(`/v2/${cluster}/nodes`)}
+          onClick={() => navigate(`/${cluster}/nodes`)}
         >
           <HStack gap={1} justify="space-between">
             <Tooltip.Root>
@@ -345,14 +345,14 @@ export const ClusterOverviewCards = () => {
           value={totalRunningJobs}
           loading={partitionsQ.isLoading}
           errors={partitionsQ.isError ? [getErrMsg(partitionsQ.error)] : []}
-          onClick={() => navigate(`/v2/${cluster}/jobs/running`)}
+          onClick={() => navigate(`/${cluster}/jobs/running`)}
         />
         <Card
           label="Pending Jobs"
           value={totalPendingJobs}
           loading={partitionsQ.isLoading}
           errors={partitionsQ.isError ? [getErrMsg(partitionsQ.error)] : []}
-          onClick={() => navigate(`/v2/${cluster}/jobs`)}
+          onClick={() => navigate(`/${cluster}/jobs`)}
         />
       </SimpleGrid>
     </VStack>

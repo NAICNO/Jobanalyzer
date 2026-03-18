@@ -24,14 +24,14 @@ export const ClusterRouteGuard = () => {
   useEffect(() => {
     const checkAccess = async () => {
       // Don't redirect if we're already on the selection page
-      if (location.pathname === '/v2/select-cluster') {
+      if (location.pathname === '/select-cluster') {
         setIsCheckingAuth(false)
         return
       }
 
       // Redirect to selection page if no clusters are selected
       if (!hasSelectedClusters) {
-        navigate('/v2/select-cluster', { replace: true })
+        navigate('/select-cluster', { replace: true })
         setIsCheckingAuth(false)
         return
       }
@@ -65,7 +65,7 @@ export const ClusterRouteGuard = () => {
             } catch (error) {
               console.error('Failed to initiate login:', error)
               setIsCheckingAuth(false)
-              navigate('/v2/select-cluster', { replace: true })
+              navigate('/select-cluster', { replace: true })
               return
             }
           } else {
@@ -99,7 +99,7 @@ export const ClusterRouteGuard = () => {
   }
 
   // If no clusters selected and not on selection page, don't render children
-  if (!hasSelectedClusters && location.pathname !== '/v2/select-cluster') {
+  if (!hasSelectedClusters && location.pathname !== '/select-cluster') {
     return null
   }
 

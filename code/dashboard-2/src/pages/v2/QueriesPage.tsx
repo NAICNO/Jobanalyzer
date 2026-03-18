@@ -93,7 +93,7 @@ const createColumnDefs = (
           style={{ color: '#3182ce', cursor: 'pointer', fontWeight: 500 }}
           onClick={() => {
             if (params.data?.job_id) {
-              navigate(`/v2/${clusterName}/jobs/${params.data.job_id}`)
+              navigate(`/${clusterName}/jobs/${params.data.job_id}`)
             }
           }}
         >

@@ -61,3 +61,17 @@ yarn build
 ```
 
 This will create a `build` directory in the project root. You can deploy the contents of this directory to a web server.
+
+
+### Running with a prefix, e.g., '/v2'
+
+Build with prefix and deploy:
+
+```
+    yarn build --base=/v2
+```
+
+or run with prefix
+```
+    yarn npm run --base=/v2
+```

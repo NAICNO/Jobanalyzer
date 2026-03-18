@@ -63,7 +63,7 @@ export const PartitionsPage = () => {
       const first = items[0].value
       setSelectedPartitionValue([first])
       if (clusterName) {
-        navigate(`/v2/${clusterName}/partitions/${first}`, { replace: true })
+        navigate(`/${clusterName}/partitions/${first}`, { replace: true })
       }
     }
   }, [items, partitionName, selectedPartitionValue, clusterName, navigate])
@@ -132,7 +132,7 @@ export const PartitionsPage = () => {
                     setSelectedPartitionValue(details.value)
                     // Only navigate if the URL doesn't already match
                     if (sel && clusterName && sel !== partitionName) {
-                      navigate(`/v2/${clusterName}/partitions/${sel}`)
+                      navigate(`/${clusterName}/partitions/${sel}`)
                     }
                   }}
                   css={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}

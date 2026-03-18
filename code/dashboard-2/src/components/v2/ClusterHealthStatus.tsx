@@ -230,7 +230,7 @@ export const ClusterHealthStatus = ({ cluster, enabled }: Props) => {
                           color="orange.700"
                           cursor="pointer"
                           _hover={{ textDecoration: 'underline' }}
-                          onClick={() => navigate(`/v2/${cluster}/nodes/${node}`)}
+                          onClick={() => navigate(`/${cluster}/nodes/${node}`)}
                         >
                           {node}
                         </Text>
@@ -264,7 +264,7 @@ export const ClusterHealthStatus = ({ cluster, enabled }: Props) => {
                         color="red.700"
                         cursor="pointer"
                         _hover={{ textDecoration: 'underline' }}
-                        onClick={() => navigate(`/v2/${cluster}/nodes/${node}`)}
+                        onClick={() => navigate(`/${cluster}/nodes/${node}`)}
                       >
                         {node}
                       </Text>
@@ -319,7 +319,7 @@ export const ClusterHealthStatus = ({ cluster, enabled }: Props) => {
                         truncate
                         cursor="pointer"
                         _hover={{ color: 'blue.600', textDecoration: 'underline' }}
-                        onClick={() => navigate(`/v2/${cluster}/nodes/${err.node}`)}
+                        onClick={() => navigate(`/${cluster}/nodes/${err.node}`)}
                       >
                         {err.node}
                       </Text>

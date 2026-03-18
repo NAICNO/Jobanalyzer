@@ -157,7 +157,7 @@ export const ClusterResourceDistribution = () => {
                             color="gray.700"
                             cursor="pointer"
                             _hover={{ color: 'blue.600', textDecoration: 'underline' }}
-                            onClick={() => navigate(`/v2/${cluster}/partitions/${partition.name}`)}
+                            onClick={() => navigate(`/${cluster}/partitions/${partition.name}`)}
                           >
                             {partition.name}
                           </Text>
@@ -301,7 +301,7 @@ export const ClusterResourceDistribution = () => {
                             color="gray.700"
                             cursor="pointer"
                             _hover={{ color: 'blue.600', textDecoration: 'underline' }}
-                            onClick={() => navigate(`/v2/${cluster}/nodes/${node.name}`)}
+                            onClick={() => navigate(`/${cluster}/nodes/${node.name}`)}
                           >
                             {node.name}
                           </Text>
@@ -351,7 +351,7 @@ export const ClusterResourceDistribution = () => {
                           color="gray.700"
                           cursor="pointer"
                           _hover={{ color: 'blue.600', textDecoration: 'underline' }}
-                          onClick={() => navigate(`/v2/${cluster}/nodes/${node.name}`)}
+                          onClick={() => navigate(`/${cluster}/nodes/${node.name}`)}
                         >
                           {node.name}
                         </Text>

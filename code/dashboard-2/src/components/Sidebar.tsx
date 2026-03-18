@@ -47,7 +47,7 @@ export const Sidebar = () => {
           size="sm"
           variant="outline"
           width="100%"
-          onClick={() => navigate('/v2/select-cluster')}
+          onClick={() => navigate('/select-cluster')}
           colorPalette="blue"
         >
           {allClustersAdded ? <LuSettings /> : <LuPlus />}
@@ -93,7 +93,7 @@ const transformSidebarItemsToTree = (selectedClusters: string[]) => {
     if (!config) return
 
     const clusterFullName = getClusterFullName(clusterId)
-    const basePath = `/v2/${clusterFullName}`
+    const basePath = `/${clusterFullName}`
 
     const node: TreeNode = {
       id: `cluster-${clusterId}`,
