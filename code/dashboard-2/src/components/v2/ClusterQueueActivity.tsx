@@ -233,7 +233,7 @@ export const ClusterQueueActivity = () => {
                 domLayout="normal"
                 suppressCellFocus
                 onRowClicked={(e: RowClickedEvent) => {
-                  if (e.data?.user) navigate(`/v2/${cluster}/jobs/query`)
+                  if (e.data?.user) navigate(`/${cluster}/jobs/query`)
                 }}
               />
             </Box>
@@ -256,7 +256,7 @@ export const ClusterQueueActivity = () => {
                 domLayout="normal"
                 suppressCellFocus
                 onRowClicked={(e: RowClickedEvent) => {
-                  if (e.data?.partition) navigate(`/v2/${cluster}/partitions/${e.data.partition}`)
+                  if (e.data?.partition) navigate(`/${cluster}/partitions/${e.data.partition}`)
                 }}
               />
             </Box>

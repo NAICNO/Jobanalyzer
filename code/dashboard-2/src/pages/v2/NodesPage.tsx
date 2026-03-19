@@ -29,13 +29,13 @@ export const NodesPage = () => {
         <Heading size="md">All Nodes</Heading>
         <NodesTable
           clusterName={clusterName}
-          onNodeClick={(nodeName) => navigate(`/v2/${clusterName}/nodes/${nodeName}`)}
+          onNodeClick={(nodeName) => navigate(`/${clusterName}/nodes/${nodeName}`)}
         />
       </VStack>
       <NodeDetailDrawer
         cluster={clusterName}
         nodename={nodename}
-        onClose={() => navigate(`/v2/${clusterName}/nodes`)}
+        onClose={() => navigate(`/${clusterName}/nodes`)}
       />
     </>
   )

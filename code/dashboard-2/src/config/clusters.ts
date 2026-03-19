@@ -2,6 +2,7 @@ import { LuServer } from 'react-icons/lu'
 import { GrNodes } from 'react-icons/gr'
 import { GiFox } from 'react-icons/gi'
 import type { IconType } from 'react-icons'
+import { APP_BASE_PREFIX } from '../Constants'
 
 export interface OIDCEndpoints {
   authorization: string
@@ -37,7 +38,7 @@ export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
       token: 'https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/token',
       userInfo: 'https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/userinfo',
       clientId: 'naic-monitor.ex3.simula.no',
-      redirectUri: 'http://localhost:5173/auth/callback',
+      redirectUri: 'https://naic-monitor.simula.no' + APP_BASE_PREFIX + '/auth/callback',
       scope: 'openid profile email',
     },
     requiresAuth: true,
@@ -54,7 +55,7 @@ export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
       token: 'https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/token',
       userInfo: 'https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/userinfo',
       clientId: 'naic-monitor-client',
-      redirectUri: 'http://localhost:5173/auth/callback',
+      redirectUri: 'http://localhost:5173' + APP_BASE_PREFIX + 'auth/callback',
       scope: 'openid profile email',
     },
     requiresAuth: false,
@@ -71,7 +72,7 @@ export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
       token: 'https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/token',
       userInfo: 'https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/userinfo',
       clientId: 'naic-monitor-client',
-      redirectUri: 'http://localhost:5173/auth/callback',
+      redirectUri: 'http://localhost:5173' + APP_BASE_PREFIX + '/auth/callback',
       scope: 'openid profile email',
     },
     requiresAuth: true,

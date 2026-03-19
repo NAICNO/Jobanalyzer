@@ -28,10 +28,11 @@ import { ProcessTreeFullViewPage } from './pages/v2/ProcessTreeFullViewPage.tsx'
 import { BenchmarksPage } from './pages/v2/BenchmarksPage.tsx'
 import { ClusterRouteGuard } from './components/ClusterRouteGuard.tsx'
 import { CallbackPage } from './pages/auth/CallbackPage.tsx'
+import { APP_BASE_PREFIX } from './Constants.ts'
 
 const router = createBrowserRouter([
   {
-    path: '/v2/:clusterName/jobs/:jobId/process-tree',
+    path: '/:clusterName/jobs/:jobId/process-tree',
     element: <ClusterRouteGuard />,
     children: [
       {
@@ -41,7 +42,7 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: '/v2/:clusterName/nodes/:nodename/topology',
+    path: '/:clusterName/nodes/:nodename/topology',
     element: <ClusterRouteGuard />,
     children: [
       {
@@ -56,7 +57,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="v2/select-cluster" replace/>
+        element: <Navigate to="select-cluster" replace/>
       },
       {
         path: 'auth',
@@ -68,61 +69,52 @@ const router = createBrowserRouter([
         ],
       },
       {
-        path: 'v2',
+        path: 'select-cluster',
+        element: <ClusterSelectionPage />,
+      },
+      {
+        path: ':clusterName',
+        element: <ClusterRouteGuard />,
         children: [
           {
-            index: true,
-            element: <Navigate to="select-cluster" replace/>
+            path: 'overview',
+            element: <ClusterOverview />,
           },
           {
-            path: 'select-cluster',
-            element: <ClusterSelectionPage />,
+            path: 'nodes',
+            element: <NodesPage />,
           },
           {
-            path: ':clusterName',
-            element: <ClusterRouteGuard />,
-            children: [
-              {
-                path: 'overview',
-                element: <ClusterOverview />,
-              },
-              {
-                path: 'nodes',
-                element: <NodesPage />,
-              },
-              {
-                path: 'nodes/:nodename',
-                element: <NodesPage />,
-              },
-              {
-                path: 'partitions',
-                element: <PartitionsPage />,
-              },
-              {
-                path: 'partitions/:partitionName',
-                element: <PartitionsPage />,
-              },
-              {
-                path: 'jobs',
-                element: <JobsPage />,
-              },
-              {
-                path: 'jobs/running',
-                element: <JobsPage />,
-              },
-              {
-                path: 'jobs/query',
-                element: <QueriesPage />,
-              },
-              {
-                path: 'jobs/:jobId',
-                element: <JobDetailsPage />,
-              },
-              {
-                path: 'benchmarks',
-                element: <BenchmarksPage />,
-              }
-            ]
+            path: 'nodes/:nodename',
+            element: <NodesPage />,
+          },
+          {
+            path: 'partitions',
+            element: <PartitionsPage />,
+          },
+          {
+            path: 'partitions/:partitionName',
+            element: <PartitionsPage />,
+          },
+          {
+            path: 'jobs',
+            element: <JobsPage />,
+          },
+          {
+            path: 'jobs/running',
+            element: <JobsPage />,
+          },
+          {
+            path: 'jobs/query',
+            element: <QueriesPage />,
+          },
+          {
+            path: 'jobs/:jobId',
+            element: <JobDetailsPage />,
+          },
+          {
+            path: 'benchmarks',
+            element: <BenchmarksPage />,
           }
         ]
       },
@@ -204,7 +196,7 @@ const router = createBrowserRouter([
       },
     ]
   }
-])
+], { basename: APP_BASE_PREFIX })
 
 function App() {
   return (

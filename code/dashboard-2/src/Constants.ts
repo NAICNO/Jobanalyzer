@@ -46,6 +46,7 @@ export const APP_NAME = 'NAIC Jobanalyzer'
 export const PAGE_TITLE_SUFFIX = ' | ' + APP_NAME
 
 // URLs and API Endpoints to be moved to .env files once dev and prod environments are set up
+export const APP_BASE_PREFIX = import.meta.env.BASE_URL || '/'
 export const APP_URL = 'https://naic-monitor.uio.no'
 export const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
 export const QUERY_API_ENDPOINT = import.meta.env.VITE_QUERY_API_ENDPOINT
@@ -66,19 +67,19 @@ export const CLUSTERS = {
   'ex3.simula.no': {
     id: 'ex3.simula.no',
     name: 'EX3',
-    basePath: '/v2/ex3.simula.no',
+    basePath: '/ex3.simula.no',
     icon: LuServer,
   },
   'mlx.hpc.uio.no': {
     id: 'mlx.hpc.uio.no',
     name: 'ML Nodes',
-    basePath: '/v2/mlx.hpc.uio.no',
+    basePath: '/mlx.hpc.uio.no',
     icon: GrNodes,
   },
   'fox.educloud.no': {
     id: 'fox.educloud.no',
     name: 'Fox',
-    basePath: '/v2/fox.educloud.no',
+    basePath: '/fox.educloud.no',
     icon: GiFox,
   }
 }
