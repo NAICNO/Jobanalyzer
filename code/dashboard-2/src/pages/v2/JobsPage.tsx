@@ -349,7 +349,7 @@ export const JobsPage = () => {
             onPaginationChanged={(e) => onStateChanged(e.api)}
             onRowDoubleClicked={(event) => {
               if (event.data?.job_id) {
-                navigate(`/v2/${clusterName}/jobs/${event.data.job_id}`)
+                navigate(`/${clusterName}/jobs/${event.data.job_id}`)
               }
             }}
           />

@@ -25,7 +25,7 @@ export const ClusterSelectionPage = () => {
       try {
         // Don't add cluster yet - it will be added after successful authentication
         // Use oidc-client-ts to initiate the authentication flow with PKCE
-        const returnPath = `/v2/${getClusterFullName(clusterId)}/overview`
+        const returnPath = `/${getClusterFullName(clusterId)}/overview`
         await loginToCluster(clusterId, returnPath)
       } catch (error) {
         console.error('Failed to initiate login:', error)
@@ -40,7 +40,7 @@ export const ClusterSelectionPage = () => {
       // For non-auth clusters, add immediately and navigate
       addCluster(clusterId)
       const clusterFullName = getClusterFullName(clusterId)
-      navigate(`/v2/${clusterFullName}/overview`)
+      navigate(`/${clusterFullName}/overview`)
     }
   }
 
