@@ -7,9 +7,9 @@ SUBDIRS=application \
 	cmd/sparts cmd/top cmd/uptime cmd/version \
 	common \
 	daemon \
-	data/card data/common data/config data/cpusample data/gpusample data/node data/sample \
-	data/slurmjob data/slurmnode data/slurmpart \
-	db db/errs db/filedb db/filesys db/parse db/repr db/special db/types \
+	data/card data/common data/config data/cpusample data/disksample data/gpusample data/node \
+	data/nodesample data/sample data/slurmjob data/slurmnode data/slurmpart \
+	db db/errs db/filedb db/filesys db/parse db/repr db/special db/types db/util \
 	table
 
 include ../go-rules.mk

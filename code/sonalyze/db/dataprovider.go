@@ -136,12 +136,19 @@ type CluzterDataProvider interface {
 	) (recordBlobs [][]*repr.CluzterNodes, softErrors int, err error)
 }
 
+// MetaDataProvider computes (and sometimes caches) data about the data in the database.
+type MetaDataProvider interface {
+	MinTime(soft, verbose bool) (time.Time, error)
+	MaxTime(soft, verbose bool) (time.Time, error)
+}
+
 // DataProvider provides all data types.
 type DataProvider interface {
 	SampleDataProvider
 	SysinfoDataProvider
 	SacctDataProvider
 	CluzterDataProvider
+	MetaDataProvider
 }
 
 // PersistentDataProvider is backed by persistent storage in some way, and provides all data types.

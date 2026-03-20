@@ -77,6 +77,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
+	"sonalyze/db/util"
 )
 
 // The current structure of sonalyze ensures that there is one databaseConnection globally, and it
@@ -96,6 +97,12 @@ func (cdb *databaseConnection) Query(cx context.Context, q string, arg ...any) (
 	cdb.lock.Lock()
 	defer cdb.lock.Unlock()
 	return cdb.connection.Query(cx, q, arg...)
+}
+
+func (cdb *databaseConnection) QueryRowAndScan(cx context.Context, q string, args []any, slots []any) error {
+	cdb.lock.Lock()
+	defer cdb.lock.Unlock()
+	return cdb.connection.QueryRow(cx, q, args...).Scan(slots...)
 }
 
 func OpenDatabaseURI(databaseURI string) (*databaseConnection, error) {
@@ -128,15 +135,17 @@ func (cdb *databaseConnection) EnumerateClusters() ([]string, error) {
 }
 
 type connectedDB struct {
-	theDB *databaseConnection
-	cx    types.Context
+	theDB     *databaseConnection
+	cx        types.Context
+	timeCache *util.TimeCache
 }
 
 var _ = AppendablePersistentDataProvider((*connectedDB)(nil))
 
 func OpenConnectedDB(cx types.Context) AppendablePersistentDataProvider {
 	theDB := cx.ConnectedDB().(*databaseConnection)
-	return &connectedDB{theDB, cx}
+	timeCache := util.NewTimeCache(makeRefillTimeCache(theDB, cx.ClusterName()))
+	return &connectedDB{theDB, cx, timeCache}
 }
 
 // NOTE that the names in fields are a little bit brittle in the face of schema evolution and joins.
@@ -910,6 +919,38 @@ func (cdb *connectedDB) ReadCluzterNodeData(
 	}
 
 	return querySlice[repr.CluzterNodes](cdb, &q, verbose, unbox)
+}
+
+func (cdb *connectedDB) MinTime(soft, verbose bool) (time.Time, error) {
+	return cdb.timeCache.MinTime(soft, verbose)
+}
+
+func (cdb *connectedDB) MaxTime(soft, verbose bool) (time.Time, error) {
+	return cdb.timeCache.MaxTime(soft, verbose)
+}
+
+func makeRefillTimeCache(
+	dbc *databaseConnection,
+	clusterName string,
+) func(bool) (time.Time, time.Time, error) {
+	return func(verbose bool) (low, high time.Time, err error) {
+		err = dbc.QueryRowAndScan(
+			context.Background(),
+			"SELECT MIN(time) FROM sysinfo_attributes WHERE cluster = $1",
+			[]any{clusterName},
+			[]any{&low},
+		)
+		if err != nil {
+			return
+		}
+		err = dbc.QueryRowAndScan(
+			context.Background(),
+			"SELECT MAX(time) FROM sample_process WHERE cluster = $1",
+			[]any{clusterName},
+			[]any{&high},
+		)
+		return
+	}
 }
 
 func querySlice[T any](
