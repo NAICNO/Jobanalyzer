@@ -1,0 +1,4929 @@
+components:
+  schemas:
+    Account:
+      additionalProperties: false
+      properties:
+        account:
+          $ref: '#/components/schemas/Roles'
+      required:
+      - account
+      title: Account
+      type: object
+    AllocTRES:
+      additionalProperties: true
+      properties:
+        billing:
+          anyOf:
+          - type: number
+          - type: integer
+          default: 0
+          description: The actual billing count
+          title: Billing
+        cpu:
+          default: 0
+          description: The reserved cpu count
+          title: Cpu
+          type: integer
+        gpu:
+          default: 0
+          description: The reserved number of gpus
+          title: Gpu
+          type: integer
+        memory:
+          default: 0
+          description: The reserved memory
+          title: Memory
+          type: integer
+        node:
+          default: 0
+          description: The involved number of nodes
+          title: Node
+          type: integer
+      title: AllocTRES
+      type: object
+    AppSettings:
+      properties:
+        data_dir:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Data Dir
+        database:
+          $ref: '#/components/schemas/DatabaseSettings'
+        db_schema_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: v2
+          title: Db Schema Version
+        host:
+          default: 0.0.0.0
+          title: Host
+          type: string
+        listen:
+          $ref: '#/components/schemas/ListenSettings'
+        oauth:
+          $ref: '#/components/schemas/OAuthSettings'
+        port:
+          default: 12000
+          title: Port
+          type: integer
+        prefetch:
+          $ref: '#/components/schemas/PrefetchSettings'
+        ssl:
+          $ref: '#/components/schemas/SSLSettings'
+      title: AppSettings
+      type: object
+    ClusterResponse:
+      properties:
+        cluster:
+          description: Name of the cluster
+          title: Cluster
+          type: string
+        nodes:
+          description: List of available nodes in this cluster
+          items:
+            type: string
+          title: Nodes
+          type: array
+        partitions:
+          default: []
+          description: List of available partitions in this cluster
+          items:
+            type: string
+          title: Partitions
+          type: array
+        slurm:
+          description: Whether SLURM is in use (1) or not (0)
+          title: Slurm
+          type: integer
+        time:
+          description: Timezone Aware timestamp
+          format: date-time
+          title: Time
+          type: string
+      required:
+      - time
+      - cluster
+      - slurm
+      - nodes
+      title: ClusterResponse
+      type: object
+    CombinedProcessTimeSeriesResponse:
+      properties:
+        cpu_memory:
+          items:
+            $ref: '#/components/schemas/SampleProcessAccResponse'
+          title: Cpu Memory
+          type: array
+        gpus:
+          additionalProperties:
+            items:
+              $ref: '#/components/schemas/SampleProcessGpuAccResponse'
+            type: array
+          title: Gpus
+          type: object
+      required:
+      - gpus
+      - cpu_memory
+      title: CombinedProcessTimeSeriesResponse
+      type: object
+    CustomPage_JobResponse_:
+      properties:
+        jobs:
+          items:
+            $ref: '#/components/schemas/JobResponse'
+          title: Jobs
+          type: array
+        page:
+          minimum: 1.0
+          title: Page
+          type: integer
+        pages:
+          minimum: 0.0
+          title: Pages
+          type: integer
+        size:
+          minimum: 1.0
+          title: Size
+          type: integer
+        total:
+          minimum: 0.0
+          title: Total
+          type: integer
+      required:
+      - jobs
+      - total
+      - page
+      - size
+      - pages
+      title: CustomPage[JobResponse]
+      type: object
+    CustomPage_NodeInfoResponse_:
+      properties:
+        nodes:
+          items:
+            $ref: '#/components/schemas/NodeInfoResponse'
+          title: Nodes
+          type: array
+        page:
+          minimum: 1.0
+          title: Page
+          type: integer
+        pages:
+          minimum: 0.0
+          title: Pages
+          type: integer
+        size:
+          minimum: 1.0
+          title: Size
+          type: integer
+        total:
+          minimum: 0.0
+          title: Total
+          type: integer
+      required:
+      - nodes
+      - total
+      - page
+      - size
+      - pages
+      title: CustomPage[NodeInfoResponse]
+      type: object
+    DatabaseSettings:
+      properties:
+        create_missing:
+          default: true
+          title: Create Missing
+          type: boolean
+        password:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Password
+        uri:
+          default: sqlite:////home/slurmmon/.slurm-monitor/slurm-monitor-db.sqlite
+          title: Uri
+          type: string
+        user:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User
+      title: DatabaseSettings
+      type: object
+    ErrorMessageResponse:
+      properties:
+        cluster:
+          description: Name of the cluster
+          title: Cluster
+          type: string
+        details:
+          description: Details of the reported error
+          title: Details
+          type: string
+        node:
+          description: Name of the node (in the cluster)
+          title: Node
+          type: string
+        time:
+          description: Time at which this error occurred
+          title: Time
+          type: string
+      required:
+      - cluster
+      - node
+      - details
+      - time
+      title: ErrorMessageResponse
+      type: object
+    GPUCardResponse:
+      properties:
+        address:
+          description: Indicates an intra-system card address, e.g., PCI adress
+          title: Address
+          type: string
+        architecture:
+          description: card-dependent, manufacturer's arch string, for NVIDIA this
+            is 'Turing', 'Volta', etc.
+          title: Architecture
+          type: string
+        cluster:
+          description: Name of the cluster that this GPU currently belongs to
+          title: Cluster
+          type: string
+        driver:
+          description: card-dependent, the manufacturer's driver string
+          title: Driver
+          type: string
+        firmware:
+          description: card-dependant, the manufacturer's firmware string
+          title: Firmware
+          type: string
+        index:
+          description: Local card index, may change at boot
+          title: Index
+          type: integer
+        last_active:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          description: Timezone Aware timestamp
+          title: Last Active
+        manufacturer:
+          description: 'A manufacturer: ''NVIDIA'', ''AMD'', ''INTEL'' (other TBD)'
+          title: Manufacturer
+          type: string
+        max_ce_clock:
+          description: card-dependent, maximum clock of compute element
+          title: Max Ce Clock
+          type: integer
+        max_memory_clock:
+          description: card-dependent, maximum clock of GPU memory
+          title: Max Memory Clock
+          type: integer
+        max_power_limit:
+          description: card-dependent, max power the card can draw in W(atts)
+          title: Max Power Limit
+          type: integer
+        memory:
+          description: Memory of card in KiB
+          title: Memory
+          type: integer
+        min_power_limit:
+          description: 'card-dependent: min power the card will draw in W(atts)'
+          title: Min Power Limit
+          type: integer
+        model:
+          description: card dependent, manufacturer's model string
+          title: Model
+          type: string
+        node:
+          description: Name of the node that this GPU belongs to
+          title: Node
+          type: string
+        time:
+          description: Timezone Aware timestamp
+          format: date-time
+          title: Time
+          type: string
+        uuid:
+          description: UUID as reported by card
+          title: Uuid
+          type: string
+      required:
+      - time
+      - uuid
+      - manufacturer
+      - model
+      - architecture
+      - memory
+      - cluster
+      - node
+      - index
+      - address
+      - driver
+      - firmware
+      - max_power_limit
+      - min_power_limit
+      - max_ce_clock
+      - max_memory_clock
+      title: GPUCardResponse
+      type: object
+    GpuJobSampleProcessGpuTimeseriesResponse:
+      properties:
+        gpus:
+          additionalProperties:
+            items:
+              $ref: '#/components/schemas/JobSpecificTimeseriesResponse'
+            type: array
+          title: Gpus
+          type: object
+      required:
+      - gpus
+      title: GpuJobSampleProcessGpuTimeseriesResponse
+      type: object
+    GpusProcessTimeSeriesResponse:
+      properties:
+        gpus:
+          additionalProperties:
+            items:
+              $ref: '#/components/schemas/SampleProcessGpuAccResponse'
+            type: array
+          title: Gpus
+          type: object
+      required:
+      - gpus
+      title: GpusProcessTimeSeriesResponse
+      type: object
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          title: Detail
+          type: array
+      title: HTTPValidationError
+      type: object
+    JobNodeSampleProcessGpuTimeseriesResponse:
+      properties:
+        epoch:
+          description: Epoch uniquely identifying non-slurm jobs
+          title: Epoch
+          type: integer
+        job:
+          description: Job ID
+          title: Job
+          type: integer
+        nodes:
+          additionalProperties:
+            $ref: '#/components/schemas/GpusProcessTimeSeriesResponse'
+          title: Nodes
+          type: object
+      required:
+      - job
+      - epoch
+      - nodes
+      title: JobNodeSampleProcessGpuTimeseriesResponse
+      type: object
+    JobProfileResultItem:
+      properties:
+        job:
+          title: Job
+          type: integer
+        points:
+          items:
+            $ref: '#/components/schemas/ProcessPoint'
+          title: Points
+          type: array
+        time:
+          title: Time
+          type: string
+      required:
+      - job
+      - time
+      - points
+      title: JobProfileResultItem
+      type: object
+    JobQueryResultItem:
+      properties:
+        cmd:
+          title: Cmd
+          type: string
+        cpu-peak:
+          default: 0.0
+          title: Cpu-Peak
+          type: number
+        duration:
+          title: Duration
+          type: string
+        end:
+          title: End
+          type: string
+        gpu-peak:
+          default: 0.0
+          title: Gpu-Peak
+          type: number
+        gpumem-peak:
+          default: 0.0
+          title: Gpumem-Peak
+          type: number
+        host:
+          title: Host
+          type: string
+        job:
+          title: Job
+          type: string
+        mem-peak:
+          default: 0.0
+          title: Mem-Peak
+          type: number
+        res-peak:
+          default: 0.0
+          title: Res-Peak
+          type: number
+        start:
+          title: Start
+          type: string
+        user:
+          title: User
+          type: string
+      required:
+      - job
+      - user
+      - host
+      - duration
+      - start
+      - end
+      - cmd
+      title: JobQueryResultItem
+      type: object
+    JobReport:
+      properties:
+        cpu_avg:
+          additionalProperties:
+            anyOf:
+            - type: integer
+            - type: number
+          default: {}
+          description: The mean + stddev for cpu_avg
+          title: Cpu Avg
+          type: object
+        cpu_util:
+          additionalProperties:
+            anyOf:
+            - type: integer
+            - type: number
+          default: {}
+          description: The mean + stddev for cpu_util
+          title: Cpu Util
+          type: object
+        data_cancelled:
+          additionalProperties:
+            anyOf:
+            - type: integer
+            - type: number
+          default: {}
+          description: The mean + stddev
+          title: Data Cancelled
+          type: object
+        data_read:
+          additionalProperties:
+            anyOf:
+            - type: integer
+            - type: number
+          default: {}
+          description: The mean + stddev
+          title: Data Read
+          type: object
+        data_written:
+          additionalProperties:
+            anyOf:
+            - type: integer
+            - type: number
+          default: {}
+          description: The mean + stddev
+          title: Data Written
+          type: object
+        nodes:
+          default: []
+          description: List of used nodes
+          items:
+            type: string
+          title: Nodes
+          type: array
+        num_threads:
+          additionalProperties:
+            anyOf:
+            - type: integer
+            - type: number
+          default: {}
+          description: The mean + stddev for number of threads
+          title: Num Threads
+          type: object
+        requested_cpus:
+          default: 0
+          description: Requested cpus
+          title: Requested Cpus
+          type: integer
+        requested_gpus:
+          default: 0
+          description: Requested gpus
+          title: Requested Gpus
+          type: integer
+        requested_memory_per_node:
+          default: 0
+          description: Requested memory per node in KiB
+          title: Requested Memory Per Node
+          type: integer
+        resident_memory:
+          additionalProperties:
+            anyOf:
+            - type: integer
+            - type: number
+          default: {}
+          description: The mean + stddev for resident_memory in KiB
+          title: Resident Memory
+          type: object
+        used_gpu_uuids:
+          default: []
+          description: List of used gpus (by uuid)
+          items:
+            type: string
+          title: Used Gpu Uuids
+          type: array
+        virtual_memory:
+          additionalProperties:
+            type: number
+          default: {}
+          description: The mean + stddev for virtual_memory in KiB
+          title: Virtual Memory
+          type: object
+        warnings:
+          default: []
+          description: List of warnings
+          items:
+            type: string
+          title: Warnings
+          type: array
+      title: JobReport
+      type: object
+    JobResponse:
+      properties:
+        account:
+          description: Name of the account
+          title: Account
+          type: string
+        allocated_resources:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: List of general resources allocated
+          title: Allocated Resources
+        array_job_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: "\n        The overarching ID of an array job, see discussion\
+            \ in the postamble.\n\n        sacct: the n of a `JobID` of the form `n_m.s`\n\
+            \n        slurm: `JOB_INFO.array_job_id`.\n        "
+          title: Array Job Id
+        array_task_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: "\n        if `array_job_id` is not zero, the array element's\
+            \ index.  Individual elements of an array\n        job have their own\
+            \ plain job_id; the `array_job_id` identifies these as part of the same\
+            \ array\n        job and the array_task_id identifies their position within\
+            \ the array, see later discussion.\n\n        sacct: the m of a `JobID`\
+            \ of the form `n_m.s`.\n\n        slurm: `JOB_INFO.array_task_id`.\n \
+            \       "
+          title: Array Task Id
+        cluster:
+          description: Name of the cluster
+          title: Cluster
+          type: string
+        distribution:
+          title: Distribution
+          type: string
+        end_time:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          description: Time at which the job ended - only present if the job ended
+          title: End Time
+        exit_code:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: Exit code of the job - given it has finished
+          title: Exit Code
+        gres_detail:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          description: 'DEPRECATED: List of general resources details - use requested_resources
+            and allocated_resources'
+          title: Gres Detail
+        het_job_id:
+          description: Id of the het(erogeneous) job (see <a href='https://slurm.schedmd.com/heterogeneous_jobs.html'>SLURM
+            documentation</a>)
+          title: Het Job Id
+          type: integer
+        het_job_offset:
+          description: Unique sequence number (starting with 0) the het(erogeneous)  job
+            component (see <a href='https://slurm.schedmd.com/heterogeneous_jobs.html'>SLURM
+            documentation</a>)
+          title: Het Job Offset
+          type: integer
+        job_id:
+          description: Identifier of the SLURM job
+          title: Job Id
+          type: integer
+        job_name:
+          description: Name of the job
+          title: Job Name
+          type: string
+        job_state:
+          description: State of the job, e.g., PENDING, RUNNING, FAILED(see <a href='https://slurm.schedmd.com/job_state_codes.html#states'>SLURM
+            Job States</a>)
+          title: Job State
+          type: string
+        job_step:
+          description: "\n        The step identifier for the job identified by job_id.\
+            \  For the topmost step/stage of a job\n        this will be the empty\
+            \ string.  Other values normally have the syntax of unsigned integers,\n\
+            \        but may also be the strings \"extern\" and \"batch\".  This field's\
+            \ default value is the empty\n        string.\n\n        NOTE: step 0\
+            \ and step \"empty string\" are different, in fact thinking of a normal\
+            \ number-like\n        step name as a number may not be very helpful.\n\
+            \        "
+          title: Job Step
+          type: string
+        minimum_cpus_per_node:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: 'DEPRECATED: Minimum required CPUs per node, use requested_cpus'
+          title: Minimum Cpus Per Node
+        nodes:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          description: List of nodes that are requested by this job
+          title: Nodes
+        partition:
+          description: Name of the partition this job is associated with
+          title: Partition
+          type: string
+        priority:
+          title: Priority
+          type: integer
+        requested_cpus:
+          description: Number of requested CPUs
+          title: Requested Cpus
+          type: integer
+        requested_memory_per_node:
+          description: Requested memory in kilobytes per node
+          title: Requested Memory Per Node
+          type: integer
+        requested_node_count:
+          description: Requested number of nodes
+          title: Requested Node Count
+          type: integer
+        requested_resources:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: List of general resources requested
+          title: Requested Resources
+        reservation:
+          title: Reservation
+          type: string
+        sacct:
+          anyOf:
+          - $ref: '#/components/schemas/SAcctResponse'
+          - type: 'null'
+          description: Slurm Accounting Response data (<a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>Slurm
+            documentation</a>)
+        start_time:
+          anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+          description: Time at which the job started - only present if the job started
+          title: Start Time
+        submit_time:
+          description: Time at which the job was submitted
+          format: date-time
+          title: Submit Time
+          type: string
+        suspend_time:
+          description: Time the job was suspended in seconds
+          title: Suspend Time
+          type: integer
+        time:
+          description: Timezone Aware timestamp
+          format: date-time
+          title: Time
+          type: string
+        time_limit:
+          description: Time limit for this job in seconds
+          title: Time Limit
+          type: integer
+        used_gpu_uuids:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          description: UUIDs of GPUs that are actually used with this job - this might
+            be different to the number of reserved GPUs (this a field computed by
+            slurm-monitor)
+          title: Used Gpu Uuids
+        user_name:
+          description: Name of the user that started the job
+          title: User Name
+          type: string
+      required:
+      - time
+      - cluster
+      - job_id
+      - job_step
+      - job_name
+      - job_state
+      - het_job_id
+      - het_job_offset
+      - user_name
+      - account
+      - suspend_time
+      - submit_time
+      - time_limit
+      - partition
+      - reservation
+      - priority
+      - distribution
+      - requested_cpus
+      - requested_memory_per_node
+      - requested_node_count
+      title: JobResponse
+      type: object
+    JobSpecificTimeseriesResponse:
+      properties:
+        data:
+          items: {}
+          title: Data
+          type: array
+        epoch:
+          description: Epoch uniquely identifying non-slurm jobs
+          title: Epoch
+          type: integer
+        job:
+          description: Job ID
+          title: Job
+          type: integer
+      required:
+      - job
+      - epoch
+      - data
+      title: JobSpecificTimeseriesResponse
+      type: object
+    JobsResponse:
+      properties:
+        jobs:
+          description: List of jobs
+          items:
+            $ref: '#/components/schemas/JobResponse'
+          title: Jobs
+          type: array
+      required:
+      - jobs
+      title: JobsResponse
+      type: object
+    ListenSettings:
+      properties:
+        cluster:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Name of cluster
+          title: Cluster
+        kafka:
+          $ref: '#/components/schemas/ServerSettings'
+          default:
+            host: localhost
+            port: 9099
+          description: Connection to kafka broker
+        lookback:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: Lookback timeframe in hours
+          title: Lookback
+        stats:
+          $ref: '#/components/schemas/ListenStatsSettings'
+        ui:
+          $ref: '#/components/schemas/ServerSettings'
+          default:
+            host: localhost
+            port: 25052
+          description: Connection to UI
+      title: ListenSettings
+      type: object
+    ListenStatsSettings:
+      properties:
+        interval:
+          default: 30
+          description: Interval in seconds to compute stats
+          title: Interval
+          type: integer
+      title: ListenStatsSettings
+      type: object
+    NodeDiskTimeseriesResponse:
+      additionalProperties:
+        items:
+          $ref: '#/components/schemas/SampleDiskTimeseriesResponse'
+        type: array
+      description: List of timeseries data per node
+      title: NodeDiskTimeseriesResponse
+      type: object
+    NodeGpuJobSampleProcessGpuTimeseriesResponse:
+      additionalProperties:
+        $ref: '#/components/schemas/GpuJobSampleProcessGpuTimeseriesResponse'
+      title: NodeGpuJobSampleProcessGpuTimeseriesResponse
+      type: object
+    NodeGpuTimeseriesResponse:
+      additionalProperties:
+        items:
+          $ref: '#/components/schemas/SampleGpuTimeseriesResponse'
+        type: array
+      description: List of timeseries data per GPU
+      title: NodeGpuTimeseriesResponse
+      type: object
+    NodeInfoResponse:
+      properties:
+        alloc_tres:
+          $ref: '#/components/schemas/AllocTRES'
+          description: Allocation of traceable resources
+        architecture:
+          description: Architecture of this node
+          title: Architecture
+          type: string
+        cards:
+          description: List of GPUs
+          items:
+            $ref: '#/components/schemas/GPUCardResponse'
+          title: Cards
+          type: array
+        cluster:
+          description: Name of the cluster
+          title: Cluster
+          type: string
+        cores_per_socket:
+          description: Number of core per socket
+          title: Cores Per Socket
+          type: integer
+        cpu_model:
+          description: CPU model specifier
+          title: Cpu Model
+          type: string
+        memory:
+          description: Available memory in this node in KiB
+          title: Memory
+          type: integer
+        node:
+          description: Name of the node
+          title: Node
+          type: string
+        os_name:
+          description: Name of the operating system
+          title: Os Name
+          type: string
+        os_release:
+          description: Name of the specific release of the operating system
+          title: Os Release
+          type: string
+        partitions:
+          default: []
+          description: List of partitions that this node belongs to
+          items:
+            type: string
+          title: Partitions
+          type: array
+        sockets:
+          description: Number of CPU sockets available
+          title: Sockets
+          type: integer
+        threads_per_core:
+          description: Number of threads per core
+          title: Threads Per Core
+          type: integer
+        time:
+          description: Timezone Aware timestamp
+          format: date-time
+          title: Time
+          type: string
+        topo_svg:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: The architecture topography (lstopo) as svg
+          title: Topo Svg
+        topo_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: The architecture topography (lstopo) as text
+          title: Topo Text
+      required:
+      - time
+      - cluster
+      - node
+      - os_name
+      - os_release
+      - architecture
+      - sockets
+      - cores_per_socket
+      - threads_per_core
+      - cpu_model
+      - memory
+      - topo_svg
+      - topo_text
+      - cards
+      - alloc_tres
+      title: NodeInfoResponse
+      type: object
+    NodeSampleProcessGpuAccResponse:
+      additionalProperties:
+        additionalProperties:
+          $ref: '#/components/schemas/SampleProcessGpuAccResponse'
+        type: object
+      title: NodeSampleProcessGpuAccResponse
+      type: object
+    NodeStateResponse:
+      properties:
+        cluster:
+          description: Name of the cluster
+          title: Cluster
+          type: string
+        node:
+          description: Name of the node
+          title: Node
+          type: string
+        states:
+          description: State(s) this node is currently in
+          items:
+            type: string
+          title: States
+          type: array
+        time:
+          description: Timezone Aware timestamp
+          format: date-time
+          title: Time
+          type: string
+      required:
+      - time
+      - cluster
+      - node
+      - states
+      title: NodeStateResponse
+      type: object
+    OAuthSettings:
+      additionalProperties: false
+      properties:
+        client:
+          default: ''
+          title: Client
+          type: string
+        client_secret:
+          default: ''
+          title: Client Secret
+          type: string
+        realm:
+          default: ''
+          title: Realm
+          type: string
+        required:
+          default: false
+          title: Required
+          type: boolean
+        url:
+          default: ''
+          title: Url
+          type: string
+      title: OAuthSettings
+      type: object
+    PartitionResponse:
+      properties:
+        cluster:
+          description: Name of the cluster
+          title: Cluster
+          type: string
+        gpus_in_use:
+          description: UUIDs of gpus that are currently in use in this partition
+          items:
+            type: string
+          title: Gpus In Use
+          type: array
+        gpus_reserved:
+          description: Total number of GPUs that are currently reserved in this partition
+          title: Gpus Reserved
+          type: integer
+        jobs_pending:
+          description: List of pending jobs in this partition (computed by slurm-monitor)
+          items:
+            $ref: '#/components/schemas/JobResponse'
+          title: Jobs Pending
+          type: array
+        jobs_running:
+          description: List of running jobs in this partition (computed by slurm-monitor)
+          items:
+            $ref: '#/components/schemas/JobResponse'
+          title: Jobs Running
+          type: array
+        name:
+          description: Name of the partition
+          title: Name
+          type: string
+        nodes:
+          description: Nodes associated with this partition
+          items:
+            type: string
+          title: Nodes
+          type: array
+        nodes_compact:
+          description: A compact representation of the list of nodes,e.g., n001,n002,n003
+            is n001-003
+          items:
+            type: string
+          title: Nodes Compact
+          type: array
+        pending_max_submit_time:
+          description: Timestamp of the job being longest in PENDING state
+          format: date-time
+          title: Pending Max Submit Time
+          type: string
+        running_latest_wait_time:
+          description: Waiting time in seconds of the most recent started job in this
+            partition
+          title: Running Latest Wait Time
+          type: integer
+        time:
+          description: Timezone Aware timestamp
+          format: date-time
+          title: Time
+          type: string
+        total_cpus:
+          description: Total number of CPUs available in this partition
+          title: Total Cpus
+          type: integer
+        total_gpus:
+          description: Total number of GPUs available in this partition
+          title: Total Gpus
+          type: integer
+      required:
+      - time
+      - cluster
+      - name
+      - nodes
+      - nodes_compact
+      - jobs_pending
+      - jobs_running
+      - pending_max_submit_time
+      - running_latest_wait_time
+      - total_cpus
+      - total_gpus
+      - gpus_reserved
+      - gpus_in_use
+      title: PartitionResponse
+      type: object
+    PrefetchSettings:
+      additionalProperties: false
+      properties:
+        enabled:
+          default: true
+          title: Enabled
+          type: boolean
+        interval:
+          default: 90
+          title: Interval
+          type: integer
+      title: PrefetchSettings
+      type: object
+    ProcessData:
+      properties:
+        cmd:
+          description: Command (this is not the command line)
+          title: Cmd
+          type: string
+        data:
+          items:
+            $ref: '#/components/schemas/SampleProcessAccResponse'
+          title: Data
+          type: array
+        ppid:
+          description: Parent Process Id
+          title: Ppid
+          type: integer
+        user:
+          description: User
+          title: User
+          type: string
+      required:
+      - ppid
+      - user
+      - cmd
+      - data
+      title: ProcessData
+      type: object
+    ProcessPoint:
+      properties:
+        command:
+          title: Command
+          type: string
+        cpu:
+          title: Cpu
+          type: number
+        gpu:
+          title: Gpu
+          type: number
+        gpumem:
+          title: Gpumem
+          type: number
+        mem:
+          title: Mem
+          type: number
+        nproc:
+          title: Nproc
+          type: integer
+        pid:
+          title: Pid
+          type: integer
+        res:
+          title: Res
+          type: number
+      required:
+      - command
+      - pid
+      - nproc
+      - cpu
+      - mem
+      - res
+      - gpu
+      - gpumem
+      title: ProcessPoint
+      type: object
+    ProcessRelations:
+      properties:
+        relation_id:
+          description: Identifier for this relation
+          title: Relation Id
+          type: string
+        source:
+          description: Source aka parent process id
+          title: Source
+          type: integer
+        target:
+          description: Target aka child process id
+          title: Target
+          type: integer
+      required:
+      - relation_id
+      - source
+      - target
+      title: ProcessRelations
+      type: object
+    ProcessTreeMetaData:
+      properties:
+        end_time:
+          title: End Time
+          type: integer
+        max_depth:
+          title: Max Depth
+          type: integer
+        root_pid:
+          title: Root Pid
+          type: integer
+        start_time:
+          title: Start Time
+          type: integer
+        total_processes:
+          title: Total Processes
+          type: integer
+      required:
+      - total_processes
+      - start_time
+      - end_time
+      - root_pid
+      - max_depth
+      title: ProcessTreeMetaData
+      type: object
+    ProcessTreeResponse:
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ProcessTreeMetaData'
+        processes:
+          additionalProperties:
+            $ref: '#/components/schemas/ProcessData'
+          title: Processes
+          type: object
+        relations:
+          items:
+            $ref: '#/components/schemas/ProcessRelations'
+          title: Relations
+          type: array
+      required:
+      - processes
+      - relations
+      - metadata
+      title: ProcessTreeResponse
+      type: object
+    QueriesResponse:
+      properties:
+        queries:
+          description: List of available predefined queries
+          items:
+            type: string
+          title: Queries
+          type: array
+      required:
+      - queries
+      title: QueriesResponse
+      type: object
+    Roles:
+      additionalProperties: false
+      properties:
+        roles:
+          default: []
+          items:
+            type: string
+          title: Roles
+          type: array
+      title: Roles
+      type: object
+    SAcctResponse:
+      properties:
+        AllocTRES:
+          description: Allocated Trackable resources (TRES) (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Alloctres
+          type: string
+        AveCPU:
+          description: Average CPU usage (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Avecpu
+          type: integer
+        AveDiskRead:
+          description: Average number of bytes read by all tasks in job (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Avediskread
+          type: integer
+        AveDiskWrite:
+          description: Average number of bytes written by all tasks in job (see <a
+            href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Avediskwrite
+          type: integer
+        AveRSS:
+          description: Average resident set size of all tasks in job (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Averss
+          type: integer
+        AveVMSize:
+          description: Average virtual memory size (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Avevmsize
+          type: integer
+        ElapsedRaw:
+          description: The job's elapsed time in seconds (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Elapsedraw
+          type: integer
+        MaxRSS:
+          description: Maximum resident set size of all tasks in job (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Maxrss
+          type: integer
+        MaxVMSize:
+          description: Maximum virtual memory size (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Maxvmsize
+          type: integer
+        MinCPU:
+          description: Minimum CPU usage (see <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Mincpu
+          type: integer
+        SystemCPU:
+          description: The amount of CPU time used by the job or job step. (see <a
+            href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Systemcpu
+          type: integer
+        UserCPU:
+          description: The amount of user CPU time used by the job or job step. (see
+            <a href='https://slurm.schedmd.com/sacct.html#SECTION_Job-Accounting-Fields'>
+            SLURM Job Accounting</a>)
+          title: Usercpu
+          type: integer
+      required:
+      - AllocTRES
+      - ElapsedRaw
+      - SystemCPU
+      - UserCPU
+      - AveVMSize
+      - MaxVMSize
+      - AveCPU
+      - MinCPU
+      - AveRSS
+      - MaxRSS
+      - AveDiskRead
+      - AveDiskWrite
+      title: SAcctResponse
+      type: object
+    SSLSettings:
+      properties:
+        certfile:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Certfile to use
+          title: Certfile
+        keyfile:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Keyfile to use
+          title: Keyfile
+      title: SSLSettings
+      type: object
+    SampleDiskResponse:
+      properties:
+        delta_time_in_s:
+          default: 0
+          description: Time delta for which these value hold, 0 if unknown
+          title: Delta Time In S
+          type: integer
+        discards_completed:
+          description: Number of completed discards
+          title: Discards Completed
+          type: integer
+        discards_merged:
+          description: Number of sectors discarded
+          title: Discards Merged
+          type: integer
+        flush_requests_completed:
+          description: Number of completed flush requests
+          title: Flush Requests Completed
+          type: integer
+        ios_currently_in_progress:
+          description: Number of I/Os in progress
+          title: Ios Currently In Progress
+          type: integer
+        ms_spent_discarding:
+          description: Milliseconds spent dicarding
+          title: Ms Spent Discarding
+          type: integer
+        ms_spent_doing_ios:
+          description: Milliseconds on doing I/Os
+          title: Ms Spent Doing Ios
+          type: integer
+        ms_spent_flushing:
+          description: Milliseconds spent flushing
+          title: Ms Spent Flushing
+          type: integer
+        ms_spent_reading:
+          description: Milliseconds spent reading
+          title: Ms Spent Reading
+          type: integer
+        ms_spent_writing:
+          description: Milliseconds spent writing
+          title: Ms Spent Writing
+          type: integer
+        reads_completed:
+          description: Number of completed reads
+          title: Reads Completed
+          type: integer
+        reads_merged:
+          description: Number of reads merged (adjacent reads might be merged)
+          title: Reads Merged
+          type: integer
+        sectors_discarded:
+          description: Number of section that have been discarded
+          title: Sectors Discarded
+          type: integer
+        sectors_read:
+          description: Number of sector read
+          title: Sectors Read
+          type: integer
+        sectors_written:
+          description: Number of sectors being written
+          title: Sectors Written
+          type: integer
+        time:
+          description: Timezone Aware timestamp
+          format: date-time
+          title: Time
+          type: string
+        weighted_ms_spent_doing_ios:
+          description: Weighted milliseconds spend on doing I/Os
+          title: Weighted Ms Spent Doing Ios
+          type: integer
+        writes_completed:
+          description: Number of writes completed
+          title: Writes Completed
+          type: integer
+        writes_merged:
+          description: Number of merged writes
+          title: Writes Merged
+          type: integer
+      required:
+      - time
+      - reads_completed
+      - reads_merged
+      - sectors_read
+      - ms_spent_reading
+      - writes_completed
+      - writes_merged
+      - sectors_written
+      - ms_spent_writing
+      - ios_currently_in_progress
+      - ms_spent_doing_ios
+      - weighted_ms_spent_doing_ios
+      - discards_completed
+      - discards_merged
+      - sectors_discarded
+      - ms_spent_discarding
+      - flush_requests_completed
+      - ms_spent_flushing
+      title: SampleDiskResponse
+      type: object
+    SampleDiskTimeseriesResponse:
+      description: provide the timeseries of samples
+      properties:
+        data:
+          description: Timeseries of SampleDisk for this disk
+          items:
+            $ref: '#/components/schemas/SampleDiskResponse'
+          title: Data
+          type: array
+        field_names:
+          default:
+          - reads_completed
+          - reads_merged
+          - sectors_read
+          - ms_spent_reading
+          - writes_completed
+          - writes_merged
+          - sectors_written
+          - ms_spent_writing
+          - ios_currently_in_progress
+          - ms_spent_doing_ios
+          - weighted_ms_spent_doing_ios
+          - discards_completed
+          - discards_merged
+          - sectors_discarded
+          - ms_spent_discarding
+          - flush_requests_completed
+          - ms_spent_flushing
+          description: diskstat fieldnames
+          items:
+            type: string
+          title: Field Names
+          type: array
+        major:
+          description: Major device number
+          title: Major
+          type: integer
+        minor:
+          description: Minor device number
+          title: Minor
+          type: integer
+        name:
+          description: Name of the disk
+          title: Name
+          type: string
+      required:
+      - name
+      - major
+      - minor
+      - data
+      title: SampleDiskTimeseriesResponse
+      type: object
+    SampleGpuBaseResponse:
+      properties:
+        ce_clock:
+          description: Compute element current clock
+          title: Ce Clock
+          type: number
+        ce_util:
+          description: Compute element capability used in percentage
+          title: Ce Util
+          type: number
+        compute_mode:
+          description: card-dependent, current compute mode if known
+          title: Compute Mode
+          type: string
+        failing:
+          description: If not zero and error code indicating a card failure state.
+            Code=1 is 'generic failure'. Other codes TBD
+          title: Failing
+          type: integer
+        fan:
+          description: Percent of primary fan's max speed, max exceed 100% on some
+            cards in some cases
+          title: Fan
+          type: number
+        memory:
+          description: Memory use in KiB
+          title: Memory
+          type: number
+        memory_clock:
+          description: Memory current clock
+          title: Memory Clock
+          type: number
+        memory_util:
+          description: Memory used in percentage
+          title: Memory Util
+          type: number
+        performance_state:
+          description: Current performance level, card-specific >= 0, or unset for
+            'unknown'
+          title: Performance State
+          type: number
+        power:
+          description: Current power usage in W(atts
+          title: Power
+          type: number
+        power_limit:
+          description: Current power limit in W(atts)
+          title: Power Limit
+          type: number
+        temperature:
+          description: Card temperature a primar sensor in degrees Celsius (can be
+            negative
+          title: Temperature
+          type: number
+        time:
+          description: Timezone Aware timestamp
+          format: date-time
+          title: Time
+          type: string
+      required:
+      - time
+      - failing
+      - fan
+      - compute_mode
+      - performance_state
+      - memory
+      - memory_util
+      - memory_clock
+      - ce_util
+      - ce_clock
+      - temperature
+      - power
+      - power_limit
+      title: SampleGpuBaseResponse
+      type: object
+    SampleGpuTimeseriesResponse:
+      description: 'Used GPU uuid and (local) index to identify the GPU and
+
+        provide the timeseries of samples'
+      properties:
+        data:
+          description: Timeseries of SampleGpu for this GPU
+          items:
+            $ref: '#/components/schemas/SampleGpuBaseResponse'
+          title: Data
+          type: array
+        index:
+          description: Local index of the GPU
+          title: Index
+          type: integer
+        uuid:
+          description: UUID of the GPU
+          title: Uuid
+          type: string
+      required:
+      - uuid
+      - index
+      - data
+      title: SampleGpuTimeseriesResponse
+      type: object
+    SampleProcessAccResponse:
+      properties:
+        cpu_avg:
+          description: Average CPU utilization over the lifetime of the accumulated
+            processes
+          title: Cpu Avg
+          type: number
+        cpu_time:
+          description: Total CPU time in seconds for the lifetime of the related processes
+          title: Cpu Time
+          type: number
+        cpu_util:
+          description: Current CPU utilization in percentage
+          title: Cpu Util
+          type: number
+        memory_resident:
+          description: Current resident memory usage in KiB
+          title: Memory Resident
+          type: number
+        memory_util:
+          description: Current Memory utilization in percentage
+          title: Memory Util
+          type: number
+        memory_virtual:
+          description: Current virtual memory usage in KiB
+          title: Memory Virtual
+          type: number
+        processes_avg:
+          description: Average number of processes running for this accumulated response
+          title: Processes Avg
+          type: number
+        time:
+          description: Timezone Aware timestamp
+          format: date-time
+          title: Time
+          type: string
+      required:
+      - time
+      - memory_resident
+      - memory_virtual
+      - memory_util
+      - cpu_avg
+      - cpu_util
+      - cpu_time
+      - processes_avg
+      title: SampleProcessAccResponse
+      type: object
+    SampleProcessGpuAccResponse:
+      properties:
+        gpu_memory:
+          description: GPU Memory being utilized in KiB
+          title: Gpu Memory
+          type: number
+        gpu_memory_util:
+          description: GPU Memory utilization in percentage
+          title: Gpu Memory Util
+          type: number
+        gpu_util:
+          description: GPU Compute utilization in percentage
+          title: Gpu Util
+          type: number
+        pids:
+          description: Process ids related to an accumulated sample
+          items:
+            type: integer
+          title: Pids
+          type: array
+        time:
+          description: Timezone Aware timestamp
+          format: date-time
+          title: Time
+          type: string
+      required:
+      - time
+      - gpu_memory
+      - gpu_util
+      - gpu_memory_util
+      - pids
+      title: SampleProcessGpuAccResponse
+      type: object
+    ServerSettings:
+      properties:
+        host:
+          title: Host
+          type: string
+        port:
+          title: Port
+          type: integer
+      required:
+      - host
+      - port
+      title: ServerSettings
+      type: object
+    SystemProcessTimeseriesResponse:
+      properties:
+        epoch:
+          description: Epoch uniquely identifying non-slurm jobs
+          title: Epoch
+          type: integer
+        job:
+          description: Job ID
+          title: Job
+          type: integer
+        nodes:
+          additionalProperties:
+            $ref: '#/components/schemas/CombinedProcessTimeSeriesResponse'
+          title: Nodes
+          type: object
+      required:
+      - job
+      - epoch
+      - nodes
+      title: SystemProcessTimeseriesResponse
+      type: object
+    SystemProcessTreeResponse:
+      properties:
+        epoch:
+          description: Epoch uniquely identifying non-slurm jobs
+          title: Epoch
+          type: integer
+        job:
+          description: Job ID
+          title: Job
+          type: integer
+        nodes:
+          additionalProperties:
+            $ref: '#/components/schemas/ProcessTreeResponse'
+          description: Process tree per node
+          title: Nodes
+          type: object
+      required:
+      - job
+      - epoch
+      - nodes
+      title: SystemProcessTreeResponse
+      type: object
+    TokenPayload:
+      additionalProperties: false
+      properties:
+        acr:
+          title: Acr
+          type: integer
+        allowed-origins:
+          default: []
+          items:
+            type: string
+          title: Allowed-Origins
+          type: array
+        aud:
+          title: Aud
+          type: string
+        auth_time:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Auth Time
+        azp:
+          title: Azp
+          type: string
+        email:
+          title: Email
+          type: string
+        email_verified:
+          title: Email Verified
+          type: boolean
+        exp:
+          title: Exp
+          type: integer
+        family_name:
+          title: Family Name
+          type: string
+        given_name:
+          title: Given Name
+          type: string
+        iat:
+          title: Iat
+          type: integer
+        iss:
+          title: Iss
+          type: string
+        jti:
+          title: Jti
+          type: string
+        name:
+          title: Name
+          type: string
+        preferred_username:
+          title: Preferred Username
+          type: string
+        realm_access:
+          $ref: '#/components/schemas/Roles'
+        resource_access:
+          $ref: '#/components/schemas/Account'
+        scope:
+          title: Scope
+          type: string
+        sid:
+          title: Sid
+          type: string
+        sub:
+          title: Sub
+          type: string
+        typ:
+          title: Typ
+          type: string
+      required:
+      - exp
+      - iat
+      - jti
+      - iss
+      - aud
+      - sub
+      - typ
+      - azp
+      - sid
+      - acr
+      - realm_access
+      - resource_access
+      - scope
+      - email_verified
+      - name
+      - preferred_username
+      - given_name
+      - family_name
+      - email
+      title: TokenPayload
+      type: object
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          title: Location
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+      type: object
+info:
+  title: slurm-monitor REST API
+  version: '2'
+openapi: 3.1.0
+paths:
+  /:
+    get:
+      operationId: hello__get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+      summary: Hello
+  /clear_cache:
+    get:
+      operationId: clear_cache_clear_cache_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+      summary: Clear Cache
+      tags:
+      - v2
+  /cluster:
+    get:
+      description: Get the list of clusters (available at a particular point in time)
+      operationId: cluster_cluster_get
+      parameters:
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Time In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ClusterResponse'
+                title: Response Cluster Cluster Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Available clusters
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/benchmarks/{benchmark_name}:
+    get:
+      operationId: benchmarks_cluster__cluster__benchmarks__benchmark_name__get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: benchmark_name
+        required: true
+        schema:
+          title: Benchmark Name
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Benchmarks
+      tags:
+      - v2
+  /cluster/{cluster}/error_messages:
+    get:
+      description: Get error_message of a cluster (for a specific time point) (or
+        nodes)
+      operationId: error_messages_cluster__cluster__error_messages_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Time In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  $ref: '#/components/schemas/ErrorMessageResponse'
+                title: Response Error Messages Cluster  Cluster  Error Messages Get
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Error messages collected for the entire cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/jobs:
+    get:
+      description: Check current status of jobs
+      operationId: jobs_cluster__cluster__jobs_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: states
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: States
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobsResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get jobs running on the given cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/jobs/process/gpu/timeseries:
+    get:
+      description: Get job-related timeseries data for processes running on gpu
+      operationId: job_sample_process_gpu_timeseries_cluster__cluster__jobs_process_gpu_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: job_id
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Job Id
+      - in: query
+        name: epoch
+        required: false
+        schema:
+          default: 0
+          title: Epoch
+          type: integer
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/JobNodeSampleProcessGpuTimeseriesResponse'
+                title: Response Job Sample Process Gpu Timeseries Cluster  Cluster  Jobs
+                  Process Gpu Timeseries Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get GPU samples as timeseries, aggregated per job (for all jobs) and
+        process on a given cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/jobs/process/timeseries:
+    get:
+      description: 'Get job-related timeseries for all processes running on cpu and
+        gpu
+
+
+        By default this related to SLURM jobs (epoch set to 0).
+
+        To relate to non-SLURM jobs, provide the epoch as parameter to the query.
+
+
+        That will be separated in ''cpu_memory'' and ''gpus'''
+      operationId: job_sample_process_system_cluster__cluster__jobs_process_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: job_id
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Job Id
+      - in: query
+        name: epoch
+        required: false
+        schema:
+          default: 0
+          title: Epoch
+          type: integer
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SystemProcessTimeseriesResponse'
+                title: Response Job Sample Process System Cluster  Cluster  Jobs Process
+                  Timeseries Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get all jobs process timeseries-data (cpu/memory/gpu) on a given cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/jobs/{job_id}:
+    get:
+      description: Get job information optionally limited by a given timeframe and
+        output provided in a specified resolution of time
+      operationId: job_status_cluster__cluster__jobs__job_id__get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          title: Job Id
+          type: integer
+      - in: query
+        name: epoch
+        required: false
+        schema:
+          default: 0
+          title: Epoch
+          type: integer
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      - in: query
+        name: states
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: States
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get SLURM job information by id for the given cluster
+      tags:
+      - v2
+      - job
+  /cluster/{cluster}/jobs/{job_id}/epoch/{epoch}:
+    get:
+      description: Get job information optionally limited by a given timeframe and
+        output provided in a specified resolution of time
+      operationId: job_status_cluster__cluster__jobs__job_id__epoch__epoch__get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          title: Job Id
+          type: integer
+      - in: path
+        name: epoch
+        required: true
+        schema:
+          title: Epoch
+          type: integer
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      - in: query
+        name: states
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: States
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get job information by id and epoch for the given cluster
+      tags:
+      - v2
+      - job
+  /cluster/{cluster}/jobs/{job_id}/epoch/{epoch}/info:
+    get:
+      description: Get job information optionally limited by a given timeframe and
+        output provided in a specified resolution of time
+      operationId: job_status_cluster__cluster__jobs__job_id__epoch__epoch__info_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          title: Job Id
+          type: integer
+      - in: path
+        name: epoch
+        required: true
+        schema:
+          title: Epoch
+          type: integer
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      - in: query
+        name: states
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: States
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get job information by id and epoch for the given cluster
+      tags:
+      - v2
+      - job
+  /cluster/{cluster}/jobs/{job_id}/info:
+    get:
+      description: Get job information optionally limited by a given timeframe and
+        output provided in a specified resolution of time
+      operationId: job_status_cluster__cluster__jobs__job_id__info_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          title: Job Id
+          type: integer
+      - in: query
+        name: epoch
+        required: false
+        schema:
+          default: 0
+          title: Epoch
+          type: integer
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      - in: query
+        name: states
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: States
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get SLURM job information by id for the given cluster
+      tags:
+      - v2
+      - job
+  /cluster/{cluster}/jobs/{job_id}/process/gpu/timeseries:
+    get:
+      description: Get job-related timeseries data for processes running on gpu
+      operationId: job_sample_process_gpu_timeseries_cluster__cluster__jobs__job_id__process_gpu_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Job Id
+      - in: query
+        name: epoch
+        required: false
+        schema:
+          default: 0
+          title: Epoch
+          type: integer
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/JobNodeSampleProcessGpuTimeseriesResponse'
+                title: Response Job Sample Process Gpu Timeseries Cluster  Cluster  Jobs  Job
+                  Id  Process Gpu Timeseries Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get GPU sample as timeseries aggregate for a specific job on a given
+        cluster
+      tags:
+      - v2
+      - job
+  /cluster/{cluster}/jobs/{job_id}/process/timeseries:
+    get:
+      description: 'Get job-related timeseries for all processes running on cpu and
+        gpu
+
+
+        By default this related to SLURM jobs (epoch set to 0).
+
+        To relate to non-SLURM jobs, provide the epoch as parameter to the query.
+
+
+        That will be separated in ''cpu_memory'' and ''gpus'''
+      operationId: job_sample_process_system_cluster__cluster__jobs__job_id__process_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Job Id
+      - in: query
+        name: epoch
+        required: false
+        schema:
+          default: 0
+          title: Epoch
+          type: integer
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SystemProcessTimeseriesResponse'
+                title: Response Job Sample Process System Cluster  Cluster  Jobs  Job
+                  Id  Process Timeseries Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get **job**-specific process (cpu/memory/gpu) timeseries data
+      tags:
+      - v2
+      - job
+  /cluster/{cluster}/jobs/{job_id}/process/tree:
+    get:
+      description: 'Get job-related process tree providing process level data for
+        all related nodes
+
+
+        By default this related to SLURM jobs (epoch set to 0).
+
+        To relate to non-SLURM jobs, provide the epoch as parameter to the query.'
+      operationId: job_sample_process_system_tree_cluster__cluster__jobs__job_id__process_tree_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          title: Job Id
+          type: integer
+      - in: query
+        name: epoch
+        required: false
+        schema:
+          default: 0
+          title: Epoch
+          type: integer
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemProcessTreeResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get **job**-specific process (cpu/memory) timeseries data
+      tags:
+      - v2
+      - job
+  /cluster/{cluster}/jobs/{job_id}/report:
+    get:
+      operationId: job_report_cluster__cluster__jobs__job_id__report_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          title: Job Id
+          type: integer
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Time In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobReport'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get a report on stats for the current job
+      tags:
+      - v2
+      - job
+  /cluster/{cluster}/nodes:
+    get:
+      description: Get the list of node names in a cluster
+      operationId: nodes_cluster__cluster__nodes_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Time In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                title: Response Nodes Cluster  Cluster  Nodes Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Nodes available in a given cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/cpu/timeseries:
+    get:
+      description: Get node-related timeseries data for processes running on memory
+      operationId: nodes_process_cpu_memory_timeseries_cluster__cluster__nodes_cpu_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  items:
+                    $ref: '#/components/schemas/SampleProcessAccResponse'
+                  type: array
+                title: Response Nodes Process Cpu Memory Timeseries Cluster  Cluster  Nodes
+                  Cpu Timeseries Get
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get timeseries data of CPU samples for all nodes in a given cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/diskstats/timeseries:
+    get:
+      operationId: nodes_sample_disk_cluster__cluster__nodes_diskstats_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          default: 300
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeDiskTimeseriesResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get timeseries data of GPU samples for all nodes in a given cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/gpu/timeseries:
+    get:
+      operationId: nodes_sample_gpu_cluster__cluster__nodes_gpu_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeGpuTimeseriesResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get timeseries data of GPU samples for all nodes in a given cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/info:
+    get:
+      description: 'Get available information about nodes in a cluster
+
+
+        It will only contain information about reporting nodes - in some case a
+
+        node might exist in a cluster, but no system information has been received
+
+        yet.  To check - compare with the complete node list /cluster/{cluster}/nodes'
+      operationId: nodes_sysinfo_cluster__cluster__nodes_info_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Time In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  $ref: '#/components/schemas/NodeInfoResponse'
+                title: Response Nodes Sysinfo Cluster  Cluster  Nodes Info Get
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Detailed information about nodes in a cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/info/pages:
+    get:
+      description: 'Get available information about nodes in a cluster
+
+
+        It will only contain information about reporting nodes - in some case a
+
+        node might exist in a cluster, but no system information has been received
+
+        yet.  To check - compare with the complete node list /cluster/{cluster}/nodes'
+      operationId: nodes_sysinfo_pages_cluster__cluster__nodes_info_pages_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Time In S
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 100
+          title: Limit
+          type: integer
+      - in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          title: Page
+          type: integer
+      - in: query
+        name: page_size
+        required: false
+        schema:
+          default: 50
+          title: Page Size
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomPage_NodeInfoResponse_'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Detailed information about nodes in a cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/last_probe_timestamp:
+    get:
+      description: 'Retrieve the last known timestamps of records added for nodes
+        in the cluster
+
+
+        A timestamp of None (or null in the Json response) means, that no monitoring
+        data has been recorded for this node.
+
+        In this case the node has probably no probe, i.e. sonar daemon running.'
+      operationId: nodes_last_probe_timestamp_cluster__cluster__nodes_last_probe_timestamp_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          title: Time In S
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  anyOf:
+                  - format: date-time
+                    type: string
+                  - type: 'null'
+                title: Response Nodes Last Probe Timestamp Cluster  Cluster  Nodes
+                  Last Probe Timestamp Get
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get the timestamp of the last message received for each node in the
+        given cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/memory/timeseries:
+    get:
+      description: Get node-related timeseries data for processes running on memory
+      operationId: nodes_process_cpu_memory_timeseries_cluster__cluster__nodes_memory_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  items:
+                    $ref: '#/components/schemas/SampleProcessAccResponse'
+                  type: array
+                title: Response Nodes Process Cpu Memory Timeseries Cluster  Cluster  Nodes
+                  Memory Timeseries Get
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get timeseries data of Memory samples for all nodes in a given cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/process/gpu/timeseries:
+    get:
+      description: Get node-related timeseries for processes running on gpu
+      operationId: nodes_sample_process_gpu_cluster__cluster__nodes_process_gpu_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: job_id
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Job Id
+      - in: query
+        name: epoch
+        required: false
+        schema:
+          default: 0
+          title: Epoch
+          type: integer
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeGpuJobSampleProcessGpuTimeseriesResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Nodes Sample Process Gpu
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/process/gpu/util:
+    get:
+      description: Retrieve the latest gpu utilization
+      operationId: nodes_process_gpu_util_cluster__cluster__nodes_process_gpu_util_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: reference_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Reference Time In S
+      - in: query
+        name: window_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Window In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeSampleProcessGpuAccResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Nodes Process Gpu Util
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/states:
+    get:
+      description: Get the state(s) of nodes in a given cluster
+      operationId: nodes_states_cluster__cluster__nodes_states_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: nodename
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Time In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/NodeStateResponse'
+                title: Response Nodes States Cluster  Cluster  Nodes States Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Information about the states of all nodes in a cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/nodes/{nodename}/cpu/timeseries:
+    get:
+      description: Get node-related timeseries data for processes running on memory
+      operationId: nodes_process_cpu_memory_timeseries_cluster__cluster__nodes__nodename__cpu_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  items:
+                    $ref: '#/components/schemas/SampleProcessAccResponse'
+                  type: array
+                title: Response Nodes Process Cpu Memory Timeseries Cluster  Cluster  Nodes  Nodename  Cpu
+                  Timeseries Get
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get **node**-specific timeseries data of CPU samples
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/nodes/{nodename}/diskstats/timeseries:
+    get:
+      operationId: nodes_sample_disk_cluster__cluster__nodes__nodename__diskstats_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          default: 300
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeDiskTimeseriesResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get **node**-specific timeseries data of DiskStat samples
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/nodes/{nodename}/error_messages:
+    get:
+      description: Get error_message of a cluster (for a specific time point) (or
+        nodes)
+      operationId: error_messages_cluster__cluster__nodes__nodename__error_messages_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Time In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  $ref: '#/components/schemas/ErrorMessageResponse'
+                title: Response Error Messages Cluster  Cluster  Nodes  Nodename  Error
+                  Messages Get
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Node-specific error messages
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/nodes/{nodename}/gpu/timeseries:
+    get:
+      operationId: nodes_sample_gpu_cluster__cluster__nodes__nodename__gpu_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeGpuTimeseriesResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get **node**-specific timeseries data of GPU samples
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/nodes/{nodename}/info:
+    get:
+      description: 'Get available information about nodes in a cluster
+
+
+        It will only contain information about reporting nodes - in some case a
+
+        node might exist in a cluster, but no system information has been received
+
+        yet.  To check - compare with the complete node list /cluster/{cluster}/nodes'
+      operationId: nodes_sysinfo_cluster__cluster__nodes__nodename__info_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Time In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  $ref: '#/components/schemas/NodeInfoResponse'
+                title: Response Nodes Sysinfo Cluster  Cluster  Nodes  Nodename  Info
+                  Get
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Detailed information about a single node in a cluster
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/nodes/{nodename}/jobs/{job_id}/process/gpu/timeseries:
+    get:
+      description: Get node-related timeseries for processes running on gpu
+      operationId: nodes_sample_process_gpu_cluster__cluster__nodes__nodename__jobs__job_id__process_gpu_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Job Id
+      - in: query
+        name: epoch
+        required: false
+        schema:
+          default: 0
+          title: Epoch
+          type: integer
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeGpuJobSampleProcessGpuTimeseriesResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get **node**-related and **job**-related timeseries of GPU samples
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/nodes/{nodename}/memory/timeseries:
+    get:
+      description: Get node-related timeseries data for processes running on memory
+      operationId: nodes_process_cpu_memory_timeseries_cluster__cluster__nodes__nodename__memory_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  items:
+                    $ref: '#/components/schemas/SampleProcessAccResponse'
+                  type: array
+                title: Response Nodes Process Cpu Memory Timeseries Cluster  Cluster  Nodes  Nodename  Memory
+                  Timeseries Get
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get **node**-specific timeseries data of Memory samples
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/nodes/{nodename}/process/gpu/timeseries:
+    get:
+      description: Get node-related timeseries for processes running on gpu
+      operationId: nodes_sample_process_gpu_cluster__cluster__nodes__nodename__process_gpu_timeseries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: job_id
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Job Id
+      - in: query
+        name: epoch
+        required: false
+        schema:
+          default: 0
+          title: Epoch
+          type: integer
+      - in: query
+        name: start_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Time In S
+      - in: query
+        name: end_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Time In S
+      - in: query
+        name: resolution_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resolution In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeGpuJobSampleProcessGpuTimeseriesResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Nodes Sample Process Gpu
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/nodes/{nodename}/process/gpu/util:
+    get:
+      description: Retrieve the latest gpu utilization
+      operationId: nodes_process_gpu_util_cluster__cluster__nodes__nodename__process_gpu_util_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: reference_time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Reference Time In S
+      - in: query
+        name: window_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Window In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeSampleProcessGpuAccResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Nodes Process Gpu Util
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/nodes/{nodename}/states:
+    get:
+      description: Get the state(s) of nodes in a given cluster
+      operationId: nodes_states_cluster__cluster__nodes__nodename__states_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Nodename
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Time In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/NodeStateResponse'
+                title: Response Nodes States Cluster  Cluster  Nodes  Nodename  States
+                  Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Information about the state(s) of a specific nodes in a cluster
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/nodes/{nodename}/topology:
+    get:
+      description: Get the topology information for a node (if available)
+      operationId: nodes_nodename_topology_cluster__cluster__nodes__nodename__topology_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: nodename
+        required: true
+        schema:
+          title: Nodename
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Topology information (as image/svg+xml) for a specific node in a cluster
+      tags:
+      - v2
+      - node
+  /cluster/{cluster}/partitions:
+    get:
+      description: Get status of partitions of a cluster (for a specific time point)
+      operationId: partitions_cluster__cluster__partitions_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: time_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Time In S
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/PartitionResponse'
+                title: Response Partitions Cluster  Cluster  Partitions Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Partitions available in a given cluster
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/queries:
+    get:
+      operationId: list_queries_cluster__cluster__queries_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueriesResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get the list of 'named' predefined queries
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/queries/{query_name}:
+    get:
+      operationId: queries_cluster__cluster__queries__query_name__get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: path
+        name: query_name
+        required: true
+        schema:
+          title: Query Name
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Execute a the 'named' query
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/query/jobs:
+    get:
+      operationId: query_jobs_cluster__cluster__query_jobs_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: user
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User
+      - in: query
+        name: user_id
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: User Id
+      - in: query
+        name: job_id
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Job Id
+      - in: query
+        name: start_before_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Before In S
+      - in: query
+        name: start_after_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start After In S
+      - in: query
+        name: end_before_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Before In S
+      - in: query
+        name: end_after_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End After In S
+      - in: query
+        name: submit_before_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Submit Before In S
+      - in: query
+        name: submit_after_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Submit After In S
+      - in: query
+        name: min_duration_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Min Duration In S
+      - in: query
+        name: max_duration_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Max Duration In S
+      - in: query
+        name: states
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: States
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 100
+          title: Limit
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Provides a generic job query interface
+      tags:
+      - v2
+      - cluster
+  /cluster/{cluster}/query/jobs/pages:
+    get:
+      operationId: query_jobs_pages_cluster__cluster__query_jobs_pages_get
+      parameters:
+      - in: path
+        name: cluster
+        required: true
+        schema:
+          title: Cluster
+          type: string
+      - in: query
+        name: user
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User
+      - in: query
+        name: user_id
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: User Id
+      - in: query
+        name: job_id
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Job Id
+      - in: query
+        name: start_before_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Before In S
+      - in: query
+        name: start_after_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start After In S
+      - in: query
+        name: end_before_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End Before In S
+      - in: query
+        name: end_after_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End After In S
+      - in: query
+        name: submit_before_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Submit Before In S
+      - in: query
+        name: submit_after_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Submit After In S
+      - in: query
+        name: min_duration_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Min Duration In S
+      - in: query
+        name: max_duration_in_s
+        required: false
+        schema:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Max Duration In S
+      - in: query
+        name: states
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: States
+      - in: query
+        name: timestamp
+        required: false
+        schema:
+          default: 1773145176
+          title: Timestamp
+          type: integer
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 100
+          title: Limit
+          type: integer
+      - in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          title: Page
+          type: integer
+      - in: query
+        name: page_size
+        required: false
+        schema:
+          default: 50
+          title: Page Size
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/AppSettings'
+              - type: 'null'
+              title: App Settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomPage_JobResponse_'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Provides a generic job query interface
+      tags:
+      - v2
+      - cluster
+  /jobprofile:
+    get:
+      operationId: dashboard_job_profile_jobprofile_get
+      parameters:
+      - in: query
+        name: cluster
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cluster
+      - in: query
+        name: user
+        required: false
+        schema:
+          default: '-'
+          title: User
+          type: string
+      - in: query
+        name: host
+        required: false
+        schema:
+          default: ''
+          title: Host
+          type: string
+      - in: query
+        name: job
+        required: false
+        schema:
+          default: 0
+          title: Job
+          type: integer
+      - in: query
+        name: to
+        required: false
+        schema:
+          default: ''
+          title: To
+          type: string
+      - in: query
+        name: from
+        required: false
+        schema:
+          default: ''
+          title: From
+          type: string
+      - in: query
+        name: fmt
+        required: false
+        schema:
+          default: ''
+          title: Fmt
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/JobProfileResultItem'
+                title: Response Dashboard Job Profile Jobprofile Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Dashboard Job Profile
+      tags:
+      - v2
+  /jobquery:
+    get:
+      operationId: dashboard_job_query_jobquery_get
+      parameters:
+      - in: query
+        name: cluster
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cluster
+      - in: query
+        name: user
+        required: false
+        schema:
+          default: '-'
+          title: User
+          type: string
+      - in: query
+        name: host
+        required: false
+        schema:
+          default: ''
+          title: Host
+          type: string
+      - in: query
+        name: job_id
+        required: false
+        schema:
+          default: ''
+          title: Job Id
+          type: string
+      - in: query
+        name: to
+        required: false
+        schema:
+          default: ''
+          title: To
+          type: string
+      - in: query
+        name: from
+        required: false
+        schema:
+          default: ''
+          title: From
+          type: string
+      - in: query
+        name: fmt
+        required: false
+        schema:
+          default: ''
+          title: Fmt
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/JobQueryResultItem'
+                title: Response Dashboard Job Query Jobquery Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Dashboard Job Query
+      tags:
+      - v2
+  /user:
+    get:
+      description: Get status of partitions of a cluster (for a specific time point)
+      operationId: user_user_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPayload'
+          description: Successful Response
+      summary: Currently logged in user
+      tags:
+      - v2
+servers:
+- url: /api/v2

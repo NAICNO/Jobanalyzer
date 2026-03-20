@@ -102,12 +102,14 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 	}
 
 	err := cdp.populateCache(QueryArgs{
-		QueryFilter: common.QueryFilter{
-			HaveFrom: true,
-			FromDate: time.Unix(t-(60*60*24*14), 0).UTC(),
-			HaveTo:   true,
-			ToDate:   time.Unix(t, 0).UTC(),
-			Host:     []string{host.String()}, // groan!!!
+		QueryFilter: QueryFilter{
+			QueryFilter: common.QueryFilter{
+				HaveFrom: true,
+				FromDate: time.Unix(t-(60*60*24*14), 0).UTC(),
+				HaveTo:   true,
+				ToDate:   time.Unix(t, 0).UTC(),
+				Host:     []string{host.String()}, // groan!!!
+			},
 		},
 	})
 	if err == nil {
@@ -167,11 +169,15 @@ func (cdb *ConfigDataProvider) AvailableHosts(fromDate, toDate time.Time) (map[s
 	return nodenames, nil
 }
 
-type QueryArgs struct {
+type QueryFilter struct {
 	common.QueryFilter
 	Verbose bool
-	Newest  bool
-	Query   func(records []*NodeConfig) ([]*NodeConfig, error)
+}
+
+type QueryArgs struct {
+	QueryFilter
+	Newest bool
+	Query  func(records []*NodeConfig) ([]*NodeConfig, error)
 }
 
 // Note clients will need to set the query parameters sensibly.  Before, when we had a single
@@ -233,12 +239,15 @@ func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
 	return records, nil
 }
 
-// Raw query against the database, synthesizing records from node and card data and running
-// independent of any caching.  It's fine for there to be multiple hosts in the query args, but the
-// result should be independent of whether a single materialize() is run on multiple hosts or one
-// materialize() is run for each host.
+type RawConfigData struct {
+	// the time and host are given by Node
+	Node  *repr.SysinfoNodeData
+	Cards []*repr.SysinfoCardData
+}
 
-func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) {
+// Raw query against the database.  Use with care.
+
+func (cdp *ConfigDataProvider) RawQuery(qa QueryFilter) ([]*RawConfigData, error) {
 	nodes, err := cdp.nodes.Query(
 		node.QueryFilter{
 			HaveFrom: qa.HaveFrom,
@@ -265,53 +274,60 @@ func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)
 	}
-	type joinedData struct {
-		// the time and host are given by node
-		node  *repr.SysinfoNodeData
-		cards []*repr.SysinfoCardData
-	}
-	joined := make(map[string]*joinedData)
+	joined := make(map[string]*RawConfigData)
 	for _, r := range nodes {
-		joined[r.Time+"|"+r.Node] = &joinedData{node: r}
+		joined[r.Time+"|"+r.Node] = &RawConfigData{Node: r}
 	}
 	for _, r := range cards {
 		if probe := joined[r.Time+"|"+r.Node]; probe != nil {
-			probe.cards = append(probe.cards, r)
+			probe.Cards = append(probe.Cards, r)
 		}
 	}
-	rawRecords := umaps.Values(joined)
+	return umaps.Values(joined), nil
+}
+
+// Run a raw query and synthesize records from node and card data and running independent of any
+// caching.  It's fine for there to be multiple hosts in the query args, but the result should be
+// independent of whether a single materialize() is run on multiple hosts or one materialize() is
+// run for each host.
+
+func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) {
+	rawRecords, err := cdp.RawQuery(qa.QueryFilter)
+	if err != nil {
+		return nil, err
+	}
 	records := make([]*NodeConfig, len(rawRecords))
 	for i, r := range rawRecords {
 		ht := ""
-		if r.node.ThreadsPerCore > 1 {
+		if r.Node.ThreadsPerCore > 1 {
 			ht = " (hyperthreaded)"
 		}
-		memGB := int(math.Round(float64(r.node.Memory) / (1024 * 1024)))
+		memGB := int(math.Round(float64(r.Node.Memory) / (1024 * 1024)))
 		desc := fmt.Sprintf(
-			"%dx%d%s %s, %d GiB", r.node.Sockets, r.node.CoresPerSocket, ht, r.node.CpuModel, memGB)
-		cores := r.node.Sockets * r.node.CoresPerSocket * r.node.ThreadsPerCore
-		numCards := len(r.cards)
+			"%dx%d%s %s, %d GiB", r.Node.Sockets, r.Node.CoresPerSocket, ht, r.Node.CpuModel, memGB)
+		cores := r.Node.Sockets * r.Node.CoresPerSocket * r.Node.ThreadsPerCore
+		numCards := len(r.Cards)
 		cardTotalMemKB := uint64(0)
-		for _, c := range r.cards {
+		for _, c := range r.Cards {
 			cardTotalMemKB += c.Memory
 		}
 		cardTotalMemGB := int(math.Round(float64(cardTotalMemKB) / (1024 * 1024)))
 		if numCards > 0 {
-			desc += fmt.Sprintf(", %dx %s @ %dGiB", numCards, r.cards[0].Model, (r.cards[0].Memory)/(1024*1024))
+			desc += fmt.Sprintf(", %dx %s @ %dGiB", numCards, r.Cards[0].Model, (r.Cards[0].Memory)/(1024*1024))
 		}
 		distances := ""
-		if r.node.Distances != nil {
-			distances = fmt.Sprintf("%v", r.node.Distances)
+		if r.Node.Distances != nil {
+			distances = fmt.Sprintf("%v", r.Node.Distances)
 		}
 		var parsedTime int64
-		parsedTimeTmp, err := time.Parse(time.RFC3339, r.node.Time)
+		parsedTimeTmp, err := time.Parse(time.RFC3339, r.Node.Time)
 		if err == nil {
 			parsedTime = parsedTimeTmp.UTC().Unix()
 		}
 		records[i] = &NodeConfig{
 			NodeSummary: repr.NodeSummary{
-				Timestamp:   r.node.Time,
-				Hostname:    r.node.Node,
+				Timestamp:   r.Node.Time,
+				Hostname:    r.Node.Node,
 				Description: desc,
 				CpuCores:    int(cores),
 				MemGB:       memGB,
@@ -323,10 +339,10 @@ func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) 
 				// `Metadata` is unused by sonalyze.
 			},
 			Time:      parsedTime,
-			NumaNodes: int(r.node.NumaNodes),
+			NumaNodes: int(r.Node.NumaNodes),
 			Distances: distances,
-			TopoSVG:   r.node.TopoSVG,
-			TopoText:  r.node.TopoText,
+			TopoSVG:   r.Node.TopoSVG,
+			TopoText:  r.Node.TopoText,
 		}
 	}
 	return records, nil
@@ -497,23 +513,27 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 
 		if fromTime < perHost.oldestScannedTime {
 			worklist = append(worklist, QueryArgs{
-				QueryFilter: common.QueryFilter{
-					HaveFrom: true,
-					FromDate: time.Unix(fromTime-twoWeeks, 0).UTC(),
-					HaveTo:   true,
-					ToDate:   time.Unix(perHost.oldestScannedTime, 0).UTC(),
-					Host:     []string{hn},
+				QueryFilter: QueryFilter{
+					QueryFilter: common.QueryFilter{
+						HaveFrom: true,
+						FromDate: time.Unix(fromTime-twoWeeks, 0).UTC(),
+						HaveTo:   true,
+						ToDate:   time.Unix(perHost.oldestScannedTime, 0).UTC(),
+						Host:     []string{hn},
+					},
 				},
 			})
 		}
 		if !newRecord && toTime > perHost.youngestRecord && now-perHost.lastScan > oneHour {
 			worklist = append(worklist, QueryArgs{
-				QueryFilter: common.QueryFilter{
-					HaveFrom: true,
-					FromDate: time.Unix(perHost.youngestRecord, 0).UTC(),
-					HaveTo:   true,
-					ToDate:   nowt,
-					Host:     []string{hn},
+				QueryFilter: QueryFilter{
+					QueryFilter: common.QueryFilter{
+						HaveFrom: true,
+						FromDate: time.Unix(perHost.youngestRecord, 0).UTC(),
+						HaveTo:   true,
+						ToDate:   nowt,
+						Host:     []string{hn},
+					},
 				},
 			})
 		}
