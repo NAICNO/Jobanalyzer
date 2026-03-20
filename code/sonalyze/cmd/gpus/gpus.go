@@ -108,7 +108,7 @@ func (gc *GpuCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io
 	if err != nil {
 		return err
 	}
-	streams, _, read, dropped, err :=
+	perHostStreams, _, read, dropped, err :=
 		gsd.Query(
 			gc.FromDate,
 			gc.ToDate,
@@ -124,14 +124,14 @@ func (gc *GpuCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io
 	}
 
 	reports := make([]*ReportLine, 0)
-	for _, s := range streams {
+	for _, s := range perHostStreams {
 		for _, d := range s.Data {
-			for i, gpu := range d.Decoded {
-				if gc.Gpu == -1 || i == gc.Gpu {
+			for _, gpu := range d.Decoded {
+				if gc.Gpu == -1 || gc.Gpu == int(gpu.Index) {
 					var r ReportLine
 					r.Timestamp = DateTimeValue(d.Time)
 					r.Hostname = s.Hostname
-					r.Gpu = i
+					r.Gpu = int(gpu.Index)
 					r.PerGpuSample = &gpu
 					reports = append(reports, &r)
 				}
