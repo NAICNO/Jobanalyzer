@@ -30,6 +30,10 @@ const (
 	SlurmPartitionData
 	SlurmClusterData
 
+	// This is treated specially a few places, it can be used with OpenReadOnlyDB but will not
+	// commit a file list database to any special type.
+	MetaData
+
 	// Canonical sets of types: these are the data that are represented together in the same file,
 	// in a file-based store.
 	ProcessSampleData = SampleData | NodeSampleData | CpuSampleData | GpuSampleData | DiskSampleData

@@ -5,6 +5,7 @@ package db
 
 import (
 	"errors"
+	"time"
 
 	"sonalyze/db/filedb"
 	"sonalyze/db/types"
@@ -21,6 +22,14 @@ type FileListDataProvider struct {
 
 func (tdb *FileListDataProvider) DataType() types.DataType {
 	return tdb.dataType
+}
+
+func (tdb *FileListDataProvider) MinTime(soft, verbose bool) (time.Time, error) {
+	return time.Time{}, errors.New("MinTime not implemented")
+}
+
+func (tdb *FileListDataProvider) MaxTime(soft, verbose bool) (time.Time, error) {
+	return time.Time{}, errors.New("MaxTime not implemented")
 }
 
 func OpenFileListDB(

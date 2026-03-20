@@ -42,7 +42,8 @@ func (tm *dbContext) DataDir() string {
 }
 
 func (tm *dbContext) HaveLogFilesOfType(dataType types.DataType) bool {
-	return tm.cluster.HaveLogFiles && (tm.cluster.LogFileType == 0 || (dataType&tm.cluster.LogFileType) != 0)
+	return tm.cluster.HaveLogFiles &&
+		(dataType == types.MetaData || tm.cluster.LogFileType == 0 || (dataType&tm.cluster.LogFileType) != 0)
 }
 
 func (tm *dbContext) LogFiles(dataType types.DataType) []string {
@@ -50,11 +51,13 @@ func (tm *dbContext) LogFiles(dataType types.DataType) []string {
 		if dataType == 0 {
 			panic("Zero data type")
 		}
-		if tm.cluster.LogFileType == 0 {
-			tm.cluster.LogFileType = dataType
-		}
-		if tm.cluster.LogFileType == dataType {
-			return tm.cluster.LogFiles
+		if dataType != types.MetaData {
+			if tm.cluster.LogFileType == 0 {
+				tm.cluster.LogFileType = dataType
+			}
+			if tm.cluster.LogFileType == dataType {
+				return tm.cluster.LogFiles
+			}
 		}
 	}
 	return nil

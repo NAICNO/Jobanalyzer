@@ -66,6 +66,7 @@ import (
 	"sonalyze/db/errs"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
+	"sonalyze/db/util"
 )
 
 const (
@@ -107,6 +108,9 @@ type PersistentCluster struct /* implements AppendableCluster */ {
 
 	// MT: Immutable after initialization
 	meta types.Context
+
+	// MT: Immutable after initialization
+	timeCache *util.TimeCache
 
 	sync.Mutex
 	closed bool
@@ -159,6 +163,7 @@ func NewPersistentCluster(dataDir string, meta types.Context) *PersistentCluster
 		cluzterNodesMethods:      NewCluzterFileMethods(CluzterFileKindNodeData),
 		dataDir:                  dataDir,
 		meta:                     meta,
+		timeCache:                util.NewTimeCache(makeRefillTimeCache(dataDir)),
 		dirs:                     dirs,
 		fromDate:                 fromDate,
 		toDate:                   toDate,
@@ -435,6 +440,21 @@ func (pc *PersistentCluster) ReadCluzterNodeData(
 		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterNodesMethods,
 		ReadCluzterNodeDataSlice,
 	)
+}
+
+func (pc *PersistentCluster) MinTime(soft, verbose bool) (time.Time, error) {
+	return pc.timeCache.MinTime(soft, verbose)
+}
+
+func (pc *PersistentCluster) MaxTime(soft, verbose bool) (time.Time, error) {
+	return pc.timeCache.MaxTime(soft, verbose)
+}
+
+func makeRefillTimeCache(dataDir string) func(bool) (time.Time, time.Time, error) {
+	return func(_ bool) (low, high time.Time, err error) {
+		low, high = findMinMaxDatesFromDirectories(dataDir)
+		return
+	}
 }
 
 func readPersistentClusterRecords[V any, U ~[][]*V](
@@ -865,6 +885,26 @@ func findSortedDateIndexedDirectories(dataDir string, from, to time.Time) []*per
 		result = append(result, &persistentDir{name: probeFn})
 	}
 	return result
+}
+
+func findMinMaxDatesFromDirectories(dataDir string) (low, high time.Time) {
+	_ = fs.WalkDir(os.DirFS(dataDir), ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil || !d.IsDir() {
+			return nil
+		}
+		var year, month, day int
+		if n, _ := fmt.Sscanf(path, "%d/%d/%d", &year, &month, &day); n == 3 {
+			t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
+			if low.IsZero() || t.Before(low) {
+				low = t
+			}
+			if high.IsZero() || t.After(high) {
+				high = t
+			}
+		}
+		return nil
+	})
+	return
 }
 
 // Return the index of the directory with name d, or the index of the record s.t. d would come
