@@ -442,13 +442,18 @@ func (cdb *connectedDB) ReadGpuSamples(
 	// samples are always relatively frequent the interval can usually be quite small, but it is
 	// a concern that the interval is hardcoded.
 	//
-	// TODO: Avoid hardcoding the interval somehow.
+	// We need the extra constraint on t2.time or we'll get records through the current time.
+	extra := ""
+	if !toDate.IsZero() {
+		extra = "t2.time < " + toDateName(fromDate, toDate) + " and "
+	}
 	q := query{
 		table:    "sysinfo_gpu_card_config",
 		fromDate: fromDate,
 		toDate:   toDate,
 		hosts:    hosts,
-		join:     "join sample_gpu as t2 on t1.uuid = t2.uuid and age(t1.time, t2.time) < interval '15 minutes'",
+		join: "join sample_gpu as t2 on t1.uuid = t2.uuid and " + extra +
+			"age(t1.time, t2.time) < interval '15 minutes'",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "t2.ce_clock, t2.ce_util, t2.compute_mode, t2.failing, t2.fan, t2.index, " +
 			"t2.memory, t2.memory_clock, t2.memory_util, t1.node, t2.performance_state, " +
@@ -960,6 +965,18 @@ func makeRefillTimeCache(
 	}
 }
 
+// Totally gross
+func toDateName(fromDate, toDate time.Time) string {
+	n := 2
+	if !fromDate.IsZero() {
+		n++
+	}
+	if toDate.IsZero() {
+		panic("Should not happen")
+	}
+	return fmt.Sprintf("$%d", n)
+}
+
 func querySlice[T any](
 	cdb *connectedDB,
 	q *query,
@@ -969,6 +986,7 @@ func querySlice[T any](
 	primary := "SELECT * FROM " + q.table + " WHERE " + "cluster=$1"
 	qarg := []any{cdb.cx.ClusterName()}
 
+	// Keep in sync with toDateName above!
 	if !q.fromDate.IsZero() {
 		primary += fmt.Sprintf(" AND time >= $%d", len(qarg)+1)
 		qarg = append(qarg, q.fromDate.Format(time.DateOnly))
