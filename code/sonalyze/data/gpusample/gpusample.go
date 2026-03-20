@@ -104,13 +104,6 @@ func rectifyGpuSamplesByHost(dataBlobs [][]*repr.GpuSamples) (streams GpuSamples
 		bounds[k] = Timebound{Earliest: v.Data[0].Time, Latest: v.Data[len(v.Data)-1].Time}
 	}
 
-	// Remove duplicates in each per-host list
-	for _, v := range streams {
-		v.Data = slices.CompactFunc(v.Data, func(a, b GpuSamples) bool {
-			return a.Time == b.Time
-		})
-	}
-
 	// Remove completely empty streams
 	maps.DeleteFunc(streams, func(k Ustr, v *GpuSamplesByHost) bool {
 		return len(v.Data) == 0

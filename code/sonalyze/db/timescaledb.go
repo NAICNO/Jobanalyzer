@@ -436,12 +436,19 @@ func (cdb *connectedDB) ReadGpuSamples(
 	// Here we must start with sysinfo_gpu_card_config as to be able to filter cards by cluster and
 	// node, but once that's done we're mostly interested in data from sample_gpu.  (It's a shame
 	// that we have to do all of this just because sample_gpu does not carry cluster and node.)
+	//
+	// In age(t1,t2) we compute t1-t2 as an interval, ie, this is positive when t1 is newer.  For
+	// this query, we want the latest available sample at the time of for each sysinfo.  Since
+	// samples are always relatively frequent the interval can usually be quite small, but it is
+	// a concern that the interval is hardcoded.
+	//
+	// TODO: Avoid hardcoding the interval somehow.
 	q := query{
 		table:    "sysinfo_gpu_card_config",
 		fromDate: fromDate,
 		toDate:   toDate,
 		hosts:    hosts,
-		join:     "join sample_gpu as t2 on t1.uuid = t2.uuid and t1.time = t2.time",
+		join:     "join sample_gpu as t2 on t1.uuid = t2.uuid and age(t1.time, t2.time) < interval '15 minutes'",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "t2.ce_clock, t2.ce_util, t2.compute_mode, t2.failing, t2.fan, t2.index, " +
 			"t2.memory, t2.memory_clock, t2.memory_util, t1.node, t2.performance_state, " +
