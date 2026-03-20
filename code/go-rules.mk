@@ -5,14 +5,12 @@
 # TARGET is the name of the target being built, for `build`
 # SUBDIRS is a list of all direct subdirectories with Go code, it can be empty
 
-.PHONY: default build fmt vet generate clean test regress
-
-default:
-
-build: $(TARGET)
+.PHONY: build fmt vet generate clean test regress
 
 $(TARGET): go.mod *.go ../go-utils/*/*.go $(SUBDIRS:=/*.go)
 	go build
+
+build: $(TARGET)
 
 clean:
 	go clean
