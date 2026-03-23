@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
+	"unicode"
 
 	"go-utils/alias"
 	"go-utils/config"
@@ -117,9 +119,10 @@ func OpenFullDataStore(jobanalyzerDir, databaseURI string) error {
 	return nil
 }
 
-// For the following, the cluster name will be set to "data.cluster", "report.cluster",
-// "logfiles.cluster", "config.cluster" if configFile is not provided or if the file does not
-// provide a cluster name.
+// For the following, the cluster name will be set to "<dirname>.data", "<dirname>.report",
+// "anonymous-cluster.logfiles", "anonymous-cluster.config" if configFile is not provided or if the
+// file does not provide a cluster name, where <dirname> is the last element of the
+// dataDir/reportDir parameter.
 
 func OpenDataStoreFromDataDir(dataDir, configFile string) error {
 	cfg, err := special.MaybeGetConfig(configFile)
@@ -130,16 +133,16 @@ func OpenDataStoreFromDataDir(dataDir, configFile string) error {
 	v.HaveDataDir = true
 	v.DataDir = dataDir
 	if cfg != nil {
-		v.Name = cfg.Name
+		v.Name = cleanClusterName(cfg.Name)
 		v.Description = cfg.Description
 		v.HaveConfig = true
 		v.Config = cfg
 	}
 	if v.Name == "" {
-		v.Name = "data.cluster"
+		v.Name = synthesizeClusterName(dataDir, "data")
 	}
 	if v.Description == "" {
-		v.Description = "anonymous cluster (data dir)"
+		v.Description = "anonymous data cluster " + dataDir
 	}
 	clusters := map[string]*special.ClusterEntry{v.Name: v}
 
@@ -156,16 +159,16 @@ func OpenDataStoreFromReportDir(reportDir, configFile string) error {
 	v.HaveReportDir = true
 	v.ReportDir = reportDir
 	if cfg != nil {
-		v.Name = cfg.Name
+		v.Name = cleanClusterName(cfg.Name)
 		v.Description = cfg.Description
 		v.HaveConfig = true
 		v.Config = cfg
 	}
 	if v.Name == "" {
-		v.Name = "report.cluster"
+		v.Name = synthesizeClusterName(reportDir, "report")
 	}
 	if v.Description == "" {
-		v.Description = "anonymous cluster (report dir)"
+		v.Description = "anonymous report cluster " + reportDir
 	}
 	clusters := map[string]*special.ClusterEntry{v.Name: v}
 
@@ -182,16 +185,16 @@ func OpenDataStoreFromLogFiles(logFiles []string, configFile string) error {
 	v.HaveLogFiles = true
 	v.LogFiles = logFiles
 	if cfg != nil {
-		v.Name = cfg.Name
+		v.Name = cleanClusterName(cfg.Name)
 		v.Description = cfg.Description
 		v.HaveConfig = true
 		v.Config = cfg
 	}
 	if v.Name == "" {
-		v.Name = "logfiles.cluster"
+		v.Name = "anonymous-cluster.logfiles"
 	}
 	if v.Description == "" {
-		v.Description = "anonymous cluster (log files)"
+		v.Description = "anonymous log files cluster"
 	}
 	clusters := map[string]*special.ClusterEntry{v.Name: v}
 
@@ -205,15 +208,15 @@ func OpenDataStoreFromConfigFile(configFile string) error {
 		return fmt.Errorf("Could not read config file %s: %v", configFile, err)
 	}
 	v := special.NewClusterEntry()
-	v.Name = cfg.Name
+	v.Name = cleanClusterName(cfg.Name)
 	v.Description = cfg.Description
 	v.HaveConfig = true
 	v.Config = cfg
 	if v.Name == "" {
-		v.Name = "config.cluster"
+		v.Name = "anonymous-cluster.config"
 	}
 	if v.Description == "" {
-		v.Description = "anonymous cluster (config file)"
+		v.Description = "anonymous config file cluster"
 	}
 	clusters := map[string]*special.ClusterEntry{v.Name: v}
 
@@ -228,10 +231,10 @@ func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
 	v.HaveConfig = true
 	v.Config = cfg
 	if v.Name == "" {
-		v.Name = "config.cluster"
+		v.Name = "anonymous-cluster.config"
 	}
 	if v.Description == "" {
-		v.Description = "anonymous cluster (config file)"
+		v.Description = "anonymous config file cluster"
 	}
 	clusters := map[string]*special.ClusterEntry{v.Name: v}
 
@@ -241,4 +244,28 @@ func OpenDataStoreFromConfig(cfg *config.ClusterConfig) error {
 
 func CloseDataStore() {
 	special.ClearClusters()
+}
+
+func synthesizeClusterName(dirName, tag string) string {
+	name := dirName
+	if wd, err := os.Getwd(); err == nil {
+		name = path.Base(path.Join(wd, dirName))
+	}
+	if name == "/" {
+		name = "root"
+	}
+	name += "." + tag
+	return cleanClusterName(name)
+}
+
+func cleanClusterName(name string) string {
+	newName := ""
+	for _, c := range name {
+		c = unicode.ToLower(c)
+		if !((c >= '0' && c <= '9') || c == '.' || c == '-' || (c >= 'a' && c <= 'z')) {
+			c = '_'
+		}
+		newName = newName + string(c)
+	}
+	return newName
 }

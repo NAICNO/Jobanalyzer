@@ -15,7 +15,7 @@ func TestReport(t *testing.T) {
 		``,
 	}
 	var rc report.ReportCommand
-	rc.DatabaseArgs.SetReportDir("testdata/report_test", "report.cluster")
+	rc.DatabaseArgs.SetReportDir("testdata/report_test", "report_test.report")
 	rc.ReportName = "ml-hostnames.json"
 	err := rc.Validate()
 	if err != nil {
