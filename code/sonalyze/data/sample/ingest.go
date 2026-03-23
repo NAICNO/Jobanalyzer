@@ -41,6 +41,7 @@ func ReadSampleStreamsAndMaybeBounds(
 			ToDate:   toDate,
 			Nodes:    hostGlobber,
 			Jobs:     recordFilter.IncludeJobs,
+			Users:    recordFilter.IncludeUsers,
 		},
 		verbose)
 	if err != nil {

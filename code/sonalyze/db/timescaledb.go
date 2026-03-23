@@ -80,6 +80,10 @@ import (
 	"sonalyze/db/util"
 )
 
+// Allow no more than this many query parameters from each open-ended set (users, jobs, nodes, ...)
+// to avoid DoS.
+const dosCutoff = 100
+
 // The current structure of sonalyze ensures that there is one databaseConnection globally, and it
 // is really never closed.  (There is one connection, it is attached to every cluster when the data
 // store is opened, and the cluster table is never cleared out during normal operations.)  In
@@ -1010,26 +1014,42 @@ func querySlice[T any](
 			args = append(args, p)
 			nextIx++
 		}
-		// Probably there's a cutoff somewhere for how many we can do, so let's say we will have at
-		// most 100.
-		if len(conds) <= 100 {
+		if len(conds) <= dosCutoff {
 			primary += " AND (" + strings.Join(conds, " OR ") + ")"
 			qarg = append(qarg, args...)
 		}
 	}
 
-	// Add node filters.  Note this depends on there being a job ID field called 'job'.
+	// Add job id filters.  Note this depends on there being a job ID field called 'job'.
 	//
 	// Job IDs are always numbers, hence safe against SQL injection, hence we have them inline and
 	// not as parameters here.  Not sure whether that helps or hinders query optimization /
 	// compilation / reuse.
 
-	if len(q.Jobs) > 0 {
+	if len(q.Jobs) > 0 && len(q.Jobs) <= dosCutoff {
 		var jobs []string
 		for j := range q.Jobs {
 			jobs = append(jobs, fmt.Sprintf("job = %d", j))
 		}
 		primary += " AND (" + strings.Join(jobs, " OR ") + ")"
+	}
+
+	// Add user name filters.  This depends on there being a user name field called 'user'.
+	//
+	// Here we have to use parameters to avoid being pwned by Mrs Roberts.
+
+	if len(q.Users) > 0 && len(q.Users) <= dosCutoff {
+		var conds []string
+		var args []any
+		nextIx := len(qarg) + 1
+
+		for u := range q.Users {
+			conds = append(conds, fmt.Sprintf("user = $%d", nextIx))
+			args = append(args, u.String())
+			nextIx++
+		}
+		primary += " AND (" + strings.Join(conds, " OR ") + ")"
+		qarg = append(qarg, args...)
 	}
 
 	qstr := "SELECT " + q.fields + " FROM (" + primary + ") AS t1"
