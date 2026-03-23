@@ -6,7 +6,6 @@ package db
 import (
 	"time"
 
-	. "sonalyze/common"
 	"sonalyze/db/filedb"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
@@ -56,39 +55,35 @@ func (e *APINotSupportedError) Error() string {
 
 type ProcessSampleDataProvider interface {
 	ReadProcessSamples(
-		f types.DataProviderFilter,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (sampleBlobs [][]*repr.Sample, softErrors int, err error)
 }
 
 type NodeSampleDataProvider interface {
 	ReadNodeSamples(
-		fromDate, toDate time.Time,
-		hosts *Hosts,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (sampleBlobs [][]*repr.NodeSample, softErrors int, err error)
 }
 
 type DiskSampleDataProvider interface {
 	ReadDiskSamples(
-		fromDate, toDate time.Time,
-		hosts *Hosts,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (dataBlobs [][]*repr.DiskSample, softErrors int, err error)
 }
 
 type CpuSampleDataProvider interface {
 	ReadCpuSamples(
-		fromDate, toDate time.Time,
-		hosts *Hosts,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (dataBlobs [][]*repr.CpuSamples, softErrors int, err error)
 }
 
 type GpuSampleDataProvider interface {
 	ReadGpuSamples(
-		fromDate, toDate time.Time,
-		hosts *Hosts,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (dataBlobs [][]*repr.GpuSamples, softErrors int, err error)
 }
@@ -96,14 +91,12 @@ type GpuSampleDataProvider interface {
 // SysinfoDataProvider is a reader for data in "Sysinfo" data streams.
 type SysinfoDataProvider interface {
 	ReadSysinfoNodeData(
-		fromDate, toDate time.Time,
-		hosts *Hosts,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error)
 
 	ReadSysinfoCardData(
-		fromDate, toDate time.Time,
-		hosts *Hosts,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error)
 }
@@ -111,7 +104,7 @@ type SysinfoDataProvider interface {
 // SacctDataProvider is a reader for Slurm/sacct data in "Jobs" data streams.
 type SacctDataProvider interface {
 	ReadSacctData(
-		fromDate, toDate time.Time,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (recordBlobs [][]*repr.SacctInfo, softErrors int, err error)
 }
@@ -121,17 +114,17 @@ type SacctDataProvider interface {
 // code.
 type CluzterDataProvider interface {
 	ReadCluzterAttributeData(
-		fromDate, toDate time.Time,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (recordBlobs [][]*repr.CluzterAttributes, softErrors int, err error)
 
 	ReadCluzterPartitionData(
-		fromDate, toDate time.Time,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (recordBlobs [][]*repr.CluzterPartitions, softErrors int, err error)
 
 	ReadCluzterNodeData(
-		fromDate, toDate time.Time,
+		filter types.DataProviderFilter,
 		verbose bool,
 	) (recordBlobs [][]*repr.CluzterNodes, softErrors int, err error)
 }
@@ -177,30 +170,20 @@ type AppendablePersistentDataProvider interface {
 
 // SampleFilenameProvider returns the list of "Sample" data files in used by the database.
 type SampleFilenameProvider interface {
-	SampleFilenames(
-		fromDate, toDate time.Time,
-		hosts *Hosts,
-	) ([]string, error)
+	SampleFilenames(filter types.DataProviderFilter) ([]string, error)
 }
 
 // SysinfoFilenameProvider returns the list of "Sysinfo" data files in used by the database.
 type SysinfoFilenameProvider interface {
-	SysinfoFilenames(
-		fromDate, toDate time.Time,
-		hosts *Hosts,
-	) ([]string, error)
+	SysinfoFilenames(filter types.DataProviderFilter) ([]string, error)
 }
 
 // SacctFilenameProvider returns the list of "Jobs" data files in used by the database.
 type SacctFilenameProvider interface {
-	SacctFilenames(
-		fromDate, toDate time.Time,
-	) ([]string, error)
+	SacctFilenames(filter types.DataProviderFilter) ([]string, error)
 }
 
 // CluzterFilenameProvider returns the list of "Cluster" data files in used by the database.
 type CluzterFilenameProvider interface {
-	CluzterFilenames(
-		fromDate, toDate time.Time,
-	) ([]string, error)
+	CluzterFilenames(filter types.DataProviderFilter) ([]string, error)
 }

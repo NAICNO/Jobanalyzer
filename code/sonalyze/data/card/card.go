@@ -34,9 +34,11 @@ func (cdp *CardDataProvider) Query(
 		return nil, err
 	}
 	recordBlobs, _, err := cdp.theLog.ReadSysinfoCardData(
-		filter.FromDate,
-		filter.ToDate,
-		f.HostFilter(),
+		types.DataProviderFilter{
+			FromDate: filter.FromDate,
+			ToDate:   filter.ToDate,
+			Nodes:    f.HostFilter(),
+		},
 		verbose,
 	)
 	if err != nil {

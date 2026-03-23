@@ -263,8 +263,7 @@ func (cdb *connectedDB) ReadProcessSamples(
 }
 
 func (cdb *connectedDB) ReadNodeSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sampleBlobs [][]*repr.NodeSample, softErrors int, err error) {
 	var (
@@ -278,12 +277,8 @@ func (cdb *connectedDB) ReadNodeSamples(
 	)
 
 	q := query{
-		DataProviderFilter: types.DataProviderFilter{
-			FromDate: fromDate,
-			ToDate:   toDate,
-			Nodes:    hosts,
-		},
-		table: "sample_system",
+		DataProviderFilter: filter,
+		table:              "sample_system",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "boot, existing_entities, load1, load15, load5, node, " +
 			"runnable_entities, time, used_memory",
@@ -315,8 +310,7 @@ func (cdb *connectedDB) ReadNodeSamples(
 }
 
 func (cdb *connectedDB) ReadDiskSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (dataBlobs [][]*repr.DiskSample, softErrors int, err error) {
 	var (
@@ -330,12 +324,8 @@ func (cdb *connectedDB) ReadDiskSamples(
 	)
 
 	q := query{
-		DataProviderFilter: types.DataProviderFilter{
-			FromDate: fromDate,
-			ToDate:   toDate,
-			Nodes:    hosts,
-		},
-		table: "sample_disk",
+		DataProviderFilter: filter,
+		table:              "sample_disk",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "discards_completed, discards_merged, flush_requests_completed, " +
 			"ios_currently_in_progress, major, minor, ms_spent_discarding, " +
@@ -381,8 +371,7 @@ func (cdb *connectedDB) ReadDiskSamples(
 }
 
 func (cdb *connectedDB) ReadCpuSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (dataBlobs [][]*repr.CpuSamples, softErrors int, err error) {
 	var (
@@ -392,12 +381,8 @@ func (cdb *connectedDB) ReadCpuSamples(
 	)
 
 	q := query{
-		DataProviderFilter: types.DataProviderFilter{
-			FromDate: fromDate,
-			ToDate:   toDate,
-			Nodes:    hosts,
-		},
-		table: "sample_system",
+		DataProviderFilter: filter,
+		table:              "sample_system",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cpus, node, time",
 		boxes:  []any{&cpus, &node, &timestamp},
@@ -419,8 +404,7 @@ func (cdb *connectedDB) ReadCpuSamples(
 }
 
 func (cdb *connectedDB) ReadGpuSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (dataBlobs [][]*repr.GpuSamples, softErrors int, err error) {
 	var (
@@ -445,16 +429,12 @@ func (cdb *connectedDB) ReadGpuSamples(
 	//
 	// We need the extra constraint on t2.time or we'll get records through the current time.
 	extra := ""
-	if !toDate.IsZero() {
-		extra = "t2.time < " + toDateName(fromDate, toDate) + " and "
+	if !filter.ToDate.IsZero() {
+		extra = "t2.time < " + toDateName(filter.FromDate, filter.ToDate) + " and "
 	}
 	q := query{
-		DataProviderFilter: types.DataProviderFilter{
-			FromDate: fromDate,
-			ToDate:   toDate,
-			Nodes:    hosts,
-		},
-		table: "sysinfo_gpu_card_config",
+		DataProviderFilter: filter,
+		table:              "sysinfo_gpu_card_config",
 		join: "join sample_gpu as t2 on t1.uuid = t2.uuid and " + extra +
 			"age(t1.time, t2.time) < interval '15 minutes'",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
@@ -503,8 +483,7 @@ func (cdb *connectedDB) ReadGpuSamples(
 }
 
 func (cdb *connectedDB) ReadSysinfoNodeData(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
 	var (
@@ -519,12 +498,8 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	)
 
 	q := query{
-		DataProviderFilter: types.DataProviderFilter{
-			FromDate: fromDate,
-			ToDate:   toDate,
-			Nodes:    hosts,
-		},
-		table: "sysinfo_attributes",
+		DataProviderFilter: filter,
+		table:              "sysinfo_attributes",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "architecture, cards, cluster, cores_per_socket, cpu_model, distances, memory, " +
 			"node, numa_nodes, os_name, os_release, sockets, threads_per_core, time, topo_svg, topo_text",
@@ -605,8 +580,7 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 }
 
 func (cdb *connectedDB) ReadSysinfoCardData(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error) {
 	var (
@@ -617,11 +591,7 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 	)
 
 	q := query{
-		DataProviderFilter: types.DataProviderFilter{
-			FromDate: fromDate,
-			ToDate:   toDate,
-			Nodes:    hosts,
-		},
+		DataProviderFilter: filter,
 		// The DB stores what it perceives to be static card info in a separate table,
 		// sysinfo_gpu_card.  That needs to be joined to sysinfo_gpu_card_config here (by UUID) to
 		// get the full story.
@@ -664,7 +634,7 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 }
 
 func (cdb *connectedDB) ReadSacctData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.SacctInfo, softErrors int, err error) {
 	var (
@@ -685,11 +655,8 @@ func (cdb *connectedDB) ReadSacctData(
 	)
 
 	q := query{
-		DataProviderFilter: types.DataProviderFilter{
-			FromDate: fromDate,
-			ToDate:   toDate,
-		},
-		table: "sample_slurm_job",
+		DataProviderFilter: filter,
+		table:              "sample_slurm_job",
 		join: "join sample_slurm_job_acc as t2 on " +
 			"t1.cluster = t2.cluster and t1.job_id = t2.job_id and t1.job_step = t2.job_step and " +
 			"t1.time = t2.time",
@@ -826,7 +793,7 @@ func (cdb *connectedDB) ReadSacctData(
 }
 
 func (cdb *connectedDB) ReadCluzterAttributeData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterAttributes, softErrors int, err error) {
 	var (
@@ -836,11 +803,8 @@ func (cdb *connectedDB) ReadCluzterAttributeData(
 	)
 
 	q := query{
-		DataProviderFilter: types.DataProviderFilter{
-			FromDate: fromDate,
-			ToDate:   toDate,
-		},
-		table: "cluster_attributes",
+		DataProviderFilter: filter,
+		table:              "cluster_attributes",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cluster, slurm, time",
 		boxes:  []any{&cluster, &slurm, &timestamp},
@@ -859,7 +823,7 @@ func (cdb *connectedDB) ReadCluzterAttributeData(
 }
 
 func (cdb *connectedDB) ReadCluzterPartitionData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterPartitions, softErrors int, err error) {
 	var (
@@ -870,11 +834,8 @@ func (cdb *connectedDB) ReadCluzterPartitionData(
 	)
 
 	q := query{
-		DataProviderFilter: types.DataProviderFilter{
-			FromDate: fromDate,
-			ToDate:   toDate,
-		},
-		table: "partition",
+		DataProviderFilter: filter,
+		table:              "partition",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cluster, nodes_compact, partition, time",
 		boxes:  []any{&cluster, &nodeNamesCompact, &partName, &timestamp},
@@ -907,7 +868,7 @@ func (cdb *connectedDB) ReadCluzterPartitionData(
 }
 
 func (cdb *connectedDB) ReadCluzterNodeData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterNodes, softErrors int, err error) {
 	var (
@@ -918,11 +879,8 @@ func (cdb *connectedDB) ReadCluzterNodeData(
 	)
 
 	q := query{
-		DataProviderFilter: types.DataProviderFilter{
-			FromDate: fromDate,
-			ToDate:   toDate,
-		},
-		table: "node_state",
+		DataProviderFilter: filter,
+		table:              "node_state",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cluster, node, states, time",
 		boxes:  []any{&cluster, &nodeName, &states, &timestamp},

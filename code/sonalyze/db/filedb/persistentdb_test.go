@@ -113,7 +113,10 @@ func TestFilenames(t *testing.T) {
 	to, _ := time.Parse(time.RFC3339, "2025-05-03T12:13:14+02:00")
 	globber, _ := NewHosts(true, []string{"n[1-2].cluster1"})
 
-	fs, err := theDB.SampleFilenames(from, to, nil)
+	fs, err := theDB.SampleFilenames(types.DataProviderFilter{
+		FromDate: from,
+		ToDate:   to,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +136,11 @@ func TestFilenames(t *testing.T) {
 		t.Fatal(fs)
 	}
 
-	fs, err = theDB.SampleFilenames(from, to, globber)
+	fs, err = theDB.SampleFilenames(types.DataProviderFilter{
+		FromDate: from,
+		ToDate:   to,
+		Nodes:    globber,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +157,10 @@ func TestFilenames(t *testing.T) {
 		t.Fatal(fs)
 	}
 
-	fs, err = theDB.SysinfoFilenames(from, to, nil)
+	fs, err = theDB.SysinfoFilenames(types.DataProviderFilter{
+		FromDate: from,
+		ToDate:   to,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +180,11 @@ func TestFilenames(t *testing.T) {
 		t.Fatal(fs)
 	}
 
-	fs, err = theDB.SysinfoFilenames(from, to, globber)
+	fs, err = theDB.SysinfoFilenames(types.DataProviderFilter{
+		FromDate: from,
+		ToDate:   to,
+		Nodes:    globber,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +201,10 @@ func TestFilenames(t *testing.T) {
 		t.Fatal(fs)
 	}
 
-	fs, err = theDB.SacctFilenames(from, to)
+	fs, err = theDB.SacctFilenames(types.DataProviderFilter{
+		FromDate: from,
+		ToDate:   to,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +220,10 @@ func TestFilenames(t *testing.T) {
 		t.Fatal(fs)
 	}
 
-	fs, err = theDB.CluzterFilenames(from, to)
+	fs, err = theDB.CluzterFilenames(types.DataProviderFilter{
+		FromDate: from,
+		ToDate:   to,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,7 +293,13 @@ SampleLoop:
 	}
 
 	var cpuSampleData [][]*repr.CpuSamples
-	cpuSampleData, softErrors, err = theDB.ReadCpuSamples(from, to, globber, true)
+	cpuSampleData, softErrors, err = theDB.ReadCpuSamples(
+		types.DataProviderFilter{
+			FromDate: from,
+			ToDate:   to,
+			Nodes:    globber,
+		},
+		true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +335,14 @@ CpuSampleDataLoop:
 	}
 
 	var gpuSampleData [][]*repr.GpuSamples
-	gpuSampleData, softErrors, err = theDB.ReadGpuSamples(from, to, globber, true)
+	gpuSampleData, softErrors, err = theDB.ReadGpuSamples(
+		types.DataProviderFilter{
+			FromDate: from,
+			ToDate:   to,
+			Nodes:    globber,
+		},
+		true,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,7 +378,14 @@ GpuSampleDataLoop:
 	}
 
 	var nodeData [][]*repr.SysinfoNodeData
-	nodeData, softErrors, err = theDB.ReadSysinfoNodeData(from, to, globber, true)
+	nodeData, softErrors, err = theDB.ReadSysinfoNodeData(
+		types.DataProviderFilter{
+			FromDate: from,
+			ToDate:   to,
+			Nodes:    globber,
+		},
+		true,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +420,14 @@ NodeLoop:
 	}
 
 	var cardData [][]*repr.SysinfoCardData
-	cardData, softErrors, err = theDB.ReadSysinfoCardData(from, to, globber, true)
+	cardData, softErrors, err = theDB.ReadSysinfoCardData(
+		types.DataProviderFilter{
+			FromDate: from,
+			ToDate:   to,
+			Nodes:    globber,
+		},
+		true,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -415,7 +462,13 @@ CardLoop:
 	}
 
 	var sacctData [][]*repr.SacctInfo
-	sacctData, softErrors, err = theDB.ReadSacctData(from, to, true)
+	sacctData, softErrors, err = theDB.ReadSacctData(
+		types.DataProviderFilter{
+			FromDate: from,
+			ToDate:   to,
+		},
+		true,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -451,7 +504,13 @@ SacctLoop:
 	}
 
 	var slurmAttrData [][]*repr.CluzterAttributes
-	slurmAttrData, softErrors, err = theDB.ReadCluzterAttributeData(from, to, true)
+	slurmAttrData, softErrors, err = theDB.ReadCluzterAttributeData(
+		types.DataProviderFilter{
+			FromDate: from,
+			ToDate:   to,
+		},
+		true,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -477,7 +536,13 @@ AttrLoop:
 	}
 
 	var slurmNodeData [][]*repr.CluzterNodes
-	slurmNodeData, softErrors, err = theDB.ReadCluzterNodeData(from, to, true)
+	slurmNodeData, softErrors, err = theDB.ReadCluzterNodeData(
+		types.DataProviderFilter{
+			FromDate: from,
+			ToDate:   to,
+		},
+		true,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -503,7 +568,13 @@ SlurmNodeLoop:
 	}
 
 	var slurmPartitionData [][]*repr.CluzterPartitions
-	slurmPartitionData, softErrors, err = theDB.ReadCluzterPartitionData(from, to, true)
+	slurmPartitionData, softErrors, err = theDB.ReadCluzterPartitionData(
+		types.DataProviderFilter{
+			FromDate: from,
+			ToDate:   to,
+		},
+		true,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

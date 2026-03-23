@@ -59,11 +59,10 @@ func (sdp *SampleDataProvider) QueryRaw(
 }
 
 func (sdp *SampleDataProvider) Filenames(
-	fromDate, toDate time.Time,
-	hostGlobber *Hosts,
+	filter types.DataProviderFilter,
 ) ([]string, error) {
 	if sampleDir, ok := sdp.theLog.(db.SampleFilenameProvider); ok {
-		return sampleDir.SampleFilenames(fromDate, toDate, hostGlobber)
+		return sampleDir.SampleFilenames(filter)
 	}
 	panic("Bad cluster type")
 }

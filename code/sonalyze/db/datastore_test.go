@@ -91,7 +91,11 @@ func TestTransientSampleFilenames(t *testing.T) {
 	}
 	var d time.Time
 	h, _ := NewHosts(false, []string{"a"})
-	names, _ := fs.SampleFilenames(d, d, h)
+	names, _ := fs.SampleFilenames(types.DataProviderFilter{
+		FromDate: d,
+		ToDate:   d,
+		Nodes:    h,
+	})
 	if !reflect.DeepEqual(names, theFiles) {
 		t.Fatal(names, theFiles)
 	}
@@ -126,11 +130,10 @@ func TestPersistentSampleFilenames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	names, err := pc.SampleFilenames(
-		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
-		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
-		nil,
-	)
+	names, err := pc.SampleFilenames(types.DataProviderFilter{
+		FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
+		ToDate:   time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,11 +155,11 @@ func TestPersistentSampleFilenames(t *testing.T) {
 	}
 
 	h, _ := NewHosts(true, []string{"a"})
-	names, err = pc.SampleFilenames(
-		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
-		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
-		h,
-	)
+	names, err = pc.SampleFilenames(types.DataProviderFilter{
+		FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
+		ToDate:   time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
+		Nodes:    h,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,9 +215,10 @@ func TestPersistentSysinfoRead(t *testing.T) {
 	// 5/31 "a" should have two records, not equal
 	// 5/32 "b" should have two records, equal
 	recordBlobs, dropped, err := pc.ReadSysinfoNodeData(
-		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
-		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
-		nil,
+		types.DataProviderFilter{
+			FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
+			ToDate:   time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
+		},
 		verbose,
 	)
 	if err != nil {
@@ -333,9 +337,10 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	// that path then this test will need to have a FlushSync() call before the read.
 
 	recordBlobs, _, err := pc.ReadSysinfoNodeData(
-		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
-		time.Date(2023, 05, 28, 23, 0, 12, 0, time.UTC),
-		nil,
+		types.DataProviderFilter{
+			FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
+			ToDate:   time.Date(2023, 05, 28, 23, 0, 12, 0, time.UTC),
+		},
 		verbose,
 	)
 	if err != nil {
@@ -352,9 +357,10 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	}
 
 	recordBlobs2, _, err := pc.ReadSysinfoNodeData(
-		time.Date(2024, 01, 01, 12, 37, 55, 0, time.UTC),
-		time.Date(2024, 05, 01, 23, 0, 12, 0, time.UTC),
-		nil,
+		types.DataProviderFilter{
+			FromDate: time.Date(2024, 01, 01, 12, 37, 55, 0, time.UTC),
+			ToDate:   time.Date(2024, 05, 01, 23, 0, 12, 0, time.UTC),
+		},
 		verbose,
 	)
 	if err != nil {

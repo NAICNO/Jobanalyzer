@@ -68,7 +68,13 @@ func (cdp *CpuSampleDataProvider) Query(
 ) {
 	// Read and establish invariants
 
-	dataBlobs, dropped, err := cdp.theLog.ReadCpuSamples(fromDate, toDate, hostGlobber, verbose)
+	dataBlobs, dropped, err := cdp.theLog.ReadCpuSamples(
+		types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Nodes:    hostGlobber,
+		},
+		verbose)
 	if err != nil {
 		return
 	}

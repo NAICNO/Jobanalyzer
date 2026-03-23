@@ -55,8 +55,10 @@ func (sdp *SlurmjobDataProvider) Query(
 	verbose bool,
 ) ([]*SlurmJob, error) {
 	recordBlobs, dropped, err := sdp.theLog.ReadSacctData(
-		filter.FromDate,
-		filter.ToDate,
+		types.DataProviderFilter{
+			FromDate: filter.FromDate,
+			ToDate:   filter.ToDate,
+		},
 		verbose,
 	)
 	if err != nil {

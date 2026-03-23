@@ -225,50 +225,47 @@ func (pc *PersistentCluster) flushSyncLocked() {
 // built from that.
 
 func (pc *PersistentCluster) SampleFilenames(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 ) ([]string, error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
-	return pc.findFilenames(fromDate, toDate, hosts, &pc.sampleFiles)
+	return pc.findFilenames(filter, &pc.sampleFiles)
 }
 
 func (pc *PersistentCluster) SysinfoFilenames(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 ) ([]string, error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
-	return pc.findFilenames(fromDate, toDate, hosts, &pc.sysinfoFiles)
+	return pc.findFilenames(filter, &pc.sysinfoFiles)
 }
 
 func (pc *PersistentCluster) SacctFilenames(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 ) ([]string, error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
-	return pc.findFilenames(fromDate, toDate, nil, &pc.sacctFiles)
+	return pc.findFilenames(filter, &pc.sacctFiles)
 }
 
 func (pc *PersistentCluster) CluzterFilenames(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 ) ([]string, error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
-	return pc.findFilenames(fromDate, toDate, nil, &pc.cluzterFiles)
+	return pc.findFilenames(filter, &pc.cluzterFiles)
 }
 
 func (pc *PersistentCluster) findFilenames(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	fa filesAdapter,
 ) ([]string, error) {
 	pc.Lock()
@@ -277,7 +274,7 @@ func (pc *PersistentCluster) findFilenames(
 		return nil, errs.ClusterClosedErr
 	}
 
-	files := pc.findFilesLocked(fromDate, toDate, hosts, fa)
+	files := pc.findFilesLocked(filter.FromDate, filter.ToDate, filter.Nodes, fa)
 	return Filenames(files), nil
 }
 
@@ -290,153 +287,131 @@ func (pc *PersistentCluster) ReadProcessSamples(
 		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, filter.FromDate, filter.ToDate, filter.Nodes, verbose, &pc.sampleFiles, pc.samplesMethods,
-		readProcessSampleSlice,
-	)
+		pc, filter, verbose, &pc.sampleFiles, pc.samplesMethods, readProcessSampleSlice)
 }
 
 func (pc *PersistentCluster) ReadNodeSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sampleBlobs [][]*repr.NodeSample, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.nodeSamplesMethods,
-		readNodeSampleSlice,
-	)
+		pc, filter, verbose, &pc.sampleFiles, pc.nodeSamplesMethods, readNodeSampleSlice)
 }
 
 func (pc *PersistentCluster) ReadDiskSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sampleBlobs [][]*repr.DiskSample, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.diskSamplesMethods,
-		readDiskSampleSlice,
-	)
+		pc, filter, verbose, &pc.sampleFiles, pc.diskSamplesMethods, readDiskSampleSlice)
 }
 
 func (pc *PersistentCluster) ReadCpuSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (dataBlobs [][]*repr.CpuSamples, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.loadDataMethods,
-		readCpuSamplesSlice,
-	)
+		pc, filter, verbose, &pc.sampleFiles, pc.loadDataMethods, readCpuSamplesSlice)
 }
 
 func (pc *PersistentCluster) ReadGpuSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (dataBlobs [][]*repr.GpuSamples, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.gpuDataMethods,
-		readGpuSamplesSlice,
-	)
+		pc, filter, verbose, &pc.sampleFiles, pc.gpuDataMethods, readGpuSamplesSlice)
 }
 
 func (pc *PersistentCluster) ReadSysinfoNodeData(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, hosts, verbose, &pc.sysinfoFiles, pc.sysinfoNodeDataMethods,
-		ReadSysinfoNodeDataSlice,
-	)
+		pc, filter, verbose, &pc.sysinfoFiles, pc.sysinfoNodeDataMethods, ReadSysinfoNodeDataSlice)
 }
 
 func (pc *PersistentCluster) ReadSysinfoCardData(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoCardData, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, hosts, verbose, &pc.sysinfoFiles, pc.sysinfoCardDataMethods,
-		ReadSysinfoCardDataSlice,
-	)
+		pc, filter, verbose, &pc.sysinfoFiles, pc.sysinfoCardDataMethods, ReadSysinfoCardDataSlice)
 }
 
 func (pc *PersistentCluster) ReadSacctData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sacctBlobs [][]*repr.SacctInfo, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, nil, verbose, &pc.sacctFiles, pc.sacctMethods,
-		ReadSacctSlice,
-	)
+		pc, filter, verbose, &pc.sacctFiles, pc.sacctMethods, ReadSacctSlice)
 }
 
 func (pc *PersistentCluster) ReadCluzterAttributeData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (cluzterBlobs [][]*repr.CluzterAttributes, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterAttributesMethods,
+		pc, filter, verbose, &pc.cluzterFiles, pc.cluzterAttributesMethods,
 		ReadCluzterAttributeDataSlice,
 	)
 }
 
 func (pc *PersistentCluster) ReadCluzterPartitionData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (cluzterBlobs [][]*repr.CluzterPartitions, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterPartitionsMethods,
+		pc, filter, verbose, &pc.cluzterFiles, pc.cluzterPartitionsMethods,
 		ReadCluzterPartitionDataSlice,
 	)
 }
 
 func (pc *PersistentCluster) ReadCluzterNodeData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (cluzterBlobs [][]*repr.CluzterNodes, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, nil, verbose, &pc.cluzterFiles, pc.cluzterNodesMethods,
+		pc, filter, verbose, &pc.cluzterFiles, pc.cluzterNodesMethods,
 		ReadCluzterNodeDataSlice,
 	)
 }
@@ -458,8 +433,7 @@ func makeRefillTimeCache(dataDir string) func(bool) (time.Time, time.Time, error
 
 func readPersistentClusterRecords[V any, U ~[][]*V](
 	pc *PersistentCluster,
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 	fa filesAdapter,
 	methods ReadSyncMethods,
@@ -473,7 +447,7 @@ func readPersistentClusterRecords[V any, U ~[][]*V](
 		return nil, 0, errs.ClusterClosedErr
 	}
 
-	files := pc.findFilesLocked(fromDate, toDate, hosts, fa)
+	files := pc.findFilesLocked(filter.FromDate, filter.ToDate, filter.Nodes, fa)
 	return reader(files, verbose, methods)
 }
 

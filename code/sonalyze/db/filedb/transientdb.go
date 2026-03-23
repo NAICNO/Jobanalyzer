@@ -73,8 +73,7 @@ func NewTransientSampleCluster(
 }
 
 func (tsc *TransientSampleCluster) SampleFilenames(
-	_, _ time.Time,
-	_ *Hosts,
+	_ types.DataProviderFilter,
 ) ([]string, error) {
 	return tsc.Filenames()
 }
@@ -87,32 +86,28 @@ func (tsc *TransientSampleCluster) ReadProcessSamples(
 }
 
 func (tsc *TransientSampleCluster) ReadNodeSamples(
-	_, _ time.Time,
-	_ *Hosts,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (sampleBlobs [][]*repr.NodeSample, dropped int, err error) {
 	return readNodeSampleSlice(tsc.files, verbose, tsc.nodeSamplesMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadDiskSamples(
-	_, _ time.Time,
-	_ *Hosts,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (sampleBlobs [][]*repr.DiskSample, dropped int, err error) {
 	return readDiskSampleSlice(tsc.files, verbose, tsc.diskSamplesMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadCpuSamples(
-	_, _ time.Time,
-	_ *Hosts,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (dataBlobs [][]*repr.CpuSamples, dropped int, err error) {
 	return readCpuSamplesSlice(tsc.files, verbose, tsc.loadDataMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadGpuSamples(
-	_, _ time.Time,
-	_ *Hosts,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (dataBlobs [][]*repr.GpuSamples, dropped int, err error) {
 	return readGpuSamplesSlice(tsc.files, verbose, tsc.gpuDataMethods)
@@ -144,7 +139,7 @@ func (tsc *TransientSacctCluster) SacctFilenames(_, _ time.Time) ([]string, erro
 }
 
 func (tsc *TransientSacctCluster) ReadSacctData(
-	fromDate, toDate time.Time,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.SacctInfo, dropped int, err error) {
 	return ReadSacctSlice(tsc.files, verbose, tsc.methods)
@@ -182,16 +177,14 @@ func (tsc *TransientSysinfoCluster) SysinfoFilenames(
 }
 
 func (tsc *TransientSysinfoCluster) ReadSysinfoNodeData(
-	fromDate, toDate time.Time,
-	_ *Hosts,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.SysinfoNodeData, dropped int, err error) {
 	return ReadSysinfoNodeDataSlice(tsc.files, verbose, tsc.nodeDataMethods)
 }
 
 func (tsc *TransientSysinfoCluster) ReadSysinfoCardData(
-	fromDate, toDate time.Time,
-	_ *Hosts,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.SysinfoCardData, dropped int, err error) {
 	return ReadSysinfoCardDataSlice(tsc.files, verbose, tsc.cardDataMethods)
@@ -227,21 +220,21 @@ func (tsc *TransientCluzterCluster) CluzterFilenames(_, _ time.Time) ([]string, 
 }
 
 func (tsc *TransientCluzterCluster) ReadCluzterAttributeData(
-	fromDate, toDate time.Time,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterAttributes, dropped int, err error) {
 	return ReadCluzterAttributeDataSlice(tsc.files, verbose, tsc.attributeMethods)
 }
 
 func (tsc *TransientCluzterCluster) ReadCluzterPartitionData(
-	fromDate, toDate time.Time,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterPartitions, dropped int, err error) {
 	return ReadCluzterPartitionDataSlice(tsc.files, verbose, tsc.partitionMethods)
 }
 
 func (tsc *TransientCluzterCluster) ReadCluzterNodeData(
-	fromDate, toDate time.Time,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterNodes, dropped int, err error) {
 	return ReadCluzterNodeDataSlice(tsc.files, verbose, tsc.nodeMethods)
