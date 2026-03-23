@@ -27,7 +27,7 @@ func testitNode(t *testing.T, fields string) {
 		}
 	)
 	var nc nodes.NodeCommand
-	nc.DatabaseArgs.SetLogFiles(logFiles, "logfiles.cluster")
+	nc.DatabaseArgs.SetLogFiles(logFiles, "anonymous-cluster.logfiles")
 	nc.FormatArgs.Fmt = "csv,header," + fields
 	nc.FromDateStr = "2024-10-31"
 	nc.ToDateStr = "2024-12-24"

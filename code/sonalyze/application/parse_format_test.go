@@ -52,7 +52,8 @@ func TestParseNewFieldNames(t *testing.T) {
 
 func mockitParse(t *testing.T, fields string) string {
 	var pc parse.ParseCommand
-	pc.DatabaseArgs.SetLogFiles([]string{"testdata/parse_format_test/test.csv"}, "logfiles.cluster")
+	pc.DatabaseArgs.SetLogFiles(
+		[]string{"testdata/parse_format_test/test.csv"}, "anonymous-cluster.logfiles")
 	pc.FormatArgs.Fmt = "csvnamed,header," + fields
 	err := pc.Validate()
 	if err != nil {

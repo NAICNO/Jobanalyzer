@@ -17,12 +17,6 @@ running on.
 The range of possible sources reflects both the different use cases that exist for Sonalyze and also
 its historical evolution.
 
-Sonar data can be self-identifying: they can contain their cluster name.  This datum, if present,
-should be considered advisory at best; it is uniformly ignored by Sonalyze, which always takes the
-cluster name from metadata.  TODO: it is not yet clear to me if the slurm-monitor ingestor uses the
-embedded cluster name or if it keys off the Kafka topic.
-
-
 ## Timescaledb database
 
 To take data from a Timescaledb database (which is just a PostgreSQL database with some special
@@ -69,35 +63,50 @@ to the Jobanalyzer database.
 
 A cluster data directory `D` is the root of a date-encoded tree: `D/yyyy/mm/dd/<filename>.json`
 where the dates correspond to the time stamps of the data in the files and the filename encodes the
-Sonar data type, as described in the next section.  The name D is always taken to be the cluster
-name.
+Sonar data type, as described in the next section.  For a directory name D, the cluster name is set
+to `D.data` (with `D` folded to lower case and with non-hostname characters translated to `_`).
 
 ```
 $ sonalyze daemon -data-dir ...
 ```
 
-TODO: As of now, the directory-name to cluster-name inference is only implemented when the directory
-is inside a jobanalyzer directory, see above, but this will change.
-
-TODO: We will allow for `-cluster-name` and `-cluster-aliases` to name the cluster, overriding `D`.
-
-
 ## Sonar data files
 
-Sonalyze can run on a set of individual Sonar data files (current-format JSON files as well as
-older-format JSON and CSV files).  The format of a file is inferred from its name: current-format
-JSON files have structured names on the form `<version>+<type>-<host>.json`, while older JSON files
-have extension `.json` and older CSV files have names of the form `.csv`.  Since current Sonar only
-produces the new-format JSON, older file types will not be discussed further.
+Sonalyze can be run on a set of individual Sonar data files, which must all be of the same type (see
+below):
 
 ```
 $ sonalyze daemon file-name ...
 ```
 
-In a Sonar data file, the embedded cluster name is normally ignored by Sonalyze, as the cluster name
-is imposed externally by metadata or command-line switches.
+When sonalyze is run on a set of log files, the cluster name will be set to `anonymous-cluster.logfiles`.
 
-TODO: The above description of file names is not comprehensive, and it is questionable whether we
-are that structured for the data-files case, or only in the data-directory case.
 
-TODO: We will allow for `-cluster-name` and `-cluster-aliases` to name the cluster.
+## Cluster names in data and metadata
+
+Sonar data always belong to a *cluster* (think HPC system), which has a canonical *cluster name*.
+The cluster name usually takes the form of a host name (`fox.educloud.no`, `olivia.sigma2.no`) and
+is in fact restricted to valid host name characters.  Sonalyze will generally replace invalid
+characters in cluster names with underscores.
+
+The cluster name may be present both in Sonar data (and always is present when Sonar is running in
+daemon mode) and in metadata transmitted to the back-end with the Sonar data (the cluster name is
+part of the message topic when data are transmitted via Kafka).
+
+The back-ends are not required to check that the cluster name in the data and the cluster name in
+the metadata are the same, and if they are not, the different back-ends may diverge in their
+behavior.  Sonalyze ignores the embedded cluster name, always keying off the metadata, while
+Slurm-monitor depends entirely on the embedded data.
+
+
+## Data file types and formats
+
+Sonalyze data files are just streams of Sonar-produced JSON data.  The data formats are described in
+`NEW-FORMAT.md` in the Sonar documentation.
+
+Sonalyze files in Sonalyze directory trees are named as they are by the Sonar daemon's "directory
+data sink", see the section "The `[directory]` section" in `HOWTO-DAEMON.md` in the Sonar
+documentation, and Sonalyze directory trees are also organized in the way described there.
+
+Sonalyze can handle older-format Sonar JSON and CSV files, which are organized differently but have
+a looser naming scheme; UTSL.
