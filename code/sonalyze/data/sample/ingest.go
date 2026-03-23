@@ -40,6 +40,7 @@ func ReadSampleStreamsAndMaybeBounds(
 			FromDate: fromDate,
 			ToDate:   toDate,
 			Nodes:    hostGlobber,
+			Jobs:     recordFilter.IncludeJobs,
 		},
 		verbose)
 	if err != nil {

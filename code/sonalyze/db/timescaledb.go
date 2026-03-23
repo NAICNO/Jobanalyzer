@@ -154,13 +154,11 @@ func OpenConnectedDB(cx types.Context) AppendablePersistentDataProvider {
 // that name is added to the other table then it will become ambiguous.
 
 type query struct {
-	table    string // base table name for first-level selection, the result is "t1"
-	fromDate time.Time
-	toDate   time.Time
-	hosts    *Hosts
-	join     string // a join clause + an additional table t2 + join conditions
-	fields   string // comma-separated list of names
-	boxes    []any  // in the same order as the fields
+	types.DataProviderFilter
+	table  string // base table name for first-level selection, the result is "t1"
+	join   string // a join clause + an additional table t2 + join conditions
+	fields string // comma-separated list of names
+	boxes  []any  // in the same order as the fields
 }
 
 func (cdb *connectedDB) ReadProcessSamples(
@@ -196,13 +194,11 @@ func (cdb *connectedDB) ReadProcessSamples(
 		"and t1.time = t2.time and t1.pid = t2.pid and t1.job = t2.job and t1.epoch = t2.epoch " +
 		"group by " + t1Fields
 	q := query{
-		table:    "sample_process",
-		fromDate: filter.FromDate,
-		toDate:   filter.ToDate,
-		hosts:    filter.Nodes,
-		join:     joinBy,
-		fields:   t1Fields + ", " + t2Fields,
-		boxes:    append(t1Boxes, t2Boxes...),
+		DataProviderFilter: filter,
+		table:              "sample_process",
+		join:               joinBy,
+		fields:             t1Fields + ", " + t2Fields,
+		boxes:              append(t1Boxes, t2Boxes...),
 	}
 
 	// Reference: ParseSamplesV0JSON()
@@ -282,10 +278,12 @@ func (cdb *connectedDB) ReadNodeSamples(
 	)
 
 	q := query{
-		table:    "sample_system",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		DataProviderFilter: types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Nodes:    hosts,
+		},
+		table: "sample_system",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "boot, existing_entities, load1, load15, load5, node, " +
 			"runnable_entities, time, used_memory",
@@ -332,10 +330,12 @@ func (cdb *connectedDB) ReadDiskSamples(
 	)
 
 	q := query{
-		table:    "sample_disk",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		DataProviderFilter: types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Nodes:    hosts,
+		},
+		table: "sample_disk",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "discards_completed, discards_merged, flush_requests_completed, " +
 			"ios_currently_in_progress, major, minor, ms_spent_discarding, " +
@@ -392,10 +392,12 @@ func (cdb *connectedDB) ReadCpuSamples(
 	)
 
 	q := query{
-		table:    "sample_system",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		DataProviderFilter: types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Nodes:    hosts,
+		},
+		table: "sample_system",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cpus, node, time",
 		boxes:  []any{&cpus, &node, &timestamp},
@@ -447,10 +449,12 @@ func (cdb *connectedDB) ReadGpuSamples(
 		extra = "t2.time < " + toDateName(fromDate, toDate) + " and "
 	}
 	q := query{
-		table:    "sysinfo_gpu_card_config",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		DataProviderFilter: types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Nodes:    hosts,
+		},
+		table: "sysinfo_gpu_card_config",
 		join: "join sample_gpu as t2 on t1.uuid = t2.uuid and " + extra +
 			"age(t1.time, t2.time) < interval '15 minutes'",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
@@ -515,10 +519,12 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	)
 
 	q := query{
-		table:    "sysinfo_attributes",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		DataProviderFilter: types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Nodes:    hosts,
+		},
+		table: "sysinfo_attributes",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "architecture, cards, cluster, cores_per_socket, cpu_model, distances, memory, " +
 			"node, numa_nodes, os_name, os_release, sockets, threads_per_core, time, topo_svg, topo_text",
@@ -611,14 +617,16 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 	)
 
 	q := query{
+		DataProviderFilter: types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Nodes:    hosts,
+		},
 		// The DB stores what it perceives to be static card info in a separate table,
 		// sysinfo_gpu_card.  That needs to be joined to sysinfo_gpu_card_config here (by UUID) to
 		// get the full story.
-		table:    "sysinfo_gpu_card_config",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
-		join:     "join sysinfo_gpu_card t2 on t1.uuid = t2.uuid",
+		table: "sysinfo_gpu_card_config",
+		join:  "join sysinfo_gpu_card t2 on t1.uuid = t2.uuid",
 		// Alpha field name order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "address, architecture, driver, firmware, index, manufacturer, max_ce_clock, max_memory_clock, " +
 			"max_power_limit, memory, min_power_limit, model, node, power_limit, time, t1.uuid",
@@ -677,9 +685,11 @@ func (cdb *connectedDB) ReadSacctData(
 	)
 
 	q := query{
-		table:    "sample_slurm_job",
-		fromDate: fromDate,
-		toDate:   toDate,
+		DataProviderFilter: types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+		},
+		table: "sample_slurm_job",
 		join: "join sample_slurm_job_acc as t2 on " +
 			"t1.cluster = t2.cluster and t1.job_id = t2.job_id and t1.job_step = t2.job_step and " +
 			"t1.time = t2.time",
@@ -826,9 +836,11 @@ func (cdb *connectedDB) ReadCluzterAttributeData(
 	)
 
 	q := query{
-		table:    "cluster_attributes",
-		fromDate: fromDate,
-		toDate:   toDate,
+		DataProviderFilter: types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+		},
+		table: "cluster_attributes",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cluster, slurm, time",
 		boxes:  []any{&cluster, &slurm, &timestamp},
@@ -858,9 +870,11 @@ func (cdb *connectedDB) ReadCluzterPartitionData(
 	)
 
 	q := query{
-		table:    "partition",
-		fromDate: fromDate,
-		toDate:   toDate,
+		DataProviderFilter: types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+		},
+		table: "partition",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cluster, nodes_compact, partition, time",
 		boxes:  []any{&cluster, &nodeNamesCompact, &partName, &timestamp},
@@ -904,9 +918,11 @@ func (cdb *connectedDB) ReadCluzterNodeData(
 	)
 
 	q := query{
-		table:    "node_state",
-		fromDate: fromDate,
-		toDate:   toDate,
+		DataProviderFilter: types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+		},
+		table: "node_state",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cluster, node, states, time",
 		boxes:  []any{&cluster, &nodeName, &states, &timestamp},
@@ -986,13 +1002,13 @@ func querySlice[T any](
 	qarg := []any{cdb.cx.ClusterName()}
 
 	// Keep in sync with toDateName above!
-	if !q.fromDate.IsZero() {
+	if !q.FromDate.IsZero() {
 		primary += fmt.Sprintf(" AND time >= $%d", len(qarg)+1)
-		qarg = append(qarg, q.fromDate.Format(time.DateOnly))
+		qarg = append(qarg, q.FromDate.Format(time.DateOnly))
 	}
-	if !q.toDate.IsZero() {
+	if !q.ToDate.IsZero() {
 		primary += fmt.Sprintf(" AND time < $%d", len(qarg)+1)
-		qarg = append(qarg, q.toDate.Add(time.Hour*24).Format(time.DateOnly))
+		qarg = append(qarg, q.ToDate.Add(time.Hour*24).Format(time.DateOnly))
 	}
 
 	// Add host filters.
@@ -1003,13 +1019,13 @@ func querySlice[T any](
 	//
 	// (Note this depends on the node field always being called 'node'.)
 
-	if q.hosts != nil && !q.hosts.IsEmpty() {
+	if q.Nodes != nil && !q.Nodes.IsEmpty() {
 		conds := make([]string, 0)
 		args := make([]any, 0)
 		nextIx := len(qarg) + 1
-		for _, p := range q.hosts.Patterns() {
+		for _, p := range q.Nodes.Patterns() {
 			loc := strings.IndexAny(p, "[*")
-			if !q.hosts.IsPrefix() && loc == -1 {
+			if !q.Nodes.IsPrefix() && loc == -1 {
 				conds = append(conds, fmt.Sprintf("node = $%d", nextIx))
 			} else {
 				// TODO: We can and should do more here:
@@ -1042,6 +1058,20 @@ func querySlice[T any](
 			primary += " AND (" + strings.Join(conds, " OR ") + ")"
 			qarg = append(qarg, args...)
 		}
+	}
+
+	// Add node filters.  Note this depends on there being a job ID field called 'job'.
+	//
+	// Job IDs are always numbers, hence safe against SQL injection, hence we have them inline and
+	// not as parameters here.  Not sure whether that helps or hinders query optimization /
+	// compilation / reuse.
+
+	if len(q.Jobs) > 0 {
+		var jobs []string
+		for j := range q.Jobs {
+			jobs = append(jobs, fmt.Sprintf("job = %d", j))
+		}
+		primary += " AND (" + strings.Join(jobs, " OR ") + ")"
 	}
 
 	qstr := "SELECT " + q.fields + " FROM (" + primary + ") AS t1"
