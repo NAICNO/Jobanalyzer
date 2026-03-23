@@ -49,7 +49,13 @@ func (sdp *SampleDataProvider) QueryRaw(
 	hosts *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
-	return sdp.theLog.ReadProcessSamples(fromDate, toDate, hosts, verbose)
+	return sdp.theLog.ReadProcessSamples(
+		types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Nodes:    hosts,
+		},
+		verbose)
 }
 
 func (sdp *SampleDataProvider) Filenames(

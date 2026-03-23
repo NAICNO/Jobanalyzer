@@ -9,6 +9,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db/filedb"
 	"sonalyze/db/repr"
+	"sonalyze/db/types"
 )
 
 // DataReprType enumerates the representations of data coming in from external sources and is used
@@ -55,8 +56,7 @@ func (e *APINotSupportedError) Error() string {
 
 type ProcessSampleDataProvider interface {
 	ReadProcessSamples(
-		fromDate, toDate time.Time,
-		hosts *Hosts,
+		f types.DataProviderFilter,
 		verbose bool,
 	) (sampleBlobs [][]*repr.Sample, softErrors int, err error)
 }

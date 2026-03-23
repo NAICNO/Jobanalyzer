@@ -22,6 +22,7 @@ import (
 	. "sonalyze/common"
 	"sonalyze/db/errs"
 	"sonalyze/db/filedb"
+	"sonalyze/db/types"
 )
 
 const (
@@ -103,7 +104,10 @@ func TestTransientSampleRead(t *testing.T) {
 	}
 	// The parameters are ignored here
 	var d time.Time
-	sampleBlobs, dropped, err := fs.ReadProcessSamples(d, d, nil, verbose)
+	sampleBlobs, dropped, err := fs.ReadProcessSamples(
+		types.DataProviderFilter{FromDate: d, ToDate: d},
+		verbose,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,9 +177,10 @@ func TestPersistentSampleRead(t *testing.T) {
 		t.Fatal(err)
 	}
 	sampleBlobs, dropped, err := pc.ReadProcessSamples(
-		time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
-		time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
-		nil,
+		types.DataProviderFilter{
+			FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
+			ToDate:   time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
+		},
 		verbose,
 	)
 	if err != nil {
@@ -494,9 +499,10 @@ func TestCaching(t *testing.T) {
 	numReads := 5
 	for i := 0; i < numReads; i++ {
 		_, _, err = pc.ReadProcessSamples(
-			time.Date(2023, 05, 01, 0, 0, 0, 0, time.UTC),
-			time.Date(2023, 06, 30, 0, 0, 0, 0, time.UTC),
-			nil,
+			types.DataProviderFilter{
+				FromDate: time.Date(2023, 05, 01, 0, 0, 0, 0, time.UTC),
+				ToDate:   time.Date(2023, 06, 30, 0, 0, 0, 0, time.UTC),
+			},
 			false,
 		)
 		if err != nil {
@@ -586,9 +592,11 @@ func TestCaching(t *testing.T) {
 	// This should read 2023/05/31/a.csv
 	glob, _ := NewHosts(false, []string{"a"})
 	_, _, err = pc.ReadProcessSamples(
-		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
-		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
-		glob,
+		types.DataProviderFilter{
+			FromDate: time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
+			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
+			Nodes:    glob,
+		},
 		false,
 	)
 
@@ -611,9 +619,11 @@ func TestCaching(t *testing.T) {
 		t.Fatal(err)
 	}
 	sampleBlobs, _, err := pc.ReadProcessSamples(
-		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
-		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
-		glob,
+		types.DataProviderFilter{
+			FromDate: time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
+			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
+			Nodes:    glob,
+		},
 		false,
 	)
 	msgs = ul.GetMsgs()
@@ -658,9 +668,11 @@ func TestCaching(t *testing.T) {
 	_ = ul.GetMsgs()
 
 	_, _, err = pc.ReadProcessSamples(
-		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
-		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
-		glob,
+		types.DataProviderFilter{
+			FromDate: time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
+			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
+			Nodes:    glob,
+		},
 		false,
 	)
 
@@ -683,9 +695,11 @@ func TestCaching(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, _, err = pc.ReadProcessSamples(
-		time.Date(2023, 05, 28, 0, 0, 0, 0, time.UTC),
-		time.Date(2023, 05, 29, 0, 0, 0, 0, time.UTC),
-		glob,
+		types.DataProviderFilter{
+			FromDate: time.Date(2023, 05, 28, 0, 0, 0, 0, time.UTC),
+			ToDate:   time.Date(2023, 05, 29, 0, 0, 0, 0, time.UTC),
+			Nodes:    glob,
+		},
 		false,
 	)
 
@@ -702,9 +716,11 @@ func TestCaching(t *testing.T) {
 		t.Fatal("Missing caching msg", msgs)
 	}
 	sampleBlobs, _, err = pc.ReadProcessSamples(
-		time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
-		time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
-		glob,
+		types.DataProviderFilter{
+			FromDate: time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
+			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
+			Nodes:    glob,
+		},
 		false,
 	)
 	zappas := 0

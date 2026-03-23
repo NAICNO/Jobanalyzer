@@ -282,16 +282,15 @@ func (pc *PersistentCluster) findFilenames(
 }
 
 func (pc *PersistentCluster) ReadProcessSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
 	if DEBUG {
-		Assert(fromDate.Location() == time.UTC, "UTC expected")
-		Assert(toDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.FromDate.Location() == time.UTC, "UTC expected")
+		Assert(filter.ToDate.Location() == time.UTC, "UTC expected")
 	}
 	return readPersistentClusterRecords(
-		pc, fromDate, toDate, hosts, verbose, &pc.sampleFiles, pc.samplesMethods,
+		pc, filter.FromDate, filter.ToDate, filter.Nodes, verbose, &pc.sampleFiles, pc.samplesMethods,
 		readProcessSampleSlice,
 	)
 }

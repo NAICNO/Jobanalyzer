@@ -235,7 +235,9 @@ func TestData(t *testing.T) {
 	// We have six sample data files in the range, see test case for file names above
 
 	var sampleData [][]*repr.Sample
-	sampleData, softErrors, err = theDB.ReadProcessSamples(from, to, globber, true)
+	sampleData, softErrors, err = theDB.ReadProcessSamples(
+		types.DataProviderFilter{FromDate: from, ToDate: to, Nodes: globber},
+		true)
 	if err != nil {
 		t.Fatal(err)
 	}

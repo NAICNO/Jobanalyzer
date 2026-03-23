@@ -164,8 +164,7 @@ type query struct {
 }
 
 func (cdb *connectedDB) ReadProcessSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, softErrors int, err error) {
 	var (
@@ -198,9 +197,9 @@ func (cdb *connectedDB) ReadProcessSamples(
 		"group by " + t1Fields
 	q := query{
 		table:    "sample_process",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		fromDate: filter.FromDate,
+		toDate:   filter.ToDate,
+		hosts:    filter.Nodes,
 		join:     joinBy,
 		fields:   t1Fields + ", " + t2Fields,
 		boxes:    append(t1Boxes, t2Boxes...),

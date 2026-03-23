@@ -80,8 +80,7 @@ func (tsc *TransientSampleCluster) SampleFilenames(
 }
 
 func (tsc *TransientSampleCluster) ReadProcessSamples(
-	_, _ time.Time,
-	_ *Hosts,
+	_ types.DataProviderFilter,
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
 	return readProcessSampleSlice(tsc.files, verbose, tsc.samplesMethods)
