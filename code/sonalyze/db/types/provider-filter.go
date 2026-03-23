@@ -10,7 +10,9 @@ import (
 // *must* be applied afterwards.
 //
 // FromDate and ToDate are always valid and must always be supplied - there can be no open-ended
-// queries.
+// queries.  (In truth, these values are not used when the data store is a file list, but they
+// really ought to be provided anyway.)  Of course, the zero value is valid and takes us back to
+// 1970-01-01T00:00:00Z.
 //
 // The other fields *must* have non-zero values *only if* they are valid for the query in question.
 // This is a client responsibility.  The database layer may try to apply filters that are
