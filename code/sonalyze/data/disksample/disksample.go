@@ -36,7 +36,7 @@ func (nsp *DiskSampleDataProvider) Query(
 		types.DataProviderFilter{
 			FromDate: filter.FromDate,
 			ToDate:   filter.ToDate,
-			Nodes:    f.HostFilter(),
+			Node:     f.HostFilter(),
 		},
 		verbose,
 	)

@@ -39,7 +39,7 @@ func ReadSampleStreamsAndMaybeBounds(
 		types.DataProviderFilter{
 			FromDate: fromDate,
 			ToDate:   toDate,
-			Nodes:    hostGlobber,
+			Node:     hostGlobber,
 			Jobs:     recordFilter.IncludeJobs,
 			Users:    recordFilter.IncludeUsers,
 		},

@@ -170,7 +170,7 @@ func (mdc *MetadataCommand) Perform(
 		files, err := sdp.Filenames(types.DataProviderFilter{
 			FromDate: mdc.FromDate,
 			ToDate:   mdc.ToDate,
-			Nodes:    hosts,
+			Node:     hosts,
 		})
 		if err != nil {
 			return err

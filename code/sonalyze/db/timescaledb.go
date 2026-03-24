@@ -74,13 +74,14 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go-utils/gpuset"
+	"go-utils/hostglob"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
 	"sonalyze/db/util"
 )
 
-// Allow no more than this many query parameters from each open-ended set (users, jobs, nodes, ...)
+// Allow no more than this many query parameters from each open-ended set (users, jobs, node, ...)
 // to avoid DoS.
 const dosCutoff = 100
 
@@ -156,13 +157,18 @@ func OpenConnectedDB(cx types.Context) AppendablePersistentDataProvider {
 // They can always be written as "t1.field" and "t2.field", and it's useful to do so, because if
 // they are just "field" then even if that is unambiguous at the time it's written, if a field of
 // that name is added to the other table then it will become ambiguous.
+//
+// The field map is used for the inner/primary query only and allows table-local names to be used
+// where they are not canonical (eg "user" is "user_name" in slurm data).  A missing mapping will
+// cause a panic, it's the client's responsibility to get this right.
 
 type query struct {
 	types.DataProviderFilter
-	table  string // base table name for first-level selection, the result is "t1"
-	join   string // a join clause + an additional table t2 + join conditions
-	fields string // comma-separated list of names
-	boxes  []any  // in the same order as the fields
+	table    string            // base table name for first-level selection, the result is "t1"
+	join     string            // a join clause + an additional table t2 + join conditions
+	fields   string            // comma-separated list of names
+	boxes    []any             // in the same order as the fields
+	fieldMap map[string]string // map from a "canonical" field name to local variant
 }
 
 func (cdb *connectedDB) ReadProcessSamples(
@@ -658,8 +664,10 @@ func (cdb *connectedDB) ReadSacctData(
 		arrayTaskIdp, exitCodep                  *int
 	)
 
+	// The node -> nodes triggers special behavior in the query engine, too.
 	q := query{
 		DataProviderFilter: filter,
+		fieldMap:           map[string]string{"time": "time", "user": "user_name", "job": "job_name", "node": "nodes"},
 		table:              "sample_slurm_job",
 		join: "join sample_slurm_job_acc as t2 on " +
 			"t1.cluster = t2.cluster and t1.job_id = t2.job_id and t1.job_step = t2.job_step and " +
@@ -942,7 +950,7 @@ func makeRefillTimeCache(
 	}
 }
 
-// Totally gross
+// Totally gross.  Keep this in sync with logic in querySlice!!
 func toDateName(fromDate, toDate time.Time) string {
 	n := 2
 	if !fromDate.IsZero() {
@@ -963,13 +971,23 @@ func querySlice[T any](
 	primary := "SELECT * FROM " + q.table + " WHERE " + "cluster=$1"
 	qarg := []any{cdb.cx.ClusterName()}
 
-	// Keep in sync with toDateName above!
+	// A note about adding field filters against values.  For values we don't control we have to use
+	// parameters to avoid being pwned by Mrs Roberts.  For values that we do control (typically b/c
+	// they are numbers or dates) we can expand the values inline.
+	//
+	// It might be better for query optimization / compilation / reuse to make also the in-line
+	// values parameters, but I don't know this yet.
+
+	// Keep these in sync with toDateName above!!  Note that even though dates could be in-line
+	// values they are parameters here to allow reuse by other parts of the query.  Sort of hacky.
+
+	timeField := mapField("time", q.fieldMap)
 	if !q.FromDate.IsZero() {
-		primary += fmt.Sprintf(" AND time >= $%d", len(qarg)+1)
+		primary += fmt.Sprintf(" AND %s >= $%d", timeField, len(qarg)+1)
 		qarg = append(qarg, q.FromDate.Format(time.DateOnly))
 	}
 	if !q.ToDate.IsZero() {
-		primary += fmt.Sprintf(" AND time < $%d", len(qarg)+1)
+		primary += fmt.Sprintf(" AND %s < $%d", timeField, len(qarg)+1)
 		qarg = append(qarg, q.ToDate.Add(time.Hour*24).Format(time.DateOnly))
 	}
 
@@ -978,78 +996,94 @@ func querySlice[T any](
 	// At the database level, host filtering is exclusively an optimization, to avoid reading /
 	// generating data.  Note in particular that we can apply lossy abbreviations as long as they
 	// find everything a precise match would find.
-	//
-	// (Note this depends on the node field always being called 'node'.)
 
-	if q.Nodes != nil && !q.Nodes.IsEmpty() {
-		conds := make([]string, 0)
-		args := make([]any, 0)
-		nextIx := len(qarg) + 1
-		for _, p := range q.Nodes.Patterns() {
-			loc := strings.IndexAny(p, "[*")
-			if !q.Nodes.IsPrefix() && loc == -1 {
-				conds = append(conds, fmt.Sprintf("node = $%d", nextIx))
-			} else {
-				// TODO: We can and should do more here:
-				//
-				// Some ranges can usefully be expanded into prefixes but it can be tricky:
-				// c1-[10-15] becomes c1-1 but c1-[9-20] becomes c1-1 OR c1-2 OR c1-9, among other
-				// things.  Yet simple cases of this are important, as e.g. gpu-[8,9] is a common
-				// thing.
-				//
-				// We could do 'c1-*.fox' as 'like c1-%.fox' and it may be worthwhile to do so,
-				// ditto c1-[10-40].fox could be 'like c1-%.fox'.  We could do c1-[2-8] as 'like
-				// 'c1-_' and it might be worthwhile (% matches zero or more, _ matches one).
-				//
-				// A perf hint for % is to avoid leading wildcards.
-				//
-				// We should get the hostglobber involved since it has an exact parse of the pattern
-				// set and is already in q.hosts.
-				conds = append(conds, fmt.Sprintf("node like $%d", nextIx))
-				if loc != -1 {
-					p = p[:loc]
+	if q.Node != nil && !q.Node.IsEmpty() {
+		fieldname := mapField("node", q.fieldMap)
+		if fieldname == "nodes" {
+			// As a special hack, when "node" maps to "nodes" then the selector turns into set
+			// intersection, and the queried node set is expanded into an array that is intersected
+			// with an array field called "nodes".  This is gross but probably OK for now.  The
+			// meaning is always that the sets overlap, not that the lhs is contained in the rhs.
+			// This is debatable but since this is an optimization and post-filtering must happen
+			// anyway it is probably the right thing.
+			var x, expanded []string
+			var err error
+			for _, p := range q.Node.Patterns() {
+				x, err = hostglob.ExpandPattern(p)
+				if err != nil {
+					break
 				}
-				p += "%"
+				expanded = append(expanded, x...)
 			}
-			args = append(args, p)
-			nextIx++
-		}
-		if len(conds) <= dosCutoff {
-			primary += " AND (" + strings.Join(conds, " OR ") + ")"
-			qarg = append(qarg, args...)
+			if err == nil && len(expanded) > 0 && len(expanded) <= dosCutoff {
+				elements := make([]string, 0, len(expanded))
+				for _, e := range expanded {
+					elements = append(elements, fmt.Sprintf("$%d::character varying", len(qarg)+1))
+					qarg = append(qarg, e)
+				}
+				primary += " AND " + fieldname + " && ARRAY[" + strings.Join(elements, ",") + "]"
+			}
+		} else {
+			conds := make([]string, 0)
+			args := make([]any, 0)
+			nextIx := len(qarg) + 1
+			for _, p := range q.Node.Patterns() {
+				loc := strings.IndexAny(p, "[*")
+				if !q.Node.IsPrefix() && loc == -1 {
+					conds = append(conds, fmt.Sprintf("%s = $%d", fieldname, nextIx))
+				} else {
+					// TODO: We can and should do more here:
+					//
+					// Some ranges can usefully be expanded into prefixes but it can be tricky:
+					// c1-[10-15] becomes c1-1 but c1-[9-20] becomes c1-1 OR c1-2 OR c1-9, among other
+					// things.  Yet simple cases of this are important, as e.g. gpu-[8,9] is a common
+					// thing.
+					//
+					// We could do 'c1-*.fox' as 'like c1-%.fox' and it may be worthwhile to do so,
+					// ditto c1-[10-40].fox could be 'like c1-%.fox'.  We could do c1-[2-8] as 'like
+					// 'c1-_' and it might be worthwhile (% matches zero or more, _ matches one).
+					//
+					// A perf hint for % is to avoid leading wildcards.
+					//
+					// We should get the hostglobber involved since it has an exact parse of the pattern
+					// set and is already in q.hosts.
+					conds = append(conds, fmt.Sprintf("%s like $%d", fieldname, nextIx))
+					if loc != -1 {
+						p = p[:loc]
+					}
+					p += "%"
+				}
+				args = append(args, p)
+				nextIx++
+			}
+			if len(conds) <= dosCutoff {
+				primary += " AND (" + strings.Join(conds, " OR ") + ")"
+				qarg = append(qarg, args...)
+			}
 		}
 	}
 
-	// Add job id filters.  Note this depends on there being a job ID field called 'job'.
-	//
-	// Job IDs are always numbers, hence safe against SQL injection, hence we have them inline and
-	// not as parameters here.  Not sure whether that helps or hinders query optimization /
-	// compilation / reuse.
+	// Add job id filters.
 
 	if len(q.Jobs) > 0 && len(q.Jobs) <= dosCutoff {
+		fieldname := mapField("job", q.fieldMap)
 		var jobs []string
 		for j := range q.Jobs {
-			jobs = append(jobs, fmt.Sprintf("job = %d", j))
+			jobs = append(jobs, fmt.Sprintf("%s = %d", fieldname, j))
 		}
 		primary += " AND (" + strings.Join(jobs, " OR ") + ")"
 	}
 
-	// Add user name filters.  This depends on there being a user name field called 'user'.
-	//
-	// Here we have to use parameters to avoid being pwned by Mrs Roberts.
+	// Add user name filters.
 
 	if len(q.Users) > 0 && len(q.Users) <= dosCutoff {
+		fieldname := mapField("user", q.fieldMap)
 		var conds []string
-		var args []any
-		nextIx := len(qarg) + 1
-
 		for u := range q.Users {
-			conds = append(conds, fmt.Sprintf("user = $%d", nextIx))
-			args = append(args, u.String())
-			nextIx++
+			conds = append(conds, fmt.Sprintf("%s = $%d", fieldname, len(qarg)+1))
+			qarg = append(qarg, u.String())
 		}
 		primary += " AND (" + strings.Join(conds, " OR ") + ")"
-		qarg = append(qarg, args...)
 	}
 
 	qstr := "SELECT " + q.fields + " FROM (" + primary + ") AS t1"
@@ -1079,6 +1113,17 @@ func querySlice[T any](
 	}
 	finalRows = [][]*T{dataRows}
 	return
+}
+
+func mapField(field string, fieldMap map[string]string) string {
+	if fieldMap == nil {
+		return field
+	}
+	probe := fieldMap[field]
+	if probe == "" {
+		panic("Unmapped field name in SQL query: " + field)
+	}
+	return probe
 }
 
 func (cdb *connectedDB) AppendSamplesAsync(ty DataReprType, host, timestamp string, payload any) error {

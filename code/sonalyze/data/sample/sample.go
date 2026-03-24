@@ -53,7 +53,7 @@ func (sdp *SampleDataProvider) QueryRaw(
 		types.DataProviderFilter{
 			FromDate: fromDate,
 			ToDate:   toDate,
-			Nodes:    hosts,
+			Node:     hosts,
 		},
 		verbose)
 }

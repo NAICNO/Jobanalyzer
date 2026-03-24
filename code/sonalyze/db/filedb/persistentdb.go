@@ -274,7 +274,7 @@ func (pc *PersistentCluster) findFilenames(
 		return nil, errs.ClusterClosedErr
 	}
 
-	files := pc.findFilesLocked(filter.FromDate, filter.ToDate, filter.Nodes, fa)
+	files := pc.findFilesLocked(filter.FromDate, filter.ToDate, filter.Node, fa)
 	return Filenames(files), nil
 }
 
@@ -447,7 +447,7 @@ func readPersistentClusterRecords[V any, U ~[][]*V](
 		return nil, 0, errs.ClusterClosedErr
 	}
 
-	files := pc.findFilesLocked(filter.FromDate, filter.ToDate, filter.Nodes, fa)
+	files := pc.findFilesLocked(filter.FromDate, filter.ToDate, filter.Node, fa)
 	return reader(files, verbose, methods)
 }
 

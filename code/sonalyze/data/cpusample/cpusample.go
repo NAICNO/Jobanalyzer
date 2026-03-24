@@ -72,7 +72,7 @@ func (cdp *CpuSampleDataProvider) Query(
 		types.DataProviderFilter{
 			FromDate: fromDate,
 			ToDate:   toDate,
-			Nodes:    hostGlobber,
+			Node:     hostGlobber,
 		},
 		verbose)
 	if err != nil {

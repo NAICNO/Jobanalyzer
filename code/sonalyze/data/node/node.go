@@ -40,7 +40,7 @@ func (ndp *NodeDataProvider) Query(
 		types.DataProviderFilter{
 			FromDate: filter.FromDate,
 			ToDate:   filter.ToDate,
-			Nodes:    f.HostFilter(),
+			Node:     f.HostFilter(),
 		},
 		verbose,
 	)
@@ -59,7 +59,7 @@ func (ndp *NodeDataProvider) QueryRaw(
 		types.DataProviderFilter{
 			FromDate: fromDate,
 			ToDate:   toDate,
-			Nodes:    hosts,
+			Node:     hosts,
 		},
 		verbose)
 }
