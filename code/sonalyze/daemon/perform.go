@@ -104,7 +104,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	}
 
 	if dc.restAPI != "" {
-		go restapi.RestAPI(dc.restAPI)
+		restapi.StartRestAPI(dc.restAPI, dc.Verbose)
 	}
 
 	var programFailed bool

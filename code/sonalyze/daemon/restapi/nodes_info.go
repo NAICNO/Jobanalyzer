@@ -3,12 +3,8 @@ package restapi
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
-
-	"sonalyze/data/common"
-	"sonalyze/data/config"
 )
 
 // List all nodes in a cluster with the latest hardware and OS information.  Note that the time
@@ -61,61 +57,46 @@ func handleNodesInfo(
 		TimeInS  uint64 `query:"time_in_s" doc:"Posix timestamp"`
 	},
 ) (*NodesInfoResponse, error) {
-	// Logic from data/config
 	meta, hErr := getClusterContext(nodesInfoName, input.Cluster)
 	if hErr != nil {
 		return nil, hErr
 	}
-	from, to, hErr := timeWindowFromData(nodesInfoName, meta, input.TimeInS, input.TimeInS)
+	_, to, hErr := timeWindowFromData(nodesInfoName, meta, 0, input.TimeInS)
 	if hErr != nil {
 		return nil, hErr
-	}
-	// Create a large enough window for sysinfo data.
-	//
-	// This is far from perfect, and at a minimum this should have been a parameter to
-	// timeWindowFromData, we could have 0 mean "default".
-	from = from.Add(-24 * time.Hour)
-	cdb, err := config.OpenConfigDataProvider(meta)
-	if err != nil {
-		return nil, huma.Error500InternalServerError(
-			nodesInfoName+": Failed to open config data store", err)
 	}
 	var hostList []string
 	if input.Nodename != "" {
 		hostList = []string{input.Nodename}
 	}
-	rs, err := cdb.RawQuery(config.QueryFilter{
-		QueryFilter: common.QueryFilter{
-			HaveFrom: true,
-			FromDate: from,
-			HaveTo:   true,
-			ToDate:   to,
-			Host:     hostList,
-		},
-		Verbose: verbose,
-	})
-	if err != nil {
-		return nil, huma.Error500InternalServerError(
-			nodesInfoName+": Failed to query config data", err)
+	sysinfo, hErr := getSysinfoAt(nodesInfoName, meta, to, hostList)
+	if hErr != nil {
+		return nil, hErr
 	}
-	resp := &NodesInfoResponse{Body: make(map[string]NodesInfoResponse_Node, len(rs))}
-	for _, r := range rs {
-		cards := make([]NodesInfoResponse_Card, len(r.Cards))
-		for i, c := range r.Cards {
-			cards[i].UUID = c.UUID
-			cards[i].Model = c.Model
-			cards[i].MemSize = c.Memory
+	cardInfo, hErr := getCardInfoAt(nodesInfoName, meta, to, hostList)
+	if hErr != nil {
+		return nil, hErr
+	}
+	resp := &NodesInfoResponse{Body: make(map[string]NodesInfoResponse_Node, len(sysinfo))}
+	for _, system := range sysinfo {
+		cards := make([]NodesInfoResponse_Card, len(system.Cards))
+		for i, c := range system.Cards {
+			cards[i].UUID = c
+			if ci := cardInfo[c]; ci != nil {
+				cards[i].Model = ci.Model
+				cards[i].MemSize = ci.Memory
+			}
 		}
-		resp.Body[r.Node.Node] = NodesInfoResponse_Node{
-			Time:           r.Node.Time,
-			Cluster:        r.Node.Cluster,
-			Node:           r.Node.Node,
-			OsName:         r.Node.OsName,
-			OsRelease:      r.Node.OsRelease,
-			Memory:         r.Node.Memory,
-			Sockets:        r.Node.Sockets,
-			CoresPerSocket: r.Node.CoresPerSocket,
-			ThreadsPerCore: r.Node.ThreadsPerCore,
+		resp.Body[system.Node] = NodesInfoResponse_Node{
+			Time:           system.Time,
+			Cluster:        system.Cluster,
+			Node:           system.Node,
+			OsName:         system.OsName,
+			OsRelease:      system.OsRelease,
+			Memory:         system.Memory,
+			Sockets:        system.Sockets,
+			CoresPerSocket: system.CoresPerSocket,
+			ThreadsPerCore: system.ThreadsPerCore,
 			Cards:          cards,
 		}
 	}

@@ -70,7 +70,7 @@ func handleNodesProcessGpuUtil(
 	from = from.Add(-w)
 	to = to.Add(w)
 
-	hostFilter, hErr := newHosts(nodesProcessGpuUtilName, input.Nodename)
+	hostFilter, hErr := newHostFilter(nodesProcessGpuUtilName, input.Nodename)
 	if hErr != nil {
 		return nil, hErr
 	}
@@ -129,7 +129,7 @@ func handleNodesProcessGpuUtil(
 		}
 		slices.Sort(pids)
 
-		acc.Time = t.Format(time.RFC3339)
+		acc.Time = t.UTC().Format(time.RFC3339)
 		if n > 1 {
 			acc.GpuUtil /= float64(n)
 			acc.GpuMemoryUtil /= float64(n)
