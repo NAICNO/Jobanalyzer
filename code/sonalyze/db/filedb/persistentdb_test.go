@@ -139,7 +139,7 @@ func TestFilenames(t *testing.T) {
 	fs, err = theDB.SampleFilenames(types.DataProviderFilter{
 		FromDate: from,
 		ToDate:   to,
-		Nodes:    globber,
+		Node:     globber,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -183,7 +183,7 @@ func TestFilenames(t *testing.T) {
 	fs, err = theDB.SysinfoFilenames(types.DataProviderFilter{
 		FromDate: from,
 		ToDate:   to,
-		Nodes:    globber,
+		Node:     globber,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -256,7 +256,7 @@ func TestData(t *testing.T) {
 
 	var sampleData [][]*repr.Sample
 	sampleData, softErrors, err = theDB.ReadProcessSamples(
-		types.DataProviderFilter{FromDate: from, ToDate: to, Nodes: globber},
+		types.DataProviderFilter{FromDate: from, ToDate: to, Node: globber},
 		true)
 	if err != nil {
 		t.Fatal(err)
@@ -297,7 +297,7 @@ SampleLoop:
 		types.DataProviderFilter{
 			FromDate: from,
 			ToDate:   to,
-			Nodes:    globber,
+			Node:     globber,
 		},
 		true)
 	if err != nil {
@@ -339,7 +339,7 @@ CpuSampleDataLoop:
 		types.DataProviderFilter{
 			FromDate: from,
 			ToDate:   to,
-			Nodes:    globber,
+			Node:     globber,
 		},
 		true,
 	)
@@ -382,7 +382,7 @@ GpuSampleDataLoop:
 		types.DataProviderFilter{
 			FromDate: from,
 			ToDate:   to,
-			Nodes:    globber,
+			Node:     globber,
 		},
 		true,
 	)
@@ -424,7 +424,7 @@ NodeLoop:
 		types.DataProviderFilter{
 			FromDate: from,
 			ToDate:   to,
-			Nodes:    globber,
+			Node:     globber,
 		},
 		true,
 	)

@@ -94,7 +94,7 @@ func TestTransientSampleFilenames(t *testing.T) {
 	names, _ := fs.SampleFilenames(types.DataProviderFilter{
 		FromDate: d,
 		ToDate:   d,
-		Nodes:    h,
+		Node:     h,
 	})
 	if !reflect.DeepEqual(names, theFiles) {
 		t.Fatal(names, theFiles)
@@ -158,7 +158,7 @@ func TestPersistentSampleFilenames(t *testing.T) {
 	names, err = pc.SampleFilenames(types.DataProviderFilter{
 		FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		ToDate:   time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
-		Nodes:    h,
+		Node:     h,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -601,7 +601,7 @@ func TestCaching(t *testing.T) {
 		types.DataProviderFilter{
 			FromDate: time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
-			Nodes:    glob,
+			Node:     glob,
 		},
 		false,
 	)
@@ -628,7 +628,7 @@ func TestCaching(t *testing.T) {
 		types.DataProviderFilter{
 			FromDate: time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
-			Nodes:    glob,
+			Node:     glob,
 		},
 		false,
 	)
@@ -677,7 +677,7 @@ func TestCaching(t *testing.T) {
 		types.DataProviderFilter{
 			FromDate: time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
-			Nodes:    glob,
+			Node:     glob,
 		},
 		false,
 	)
@@ -704,7 +704,7 @@ func TestCaching(t *testing.T) {
 		types.DataProviderFilter{
 			FromDate: time.Date(2023, 05, 28, 0, 0, 0, 0, time.UTC),
 			ToDate:   time.Date(2023, 05, 29, 0, 0, 0, 0, time.UTC),
-			Nodes:    glob,
+			Node:     glob,
 		},
 		false,
 	)
@@ -725,7 +725,7 @@ func TestCaching(t *testing.T) {
 		types.DataProviderFilter{
 			FromDate: time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),
 			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
-			Nodes:    glob,
+			Node:     glob,
 		},
 		false,
 	)
