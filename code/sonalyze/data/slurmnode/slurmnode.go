@@ -43,8 +43,10 @@ func (sdp *SlurmNodeDataProvider) Query(
 		return nil, err
 	}
 	recordBlobs, _, err := sdp.theLog.ReadCluzterNodeData(
-		filter.FromDate,
-		filter.ToDate,
+		types.DataProviderFilter{
+			FromDate: filter.FromDate,
+			ToDate:   filter.ToDate,
+		},
 		verbose,
 	)
 	if err != nil {

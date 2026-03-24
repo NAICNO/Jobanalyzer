@@ -49,15 +49,20 @@ func (sdp *SampleDataProvider) QueryRaw(
 	hosts *Hosts,
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
-	return sdp.theLog.ReadProcessSamples(fromDate, toDate, hosts, verbose)
+	return sdp.theLog.ReadProcessSamples(
+		types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Node:     hosts,
+		},
+		verbose)
 }
 
 func (sdp *SampleDataProvider) Filenames(
-	fromDate, toDate time.Time,
-	hostGlobber *Hosts,
+	filter types.DataProviderFilter,
 ) ([]string, error) {
 	if sampleDir, ok := sdp.theLog.(db.SampleFilenameProvider); ok {
-		return sampleDir.SampleFilenames(fromDate, toDate, hostGlobber)
+		return sampleDir.SampleFilenames(filter)
 	}
 	panic("Bad cluster type")
 }

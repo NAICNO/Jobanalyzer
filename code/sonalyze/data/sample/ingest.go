@@ -5,6 +5,7 @@ import (
 
 	. "sonalyze/common"
 	"sonalyze/db"
+	"sonalyze/db/types"
 )
 
 // Read data and bucket them in InputStreams.  The caller receives ownership of the InputStreamSet.
@@ -34,7 +35,15 @@ func ReadSampleStreamsAndMaybeBounds(
 	read, dropped int,
 	err error,
 ) {
-	sampleBlobs, dropped, err := c.ReadProcessSamples(fromDate, toDate, hostGlobber, verbose)
+	sampleBlobs, dropped, err := c.ReadProcessSamples(
+		types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Node:     hostGlobber,
+			Jobs:     recordFilter.IncludeJobs,
+			Users:    recordFilter.IncludeUsers,
+		},
+		verbose)
 	if err != nil {
 		return
 	}

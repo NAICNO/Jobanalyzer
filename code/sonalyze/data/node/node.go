@@ -37,9 +37,11 @@ func (ndp *NodeDataProvider) Query(
 		return nil, err
 	}
 	recordBlobs, _, err := ndp.theLog.ReadSysinfoNodeData(
-		filter.FromDate,
-		filter.ToDate,
-		f.HostFilter(),
+		types.DataProviderFilter{
+			FromDate: filter.FromDate,
+			ToDate:   filter.ToDate,
+			Node:     f.HostFilter(),
+		},
 		verbose,
 	)
 	if err != nil {
@@ -53,5 +55,11 @@ func (ndp *NodeDataProvider) QueryRaw(
 	hosts *Hosts,
 	verbose bool,
 ) (recordBlobs [][]*repr.SysinfoNodeData, dropped int, err error) {
-	return ndp.theLog.ReadSysinfoNodeData(fromDate, toDate, hosts, verbose)
+	return ndp.theLog.ReadSysinfoNodeData(
+		types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Node:     hosts,
+		},
+		verbose)
 }

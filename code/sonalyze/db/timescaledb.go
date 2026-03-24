@@ -74,11 +74,16 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go-utils/gpuset"
+	"go-utils/hostglob"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
 	"sonalyze/db/util"
 )
+
+// Allow no more than this many query parameters from each open-ended set (users, jobs, node, ...)
+// to avoid DoS.
+const dosCutoff = 100
 
 // The current structure of sonalyze ensures that there is one databaseConnection globally, and it
 // is really never closed.  (There is one connection, it is attached to every cluster when the data
@@ -152,20 +157,22 @@ func OpenConnectedDB(cx types.Context) AppendablePersistentDataProvider {
 // They can always be written as "t1.field" and "t2.field", and it's useful to do so, because if
 // they are just "field" then even if that is unambiguous at the time it's written, if a field of
 // that name is added to the other table then it will become ambiguous.
+//
+// The field map is used for the inner/primary query only and allows table-local names to be used
+// where they are not canonical (eg "user" is "user_name" in slurm data).  A missing mapping will
+// cause a panic, it's the client's responsibility to get this right.
 
 type query struct {
-	table    string // base table name for first-level selection, the result is "t1"
-	fromDate time.Time
-	toDate   time.Time
-	hosts    *Hosts
-	join     string // a join clause + an additional table t2 + join conditions
-	fields   string // comma-separated list of names
-	boxes    []any  // in the same order as the fields
+	types.DataProviderFilter
+	table    string            // base table name for first-level selection, the result is "t1"
+	join     string            // a join clause + an additional table t2 + join conditions
+	fields   string            // comma-separated list of names
+	boxes    []any             // in the same order as the fields
+	fieldMap map[string]string // map from a "canonical" field name to local variant
 }
 
 func (cdb *connectedDB) ReadProcessSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, softErrors int, err error) {
 	var (
@@ -197,13 +204,11 @@ func (cdb *connectedDB) ReadProcessSamples(
 		"and t1.time = t2.time and t1.pid = t2.pid and t1.job = t2.job and t1.epoch = t2.epoch " +
 		"group by " + t1Fields
 	q := query{
-		table:    "sample_process",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
-		join:     joinBy,
-		fields:   t1Fields + ", " + t2Fields,
-		boxes:    append(t1Boxes, t2Boxes...),
+		DataProviderFilter: filter,
+		table:              "sample_process",
+		join:               joinBy,
+		fields:             t1Fields + ", " + t2Fields,
+		boxes:              append(t1Boxes, t2Boxes...),
 	}
 
 	// Reference: ParseSamplesV0JSON()
@@ -268,8 +273,7 @@ func (cdb *connectedDB) ReadProcessSamples(
 }
 
 func (cdb *connectedDB) ReadNodeSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sampleBlobs [][]*repr.NodeSample, softErrors int, err error) {
 	var (
@@ -283,10 +287,8 @@ func (cdb *connectedDB) ReadNodeSamples(
 	)
 
 	q := query{
-		table:    "sample_system",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		DataProviderFilter: filter,
+		table:              "sample_system",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "boot, existing_entities, load1, load15, load5, node, " +
 			"runnable_entities, time, used_memory",
@@ -318,8 +320,7 @@ func (cdb *connectedDB) ReadNodeSamples(
 }
 
 func (cdb *connectedDB) ReadDiskSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (dataBlobs [][]*repr.DiskSample, softErrors int, err error) {
 	var (
@@ -333,10 +334,8 @@ func (cdb *connectedDB) ReadDiskSamples(
 	)
 
 	q := query{
-		table:    "sample_disk",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		DataProviderFilter: filter,
+		table:              "sample_disk",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "discards_completed, discards_merged, flush_requests_completed, " +
 			"ios_currently_in_progress, major, minor, ms_spent_discarding, " +
@@ -382,8 +381,7 @@ func (cdb *connectedDB) ReadDiskSamples(
 }
 
 func (cdb *connectedDB) ReadCpuSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (dataBlobs [][]*repr.CpuSamples, softErrors int, err error) {
 	var (
@@ -393,10 +391,8 @@ func (cdb *connectedDB) ReadCpuSamples(
 	)
 
 	q := query{
-		table:    "sample_system",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		DataProviderFilter: filter,
+		table:              "sample_system",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cpus, node, time",
 		boxes:  []any{&cpus, &node, &timestamp},
@@ -418,8 +414,7 @@ func (cdb *connectedDB) ReadCpuSamples(
 }
 
 func (cdb *connectedDB) ReadGpuSamples(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (dataBlobs [][]*repr.GpuSamples, softErrors int, err error) {
 	var (
@@ -444,14 +439,12 @@ func (cdb *connectedDB) ReadGpuSamples(
 	//
 	// We need the extra constraint on t2.time or we'll get records through the current time.
 	extra := ""
-	if !toDate.IsZero() {
-		extra = "t2.time < " + toDateName(fromDate, toDate) + " and "
+	if !filter.ToDate.IsZero() {
+		extra = "t2.time < " + toDateName(filter.FromDate, filter.ToDate) + " and "
 	}
 	q := query{
-		table:    "sysinfo_gpu_card_config",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		DataProviderFilter: filter,
+		table:              "sysinfo_gpu_card_config",
 		join: "join sample_gpu as t2 on t1.uuid = t2.uuid and " + extra +
 			"age(t1.time, t2.time) < interval '15 minutes'",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
@@ -500,8 +493,7 @@ func (cdb *connectedDB) ReadGpuSamples(
 }
 
 func (cdb *connectedDB) ReadSysinfoNodeData(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
 	var (
@@ -516,10 +508,8 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 	)
 
 	q := query{
-		table:    "sysinfo_attributes",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
+		DataProviderFilter: filter,
+		table:              "sysinfo_attributes",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "architecture, cards, cluster, cores_per_socket, cpu_model, distances, memory, " +
 			"node, numa_nodes, os_name, os_release, sockets, threads_per_core, time, topo_svg, topo_text",
@@ -600,8 +590,7 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 }
 
 func (cdb *connectedDB) ReadSysinfoCardData(
-	fromDate, toDate time.Time,
-	hosts *Hosts,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error) {
 	var (
@@ -612,14 +601,12 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 	)
 
 	q := query{
+		DataProviderFilter: filter,
 		// The DB stores what it perceives to be static card info in a separate table,
 		// sysinfo_gpu_card.  That needs to be joined to sysinfo_gpu_card_config here (by UUID) to
 		// get the full story.
-		table:    "sysinfo_gpu_card_config",
-		fromDate: fromDate,
-		toDate:   toDate,
-		hosts:    hosts,
-		join:     "join sysinfo_gpu_card t2 on t1.uuid = t2.uuid",
+		table: "sysinfo_gpu_card_config",
+		join:  "join sysinfo_gpu_card t2 on t1.uuid = t2.uuid",
 		// Alpha field name order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "address, architecture, driver, firmware, index, manufacturer, max_ce_clock, max_memory_clock, " +
 			"max_power_limit, memory, min_power_limit, model, node, power_limit, time, t1.uuid",
@@ -657,7 +644,7 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 }
 
 func (cdb *connectedDB) ReadSacctData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.SacctInfo, softErrors int, err error) {
 	var (
@@ -677,10 +664,11 @@ func (cdb *connectedDB) ReadSacctData(
 		arrayTaskIdp, exitCodep                  *int
 	)
 
+	// The node -> nodes triggers special behavior in the query engine, too.
 	q := query{
-		table:    "sample_slurm_job",
-		fromDate: fromDate,
-		toDate:   toDate,
+		DataProviderFilter: filter,
+		fieldMap:           map[string]string{"time": "time", "user": "user_name", "job": "job_name", "node": "nodes"},
+		table:              "sample_slurm_job",
 		join: "join sample_slurm_job_acc as t2 on " +
 			"t1.cluster = t2.cluster and t1.job_id = t2.job_id and t1.job_step = t2.job_step and " +
 			"t1.time = t2.time",
@@ -817,7 +805,7 @@ func (cdb *connectedDB) ReadSacctData(
 }
 
 func (cdb *connectedDB) ReadCluzterAttributeData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterAttributes, softErrors int, err error) {
 	var (
@@ -827,9 +815,8 @@ func (cdb *connectedDB) ReadCluzterAttributeData(
 	)
 
 	q := query{
-		table:    "cluster_attributes",
-		fromDate: fromDate,
-		toDate:   toDate,
+		DataProviderFilter: filter,
+		table:              "cluster_attributes",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cluster, slurm, time",
 		boxes:  []any{&cluster, &slurm, &timestamp},
@@ -848,7 +835,7 @@ func (cdb *connectedDB) ReadCluzterAttributeData(
 }
 
 func (cdb *connectedDB) ReadCluzterPartitionData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterPartitions, softErrors int, err error) {
 	var (
@@ -859,9 +846,8 @@ func (cdb *connectedDB) ReadCluzterPartitionData(
 	)
 
 	q := query{
-		table:    "partition",
-		fromDate: fromDate,
-		toDate:   toDate,
+		DataProviderFilter: filter,
+		table:              "partition",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cluster, nodes_compact, partition, time",
 		boxes:  []any{&cluster, &nodeNamesCompact, &partName, &timestamp},
@@ -894,7 +880,7 @@ func (cdb *connectedDB) ReadCluzterPartitionData(
 }
 
 func (cdb *connectedDB) ReadCluzterNodeData(
-	fromDate, toDate time.Time,
+	filter types.DataProviderFilter,
 	verbose bool,
 ) (recordBlobs [][]*repr.CluzterNodes, softErrors int, err error) {
 	var (
@@ -905,9 +891,8 @@ func (cdb *connectedDB) ReadCluzterNodeData(
 	)
 
 	q := query{
-		table:    "node_state",
-		fromDate: fromDate,
-		toDate:   toDate,
+		DataProviderFilter: filter,
+		table:              "node_state",
 		// Alpha order and KEEP THESE TWO LISTS COMPLETELY IN SYNC OR YOU WILL BE SORRY!
 		fields: "cluster, node, states, time",
 		boxes:  []any{&cluster, &nodeName, &states, &timestamp},
@@ -965,7 +950,7 @@ func makeRefillTimeCache(
 	}
 }
 
-// Totally gross
+// Totally gross.  Keep this in sync with logic in querySlice!!
 func toDateName(fromDate, toDate time.Time) string {
 	n := 2
 	if !fromDate.IsZero() {
@@ -986,14 +971,24 @@ func querySlice[T any](
 	primary := "SELECT * FROM " + q.table + " WHERE " + "cluster=$1"
 	qarg := []any{cdb.cx.ClusterName()}
 
-	// Keep in sync with toDateName above!
-	if !q.fromDate.IsZero() {
-		primary += fmt.Sprintf(" AND time >= $%d", len(qarg)+1)
-		qarg = append(qarg, q.fromDate.Format(time.DateOnly))
+	// A note about adding field filters against values.  For values we don't control we have to use
+	// parameters to avoid being pwned by Mrs Roberts.  For values that we do control (typically b/c
+	// they are numbers or dates) we can expand the values inline.
+	//
+	// It might be better for query optimization / compilation / reuse to make also the in-line
+	// values parameters, but I don't know this yet.
+
+	// Keep these in sync with toDateName above!!  Note that even though dates could be in-line
+	// values they are parameters here to allow reuse by other parts of the query.  Sort of hacky.
+
+	timeField := mapField("time", q.fieldMap)
+	if !q.FromDate.IsZero() {
+		primary += fmt.Sprintf(" AND %s >= $%d", timeField, len(qarg)+1)
+		qarg = append(qarg, q.FromDate.Format(time.DateOnly))
 	}
-	if !q.toDate.IsZero() {
-		primary += fmt.Sprintf(" AND time < $%d", len(qarg)+1)
-		qarg = append(qarg, q.toDate.Add(time.Hour*24).Format(time.DateOnly))
+	if !q.ToDate.IsZero() {
+		primary += fmt.Sprintf(" AND %s < $%d", timeField, len(qarg)+1)
+		qarg = append(qarg, q.ToDate.Add(time.Hour*24).Format(time.DateOnly))
 	}
 
 	// Add host filters.
@@ -1001,48 +996,94 @@ func querySlice[T any](
 	// At the database level, host filtering is exclusively an optimization, to avoid reading /
 	// generating data.  Note in particular that we can apply lossy abbreviations as long as they
 	// find everything a precise match would find.
-	//
-	// (Note this depends on the node field always being called 'node'.)
 
-	if q.hosts != nil && !q.hosts.IsEmpty() {
-		conds := make([]string, 0)
-		args := make([]any, 0)
-		nextIx := len(qarg) + 1
-		for _, p := range q.hosts.Patterns() {
-			loc := strings.IndexAny(p, "[*")
-			if !q.hosts.IsPrefix() && loc == -1 {
-				conds = append(conds, fmt.Sprintf("node = $%d", nextIx))
-			} else {
-				// TODO: We can and should do more here:
-				//
-				// Some ranges can usefully be expanded into prefixes but it can be tricky:
-				// c1-[10-15] becomes c1-1 but c1-[9-20] becomes c1-1 OR c1-2 OR c1-9, among other
-				// things.  Yet simple cases of this are important, as e.g. gpu-[8,9] is a common
-				// thing.
-				//
-				// We could do 'c1-*.fox' as 'like c1-%.fox' and it may be worthwhile to do so,
-				// ditto c1-[10-40].fox could be 'like c1-%.fox'.  We could do c1-[2-8] as 'like
-				// 'c1-_' and it might be worthwhile (% matches zero or more, _ matches one).
-				//
-				// A perf hint for % is to avoid leading wildcards.
-				//
-				// We should get the hostglobber involved since it has an exact parse of the pattern
-				// set and is already in q.hosts.
-				conds = append(conds, fmt.Sprintf("node like $%d", nextIx))
-				if loc != -1 {
-					p = p[:loc]
+	if q.Node != nil && !q.Node.IsEmpty() {
+		fieldname := mapField("node", q.fieldMap)
+		if fieldname == "nodes" {
+			// As a special hack, when "node" maps to "nodes" then the selector turns into set
+			// intersection, and the queried node set is expanded into an array that is intersected
+			// with an array field called "nodes".  This is gross but probably OK for now.  The
+			// meaning is always that the sets overlap, not that the lhs is contained in the rhs.
+			// This is debatable but since this is an optimization and post-filtering must happen
+			// anyway it is probably the right thing.
+			var x, expanded []string
+			var err error
+			for _, p := range q.Node.Patterns() {
+				x, err = hostglob.ExpandPattern(p)
+				if err != nil {
+					break
 				}
-				p += "%"
+				expanded = append(expanded, x...)
 			}
-			args = append(args, p)
-			nextIx++
+			if err == nil && len(expanded) > 0 && len(expanded) <= dosCutoff {
+				elements := make([]string, 0, len(expanded))
+				for _, e := range expanded {
+					elements = append(elements, fmt.Sprintf("$%d::character varying", len(qarg)+1))
+					qarg = append(qarg, e)
+				}
+				primary += " AND " + fieldname + " && ARRAY[" + strings.Join(elements, ",") + "]"
+			}
+		} else {
+			conds := make([]string, 0)
+			args := make([]any, 0)
+			nextIx := len(qarg) + 1
+			for _, p := range q.Node.Patterns() {
+				loc := strings.IndexAny(p, "[*")
+				if !q.Node.IsPrefix() && loc == -1 {
+					conds = append(conds, fmt.Sprintf("%s = $%d", fieldname, nextIx))
+				} else {
+					// TODO: We can and should do more here:
+					//
+					// Some ranges can usefully be expanded into prefixes but it can be tricky:
+					// c1-[10-15] becomes c1-1 but c1-[9-20] becomes c1-1 OR c1-2 OR c1-9, among other
+					// things.  Yet simple cases of this are important, as e.g. gpu-[8,9] is a common
+					// thing.
+					//
+					// We could do 'c1-*.fox' as 'like c1-%.fox' and it may be worthwhile to do so,
+					// ditto c1-[10-40].fox could be 'like c1-%.fox'.  We could do c1-[2-8] as 'like
+					// 'c1-_' and it might be worthwhile (% matches zero or more, _ matches one).
+					//
+					// A perf hint for % is to avoid leading wildcards.
+					//
+					// We should get the hostglobber involved since it has an exact parse of the pattern
+					// set and is already in q.hosts.
+					conds = append(conds, fmt.Sprintf("%s like $%d", fieldname, nextIx))
+					if loc != -1 {
+						p = p[:loc]
+					}
+					p += "%"
+				}
+				args = append(args, p)
+				nextIx++
+			}
+			if len(conds) <= dosCutoff {
+				primary += " AND (" + strings.Join(conds, " OR ") + ")"
+				qarg = append(qarg, args...)
+			}
 		}
-		// Probably there's a cutoff somewhere for how many we can do, so let's say we will have at
-		// most 100.
-		if len(conds) <= 100 {
-			primary += " AND (" + strings.Join(conds, " OR ") + ")"
-			qarg = append(qarg, args...)
+	}
+
+	// Add job id filters.
+
+	if len(q.Jobs) > 0 && len(q.Jobs) <= dosCutoff {
+		fieldname := mapField("job", q.fieldMap)
+		var jobs []string
+		for j := range q.Jobs {
+			jobs = append(jobs, fmt.Sprintf("%s = %d", fieldname, j))
 		}
+		primary += " AND (" + strings.Join(jobs, " OR ") + ")"
+	}
+
+	// Add user name filters.
+
+	if len(q.Users) > 0 && len(q.Users) <= dosCutoff {
+		fieldname := mapField("user", q.fieldMap)
+		var conds []string
+		for u := range q.Users {
+			conds = append(conds, fmt.Sprintf("%s = $%d", fieldname, len(qarg)+1))
+			qarg = append(qarg, u.String())
+		}
+		primary += " AND (" + strings.Join(conds, " OR ") + ")"
 	}
 
 	qstr := "SELECT " + q.fields + " FROM (" + primary + ") AS t1"
@@ -1072,6 +1113,17 @@ func querySlice[T any](
 	}
 	finalRows = [][]*T{dataRows}
 	return
+}
+
+func mapField(field string, fieldMap map[string]string) string {
+	if fieldMap == nil {
+		return field
+	}
+	probe := fieldMap[field]
+	if probe == "" {
+		panic("Unmapped field name in SQL query: " + field)
+	}
+	return probe
 }
 
 func (cdb *connectedDB) AppendSamplesAsync(ty DataReprType, host, timestamp string, payload any) error {

@@ -33,9 +33,11 @@ func (nsp *NodeSampleDataProvider) Query(
 		return nil, err
 	}
 	recordBlobs, _, err := nsp.theLog.ReadNodeSamples(
-		filter.FromDate,
-		filter.ToDate,
-		f.HostFilter(),
+		types.DataProviderFilter{
+			FromDate: filter.FromDate,
+			ToDate:   filter.ToDate,
+			Node:     f.HostFilter(),
+		},
 		verbose,
 	)
 	if err != nil {

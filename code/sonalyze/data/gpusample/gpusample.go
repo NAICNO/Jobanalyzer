@@ -52,7 +52,13 @@ func (gsd *GpuSampleDataProvider) Query(
 ) {
 	// Read and establish invariants
 
-	dataBlobs, dropped, err := gsd.theLog.ReadGpuSamples(fromDate, toDate, hostGlobber, verbose)
+	dataBlobs, dropped, err := gsd.theLog.ReadGpuSamples(
+		types.DataProviderFilter{
+			FromDate: fromDate,
+			ToDate:   toDate,
+			Node:     hostGlobber,
+		},
+		verbose)
 	if err != nil {
 		return
 	}

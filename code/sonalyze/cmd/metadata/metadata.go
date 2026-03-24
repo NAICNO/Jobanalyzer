@@ -167,7 +167,11 @@ func (mdc *MetadataCommand) Perform(
 
 	if mdc.Files {
 		// For -files, print the full paths all the input files as presented to os.Open.
-		files, err := sdp.Filenames(mdc.FromDate, mdc.ToDate, hosts)
+		files, err := sdp.Filenames(types.DataProviderFilter{
+			FromDate: mdc.FromDate,
+			ToDate:   mdc.ToDate,
+			Node:     hosts,
+		})
 		if err != nil {
 			return err
 		}

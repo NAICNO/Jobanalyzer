@@ -54,9 +54,32 @@ func (sdp *SlurmjobDataProvider) Query(
 	filter QueryFilter,
 	verbose bool,
 ) ([]*SlurmJob, error) {
+	var users map[Ustr]bool
+	if len(filter.User) > 0 {
+		users = make(map[Ustr]bool, len(filter.User))
+		for _, u := range filter.User {
+			users[StringToUstr(u)] = true
+		}
+	}
+	var jobs map[uint32]bool
+	if len(filter.Job) > 0 {
+		jobs = make(map[uint32]bool, len(filter.Job))
+		for _, j := range filter.Job {
+			jobs[j] = true
+		}
+	}
+	node, err := NewHosts(true, filter.Host)
+	if err != nil {
+		return nil, err
+	}
 	recordBlobs, dropped, err := sdp.theLog.ReadSacctData(
-		filter.FromDate,
-		filter.ToDate,
+		types.DataProviderFilter{
+			FromDate: filter.FromDate,
+			ToDate:   filter.ToDate,
+			Users:    users,
+			Jobs:     jobs,
+			Node:     node,
+		},
 		verbose,
 	)
 	if err != nil {

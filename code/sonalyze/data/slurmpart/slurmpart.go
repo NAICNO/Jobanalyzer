@@ -33,8 +33,10 @@ func (spd *SlurmPartitionDataProvider) Query(
 		return nil, err
 	}
 	recordBlobs, _, err := spd.theLog.ReadCluzterPartitionData(
-		filter.FromDate,
-		filter.ToDate,
+		types.DataProviderFilter{
+			FromDate: filter.FromDate,
+			ToDate:   filter.ToDate,
+		},
 		verbose,
 	)
 	if err != nil {
