@@ -1,8 +1,8 @@
-import { LuServer } from 'react-icons/lu'
-import { GrNodes } from 'react-icons/gr'
-import { GiFox } from 'react-icons/gi'
 import type { IconType } from 'react-icons'
+import { resolveIcon } from './iconRegistry'
 import { APP_BASE_PREFIX } from '../Constants'
+
+const basePrefix = APP_BASE_PREFIX.endsWith('/') ? APP_BASE_PREFIX : APP_BASE_PREFIX + '/'
 
 export interface OIDCEndpoints {
   authorization: string
@@ -24,60 +24,107 @@ export interface ClusterConfig {
   requiresAuth: boolean
 }
 
-// Available clusters configuration
-export const AVAILABLE_CLUSTERS: ClusterConfig[] = [
-  {
-    id: 'ex3.simula.no',
-    name: 'Simula eX3 Cluster',
-    shortName: 'eX3',
-    description: 'eX3 Cluster with Authentication',
-    icon: LuServer,
-    apiBaseUrl: 'https://localhost:12201/api/v2',
-    authEndpoint: {
-      authorization: 'https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/auth',
-      token: 'https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/token',
-      userInfo: 'https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/userinfo',
-      clientId: 'naic-monitor.ex3.simula.no',
-      redirectUri: 'https://naic-monitor.simula.no' + APP_BASE_PREFIX + '/auth/callback',
-      scope: 'openid profile email',
-    },
-    requiresAuth: true,
-  },
-  {
-    id: 'mlx.hpc.uio.no',
-    name: 'UiO ML Nodes',
-    shortName: 'ML Nodes',
-    description: 'Machine Learning Cluster at UiO',
-    icon: GrNodes,
-    apiBaseUrl: 'https://naic-monitor.uio.no/api/v2',
-    authEndpoint: {
-      authorization: 'https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/auth',
-      token: 'https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/token',
-      userInfo: 'https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/userinfo',
-      clientId: 'naic-monitor-client',
-      redirectUri: 'http://localhost:5173' + APP_BASE_PREFIX + 'auth/callback',
-      scope: 'openid profile email',
-    },
-    requiresAuth: false,
-  },
-  {
-    id: 'fox.educloud.no',
-    name: 'UiO Fox Cluster',
-    shortName: 'Fox',
-    description: 'Fox Cluster at EduCloud',
-    icon: GiFox,
-    apiBaseUrl: 'https://naic-monitor.uio.no/api/v2',
-    authEndpoint: {
-      authorization: 'https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/auth',
-      token: 'https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/token',
-      userInfo: 'https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/userinfo',
-      clientId: 'naic-monitor-client',
-      redirectUri: 'http://localhost:5173' + APP_BASE_PREFIX + '/auth/callback',
-      scope: 'openid profile email',
-    },
-    requiresAuth: true,
-  },
-]
+interface ClusterConfigJson {
+  id: string
+  name: string
+  shortName: string
+  description?: string
+  icon?: string
+  apiBaseUrl: string
+  authEndpoint: {
+    authorization: string
+    token: string
+    userInfo: string
+    clientId: string
+    redirectUri?: string
+    scope?: string
+  }
+  requiresAuth: boolean
+}
+
+interface ClustersJson {
+  clusters: ClusterConfigJson[]
+}
+
+// Module-level array — mutated in place so all importers see the same reference
+export const AVAILABLE_CLUSTERS: ClusterConfig[] = []
+
+let _loaded = false
+
+function validateClustersJson(json: unknown): asserts json is ClustersJson {
+  if (!json || typeof json !== 'object') {
+    throw new Error('clusters.json must contain a JSON object')
+  }
+
+  const obj = json as Record<string, unknown>
+  if (!Array.isArray(obj.clusters) || obj.clusters.length === 0) {
+    throw new Error('clusters.json must contain a non-empty "clusters" array')
+  }
+
+  for (const [i, cluster] of obj.clusters.entries()) {
+    const prefix = `clusters[${i}]`
+    if (!cluster || typeof cluster !== 'object') {
+      throw new Error(`${prefix} must be an object`)
+    }
+    const c = cluster as Record<string, unknown>
+    for (const field of ['id', 'name', 'shortName', 'apiBaseUrl'] as const) {
+      if (typeof c[field] !== 'string' || (c[field] as string).length === 0) {
+        throw new Error(`${prefix}.${field} must be a non-empty string`)
+      }
+    }
+    if (typeof c.requiresAuth !== 'boolean') {
+      throw new Error(`${prefix}.requiresAuth must be a boolean`)
+    }
+    if (!c.authEndpoint || typeof c.authEndpoint !== 'object') {
+      throw new Error(`${prefix}.authEndpoint must be an object`)
+    }
+    const auth = c.authEndpoint as Record<string, unknown>
+    for (const field of ['authorization', 'token', 'userInfo', 'clientId'] as const) {
+      if (typeof auth[field] !== 'string' || (auth[field] as string).length === 0) {
+        throw new Error(`${prefix}.authEndpoint.${field} must be a non-empty string`)
+      }
+    }
+  }
+}
+
+export async function loadClusterConfig(): Promise<ClusterConfig[]> {
+  if (_loaded) return AVAILABLE_CLUSTERS
+
+  const response = await fetch(`${basePrefix}clusters.json`)
+  if (!response.ok) {
+    throw new Error(`Failed to load clusters.json: ${response.status} ${response.statusText}`)
+  }
+
+  const json: unknown = await response.json()
+  validateClustersJson(json)
+
+  const defaultRedirectUri = window.location.origin + basePrefix + 'auth/callback'
+
+  // Clear and populate the shared array in place
+  AVAILABLE_CLUSTERS.length = 0
+  for (const raw of json.clusters) {
+    AVAILABLE_CLUSTERS.push({
+      id: raw.id,
+      name: raw.name,
+      shortName: raw.shortName,
+      description: raw.description,
+      icon: resolveIcon(raw.icon),
+      apiBaseUrl: raw.apiBaseUrl,
+      authEndpoint: {
+        authorization: raw.authEndpoint.authorization,
+        token: raw.authEndpoint.token,
+        userInfo: raw.authEndpoint.userInfo,
+        clientId: raw.authEndpoint.clientId,
+        redirectUri: raw.authEndpoint.redirectUri ?? defaultRedirectUri,
+        scope: raw.authEndpoint.scope,
+      },
+      requiresAuth: raw.requiresAuth,
+    })
+  }
+
+  _loaded = true
+  return AVAILABLE_CLUSTERS
+}
 
 // Helper to get cluster config by ID
 export const getClusterConfig = (clusterId: string): ClusterConfig | undefined => {

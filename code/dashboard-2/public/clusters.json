@@ -1,0 +1,68 @@
+{
+  "clusters": [
+    {
+      "id": "ex3.simula.no",
+      "name": "Simula eX3 Cluster",
+      "shortName": "eX3",
+      "description": "eX3 Cluster with Authentication",
+      "icon": "LuServer",
+      "apiBaseUrl": "https://localhost:12201/api/v2",
+      "authEndpoint": {
+        "authorization": "https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/auth",
+        "token": "https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/token",
+        "userInfo": "https://naic-kc.ashen.no/realms/naic-monitor/protocol/openid-connect/userinfo",
+        "clientId": "naic-monitor.ex3.simula.no",
+        "scope": "openid profile email"
+      },
+      "requiresAuth": true
+    },
+    {
+      "id": "mlx.hpc.uio.no",
+      "name": "UiO ML Nodes",
+      "shortName": "ML Nodes",
+      "description": "Machine Learning Cluster at UiO",
+      "icon": "GrNodes",
+      "apiBaseUrl": "https://naic-monitor.uio.no/api/v2",
+      "authEndpoint": {
+        "authorization": "https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/auth",
+        "token": "https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/token",
+        "userInfo": "https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/userinfo",
+        "clientId": "naic-monitor-client",
+        "scope": "openid profile email"
+      },
+      "requiresAuth": false
+    },
+    {
+      "id": "fox.educloud.no",
+      "name": "UiO Fox Cluster",
+      "shortName": "Fox",
+      "description": "Fox Cluster at EduCloud",
+      "icon": "GiFox",
+      "apiBaseUrl": "https://naic-monitor.uio.no/api/v2",
+      "authEndpoint": {
+        "authorization": "https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/auth",
+        "token": "https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/token",
+        "userInfo": "https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/userinfo",
+        "clientId": "naic-monitor-client",
+        "scope": "openid profile email"
+      },
+      "requiresAuth": true
+    },
+    {
+      "id": "saga.sigma2.no",
+      "name": "NRIS Saga Cluster",
+      "shortName": "Saga",
+      "description": "Saga Cluster at NRIS",
+      "icon": "LuBookOpen",
+      "apiBaseUrl": "https://naic-monitor.uio.no/api/v2",
+      "authEndpoint": {
+        "authorization": "https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/auth",
+        "token": "https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/token",
+        "userInfo": "https://naic-monitor.uio.no/auth/realms/fox/protocol/openid-connect/userinfo",
+        "clientId": "naic-monitor-client",
+        "scope": "openid profile email"
+      },
+      "requiresAuth": true
+    }
+  ]
+}
