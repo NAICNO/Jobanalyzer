@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getClusterConfig, AVAILABLE_CLUSTERS } from '../config/clusters'
+
+const isValidClusterId = (id: string): boolean =>
+  AVAILABLE_CLUSTERS.some((c) => c.id === id)
 import { clearClusterClient } from '../utils/clusterApiClients'
 import { removeClusterAuth } from '../utils/secureStorage'
 import { clearUserManager } from '../utils/oidcManager'
@@ -8,7 +11,6 @@ import { useAuth } from '../hooks/useAuth'
 import { toaster } from '../components/ui/toaster'
 
 const STORAGE_KEY = 'user_selected_clusters'
-const VALID_CLUSTER_IDS = new Set(AVAILABLE_CLUSTERS.map((c) => c.id))
 
 export interface ClusterContextValue {
   selectedClusters: string[]
@@ -35,7 +37,7 @@ export const ClusterProvider = ({ children }: ClusterProviderProps) => {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const parsed = JSON.parse(stored) as string[]
-        return parsed.filter((id) => VALID_CLUSTER_IDS.has(id))
+        return parsed.filter((id) => isValidClusterId(id))
       }
     } catch (error) {
       console.error('Failed to load selected clusters:', error)
@@ -47,7 +49,7 @@ export const ClusterProvider = ({ children }: ClusterProviderProps) => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-        const clusters = (JSON.parse(stored) as string[]).filter((id) => VALID_CLUSTER_IDS.has(id))
+        const clusters = (JSON.parse(stored) as string[]).filter((id) => isValidClusterId(id))
         return clusters.length > 0 ? clusters[0] : null
       }
     } catch (error) {
