@@ -71,18 +71,18 @@ smoketest() {
     echo
 }
 
-# smoketest http://$INTERFACE/api/v2/cluster
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/error-messages
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/cpu/timeseries
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/diskstats/timeseries
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/gpu/timeseries
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/info
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/last-probe-timestamp
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/memory/timeseries
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/process/gpu/util
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/timeseries
+smoketest http://$INTERFACE/api/v2/cluster
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/error-messages
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/cpu/timeseries
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/diskstats/timeseries
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/gpu/timeseries
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/info
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/last-probe-timestamp
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/memory/timeseries
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/process/gpu/util
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/timeseries
 
 # 2026-03-17 10:09:40 UTC
 START=1773742180
@@ -118,12 +118,12 @@ END=1773828580
 # fi
 # curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes?time_in_s=$START&nodename=$NODE"
 
-echo "Test /processes/gpu"
-if [[ -z $NODE ]]; then
-    echo "For this you want to ask for one node"
-    exit 1
-fi
-curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu?time_in_s=$START&nodename=$NODE"
+# echo "Test /processes/gpu"
+# if [[ -z $NODE ]]; then
+#     echo "For this you want to ask for one node"
+#     exit 1
+# fi
+# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu?time_in_s=$START&nodename=$NODE"
 
 # echo "Test /processes/timeseries"
 # if [[ -z $NODE ]]; then
