@@ -236,13 +236,7 @@ func getCardInfoByUUIDAt(
 	from := to.Add(-sysinfoWindow)
 	records, err :=
 		cdp.Query(
-			card.QueryFilter{
-				HaveFrom: true,
-				FromDate: from,
-				HaveTo:   true,
-				ToDate:   to,
-				Host:     hostList,
-			},
+			card.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: hostList},
 			verbose,
 		)
 	if err != nil {

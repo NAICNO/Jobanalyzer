@@ -89,10 +89,6 @@ func handleProcessesGpu(
 		return nil, huma.Error500InternalServerError(
 			processesGpuName+": Failed to query sample data", err)
 	}
-	// cardsByUUID, hErr := getCardInfoByUUIDAt(nodesInfoName, meta, to, hostFilter.Patterns())
-	// if hErr != nil {
-	// 	return nil, hErr
-	// }
 	cardsByNode, hErr := getCardInfoByNodeAt(nodesInfoName, meta, to, hostFilter.Patterns())
 	if hErr != nil {
 		return nil, hErr
