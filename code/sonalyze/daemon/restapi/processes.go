@@ -5,19 +5,17 @@ import (
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
-
 	"sonalyze/data/sample"
-	"sonalyze/db/repr"
 )
 
 const processesName = "/cluster/{cluster}/processes"
 
 type ProcessesResponse struct {
 	// Map: node -> data
-	Body map[string][]ProcessesResponse_Process
+	Body map[string][]Processes_Process
 }
 
-type ProcessesResponse_Process struct {
+type Processes_Process struct {
 	Pid       uint64   `json:"pid" doc:"Process ID"`
 	User      string   `json:"user" doc:"User name"`
 	Cmd       string   `json:"cmd" doc:"Command being run"`
@@ -86,22 +84,18 @@ func handleProcesses(
 		return nil, huma.Error500InternalServerError(
 			processesName+": Failed to query sample data", err)
 	}
-	cardInfo, hErr := getCardInfoAt(nodesInfoName, meta, to, hostFilter.Patterns())
+	cardsByNode, hErr := getCardInfoByNodeAt(nodesInfoName, meta, to, hostFilter.Patterns())
 	if hErr != nil {
 		return nil, hErr
 	}
-	cardsByNode := make(map[string][]*repr.SysinfoCardData)
-	for _, c := range cardInfo {
-		cardsByNode[c.Node] = append(cardsByNode[c.Node], c)
-	}
 	resp := &ProcessesResponse{
-		Body: make(map[string][]ProcessesResponse_Process),
+		Body: make(map[string][]Processes_Process),
 	}
 	for _, s := range streams {
 		stream := *s
 		item := stream[len(stream)-1]
 		node := item.Hostname.String()
-		var proc ProcessesResponse_Process
+		var proc Processes_Process
 		proc.Time = formatTime(item.Timestamp)
 		proc.Pid = item.Pid
 		proc.User = item.User.String()
@@ -111,17 +105,8 @@ func handleProcesses(
 		proc.GpuPct = onePlace(float64(item.GpuPct))
 		proc.GpuMemPct = onePlace(float64(item.GpuMemPct))
 		proc.Gpus = make([]string, 0)
-		if !item.Gpus.IsUnknown() {
-			if cs := cardsByNode[node]; cs != nil {
-				for _, ix := range item.Gpus.AsSlice() {
-					for _, c := range cs {
-						if c.Index == uint64(ix) {
-							proc.Gpus = append(proc.Gpus, c.UUID)
-							break
-						}
-					}
-				}
-			}
+		for _, c := range gpuSetToGpus(item.Gpus, cardsByNode[node]) {
+			proc.Gpus = append(proc.Gpus, c.UUID)
 		}
 		resp.Body[node] = append(resp.Body[node], proc)
 	}

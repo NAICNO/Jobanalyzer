@@ -73,7 +73,7 @@ func handleNodesInfo(
 	if hErr != nil {
 		return nil, hErr
 	}
-	cardInfo, hErr := getCardInfoAt(nodesInfoName, meta, to, hostList)
+	cardInfo, hErr := getCardInfoByUUIDAt(nodesInfoName, meta, to, hostList)
 	if hErr != nil {
 		return nil, hErr
 	}

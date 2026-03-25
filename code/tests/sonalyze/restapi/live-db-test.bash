@@ -111,13 +111,19 @@ END=1773828580
 # echo "Test /nodes/process/gpu/util"
 # curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/process/gpu/util?reference_time_in_s=$START&window_in_s=3600"
 
-echo "Test /processes"
+# echo "Test /processes"
+# if [[ -z $NODE ]]; then
+#     echo "For this you want to ask for one node"
+#     exit 1
+# fi
+# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes?time_in_s=$START&nodename=$NODE"
+
+echo "Test /processes/gpu"
 if [[ -z $NODE ]]; then
     echo "For this you want to ask for one node"
     exit 1
 fi
-#echo $START
-curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes?time_in_s=$START&nodename=$NODE"
+curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu?time_in_s=$START&nodename=$NODE"
 
 # echo "Test /processes/timeseries"
 # if [[ -z $NODE ]]; then

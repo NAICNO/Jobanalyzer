@@ -8,6 +8,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 
+	"go-utils/gpuset"
 	. "sonalyze/common"
 	"sonalyze/data/card"
 	"sonalyze/data/common"
@@ -222,7 +223,7 @@ func getSysinfoAt(
 	return nodeMap, nil
 }
 
-func getCardInfoAt(
+func getCardInfoByUUIDAt(
 	opName string,
 	meta types.Context,
 	to time.Time,
@@ -257,6 +258,42 @@ func getCardInfoAt(
 		cardMap[c.UUID] = c
 	}
 	return cardMap, nil
+}
+
+// Cards are unsorted in each node's slice.
+func getCardInfoByNodeAt(
+	opName string,
+	meta types.Context,
+	to time.Time,
+	hostList []string,
+) (map[string][]*repr.SysinfoCardData, huma.StatusError) {
+	cardInfo, hErr := getCardInfoByUUIDAt(opName, meta, to, hostList)
+	if hErr != nil {
+		return nil, hErr
+	}
+	cardsByNode := make(map[string][]*repr.SysinfoCardData)
+	for _, c := range cardInfo {
+		cardsByNode[c.Node] = append(cardsByNode[c.Node], c)
+	}
+	return cardsByNode, nil
+}
+
+// Translate an index set to a index-sorted card set.  The assumption is that the `cards` are all
+// from the same node as the index set, at the same time.  Normally the `cards` are all the cards on
+// the node, unsorted, and the `gpus` represent cards used by a process.
+func gpuSetToGpus(gpus gpuset.GpuSet, cards []*repr.SysinfoCardData) []*repr.SysinfoCardData {
+	var result []*repr.SysinfoCardData
+	if !gpus.IsUnknown() && cards != nil {
+		for _, ix := range gpus.AsSlice() {
+			for _, c := range cards {
+				if c.Index == uint64(ix) {
+					result = append(result, c)
+					break
+				}
+			}
+		}
+	}
+	return result
 }
 
 func formatTime(t int64) string {
