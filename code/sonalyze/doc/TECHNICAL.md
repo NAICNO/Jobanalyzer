@@ -1,5 +1,8 @@
 # `sonalyze` technical notes (internal use mostly)
 
+This is probably very stale.
+
+
 ## Authentication and authorization
 
 The following pertains to sonalyze running as a daemon.

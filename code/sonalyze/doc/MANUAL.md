@@ -2,12 +2,24 @@
 
 ## USAGE
 
-`sonalyze` is the database manager and query interface for time series data coming from sonar,
-sacctd, and other monitoring components.  Use it to add data and to query, aggregate, and export
+`sonalyze` is a database manager and query interface for HPC cluster time series data coming from
+[Sonar](https://github.com/NordicHPC/Sonar).  Use it to add data and to query, aggregate, and export
 data.
 
-There's a quick introduction to how everything hangs together in `doc/HOWTO.md` at the top level of
-the repo.
+Sonalyze can operate on directory trees of Sonar data, either read-only or in an appending mode.
+This is its primary historial function.  But it can also operate on read-only file lists (for
+testing) or on a timescaledb database maintained by a sibling tool,
+[Slurm-monitor](https://github.com/2maz/slurm-monitor).  See
+[HOWTO-DATA-SOURCE.md](HOWTO-DATA-SOURCE.md) for more about data sources.  The timescaledb database
+can also be queried directly using SQL, bypassing Sonalyze.
+
+Sonalyze can be used in one-shot mode against a database, running a single operation and exiting, or
+it can run as a daemon that presents a REST API (actually two of them, for historical reasons).
+When a sonalyze daemon is running on a server, sonalyze can be run on a workstation in its one-shot
+mode to build and submit REST queries and format the output.  See
+[HOWTO-RESTAPI.md](HOWTO-RESTAPI.md) for low-level details about the REST APIs.
+
+The rest of this manual is partly stale.
 
 ### Data model at a glance
 
