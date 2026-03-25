@@ -3,7 +3,6 @@ package restapi
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -70,7 +69,7 @@ func handleProcessesTimeseries(
 	if input.ResolutionInS != 0 {
 		bucket = int64(input.ResolutionInS)
 	}
-	hostFilter, hErr := newHosts(processesTimeseriesName, input.Nodename)
+	hostFilter, hErr := newHostFilter(processesTimeseriesName, input.Nodename)
 	if hErr != nil {
 		return nil, hErr
 	}
@@ -108,7 +107,7 @@ func handleProcessesTimeseries(
 		for i < len(stream) {
 			var acc ProcessesTimeseries_Point
 			var n uint64
-			acc.Time = time.Unix(t, 0).UTC().Format(time.RFC3339)
+			acc.Time = formatTime(t)
 			for i < len(stream) && stream[i].Timestamp < t+bucket {
 				sample := stream[i]
 				acc.CpuPct += float64(sample.CpuPct)

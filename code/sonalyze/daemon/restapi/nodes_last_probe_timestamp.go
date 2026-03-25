@@ -11,7 +11,6 @@ package restapi
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -74,7 +73,7 @@ func handleNodesLastProbeTimestamp(
 	}
 	rsp := &NodesLastProbeTimestampResponse{Body: make(map[string]string)}
 	for k, v := range bounds {
-		rsp.Body[k.String()] = time.Unix(v.Latest, 0).UTC().Format(time.RFC3339)
+		rsp.Body[k.String()] = formatTime(v.Latest)
 	}
 	return rsp, nil
 }

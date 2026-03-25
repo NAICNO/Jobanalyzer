@@ -3,13 +3,14 @@ package restapi
 import (
 	"math"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 
+	"go-utils/gpuset"
 	. "sonalyze/common"
+	"sonalyze/data/card"
 	"sonalyze/data/common"
 	"sonalyze/data/node"
 	"sonalyze/data/sample"
@@ -22,34 +23,47 @@ import (
 const (
 	apiName    = "slurm-monitor REST API"
 	apiVersion = "2"
+)
+
+// Time windows for searching for data corresponding to something else.  These ought to be
+// parameters, probably, not hardcoded.
+const (
 	// By default the time window is the last hour before "now", or latest datum available in the
 	// database.  This is compatible with slurm-monitor.
 	defaultTimeWindow = 1 * time.Hour
-	// The max time window is 2 weeks, or we risk overloading the server.
+
+	// The max time window for searching is 2 weeks, or we risk overloading the server.  This too is
+	// compatible with slurm-monitor.
 	maxTimeWindow = 24 * time.Hour * 14
+
+	// We assume that sysinfo is collected more often that this.  Slurm-monitor uses 12h, which is
+	// too little.
+	sysinfoWindow = 24 * time.Hour
 )
 
-var verbose = os.Getenv("SONALYZE_REST_VERBOSE") == "1"
+var verbose bool
 
-// The iface is the local interface: name:port.  Use this only as `go RestAPI(iface)`.
-func RestAPI(iface string) {
-	router := http.NewServeMux()
-	api := humago.New(router, huma.DefaultConfig(apiName, apiVersion))
-	grp := huma.NewGroup(api, "/api/v2")
-	addErrorMessages(grp)
-	addListClusters(grp)
-	addNodesInfo(grp)
-	addNodesLastProbeTimestamp(grp)
-	addNodesCpuTimeseries(grp)
-	addNodesMemoryTimeseries(grp)
-	addNodesGpuTimeseries(grp)
-	addNodesDiskstatsTimeseries(grp)
-	addNodesProcessGpuUtil(grp)
-	addProcesses(grp)
-	addProcessesGpu(grp)
-	addProcessesTimeseries(grp)
-
-	http.ListenAndServe(iface, router)
+// The iface is the local interface: name:port.
+func StartRestAPI(iface string, verbose_ bool) {
+	verbose = verbose_
+	go func() {
+		router := http.NewServeMux()
+		api := humago.New(router, huma.DefaultConfig(apiName, apiVersion))
+		grp := huma.NewGroup(api, "/api/v2")
+		addErrorMessages(grp)
+		addListClusters(grp)
+		addNodesInfo(grp)
+		addNodesLastProbeTimestamp(grp)
+		addNodesCpuTimeseries(grp)
+		addNodesMemoryTimeseries(grp)
+		addNodesGpuTimeseries(grp)
+		addNodesDiskstatsTimeseries(grp)
+		addNodesProcessGpuUtil(grp)
+		addProcesses(grp)
+		addProcessesGpu(grp)
+		addProcessesTimeseries(grp)
+		http.ListenAndServe(iface, router)
+	}()
 }
 
 // This is called from the daemon's main thread when interrupted by signals.
@@ -166,7 +180,7 @@ func openSampleDataProvider(opName string, meta types.Context) (*sample.SampleDa
 	return sdp, nil
 }
 
-func newHosts(opName, nodeName string) (*Hosts, huma.StatusError) {
+func newHostFilter(opName, nodeName string) (*Hosts, huma.StatusError) {
 	var hostList []string
 	if nodeName != "" {
 		hostList = []string{nodeName}
@@ -178,17 +192,18 @@ func newHosts(opName, nodeName string) (*Hosts, huma.StatusError) {
 	return hostFilter, nil
 }
 
-// Retrieve node metadata for all the nodes on the cluster within the time window.
-func getNodeMap(
+// Retrieve latest node metadata for the nodes within the time window.
+func getSysinfoAt(
 	opName string,
 	meta types.Context,
-	from, to time.Time,
+	to time.Time,
 	hostList []string,
 ) (map[string]*repr.SysinfoNodeData, huma.StatusError) {
 	ndp, err := node.OpenNodeDataProvider(meta)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(opName+": Failed to open node store", err)
 	}
+	from := to.Add(-sysinfoWindow)
 	nodes, err := ndp.Query(
 		common.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: hostList},
 		verbose,
@@ -199,14 +214,84 @@ func getNodeMap(
 	nodeMap := make(map[string]*repr.SysinfoNodeData)
 	for _, n := range nodes {
 		if probe := nodeMap[n.Node]; probe != nil {
-			if n.Time > probe.Time {
-				nodeMap[n.Node] = n
+			if n.Time < probe.Time {
+				continue
 			}
-		} else {
-			nodeMap[n.Node] = n
 		}
+		nodeMap[n.Node] = n
 	}
 	return nodeMap, nil
+}
+
+func getCardInfoByUUIDAt(
+	opName string,
+	meta types.Context,
+	to time.Time,
+	hostList []string,
+) (map[string]*repr.SysinfoCardData, huma.StatusError) {
+	cdp, err := card.OpenCardDataProvider(meta)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(opName+": Failed to open card store", err)
+	}
+	from := to.Add(-sysinfoWindow)
+	records, err :=
+		cdp.Query(
+			card.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: hostList},
+			verbose,
+		)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(opName+": Failed to query card data", err)
+	}
+	cardMap := make(map[string]*repr.SysinfoCardData)
+	for _, c := range records {
+		if probe := cardMap[c.UUID]; probe != nil {
+			if c.Time < probe.Time {
+				continue
+			}
+		}
+		cardMap[c.UUID] = c
+	}
+	return cardMap, nil
+}
+
+// Cards are unsorted in each node's slice.
+func getCardInfoByNodeAt(
+	opName string,
+	meta types.Context,
+	to time.Time,
+	hostList []string,
+) (map[string][]*repr.SysinfoCardData, huma.StatusError) {
+	cardInfo, hErr := getCardInfoByUUIDAt(opName, meta, to, hostList)
+	if hErr != nil {
+		return nil, hErr
+	}
+	cardsByNode := make(map[string][]*repr.SysinfoCardData)
+	for _, c := range cardInfo {
+		cardsByNode[c.Node] = append(cardsByNode[c.Node], c)
+	}
+	return cardsByNode, nil
+}
+
+// Translate an index set to a index-sorted card set.  The assumption is that the `cards` are all
+// from the same node as the index set, at the same time.  Normally the `cards` are all the cards on
+// the node, unsorted, and the `gpus` represent cards used by a process.
+func gpuSetToGpus(gpus gpuset.GpuSet, cards []*repr.SysinfoCardData) []*repr.SysinfoCardData {
+	var result []*repr.SysinfoCardData
+	if !gpus.IsUnknown() && cards != nil {
+		for _, ix := range gpus.AsSlice() {
+			for _, c := range cards {
+				if c.Index == uint64(ix) {
+					result = append(result, c)
+					break
+				}
+			}
+		}
+	}
+	return result
+}
+
+func formatTime(t int64) string {
+	return time.Unix(t, 0).UTC().Format(time.RFC3339)
 }
 
 func onePlace(f float64) float64 {

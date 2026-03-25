@@ -2,23 +2,20 @@ package restapi
 
 import (
 	"context"
-	_ "math"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
-
-	//	. "sonalyze/common"
-	// "sonalyze/data/sample"
-	_ "sonalyze/db"
-	_ "sonalyze/db/special"
+	"sonalyze/data/sample"
 )
+
+const processesName = "/cluster/{cluster}/processes"
 
 type ProcessesResponse struct {
 	// Map: node -> data
-	Body map[string][]ProcessesResponse_Process
+	Body map[string][]Processes_Process
 }
 
-type ProcessesResponse_Process struct {
+type Processes_Process struct {
 	Pid       uint64   `json:"pid" doc:"Process ID"`
 	User      string   `json:"user" doc:"User name"`
 	Cmd       string   `json:"cmd" doc:"Command being run"`
@@ -36,7 +33,7 @@ func addProcesses(api huma.API) {
 		huma.Operation{
 			OperationID: "get-processes",
 			Method:      http.MethodGet,
-			Path:        "/cluster/{cluster}/processes",
+			Path:        processesName,
 			Summary:     "Get utilization of processes at a time",
 		},
 		handleProcesses,
@@ -44,7 +41,11 @@ func addProcesses(api huma.API) {
 }
 
 // The meaning here is a little unclear but most likely we want the Pid to be unique (per node) and
-// represent the sample value closest to the given time, as a separate API gets a time series.
+// represent the sample value closest to the given time, as a separate API gets a time series.  Most
+// of the time the time will be "now"?  The doc does not list any query possibilities.  That being
+// so, we treat "TimeInS" as a "to" timestamp and do a 1-hour query against sample data on the
+// node(s), and then get a set of streams.  For each stream, we take the latest sample, and extract
+// the raw data from that.
 
 func handleProcesses(
 	ctx context.Context,
@@ -54,6 +55,61 @@ func handleProcesses(
 		TimeInS  uint64 `query:"time_in_s" doc:"Posix timestamp"`
 	},
 ) (*ProcessesResponse, error) {
-	// FIXME: Implement - this is row 9
-	return nil, huma.Error501NotImplemented("/processes")
+	meta, hErr := getClusterContext(processesName, input.Cluster)
+	if hErr != nil {
+		return nil, hErr
+	}
+	from, to, hErr := timeWindowFromData(processesName, meta, 0, input.TimeInS)
+	if hErr != nil {
+		return nil, hErr
+	}
+	hostFilter, hErr := newHostFilter(processesName, input.Nodename)
+	if hErr != nil {
+		return nil, hErr
+	}
+	sdp, hErr := openSampleDataProvider(processesName, meta)
+	if hErr != nil {
+		return nil, hErr
+	}
+	streams, _, _, _, err :=
+		sdp.Query(
+			from,
+			to,
+			hostFilter,
+			&sample.SampleFilter{From: from.Unix(), To: to.Unix()},
+			false, // bounds
+			verbose,
+		)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(
+			processesName+": Failed to query sample data", err)
+	}
+	cardsByNode, hErr := getCardInfoByNodeAt(nodesInfoName, meta, to, hostFilter.Patterns())
+	if hErr != nil {
+		return nil, hErr
+	}
+	resp := &ProcessesResponse{
+		Body: make(map[string][]Processes_Process),
+	}
+	for _, s := range streams {
+		stream := *s
+		item := stream[len(stream)-1]
+		node := item.Hostname.String()
+		var proc Processes_Process
+		proc.Time = formatTime(item.Timestamp)
+		proc.Pid = item.Pid
+		proc.User = item.User.String()
+		proc.Cmd = item.Cmd.String()
+		proc.CpuPct = onePlace(float64(item.CpuSampledUtilPct))
+		proc.MemKB = item.CpuKB
+		proc.GpuPct = onePlace(float64(item.GpuPct))
+		proc.GpuMemPct = onePlace(float64(item.GpuMemPct))
+		proc.Gpus = make([]string, 0)
+		for _, c := range gpuSetToGpus(item.Gpus, cardsByNode[node]) {
+			proc.Gpus = append(proc.Gpus, c.UUID)
+		}
+		resp.Body[node] = append(resp.Body[node], proc)
+	}
+
+	return resp, nil
 }

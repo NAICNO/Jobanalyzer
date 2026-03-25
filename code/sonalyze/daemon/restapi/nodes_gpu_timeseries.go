@@ -3,7 +3,6 @@ package restapi
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -82,7 +81,7 @@ func handleNodesGpuTimeseries(
 		return nil, huma.Error500InternalServerError(
 			nodesGpuTimeseriesName+": failed to open gpu sample store", err)
 	}
-	hostGlobber, hErr := newHosts(nodesGpuTimeseriesName, input.Nodename)
+	hostGlobber, hErr := newHostFilter(nodesGpuTimeseriesName, input.Nodename)
 	if err != nil {
 		return nil, hErr
 
@@ -144,7 +143,7 @@ func handleNodesGpuTimeseries(
 					point.CEUtil /= float64(n)
 					point.MemUtil /= float64(n)
 				}
-				point.Time = time.Unix(t, 0).Format(time.RFC3339)
+				point.Time = formatTime(t)
 				point.CEUtil = onePlace(point.CEUtil)
 				point.MemUtil = onePlace(point.MemUtil)
 				card.Data = append(card.Data, point)

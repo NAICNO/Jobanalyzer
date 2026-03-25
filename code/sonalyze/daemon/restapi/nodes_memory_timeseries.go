@@ -3,7 +3,6 @@ package restapi
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -60,7 +59,7 @@ func handleNodesMemoryTimeseries(
 		for _, it := range pdata {
 			if it.memory_util > 0 {
 				profile = append(profile, NodesMemoryTimeseries_Point{
-					Time:       time.Unix(it.time, 0).UTC().Format(time.RFC3339),
+					Time:       formatTime(it.time),
 					MemoryUtil: onePlace(it.memory_util),
 				})
 			}

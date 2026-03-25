@@ -39,7 +39,6 @@ done
 # not do that again.  This is a less than perfect workaround but it should allow us to kill the test
 # manually.
 export GOMEMLIMIT=1GiB
-export SONALYZE_REST_VERBOSE=1
 
 # First start it up
 if [[ -n $DATABASE_URI ]]; then
@@ -72,18 +71,18 @@ smoketest() {
     echo
 }
 
-# smoketest http://$INTERFACE/api/v2/cluster
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/error-messages
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/cpu/timeseries
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/diskstats/timeseries
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/gpu/timeseries
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/info
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/last-probe-timestamp
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/memory/timeseries
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/process/gpu/util
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu
-# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/timeseries
+smoketest http://$INTERFACE/api/v2/cluster
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/error-messages
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/cpu/timeseries
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/diskstats/timeseries
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/gpu/timeseries
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/info
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/last-probe-timestamp
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/memory/timeseries
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/process/gpu/util
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu
+smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/timeseries
 
 # 2026-03-17 10:09:40 UTC
 START=1773742180
@@ -100,9 +99,8 @@ END=1773828580
 # echo "Test /nodes/cpu/timeseries"
 # curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/cpu/timeseries?start_time_in_s=$START&end_time_in_s=$END&resolution_in_s=3600"
 
-echo "Test /nodes/gpu/timeseries"
-# END=$((START+3600))
-curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/gpu/timeseries?start_time_in_s=$START&end_time_in_s=$END&resolution_in_s=3600"
+# echo "Test /nodes/gpu/timeseries"
+# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/gpu/timeseries?start_time_in_s=$START&end_time_in_s=$END&resolution_in_s=3600"
 
 # echo "Test /nodes/info"
 # curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/info"
@@ -112,6 +110,20 @@ curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/gpu/timeseries?start_time_
 
 # echo "Test /nodes/process/gpu/util"
 # curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/process/gpu/util?reference_time_in_s=$START&window_in_s=3600"
+
+# echo "Test /processes"
+# if [[ -z $NODE ]]; then
+#     echo "For this you want to ask for one node"
+#     exit 1
+# fi
+# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes?time_in_s=$START&nodename=$NODE"
+
+# echo "Test /processes/gpu"
+# if [[ -z $NODE ]]; then
+#     echo "For this you want to ask for one node"
+#     exit 1
+# fi
+# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu?time_in_s=$START&nodename=$NODE"
 
 # echo "Test /processes/timeseries"
 # if [[ -z $NODE ]]; then

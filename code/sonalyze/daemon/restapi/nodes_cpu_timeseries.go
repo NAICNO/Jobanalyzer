@@ -3,7 +3,6 @@ package restapi
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -64,7 +63,7 @@ func handleNodesCpuTimeseries(
 		for _, it := range pdata {
 			if it.cpu_util > 0 {
 				profile = append(profile, NodesCpuTimeseries_Point{
-					Time:    time.Unix(it.time, 0).UTC().Format(time.RFC3339),
+					Time:    formatTime(it.time),
 					CpuUtil: it.cpu_util,
 				})
 			}
@@ -105,7 +104,7 @@ func computeProfile(
 	if nodename != "" {
 		hostList = []string{nodename}
 	}
-	nodeMap, hErr := getNodeMap(opName, meta, from, to, hostList)
+	sysinfo, hErr := getSysinfoAt(opName, meta, to, hostList)
 	if hErr != nil {
 		return nil, hErr
 	}
@@ -113,7 +112,7 @@ func computeProfile(
 	if hErr != nil {
 		return nil, hErr
 	}
-	hostFilter, hErr := newHosts(opName, nodename)
+	hostFilter, hErr := newHostFilter(opName, nodename)
 	if hErr != nil {
 		return nil, hErr
 	}
@@ -138,7 +137,7 @@ func computeProfile(
 			continue
 		}
 		nodeName := samples[0].Hostname.String()
-		node := nodeMap[nodeName]
+		node := sysinfo[nodeName]
 		if node == nil {
 			// No config data, can happen sometimes, no way to compute relative values.
 			continue
