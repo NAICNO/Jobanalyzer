@@ -6,7 +6,7 @@
 //
 // Plausibly it means "last records not after this time" but for all I know it could also be a lower
 // bound?
-package restapi
+package api2
 
 import (
 	"context"

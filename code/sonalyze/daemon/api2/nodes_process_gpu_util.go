@@ -6,7 +6,7 @@
 // window_in_s the time span over which we average (default 300s).
 //
 // This is very similar to nodes/cpu/timeseries and nodes/memory/timeseries.
-package restapi
+package api2
 
 import (
 	"context"

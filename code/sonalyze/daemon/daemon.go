@@ -82,9 +82,9 @@
 //
 // -rest-api <interface>
 //
-//   EXPERIMENTAL.  The daemon will present a subset of the slurm-monitor REST API on the given
-//   interface (in the form interface:port, e.g. "localhost:8888").  Access the /openapi.json
-//   or /openapi.yaml endpoint on that interface to retrieve API documentation.
+//   EXPERIMENTAL.  The daemon will present a subset of the slurm-monitor REST API v2 on the given
+//   interface (in the form interface:port, e.g. "localhost:8888").  Access the /openapi.json or
+//   /openapi.yaml endpoint on that interface to retrieve API documentation.
 //
 // Termination:
 //
@@ -135,7 +135,7 @@ type DaemonCommand struct {
 	matchUserAndCluster bool
 	kafkaBroker         string
 	noAdd               bool
-	restAPI             string
+	restAPI2            string
 
 	getAuthenticator  *auth.Authenticator
 	postAuthenticator *auth.Authenticator
@@ -160,7 +160,7 @@ func (dc *DaemonCommand) Add(fs *CLI) {
 	fs.StringVar(&dc.getAuthFile, "password-file", "", "Alias for -analysis-auth")
 	fs.StringVar(&dc.kafkaBroker, "kafka", "", "Ingest data from this broker for all known clusters")
 	fs.BoolVar(&dc.noAdd, "no-add", false, "Disable HTTPS ingestion")
-	fs.StringVar(&dc.restAPI, "rest-api", "", "Enable subset slurm-monitor API on this interface:port")
+	fs.StringVar(&dc.restAPI2, "rest-api", "", "Enable subset slurm-monitor API v2 on this interface:port")
 }
 
 //go:embed summary.txt
