@@ -6,7 +6,7 @@ SUBDIRS=application \
 	cmd/metadata cmd/nodeprof cmd/nodes cmd/parse cmd/profile cmd/report cmd/sacct cmd/snodes \
 	cmd/sparts cmd/top cmd/uptime cmd/version \
 	common \
-	daemon daemon/api2 \
+	daemon daemon/api1 daemon/api2 daemon/apiutil \
 	data/card data/common data/config data/cpusample data/disksample data/gpusample data/node \
 	data/nodesample data/sample data/slurmjob data/slurmnode data/slurmpart \
 	db db/errs db/filedb db/filesys db/parse db/repr db/special db/types db/util \

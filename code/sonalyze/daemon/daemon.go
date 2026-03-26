@@ -135,7 +135,7 @@ type DaemonCommand struct {
 	matchUserAndCluster bool
 	kafkaBroker         string
 	noAdd               bool
-	restAPI2            string
+	restAPI             string
 
 	getAuthenticator  *auth.Authenticator
 	postAuthenticator *auth.Authenticator
@@ -160,7 +160,7 @@ func (dc *DaemonCommand) Add(fs *CLI) {
 	fs.StringVar(&dc.getAuthFile, "password-file", "", "Alias for -analysis-auth")
 	fs.StringVar(&dc.kafkaBroker, "kafka", "", "Ingest data from this broker for all known clusters")
 	fs.BoolVar(&dc.noAdd, "no-add", false, "Disable HTTPS ingestion")
-	fs.StringVar(&dc.restAPI2, "rest-api", "", "Enable subset slurm-monitor API v2 on this interface:port")
+	fs.StringVar(&dc.restAPI, "rest-api", "", "Serve /api/v1 and /api/v2 on this interface:port")
 }
 
 //go:embed summary.txt

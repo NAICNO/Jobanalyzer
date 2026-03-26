@@ -14,6 +14,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"sonalyze/daemon/apiutil"
 	"sonalyze/data/sample"
 )
 
@@ -45,11 +46,11 @@ func handleNodesLastProbeTimestamp(
 	},
 ) (*NodesLastProbeTimestampResponse, error) {
 	// Logic from cmd/metadata
-	meta, hErr := getClusterContext(nodesLastProbeTimestampName, input.Cluster)
+	meta, hErr := apiutil.GetClusterContext(nodesLastProbeTimestampName, input.Cluster)
 	if hErr != nil {
 		return nil, hErr
 	}
-	from, to, hErr := timeWindowFromData(
+	from, to, hErr := apiutil.TimeWindowFromData(
 		nodesLastProbeTimestampName, meta, input.TimeInS, input.TimeInS)
 	if hErr != nil {
 		return nil, hErr

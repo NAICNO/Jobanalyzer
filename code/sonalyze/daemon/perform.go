@@ -30,7 +30,9 @@ import (
 	"go-utils/process"
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/daemon/api1"
 	"sonalyze/daemon/api2"
+	"sonalyze/daemon/apiutil"
 	"sonalyze/db"
 	"sonalyze/db/special"
 )
@@ -68,6 +70,14 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 		}
 	}
 
+	if dc.restAPI != "" {
+		api := apiutil.CreateAPI(dc.restAPI, dc.Verbose)
+		api1.SetupAPI(api, dc.Verbose)
+		api2.SetupAPI(api, dc.Verbose)
+	}
+
+	// Begin APIv0
+
 	// Note "daemon" is not a command here
 	if !dc.noAdd {
 		http.HandleFunc("/add", httpAddHandler(dc))
@@ -103,8 +113,10 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 		http.HandleFunc("/sysinfo", httpPostHandler(dc, "sysinfo", "application/json"))
 	}
 
-	if dc.restAPI2 != "" {
-		api2.StartRestAPI(dc.restAPI2, dc.Verbose)
+	// End APIv0
+
+	if dc.restAPI != "" {
+		apiutil.RunAPI()
 	}
 
 	var programFailed bool
@@ -120,7 +132,8 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	// cache).  Really we must be purging the entire LogFile cache in this case too.
 	process.WaitForSignal(syscall.SIGHUP, syscall.SIGTERM)
 	s.Stop()
-	if dc.restAPI2 != "" {
+	if dc.restAPI != "" {
+		// Not this
 		api2.StopRestAPI()
 	}
 

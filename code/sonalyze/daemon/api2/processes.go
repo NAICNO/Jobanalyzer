@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
+	"sonalyze/daemon/apiutil"
 	"sonalyze/data/sample"
 )
 
@@ -55,15 +56,15 @@ func handleProcesses(
 		TimeInS  uint64 `query:"time_in_s" doc:"Posix timestamp"`
 	},
 ) (*ProcessesResponse, error) {
-	meta, hErr := getClusterContext(processesName, input.Cluster)
+	meta, hErr := apiutil.GetClusterContext(processesName, input.Cluster)
 	if hErr != nil {
 		return nil, hErr
 	}
-	from, to, hErr := timeWindowFromData(processesName, meta, 0, input.TimeInS)
+	from, to, hErr := apiutil.TimeWindowFromData(processesName, meta, 0, input.TimeInS)
 	if hErr != nil {
 		return nil, hErr
 	}
-	hostFilter, hErr := newHostFilter(processesName, input.Nodename)
+	hostFilter, hErr := apiutil.NewHostFilter(processesName, input.Nodename)
 	if hErr != nil {
 		return nil, hErr
 	}

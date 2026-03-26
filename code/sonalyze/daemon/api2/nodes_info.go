@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
+
+	"sonalyze/daemon/apiutil"
 )
 
 // List all nodes in a cluster with the latest hardware and OS information.  Note that the time
@@ -57,11 +59,11 @@ func handleNodesInfo(
 		TimeInS  uint64 `query:"time_in_s" doc:"Posix timestamp"`
 	},
 ) (*NodesInfoResponse, error) {
-	meta, hErr := getClusterContext(nodesInfoName, input.Cluster)
+	meta, hErr := apiutil.GetClusterContext(nodesInfoName, input.Cluster)
 	if hErr != nil {
 		return nil, hErr
 	}
-	_, to, hErr := timeWindowFromData(nodesInfoName, meta, 0, input.TimeInS)
+	_, to, hErr := apiutil.TimeWindowFromData(nodesInfoName, meta, 0, input.TimeInS)
 	if hErr != nil {
 		return nil, hErr
 	}
