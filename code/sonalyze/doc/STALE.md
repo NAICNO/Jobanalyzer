@@ -1,31 +1,8 @@
-# `sonalyze` manual
+# Stale
 
-## USAGE
+Stale documentation, kept until we can refactor.
 
-`sonalyze` is the database manager and query interface for time series data coming from sonar,
-sacctd, and other monitoring components.  Use it to add data and to query, aggregate, and export
-data.
-
-There's a quick introduction to how everything hangs together in `doc/HOWTO.md` at the top level of
-the repo.
-
-### Data model at a glance
-
-Notionally there are these tables:
-
-* `cluster` is the table of clusters known to the DB manager, with their aliases and descriptions
-* `cluzter` is the table of Slurm partition information
-* `config` is the table of per-node configuration information
-* `sysinfo` is the table of per-node system information extracted by Sonar on each node every day
-* `sacct` is the table of completed Slurm jobs on the cluster
-* `sample` is the table of Sonar samples, collected by Sonar on each node
-
-The sonalyze operations (next section) insert data into a table, extract raw data from a table, or
-generate cooked data from one or more tables.
-
-See db/README.md for more information about the data model and how it maps onto the data store.
-
-### Summary of operations
+## Summary of operations
 
 ```
 sonalyze operation [options] [-- logfile ...]
@@ -33,12 +10,14 @@ sonalyze operation [options] [-- logfile ...]
 
 where `operation` is one of the following.
 
-There is one data insertion operation that works on the `sysinfo`, `sacct`, and `sample` tables:
+There is one data insertion operation that works on the `sysinfo`, `sacct`, and `sample` tables (but
+not currently on `cluzter`, an oversight):
 
 * The `add` operation appends new records to the database (the database is append-only).
 
 There are raw data extractors that work on a single table:
 
+* The `card` operation ...
 * The `cluster` operation prints information from the `cluster` table
 * The `config` operation prints information from the `config` table
 * The `sacct` operation prints information from the `sacct` table
@@ -102,11 +81,6 @@ data are self-identifying and are always read from stdin.
 
   The data are "free CSV" data coming from `sacctd`, which extracts data from the Slurm databases
   using `sacct`.
-
-`--data-path=<path>`
-
-  Root directory for log files, overrides the default.  The default is the `SONAR_ROOT` environment
-  variable, or if that is not defined, `$HOME/sonar_logs`.
 
 ### Analysis and data extraction operations
 
@@ -581,31 +555,6 @@ List all the processes in the given job for the last 24 hours, broken down at ea
 sonalyze profile -j 12345
 ```
 
-## INI FILES
-
-The file `$HOME/.sonalyze` can contain defaults for some arguments.  The file is a line-oriented
-sequence of sections starting with a header and containing definitions, environment variables are
-expanded.  Comment lines are allowed.  A typical file:
-
-```
-# Standard setup
-
-[data-source]
-remote=https://naic-monitor.uio.no
-auth-file=$HOME/.ssh/sonalyzed-auth.netrc
-```
-
-Currently the only section is `[data-source]` and valid keys are `remote`, `auth-file`, `cluster`,
-`data-dir`, `from`, and `to`.
-
-In the future it seems likely that sections could be added to provide defaults for
-e.g. `[record-filter]` and for individual verbs, e.g. `[jobs]`.
-
-## ENVIRONMENT VARIABLES
-
-Remote credentials can be provided in the `SONALYZE_AUTH` variable, this takes a `username:password` and
-overrides whatever values are used with `-auth-file` or in `$HOME/.sonalyze`.
-
 ## LOG FILES
 
 The log files under the log root directory -- ie when log file names are not provided on the command
@@ -815,49 +764,3 @@ that caching in the server would automatically do this, but it does not.)
 
 No such batch option exists at this time.  Make some noise if this is starting to look like an
 important feature.
-
-## REMOTE ACCESS
-
-Sometimes the log files are not stored locally but on a remote host to which we cannot log in.  If
-the `sonalyze daemon` (aka `sonalyzed`) server is running on that host, we can run sonalyze locally
-and ask it to contact that server and run sonalyze against the data stored there.  The server
-responds to HTTP `GET` and `POST` requests; the local sonalyze constructs and sends the appropriate
-request (currently via curl).
-
-To do so, use the `--remote` argument to provide an http URL for the remote host and the `--cluster`
-argument to name the cluster for which we want data:
-
-```
-$ sonalyze jobs --remote http://some.host.no:8087 \
-                --cluster ml \
-                --auth-file some-file.netrc \
-                -f 20w \
-                -u - \
-                --some-gpu \
-                --host ml8
-```
-
-The auth-file holds the identity information of yourself, keep this file secret.  In this case, the server
-must have been told about this identity.  See the server manual for how to set that up.
-
-The auth file can either have a `username:password` pair or (much better) be on the .netrc format.
-It must have a single line of text.  The netrc format is `machine <machine> login <username>
-password <password>`.  The advantage of this is that the file can be passed to curl, while a
-username:password combination has to be passed on the command line and may be visible to other
-users.  The username:password facility will probably be removed eventually.
-
-In the case of remote access, the server supplies the `--data-path` and `--config-file` arguments
-based on the `--cluster` argument, so the former must be omitted from the local command invocation.
-Additionally, no trailing file arguments (`-- filename ...`) are allowed here.
-
-For the `add` operation, the credential supplied with `--auth-file` will be matched against the
-server's "upload credentials" database.
-
-## DATA ACQUISITION BY KAFKA
-
-If the `sonalyze daemon` server is running it can be told to access a Kafka broker to acquire data.
-Run the daemon with the `--kafka` option to provide a broker address (plaintext only, so the broker
-should be running on the local system).  The acquisition will happen for every cluster known to the
-daemon, for all four data types - `cluzter`, `sacct`, `sample`, and `sysinfo`.
-
-The Kafka acquisition service is currently considered experimental.
