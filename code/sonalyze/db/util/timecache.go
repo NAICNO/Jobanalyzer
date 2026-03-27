@@ -48,6 +48,14 @@ func (tc *TimeCache) MaxTime(soft, verbose bool) (time.Time, error) {
 func (tc *TimeCache) maybeRefillLocked(soft, verbose bool) error {
 	now := time.Now()
 	if !soft || tc.timestamp.Add(timeCacheLifetime).Before(now) {
+		var reason string
+		if tc.timestamp.IsZero() {
+			reason = "empty"
+		} else if !soft {
+			reason = "hard"
+		} else {
+			reason = "expired"
+		}
 		newLow, newHigh, err := tc.refill(verbose)
 		if err != nil {
 			return err
@@ -56,7 +64,7 @@ func (tc *TimeCache) maybeRefillLocked(soft, verbose bool) error {
 		tc.minTime = newLow
 		tc.maxTime = newHigh
 		if verbose {
-			Log.Infof("Refill min/max time cache: %v %v", newLow, newHigh)
+			Log.Infof("Refill min/max time cache bc %s: %v %v", reason, newLow, newHigh)
 		}
 	}
 	return nil

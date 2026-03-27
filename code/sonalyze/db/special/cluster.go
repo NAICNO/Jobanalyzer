@@ -10,6 +10,7 @@ import (
 	umaps "go-utils/maps"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
+	"sonalyze/db/util"
 )
 
 var (
@@ -25,6 +26,7 @@ var (
 
 type ClusterEntry struct {
 	repr.Cluster
+	TimeCache          *util.TimeCache
 
 	// Semi-private implementation bits, should be initialized by setup code in sonalyze/db and
 	// accessed only by dbContext methods, also in sonalyze/db.
@@ -55,6 +57,7 @@ func DefineClusters(clusters map[string]*ClusterEntry, aliases *alias.Aliases) {
 }
 
 func NewClusterEntry() *ClusterEntry {
+	// Here we can create the TimeCache.  Everyone gets one.
 	return new(ClusterEntry)
 }
 
