@@ -10,7 +10,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"sonalyze/data/common"
-	"sonalyze/data/config"
+	"sonalyze/data/node"
 	"sonalyze/data/slurmpart"
 	"sonalyze/db"
 	"sonalyze/db/special"
@@ -52,13 +52,14 @@ func handleListClusters(
 	},
 ) (*ClusterResponse, error) {
 	resp := &ClusterResponse{}
-	t := time.Now().UTC().Format(time.RFC3339)
 	for _, c := range special.AllClusters() {
 		meta := db.NewContextFromCluster(c)
-		from, to, hErr := timeWindowFromData(listClustersName, meta, input.TimeInS, input.TimeInS)
+		_, to, hErr := timeWindowFromData(listClustersName, meta, 0, input.TimeInS)
+		from := to.Add(-24 * time.Hour)
 		if hErr != nil {
 			return nil, hErr
 		}
+		t := to.UTC().Format(time.RFC3339)
 		filter := common.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to}
 
 		var partitions []string
@@ -80,27 +81,35 @@ func handleListClusters(
 					ps[string(p.Name)] = true
 				}
 			}
-			partitions = slices.Collect(maps.Keys(ps))
+			if len(ps) == 0 {
+				partitions = make([]string, 0)
+			} else {
+				partitions = slices.Collect(maps.Keys(ps))
+				slices.Sort(partitions)
+			}
 		}
 
 		var nodes []string
 		{
-			// Logic from cmd/nodes
-			cdp, err := config.OpenConfigDataProvider(meta)
+			ndp, err := node.OpenNodeDataProvider(meta)
 			if err != nil {
 				return nil, huma.Error500InternalServerError(
 					listClustersName+": Failed to open config data store", err)
 			}
-			records, err := cdp.Query(config.QueryArgs{
-				QueryFilter: config.QueryFilter{QueryFilter: filter, Verbose: verbose},
-				Newest:      true,
-			})
+			records, err := ndp.Query(filter, verbose)
 			if err != nil {
 				return nil, huma.Error500InternalServerError(
 					listClustersName+": Failed to query config data", err)
 			}
+			ns := make(map[string]bool)
 			for _, r := range records {
-				nodes = append(nodes, r.Hostname)
+				ns[r.Node] = true
+			}
+			if len(ns) == 0 {
+				nodes = make([]string, 0)
+			} else {
+				nodes = slices.Collect(maps.Keys(ns))
+				slices.Sort(nodes)
 			}
 		}
 

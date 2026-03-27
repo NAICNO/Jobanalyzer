@@ -71,27 +71,24 @@ smoketest() {
     echo
 }
 
-smoketest http://$INTERFACE/api/v2/cluster
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/error-messages
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/cpu/timeseries
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/diskstats/timeseries
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/gpu/timeseries
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/info
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/last-probe-timestamp
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/memory/timeseries
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/process/gpu/util
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu
-smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/timeseries
+# smoketest http://$INTERFACE/api/v2/cluster
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/error-messages
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/cpu/timeseries
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/diskstats/timeseries
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/gpu/timeseries
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/info
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/last-probe-timestamp
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/memory/timeseries
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/process/gpu/util
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu
+# smoketest http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/timeseries
 
-# 2026-03-17 10:09:40 UTC
-START=1773742180
+START=$(date +%s -d '2026-03-16 10:09:40 UTC')
+END=$(date +%s -d '2026-03-17 10:09:40 UTC')
 
-# 2026-03-18 10:09:40 UTC
-END=1773828580
-
-# echo "Test /cluster"
-# curl -s http://$INTERFACE/api/v2/cluster | jq '.[] | .cluster'
+echo "Test /cluster"
+curl -s -o - "http://$INTERFACE/api/v2/cluster?time_in_s=$END" # | jq '.[] | .cluster'
 
 # echo "Test /nodes/memory/timeseries"
 # curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/memory/timeseries?start_time_in_s=$START&end_time_in_s=$END&resolution_in_s=3600"
@@ -109,21 +106,21 @@ END=1773828580
 # curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/last-probe-timestamp"
 
 # echo "Test /nodes/process/gpu/util"
-# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/process/gpu/util?reference_time_in_s=$START&window_in_s=3600"
+# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/nodes/process/gpu/util?reference_time_in_s=$END&window_in_s=3600"
 
 # echo "Test /processes"
 # if [[ -z $NODE ]]; then
 #     echo "For this you want to ask for one node"
 #     exit 1
 # fi
-# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes?time_in_s=$START&nodename=$NODE"
+# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes?time_in_s=$END&nodename=$NODE"
 
 # echo "Test /processes/gpu"
 # if [[ -z $NODE ]]; then
 #     echo "For this you want to ask for one node"
 #     exit 1
 # fi
-# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu?time_in_s=$START&nodename=$NODE"
+# curl "http://$INTERFACE/api/v2/cluster/$CLUSTER/processes/gpu?time_in_s=$END&nodename=$NODE"
 
 # echo "Test /processes/timeseries"
 # if [[ -z $NODE ]]; then
