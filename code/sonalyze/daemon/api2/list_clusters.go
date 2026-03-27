@@ -59,12 +59,10 @@ func handleListClusters(
 		if hErr != nil {
 			return nil, hErr
 		}
-		t := to.UTC().Format(time.RFC3339)
 		filter := common.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to}
 
 		var partitions []string
 		{
-			// Logic from cmd/sparts
 			spd, err := slurmpart.OpenSlurmPartitionDataProvider(meta)
 			if err != nil {
 				return nil, huma.Error500InternalServerError(
@@ -119,7 +117,7 @@ func handleListClusters(
 		}
 
 		resp.Body = append(resp.Body, &Cluster_Cluster{
-			Time:       t,
+			Time:       to.UTC().Format(time.RFC3339),
 			Cluster:    c.Name,
 			Slurm:      slurm,
 			Partitions: partitions,
