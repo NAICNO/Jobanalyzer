@@ -10,7 +10,6 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"sonalyze/data/common"
-	"sonalyze/data/node"
 	"sonalyze/data/slurmpart"
 	"sonalyze/db"
 	"sonalyze/db/special"
@@ -89,24 +88,14 @@ func handleListClusters(
 
 		var nodes []string
 		{
-			ndp, err := node.OpenNodeDataProvider(meta)
-			if err != nil {
-				return nil, huma.Error500InternalServerError(
-					listClustersName+": Failed to open config data store", err)
+			sysinfo, hErr := getSysinfoAt(listClustersName, meta, to, nil)
+			if hErr != nil {
+				return nil, hErr
 			}
-			records, err := ndp.Query(filter, verbose)
-			if err != nil {
-				return nil, huma.Error500InternalServerError(
-					listClustersName+": Failed to query config data", err)
-			}
-			ns := make(map[string]bool)
-			for _, r := range records {
-				ns[r.Node] = true
-			}
-			if len(ns) == 0 {
+			if len(sysinfo) == 0 {
 				nodes = make([]string, 0)
 			} else {
-				nodes = slices.Collect(maps.Keys(ns))
+				nodes = slices.Collect(maps.Keys(sysinfo))
 				slices.Sort(nodes)
 			}
 		}
