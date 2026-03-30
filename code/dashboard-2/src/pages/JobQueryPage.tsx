@@ -124,7 +124,7 @@ export default function JobQueryPage() {
                       name="clusterName"
                       label="Cluster name"
                       type="text"
-                      placeholder='"ml", "fox", ...'
+                      placeholder='"saga", "betzy", ...'
                     />
                     <JobQueryFormTextInput
                       name="usernames"

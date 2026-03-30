@@ -23,7 +23,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="dashboard/ml" replace/>
+        element: <Navigate to="dashboard/saga" replace/>
       },
       {
         path: 'dashboard',

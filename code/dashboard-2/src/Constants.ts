@@ -1,5 +1,3 @@
-import { GrNodes } from 'react-icons/gr'
-import { GiFox } from 'react-icons/gi'
 import { LuBookOpen, LuGraduationCap } from 'react-icons/lu'
 import { MdSearch } from 'react-icons/md'
 import * as yup from 'yup'
@@ -109,20 +107,6 @@ export const QueryKeys = {
 export const SIDEBAR_ITEMS: SidebarItem[] = [
   {
     type: 'link',
-    path: '/dashboard/ml',
-    matches: '/ml',
-    text: 'ML Nodes',
-    icon: GrNodes,
-  },
-  {
-    type: 'link',
-    path: '/dashboard/fox',
-    matches: '/fox',
-    text: 'Fox',
-    icon: GiFox
-  },
-  {
-    type: 'link',
     path: '/dashboard/saga',
     matches: '/saga',
     text: 'Saga',
@@ -174,39 +158,6 @@ export const CELL_BACKGROUND_COLORS = {
 }
 
 export const CLUSTER_INFO: Record<string, Cluster> = {
-  'ml': {
-    cluster: 'ml',
-    canonical: 'mlx.hpc.uio.no',
-    subclusters: [{name: 'nvidia', nodes: 'ml[1-3,6-9]'}],
-    uptime: true,
-    violators: true,
-    deadweight: true,
-    defaultQuery: '*',
-    hasDowntime: true,
-    name: 'ML nodes',
-    description: 'UiO Machine Learning nodes',
-    prefix: 'ml-',
-    policy: 'Significant CPU usage without any GPU usage',
-  },
-  'fox': {
-    cluster: 'fox',
-    canonical: 'fox.educloud.no',
-    subclusters: [
-      {name: 'cpu', nodes: 'c*'},
-      {name: 'gpu', nodes: 'gpu*'},
-      {name: 'int', nodes: 'int*'},
-      {name: 'login', nodes: 'login*'},
-    ],
-    uptime: true,
-    violators: false,
-    deadweight: true,
-    defaultQuery: 'login* or int*',
-    name: 'Fox',
-    hasDowntime: true,
-    description: 'UiO \'Fox\' supercomputer',
-    prefix: 'fox-',
-    policy: '(To be determined)',
-  },
   'saga': {
     cluster: 'saga',
     canonical: 'saga.sigma2.no',
@@ -514,14 +465,6 @@ export const VIOLATING_JOB_SUMMARY_COLUMN: { [K in keyof ViolatingJob]: Violatin
 }
 
 export const POLICIES: Policies = {
-  'ml': [
-    {
-      name: 'ml-cpuhog',
-      trigger: 'Job uses more than 10% of system\'s CPU at peak, runs for at least 10 minutes, and uses no GPU at all',
-      problem: 'ML nodes are for GPU jobs.  Job is in the way of other jobs that need GPU',
-      remedy: 'Move your work to a GPU-less system such as Fox or Light-HPC',
-    }
-  ]
 }
 
 export const DEAD_WEIGHT_COLUMN: { [K in keyof DeadWeightTableItem]: DeadWeightTableColumnHeader } = {
