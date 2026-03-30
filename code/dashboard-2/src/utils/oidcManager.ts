@@ -12,8 +12,8 @@ const userManagers = new Map<string, UserManager>()
 export const createUserManager = (clusterId: string): UserManager | null => {
   const config = getClusterConfig(clusterId)
   
-  if (!config) {
-    console.error(`Cluster config not found for: ${clusterId}`)
+  if (!config || !config.authEndpoint) {
+    console.error(`Cluster config or auth endpoint not found for: ${clusterId}`)
     return null
   }
 

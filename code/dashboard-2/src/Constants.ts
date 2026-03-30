@@ -46,7 +46,8 @@ export const APP_NAME = 'NAIC Jobanalyzer'
 export const PAGE_TITLE_SUFFIX = ' | ' + APP_NAME
 
 // URLs and API Endpoints to be moved to .env files once dev and prod environments are set up
-export const APP_BASE_PREFIX = import.meta.env.BASE_URL || '/'
+const _base = import.meta.env.BASE_URL || '/'
+export const APP_BASE_PREFIX = _base.endsWith('/') ? _base : _base + '/'
 export const APP_URL = 'https://naic-monitor.uio.no'
 export const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
 export const QUERY_API_ENDPOINT = import.meta.env.VITE_QUERY_API_ENDPOINT

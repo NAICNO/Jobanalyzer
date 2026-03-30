@@ -10,7 +10,7 @@ import {
 import { NavLink, useParams } from 'react-router'
 import { LuUser } from 'react-icons/lu'
 
-import { APP_NAME } from '../Constants.ts'
+import { APP_BASE_PREFIX, APP_NAME } from '../Constants.ts'
 import { LightDarkModeButton } from './LightDarkModeButton.tsx'
 import { useColorMode } from './ui/color-mode.tsx'
 import { useAuth } from '../hooks/useAuth'
@@ -22,7 +22,7 @@ export const AppHeader = () => {
   const { clusterName } = useParams<{ clusterName: string }>()
   const { authState } = useAuth()
 
-  const naicLogo = colorMode === 'light' ? '/images/naic/naic_dark.svg' : '/images/naic/naic_light.svg'
+  const naicLogo = `${APP_BASE_PREFIX}images/naic/${colorMode === 'light' ? 'naic_dark.svg' : 'naic_light.svg'}`
 
   // Extract user ID from ID token only if:
   // 1. We're on a cluster route (clusterName exists in URL params)

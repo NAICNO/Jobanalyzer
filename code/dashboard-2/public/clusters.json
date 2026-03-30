@@ -30,10 +30,10 @@
         "clientId": "naic-monitor-client",
         "scope": "openid profile email"
       },
-      "requiresAuth": false
+      "requiresAuth": true
     },
     {
-      "id": "fox.educloud.no",
+      "id": "fox.educloud.no0",
       "name": "UiO Fox Cluster",
       "shortName": "Fox",
       "description": "Fox Cluster at EduCloud",
@@ -63,6 +63,15 @@
         "scope": "openid profile email"
       },
       "requiresAuth": true
+    },
+    {
+      "id": "fox.educloud.no",
+      "name": "UiO Fox Cluster with Sonalyze",
+      "shortName": "Fox",
+      "description": "Fox Cluster at EduCloud",
+      "icon": "GiFox",
+      "apiBaseUrl": "https://naic-monitor.uio.no:9163/api/v2",
+      "requiresAuth": false
     }
   ]
 }
