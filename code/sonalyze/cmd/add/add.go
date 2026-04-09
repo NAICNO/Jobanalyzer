@@ -90,7 +90,7 @@ func (ac *AddCommand) Perform(meta types.Context, stdin io.Reader, _, _ io.Write
 	case ac.Sample:
 		return ac.addSonarFreeCsv(meta, data)
 	case ac.Sysinfo:
-		return ac.addSysinfo(meta, data)
+		return ac.addSysinfoOldJson(meta, data)
 	case ac.SlurmSacct:
 		return ac.addSlurmSacctFreeCsv(meta, data)
 	default:
@@ -98,7 +98,7 @@ func (ac *AddCommand) Perform(meta types.Context, stdin io.Reader, _, _ io.Write
 	}
 }
 
-func (ac *AddCommand) addSysinfo(meta types.Context, payload []byte) error {
+func (ac *AddCommand) addSysinfoOldJson(meta types.Context, payload []byte) error {
 	if ac.Verbose {
 		Log.Infof("Sysinfo record %d bytes", len(payload))
 	}

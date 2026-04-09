@@ -6,7 +6,8 @@ Data are read from stdin, the type and format are implied by operations
   `add -sample` adds `sonar ps` data.  The format must be "free CSV", ie CSV
   with name=value field syntax and no fixed colums.
 
-  `add -sysinfo` adds `sonar sysinfo` data.  The format must be JSON.
+  `add -sysinfo` adds `sonar sysinfo` data.  The format must be the "old" sysinfo
+  JSON format.
 
   `add -slurm-sacct` adds `sonar slurm` data.  The format must be free CSV.
 

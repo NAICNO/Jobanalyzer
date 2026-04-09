@@ -31,7 +31,7 @@ import (
 
 func CommandHelp(out io.Writer) {
 	// Keep these alphabetical.
-	fmt.Fprintf(out, "  add      - add data to the database\n")
+	fmt.Fprintf(out, "  add      - (obsolete) add old-format(!) data to the database\n")
 	fmt.Fprintf(out, "  card     - print card information extracted from sysinfo table\n")
 	fmt.Fprintf(out, "  cluster  - print cluster information\n")
 	fmt.Fprintf(out, "  config   - print node information extracted from cluster config\n")
