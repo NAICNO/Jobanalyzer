@@ -2,8 +2,8 @@ import { createContext, useContext, useState, useMemo, useCallback, type ReactNo
 import type { UseQueryResult } from '@tanstack/react-query'
 
 import { useClusterClient } from '../hooks/useClusterClient'
-import { useClusterNodes, useClusterNodesInfo, useClusterNodesStates, useClusterNodesProcessGpuUtil, useClusterNodesMemoryTimeseries } from '../hooks/v2/useNodeQueries'
-import { useClusterPartitions } from '../hooks/v2/useClusterQueries'
+import { useClusterNodes, useClusterNodesInfo, useClusterNodesStates, useClusterNodesProcessGpuUtil, useClusterNodesMemoryTimeseries } from '../hooks/useNodeQueries'
+import { useClusterPartitions } from '../hooks/useClusterQueries'
 import type { TimeRange } from '../components/TimeRangePicker'
 import { timeRangeToTimestamps } from '../utils/timeRangeUtils'
 

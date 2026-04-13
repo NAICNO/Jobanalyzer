@@ -138,7 +138,7 @@ export const handleAuthCallback = async () => {
     return {
       user,
       clusterId,
-      returnPath: sessionStorage.getItem('auth_redirect_path') || `/v2/${clusterId}/overview`,
+      returnPath: sessionStorage.getItem('auth_redirect_path') || `/${clusterId}/overview`,
     }
   } catch (error) {
     console.error('Failed to handle auth callback:', error)
