@@ -11,9 +11,9 @@ import {
 import type { JobsResponse, SampleGpuTimeseriesResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useClusterJobs, useClusterGpuTimeseries } from '../../hooks/v2/useClusterQueries'
-import { getJobStateColor } from '../../util/formatters'
+import { getJobStateColor } from '../../utils/formatters'
 import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
-import { calculateCpuEfficiency, getEfficiencyColor } from '../../util/efficiency'
+import { calculateCpuEfficiency, getEfficiencyColor } from '../../utils/efficiency'
 
 const CHAKRA_TO_HEX: Record<string, string> = {
   green: '#38A169',

@@ -10,7 +10,7 @@ import { useClusterJobs } from '../../hooks/v2/useClusterQueries'
 import { useUserSettings } from '../../hooks/v2/useUserSettings'
 import { useTableState } from '../../hooks/v2/useTableState'
 import type { JobResponse } from '../../client'
-import { formatDuration, formatMemory, getJobStateColor } from '../../util/formatters'
+import { formatDuration, formatMemory, getJobStateColor } from '../../utils/formatters'
 import { JobState } from '../../types/jobStates'
 
 ModuleRegistry.registerModules([AllCommunityModule])

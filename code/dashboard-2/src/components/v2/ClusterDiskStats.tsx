@@ -7,7 +7,7 @@ import type { NodeDiskTimeseriesResponse } from '../../client'
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useClusterDiskTimeseries } from '../../hooks/v2/useClusterQueries'
 import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
-import { transformClusterDiskstatsTimeseries } from '../../util/timeseriesTransformers'
+import { transformClusterDiskstatsTimeseries } from '../../utils/timeseriesTransformers'
 
 const DATA_RESOLUTION = 300 // 5 minutes
 

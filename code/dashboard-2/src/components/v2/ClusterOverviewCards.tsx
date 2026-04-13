@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 
 import type { NodeInfoResponse, NodeStateResponse, PartitionResponse, NodeSampleProcessGpuAccResponse, SampleProcessAccResponse } from '../../client'
 import { useClusterOverviewContext } from '../../contexts/ClusterOverviewContext'
-import { getUtilizationColor } from '../../util/colorStandards'
+import { getUtilizationColor } from '../../utils/colorStandards'
 
 export const ClusterOverviewCards = () => {
   const navigate = useNavigate()
