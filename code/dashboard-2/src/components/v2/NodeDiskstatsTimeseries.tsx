@@ -4,7 +4,7 @@ import { Accordion, Alert, Badge, Box, HStack, Select, SimpleGrid, Spinner, Text
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend, AreaChart, Area } from 'recharts'
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useNodeDiskstatsTimeseries } from '../../hooks/v2/useNodeQueries'
-import { transformDiskstatsTimeseries } from '../../util/timeseriesTransformers'
+import { transformDiskstatsTimeseries } from '../../utils/timeseriesTransformers'
 
 interface Props {
   cluster: string

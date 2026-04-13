@@ -36,10 +36,10 @@ import {
   transformGpuTimeseries,
   calculateGpuStats,
   extractGpuNodeMapping,
-} from '../../util/timeseriesTransformers'
-import { formatMemory, formatEfficiency } from '../../util/formatters'
-import { timeRangeToTimestamps } from '../../util/timeRangeUtils'
-import { getEfficiencyColor, getEfficiencyLabel } from '../../util/efficiency'
+} from '../../utils/timeseriesTransformers'
+import { formatMemory, formatEfficiency } from '../../utils/formatters'
+import { timeRangeToTimestamps } from '../../utils/timeRangeUtils'
+import { getEfficiencyColor, getEfficiencyLabel } from '../../utils/efficiency'
 
 interface Props {
   cluster: string;

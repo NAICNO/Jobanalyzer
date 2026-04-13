@@ -5,7 +5,7 @@ import { useClusterClient } from '../hooks/useClusterClient'
 import { useClusterNodes, useClusterNodesInfo, useClusterNodesStates, useClusterNodesProcessGpuUtil, useClusterNodesMemoryTimeseries } from '../hooks/v2/useNodeQueries'
 import { useClusterPartitions } from '../hooks/v2/useClusterQueries'
 import type { TimeRange } from '../components/TimeRangePicker'
-import { timeRangeToTimestamps } from '../util/timeRangeUtils'
+import { timeRangeToTimestamps } from '../utils/timeRangeUtils'
 
 const DEFAULT_TIME_RANGE: TimeRange = {
   type: 'relative',

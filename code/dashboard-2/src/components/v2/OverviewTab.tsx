@@ -3,7 +3,7 @@ import { VStack, SimpleGrid, Card, Text, DataList, Separator } from '@chakra-ui/
 import { Link } from 'react-router'
 import type { JobResponse } from '../../client/types.gen'
 import type { Client } from '../../client/client/types.gen'
-import { formatDuration, formatMemory } from '../../util/formatters'
+import { formatDuration, formatMemory } from '../../utils/formatters'
 import { useNodeInfo } from '../../hooks/v2/useNodeQueries'
 
 type OverviewTabProps = {
