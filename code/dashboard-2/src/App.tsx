@@ -16,6 +16,8 @@ import SubclusterPage from './pages/SubclusterPage.tsx'
 import JobProfilePage from './pages/JobProfilePage.tsx'
 import JobProcessTreePage from './pages/JobProcessTreePage.tsx'
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -103,7 +105,7 @@ const router = createBrowserRouter([
       },
     ]
   }
-])
+], { basename })
 
 function App() {
   return (
