@@ -98,7 +98,7 @@ const transformSidebarItemsToTree = (selectedClusters: string[]) => {
     const node: TreeNode = {
       id: `cluster-${clusterId}`,
       name: config.shortName,
-      path: `/dashboard/${clusterId}`,
+      path: basePath + '/overview',
       matches: clusterFullName,
       icon: config.icon,
       children: CLUSTER_ROUTES.map((route, subIndex) => ({

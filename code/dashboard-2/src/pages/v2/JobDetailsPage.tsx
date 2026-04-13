@@ -5,8 +5,8 @@ import { HiInformationCircle } from 'react-icons/hi2'
 
 import { useClusterClient } from '../../hooks/useClusterClient'
 import { useJobDetails, useJobReport } from '../../hooks/v2/useJobQueries'
-import { formatDuration, formatMemory, getJobStateColor } from '../../util/formatters'
-import { getEfficiencyColor } from '../../util/efficiency'
+import { formatDuration, formatMemory, getJobStateColor } from '../../utils/formatters'
+import { getEfficiencyColor } from '../../utils/efficiency'
 import { JobStatCard } from '../../components/v2/JobStatCard'
 import { NavigateBackButton } from '../../components/NavigateBackButton'
 

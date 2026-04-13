@@ -2,14 +2,14 @@ import { useMemo, memo } from 'react'
 import { Box, Text, VStack, HStack, SimpleGrid, Card, Alert, Progress, Separator, Tooltip, Icon } from '@chakra-ui/react'
 import { HiInformationCircle } from 'react-icons/hi2'
 import type { JobReport, JobResponse } from '../../client/types.gen'
-import { formatMemory, formatEfficiency, formatIORate } from '../../util/formatters'
+import { formatMemory, formatEfficiency, formatIORate } from '../../utils/formatters'
 import {
   calculateEfficiencyMetrics,
   getEfficiencyColor,
   getEfficiencyLabel,
   calculateWastedCpuHours,
   calculateWastedMemory,
-} from '../../util/efficiency'
+} from '../../utils/efficiency'
 import { JobStatCard } from './JobStatCard'
 
 type PerformanceMetricsTabProps = {

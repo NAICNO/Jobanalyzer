@@ -28,7 +28,7 @@ import {
   collectUniqueSampleTimes,
   getLayoutedElements,
   type ProcessNodeData,
-} from '../../util/processTreeTransformers'
+} from '../../utils/processTreeTransformers'
 
 interface ProcessTreeViewProps {
   cluster: string

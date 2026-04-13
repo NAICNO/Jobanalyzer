@@ -32,9 +32,9 @@ import { useJobProcessTimeseries } from '../../hooks/useJobTimeseries'
 import {
   transformProcessTimeseries,
   calculateTimeseriesStats,
-} from '../../util/timeseriesTransformers'
-import { formatMemory } from '../../util/formatters'
-import { timeRangeToTimestamps } from '../../util/timeRangeUtils'
+} from '../../utils/timeseriesTransformers'
+import { formatMemory } from '../../utils/formatters'
+import { timeRangeToTimestamps } from '../../utils/timeRangeUtils'
 
 interface Props {
   cluster: string;
