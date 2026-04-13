@@ -2,8 +2,6 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import { useQueryClient } from '@tanstack/react-query'
 import { getClusterConfig, AVAILABLE_CLUSTERS } from '../config/clusters'
 
-const isValidClusterId = (id: string): boolean =>
-  AVAILABLE_CLUSTERS.some((c) => c.id === id)
 import { clearClusterClient } from '../utils/clusterApiClients'
 import { removeClusterAuth } from '../utils/secureStorage'
 import { clearUserManager } from '../utils/oidcManager'
@@ -11,6 +9,9 @@ import { useAuth } from '../hooks/useAuth'
 import { toaster } from '../components/ui/toaster'
 
 const STORAGE_KEY = 'user_selected_clusters'
+
+const isValidClusterId = (id: string): boolean =>
+  AVAILABLE_CLUSTERS.some((c) => c.id === id)
 
 export interface ClusterContextValue {
   selectedClusters: string[]

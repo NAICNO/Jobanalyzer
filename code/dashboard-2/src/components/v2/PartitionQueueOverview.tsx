@@ -89,7 +89,7 @@ export const PartitionQueueOverview = ({ partition }: Props) => {
                     </Table.Header>
                     <Table.Body>
                       {runningJobs.slice(0, 5).map((job: JobResponse) => (
-                        <Table.Row key={job.job_id ?? Math.random()}>
+                        <Table.Row key={`${job.job_id}-${job.job_step}`}>
                           <Table.Cell fontFamily="mono" fontSize="sm">{job.job_id}</Table.Cell>
                           <Table.Cell>{job.user_name}</Table.Cell>
                           <Table.Cell>{formatJobDuration(job.start_time)}</Table.Cell>
@@ -128,7 +128,7 @@ export const PartitionQueueOverview = ({ partition }: Props) => {
                         })
                         .slice(0, 5)
                         .map((job: JobResponse) => (
-                          <Table.Row key={job.job_id ?? Math.random()}>
+                          <Table.Row key={`${job.job_id}-${job.job_step}`}>
                             <Table.Cell fontFamily="mono" fontSize="sm">{job.job_id}</Table.Cell>
                             <Table.Cell>{job.user_name}</Table.Cell>
                             <Table.Cell>{formatWaitTime(job.submit_time)}</Table.Cell>
