@@ -75,7 +75,7 @@ export const CallbackPage = () => {
 
         // Redirect to cluster selection after error
         setTimeout(() => {
-          navigate('/v2/select-cluster', { replace: true })
+          navigate('/select-cluster', { replace: true })
         }, 3000)
       }
     }
