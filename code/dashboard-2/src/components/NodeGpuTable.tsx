@@ -22,7 +22,7 @@ function UtilCell({ compute, memory }: { compute?: number; memory?: number }) {
   if (compute == null && memory == null) return <span style={{ fontSize: 11, color: '#a0aec0' }}>—</span>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-      <UtilRow label="CPU" value={compute} />
+      <UtilRow label="GPU" value={compute} />
       <UtilRow label="Mem" value={memory} />
     </div>
   )

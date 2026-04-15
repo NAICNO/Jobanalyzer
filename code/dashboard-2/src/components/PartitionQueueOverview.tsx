@@ -121,6 +121,7 @@ export const PartitionQueueOverview = ({ partition }: Props) => {
                     </Table.Header>
                     <Table.Body>
                       {pendingJobs
+                        .slice()
                         .sort((a, b) => {
                           const aTime = a.submit_time ? new Date(a.submit_time).getTime() : 0
                           const bTime = b.submit_time ? new Date(b.submit_time).getTime() : 0
