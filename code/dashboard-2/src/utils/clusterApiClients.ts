@@ -26,12 +26,6 @@ export const createClusterClient = (
           const user = await userManager.getUser()
           if (user && !user.expired) {
             config.headers.Authorization = `Bearer ${user.access_token}`
-            const claims = JSON.parse(atob(user.access_token.split('.')[1]))
-            console.log(`[Auth] Sending token for ${clusterId}`, {
-              url: config.url,
-              accessToken: user.access_token,
-              claims,
-            })
           }
         } catch (error) {
           console.error('Failed to get user for auth:', error)

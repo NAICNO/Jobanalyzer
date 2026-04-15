@@ -18,6 +18,7 @@ import { ProcessTreeFullViewPage } from './pages/ProcessTreeFullViewPage.tsx'
 import { BenchmarksPage } from './pages/BenchmarksPage.tsx'
 import { ClusterRouteGuard } from './components/ClusterRouteGuard.tsx'
 import { CallbackPage } from './pages/auth/CallbackPage.tsx'
+import { NotFoundPage } from './pages/NotFoundPage.tsx'
 import { APP_BASE_PREFIX } from './Constants.ts'
 
 const router = createBrowserRouter([
@@ -44,6 +45,7 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <RootLayout/>,
+    errorElement: <NotFoundPage />,
     children: [
       {
         index: true,
@@ -105,8 +107,16 @@ const router = createBrowserRouter([
           {
             path: 'benchmarks',
             element: <BenchmarksPage />,
+          },
+          {
+            path: '*',
+            element: <NotFoundPage />,
           }
         ]
+      },
+      {
+        path: '*',
+        element: <NotFoundPage />,
       },
     ]
   }

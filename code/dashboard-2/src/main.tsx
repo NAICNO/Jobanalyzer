@@ -1,7 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ChakraProvider } from '@chakra-ui/react'
 import '@fontsource/ibm-plex-sans/300.css'
 import '@fontsource/ibm-plex-sans/400.css'
@@ -18,6 +17,12 @@ import { AuthProvider } from './contexts/AuthContext.tsx'
 import { Toaster } from './components/ui/toaster.tsx'
 import { loadClusterConfig } from './config/clusters.ts'
 
+const ReactQueryDevtools = React.lazy(() =>
+  import('@tanstack/react-query-devtools').then((mod) => ({
+    default: mod.ReactQueryDevtools,
+  }))
+)
+
 ModuleRegistry.registerModules([AllCommunityModule])
 
 const queryClient = new QueryClient()
@@ -32,7 +37,11 @@ loadClusterConfig()
               <AuthProvider>
                 <ClusterProvider>
                   <App/>
-                  <ReactQueryDevtools initialIsOpen={false}/>
+                  {import.meta.env.DEV && (
+                    <React.Suspense fallback={null}>
+                      <ReactQueryDevtools initialIsOpen={false}/>
+                    </React.Suspense>
+                  )}
                   <Toaster />
                 </ClusterProvider>
               </AuthProvider>

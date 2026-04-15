@@ -34,7 +34,7 @@ export const createUserManager = (clusterId: string): UserManager | null => {
       authorization_endpoint: config.authEndpoint.authorization,
       token_endpoint: config.authEndpoint.token,
       userinfo_endpoint: config.authEndpoint.userInfo,
-      end_session_endpoint: config.authEndpoint.authorization.replace('/auth', '/logout'),
+      end_session_endpoint: config.authEndpoint.authorization.replace(/\/auth$/, '/logout'),
       issuer: config.authEndpoint.authorization.replace(/\/protocol\/openid-connect\/auth$/, ''),
     },
     

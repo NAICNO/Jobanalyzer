@@ -44,7 +44,7 @@ export const getClusterAuth = (clusterId: string): ClusterAuthData | null => {
     const authData = JSON.parse(serialized) as ClusterAuthData
     
     // Check if token is expired
-    if (authData.expiresAt && authData.expiresAt < Date.now()) {
+    if (authData.expiresAt && authData.expiresAt * 1000 < Date.now()) {
       // Token expired, remove it
       removeClusterAuth(clusterId)
       return null
