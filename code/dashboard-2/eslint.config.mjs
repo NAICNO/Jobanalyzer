@@ -17,9 +17,9 @@ const compat = new FlatCompat({
   allConfig: js.configs.all,
 })
 
-export default defineConfig({
-  ignores: ['dist'],
-
+export default defineConfig([{
+  ignores: ['dist/**', 'src/client/**', 'src/components/ui/**'],
+}, {
   extends: compat.extends(
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -55,4 +55,4 @@ export default defineConfig({
     'react/react-in-jsx-scope': 'off',
     'react/jsx-uses-react': 'off',
   },
-})
+}])

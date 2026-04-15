@@ -1,14 +1,13 @@
 import { Outlet } from 'react-router'
-import { Grid, GridItem, useDisclosure } from '@chakra-ui/react'
+import { Grid, GridItem } from '@chakra-ui/react'
 
 import { AppHeader, Sidebar } from '../components'
 import { useColorMode } from '../components/ui/color-mode.tsx'
+import { useCluster } from '../hooks/useCluster'
 
 export default function RootLayout() {
-
-  const {open: isDrawerOpen, onOpen: onOpenDrawer, onClose: onCloseDrawer} = useDisclosure()
-
   const colorMode = useColorMode()
+  const { hasSelectedClusters } = useCluster()
 
   const mainGridItemBackgroundColor = colorMode.colorMode === 'light' ? 'white' : 'gray.800'
   const sidebarBackgroundColor = colorMode.colorMode === 'light' ? 'gray.100' : 'gray.700'
@@ -17,7 +16,7 @@ export default function RootLayout() {
     <Grid
       templateAreas={{
         base: '"header" "main"',
-        md: '"header header" "nav main"',
+        md: hasSelectedClusters ? '"header header" "nav main"' : '"header" "main"',
       }}
       gridTemplateRows={{
         base: '60px 1fr',
@@ -25,10 +24,11 @@ export default function RootLayout() {
       }}
       gridTemplateColumns={{
         base: '1fr',
-        md: '160px 1fr',
+        md: hasSelectedClusters ? '195px 1fr' : '1fr',
       }}
       gap="1"
       h="100vh"
+      overflow="hidden"
     >
       <GridItem
         px={{base: '20px', md: '20px'}}
@@ -36,22 +36,29 @@ export default function RootLayout() {
         area={'header'}
         boxShadow={'md'}
       >
-        <AppHeader opOpenSidebarDrawer={onOpenDrawer}/>
+        <AppHeader />
       </GridItem>
-      <GridItem
-        px="10px"
-        pt="10px"
-        area={'nav'}
-        bg={sidebarBackgroundColor}
-        display={{base: isDrawerOpen ? 'block' : 'none', md: 'block'}}
-      >
-        <Sidebar isDrawerOpen={isDrawerOpen} onCloseDrawer={onCloseDrawer}/>
-      </GridItem>
+      {hasSelectedClusters && (
+        <GridItem
+          px="10px"
+          pt="10px"
+          area={'nav'}
+          bg={sidebarBackgroundColor}
+          display="flex"
+          flexDirection="column"
+          h="100%"
+        >
+          <Sidebar />
+        </GridItem>
+      )}
       <GridItem
         paddingX="20px"
         paddingY="10px"
         area={'main'}
         bg={mainGridItemBackgroundColor}
+        overflowY="auto"
+        overflowX="hidden"
+        minH="0"
       >
         <Outlet/>
       </GridItem>

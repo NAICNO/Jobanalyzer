@@ -5,105 +5,122 @@ import {
 } from 'react-router'
 
 import RootLayout from './layouts/RootLayout.tsx'
-import DashboardPage from './pages/DashboardPage.tsx'
-import ViolatorsPage from './pages/ViolatorsPage.tsx'
-import ViolatorPage from './pages/ViolatorPage.tsx'
-import DeadWeightPage from './pages/DeadWeightPage.tsx'
-import NodeSelectionHelpPage from './pages/NodeSelectionHelpPage.tsx'
-import HostDetailsPage from './pages/HostDetailsPage.tsx'
-import JobQueryPage from './pages/JobQueryPage.tsx'
-import SubclusterPage from './pages/SubclusterPage.tsx'
-import JobProfilePage from './pages/JobProfilePage.tsx'
-import JobProcessTreePage from './pages/JobProcessTreePage.tsx'
+
+import { ClusterOverview } from './pages/ClusterOverview.tsx'
+import { NodesPage } from './pages/NodesPage.tsx'
+import { PartitionsPage } from './pages/PartitionsPage.tsx'
+import { JobsPage } from './pages/JobsPage.tsx'
+import { JobDetailsPage } from './pages/JobDetailsPage.tsx'
+import { QueriesPage } from './pages/QueriesPage.tsx'
+import { NodeTopologyPage } from './pages/NodeTopologyPage.tsx'
+import { ClusterSelectionPage } from './pages/ClusterSelectionPage.tsx'
+import { ProcessTreeFullViewPage } from './pages/ProcessTreeFullViewPage.tsx'
+import { BenchmarksPage } from './pages/BenchmarksPage.tsx'
+import { ClusterRouteGuard } from './components/ClusterRouteGuard.tsx'
+import { CallbackPage } from './pages/auth/CallbackPage.tsx'
+import { NotFoundPage } from './pages/NotFoundPage.tsx'
+import { APP_BASE_PREFIX } from './Constants.ts'
 
 const router = createBrowserRouter([
   {
-    path: '/',
-    element: <RootLayout/>,
+    path: '/:clusterName/jobs/:jobId/process-tree',
+    element: <ClusterRouteGuard />,
     children: [
       {
         index: true,
-        element: <Navigate to="dashboard/saga" replace/>
+        element: <ProcessTreeFullViewPage />,
+      },
+    ],
+  },
+  {
+    path: '/:clusterName/nodes/:nodename/topology',
+    element: <ClusterRouteGuard />,
+    children: [
+      {
+        index: true,
+        element: <NodeTopologyPage />,
+      },
+    ],
+  },
+  {
+    path: '/',
+    element: <RootLayout/>,
+    errorElement: <NotFoundPage />,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="select-cluster" replace/>
       },
       {
-        path: 'dashboard',
+        path: 'auth',
         children: [
           {
-            index: true,
-            element: <DashboardPage/>,
+            path: 'callback',
+            element: <CallbackPage />,
           },
-          {
-            path: ':clusterName',
-            element: <DashboardPage/>,
-          },
-          {
-            path: 'help/node-selection',
-            element: <NodeSelectionHelpPage/>,
-          }
-        ]
+        ],
+      },
+      {
+        path: 'select-cluster',
+        element: <ClusterSelectionPage />,
       },
       {
         path: ':clusterName',
+        element: <ClusterRouteGuard />,
         children: [
           {
-            path: 'subcluster/:subclusterName',
-            element: <SubclusterPage/>,
+            path: 'overview',
+            element: <ClusterOverview />,
           },
           {
-            path: 'violators',
-            element: <ViolatorsPage/>,
+            path: 'nodes',
+            element: <NodesPage />,
           },
           {
-            path: 'violators/:violator',
-            element: <ViolatorPage/>,
+            path: 'nodes/:nodename',
+            element: <NodesPage />,
           },
           {
-            path: 'deadweight',
-            element: <DeadWeightPage/>,
+            path: 'partitions',
+            element: <PartitionsPage />,
           },
           {
-            path: ':hostname',
-            children: [
-              {
-                index: true,
-                element: <HostDetailsPage/>,
-              },
-              {
-                path: 'violators',
-                element: <ViolatorsPage/>,
-              },
-              {
-                path: 'violators/:violator',
-                element: <ViolatorPage/>,
-              },
-              {
-                path: 'deadweight',
-                element: <DeadWeightPage/>,
-              }
-            ]
+            path: 'partitions/:partitionName',
+            element: <PartitionsPage />,
+          },
+          {
+            path: 'jobs',
+            element: <JobsPage />,
+          },
+          {
+            path: 'jobs/running',
+            element: <JobsPage />,
+          },
+          {
+            path: 'jobs/query',
+            element: <QueriesPage />,
+          },
+          {
+            path: 'jobs/:jobId',
+            element: <JobDetailsPage />,
+          },
+          {
+            path: 'benchmarks',
+            element: <BenchmarksPage />,
+          },
+          {
+            path: '*',
+            element: <NotFoundPage />,
           }
         ]
       },
       {
-        path: 'jobquery',
-        children: [
-          {
-            index: true,
-            element: <JobQueryPage/>,
-          },
-          {
-            path: 'profile',
-            element: <JobProfilePage/>,
-          },
-          {
-            path: 'tree',
-            element: <JobProcessTreePage/>,
-          }
-        ]
+        path: '*',
+        element: <NotFoundPage />,
       },
     ]
   }
-])
+], { basename: APP_BASE_PREFIX })
 
 function App() {
   return (

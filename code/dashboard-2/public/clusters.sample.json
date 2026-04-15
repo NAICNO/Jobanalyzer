@@ -1,0 +1,29 @@
+{
+  "clusters": [
+    {
+      "id": "cluster-a.example.no",
+      "name": "Example Cluster A",
+      "shortName": "Cluster A",
+      "description": "HPC cluster with authentication",
+      "icon": "LuServer",
+      "apiBaseUrl": "https://cluster-a.example.no/api/v2",
+      "authEndpoint": {
+        "authorization": "https://keycloak.example.no/realms/my-realm/protocol/openid-connect/auth",
+        "token": "https://keycloak.example.no/realms/my-realm/protocol/openid-connect/token",
+        "userInfo": "https://keycloak.example.no/realms/my-realm/protocol/openid-connect/userinfo",
+        "clientId": "my-client-id",
+        "scope": "openid profile email"
+      },
+      "requiresAuth": true
+    },
+    {
+      "id": "cluster-b.example.no",
+      "name": "Example Cluster B",
+      "shortName": "Cluster B",
+      "description": "HPC cluster without authentication",
+      "icon": "LuServer",
+      "apiBaseUrl": "https://cluster-b.example.no/api/v2",
+      "requiresAuth": false
+    }
+  ]
+}

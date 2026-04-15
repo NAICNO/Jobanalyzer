@@ -2,8 +2,17 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  define: mode === 'production' ? { 'console.log': '(() => {})' } : {},
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        'silent-renew': 'silent-renew.html',
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {
@@ -20,4 +29,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))

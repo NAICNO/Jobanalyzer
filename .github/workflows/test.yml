@@ -43,6 +43,14 @@ jobs:
       env:
         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Lint
+      working-directory: 'code/dashboard-2'
+      run: yarn lint
+
+    - name: Type check and build
+      working-directory: 'code/dashboard-2'
+      run: yarn build
+
     - name: Run tests
       working-directory: 'code/dashboard-2'
-      run: yarn test
+      run: yarn test --run
