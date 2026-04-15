@@ -100,9 +100,9 @@ export const getLivenessStats = (
   let staleNodes = 0
   let offlineNodes = 0
 
-  Object.entries(lastProbeMap).forEach(([_, timestamp]) => {
+  Object.values(lastProbeMap).forEach((timestamp) => {
     const status = calculateLiveness(timestamp)
-    
+
     switch (status.icon) {
     case 'live':
       liveNodes++

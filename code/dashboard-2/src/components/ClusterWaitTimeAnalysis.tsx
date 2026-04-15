@@ -1,6 +1,6 @@
 import { VStack, Text, SimpleGrid, Box, Table, Stat, Spinner } from '@chakra-ui/react'
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import type { PartitionResponse } from '../client'
 import { useClusterOverviewContext } from '../contexts/ClusterOverviewContext'
 

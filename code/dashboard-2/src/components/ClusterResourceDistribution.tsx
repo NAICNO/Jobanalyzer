@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { VStack, HStack, Text, SimpleGrid, Box, Progress, Tag, Skeleton, Tooltip, Button } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 
-import type { PartitionResponse, NodeInfoResponse, NodeStateResponse, NodeSampleProcessGpuAccResponse } from '../client'
+import type { PartitionResponse, NodeInfoResponse, NodeStateResponse } from '../client'
 import { useClusterOverviewContext } from '../contexts/ClusterOverviewContext'
 
 export const ClusterResourceDistribution = () => {

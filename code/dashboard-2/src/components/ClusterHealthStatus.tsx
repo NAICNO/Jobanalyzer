@@ -221,58 +221,58 @@ export const ClusterHealthStatus = ({ cluster, enabled }: Props) => {
                       <Text fontSize="2xs" color="gray.400">(click)</Text>
                     </HStack>
                   </Collapsible.Trigger>
-                <Collapsible.Content>
-                  <VStack align="start" mt={2} gap={1} maxH="150px" overflowY="auto" pl={2} borderLeftWidth="2px" borderColor="orange.200">
-                    {staleNodesList.map(({ node, ageMinutes }) => (
-                      <HStack key={node} gap={2} fontSize="xs">
+                  <Collapsible.Content>
+                    <VStack align="start" mt={2} gap={1} maxH="150px" overflowY="auto" pl={2} borderLeftWidth="2px" borderColor="orange.200">
+                      {staleNodesList.map(({ node, ageMinutes }) => (
+                        <HStack key={node} gap={2} fontSize="xs">
+                          <Text
+                            fontWeight="medium"
+                            color="orange.700"
+                            cursor="pointer"
+                            _hover={{ textDecoration: 'underline' }}
+                            onClick={() => navigate(`/${cluster}/nodes/${node}`)}
+                          >
+                            {node}
+                          </Text>
+                          <Text color="gray.500">
+                            {ageMinutes}m ago
+                          </Text>
+                        </HStack>
+                      ))}
+                    </VStack>
+                  </Collapsible.Content>
+                </Collapsible.Root>
+              ) : (
+                <Text fontSize="xs" color="gray.500">No stale nodes</Text>
+              )}
+              {missingNodes > 0 && (
+                <Collapsible.Root>
+                  <Collapsible.Trigger asChild>
+                    <HStack gap={1} cursor="pointer" _hover={{ color: 'red.700' }}>
+                      <Text fontSize="xs" color="gray.500">Non-reporting:</Text>
+                      <Badge colorPalette="red" size="xs">{missingNodes}</Badge>
+                      <Text fontSize="2xs" color="gray.400">(click)</Text>
+                    </HStack>
+                  </Collapsible.Trigger>
+                  <Collapsible.Content>
+                    <VStack align="start" mt={2} gap={1} maxH="150px" overflowY="auto" pl={2} borderLeftWidth="2px" borderColor="red.200">
+                      {missingNodesList.map(node => (
                         <Text
+                          key={node}
+                          fontSize="xs"
                           fontWeight="medium"
-                          color="orange.700"
+                          color="red.700"
                           cursor="pointer"
                           _hover={{ textDecoration: 'underline' }}
                           onClick={() => navigate(`/${cluster}/nodes/${node}`)}
                         >
                           {node}
                         </Text>
-                        <Text color="gray.500">
-                          {ageMinutes}m ago
-                        </Text>
-                      </HStack>
-                    ))}
-                  </VStack>
-                </Collapsible.Content>
-              </Collapsible.Root>
-            ) : (
-              <Text fontSize="xs" color="gray.500">No stale nodes</Text>
-            )}
-            {missingNodes > 0 && (
-              <Collapsible.Root>
-                <Collapsible.Trigger asChild>
-                  <HStack gap={1} cursor="pointer" _hover={{ color: 'red.700' }}>
-                    <Text fontSize="xs" color="gray.500">Non-reporting:</Text>
-                    <Badge colorPalette="red" size="xs">{missingNodes}</Badge>
-                    <Text fontSize="2xs" color="gray.400">(click)</Text>
-                  </HStack>
-                </Collapsible.Trigger>
-                <Collapsible.Content>
-                  <VStack align="start" mt={2} gap={1} maxH="150px" overflowY="auto" pl={2} borderLeftWidth="2px" borderColor="red.200">
-                    {missingNodesList.map(node => (
-                      <Text
-                        key={node}
-                        fontSize="xs"
-                        fontWeight="medium"
-                        color="red.700"
-                        cursor="pointer"
-                        _hover={{ textDecoration: 'underline' }}
-                        onClick={() => navigate(`/${cluster}/nodes/${node}`)}
-                      >
-                        {node}
-                      </Text>
-                    ))}
-                  </VStack>
-                </Collapsible.Content>
-              </Collapsible.Root>
-            )}
+                      ))}
+                    </VStack>
+                  </Collapsible.Content>
+                </Collapsible.Root>
+              )}
             </HStack>
           </VStack>
         </VStack>

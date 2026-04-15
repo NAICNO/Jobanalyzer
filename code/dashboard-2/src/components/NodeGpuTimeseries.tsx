@@ -61,10 +61,9 @@ function toUtilSeries(data: GetClusterByClusterNodesByNodenameGpuTimeseriesRespo
   }
 }
 
-function GpuChart({ data, gpuLabels, yLabel, yDomain, yFormatter, title }: {
+function GpuChart({ data, gpuLabels, yDomain, yFormatter, title }: {
   data: GpuDataPoint[]
   gpuLabels: string[]
-  yLabel: string
   yDomain: [number, number] | [string, string]
   yFormatter: (v: number) => string
   title: string
@@ -142,9 +141,9 @@ export const NodeGpuTimeseries = ({ cluster, nodename, initialCollapsed = false,
                 )}
                 {!isLoading && !isError && hasData && (
                   <VStack w="100%" gap={4}>
-                    <GpuChart data={utilData} gpuLabels={gpuLabels} title="Compute Utilization" yLabel="%" yDomain={[0, 100]} yFormatter={(v) => `${v}%`} />
-                    <GpuChart data={memData} gpuLabels={gpuLabels} title="Memory Utilization" yLabel="%" yDomain={[0, 100]} yFormatter={(v) => `${v}%`} />
-                    <GpuChart data={tempData} gpuLabels={gpuLabels} title="Temperature" yLabel="°C" yDomain={['auto', 'auto']} yFormatter={(v) => `${v}°C`} />
+                    <GpuChart data={utilData} gpuLabels={gpuLabels} title="Compute Utilization" yDomain={[0, 100]} yFormatter={(v) => `${v}%`} />
+                    <GpuChart data={memData} gpuLabels={gpuLabels} title="Memory Utilization" yDomain={[0, 100]} yFormatter={(v) => `${v}%`} />
+                    <GpuChart data={tempData} gpuLabels={gpuLabels} title="Temperature" yDomain={['auto', 'auto']} yFormatter={(v) => `${v}°C`} />
                   </VStack>
                 )}
                 {!isLoading && !isError && !hasData && (

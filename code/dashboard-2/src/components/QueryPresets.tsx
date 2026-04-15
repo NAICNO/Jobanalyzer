@@ -328,7 +328,7 @@ export const QueryPresets = ({
                       <Icon fontSize="sm">
                         <LuRefreshCw />
                       </Icon>
-                      Update "{activePreset?.name}"
+                      Update &quot;{activePreset?.name}&quot;
                     </Box>
                   )}
 
