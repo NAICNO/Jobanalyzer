@@ -146,3 +146,6 @@ dist
 .npmrc
 .yarnrc.yml
 .yarn
+
+# Local cluster configuration (copy from clusters.sample.json)
+public/clusters.json

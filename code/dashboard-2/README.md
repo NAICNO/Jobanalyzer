@@ -176,7 +176,13 @@ The dev server starts at `http://localhost:5173` (auto-increments if the port is
 
 ## Configuration
 
-All cluster and API configuration is driven by `public/clusters.json`. Each entry defines a cluster with its API base URL and optional OIDC authentication endpoints:
+All cluster and API configuration is driven by `public/clusters.json`. This file is **not committed to the repository** — create it by copying the provided sample:
+
+```sh
+cp public/clusters.sample.json public/clusters.json
+```
+
+Then edit `clusters.json` to point to your cluster APIs and identity providers. Each entry defines a cluster with its API base URL and optional OIDC authentication endpoints:
 
 ```json
 {
@@ -239,8 +245,9 @@ src/
   types/           # TypeScript type definitions
   utils/           # Utility functions (formatters, transformers)
 public/
-  clusters.json    # Cluster definitions (runtime config)
-  images/          # Static images and icons
+  clusters.json         # Cluster definitions (runtime config, gitignored — copy from sample)
+  clusters.sample.json  # Sample cluster config to use as a starting point
+  images/               # Static images and icons
 ```
 
 ## Scripts
