@@ -37,10 +37,6 @@
 //  If present, this specifies a database access point.  The database is used for data access rather
 //  than the data/ subdirectory of the jobanalyzer directory.
 //
-// -port <port-number>
-//
-//   This is an optional argument.  It is the port number on which to listen, the default is 8087.
-//
 // -analysis-auth <filename>
 // -password-file <filename>
 //
@@ -55,24 +51,11 @@
 //   header.  (If the connection is not HTTPS then the password may have been intercepted in
 //   transit.)
 //
-// -match-user-and-cluster
-//
-//   Optional but *strongly* recommended argument.  If set, and -upload-auth is also provided, then
-//   the user name provided by the HTTP connection must match the cluster name in the data packet or
-//   query string.  The effect is to make it possible for each cluster to have its own
-//   username:password pair and for one cluster not to be able to upload data for another.
-//
 // -cache <size>
 //
 //   Cache raw or parboiled data in memory between operations.  The size is expressed as nnM
 //   (megabytes) or nnG (gigabytes).  A sensible size *might* be about 256MB per 100 (slurm) nodes
 //   per week.
-//
-// -no-add
-//
-//   This disables the /add, /sysinfo and /sonar-freecsv endpoints and the options -upload-auth and
-//   -match-user-and-cluster.  The implication is that we're either running on a read-only database
-//   or we're using -kafka to handle all ingestion.
 //
 // -kafka <broker-address>
 //
@@ -82,9 +65,18 @@
 //
 // -rest-api <interface>
 //
-//   EXPERIMENTAL.  The daemon will present a subset of the slurm-monitor REST API v2 on the given
-//   interface (in the form interface:port, e.g. "localhost:8888").  Access the /openapi.json or
-//   /openapi.yaml endpoint on that interface to retrieve API documentation.
+//   The daemon will present various APIs on the given interface (in the form interface:port,
+//   e.g. "localhost:8888").  Access the /openapi.json or /openapi.yaml endpoint on that interface
+//   to retrieve API documentation.  Normally under /api/v0 there will be the old sonalyze API (so
+//   /api/v0/jobs corresponds to the old /jobs API), under /api/v1 there will be a "clean" API more
+//   or less aligned with the v0 API but with clean JSON output and not the idiosyncrasies of v0,
+//   and under /api/v2 there is a subset of the slurm-monitor REST API v2.
+//
+// -insert
+//
+//   Enable the /api/v1/insert points in the REST API.  Normally this API is enabled only when
+//   running without a -database-uri and without -kafka (though it is not incompatible with the
+//   latter).
 //
 // Termination:
 //
@@ -107,7 +99,6 @@ package daemon
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
 	"io"
 
@@ -118,7 +109,6 @@ import (
 const (
 	defaultListenPort = 8087
 	logTag            = "jobanalyzer/sonalyze"
-	authRealm         = "Jobanalyzer remote access"
 )
 
 // MT: Immutable (no mutator operations) and thread-safe.
@@ -129,13 +119,12 @@ type DaemonCommand struct {
 	DevArgs
 	VerboseArgs
 	DatabaseArgs
-	port                uint
 	getAuthFile         string
 	postAuthFile        string
 	matchUserAndCluster bool
 	kafkaBroker         string
-	noAdd               bool
-	restAPI2            string
+	restAPI             string
+	insert              bool
 
 	getAuthenticator  *auth.Authenticator
 	postAuthenticator *auth.Authenticator
@@ -153,14 +142,13 @@ func (dc *DaemonCommand) Add(fs *CLI) {
 	dc.VerboseArgs.Add(fs)
 	dc.DatabaseArgs.Add(fs, DBArgOptions{RequireFullDatabase: true})
 	fs.Group("daemon-configuration")
-	fs.UintVar(&dc.port, "port", defaultListenPort, "Listen for connections on `port`")
 	fs.StringVar(&dc.getAuthFile, "analysis-auth", "", "Authentication info `filename` for analysis access")
 	fs.StringVar(&dc.postAuthFile, "upload-auth", "", "Authentication info `filename` for data upload access")
 	fs.BoolVar(&dc.matchUserAndCluster, "match-user-and-cluster", false, "Require user name to match cluster name")
 	fs.StringVar(&dc.getAuthFile, "password-file", "", "Alias for -analysis-auth")
 	fs.StringVar(&dc.kafkaBroker, "kafka", "", "Ingest data from this broker for all known clusters")
-	fs.BoolVar(&dc.noAdd, "no-add", false, "Disable HTTPS ingestion")
-	fs.StringVar(&dc.restAPI2, "rest-api", "", "Enable subset slurm-monitor API v2 on this interface:port")
+	fs.StringVar(&dc.restAPI, "rest-api", "", "Serve /api/v0, /api/v1 and /api/v2 on this interface:port")
+	fs.BoolVar(&dc.insert, "insert", false, "Enable the /api/v1/insert points")
 }
 
 //go:embed summary.txt
@@ -171,27 +159,30 @@ func (dc *DaemonCommand) Summary(out io.Writer) {
 }
 
 func (dc *DaemonCommand) Validate() error {
-	var e1, e2, e4, e5, e7, e8 error
-	e1 = dc.DevArgs.Validate()
-	e2 = dc.VerboseArgs.Validate()
+	if err := dc.DevArgs.Validate(); err != nil {
+		return err
+	}
+	if err := dc.VerboseArgs.Validate(); err != nil {
+		return err
+	}
 	if dc.getAuthFile != "" {
-		dc.getAuthenticator, e4 = auth.ReadPasswords(dc.getAuthFile)
-		if e4 != nil {
-			e4 = fmt.Errorf("Failed to read analysis authentication file: %v", e4)
+		var err error
+		dc.getAuthenticator, err = auth.ReadPasswords(dc.getAuthFile)
+		if err != nil {
+			return fmt.Errorf("Failed to read analysis authentication file: %v", err)
 		}
 	}
 	if dc.postAuthFile != "" {
-		dc.postAuthenticator, e5 = auth.ReadPasswords(dc.postAuthFile)
-		if e5 != nil {
-			return fmt.Errorf("Failed to read upload authentication file: %v", e5)
+		var err error
+		dc.postAuthenticator, err = auth.ReadPasswords(dc.postAuthFile)
+		if err != nil {
+			return fmt.Errorf("Failed to read upload authentication file: %v", err)
 		}
 	}
-	if dc.noAdd {
-		if dc.matchUserAndCluster || dc.postAuthFile != "" {
-			e8 = errors.New("The -no-add switch precludes https upload parameters")
-		}
+	if dc.insert && dc.DatabaseURI() != "" {
+		return fmt.Errorf("Can't have both -database-uri and -insert")
 	}
-	return errors.Join(e1, e2, e4, e5, e7, e8)
+	return nil
 }
 
 func (dc *DaemonCommand) ReifyForRemote(x *ArgReifier) error {

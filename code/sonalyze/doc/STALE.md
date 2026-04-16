@@ -63,27 +63,7 @@ values, in the manner of `-f1w`; it must be `-f 1w`.
 
 ### Data insertion operations
 
-The `add` operation is obsolete but still available.  It will be removed.
-
-The `add` operation is used to ingest data into the database.  In addition to an option
-`--data-path` that identifies the cluster directory, the main mode identifies the type of data.  The
-data are self-identifying and are always read from stdin.  The data are always in older Sonar
-formats (still supported by sonalyze, but considered obsolete and should not be used).
-
-`--sample`
-
-  The data are "free CSV" data coming from `sonar ps`, representing samples for one or more systems, zero
-  or more records
-
-`--sysinfo`
-
-  The data are old-format JSON sysinfo data coming from `sonar sysinfo`, identifying one particular
-  system, one record exactly.
-
-`--slurm-sacct`
-
-  The data are "free CSV" data coming from `sacctd`, which extracts data from the Slurm databases
-  using `sacct`.
+(Not currently supported, the old "add" command was removed.)
 
 ### Analysis and data extraction operations
 

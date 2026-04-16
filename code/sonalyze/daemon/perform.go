@@ -1,36 +1,22 @@
-// See ../TECHNICAL.md for a definition of the protocol.
+// See ../doc/TECHNICAL.md for a definition of the protocol.
 //
-// When adding a new command to the daemon, several points in this file have to be updated:
-//
-// - a new handler has to be installed in RunDaemon()
-// - any special argument construction has to be created in httpGetHandler() (several places) or
-//   httpPostHandler()
-// - any local-only arguments that should never be forwarded need to be added to the blacklist
-//   in argOk()
-//
-// In addition, due to the structure of the URL syntax, a new command point may need to be added to
-// the HTTP server's configuration file.
+// When adding a new command to the daemon, several points in the API implementations have to be
+// updated, see comments in the subdirectories.
 
 package daemon
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log/syslog"
-	"net/http"
-	"net/url"
-	"path"
-	"strings"
 	"syscall"
 
-	"go-utils/auth"
-	"go-utils/httpsrv"
 	"go-utils/process"
-	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/daemon/api0"
+	"sonalyze/daemon/api1"
 	"sonalyze/daemon/api2"
+	"sonalyze/daemon/apiutil"
 	"sonalyze/db"
 	"sonalyze/db/special"
 )
@@ -68,400 +54,29 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 		}
 	}
 
-	// Note "daemon" is not a command here
-	if !dc.noAdd {
-		http.HandleFunc("/add", httpAddHandler(dc))
-	}
-	// Keep these alphabetical.
-	//
-	// WHEN UPDATING THESE, ALSO UPDATE SWITCH IN ../application/command.go, HELP TEXT IN THE SAME
-	// PLACE, AND ANY WEB SERVER CONFIG.
-	http.HandleFunc("/card", httpGetHandler(dc, "card"))
-	http.HandleFunc("/cluster", httpGetHandler(dc, "cluster"))
-	http.HandleFunc("/config", httpGetHandler(dc, "config"))
-	http.HandleFunc("/diskprof", httpGetHandler(dc, "diskprof"))
-	http.HandleFunc("/gpu", httpGetHandler(dc, "gpu"))
-	http.HandleFunc("/jobs", httpGetHandler(dc, "jobs"))
-	http.HandleFunc("/load", httpGetHandler(dc, "load"))
-	http.HandleFunc("/metadata", httpGetHandler(dc, "metadata"))
-	http.HandleFunc("/node", httpGetHandler(dc, "node"))
-	http.HandleFunc("/nodeprof", httpGetHandler(dc, "nodeprof"))
-	http.HandleFunc("/parse", httpGetHandler(dc, "sample"))
-	http.HandleFunc("/profile", httpGetHandler(dc, "profile"))
-	http.HandleFunc("/report", httpGetHandler(dc, "report"))
-	http.HandleFunc("/sacct", httpGetHandler(dc, "sacct"))
-	http.HandleFunc("/sample", httpGetHandler(dc, "sample"))
-	http.HandleFunc("/snode", httpGetHandler(dc, "snode"))
-	http.HandleFunc("/spart", httpGetHandler(dc, "spart"))
-	// Omitting `top` for now because it is very limited.
-	http.HandleFunc("/uptime", httpGetHandler(dc, "uptime"))
-	http.HandleFunc("/version", httpGetHandler(dc, "version"))
-	if !dc.noAdd {
-		// These request names are compatible with the older `infiltrate` and `sonalyzed`, and with the
-		// upload infra already running on the clusters.  We'd like to get rid of them eventually.
-		http.HandleFunc("/sonar-freecsv", httpPostHandler(dc, "sample", "text/csv"))
-		http.HandleFunc("/sysinfo", httpPostHandler(dc, "sysinfo", "application/json"))
-	}
-
-	if dc.restAPI2 != "" {
-		api2.StartRestAPI(dc.restAPI2)
-	}
-
-	var programFailed bool
-	s := httpsrv.New(Verbose, int(dc.port), func(err error) {
-		programFailed = true
-	})
-	go s.Start()
-
-	// Wait here until we're stopped by SIGHUP (manual) or SIGTERM (from OS during shutdown).
-	//
-	// TODO: IMPROVEME: For SIGHUP, we should not exit but should instead reread the password file,
-	// the cluster aliases file, and the configuration files (we could purge the config object
-	// cache).  Really we must be purging the entire LogFile cache in this case too.
-	process.WaitForSignal(syscall.SIGHUP, syscall.SIGTERM)
-	s.Stop()
-	if dc.restAPI2 != "" {
-		api2.StopRestAPI()
-	}
-
-	if programFailed {
-		return errors.New("HTTP server failed to start, or errored out")
-	}
-	return nil
-}
-
-// HTTP handlers
-//
-// Documented behavior: the server will close the request body, we don't need to do it.
-//
-// I can find no documentation about needing to consume the body in case of an early (error)
-// return, nor anything obvious in the net/http source code to indicate this, nor has google
-// turned up anything.  So request handler code assumes it's not necessary.
-
-func httpGetHandler(
-	dc *DaemonCommand,
-	command string,
-) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		_, _, _, ok :=
-			requestPreamble(dc, command, w, r, "GET", dc.getAuthenticator, authRealm, "")
-		if !ok {
-			return
-		}
-
-		verb := command
-		arguments := []string{
-			"-jobanalyzer-dir",
+	if dc.restAPI != "" {
+		api := apiutil.CreateAPI(dc.restAPI)
+		api0.SetupAPI(
+			api,
 			dc.JobanalyzerDir(),
-		}
-
-		for name, vs := range r.URL.Query() {
-			if why := argOk(command, name); why != "" {
-				w.WriteHeader(400)
-				fmt.Fprintf(w, "Bad parameter %s: %s", name, why)
-				if Verbose {
-					Log.Warningf("Bad parameter %s: %s", name, why)
-				}
-				return
-			}
-
-			// Repeats are OK, the commands allow them in a number of cases.
-			//
-			// Booleans carry the regular true/false values or, for backward compatibility, the old
-			// MagicBoolean value.  See comments in ../command/reify.go.
-
-			for _, v := range vs {
-				// The MagicBoolean is handled by transforming it to "true", for uniformity.
-				if v == MagicBoolean {
-					v = "true"
-				}
-				// Go requires "=" between parameter and name for boolean params, but allows it for
-				// every type, so do it uniformly.
-				arguments = append(arguments, "-"+name+"="+v)
-			}
-		}
-
-		stdout, ok := runSonalyze(dc, w, verb, arguments, []byte{})
-		if !ok {
-			return
-		}
-
-		w.WriteHeader(200)
-		fmt.Fprint(w, stdout)
-	}
-}
-
-func parseAddQuery(query url.Values, name string) (isSet bool, err error) {
-	vs, isName := query[name]
-	if !isName {
-		return
-	}
-	if len(vs) == 1 {
-		switch vs[0] {
-		case "true", MagicBoolean:
-			isSet = true
-			return
-		case "false":
-			return
-		}
-	}
-	err = fmt.Errorf("Bad `%s` parameter", name)
-	return
-}
-
-func httpAddHandler(dc *DaemonCommand) func(http.ResponseWriter, *http.Request) {
-	forSample := httpPostHandler(dc, "sample", "text/csv")
-	forSlurmSacct := httpPostHandler(dc, "slurm-sacct", "text/csv")
-	forSysinfo := httpPostHandler(dc, "sysinfo", "application/json")
-	return func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
-		isSample, e1 := parseAddQuery(query, "sample")
-		isSysinfo, e2 := parseAddQuery(query, "sysinfo")
-		isSlurmSacct, e3 := parseAddQuery(query, "slurm-sacct")
-		n := 0
-		if isSample {
-			n++
-		}
-		if isSysinfo {
-			n++
-		}
-		if isSlurmSacct {
-			n++
-		}
-		var e4 error
-		if n != 1 {
-			e4 = errors.New("Need exactly one of `-sample`, `-sysinfo`, or `-slurm-sacct`")
-		}
-		if err := errors.Join(e1, e2, e3, e4); err != nil {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "Bad operation: %s", err.Error())
-			if Verbose {
-				Log.Warningf("Bad operation: %s", err.Error())
-			}
-			return
-		}
-		switch {
-		case isSample:
-			forSample(w, r)
-		case isSysinfo:
-			forSysinfo(w, r)
-		case isSlurmSacct:
-			forSlurmSacct(w, r)
-		default:
-			panic("Unexpected")
-		}
-	}
-}
-
-func httpPostHandler(
-	dc *DaemonCommand,
-	dataType string,
-	contentType string,
-) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		payload, userName, clusterName, ok :=
-			requestPreamble(dc, "add", w, r, "POST", dc.postAuthenticator, "", contentType)
-		if !ok {
-			return
-		}
-
-		if dc.matchUserAndCluster && userName != "" && clusterName != userName {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "Upload not authorized")
-			if Verbose {
-				Log.Warningf("Upload not authorized")
-			}
-			return
-		}
-
-		verb := "add"
-		arguments := []string{
-			"-" + dataType,
-			"-jobanalyzer-dir",
-			dc.JobanalyzerDir(),
-			"-cluster",
-			clusterName,
-		}
-
-		stdout, ok := runSonalyze(dc, w, verb, arguments, payload)
-		if !ok {
-			return
-		}
-
-		w.WriteHeader(200)
-		fmt.Fprint(w, stdout)
-	}
-}
-
-func requestPreamble(
-	dc *DaemonCommand,
-	command string,
-	w http.ResponseWriter,
-	r *http.Request,
-	method string,
-	authenticator *auth.Authenticator,
-	realm string,
-	contentType string,
-) (payload []byte, userName, clusterName string, ok bool) {
-	if Verbose {
-		// Header reveals auth info, don't put it into logs
-		Log.Infof("Request from %s: %v", r.RemoteAddr, r.URL.String())
-	}
-
-	if !httpsrv.AssertMethod(w, r, method, Verbose) {
-		return
-	}
-
-	authOk, userName := httpsrv.Authenticate(w, r, authenticator, realm, Verbose)
-	if !authOk {
-		return
-	}
-
-	payload, havePayload := httpsrv.ReadPayload(w, r, Verbose)
-	if !havePayload {
-		return
-	}
-
-	if contentType != "" {
-		if !httpsrv.AssertContentType(w, r, contentType, Verbose) {
-			return
-		}
-	}
-
-	clusterValues, found := r.URL.Query()["cluster"]
-	if command != "cluster" && command != "version" {
-		if !found || len(clusterValues) != 1 || clusterValues[0] == "" {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "Bad parameters - missing or empty or repeated 'cluster'")
-			if Verbose {
-				Log.Warningf("Bad parameters - missing or empty or repeated 'cluster'")
-			}
-			return
-		}
-		clusterName = special.ResolveClusterName(clusterValues[0])
-	} else {
-		if found {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "Bad parameters - illegal 'cluster'")
-			if Verbose {
-				Log.Warningf("Bad parameters - illegal 'cluster'")
-			}
-			return
-		}
-	}
-
-	ok = true
-	return
-}
-
-func runSonalyze(
-	dc *DaemonCommand,
-	w http.ResponseWriter,
-	verb string,
-	arguments []string,
-	input []byte,
-) (stdout string, ok bool) {
-	//Log.Warningf("%s %v", verb, arguments)
-	cmdName := "<sonalyze>"
-
-	// Run the command and report the result
-
-	if Verbose {
-		Log.Infof(
-			"Command: %s %s",
-			path.Join(dc.JobanalyzerDir(), cmdName),
-			verb+" "+strings.Join(arguments, " "),
+			dc.DatabaseURI(),
+			dc.cmdlineHandler,
+			dc.getAuthenticator,
 		)
+		api1.SetupAPI(
+			api,
+			dc.insert,
+			dc.postAuthenticator,
+		)
+		api2.SetupAPI(api)
+		apiutil.RunAPI()
 	}
 
-	anyCmd, _ := dc.cmdlineHandler.ParseVerb(cmdName, verb)
-	if anyCmd == nil {
-		errResponse(w, 400, fmt.Errorf("Bad verb in daemon-dispatched command: %s", verb), "")
-		return
-	}
-	fs := NewCLI(verb, anyCmd, cmdName, false)
-	err := dc.cmdlineHandler.ParseArgs(verb, arguments, anyCmd, fs)
-	if err != nil {
-		errResponse(w, 400, err, "")
-		return
+	process.WaitForSignal(syscall.SIGHUP, syscall.SIGTERM)
+
+	if dc.restAPI != "" {
+		apiutil.StopAPI()
 	}
 
-	// The -cpuprofile option is ignored here, it should have forced ParseArgs to error out.
-
-	var stdoutBuf, stderrBuf strings.Builder
-	err = dc.cmdlineHandler.HandleCommand(anyCmd, bytes.NewReader(input), &stdoutBuf, &stderrBuf)
-	stdout = stdoutBuf.String()
-	stderr := stderrBuf.String()
-	if err != nil {
-		errResponse(w, 400, err, stderr)
-		return
-	}
-	if stderr != "" {
-		Log.Warningf(stderr, "")
-	}
-
-	ok = true
-	return
-}
-
-func errResponse(w http.ResponseWriter, code int, err error, stderr string) {
-	w.WriteHeader(code)
-	fmt.Fprint(w, err.Error())
-	if stderr != "" {
-		fmt.Fprint(w, "\n", stderr)
-	}
-	if Verbose {
-		Log.Warningf("ERROR: %v", err)
-	}
-}
-
-// Disallow argument names that are malformed or are specific values.  This is not fabulous but
-// maintaining a whitelist is a lot of work.
-
-func argOk(command, arg string) string {
-	// Args are alphabetic and lower-case only, except - is allowed except in the first position
-	for i, c := range arg {
-		switch {
-		case c >= 'a' && c <= 'z':
-			// OK
-		case c == '-' && i > 0:
-			// OK
-		default:
-			return "Bad character"
-		}
-	}
-
-	// Disallow short options (pretty primitive)
-	// Except -q, good grief.
-	if len(arg) <= 1 && arg != "q" {
-		return "Short option"
-	}
-
-	// Specific names are excluded, for now, the names in the comments relate to structure names in
-	// sonalyze/src/sonalyze.rs or sonalyze/command/args.go.
-	switch arg {
-	case "cpuprofile":
-		// DevArgs (go)
-		return "Developer arg"
-	case "data-path", "data-dir":
-		// SourceArgs (rust), DataDirArgs (go)
-		return "Local arg"
-	case "remote", "auth-file":
-		// SourceArgs
-		return "Source arg"
-	case "config-file":
-		// ConfigFileArgs
-		return "Config arg"
-	case "report-dir":
-		// ReportCommand
-		return "Local arg"
-	case "verbose", "v":
-		// VerboseArgs
-		return "Developer arg"
-	case "raw":
-		// MetaArgs (rust)
-		return "Meta arg"
-	default:
-		return ""
-	}
+	return nil
 }

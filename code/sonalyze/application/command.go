@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"sonalyze/cmd"
-	"sonalyze/cmd/add"
 	"sonalyze/cmd/cards"
 	"sonalyze/cmd/clusters"
 	"sonalyze/cmd/configs"
@@ -31,7 +30,6 @@ import (
 
 func CommandHelp(out io.Writer) {
 	// Keep these alphabetical.
-	fmt.Fprintf(out, "  add      - (obsolete) add old-format(!) data to the database\n")
 	fmt.Fprintf(out, "  card     - print card information extracted from sysinfo table\n")
 	fmt.Fprintf(out, "  cluster  - print cluster information\n")
 	fmt.Fprintf(out, "  config   - print node information extracted from cluster config\n")
@@ -56,12 +54,9 @@ func CommandHelp(out io.Writer) {
 
 // Keep these alphabetical
 //
-// WHEN UPDATING THESE, ALSO UPDATE THE HELP ABOVE, HTTP HANDLERS IN ../daemon/perform.go,
-// AND ANY WEB SERVER CONFIG.
+// WHEN UPDATING THESE, ALSO UPDATE THE HELP ABOVE and API HANDLERS IN ../daemon/api0/api0.go.
 func ConstructCommand(verb string) (command cmd.Command, actualVerb string) {
 	switch verb {
-	case "add":
-		command = new(add.AddCommand)
 	case "card":
 		command = new(cards.CardCommand)
 	case "cluster":

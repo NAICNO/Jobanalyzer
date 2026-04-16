@@ -15,7 +15,6 @@ import (
 	"time"
 
 	. "sonalyze/cmd"
-	"sonalyze/cmd/add"
 	. "sonalyze/common"
 )
 
@@ -97,23 +96,7 @@ func RemoteOperation(rCmd Command, verb string, stdin io.Reader, stdout, stderr 
 		curlArgs = append(curlArgs, "-u", fmt.Sprintf("%s:%s", username, password))
 	}
 
-	switch cmd := rCmd.(type) {
-	case *add.AddCommand:
-		// This turns into a POST with data coming from the standard DataSource
-		var contentType string
-		switch {
-		case cmd.Sample, cmd.SlurmSacct:
-			contentType = "text/csv"
-		case cmd.Sysinfo:
-			contentType = "application/json"
-		default:
-			panic("Unknown state of AddCommand")
-		}
-		curlArgs = append(
-			curlArgs,
-			"--data-binary", "@-",
-			"-H", "Content-Type: "+contentType,
-		)
+	switch rCmd.(type) {
 	case SampleAnalysisCommand:
 		curlArgs = append(curlArgs, "--get")
 	case SimpleCommand:
@@ -123,7 +106,7 @@ func RemoteOperation(rCmd Command, verb string, stdin io.Reader, stdout, stderr 
 	default:
 		panic("Unimplemented")
 	}
-	curlArgs = append(curlArgs, rCmd.RemoteHost()+"/"+verb+"?"+r.EncodedArguments())
+	curlArgs = append(curlArgs, rCmd.RemoteHost()+"/api/v0/"+verb+"?"+r.EncodedArguments())
 
 	if Verbose {
 		Log.Infof(
