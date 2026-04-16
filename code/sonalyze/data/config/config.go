@@ -102,14 +102,12 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 	}
 
 	err := cdp.populateCache(QueryArgs{
-		QueryFilter: QueryFilter{
-			QueryFilter: common.QueryFilter{
-				HaveFrom: true,
-				FromDate: time.Unix(t-(60*60*24*14), 0).UTC(),
-				HaveTo:   true,
-				ToDate:   time.Unix(t, 0).UTC(),
-				Host:     []string{host.String()}, // groan!!!
-			},
+		QueryFilter: common.QueryFilter{
+			HaveFrom: true,
+			FromDate: time.Unix(t-(60*60*24*14), 0).UTC(),
+			HaveTo:   true,
+			ToDate:   time.Unix(t, 0).UTC(),
+			Host:     []string{host.String()}, // groan!!!
 		},
 	})
 	if err == nil {
@@ -149,7 +147,6 @@ func (cdb *ConfigDataProvider) AvailableHosts(fromDate, toDate time.Time) (map[s
 		fromDate,
 		toDate,
 		nil,
-		false,
 	)
 	if err != nil {
 		return nil, err
@@ -169,10 +166,7 @@ func (cdb *ConfigDataProvider) AvailableHosts(fromDate, toDate time.Time) (map[s
 	return nodenames, nil
 }
 
-type QueryFilter struct {
-	common.QueryFilter
-	Verbose bool
-}
+type QueryFilter = common.QueryFilter
 
 type QueryArgs struct {
 	QueryFilter
@@ -256,7 +250,6 @@ func (cdp *ConfigDataProvider) RawQuery(qa QueryFilter) ([]*RawConfigData, error
 			ToDate:   qa.ToDate,
 			Host:     qa.Host,
 		},
-		qa.Verbose,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)
@@ -269,7 +262,6 @@ func (cdp *ConfigDataProvider) RawQuery(qa QueryFilter) ([]*RawConfigData, error
 			ToDate:   qa.ToDate,
 			Host:     qa.Host,
 		},
-		qa.Verbose,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)
@@ -513,27 +505,23 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 
 		if fromTime < perHost.oldestScannedTime {
 			worklist = append(worklist, QueryArgs{
-				QueryFilter: QueryFilter{
-					QueryFilter: common.QueryFilter{
-						HaveFrom: true,
-						FromDate: time.Unix(fromTime-twoWeeks, 0).UTC(),
-						HaveTo:   true,
-						ToDate:   time.Unix(perHost.oldestScannedTime, 0).UTC(),
-						Host:     []string{hn},
-					},
+				QueryFilter: common.QueryFilter{
+					HaveFrom: true,
+					FromDate: time.Unix(fromTime-twoWeeks, 0).UTC(),
+					HaveTo:   true,
+					ToDate:   time.Unix(perHost.oldestScannedTime, 0).UTC(),
+					Host:     []string{hn},
 				},
 			})
 		}
 		if !newRecord && toTime > perHost.youngestRecord && now-perHost.lastScan > oneHour {
 			worklist = append(worklist, QueryArgs{
-				QueryFilter: QueryFilter{
-					QueryFilter: common.QueryFilter{
-						HaveFrom: true,
-						FromDate: time.Unix(perHost.youngestRecord, 0).UTC(),
-						HaveTo:   true,
-						ToDate:   nowt,
-						Host:     []string{hn},
-					},
+				QueryFilter: common.QueryFilter{
+					HaveFrom: true,
+					FromDate: time.Unix(perHost.youngestRecord, 0).UTC(),
+					HaveTo:   true,
+					ToDate:   nowt,
+					Host:     []string{hn},
 				},
 			})
 		}

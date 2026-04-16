@@ -40,7 +40,7 @@ func LocalSampleOperation(
 	filter.Job = args.RecordFilterArgs.Job
 	filter.ExcludeJob = args.RecordFilterArgs.ExcludeJob
 
-	hosts, recordFilter, err := sample.BuildSampleFilter(meta, filter, args.Verbose)
+	hosts, recordFilter, err := sample.BuildSampleFilter(meta, filter)
 	if err != nil {
 		return fmt.Errorf("Failed to create record filter: %v", err)
 	}

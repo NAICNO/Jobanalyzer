@@ -80,16 +80,15 @@ func (uc *UptimeCommand) Perform(
 			hosts,
 			recordFilter,
 			true,
-			uc.Verbose,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)
 	}
-	if uc.Verbose {
+	if Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
 		UstrStats(out, false)
 	}
-	if uc.Verbose {
+	if Verbose {
 		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
 		numSamples := 0
 		for _, stream := range streams {
@@ -99,7 +98,7 @@ func (uc *UptimeCommand) Perform(
 	}
 
 	samples := uslices.CatenateP(maps.Values(streams))
-	if uc.Verbose {
+	if Verbose {
 		Log.Infof("%d streams", len(streams))
 		Log.Infof("%d records after hack", len(samples))
 	}
@@ -136,7 +135,7 @@ func (uc *UptimeCommand) computeReports(
 		// If the host is down at the start, push out a record saying so.  Then we start in the "up"
 		// state always.
 		if !(hostFirst.Timestamp-fromIncl <= cutoff) {
-			if uc.Verbose {
+			if Verbose {
 				Log.Infof("  Down at start")
 			}
 			if !uc.OnlyUp {
@@ -152,7 +151,7 @@ func (uc *UptimeCommand) computeReports(
 
 		// If the host is down at the end, push out a record saying so.
 		if !(toIncl-hostLast.Timestamp <= cutoff) {
-			if uc.Verbose {
+			if Verbose {
 				Log.Infof("  Down at end")
 			}
 			if !uc.OnlyUp {
@@ -183,7 +182,7 @@ func (uc *UptimeCommand) computeReports(
 			// Now j points past the last record in the up window.  There's a chance here that start
 			// and end are the same value (only one sample between two "down" windows); nothing to
 			// be done about that.
-			if uc.Verbose {
+			if Verbose {
 				Log.Infof("  Up window %d..%d inclusive", windowStart, j-1)
 			}
 			if !uc.OnlyDown {
@@ -206,7 +205,7 @@ func (uc *UptimeCommand) computeReports(
 
 			// System went down in the window.  The window in which it is down is entirely between
 			// these two records.  The fact that there is a following record means it came up again.
-			if uc.Verbose {
+			if Verbose {
 				Log.Infof("  Down window %d..%d inclusive\n", j-1, j)
 			}
 			if !uc.OnlyUp {
@@ -292,7 +291,7 @@ func (uc *UptimeCommand) computeHostWindows(
 		}
 
 		// We have an included host and a window.
-		if uc.Verbose {
+		if Verbose {
 			Log.Infof("%s: %d..%d inclusive, i=%d", host, hostStart, hostEnd, i)
 		}
 

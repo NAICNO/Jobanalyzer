@@ -189,16 +189,15 @@ func (pc *ParseCommand) Perform(
 				hosts,
 				recordFilter,
 				pc.MergeByJob,
-				pc.Verbose,
 			)
 		if err != nil {
 			return fmt.Errorf("Failed to read log records: %v", err)
 		}
-		if pc.Verbose {
+		if Verbose {
 			Log.Infof("%d records read + %d dropped\n", read, dropped)
 			UstrStats(out, false)
 		}
-		if pc.Verbose {
+		if Verbose {
 			Log.Infof("Streams constructed by postprocessing: %d", len(streams))
 			numSamples := 0
 			for _, stream := range streams {
@@ -228,11 +227,11 @@ func (pc *ParseCommand) Perform(
 		}
 	} else {
 		// Bypass postprocessing to get the expected raw values.
-		recordBlobs, dropped, err := sdp.QueryRaw(pc.FromDate, pc.ToDate, hosts, pc.Verbose)
+		recordBlobs, dropped, err := sdp.QueryRaw(pc.FromDate, pc.ToDate, hosts)
 		if err != nil {
 			return fmt.Errorf("Failed to read log records: %v", err)
 		}
-		if pc.Verbose {
+		if Verbose {
 			Log.Infof("%d record blobs read + %d dropped\n", len(recordBlobs), dropped)
 			UstrStats(out, false)
 		}

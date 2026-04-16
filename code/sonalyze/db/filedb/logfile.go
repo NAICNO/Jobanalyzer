@@ -82,7 +82,6 @@ type ReadSyncMethods interface {
 		attr FileAttr,
 		input io.Reader,
 		uf *UstrCache,
-		verbose bool,
 	) (payload any, softErrors int, err error)
 
 	// Given data just read from the file, compute their nominal cache occupancy.  It is unspecified
@@ -189,7 +188,6 @@ func (lf *LogFile) AppendAsync(payload any) error {
 
 func (lf *LogFile) ReadSync(
 	uf *UstrCache,
-	verbose bool,
 	reader ReadSyncMethods,
 ) (data any, softErrors int, err error) {
 	lf.Lock()
@@ -223,7 +221,7 @@ func (lf *LogFile) ReadSync(
 			return
 		}
 		defer inputFile.Close()
-		payload, softErrors, err = reader.ReadDataLocked(lf.attrs, inputFile, uf, verbose)
+		payload, softErrors, err = reader.ReadDataLocked(lf.attrs, inputFile, uf)
 		if err != nil {
 			return
 		}

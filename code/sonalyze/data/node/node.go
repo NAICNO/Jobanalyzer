@@ -30,7 +30,6 @@ type QueryFilter = common.QueryFilter
 
 func (ndp *NodeDataProvider) Query(
 	filter QueryFilter,
-	verbose bool,
 ) ([]*repr.SysinfoNodeData, error) {
 	f, err := filter.Instantiate()
 	if err != nil {
@@ -42,7 +41,6 @@ func (ndp *NodeDataProvider) Query(
 			ToDate:   filter.ToDate,
 			Node:     f.HostFilter(),
 		},
-		verbose,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)
@@ -53,13 +51,11 @@ func (ndp *NodeDataProvider) Query(
 func (ndp *NodeDataProvider) QueryRaw(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
-	verbose bool,
 ) (recordBlobs [][]*repr.SysinfoNodeData, dropped int, err error) {
 	return ndp.theLog.ReadSysinfoNodeData(
 		types.DataProviderFilter{
 			FromDate: fromDate,
 			ToDate:   toDate,
 			Node:     hosts,
-		},
-		verbose)
+		})
 }

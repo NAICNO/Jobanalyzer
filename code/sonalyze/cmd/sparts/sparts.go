@@ -94,7 +94,6 @@ func (nc *SpartCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr 
 				HaveTo:   nc.HaveTo,
 				ToDate:   nc.ToDate,
 			},
-			nc.Verbose,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)

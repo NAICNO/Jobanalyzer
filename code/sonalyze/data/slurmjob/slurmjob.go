@@ -52,7 +52,6 @@ func OpenSlurmjobDataProvider(meta types.Context) (*SlurmjobDataProvider, error)
 
 func (sdp *SlurmjobDataProvider) Query(
 	filter QueryFilter,
-	verbose bool,
 ) ([]*SlurmJob, error) {
 	var users map[Ustr]bool
 	if len(filter.User) > 0 {
@@ -80,7 +79,6 @@ func (sdp *SlurmjobDataProvider) Query(
 			Jobs:     jobs,
 			Node:     node,
 		},
-		verbose,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)
@@ -88,7 +86,7 @@ func (sdp *SlurmjobDataProvider) Query(
 	// TODO: The catenation is expedient, we should be looping over the nested set (or in the
 	// future, using an iterator).
 	records := uslices.Catenate(recordBlobs)
-	if verbose {
+	if Verbose {
 		Log.Infof("%d records read + %d dropped", len(records), dropped)
 	}
 
@@ -117,7 +115,7 @@ func (sdp *SlurmjobDataProvider) Query(
 				recordFilter[key] = r
 			}
 		}
-		if verbose {
+		if Verbose {
 			Log.Infof("%d duplicate records dropped", len(records)-len(recordFilter))
 		}
 		records = umaps.Values(recordFilter)
@@ -125,7 +123,7 @@ func (sdp *SlurmjobDataProvider) Query(
 
 	// Group by job ID
 
-	if verbose {
+	if Verbose {
 		Log.Infof("Working with %d records", len(records))
 	}
 
@@ -162,21 +160,21 @@ func (sdp *SlurmjobDataProvider) Query(
 			cause[r.State]++
 		}
 	}
-	if verbose && mainLess > 0 {
+	if Verbose && mainLess > 0 {
 		// See above.  This does not happen often and should be the result of the main record just
 		// falling on the wrong side of some time quantum (weird) or having been dropped in transit
 		// (plausible).
 		Log.Infof("%d jobs dropped due to no main record present", mainLess)
 	}
 
-	if verbose {
+	if Verbose {
 		Log.Infof("%d jobs", len(byjob))
 		for k, v := range cause {
 			Log.Infof("  %s: %d", k.String(), v)
 		}
 	}
 
-	err = filterJobs(byjob, filter, verbose)
+	err = filterJobs(byjob, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -203,20 +201,19 @@ func stateVal(a Ustr) int {
 func FilterJobs(
 	jobs []*SlurmJob,
 	filter QueryFilter,
-	verbose bool,
 ) ([]*SlurmJob, error) {
 	byjob := make(map[uint32]*SlurmJob)
 	for _, j := range jobs {
 		byjob[j.Id] = j
 	}
-	err := filterJobs(byjob, filter, verbose)
+	err := filterJobs(byjob, filter)
 	if err != nil {
 		return nil, err
 	}
 	return umaps.Values(byjob), nil
 }
 
-func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter, verbose bool) error {
+func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter) error {
 	// Filter jobs in byjob on manifest attributes.
 	//
 	// TODO:
@@ -262,36 +259,36 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter, verbose bool) er
 			}
 			toDelete[id] = true
 		}
-		if verbose {
+		if Verbose {
 			Log.Infof("%d filtered by host filter %s", len(toDelete)-prior, filter.Host)
 		}
 	}
 	filterByString(
-		byjob, toDelete, verbose,
+		byjob, toDelete,
 		"state",
 		filter.State,
 		func(j *SlurmJob) Ustr { return j.Main.State },
 	)
 	filterByString(
-		byjob, toDelete, verbose,
+		byjob, toDelete,
 		"user",
 		filter.User,
 		func(j *SlurmJob) Ustr { return j.Main.User },
 	)
 	filterByString(
-		byjob, toDelete, verbose,
+		byjob, toDelete,
 		"account",
 		filter.Account,
 		func(j *SlurmJob) Ustr { return j.Main.Account },
 	)
 	filterByString(
-		byjob, toDelete, verbose,
+		byjob, toDelete,
 		"partition",
 		filter.Partition,
 		func(j *SlurmJob) Ustr { return j.Main.Partition },
 	)
 	filterByString(
-		byjob, toDelete, verbose,
+		byjob, toDelete,
 		"reservation",
 		filter.Reservation,
 		func(j *SlurmJob) Ustr { return j.Main.Reservation },
@@ -319,7 +316,7 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter, verbose bool) er
 				toDelete[id] = true
 			}
 		}
-		if verbose {
+		if Verbose {
 			Log.Infof("%d filtered by gpu type filter %v", len(toDelete)-prior, filter.GpuType)
 		}
 	}
@@ -338,7 +335,7 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter, verbose bool) er
 				toDelete[id] = true
 			}
 		}
-		if verbose {
+		if Verbose {
 			Log.Infof("%d filtered by job filter %s", len(toDelete)-prior, filter.Job)
 		}
 	}
@@ -355,7 +352,7 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter, verbose bool) er
 				}
 			}
 		}
-		if verbose {
+		if Verbose {
 			Log.Infof("%d filtered by gpu filter SomeGPU=%v NoGPU=%v",
 				len(toDelete)-prior, filter.SomeGPU, filter.NoGPU)
 		}
@@ -369,7 +366,7 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter, verbose bool) er
 			toDelete[id] = true
 		}
 	}
-	if verbose {
+	if Verbose {
 		Log.Infof("%d filtered by elapsed time (runtime) filter: min=%d max=%d",
 			len(toDelete)-prior, filter.MinRuntime, filter.MaxRuntime)
 	}
@@ -378,7 +375,7 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter, verbose bool) er
 		delete(byjob, k)
 	}
 
-	if verbose {
+	if Verbose {
 		Log.Infof("After filtering: %d jobs.", len(byjob))
 	}
 
@@ -388,7 +385,6 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter, verbose bool) er
 func filterByString(
 	byjob map[uint32]*SlurmJob,
 	toDelete map[uint32]bool,
-	verbose bool,
 	what string,
 	filters []string,
 	get func(j *SlurmJob) Ustr,
@@ -404,7 +400,7 @@ func filterByString(
 				toDelete[id] = true
 			}
 		}
-		if verbose {
+		if Verbose {
 			Log.Infof("%d filtered by %s filter %v", len(toDelete)-prior, what, filters)
 		}
 	}

@@ -14,7 +14,6 @@ var defaultDistances = [][]uint64{[]uint64{10}}
 
 func ParseSysinfoV0JSON(
 	input io.Reader,
-	verbose bool,
 ) (
 	nodeData []*repr.SysinfoNodeData,
 	cardData []*repr.SysinfoCardData,

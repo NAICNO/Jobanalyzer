@@ -41,11 +41,8 @@ const (
 	sysinfoWindow = 24 * time.Hour
 )
 
-var verbose bool
-
 // The iface is the local interface: name:port.
-func StartRestAPI(iface string, verbose_ bool) {
-	verbose = verbose_
+func StartRestAPI(iface string) {
 	go func() {
 		router := http.NewServeMux()
 		api := humago.New(router, huma.DefaultConfig(apiName, apiVersion))
@@ -119,15 +116,15 @@ func timeWindowFromData(
 		hErr = huma.Error500InternalServerError(opName+": Can't open database", err)
 		return
 	}
-	maxTime, err := theLog.MaxTime(true, verbose)
+	maxTime, err := theLog.MaxTime(true)
 	if err != nil {
 		maxTime = time.Now()
 	}
-	minTime, err := theLog.MinTime(true, verbose)
+	minTime, err := theLog.MinTime(true)
 	if err != nil {
 		minTime = maxTime
 	}
-	if verbose {
+	if Verbose {
 		Log.Infof("Min/max time: %v %v", minTime, maxTime)
 	}
 
@@ -206,7 +203,6 @@ func getSysinfoAt(
 	from := to.Add(-sysinfoWindow)
 	nodes, err := ndp.Query(
 		common.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: hostList},
-		verbose,
 	)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(opName+": Failed to query node data", err)
@@ -237,7 +233,6 @@ func getCardInfoByUUIDAt(
 	records, err :=
 		cdp.Query(
 			card.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: hostList},
-			verbose,
 		)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(opName+": Failed to query card data", err)

@@ -97,7 +97,6 @@ func handleNodesDiskstatsTimeseries(
 	}
 	samples, err := dsdp.Query(
 		common.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: hostList},
-		verbose,
 	)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(

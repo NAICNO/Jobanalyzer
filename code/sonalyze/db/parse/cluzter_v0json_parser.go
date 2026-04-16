@@ -9,7 +9,6 @@ import (
 
 func ParseCluzterV0JSON(
 	input io.Reader,
-	verbose bool,
 ) (
 	attributes []*repr.CluzterAttributes,
 	partitions []*repr.CluzterPartitions,

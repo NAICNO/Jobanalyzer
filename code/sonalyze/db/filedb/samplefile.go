@@ -86,7 +86,6 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLocked(
 	attr FileAttr,
 	inputFile io.Reader,
 	uf *UstrCache,
-	verbose bool,
 ) (payload any, softErrors int, err error) {
 	var samples []*repr.Sample
 	var nodeSamples []*repr.NodeSample
@@ -95,10 +94,10 @@ func (sfr *sampleFileReadSyncMethods) ReadDataLocked(
 	var gpuSamples []*repr.GpuSamples
 	if (attr & FileSampleV0JSON) != 0 {
 		samples, nodeSamples, diskSamples, cpuSamples, gpuSamples, softErrors, err =
-			parse.ParseSamplesV0JSON(inputFile, uf, verbose)
+			parse.ParseSamplesV0JSON(inputFile, uf)
 	} else {
 		samples, cpuSamples, gpuSamples, softErrors, err =
-			parse.ParseSampleCSV(inputFile, uf, verbose)
+			parse.ParseSampleCSV(inputFile, uf)
 	}
 	if err != nil {
 		return
@@ -131,40 +130,35 @@ func (_ *sampleFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 
 func readProcessSampleSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
-	return readRecordsFromFiles[repr.Sample](files, verbose, reader)
+	return readRecordsFromFiles[repr.Sample](files, reader)
 }
 
 func readNodeSampleSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) (sampleBlobs [][]*repr.NodeSample, dropped int, err error) {
-	return readRecordsFromFiles[repr.NodeSample](files, verbose, reader)
+	return readRecordsFromFiles[repr.NodeSample](files, reader)
 }
 
 func readDiskSampleSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) (sampleBlobs [][]*repr.DiskSample, dropped int, err error) {
-	return readRecordsFromFiles[repr.DiskSample](files, verbose, reader)
+	return readRecordsFromFiles[repr.DiskSample](files, reader)
 }
 
 func readCpuSamplesSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) (loadDataBlobs [][]*repr.CpuSamples, dropped int, err error) {
-	return readRecordsFromFiles[repr.CpuSamples](files, verbose, reader)
+	return readRecordsFromFiles[repr.CpuSamples](files, reader)
 }
 
 func readGpuSamplesSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) (gpuDataBlobs [][]*repr.GpuSamples, dropped int, err error) {
-	return readRecordsFromFiles[repr.GpuSamples](files, verbose, reader)
+	return readRecordsFromFiles[repr.GpuSamples](files, reader)
 }

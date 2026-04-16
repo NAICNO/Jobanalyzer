@@ -84,7 +84,6 @@ func handleProcessesTimeseries(
 			hostFilter,
 			&sample.SampleFilter{From: from.Unix(), To: to.Unix()},
 			false, // bounds
-			verbose,
 		)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(

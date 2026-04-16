@@ -113,12 +113,11 @@ func (gc *GpuCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io
 			gc.FromDate,
 			gc.ToDate,
 			hostGlobber,
-			gc.Verbose,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)
 	}
-	if gc.Verbose {
+	if Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
 		UstrStats(stderr, false)
 	}

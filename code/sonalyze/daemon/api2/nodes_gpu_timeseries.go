@@ -93,7 +93,7 @@ func handleNodesGpuTimeseries(
 	// GpuSamples = struct { Time, Decoded: []repr.PerGpuSample } (one sample per GPU at this time, ascending by time)
 	// PerGpuSample = struct {Attr, newfmt.SampleGpu }
 	// SampleGpu = struct {Index, UUID, CEUtil, MemoryUtil, ...} (very many fields)
-	streams, _, _, _, err := gsd.Query(from, to, hostGlobber, verbose)
+	streams, _, _, _, err := gsd.Query(from, to, hostGlobber)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(
 			nodesGpuTimeseriesName+": Failed to query gpu sample data", err)

@@ -134,14 +134,11 @@ func (cc *ConfigCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.W
 	}
 	ns, err := cdp.Query(
 		config.QueryArgs{
-			QueryFilter: config.QueryFilter{
-				QueryFilter: common.QueryFilter{
-					HaveFrom: cc.HaveFrom,
-					FromDate: cc.FromDate,
-					HaveTo:   cc.HaveTo,
-					ToDate:   cc.ToDate,
-				},
-				Verbose: cc.Verbose,
+			QueryFilter: common.QueryFilter{
+				HaveFrom: cc.HaveFrom,
+				FromDate: cc.FromDate,
+				HaveTo:   cc.HaveTo,
+				ToDate:   cc.ToDate,
 			},
 			Newest: true,
 		},

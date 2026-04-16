@@ -75,12 +75,11 @@ func (sfr *cluzterFileReadSyncMethods) ReadDataLocked(
 	_ FileAttr,
 	inputFile io.Reader,
 	_ *UstrCache,
-	verbose bool,
 ) (payload any, softErrors int, err error) {
 	var attributes []*repr.CluzterAttributes
 	var partitions []*repr.CluzterPartitions
 	var nodes []*repr.CluzterNodes
-	attributes, partitions, nodes, softErrors, err = parse.ParseCluzterV0JSON(inputFile, verbose)
+	attributes, partitions, nodes, softErrors, err = parse.ParseCluzterV0JSON(inputFile)
 	if err != nil {
 		return
 	}
@@ -105,24 +104,21 @@ func (_ *cluzterFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 
 func ReadCluzterAttributeDataSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) ([][]*repr.CluzterAttributes, int, error) {
-	return readRecordsFromFiles[repr.CluzterAttributes](files, verbose, reader)
+	return readRecordsFromFiles[repr.CluzterAttributes](files, reader)
 }
 
 func ReadCluzterPartitionDataSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) ([][]*repr.CluzterPartitions, int, error) {
-	return readRecordsFromFiles[repr.CluzterPartitions](files, verbose, reader)
+	return readRecordsFromFiles[repr.CluzterPartitions](files, reader)
 }
 
 func ReadCluzterNodeDataSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) ([][]*repr.CluzterNodes, int, error) {
-	return readRecordsFromFiles[repr.CluzterNodes](files, verbose, reader)
+	return readRecordsFromFiles[repr.CluzterNodes](files, reader)
 }

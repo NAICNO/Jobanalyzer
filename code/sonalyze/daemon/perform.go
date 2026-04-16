@@ -56,15 +56,15 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 				ds, err = db.OpenAppendablePersistentDirectoryDB(meta)
 			}
 			if err != nil {
-				if dc.Verbose {
+				if Verbose {
 					Log.Warningf("Failed to open data store for %s", cl.Name)
 				}
 				continue
 			}
-			if dc.Verbose {
+			if Verbose {
 				Log.Infof("Starting listener for %s", cl.Name)
 			}
-			go runKafka(dc.kafkaBroker, cl.Name, ds, dc.Verbose)
+			go runKafka(dc.kafkaBroker, cl.Name, ds)
 		}
 	}
 
@@ -104,11 +104,11 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 	}
 
 	if dc.restAPI2 != "" {
-		api2.StartRestAPI(dc.restAPI2, dc.Verbose)
+		api2.StartRestAPI(dc.restAPI2)
 	}
 
 	var programFailed bool
-	s := httpsrv.New(dc.Verbose, int(dc.port), func(err error) {
+	s := httpsrv.New(Verbose, int(dc.port), func(err error) {
 		programFailed = true
 	})
 	go s.Start()
@@ -159,7 +159,7 @@ func httpGetHandler(
 			if why := argOk(command, name); why != "" {
 				w.WriteHeader(400)
 				fmt.Fprintf(w, "Bad parameter %s: %s", name, why)
-				if dc.Verbose {
+				if Verbose {
 					Log.Warningf("Bad parameter %s: %s", name, why)
 				}
 				return
@@ -235,7 +235,7 @@ func httpAddHandler(dc *DaemonCommand) func(http.ResponseWriter, *http.Request) 
 		if err := errors.Join(e1, e2, e3, e4); err != nil {
 			w.WriteHeader(400)
 			fmt.Fprintf(w, "Bad operation: %s", err.Error())
-			if dc.Verbose {
+			if Verbose {
 				Log.Warningf("Bad operation: %s", err.Error())
 			}
 			return
@@ -268,7 +268,7 @@ func httpPostHandler(
 		if dc.matchUserAndCluster && userName != "" && clusterName != userName {
 			w.WriteHeader(400)
 			fmt.Fprintf(w, "Upload not authorized")
-			if dc.Verbose {
+			if Verbose {
 				Log.Warningf("Upload not authorized")
 			}
 			return
@@ -303,27 +303,27 @@ func requestPreamble(
 	realm string,
 	contentType string,
 ) (payload []byte, userName, clusterName string, ok bool) {
-	if dc.Verbose {
+	if Verbose {
 		// Header reveals auth info, don't put it into logs
 		Log.Infof("Request from %s: %v", r.RemoteAddr, r.URL.String())
 	}
 
-	if !httpsrv.AssertMethod(w, r, method, dc.Verbose) {
+	if !httpsrv.AssertMethod(w, r, method, Verbose) {
 		return
 	}
 
-	authOk, userName := httpsrv.Authenticate(w, r, authenticator, realm, dc.Verbose)
+	authOk, userName := httpsrv.Authenticate(w, r, authenticator, realm, Verbose)
 	if !authOk {
 		return
 	}
 
-	payload, havePayload := httpsrv.ReadPayload(w, r, dc.Verbose)
+	payload, havePayload := httpsrv.ReadPayload(w, r, Verbose)
 	if !havePayload {
 		return
 	}
 
 	if contentType != "" {
-		if !httpsrv.AssertContentType(w, r, contentType, dc.Verbose) {
+		if !httpsrv.AssertContentType(w, r, contentType, Verbose) {
 			return
 		}
 	}
@@ -333,7 +333,7 @@ func requestPreamble(
 		if !found || len(clusterValues) != 1 || clusterValues[0] == "" {
 			w.WriteHeader(400)
 			fmt.Fprintf(w, "Bad parameters - missing or empty or repeated 'cluster'")
-			if dc.Verbose {
+			if Verbose {
 				Log.Warningf("Bad parameters - missing or empty or repeated 'cluster'")
 			}
 			return
@@ -343,7 +343,7 @@ func requestPreamble(
 		if found {
 			w.WriteHeader(400)
 			fmt.Fprintf(w, "Bad parameters - illegal 'cluster'")
-			if dc.Verbose {
+			if Verbose {
 				Log.Warningf("Bad parameters - illegal 'cluster'")
 			}
 			return
@@ -366,7 +366,7 @@ func runSonalyze(
 
 	// Run the command and report the result
 
-	if dc.Verbose {
+	if Verbose {
 		Log.Infof(
 			"Command: %s %s",
 			path.Join(dc.JobanalyzerDir(), cmdName),
@@ -376,13 +376,13 @@ func runSonalyze(
 
 	anyCmd, _ := dc.cmdlineHandler.ParseVerb(cmdName, verb)
 	if anyCmd == nil {
-		errResponse(w, 400, fmt.Errorf("Bad verb in daemon-dispatched command: %s", verb), "", dc.Verbose)
+		errResponse(w, 400, fmt.Errorf("Bad verb in daemon-dispatched command: %s", verb), "")
 		return
 	}
 	fs := NewCLI(verb, anyCmd, cmdName, false)
 	err := dc.cmdlineHandler.ParseArgs(verb, arguments, anyCmd, fs)
 	if err != nil {
-		errResponse(w, 400, err, "", dc.Verbose)
+		errResponse(w, 400, err, "")
 		return
 	}
 
@@ -393,7 +393,7 @@ func runSonalyze(
 	stdout = stdoutBuf.String()
 	stderr := stderrBuf.String()
 	if err != nil {
-		errResponse(w, 400, err, stderr, dc.Verbose)
+		errResponse(w, 400, err, stderr)
 		return
 	}
 	if stderr != "" {
@@ -404,13 +404,13 @@ func runSonalyze(
 	return
 }
 
-func errResponse(w http.ResponseWriter, code int, err error, stderr string, verbose bool) {
+func errResponse(w http.ResponseWriter, code int, err error, stderr string) {
 	w.WriteHeader(code)
 	fmt.Fprint(w, err.Error())
 	if stderr != "" {
 		fmt.Fprint(w, "\n", stderr)
 	}
-	if verbose {
+	if Verbose {
 		Log.Warningf("ERROR: %v", err)
 	}
 }

@@ -83,7 +83,6 @@ func handleProcessesGpu(
 			hostFilter,
 			&sample.SampleFilter{From: from.Unix(), To: to.Unix()},
 			false, // bounds
-			verbose,
 		)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(
@@ -98,7 +97,7 @@ func handleProcessesGpu(
 		return nil, huma.Error500InternalServerError(
 			processesGpuName+": failed to open gpu sample store", err)
 	}
-	gpuStreams, _, _, _, err := gsd.Query(from, to, hostFilter, verbose)
+	gpuStreams, _, _, _, err := gsd.Query(from, to, hostFilter)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(
 			processesGpuName+": Failed to query gpu sample data", err)

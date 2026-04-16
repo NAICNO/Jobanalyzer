@@ -26,7 +26,6 @@ type QueryFilter = common.QueryFilter
 
 func (spd *SlurmPartitionDataProvider) Query(
 	filter QueryFilter,
-	verbose bool,
 ) ([]*repr.CluzterPartitions, error) {
 	f, err := filter.Instantiate()
 	if err != nil {
@@ -37,7 +36,6 @@ func (spd *SlurmPartitionDataProvider) Query(
 			FromDate: filter.FromDate,
 			ToDate:   filter.ToDate,
 		},
-		verbose,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)

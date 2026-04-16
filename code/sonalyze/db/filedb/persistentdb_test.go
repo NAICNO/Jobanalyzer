@@ -254,10 +254,11 @@ func TestData(t *testing.T) {
 	// There should be no gunk in the test data
 	// We have six sample data files in the range, see test case for file names above
 
+	Verbose = true
+	defer func() { Verbose = false }()
+
 	var sampleData [][]*repr.Sample
-	sampleData, softErrors, err = theDB.ReadProcessSamples(
-		types.DataProviderFilter{FromDate: from, ToDate: to, Node: globber},
-		true)
+	sampleData, softErrors, err = theDB.ReadProcessSamples(types.DataProviderFilter{FromDate: from, ToDate: to, Node: globber})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,8 +299,7 @@ SampleLoop:
 			FromDate: from,
 			ToDate:   to,
 			Node:     globber,
-		},
-		true)
+		})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,9 +340,7 @@ CpuSampleDataLoop:
 			FromDate: from,
 			ToDate:   to,
 			Node:     globber,
-		},
-		true,
-	)
+		})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -383,9 +381,7 @@ GpuSampleDataLoop:
 			FromDate: from,
 			ToDate:   to,
 			Node:     globber,
-		},
-		true,
-	)
+		})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -425,9 +421,7 @@ NodeLoop:
 			FromDate: from,
 			ToDate:   to,
 			Node:     globber,
-		},
-		true,
-	)
+		})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -466,9 +460,7 @@ CardLoop:
 		types.DataProviderFilter{
 			FromDate: from,
 			ToDate:   to,
-		},
-		true,
-	)
+		})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -508,9 +500,7 @@ SacctLoop:
 		types.DataProviderFilter{
 			FromDate: from,
 			ToDate:   to,
-		},
-		true,
-	)
+		})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -540,9 +530,7 @@ AttrLoop:
 		types.DataProviderFilter{
 			FromDate: from,
 			ToDate:   to,
-		},
-		true,
-	)
+		})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -572,9 +560,7 @@ SlurmNodeLoop:
 		types.DataProviderFilter{
 			FromDate: from,
 			ToDate:   to,
-		},
-		true,
-	)
+		})
 	if err != nil {
 		t.Fatal(err)
 	}

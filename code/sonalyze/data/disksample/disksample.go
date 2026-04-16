@@ -26,7 +26,6 @@ type QueryFilter = common.QueryFilter
 
 func (nsp *DiskSampleDataProvider) Query(
 	filter QueryFilter,
-	verbose bool,
 ) ([]*repr.DiskSample, error) {
 	f, err := filter.Instantiate()
 	if err != nil {
@@ -38,7 +37,6 @@ func (nsp *DiskSampleDataProvider) Query(
 			ToDate:   filter.ToDate,
 			Node:     f.HostFilter(),
 		},
-		verbose,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)

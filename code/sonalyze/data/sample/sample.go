@@ -26,7 +26,6 @@ func (sdp *SampleDataProvider) Query(
 	hostGlobber *Hosts,
 	recordFilter *SampleFilter,
 	wantBounds bool,
-	verbose bool,
 ) (
 	streams InputStreamSet,
 	bounds Timebounds,
@@ -40,22 +39,19 @@ func (sdp *SampleDataProvider) Query(
 		hostGlobber,
 		recordFilter,
 		wantBounds,
-		verbose,
 	)
 }
 
 func (sdp *SampleDataProvider) QueryRaw(
 	fromDate, toDate time.Time,
 	hosts *Hosts,
-	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
 	return sdp.theLog.ReadProcessSamples(
 		types.DataProviderFilter{
 			FromDate: fromDate,
 			ToDate:   toDate,
 			Node:     hosts,
-		},
-		verbose)
+		})
 }
 
 func (sdp *SampleDataProvider) Filenames(

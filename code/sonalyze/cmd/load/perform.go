@@ -34,17 +34,16 @@ func (lc *LoadCommand) Perform(
 			hosts,
 			recordFilter,
 			true,
-			lc.Verbose,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)
 	}
-	if lc.Verbose {
+	if Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
 		UstrStats(out, false)
 	}
 
-	if lc.Verbose {
+	if Verbose {
 		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
 		numSamples := 0
 		for _, stream := range streams {

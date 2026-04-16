@@ -20,7 +20,6 @@ import (
 func ParseSamplesV0JSON(
 	input io.Reader,
 	ustrs UstrAllocator,
-	verbose bool,
 ) (
 	samples []*repr.Sample,
 	nodeSamples []*repr.NodeSample,

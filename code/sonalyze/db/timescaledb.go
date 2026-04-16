@@ -173,7 +173,6 @@ type query struct {
 
 func (cdb *connectedDB) ReadProcessSamples(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, softErrors int, err error) {
 	var (
 		cmd, node, user                                                           string
@@ -269,12 +268,11 @@ func (cdb *connectedDB) ReadProcessSamples(
 			DataCancelledKB:   uint64(dataCancelled.Int64),
 		}
 	}
-	return querySlice[repr.Sample](cdb, &q, verbose, unbox)
+	return querySlice[repr.Sample](cdb, &q, unbox)
 }
 
 func (cdb *connectedDB) ReadNodeSamples(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (sampleBlobs [][]*repr.NodeSample, softErrors int, err error) {
 	var (
 		existingEntities, runnableEntities, usedMemory pgtype.Int8
@@ -316,12 +314,11 @@ func (cdb *connectedDB) ReadNodeSamples(
 			UsedMemory:       uint64(usedMemory.Int64),
 		}
 	}
-	return querySlice[repr.NodeSample](cdb, &q, verbose, unbox)
+	return querySlice[repr.NodeSample](cdb, &q, unbox)
 }
 
 func (cdb *connectedDB) ReadDiskSamples(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (dataBlobs [][]*repr.DiskSample, softErrors int, err error) {
 	var (
 		name, node                                                                    string
@@ -377,12 +374,11 @@ func (cdb *connectedDB) ReadDiskSamples(
 			MsFlushing:        uint64(ms_spent_flushing.Int64),
 		}
 	}
-	return querySlice[repr.DiskSample](cdb, &q, verbose, unbox)
+	return querySlice[repr.DiskSample](cdb, &q, unbox)
 }
 
 func (cdb *connectedDB) ReadCpuSamples(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (dataBlobs [][]*repr.CpuSamples, softErrors int, err error) {
 	var (
 		cpus      []pgtype.Int8
@@ -410,12 +406,11 @@ func (cdb *connectedDB) ReadCpuSamples(
 			Encoded:   repr.EncodedCpuSamplesFromValues(cpuLoad),
 		}
 	}
-	return querySlice[repr.CpuSamples](cdb, &q, verbose, unbox)
+	return querySlice[repr.CpuSamples](cdb, &q, unbox)
 }
 
 func (cdb *connectedDB) ReadGpuSamples(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (dataBlobs [][]*repr.GpuSamples, softErrors int, err error) {
 	var (
 		ce_clock, ce_util, failing, fan, memory, memory_clock, memory_util pgtype.Int8
@@ -489,12 +484,11 @@ func (cdb *connectedDB) ReadGpuSamples(
 			Encoded:   repr.EncodedGpuSamplesFromValues([]repr.PerGpuSample{data}),
 		}
 	}
-	return querySlice[repr.GpuSamples](cdb, &q, verbose, unbox)
+	return querySlice[repr.GpuSamples](cdb, &q, unbox)
 }
 
 func (cdb *connectedDB) ReadSysinfoNodeData(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error) {
 	var (
 		architecture, cluster, cpuModel, node, osName, osRelease      string
@@ -586,12 +580,11 @@ func (cdb *connectedDB) ReadSysinfoNodeData(
 		}
 	}
 
-	return querySlice[repr.SysinfoNodeData](cdb, &q, verbose, unbox)
+	return querySlice[repr.SysinfoNodeData](cdb, &q, unbox)
 }
 
 func (cdb *connectedDB) ReadSysinfoCardData(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error) {
 	var (
 		address, architecture, driver, firmware, manufacturer, model, node, uuid     string
@@ -640,12 +633,11 @@ func (cdb *connectedDB) ReadSysinfoCardData(
 		}
 	}
 
-	return querySlice[repr.SysinfoCardData](cdb, &q, verbose, unbox)
+	return querySlice[repr.SysinfoCardData](cdb, &q, unbox)
 }
 
 func (cdb *connectedDB) ReadSacctData(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (recordBlobs [][]*repr.SacctInfo, softErrors int, err error) {
 	var (
 		account, allocTRES, cluster, distribution, jobStep, jobName       string
@@ -801,12 +793,11 @@ func (cdb *connectedDB) ReadSacctData(
 		}
 	}
 
-	return querySlice[repr.SacctInfo](cdb, &q, verbose, unbox)
+	return querySlice[repr.SacctInfo](cdb, &q, unbox)
 }
 
 func (cdb *connectedDB) ReadCluzterAttributeData(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (recordBlobs [][]*repr.CluzterAttributes, softErrors int, err error) {
 	var (
 		cluster   string
@@ -831,12 +822,11 @@ func (cdb *connectedDB) ReadCluzterAttributeData(
 		}
 	}
 
-	return querySlice[repr.CluzterAttributes](cdb, &q, verbose, unbox)
+	return querySlice[repr.CluzterAttributes](cdb, &q, unbox)
 }
 
 func (cdb *connectedDB) ReadCluzterPartitionData(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (recordBlobs [][]*repr.CluzterPartitions, softErrors int, err error) {
 	var (
 		cluster          string
@@ -876,12 +866,11 @@ func (cdb *connectedDB) ReadCluzterPartitionData(
 		}
 	}
 
-	return querySlice[repr.CluzterPartitions](cdb, &q, verbose, unbox)
+	return querySlice[repr.CluzterPartitions](cdb, &q, unbox)
 }
 
 func (cdb *connectedDB) ReadCluzterNodeData(
 	filter types.DataProviderFilter,
-	verbose bool,
 ) (recordBlobs [][]*repr.CluzterNodes, softErrors int, err error) {
 	var (
 		cluster   string
@@ -915,22 +904,22 @@ func (cdb *connectedDB) ReadCluzterNodeData(
 		}
 	}
 
-	return querySlice[repr.CluzterNodes](cdb, &q, verbose, unbox)
+	return querySlice[repr.CluzterNodes](cdb, &q, unbox)
 }
 
-func (cdb *connectedDB) MinTime(soft, verbose bool) (time.Time, error) {
-	return cdb.timeCache.MinTime(soft, verbose)
+func (cdb *connectedDB) MinTime(soft bool) (time.Time, error) {
+	return cdb.timeCache.MinTime(soft)
 }
 
-func (cdb *connectedDB) MaxTime(soft, verbose bool) (time.Time, error) {
-	return cdb.timeCache.MaxTime(soft, verbose)
+func (cdb *connectedDB) MaxTime(soft bool) (time.Time, error) {
+	return cdb.timeCache.MaxTime(soft)
 }
 
 func makeRefillTimeCache(
 	dbc *databaseConnection,
 	clusterName string,
-) func(bool) (time.Time, time.Time, error) {
-	return func(verbose bool) (low, high time.Time, err error) {
+) func() (time.Time, time.Time, error) {
+	return func() (low, high time.Time, err error) {
 		err = dbc.QueryRowAndScan(
 			context.Background(),
 			"SELECT MIN(time) FROM sysinfo_attributes WHERE cluster = $1",
@@ -965,7 +954,6 @@ func toDateName(fromDate, toDate time.Time) string {
 func querySlice[T any](
 	cdb *connectedDB,
 	q *query,
-	verbose bool,
 	unbox func() *T,
 ) (finalRows [][]*T, softErrors int, err error) {
 	primary := "SELECT * FROM " + q.table + " WHERE " + "cluster=$1"
@@ -1090,7 +1078,7 @@ func querySlice[T any](
 	if q.join != "" {
 		qstr += " " + q.join
 	}
-	if verbose {
+	if Verbose {
 		Log.Infof("SQL: %s %s", qstr, qarg)
 	}
 	rows, err := cdb.theDB.Query(context.Background(), qstr, qarg...)
@@ -1103,12 +1091,12 @@ func querySlice[T any](
 		return nil
 	})
 	if err != nil {
-		if verbose {
+		if Verbose {
 			Log.Warningf("SQL: %v", err)
 		}
 		return
 	}
-	if verbose {
+	if Verbose {
 		Log.Infof("SQL: Retrieved %d rows", len(dataRows))
 	}
 	finalRows = [][]*T{dataRows}

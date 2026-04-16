@@ -56,35 +56,30 @@ func (e *APINotSupportedError) Error() string {
 type ProcessSampleDataProvider interface {
 	ReadProcessSamples(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (sampleBlobs [][]*repr.Sample, softErrors int, err error)
 }
 
 type NodeSampleDataProvider interface {
 	ReadNodeSamples(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (sampleBlobs [][]*repr.NodeSample, softErrors int, err error)
 }
 
 type DiskSampleDataProvider interface {
 	ReadDiskSamples(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (dataBlobs [][]*repr.DiskSample, softErrors int, err error)
 }
 
 type CpuSampleDataProvider interface {
 	ReadCpuSamples(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (dataBlobs [][]*repr.CpuSamples, softErrors int, err error)
 }
 
 type GpuSampleDataProvider interface {
 	ReadGpuSamples(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (dataBlobs [][]*repr.GpuSamples, softErrors int, err error)
 }
 
@@ -92,12 +87,10 @@ type GpuSampleDataProvider interface {
 type SysinfoDataProvider interface {
 	ReadSysinfoNodeData(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (sysinfoBlobs [][]*repr.SysinfoNodeData, softErrors int, err error)
 
 	ReadSysinfoCardData(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (sysinfoBlobs [][]*repr.SysinfoCardData, softErrors int, err error)
 }
 
@@ -105,7 +98,6 @@ type SysinfoDataProvider interface {
 type SacctDataProvider interface {
 	ReadSacctData(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (recordBlobs [][]*repr.SacctInfo, softErrors int, err error)
 }
 
@@ -115,24 +107,21 @@ type SacctDataProvider interface {
 type CluzterDataProvider interface {
 	ReadCluzterAttributeData(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (recordBlobs [][]*repr.CluzterAttributes, softErrors int, err error)
 
 	ReadCluzterPartitionData(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (recordBlobs [][]*repr.CluzterPartitions, softErrors int, err error)
 
 	ReadCluzterNodeData(
 		filter types.DataProviderFilter,
-		verbose bool,
 	) (recordBlobs [][]*repr.CluzterNodes, softErrors int, err error)
 }
 
 // MetaDataProvider computes (and sometimes caches) data about the data in the database.
 type MetaDataProvider interface {
-	MinTime(soft, verbose bool) (time.Time, error)
-	MaxTime(soft, verbose bool) (time.Time, error)
+	MinTime(soft bool) (time.Time, error)
+	MaxTime(soft bool) (time.Time, error)
 }
 
 // DataProvider provides all data types.

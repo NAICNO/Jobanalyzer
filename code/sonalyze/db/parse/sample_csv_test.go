@@ -19,7 +19,9 @@ func TestParseSampleCSVTagged(t *testing.T) {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
 	uf := NewUstrFacade()
-	readings, _, _, bad, err := ParseSampleCSV(bytes.NewReader(bs), uf, true)
+	Verbose = true
+	defer func() { Verbose = false }()
+	readings, _, _, bad, err := ParseSampleCSV(bytes.NewReader(bs), uf)
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
@@ -58,8 +60,10 @@ func TestParseSampleCSVUntagged(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}
+	Verbose = true
+	defer func() { Verbose = false }()
 	uf := NewUstrFacade()
-	readings, _, _, bad, err := ParseSampleCSV(bytes.NewReader(bs), uf, true)
+	readings, _, _, bad, err := ParseSampleCSV(bytes.NewReader(bs), uf)
 	if err != nil {
 		t.Fatalf("Unexpected fatal error during parsing: %v", err)
 	}

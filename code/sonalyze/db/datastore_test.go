@@ -25,10 +25,6 @@ import (
 	"sonalyze/db/types"
 )
 
-const (
-	verbose = true
-)
-
 var (
 	// MT: Constant after initialization; immutable
 	theClusterDir = "../../tests/sonarlog/whitebox-tree"
@@ -108,9 +104,10 @@ func TestTransientSampleRead(t *testing.T) {
 	}
 	// The parameters are ignored here
 	var d time.Time
+	Verbose = true
+	defer func() { Verbose = false }()
 	sampleBlobs, dropped, err := fs.ReadProcessSamples(
 		types.DataProviderFilter{FromDate: d, ToDate: d},
-		verbose,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -179,12 +176,13 @@ func TestPersistentSampleRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	Verbose = true
+	defer func() { Verbose = false }()
 	sampleBlobs, dropped, err := pc.ReadProcessSamples(
 		types.DataProviderFilter{
 			FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 			ToDate:   time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
 		},
-		verbose,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -214,12 +212,13 @@ func TestPersistentSysinfoRead(t *testing.T) {
 	// 5/30 "b" should have one record
 	// 5/31 "a" should have two records, not equal
 	// 5/32 "b" should have two records, equal
+	Verbose = true
+	defer func() { Verbose = false }()
 	recordBlobs, dropped, err := pc.ReadSysinfoNodeData(
 		types.DataProviderFilter{
 			FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 			ToDate:   time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
 		},
-		verbose,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -336,12 +335,13 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 	// to not see the data - a synchronous flush is technically required - and if we ever implement
 	// that path then this test will need to have a FlushSync() call before the read.
 
+	Verbose = true
+	defer func() { Verbose = false }()
 	recordBlobs, _, err := pc.ReadSysinfoNodeData(
 		types.DataProviderFilter{
 			FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 			ToDate:   time.Date(2023, 05, 28, 23, 0, 12, 0, time.UTC),
 		},
-		verbose,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -361,7 +361,6 @@ func TestPersistentSysinfoAppend(t *testing.T) {
 			FromDate: time.Date(2024, 01, 01, 12, 37, 55, 0, time.UTC),
 			ToDate:   time.Date(2024, 05, 01, 23, 0, 12, 0, time.UTC),
 		},
-		verbose,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -509,7 +508,6 @@ func TestCaching(t *testing.T) {
 				FromDate: time.Date(2023, 05, 01, 0, 0, 0, 0, time.UTC),
 				ToDate:   time.Date(2023, 06, 30, 0, 0, 0, 0, time.UTC),
 			},
-			false,
 		)
 		if err != nil {
 			t.Fatal(err)
@@ -603,7 +601,6 @@ func TestCaching(t *testing.T) {
 			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
 			Node:     glob,
 		},
-		false,
 	)
 
 	msgs = ul.GetMsgs()
@@ -630,7 +627,6 @@ func TestCaching(t *testing.T) {
 			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
 			Node:     glob,
 		},
-		false,
 	)
 	msgs = ul.GetMsgs()
 	if len(msgs) != 2 {
@@ -679,7 +675,6 @@ func TestCaching(t *testing.T) {
 			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
 			Node:     glob,
 		},
-		false,
 	)
 
 	msgs = ul.GetMsgs()
@@ -706,7 +701,6 @@ func TestCaching(t *testing.T) {
 			ToDate:   time.Date(2023, 05, 29, 0, 0, 0, 0, time.UTC),
 			Node:     glob,
 		},
-		false,
 	)
 
 	msgs = ul.GetMsgs()
@@ -727,7 +721,6 @@ func TestCaching(t *testing.T) {
 			ToDate:   time.Date(2023, 06, 01, 0, 0, 0, 0, time.UTC),
 			Node:     glob,
 		},
-		false,
 	)
 	zappas := 0
 	for _, s := range uslices.Catenate(sampleBlobs) {

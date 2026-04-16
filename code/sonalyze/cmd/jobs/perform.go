@@ -138,17 +138,16 @@ func (jc *JobsCommand) Perform(
 			hosts,
 			recordFilter,
 			true,
-			jc.Verbose,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)
 	}
-	if jc.Verbose {
+	if Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
 		UstrStats(out, false)
 	}
 
-	if jc.Verbose {
+	if Verbose {
 		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
 		numSamples := 0
 		for _, stream := range streams {
@@ -168,7 +167,7 @@ func (jc *JobsCommand) Perform(
 	}
 
 	summaries := jc.summarizeAndFilterJobs(meta, cfg, streams, bounds)
-	if jc.Verbose {
+	if Verbose {
 		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
 
@@ -200,7 +199,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	} else {
 		jobs = sample.MergeByHostAndJob(streams)
 	}
-	if jc.Verbose {
+	if Verbose {
 		Log.Infof("Jobs constructed by merging: %d", len(jobs))
 	}
 	summaryFilter, slurmFilter := jc.buildFilters()
@@ -212,7 +211,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	}
 	summaries, discarded :=
 		jc.summarizeJobsFromSonarData(cfg, bounds, jobs, summaryFilter, fb)
-	if jc.Verbose {
+	if Verbose {
 		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
 	}
 	var slurmDiscarded int
@@ -222,7 +221,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	if fb.needSacctInfo {
 		slurmDiscarded = jc.joinSacctData(meta, summaries, slurmFilter)
 	}
-	if (jc.SacctFromSonar || fb.needSacctInfo) && jc.Verbose {
+	if (jc.SacctFromSonar || fb.needSacctInfo) && Verbose {
 		Log.Infof("Jobs discarded by aggregation filtering: %d", slurmDiscarded)
 	}
 	return summaries
@@ -238,7 +237,7 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	var now = time.Now().UTC().Unix()
 	summaries := make([]*jobSummary, 0)
 	minSamples := jc.lookupUint("min-samples")
-	if jc.Verbose && minSamples > 1 {
+	if Verbose && minSamples > 1 {
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
 	}
 	if !jc.SacctFromSonar {
@@ -672,10 +671,9 @@ func (jc *JobsCommand) joinSacctData(
 				},
 				Job: jobIds,
 			},
-			jc.Verbose,
 		)
 		if err != nil {
-			if jc.Verbose {
+			if Verbose {
 				Log.Warningf("Slurm data query failed: %v", err)
 			}
 			// Oh well
@@ -687,10 +685,9 @@ func (jc *JobsCommand) joinSacctData(
 			bJobs, err = slurmjob.FilterJobs(
 				aJobs,
 				*slurmFilter,
-				jc.Verbose,
 			)
 			if err != nil {
-				if jc.Verbose {
+				if Verbose {
 					Log.Warningf("Slurm data filter failed (bizarrely): %v", err)
 				}
 				bJobs = aJobs
@@ -727,7 +724,7 @@ func (jc *JobsCommand) joinSacctData(
 			}
 		}
 	} else {
-		if jc.Verbose {
+		if Verbose {
 			Log.Warningf("Needed slurm data but can't read those from transient cluster")
 		}
 	}
@@ -852,13 +849,13 @@ func (jc *JobsCommand) buildFilters() (*aggregationFilter, *slurmjob.QueryFilter
 		if v.aggregateIx != -1 {
 			val := jc.lookupUint(v.name)
 			if strings.HasPrefix(v.name, "min-") && val != 0 {
-				if jc.Verbose {
+				if Verbose {
 					Log.Infof("Excluding jobs: Min-filtering %s for %d", v.name, val)
 				}
 				fminFilters = append(fminFilters, ffilterVal{float64(val), v.aggregateIx})
 			}
 			if strings.HasPrefix(v.name, "max-") && val != v.initial {
-				if jc.Verbose {
+				if Verbose {
 					Log.Infof("Excluding jobs: Max-filtering %s for %d", v.name, val)
 				}
 				fmaxFilters = append(fmaxFilters, ffilterVal{float64(val), v.aggregateIx})
@@ -867,7 +864,7 @@ func (jc *JobsCommand) buildFilters() (*aggregationFilter, *slurmjob.QueryFilter
 	}
 	if jc.MinRuntimeSec > 0 {
 		// This is *running time*, not CPU time
-		if jc.Verbose {
+		if Verbose {
 			Log.Infof("Excluding jobs: Min-filtering by elapsed time < %ds", jc.MinRuntimeSec)
 		}
 		uminFilters = append(uminFilters, ufilterVal{uint64(jc.MinRuntimeSec), uDurationSec})
@@ -891,7 +888,7 @@ func (jc *JobsCommand) buildFilters() (*aggregationFilter, *slurmjob.QueryFilter
 	if jc.Zombie {
 		flags |= kIsZombie
 	}
-	if jc.Verbose && flags != 0 {
+	if Verbose && flags != 0 {
 		Log.Infof("Flag-filtering (UTSL): %x", flags)
 	}
 
