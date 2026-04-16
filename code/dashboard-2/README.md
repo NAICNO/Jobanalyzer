@@ -259,7 +259,6 @@ public/
 | Command | Description |
 | --- | --- |
 | `yarn dev` | Start development server |
-| `yarn demo` | Start dev server with synthetic mock data (no real cluster needed) |
 | `yarn build` | Type-check and build for production |
 | `yarn preview` | Preview the production build locally |
 | `yarn lint` | Run ESLint |
