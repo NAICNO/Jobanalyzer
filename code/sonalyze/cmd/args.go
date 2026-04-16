@@ -53,22 +53,17 @@ func (d *DevArgs) Validate() error {
 // You wouldn't think -v would be so complicated.
 
 type VerboseArgs struct {
-	Verbose bool
 }
 
 func (va *VerboseArgs) Add(fs *CLI) {
 	fs.Group("development")
-	fs.BoolVar(&va.Verbose, "v", false, "Print verbose diagnostics to stderr")
+	fs.BoolVar(&Verbose, "v", false, "Print verbose diagnostics to stderr")
 	// The Rust version allows both -v and --verbose
-	fs.BoolVar(&va.Verbose, "verbose", false, "Print verbose diagnostics to stderr")
+	fs.BoolVar(&Verbose, "verbose", false, "Print verbose diagnostics to stderr")
 }
 
 func (va *VerboseArgs) Validate() error {
 	return nil
-}
-
-func (va *VerboseArgs) VerboseFlag() bool {
-	return va.Verbose
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

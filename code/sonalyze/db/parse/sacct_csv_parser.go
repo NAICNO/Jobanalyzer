@@ -15,7 +15,6 @@ import (
 func ParseSlurmCSV(
 	input io.Reader,
 	ustrs UstrAllocator,
-	verbose bool,
 ) (
 	records []*repr.SacctInfo,
 	softErrors int,
@@ -62,7 +61,7 @@ LineLoop:
 
 			if eqloc == CsvEqSentinel {
 				// Invalid field syntax: Drop the field but keep the record
-				if verbose {
+				if Verbose {
 					Log.Infof(
 						"Dropping field with bad form: %s",
 						"(elided)", /*tokenizer.BufSubstringSlow(start, lim), - see NOTE above*/
@@ -270,7 +269,7 @@ LineLoop:
 			if matched {
 				anyMatched = true
 			} else {
-				if verbose {
+				if Verbose {
 					Log.Warningf(
 						"Dropping field with unknown name: %s",
 						"(elided)", /* tokenizer.BufSubstringSlow(start, eqloc-1), -
@@ -282,7 +281,7 @@ LineLoop:
 				}
 			}
 			if err != nil {
-				if verbose {
+				if Verbose {
 					Log.Warningf(
 						"Dropping record with illegal/unparseable value: %s %v",
 						"(elided)", /*tokenizer.BufSubstringSlow(start, lim), - see NOTE above */
@@ -314,7 +313,7 @@ LineLoop:
 			}
 		}
 		if irritants != "" {
-			if verbose {
+			if Verbose {
 				Log.Warningf("Dropping record with missing mandatory field(s): %s", irritants)
 			}
 			softErrors++

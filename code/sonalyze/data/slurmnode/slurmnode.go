@@ -36,7 +36,6 @@ type QueryFilter = common.QueryFilter
 
 func (sdp *SlurmNodeDataProvider) Query(
 	filter QueryFilter,
-	verbose bool,
 ) ([]*repr.CluzterNodes, error) {
 	f, err := filter.Instantiate()
 	if err != nil {
@@ -47,7 +46,6 @@ func (sdp *SlurmNodeDataProvider) Query(
 			FromDate: filter.FromDate,
 			ToDate:   filter.ToDate,
 		},
-		verbose,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)

@@ -90,7 +90,6 @@ func (nc *SnodeCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr 
 				FromDate: nc.FromDate,
 				ToDate:   nc.ToDate,
 			},
-			nc.Verbose,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)

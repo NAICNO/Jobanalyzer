@@ -99,7 +99,7 @@ func (ac *AddCommand) Perform(meta types.Context, stdin io.Reader, _, _ io.Write
 }
 
 func (ac *AddCommand) addSysinfoOldJson(meta types.Context, payload []byte) error {
-	if ac.Verbose {
+	if Verbose {
 		Log.Infof("Sysinfo record %d bytes", len(payload))
 	}
 	var info config.NodeConfigRecord
@@ -125,7 +125,7 @@ func (ac *AddCommand) addSysinfoOldJson(meta types.Context, payload []byte) erro
 }
 
 func (ac *AddCommand) addSonarFreeCsv(meta types.Context, payload []byte) error {
-	if ac.Verbose {
+	if Verbose {
 		Log.Infof("Sample records %d bytes", len(payload))
 	}
 	ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
@@ -154,14 +154,14 @@ func (ac *AddCommand) addSonarFreeCsv(meta types.Context, payload []byte) error 
 			result = errors.Join(result, err)
 		}
 	}
-	if ac.Verbose {
+	if Verbose {
 		Log.Infof("Sample records: %d", count)
 	}
 	return result
 }
 
 func (ac *AddCommand) addSlurmSacctFreeCsv(meta types.Context, payload []byte) error {
-	if ac.Verbose {
+	if Verbose {
 		Log.Infof("Sacct records %d bytes", len(payload))
 	}
 	ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
@@ -191,7 +191,7 @@ func (ac *AddCommand) addSlurmSacctFreeCsv(meta types.Context, payload []byte) e
 			result = errors.Join(result, err)
 		}
 	}
-	if ac.Verbose {
+	if Verbose {
 		Log.Infof("Sacct records: %d", count)
 	}
 	return result

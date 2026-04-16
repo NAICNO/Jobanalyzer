@@ -9,6 +9,7 @@ import (
 	"github.com/NordicHPC/sonar/util/formats/newfmt"
 	"github.com/twmb/franz-go/pkg/kgo"
 
+	. "sonalyze/common"
 	"sonalyze/db"
 )
 
@@ -21,9 +22,9 @@ const (
 
 // This runs on a goroutine - one goroutine per cluster, just to be a little resilient.
 
-func runKafka(kafkaBroker, cluster string, ds db.AppendablePersistentDataProvider, verbose bool) {
+func runKafka(kafkaBroker, cluster string, ds db.AppendablePersistentDataProvider) {
 	defer ds.Close()
-	handler := newClusterHandler(cluster, ds, verbose)
+	handler := newClusterHandler(cluster, ds)
 	cl, err := kgo.NewClient(
 		kgo.SeedBrokers(kafkaBroker),
 		kgo.ConsumerGroup("jobanalyzer-ingest"),
@@ -40,17 +41,17 @@ func runKafka(kafkaBroker, cluster string, ds db.AppendablePersistentDataProvide
 		return
 	}
 	defer cl.Close()
-	if verbose {
+	if Verbose {
 		log.Printf("%s: Connected!", cluster)
 	}
 
 	ctx := context.Background()
 	for {
-		if verbose {
+		if Verbose {
 			log.Printf("%s: Fetching data", cluster)
 		}
 		fetches := cl.PollFetches(ctx)
-		if verbose {
+		if Verbose {
 			log.Printf("%s: Fetched data", cluster)
 		}
 		if errs := fetches.Errors(); len(errs) > 0 {
@@ -62,7 +63,7 @@ func runKafka(kafkaBroker, cluster string, ds db.AppendablePersistentDataProvide
 		iter := fetches.RecordIter()
 		for !iter.Done() {
 			record := iter.Next()
-			if verbose {
+			if Verbose {
 				log.Printf("  %s: %s", cluster, record.Topic)
 			}
 			err := handler.dispatch(record.Topic, record.Key, record.Value)
@@ -80,15 +81,13 @@ type clusterHandler struct {
 	cluster string
 	disp    map[string]func(ch *clusterHandler, topic, host string, data []byte) error
 	ds      db.AppendablePersistentDataProvider
-	verbose bool
 }
 
-func newClusterHandler(cluster string, ds db.AppendablePersistentDataProvider, verbose bool) *clusterHandler {
+func newClusterHandler(cluster string, ds db.AppendablePersistentDataProvider) *clusterHandler {
 	return &clusterHandler{
 		cluster: cluster,
 		disp:    make(map[string]func(ch *clusterHandler, topic, host string, data []byte) error),
 		ds:      ds,
-		verbose: verbose,
 	}
 }
 
@@ -128,12 +127,12 @@ func handleSample(ch *clusterHandler, topic, host string, data []byte) error {
 		return err
 	}
 	if info.Data != nil {
-		if ch.verbose {
+		if Verbose {
 			log.Printf("%s: Got a good sample %s %s", ch.cluster, topic, host)
 		}
 		return ch.ds.AppendSamplesAsync(db.DataSampleV0JSON, host, string(info.Data.Attributes.Time), data)
 	}
-	if ch.verbose {
+	if Verbose {
 		log.Printf("%s: Dropping a sample error object on the floor", ch.cluster)
 	}
 	return nil
@@ -146,12 +145,12 @@ func handleSysinfo(ch *clusterHandler, topic, host string, data []byte) error {
 		return err
 	}
 	if info.Data != nil {
-		if ch.verbose {
+		if Verbose {
 			log.Printf("%s: Got a good sysinfo %s %s", ch.cluster, topic, host)
 		}
 		return ch.ds.AppendSysinfoAsync(db.DataSysinfoV0JSON, host, string(info.Data.Attributes.Time), data)
 	}
-	if ch.verbose {
+	if Verbose {
 		log.Printf("%s: Dropping a sysinfo error object on the floor", ch.cluster)
 	}
 	return nil
@@ -164,12 +163,12 @@ func handleSlurmJobs(ch *clusterHandler, topic, host string, data []byte) error 
 		return err
 	}
 	if info.Data != nil {
-		if ch.verbose {
+		if Verbose {
 			log.Printf("%s: Got a good jobs %s %s", ch.cluster, topic, host)
 		}
 		return ch.ds.AppendSlurmSacctAsync(db.DataSlurmV0JSON, string(info.Data.Attributes.Time), data)
 	}
-	if ch.verbose {
+	if Verbose {
 		log.Printf("%s: Dropping a job error object on the floor", ch.cluster)
 	}
 	return nil
@@ -182,12 +181,12 @@ func handleCluster(ch *clusterHandler, topic, host string, data []byte) error {
 		return err
 	}
 	if info.Data != nil {
-		if ch.verbose {
+		if Verbose {
 			log.Printf("%s: Got a good cluster %s %s", ch.cluster, topic, host)
 		}
 		return ch.ds.AppendCluzterAsync(db.DataCluzterV0JSON, string(info.Data.Attributes.Time), data)
 	}
-	if ch.verbose {
+	if Verbose {
 		log.Printf("%s: Dropping a cluster error object on the floor", ch.cluster)
 	}
 	return nil

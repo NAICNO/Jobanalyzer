@@ -35,13 +35,12 @@ func (sfr *sacctFileReadSyncMethods) ReadDataLocked(
 	attr FileAttr,
 	inputFile io.Reader,
 	uf *UstrCache,
-	verbose bool,
 ) (payload any, softErrors int, err error) {
 	var p sacctPayloadType
 	if (attr & FileSlurmV0JSON) != 0 {
-		p, softErrors, err = parse.ParseSlurmV0JSON(inputFile, uf, verbose)
+		p, softErrors, err = parse.ParseSlurmV0JSON(inputFile, uf)
 	} else {
-		p, softErrors, err = parse.ParseSlurmCSV(inputFile, uf, verbose)
+		p, softErrors, err = parse.ParseSlurmCSV(inputFile, uf)
 	}
 	payload = p
 	return
@@ -59,8 +58,7 @@ func (_ *sacctFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 
 func ReadSacctSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) ([]sacctPayloadType, int, error) {
-	return readRecordsFromFiles[repr.SacctInfo](files, verbose, reader)
+	return readRecordsFromFiles[repr.SacctInfo](files, reader)
 }

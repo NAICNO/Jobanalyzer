@@ -337,7 +337,6 @@ type QueryFilter struct {
 func BuildSampleFilter(
 	meta types.Context,
 	filter QueryFilter,
-	verbose bool,
 ) (
 	*Hosts,
 	*SampleFilter,
@@ -477,7 +476,7 @@ func BuildSampleFilter(
 		To:              to,
 	}
 
-	if verbose {
+	if Verbose {
 		if haveFrom {
 			Log.Infof("Including records starting on or after %s", filter.FromDate)
 		}

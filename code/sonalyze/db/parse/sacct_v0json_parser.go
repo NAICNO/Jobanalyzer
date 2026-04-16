@@ -14,7 +14,6 @@ import (
 func ParseSlurmV0JSON(
 	input io.Reader,
 	ustrs UstrAllocator,
-	verbose bool,
 ) (
 	records []*repr.SacctInfo,
 	softErrors int,

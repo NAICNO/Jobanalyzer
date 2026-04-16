@@ -18,7 +18,9 @@ func TestPostprocessLogCpuUtilPct(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries, _, _, discarded, err := parse.ParseSampleCSV(f, NewUstrFacade(), true)
+	Verbose = true
+	defer func() { Verbose = false }()
+	entries, _, _, discarded, err := parse.ParseSampleCSV(f, NewUstrFacade())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -117,15 +117,12 @@ func (nc *NodeCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr i
 		return err
 	}
 	records, err := cdp.Query(config.QueryArgs{
-		QueryFilter: config.QueryFilter{
-			QueryFilter: common.QueryFilter{
-				HaveFrom: nc.HaveFrom,
-				FromDate: nc.FromDate,
-				HaveTo:   nc.HaveTo,
-				ToDate:   nc.ToDate,
-				Host:     nc.Host,
-			},
-			Verbose: nc.Verbose,
+		QueryFilter: common.QueryFilter{
+			HaveFrom: nc.HaveFrom,
+			FromDate: nc.FromDate,
+			HaveTo:   nc.HaveTo,
+			ToDate:   nc.ToDate,
+			Host:     nc.Host,
 		},
 		Newest: nc.Newest,
 		Query: func(records []*config.NodeConfig) ([]*config.NodeConfig, error) {

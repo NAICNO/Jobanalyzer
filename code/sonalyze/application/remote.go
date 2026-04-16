@@ -125,7 +125,7 @@ func RemoteOperation(rCmd Command, verb string, stdin io.Reader, stdout, stderr 
 	}
 	curlArgs = append(curlArgs, rCmd.RemoteHost()+"/"+verb+"?"+r.EncodedArguments())
 
-	if rCmd.VerboseFlag() {
+	if Verbose {
 		Log.Infof(
 			"NOTE, we will kill the request if no response after %d seconds", remoteTimeoutSec)
 	}
@@ -139,7 +139,7 @@ func RemoteOperation(rCmd Command, verb string, stdin io.Reader, stdout, stderr 
 	command.Stdout = &newStdout
 	command.Stderr = &newStderr
 
-	if rCmd.VerboseFlag() {
+	if Verbose {
 		Log.Infof("Executing <%s>", command.String())
 	}
 

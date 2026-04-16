@@ -61,7 +61,6 @@ type OldfmtGpuSysinfo struct {
 
 func ParseSysinfoOldJSON(
 	input io.Reader,
-	verbose bool,
 ) (
 	nodeData []*repr.SysinfoNodeData,
 	cardData []*repr.SysinfoCardData,

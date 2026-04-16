@@ -105,7 +105,6 @@ func (nc *NodeProfCommand) Perform(meta types.Context, _ io.Reader, stdout, stde
 			ToDate:   nc.ToDate,
 			Host:     nc.HostArgs.Host,
 		},
-		nc.Verbose,
 	)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)

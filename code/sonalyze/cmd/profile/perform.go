@@ -32,16 +32,15 @@ func (pc *ProfileCommand) Perform(
 			hosts,
 			recordFilter,
 			false,
-			pc.Verbose,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)
 	}
-	if pc.Verbose {
+	if Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
 		UstrStats(out, false)
 	}
-	if pc.Verbose {
+	if Verbose {
 		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
 		numSamples := 0
 		for _, stream := range streams {
@@ -204,7 +203,7 @@ func (pc *ProfileCommand) Perform(
 		m = m2
 	}
 
-	if pc.Verbose {
+	if Verbose {
 		Log.Infof("Number of processes: %d", initialNonempty)
 		Log.Infof("Any rolled-up processes: %v", hasRolledup)
 		Log.Infof("Number of time steps: %d", timesteps)

@@ -27,7 +27,6 @@ type QueryFilter = common.QueryFilter
 
 func (cdp *CardDataProvider) Query(
 	filter QueryFilter,
-	verbose bool,
 ) ([]*repr.SysinfoCardData, error) {
 	f, err := filter.Instantiate()
 	if err != nil {
@@ -39,7 +38,6 @@ func (cdp *CardDataProvider) Query(
 			ToDate:   filter.ToDate,
 			Node:     f.HostFilter(),
 		},
-		verbose,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read log records: %v", err)

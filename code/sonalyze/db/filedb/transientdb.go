@@ -80,37 +80,32 @@ func (tsc *TransientSampleCluster) SampleFilenames(
 
 func (tsc *TransientSampleCluster) ReadProcessSamples(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
-	return readProcessSampleSlice(tsc.files, verbose, tsc.samplesMethods)
+	return readProcessSampleSlice(tsc.files, tsc.samplesMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadNodeSamples(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (sampleBlobs [][]*repr.NodeSample, dropped int, err error) {
-	return readNodeSampleSlice(tsc.files, verbose, tsc.nodeSamplesMethods)
+	return readNodeSampleSlice(tsc.files, tsc.nodeSamplesMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadDiskSamples(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (sampleBlobs [][]*repr.DiskSample, dropped int, err error) {
-	return readDiskSampleSlice(tsc.files, verbose, tsc.diskSamplesMethods)
+	return readDiskSampleSlice(tsc.files, tsc.diskSamplesMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadCpuSamples(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (dataBlobs [][]*repr.CpuSamples, dropped int, err error) {
-	return readCpuSamplesSlice(tsc.files, verbose, tsc.loadDataMethods)
+	return readCpuSamplesSlice(tsc.files, tsc.loadDataMethods)
 }
 
 func (tsc *TransientSampleCluster) ReadGpuSamples(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (dataBlobs [][]*repr.GpuSamples, dropped int, err error) {
-	return readGpuSamplesSlice(tsc.files, verbose, tsc.gpuDataMethods)
+	return readGpuSamplesSlice(tsc.files, tsc.gpuDataMethods)
 }
 
 type TransientSacctCluster struct /* implements SacctCluster */ {
@@ -140,9 +135,8 @@ func (tsc *TransientSacctCluster) SacctFilenames(_, _ time.Time) ([]string, erro
 
 func (tsc *TransientSacctCluster) ReadSacctData(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (recordBlobs [][]*repr.SacctInfo, dropped int, err error) {
-	return ReadSacctSlice(tsc.files, verbose, tsc.methods)
+	return ReadSacctSlice(tsc.files, tsc.methods)
 }
 
 type TransientSysinfoCluster struct /* implements SysinfoCluster */ {
@@ -178,16 +172,14 @@ func (tsc *TransientSysinfoCluster) SysinfoFilenames(
 
 func (tsc *TransientSysinfoCluster) ReadSysinfoNodeData(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (recordBlobs [][]*repr.SysinfoNodeData, dropped int, err error) {
-	return ReadSysinfoNodeDataSlice(tsc.files, verbose, tsc.nodeDataMethods)
+	return ReadSysinfoNodeDataSlice(tsc.files, tsc.nodeDataMethods)
 }
 
 func (tsc *TransientSysinfoCluster) ReadSysinfoCardData(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (recordBlobs [][]*repr.SysinfoCardData, dropped int, err error) {
-	return ReadSysinfoCardDataSlice(tsc.files, verbose, tsc.cardDataMethods)
+	return ReadSysinfoCardDataSlice(tsc.files, tsc.cardDataMethods)
 }
 
 type TransientCluzterCluster struct /* implements CluzterCluster */ {
@@ -221,21 +213,18 @@ func (tsc *TransientCluzterCluster) CluzterFilenames(_, _ time.Time) ([]string, 
 
 func (tsc *TransientCluzterCluster) ReadCluzterAttributeData(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (recordBlobs [][]*repr.CluzterAttributes, dropped int, err error) {
-	return ReadCluzterAttributeDataSlice(tsc.files, verbose, tsc.attributeMethods)
+	return ReadCluzterAttributeDataSlice(tsc.files, tsc.attributeMethods)
 }
 
 func (tsc *TransientCluzterCluster) ReadCluzterPartitionData(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (recordBlobs [][]*repr.CluzterPartitions, dropped int, err error) {
-	return ReadCluzterPartitionDataSlice(tsc.files, verbose, tsc.partitionMethods)
+	return ReadCluzterPartitionDataSlice(tsc.files, tsc.partitionMethods)
 }
 
 func (tsc *TransientCluzterCluster) ReadCluzterNodeData(
 	_ types.DataProviderFilter,
-	verbose bool,
 ) (recordBlobs [][]*repr.CluzterNodes, dropped int, err error) {
-	return ReadCluzterNodeDataSlice(tsc.files, verbose, tsc.nodeMethods)
+	return ReadCluzterNodeDataSlice(tsc.files, tsc.nodeMethods)
 }

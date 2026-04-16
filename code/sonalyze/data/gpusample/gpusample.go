@@ -43,7 +43,6 @@ func OpenGpuSampleDataProvider(meta types.Context) (*GpuSampleDataProvider, erro
 func (gsd *GpuSampleDataProvider) Query(
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
-	verbose bool,
 ) (
 	streams GpuSamplesByHostSet,
 	bounds Timebounds,
@@ -57,8 +56,7 @@ func (gsd *GpuSampleDataProvider) Query(
 			FromDate: fromDate,
 			ToDate:   toDate,
 			Node:     hostGlobber,
-		},
-		verbose)
+		})
 	if err != nil {
 		return
 	}

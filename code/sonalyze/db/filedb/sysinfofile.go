@@ -66,14 +66,13 @@ func (sfr *sysinfoFileReadSyncMethods) ReadDataLocked(
 	attr FileAttr,
 	inputFile io.Reader,
 	uf *UstrCache,
-	verbose bool,
 ) (payload any, softErrors int, err error) {
 	var nodeData []*repr.SysinfoNodeData
 	var cardData []*repr.SysinfoCardData
 	if (attr & FileSysinfoV0JSON) != 0 {
-		nodeData, cardData, _, err = parse.ParseSysinfoV0JSON(inputFile, verbose)
+		nodeData, cardData, _, err = parse.ParseSysinfoV0JSON(inputFile)
 	} else {
-		nodeData, cardData, _, err = parse.ParseSysinfoOldJSON(inputFile, verbose)
+		nodeData, cardData, _, err = parse.ParseSysinfoOldJSON(inputFile)
 	}
 	if err != nil {
 		return
@@ -98,16 +97,14 @@ func (_ *sysinfoFileReadSyncMethods) CachedSizeOfPayload(payload any) uintptr {
 
 func ReadSysinfoNodeDataSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) ([][]*repr.SysinfoNodeData, int, error) {
-	return readRecordsFromFiles[repr.SysinfoNodeData](files, verbose, reader)
+	return readRecordsFromFiles[repr.SysinfoNodeData](files, reader)
 }
 
 func ReadSysinfoCardDataSlice(
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) ([][]*repr.SysinfoCardData, int, error) {
-	return readRecordsFromFiles[repr.SysinfoCardData](files, verbose, reader)
+	return readRecordsFromFiles[repr.SysinfoCardData](files, reader)
 }

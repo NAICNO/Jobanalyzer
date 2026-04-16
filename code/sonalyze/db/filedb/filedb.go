@@ -54,7 +54,6 @@ type parseRequest struct {
 	id      any
 	reader  ReadSyncMethods
 	results chan parseResult
-	verbose bool
 }
 
 var (
@@ -103,7 +102,7 @@ func init() {
 					var result parseResult
 					result.id = request.id
 					result.data, result.dropped, result.err =
-						request.file.ReadSync(uf, request.verbose, request.reader)
+						request.file.ReadSync(uf, request.reader)
 					request.results <- result
 				}
 			},
@@ -140,10 +139,9 @@ func init() {
 
 func readRecordsFromFiles[T any](
 	files []*LogFile,
-	verbose bool,
 	reader ReadSyncMethods,
 ) (recordBlobs [][]*T, dropped int, err error) {
-	if verbose {
+	if Verbose {
 		Log.Infof("%d files", len(files))
 	}
 
@@ -164,7 +162,6 @@ func readRecordsFromFiles[T any](
 		case parseRequests <- parseRequest{
 			file:    files[toSend],
 			results: results,
-			verbose: verbose,
 			reader:  reader,
 		}:
 			toSend++

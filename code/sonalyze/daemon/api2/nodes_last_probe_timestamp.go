@@ -65,7 +65,6 @@ func handleNodesLastProbeTimestamp(
 			nil, // hosts
 			&sample.SampleFilter{From: from.Unix(), To: to.Unix()},
 			true, // bounds
-			verbose,
 		)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(

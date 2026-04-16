@@ -44,9 +44,6 @@ type Command interface {
 	// Validate all arguments including shared arguments
 	Validate() error
 
-	// The -v flag
-	VerboseFlag() bool
-
 	// Reify all arguments including shared arguments for remote execution, with checking
 	ReifyForRemote(x *ArgReifier) error
 

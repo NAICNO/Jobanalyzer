@@ -59,7 +59,6 @@ type CpuSampleSet map[Ustr]*CpuSamplesByHost
 func (cdp *CpuSampleDataProvider) Query(
 	fromDate, toDate time.Time,
 	hostGlobber *Hosts,
-	verbose bool,
 ) (
 	streams CpuSampleSet,
 	bounds Timebounds,
@@ -73,8 +72,7 @@ func (cdp *CpuSampleDataProvider) Query(
 			FromDate: fromDate,
 			ToDate:   toDate,
 			Node:     hostGlobber,
-		},
-		verbose)
+		})
 	if err != nil {
 		return
 	}

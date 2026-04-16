@@ -42,7 +42,6 @@ func (sc *SacctCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr 
 			MinRuntime: sc.MinRuntime,
 			MaxRuntime: sc.MaxRuntime,
 		},
-		sc.Verbose,
 	)
 	if err != nil {
 		return err
@@ -121,12 +120,12 @@ func (sc *SacctCommand) sacctRegularJobs(stdout io.Writer, regularJobs []*slurmj
 		regular = r
 	}
 
-	if sc.Verbose {
+	if Verbose {
 		Log.Infof("regular jobs elided b/c: too small %d, too big %d, too feeble %d, too beefy %d",
 			toosmall, toobig, toofeeble, toobeefy)
 	}
 
-	if sc.Verbose {
+	if Verbose {
 		Log.Infof("After final filtering: %d jobs.", len(regular))
 	}
 

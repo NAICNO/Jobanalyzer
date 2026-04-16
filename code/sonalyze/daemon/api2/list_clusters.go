@@ -67,7 +67,7 @@ func handleListClusters(
 				return nil, huma.Error500InternalServerError(
 					listClustersName+": Unable to open slurm data store", err)
 			}
-			records, err := spd.Query(filter, verbose)
+			records, err := spd.Query(filter)
 			if err != nil {
 				return nil, huma.Error500InternalServerError(
 					listClustersName+": Failed to query slurm data", err)

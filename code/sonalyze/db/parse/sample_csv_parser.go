@@ -23,7 +23,6 @@ import (
 func ParseSampleCSV(
 	input io.Reader,
 	ustrs UstrAllocator,
-	verbose bool,
 ) (
 	samples []*repr.Sample,
 	loadData []*repr.CpuSamples,
@@ -213,7 +212,7 @@ LineLoop:
 
 				if eqloc == CsvEqSentinel {
 					// Invalid field syntax: Drop the field but keep the record
-					if verbose {
+					if Verbose {
 						Log.Infof(
 							"Dropping field with bad form: %s",
 							"(elided)", /*tokenizer.BufSubstringSlow(start, lim), - see NOTE above*/
@@ -381,7 +380,7 @@ LineLoop:
 				// The second case suggests something bad, so discard the record in this case.  Note
 				// this is actually the same as just `failed` due to the fourth case.
 				if !matched {
-					if verbose {
+					if Verbose {
 						Log.Warningf(
 							"Dropping field with unknown name: %s",
 							"(elided)", /* tokenizer.BufSubstringSlow(start, eqloc-1), -
@@ -393,7 +392,7 @@ LineLoop:
 					}
 				}
 				if err != nil {
-					if verbose {
+					if Verbose {
 						Log.Warningf(
 							"Dropping record with illegal/unparseable value: %s %v",
 							"(elided)", /*tokenizer.BufSubstringSlow(start, lim), - see NOTE above */
@@ -417,7 +416,7 @@ LineLoop:
 
 		// Untagged records do not have optional trailing fields.
 		if format == untaggedFormat && untaggedPosition < 8 {
-			if verbose {
+			if Verbose {
 				Log.Infof(
 					"Dropping untagged record with missing fields, got only %d fields",
 					untaggedPosition,
@@ -448,7 +447,7 @@ LineLoop:
 			irritants += "user "
 		}
 		if irritants != "" {
-			if verbose {
+			if Verbose {
 				Log.Warningf("Dropping record with missing mandatory field(s): %s", irritants)
 			}
 			softErrors++

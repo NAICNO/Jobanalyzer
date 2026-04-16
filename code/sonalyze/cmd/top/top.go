@@ -78,12 +78,11 @@ func (tc *TopCommand) Perform(meta types.Context, stdin io.Reader, stdout, stder
 			tc.FromDate,
 			tc.ToDate,
 			hostGlobber,
-			tc.Verbose,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)
 	}
-	if tc.Verbose {
+	if Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
 		UstrStats(stderr, false)
 	}

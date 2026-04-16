@@ -86,7 +86,7 @@ func sonalyze() error {
 
 		// All verbose messages are printed with Log.Info so for -v the level has to be at least
 		// that low.
-		if anyCmd.VerboseFlag() {
+		if Verbose {
 			Log.LowerLevelTo(status.LogLevelInfo)
 		}
 

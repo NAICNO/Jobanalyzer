@@ -28,7 +28,6 @@ func ReadSampleStreamsAndMaybeBounds(
 	hostGlobber *Hosts,
 	recordFilter *SampleFilter,
 	wantBounds bool,
-	verbose bool,
 ) (
 	streams InputStreamSet,
 	bounds Timebounds,
@@ -42,8 +41,7 @@ func ReadSampleStreamsAndMaybeBounds(
 			Node:     hostGlobber,
 			Jobs:     recordFilter.IncludeJobs,
 			Users:    recordFilter.IncludeUsers,
-		},
-		verbose)
+		})
 	if err != nil {
 		return
 	}
