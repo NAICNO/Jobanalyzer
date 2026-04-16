@@ -41,6 +41,10 @@ Connects to cluster REST APIs to display job analytics, node status, and resourc
 - GPU benchmark comparisons across clusters
 - Filterable by precision, GPU count, and test type
 
+## Screenshots
+
+See [screenshots/README.md](screenshots/README.md) for captioned screenshots of every page, generated with synthetic data.
+
 ## Architecture
 
 ```mermaid
@@ -255,6 +259,7 @@ public/
 | Command | Description |
 | --- | --- |
 | `yarn dev` | Start development server |
+| `yarn demo` | Start dev server with synthetic mock data (no real cluster needed) |
 | `yarn build` | Type-check and build for production |
 | `yarn preview` | Preview the production build locally |
 | `yarn lint` | Run ESLint |
