@@ -41,6 +41,10 @@ Connects to cluster REST APIs to display job analytics, node status, and resourc
 - GPU benchmark comparisons across clusters
 - Filterable by precision, GPU count, and test type
 
+## Screenshots
+
+See [screenshots/README.md](screenshots/README.md) for captioned screenshots of every page, generated with synthetic data.
+
 ## Architecture
 
 ```mermaid
