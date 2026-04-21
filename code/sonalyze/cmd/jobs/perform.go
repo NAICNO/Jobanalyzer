@@ -209,7 +209,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 		needHosts:     jc.SacctFromSonar,
 		needZombie:    jc.Zombie,
 	}
-	summaries, discarded :=
+	summaries, discarded, fb :=
 		jc.summarizeJobsFromSonarData(cfg, bounds, jobs, summaryFilter, fb)
 	if Verbose {
 		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
@@ -233,7 +233,7 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	jobs sample.MergedJobs,
 	summaryFilter *aggregationFilter,
 	fb flagBag,
-) ([]*jobSummary, int) {
+) ([]*jobSummary, int, flagBag) {
 	var now = time.Now().UTC().Unix()
 	summaries := make([]*jobSummary, 0)
 	minSamples := jc.lookupUint("min-samples")
@@ -266,7 +266,7 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 			discarded++
 		}
 	}
-	return summaries, discarded
+	return summaries, discarded, fb
 }
 
 // Aggregate and summarize but do not attach any sacct data.
