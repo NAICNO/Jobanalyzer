@@ -5,6 +5,7 @@ package application
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -128,6 +129,14 @@ func RemoteOperation(rCmd Command, verb string, stdin io.Reader, stdout, stderr 
 
 	err = command.Run()
 
+	// In principle, stdout is *always* encoded as a single JSON string, but if decoding fails fall
+	// back to the raw output.
+	stdoutString := newStdout.String()
+	var out string
+	if json.Unmarshal([]byte(stdoutString), &out) != nil {
+		out = stdoutString
+	}
+
 	// If there is a processing error on the remote end then the server will respond with a 400 code
 	// and the text that would otherwise go to stderr, see runSonalyze() in daemon/perform.go.  That
 	// translates as a non-nil error with code 22 here, and the error message is on our local
@@ -143,7 +152,7 @@ func RemoteOperation(rCmd Command, verb string, stdin io.Reader, stdout, stderr 
 		if xe, ok := err.(*exec.ExitError); ok {
 			switch xe.ExitCode() {
 			case 22:
-				return fmt.Errorf("Remote: %s", newStdout.String())
+				return fmt.Errorf("Remote: %s", out)
 			case 5, 6, 7:
 				return fmt.Errorf("Failed to resolve remote host (or proxy).  Exit code %v, stderr=%s",
 					xe.ExitCode(), string(xe.Stderr))
@@ -155,6 +164,6 @@ func RemoteOperation(rCmd Command, verb string, stdin io.Reader, stdout, stderr 
 	}
 
 	// print, not println, or we end up adding a blank line that confuses consumers
-	fmt.Fprint(stdout, newStdout.String())
+	fmt.Fprint(stdout, out)
 	return nil
 }
