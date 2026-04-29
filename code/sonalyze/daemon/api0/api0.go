@@ -573,9 +573,10 @@ func queryCommand(command, auth string, params []string) (*QueryResponse, error)
 			return nil, huma.Error401Unauthorized(command + ": Unknown user/pass combination")
 		}
 	}
-	if verbose && auth != "" {
-		Log.Infof("Auth: %q", auth)
-	}
+	// not normally what we want but handy for debugging
+	// if verbose && auth != "" {
+	// 	Log.Infof("Auth: %q", auth)
+	// }
 	if jobanalyzerDir != "" {
 		params = append(params, "-jobanalyzer-dir", jobanalyzerDir)
 	}
@@ -659,11 +660,6 @@ func (x *QueryParams) Collect() []string {
 }
 
 type HostParams struct {
-	// TODO: This is tricky.  The argument parser does not allow comma separation here, but does
-	// allow repeated arguments.  Not sure how this works with query args - repeats override, I
-	// think?  Do we use the host list parser to separate comma-separated hosts?  If so, we can just
-	// forward.  The real problem is if the cli depends on repeated args and we can't do them with
-	// the REST API.
 	Host string `query:"host" doc:"Comma-separated host ranges"`
 }
 
