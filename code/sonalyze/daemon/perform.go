@@ -56,19 +56,25 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 
 	if dc.restAPI != "" {
 		api := apiutil.CreateAPI(dc.restAPI)
-		api0.SetupAPI(
-			api,
-			dc.JobanalyzerDir(),
-			dc.DatabaseURI(),
-			dc.cmdlineHandler,
-			dc.getAuthenticator,
-		)
-		api1.SetupAPI(
-			api,
-			dc.insert,
-			dc.postAuthenticator,
-		)
-		api2.SetupAPI(api)
+		if dc.v0 {
+			api0.SetupAPI(
+				api,
+				dc.JobanalyzerDir(),
+				dc.DatabaseURI(),
+				dc.cmdlineHandler,
+				dc.getAuthenticator,
+			)
+		}
+		if dc.v1 {
+			api1.SetupAPI(
+				api,
+				dc.insert,
+				dc.postAuthenticator,
+			)
+		}
+		if dc.v2 {
+			api2.SetupAPI(api)
+		}
 		apiutil.RunAPI()
 	}
 

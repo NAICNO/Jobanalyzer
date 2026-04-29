@@ -1,19 +1,7 @@
 // `sonalyze daemon` - HTTP server that runs sonalyze on behalf of a remote client
 //
 // This server responds to GET and POST requests carrying parameters that specify how to run
-// sonalyze against a local data store.  The path for analysis commands is the sonalyze command
-// name, eg, `GET /jobs?...` will run `sonalyze jobs`.  The path for add commands is either `POST
-// /add?...` with the appropriate arguments, or for backward compatibility with existing infra, a
-// keyword describing the data, eg `POST /sonar-freecsv?...` will run `sonalyze add -sample`.
-//
-// A query parameter `cluster=clusterName` is required for all requests, it names the cluster we're
-// operating within and determines a bunch of file paths.
-//
-// Other parameter names are always the long parameter names for sonalyze and the parameter values
-// are always urlencoded as necessary; parameter-less flags default to not-present.  Most parameters
-// and names are forwarded to sonalyze, with eg --data-path and --config-file supplied by this code.
-// The returned output is the raw output from sonalyze, whether for success or error.  A successful
-// runs yields 2xx and an error yields 4xx or 5xx.
+// sonalyze against a local data store.  See doc/HOWTO-RESTAPI.md.
 //
 // Arguments:
 //
@@ -72,6 +60,21 @@
 //   or less aligned with the v0 API but with clean JSON output and not the idiosyncrasies of v0,
 //   and under /api/v2 there is a subset of the slurm-monitor REST API v2.
 //
+//   The individual APIs are all disabled by default.  Pass -v0, -v1, and -v2 to enable them.
+//
+// -v0
+//
+//   Enable the v0 API.
+//
+// -v1
+//
+//   Enable the v1 API.
+//
+// -v2
+//
+//   Enable the v2 API.  Note this does not use the analysis-auth, having been set up for OAUTH
+//   authentication, and may require additional work to be safe.
+//
 // -insert
 //
 //   Enable the /api/v1/insert points in the REST API.  Normally this API is enabled only when
@@ -119,12 +122,14 @@ type DaemonCommand struct {
 	DevArgs
 	VerboseArgs
 	DatabaseArgs
-	getAuthFile         string
-	postAuthFile        string
-	matchUserAndCluster bool
-	kafkaBroker         string
-	restAPI             string
-	insert              bool
+	getAuthFile  string
+	postAuthFile string
+	kafkaBroker  string
+	restAPI      string
+	insert       bool
+	v0           bool
+	v1           bool
+	v2           bool
 
 	getAuthenticator  *auth.Authenticator
 	postAuthenticator *auth.Authenticator
@@ -144,11 +149,13 @@ func (dc *DaemonCommand) Add(fs *CLI) {
 	fs.Group("daemon-configuration")
 	fs.StringVar(&dc.getAuthFile, "analysis-auth", "", "Authentication info `filename` for analysis access")
 	fs.StringVar(&dc.postAuthFile, "upload-auth", "", "Authentication info `filename` for data upload access")
-	fs.BoolVar(&dc.matchUserAndCluster, "match-user-and-cluster", false, "Require user name to match cluster name")
 	fs.StringVar(&dc.getAuthFile, "password-file", "", "Alias for -analysis-auth")
 	fs.StringVar(&dc.kafkaBroker, "kafka", "", "Ingest data from this broker for all known clusters")
 	fs.StringVar(&dc.restAPI, "rest-api", "", "Serve /api/v0, /api/v1 and /api/v2 on this interface:port")
 	fs.BoolVar(&dc.insert, "insert", false, "Enable the /api/v1/insert points")
+	fs.BoolVar(&dc.v0, "v0", false, "Enable the v0 API")
+	fs.BoolVar(&dc.v1, "v1", false, "Enable the v1 API")
+	fs.BoolVar(&dc.v2, "v2", false, "Enable the v2 API")
 }
 
 //go:embed summary.txt

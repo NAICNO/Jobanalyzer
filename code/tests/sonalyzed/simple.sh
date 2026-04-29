@@ -22,6 +22,8 @@ cp cluster2.naic.com-config.json $rootdir/cluster-config/cluster2.naic.com-confi
 $SONALYZE daemon -v \
            -jobanalyzer-dir $rootdir \
            -rest-api $testapi \
+           -v0 \
+           -v1 \
            -insert \
            -upload-auth upload-auth.txt \
            -analysis-auth analysis-auth.txt &
