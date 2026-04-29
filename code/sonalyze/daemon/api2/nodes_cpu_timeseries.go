@@ -6,6 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"sonalyze/daemon/apiutil"
 	"sonalyze/data/sample"
 )
 
@@ -87,11 +88,11 @@ func computeProfile(
 	startTimeInS, endTimeInS, resolutionInS uint64,
 	nodename string,
 ) (map[string][]profStepData, huma.StatusError) {
-	meta, hErr := getClusterContext(opName, clusterName)
+	meta, hErr := apiutil.GetClusterContext(opName, clusterName)
 	if hErr != nil {
 		return nil, hErr
 	}
-	from, to, hErr := timeWindowFromData(opName, meta, startTimeInS, endTimeInS)
+	from, to, hErr := apiutil.TimeWindowFromData(opName, meta, startTimeInS, endTimeInS)
 	if hErr != nil {
 		return nil, hErr
 	}
@@ -100,19 +101,15 @@ func computeProfile(
 		bucket = int64(resolutionInS)
 	}
 
-	var hostList []string
-	if nodename != "" {
-		hostList = []string{nodename}
+	hostFilter, hErr := apiutil.NewHostFilter(opName, nodename)
+	if hErr != nil {
+		return nil, hErr
 	}
-	sysinfo, hErr := getSysinfoAt(opName, meta, to, hostList)
+	sysinfo, hErr := getSysinfoAt(opName, meta, to, hostFilter.Patterns())
 	if hErr != nil {
 		return nil, hErr
 	}
 	sdp, hErr := openSampleDataProvider(opName, meta)
-	if hErr != nil {
-		return nil, hErr
-	}
-	hostFilter, hErr := newHostFilter(opName, nodename)
 	if hErr != nil {
 		return nil, hErr
 	}

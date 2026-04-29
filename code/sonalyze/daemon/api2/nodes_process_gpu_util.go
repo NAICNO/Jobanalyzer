@@ -16,6 +16,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"sonalyze/daemon/apiutil"
 	"sonalyze/data/sample"
 )
 
@@ -56,11 +57,11 @@ func handleNodesProcessGpuUtil(
 		WindowInS        uint64 `query:"window_in_s" doc:"Width of averaging interval, default 300"`
 	},
 ) (*NodesProcessGpuUtilResponse, error) {
-	meta, hErr := getClusterContext(nodesProcessGpuUtilName, input.Cluster)
+	meta, hErr := apiutil.GetClusterContext(nodesProcessGpuUtilName, input.Cluster)
 	if hErr != nil {
 		return nil, hErr
 	}
-	from, to, hErr := timeWindowFromData(
+	from, to, hErr := apiutil.TimeWindowFromData(
 		nodesProcessGpuUtilName, meta, input.ReferenceTimeInS, input.ReferenceTimeInS)
 	if hErr != nil {
 		return nil, hErr
@@ -70,7 +71,7 @@ func handleNodesProcessGpuUtil(
 	from = from.Add(-w)
 	to = to.Add(w)
 
-	hostFilter, hErr := newHostFilter(nodesProcessGpuUtilName, input.Nodename)
+	hostFilter, hErr := apiutil.NewHostFilter(nodesProcessGpuUtilName, input.Nodename)
 	if hErr != nil {
 		return nil, hErr
 	}

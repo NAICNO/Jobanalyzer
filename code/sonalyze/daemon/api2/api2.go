@@ -2,21 +2,16 @@ package api2
 
 import (
 	"math"
-	"net/http"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/adapters/humago"
 
 	"go-utils/gpuset"
-	. "sonalyze/common"
 	"sonalyze/data/card"
 	"sonalyze/data/common"
 	"sonalyze/data/node"
 	"sonalyze/data/sample"
-	"sonalyze/db"
 	"sonalyze/db/repr"
-	"sonalyze/db/special"
 	"sonalyze/db/types"
 )
 
@@ -42,25 +37,20 @@ const (
 )
 
 // The iface is the local interface: name:port.
-func StartRestAPI(iface string) {
-	go func() {
-		router := http.NewServeMux()
-		api := humago.New(router, huma.DefaultConfig(apiName, apiVersion))
-		grp := huma.NewGroup(api, "/api/v2")
-		addErrorMessages(grp)
-		addListClusters(grp)
-		addNodesInfo(grp)
-		addNodesLastProbeTimestamp(grp)
-		addNodesCpuTimeseries(grp)
-		addNodesMemoryTimeseries(grp)
-		addNodesGpuTimeseries(grp)
-		addNodesDiskstatsTimeseries(grp)
-		addNodesProcessGpuUtil(grp)
-		addProcesses(grp)
-		addProcessesGpu(grp)
-		addProcessesTimeseries(grp)
-		http.ListenAndServe(iface, router)
-	}()
+func SetupAPI(api huma.API) {
+	grp := huma.NewGroup(api, "/api/v2")
+	addErrorMessages(grp)
+	addListClusters(grp)
+	addNodesInfo(grp)
+	addNodesLastProbeTimestamp(grp)
+	addNodesCpuTimeseries(grp)
+	addNodesMemoryTimeseries(grp)
+	addNodesGpuTimeseries(grp)
+	addNodesDiskstatsTimeseries(grp)
+	addNodesProcessGpuUtil(grp)
+	addProcesses(grp)
+	addProcessesGpu(grp)
+	addProcessesTimeseries(grp)
 }
 
 // This is called from the daemon's main thread when interrupted by signals.
@@ -92,82 +82,6 @@ func canonicalizeInitialTimestep(t int64, resolution int64) int64 {
 	return t
 }
 
-func getClusterContext(opName, clusterName string) (types.Context, huma.StatusError) {
-	cluster := special.LookupCluster(clusterName)
-	if cluster == nil {
-		return nil, huma.Error400BadRequest(opName + ": Failed to find cluster " + clusterName)
-	}
-	return db.NewContextFromCluster(cluster), nil
-}
-
-// Given a cluster, compute the from/to time based on the available data in the database for the cluster
-// and any expressed from/to times.
-func timeWindowFromData(
-	opName string,
-	meta types.Context,
-	startTimeInS, endTimeInS uint64,
-) (from time.Time, to time.Time, hErr huma.StatusError) {
-	// TODO: Want to somehow document default timespan.
-	//
-	// Can we attach that to the api somehow without repeating it for every API?
-
-	theLog, err := db.OpenReadOnlyDB(meta, types.MetaData)
-	if err != nil {
-		hErr = huma.Error500InternalServerError(opName+": Can't open database", err)
-		return
-	}
-	maxTime, err := theLog.MaxTime(true)
-	if err != nil {
-		maxTime = time.Now()
-	}
-	minTime, err := theLog.MinTime(true)
-	if err != nil {
-		minTime = maxTime
-	}
-	if Verbose {
-		Log.Infof("Min/max time: %v %v", minTime, maxTime)
-	}
-
-	// Sensible defaults
-	to = maxTime
-	from = maxTime.Add(-defaultTimeWindow)
-
-	// Overrides - start/end can be specified separately
-	if startTimeInS != 0 {
-		from = time.Unix(int64(startTimeInS), 0)
-		if endTimeInS == 0 {
-			to = from.Add(defaultTimeWindow)
-		}
-	}
-	if endTimeInS != 0 {
-		to = time.Unix(int64(endTimeInS), 0)
-		if startTimeInS == 0 {
-			from = to.Add(-defaultTimeWindow)
-		}
-	}
-
-	// Validation
-	if from.After(to) {
-		hErr = huma.Error400BadRequest(opName+": Bad time value(s)", err)
-		return
-	}
-
-	// Clamping to max window
-	if to.Sub(from) > maxTimeWindow {
-		from = to.Add(-maxTimeWindow)
-	}
-
-	// Clamping to max/min times
-	if from.Before(minTime) {
-		from = minTime
-	}
-	if to.After(maxTime) {
-		to = maxTime
-	}
-
-	return
-}
-
 func openSampleDataProvider(opName string, meta types.Context) (*sample.SampleDataProvider, huma.StatusError) {
 	sdp, err := sample.OpenSampleDataProvider(meta)
 	if err != nil {
@@ -175,18 +89,6 @@ func openSampleDataProvider(opName string, meta types.Context) (*sample.SampleDa
 			opName+": Failed to open sample store", err)
 	}
 	return sdp, nil
-}
-
-func newHostFilter(opName, nodeName string) (*Hosts, huma.StatusError) {
-	var hostList []string
-	if nodeName != "" {
-		hostList = []string{nodeName}
-	}
-	hostFilter, err := NewHosts(true, hostList)
-	if err != nil {
-		return nil, huma.Error400BadRequest(opName+": Bad host list", err)
-	}
-	return hostFilter, nil
 }
 
 // Retrieve latest node metadata for the nodes within the time window.

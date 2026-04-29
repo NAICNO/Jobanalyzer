@@ -565,12 +565,12 @@ type HostArgs struct {
 
 func (h *HostArgs) Add(fs *CLI) {
 	fs.Group("record-filter")
-	fs.Var(NewRepeatableStringNoCommas(&h.Host), "host",
+	fs.Var(NewRepeatableSemiSeparated(&h.Host), "host",
 		"Select records for this `host` (repeatable) [default: all]")
 }
 
 func (h *HostArgs) ReifyForRemote(x *ArgReifier) error {
-	x.RepeatableString("host", h.Host)
+	x.RepeatableSemiSeparated("host", h.Host)
 	return nil
 }
 
@@ -723,28 +723,28 @@ func NeedsConfig[T any](formatters map[string]Formatter[T], fields []FieldSpec) 
 // Repeatable arguments.
 
 // Some string arguments can't be comma-separated because host patterns such as 'ml[1,2],ml9' would
-// not really work without heroic effort.
+// not really work without heroic effort.  Allow them to be separated by semicolons instead.
 
-type RepeatableStringNoCommas struct {
+type RepeatableSemiSeparated struct {
 	xs *[]string
 }
 
-func NewRepeatableStringNoCommas(xs *[]string) *RepeatableStringNoCommas {
-	return &RepeatableStringNoCommas{xs}
+func NewRepeatableSemiSeparated(xs *[]string) *RepeatableSemiSeparated {
+	return &RepeatableSemiSeparated{xs}
 }
 
-func (rs *RepeatableStringNoCommas) String() string {
+func (rs *RepeatableSemiSeparated) String() string {
 	if rs == nil || rs.xs == nil {
 		return ""
 	}
-	return strings.Join(*rs.xs, ",")
+	return strings.Join(*rs.xs, ";")
 }
 
-func (rs *RepeatableStringNoCommas) Set(s string) error {
+func (rs *RepeatableSemiSeparated) Set(s string) error {
 	if *rs.xs == nil {
-		*rs.xs = []string{s}
+		*rs.xs = strings.Split(s, ";")
 	} else {
-		*rs.xs = append(*rs.xs, s)
+		*rs.xs = append(*rs.xs, strings.Split(s, ";")...)
 	}
 	return nil
 }

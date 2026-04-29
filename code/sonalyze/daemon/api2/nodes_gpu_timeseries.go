@@ -6,6 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"sonalyze/daemon/apiutil"
 	"sonalyze/data/gpusample"
 	"sonalyze/db/repr"
 )
@@ -52,11 +53,11 @@ func handleNodesGpuTimeseries(
 		Nodename      string `query:"nodename" doc:"Compressed node name list"`
 	},
 ) (*NodesGpuTimeseriesResponse, error) {
-	meta, hErr := getClusterContext(nodesGpuTimeseriesName, input.Cluster)
+	meta, hErr := apiutil.GetClusterContext(nodesGpuTimeseriesName, input.Cluster)
 	if hErr != nil {
 		return nil, hErr
 	}
-	from, to, hErr := timeWindowFromData(
+	from, to, hErr := apiutil.TimeWindowFromData(
 		nodesGpuTimeseriesName, meta, input.StartTimeInS, input.EndTimeInS)
 	if hErr != nil {
 		return nil, hErr
@@ -81,7 +82,7 @@ func handleNodesGpuTimeseries(
 		return nil, huma.Error500InternalServerError(
 			nodesGpuTimeseriesName+": failed to open gpu sample store", err)
 	}
-	hostGlobber, hErr := newHostFilter(nodesGpuTimeseriesName, input.Nodename)
+	hostGlobber, hErr := apiutil.NewHostFilter(nodesGpuTimeseriesName, input.Nodename)
 	if err != nil {
 		return nil, hErr
 

@@ -40,20 +40,19 @@ There is none: every known user has superuser privileges on all clusters, ie, th
 for all users.  See "Better authorization" below.
 
 
-## Upload (`add`, etc) authentication and authorization
+## Upload (`/api/v1/insert`) authentication and authorization
 
 ### Design
 
-For upload (the `add` command and its aliases) authentication first checks that the provided
-username and password exist in the upload authorization data base.  A request comes in to the HTTP
-server with username/password U/P (encoded as an HTTP header asking for the simple HTTP
-authentication).  Identity checking is performed by the daemon before the request is acted on.  If
-the check fails the request is rejected.
+For upload authentication first checks that the provided username and password exist in the upload
+authorization data base.  A request comes in to the HTTP server with username/password U/P (encoded
+as an HTTP header asking for the simple HTTP authentication).  Identity checking is performed by the
+daemon before the request is acted on.  If the check fails the request is rejected.
 
 Then an authorization check is made that the provided username matches the cluster argument given to
-`add` - different clusters have different upload passwords, which are secrets they own.  This check
-makes it impossible for somebody with only the password for one cluster to spoof data for another
-cluster.
+`/api/v1/insert` - different clusters have different upload passwords, which are secrets they own.  This
+check makes it impossible for somebody with only the password for one cluster to spoof data for
+another cluster.
 
 Note that if the cluster name is embedded in the data there is not generally a check that it matches
 the name given in the upload request.

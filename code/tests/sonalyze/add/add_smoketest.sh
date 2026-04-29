@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# add was removed in sonalyze v0.15, replaced by the /api/v1/insert protocol, which has its own test
+# in ../../sonalyzed.
+exit 0
+
 set -e
 
 # No support for `add` in the rust version

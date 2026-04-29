@@ -6,6 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"sonalyze/daemon/apiutil"
 	"sonalyze/data/sample"
 )
 
@@ -57,11 +58,11 @@ func handleProcessesTimeseries(
 		Nodename      string `query:"nodename" doc:"Compressed node name list"`
 	},
 ) (*ProcessesTimeseriesResponse, error) {
-	meta, hErr := getClusterContext(processesTimeseriesName, input.Cluster)
+	meta, hErr := apiutil.GetClusterContext(processesTimeseriesName, input.Cluster)
 	if hErr != nil {
 		return nil, hErr
 	}
-	from, to, hErr := timeWindowFromData(processesTimeseriesName, meta, input.StartTimeInS, input.EndTimeInS)
+	from, to, hErr := apiutil.TimeWindowFromData(processesTimeseriesName, meta, input.StartTimeInS, input.EndTimeInS)
 	if hErr != nil {
 		return nil, hErr
 	}
@@ -69,7 +70,7 @@ func handleProcessesTimeseries(
 	if input.ResolutionInS != 0 {
 		bucket = int64(input.ResolutionInS)
 	}
-	hostFilter, hErr := newHostFilter(processesTimeseriesName, input.Nodename)
+	hostFilter, hErr := apiutil.NewHostFilter(processesTimeseriesName, input.Nodename)
 	if hErr != nil {
 		return nil, hErr
 	}

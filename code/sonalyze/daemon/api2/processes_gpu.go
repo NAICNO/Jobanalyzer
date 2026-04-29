@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	. "sonalyze/common"
+	"sonalyze/daemon/apiutil"
 	"sonalyze/data/gpusample"
 	"sonalyze/data/sample"
 )
@@ -60,15 +61,15 @@ func handleProcessesGpu(
 		TimeInS  uint64 `query:"time_in_s" doc:"Posix timestamp"`
 	},
 ) (*ProcessesGpuResponse, error) {
-	meta, hErr := getClusterContext(processesGpuName, input.Cluster)
+	meta, hErr := apiutil.GetClusterContext(processesGpuName, input.Cluster)
 	if hErr != nil {
 		return nil, hErr
 	}
-	from, to, hErr := timeWindowFromData(processesGpuName, meta, 0, input.TimeInS)
+	from, to, hErr := apiutil.TimeWindowFromData(processesGpuName, meta, 0, input.TimeInS)
 	if hErr != nil {
 		return nil, hErr
 	}
-	hostFilter, hErr := newHostFilter(processesGpuName, input.Nodename)
+	hostFilter, hErr := apiutil.NewHostFilter(processesGpuName, input.Nodename)
 	if hErr != nil {
 		return nil, hErr
 	}

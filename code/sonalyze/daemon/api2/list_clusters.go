@@ -9,6 +9,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"sonalyze/daemon/apiutil"
 	"sonalyze/data/common"
 	"sonalyze/data/slurmpart"
 	"sonalyze/db"
@@ -53,7 +54,7 @@ func handleListClusters(
 	resp := &ClusterResponse{}
 	for _, c := range special.AllClusters() {
 		meta := db.NewContextFromCluster(c)
-		_, to, hErr := timeWindowFromData(listClustersName, meta, 0, input.TimeInS)
+		_, to, hErr := apiutil.TimeWindowFromData(listClustersName, meta, 0, input.TimeInS)
 		from := to.Add(-24 * time.Hour)
 		if hErr != nil {
 			return nil, hErr

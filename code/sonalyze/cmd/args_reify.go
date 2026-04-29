@@ -11,6 +11,7 @@ package cmd
 import (
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 type ArgReifier struct {
@@ -77,14 +78,24 @@ func (r *ArgReifier) String(n, v string) {
 }
 
 func (r *ArgReifier) RepeatableString(n string, vs []string) {
-	for _, v := range vs {
-		r.String(n, v)
+	if len(vs) != 0 {
+		r.String(n, strings.Join(vs, ","))
+	}
+}
+
+func (r *ArgReifier) RepeatableSemiSeparated(n string, vs []string) {
+	if len(vs) != 0 {
+		r.String(n, strings.Join(vs, ";"))
 	}
 }
 
 func (r *ArgReifier) RepeatableUint32(n string, vs []uint32) {
-	for _, v := range vs {
-		r.Uint(n, uint(v))
+	if len(vs) != 0 {
+		var ss []string
+		for _, v := range vs {
+			ss = append(ss, fmt.Sprint(v))
+		}
+		r.String(n, strings.Join(ss, ","))
 	}
 }
 

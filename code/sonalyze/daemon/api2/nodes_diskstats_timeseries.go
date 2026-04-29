@@ -9,6 +9,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	. "sonalyze/common"
+	"sonalyze/daemon/apiutil"
 	"sonalyze/data/common"
 	"sonalyze/data/disksample"
 	"sonalyze/db/repr"
@@ -72,11 +73,11 @@ func handleNodesDiskstatsTimeseries(
 		Nodename      string `query:"nodename" doc:"Compressed node name list"`
 	},
 ) (*NodesDiskstatsTimeseriesResponse, error) {
-	meta, hErr := getClusterContext(nodesDiskstatsTimeseriesName, input.Cluster)
+	meta, hErr := apiutil.GetClusterContext(nodesDiskstatsTimeseriesName, input.Cluster)
 	if hErr != nil {
 		return nil, hErr
 	}
-	from, to, hErr := timeWindowFromData(
+	from, to, hErr := apiutil.TimeWindowFromData(
 		nodesDiskstatsTimeseriesName, meta, input.StartTimeInS, input.EndTimeInS)
 	if hErr != nil {
 		return nil, hErr

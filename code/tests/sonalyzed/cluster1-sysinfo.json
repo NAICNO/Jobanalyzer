@@ -1,9 +1,1 @@
-{
- "timestamp": "2024-03-12T00:00:03+01:00",
- "hostname": "c1.cluster1.naic.com",
- "description": "2x14 (hyperthreaded) Intel(R) Xeon(R) Gold 5120 CPU @ 2.20GHz, 125 GB, 3x NVIDIA GeForce RTX 2080 Ti @ 11GB",
- "cpu_cores": 56,
- "mem_gb": 125,
- "gpu_cards": 3,
- "gpumem_gb": 33
-}
+{"meta":{"producer":"sonar","version":"0.19.0-devel"},"data":{"type":"sysinfo","attributes":{"time":"2026-04-29T09:08:04+02:00","cluster":"cluster1.naic.com","node":"slurm-monitor.uio.no","os_name":"Linux","os_release":"5.14.0-611.38.1.el9_7.x86_64","numa_nodes":1,"sockets":4,"cores_per_socket":1,"threads_per_core":1,"cpu_model":"Intel(R) Xeon(R) Gold 6448Y","architecture":"x86_64","memory":49033964,"distances":[[10]]}}}
