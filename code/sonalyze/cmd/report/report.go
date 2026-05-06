@@ -76,8 +76,6 @@ func (rc *ReportCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.W
 	// ReportDir will have a value that is safe if from remote invocation
 	// ReportName will have a safe value
 	fn := path.Join(meta.ReportDir(), rc.ReportName)
-	println(meta.ReportDir())
-	println(fn)
 	file, err := os.Open(fn)
 	if err != nil {
 		return err

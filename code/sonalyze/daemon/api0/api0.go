@@ -565,13 +565,10 @@ func addVersion(api huma.API) {
 // This must return `error` to be API compatible with Huma, but the error return is always a
 // huma.StatusError.
 
-func queryCommand(command, auth string, params []string) (*QueryResponse, error) {
+func queryCommand(command, authHdr string, params []string) (*QueryResponse, error) {
 	verbose := Verbose
-	if getAuthenticator != nil {
-		user, pass := apiutil.DecodeAuth(auth)
-		if !getAuthenticator.Authenticate(user, pass) {
-			return nil, huma.Error401Unauthorized(command + ": Unknown user/pass combination")
-		}
+	if hErr := apiutil.CheckAuth(command, getAuthenticator, authHdr); hErr != nil {
+		return nil, hErr
 	}
 	// not normally what we want but handy for debugging
 	// if verbose && auth != "" {

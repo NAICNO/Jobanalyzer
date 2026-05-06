@@ -92,26 +92,17 @@ func (nc *CardCommand) ReifyForRemote(x *ArgReifier) error {
 }
 
 func (nc *CardCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io.Writer) error {
-	cdp, err := card.OpenCardDataProvider(meta)
-	if err != nil {
-		return err
-	}
-
-	records, err :=
-		cdp.Query(
-			card.QueryFilter{
-				HaveFrom: nc.HaveFrom,
-				FromDate: nc.FromDate,
-				HaveTo:   nc.HaveTo,
-				ToDate:   nc.ToDate,
-				Host:     nc.HostArgs.Host,
-			},
-		)
-	if err != nil {
-		return fmt.Errorf("Failed to read log records: %v", err)
-	}
-
-	records, err = ApplyQuery(nc.ParsedQuery, cardFormatters, cardPredicates, records)
+	records, err := Query(
+		meta,
+		card.QueryFilter{
+			HaveFrom: nc.HaveFrom,
+			FromDate: nc.FromDate,
+			HaveTo:   nc.HaveTo,
+			ToDate:   nc.ToDate,
+			Host:     nc.HostArgs.Host,
+		},
+		nc.ParsedQuery,
+	)
 	if err != nil {
 		return err
 	}
@@ -133,4 +124,20 @@ func (nc *CardCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr i
 	)
 
 	return nil
+}
+
+func Query(meta types.Context, qfilter card.QueryFilter, parsedQuery PNode) ([]*repr.SysinfoCardData, error) {
+	cdp, err := card.OpenCardDataProvider(meta)
+	if err != nil {
+		return nil, err
+	}
+	records, err := cdp.Query(qfilter)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read log records: %v", err)
+	}
+	records, err = ApplyQuery(parsedQuery, cardFormatters, cardPredicates, records)
+	if err != nil {
+		return nil, err
+	}
+	return records, nil
 }

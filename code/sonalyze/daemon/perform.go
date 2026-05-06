@@ -69,6 +69,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 			api1.SetupAPI(
 				api,
 				dc.insert,
+				dc.getAuthenticator,
 				dc.postAuthenticator,
 			)
 		}

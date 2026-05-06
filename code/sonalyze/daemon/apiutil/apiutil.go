@@ -3,6 +3,7 @@ package apiutil
 import (
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -134,4 +135,28 @@ func NewHostFilter(opName string, patternList ...string) (*Hosts, huma.StatusErr
 		return nil, huma.Error400BadRequest(opName+": Bad host list", err)
 	}
 	return hostFilter, nil
+}
+
+type FieldMap struct {
+	all  bool
+	keys map[string]bool
+}
+
+func (fm *FieldMap) Has(name string) bool {
+	return fm.all || fm.keys[name]
+}
+
+func Fields(fields, defaults string) *FieldMap {
+	fields = strings.TrimSpace(fields)
+	if fields == "" {
+		if defaults == "" {
+			return &FieldMap{all: true}
+		}
+		fields = defaults
+	}
+	fs := make(map[string]bool)
+	for _, f := range strings.Split(fields, ",") {
+		fs[strings.TrimSpace(f)] = true
+	}
+	return &FieldMap{keys: fs}
 }

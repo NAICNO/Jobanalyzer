@@ -9,8 +9,8 @@ import (
 )
 
 type SysinfoCardData struct {
-	Time string
-	Node string
+	Time string `json:"time,omitempty"`
+	Node string `json:"node,omitempty"`
 	*newfmt.SysinfoGpuCard
 }
 
