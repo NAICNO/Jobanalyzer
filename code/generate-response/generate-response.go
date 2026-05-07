@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"go-utils/table/parser"
 )
 
 var (
@@ -58,7 +60,7 @@ var (
 	out         *os.File
 	prefix      bool
 	hasDefaults bool
-	fields      []fld
+	fields      []parser.Field
 	tyname      string
 	basety      string
 )
@@ -78,18 +80,41 @@ func end() {
 	}
 	fmt.Fprintf(out, "type %s struct {\n", tyname)
 	for _, f := range fields {
-		fmt.Fprintf(out, "\t%s %s `json:\"%s,omitempty\"`\n", f.name, f.ty, f.name)
+		fmt.Fprintf(out, "\t%s %s `json:\"%s,omitempty\"`\n", f.Name, f.Type, f.Name)
 	}
 	fmt.Fprintf(out, "}\n\n")
 	fmt.Fprintf(out, "func respond(flds *apiutil.FieldMap, r %s) %s {\n", basety, tyname)
 	fmt.Fprintf(out, "\tvar x %s\n", tyname)
 	for _, f := range fields {
-		fmt.Fprintf(out, "\tif flds.Has(\"%s\") {\n", f.name)
-		fmt.Fprintf(out, "\t\tx.%s = r.%s\n", f.name, f.name)
+		fmt.Fprintf(out, "\tif flds.Has(\"%s\") {\n", f.Name)
+		// This will need to become more complex with more attributes, notably "indirect"
+		actualFieldName := f.Name
+		if fattr, found := attr(f.Attrs, "field"); found {
+			actualFieldName = fattr.Value
+		}
+		indir, isIndirect := attr(f.Attrs, "indirect")
+		if isIndirect {
+			ptrName := indir.Value
+			fmt.Fprintf(out, "\t\t\tif (r.%s) != nil {\n", ptrName)
+			fmt.Fprintf(
+				out, "\t\t\t\treturn r.%s.%s\n", ptrName, actualFieldName)
+			fmt.Fprintf(out, "\t\t\t}\n")
+		} else {
+			fmt.Fprintf(out, "\t\tx.%s = r.%s\n", f.Name, actualFieldName)
+		}
 		fmt.Fprintf(out, "\t}\n")
 	}
 	fmt.Fprintf(out, "\treturn x\n")
 	fmt.Fprintf(out, "}\n\n")
+}
+
+func attr(attrs []parser.NV, name string) (parser.NV, bool) {
+	for _, a := range attrs {
+		if a.Name == name {
+			return a, true
+		}
+	}
+	return parser.NV{}, false
 }
 
 func process(l string) {
@@ -135,41 +160,11 @@ func getFields(fn string) {
 		log.Fatal(err)
 	}
 	defer in.Close()
-	scanner := bufio.NewScanner(in)
-	var found bool
-	for scanner.Scan() {
-		l := scanner.Text()
-		if strings.HasPrefix(l, "FIELDS ") {
-			found = true
-			basety = strings.TrimSpace(l[7:])
-			break
-		}
+	p := parser.NewParser(fn, in)
+	block, err := p.Parse()
+	if err != nil {
+		log.Fatal(err)
 	}
-	if !found {
-		log.Fatal("No FIELDS line in table " + fn)
-	}
-	for scanner.Scan() {
-		t := scanner.Text()
-		if t == "" {
-			continue
-		}
-		for t[len(t)-1] == '\\' {
-			if !scanner.Scan() {
-				log.Fatal("Missing continuation")
-			}
-			t = t + scanner.Text()
-		}
-		x := strings.TrimSpace(t)
-		if x == "" {
-			continue
-		}
-		if x[0] == '#' {
-			continue
-		}
-		if t[0] != ' ' {
-			break
-		}
-		fs := strings.Fields(t)
-		fields = append(fields, fld{fs[0], fs[1]})
-	}
+	basety = block.Fields.Type
+	fields = block.Fields.Fields
 }

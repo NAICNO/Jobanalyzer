@@ -23,7 +23,7 @@ import (
 
 %%
 
-TYPE     Cluster_Cluster
+TYPE     Cluster
 TABLE    ../../../cmd/clusters/clusters.go
 DEFAULTS Name,Description
 
@@ -32,7 +32,7 @@ ESNOPSER*/
 const clusterCommandName = "/cluster"
 
 type ClusterResponse struct {
-	Body []Cluster_Cluster
+	Body []Cluster
 }
 
 func AddCluster(api huma.API) {
@@ -48,7 +48,7 @@ func AddCluster(api huma.API) {
 		}
 		flds := apiutil.Fields(input.Fields, responseDefaults)
 		resp := &ClusterResponse{
-			Body: make([]Cluster_Cluster, 0),
+			Body: make([]Cluster, 0),
 		}
 		for _, c := range special.AllClusters() {
 			resp.Body = append(resp.Body, respond(flds, &c.Cluster))

@@ -22,7 +22,7 @@ import (
 	. "sonalyze/table"
 )
 
-// Computed float64 fields in jobAggregate.f64.  These are for the job as a whole, being
+// Computed float64 fields in JobAggregate.f64.  These are for the job as a whole, being
 // computed from the single stream that is the synthesized / merged job.
 const (
 	kCpuPctAvg      = iota // Average CPU utilization, 1 core == 100%
@@ -67,7 +67,7 @@ const (
 	numU64Fields
 )
 
-// Computed flag bits in jobAggregate.computedFlags
+// Computed flag bits in JobAggregate.computedFlags
 const (
 	kUsesGpu          = (1 << iota) // True if there's reason to believe a gpu was used by job
 	kDoesNotUseGpu                  // Opposite
@@ -82,8 +82,8 @@ const (
 const kb2gb = 1.0 / (1024 * 1024)
 
 // Package for results from aggregation and summation.
-type jobSummary struct {
-	jobAggregate
+type JobSummary struct {
+	JobAggregate
 	JobId          uint32
 	User           Ustr
 	JobAndMark     string
@@ -101,7 +101,7 @@ type jobSummary struct {
 }
 
 // Aggregate figures for a job.  For some cross-job data like user and host, go to the sample stream
-// in the jobSummary that owns this aggregate.
+// in the JobSummary that owns this aggregate.
 //
 // The float fields of this are *not* rounded in any way.
 //
@@ -109,7 +109,7 @@ type jobSummary struct {
 // from the recorded percentage figure, otherwise kRgpuGB* are derived from the recorded absolute
 // figures.  If a system config is not present then all fields will represent the recorded values
 // (kRgpuKB * the recorded percentages).
-type jobAggregate struct {
+type JobAggregate struct {
 	GpuFail     int
 	Gpus        gpuset.GpuSet
 	computed    [numF64Fields]float64
@@ -171,6 +171,11 @@ func (jc *JobsCommand) Perform(
 		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
 
+	summaries, err = ApplyQuery(jc.ParsedQuery, jobsFormatters, jobsPredicates, summaries)
+	if err != nil {
+		return err
+	}
+
 	return jc.printJobSummaries(out, summaries)
 }
 
@@ -190,7 +195,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	cfg *config.ConfigDataProvider,
 	streams sample.InputStreamSet,
 	bounds Timebounds,
-) []*jobSummary {
+) []*JobSummary {
 	var jobs sample.MergedJobs
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
@@ -233,9 +238,9 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	jobs sample.MergedJobs,
 	summaryFilter *aggregationFilter,
 	fb flagBag,
-) ([]*jobSummary, int, flagBag) {
+) ([]*JobSummary, int, flagBag) {
 	var now = time.Now().UTC().Unix()
-	summaries := make([]*jobSummary, 0)
+	summaries := make([]*JobSummary, 0)
 	minSamples := jc.lookupUint("min-samples")
 	if Verbose && minSamples > 1 {
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
@@ -276,7 +281,7 @@ func summarizeSingleJobFromSonarData(
 	job sample.MergedJob,
 	now int64,
 	fb flagBag,
-) *jobSummary {
+) *JobSummary {
 	samples := job.Samples
 	host := samples[0].Hostname
 	jobId := samples[0].Job
@@ -333,8 +338,8 @@ func summarizeSingleJobFromSonarData(
 	if (flags & kIsLiveAtEnd) != 0 {
 		classification |= sonalyze.LIVE_AT_END
 	}
-	return &jobSummary{
-		jobAggregate:   aggregate,
+	return &JobSummary{
+		JobAggregate:   aggregate,
 		JobId:          jobId,
 		JobAndMark:     jobAndMark,
 		User:           user,
@@ -361,7 +366,7 @@ func aggregateSingleJobFromSonarData(
 	host Ustr,
 	job []sample.Sample,
 	fb flagBag,
-) jobAggregate {
+) JobAggregate {
 	gpus := gpuset.EmptyGpuSet()
 	var (
 		gpuFail                          uint8
@@ -476,7 +481,7 @@ func aggregateSingleJobFromSonarData(
 		}
 	}
 	n := float64(len(job))
-	a := jobAggregate{
+	a := JobAggregate{
 		Gpus:        gpus,
 		GpuFail:     int(gpuFail),
 		Cmd:         cmd,
@@ -529,7 +534,7 @@ func aggregateSingleJobFromSonarData(
 
 // The synthesis is imperfect, and would be so even if the Slurm documentation were better.
 func synthesizeSacctDataFromSonarData(
-	summaries []*jobSummary,
+	summaries []*JobSummary,
 	slurmFilter *slurmjob.QueryFilter,
 ) int {
 	// TODO: This needs to apply the slurmFilter if it is defined.
@@ -623,7 +628,7 @@ func synthesizeSacctDataFromSonarData(
 
 func (jc *JobsCommand) joinSacctData(
 	meta types.Context,
-	summaries []*jobSummary,
+	summaries []*JobSummary,
 	slurmFilter *slurmjob.QueryFilter,
 ) int {
 	// TODO: If we have slurm data then those data may have precise measurements for some of the
@@ -703,7 +708,7 @@ func (jc *JobsCommand) joinSacctData(
 						cullSet[a.Id] = true
 					}
 				}
-				summaries = slices.DeleteFunc(summaries, func(s *jobSummary) bool {
+				summaries = slices.DeleteFunc(summaries, func(s *JobSummary) bool {
 					return cullSet[s.JobId]
 				})
 			}
@@ -817,7 +822,7 @@ type aggregationFilter struct {
 	flags       int
 }
 
-func (f *aggregationFilter) apply(s *jobSummary) bool {
+func (f *aggregationFilter) apply(s *JobSummary) bool {
 	for _, v := range f.fminFilters {
 		if s.computed[v.ix] < v.limit {
 			return false

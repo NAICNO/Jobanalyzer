@@ -9,14 +9,14 @@ import (
 
 const responseDefaults = "Name,Description"
 
-type Cluster_Cluster struct {
+type Cluster struct {
 	Name        string   `json:"Name,omitempty"`
 	Description string   `json:"Description,omitempty"`
 	Aliases     []string `json:"Aliases,omitempty"`
 }
 
-func respond(flds *apiutil.FieldMap, r *repr.Cluster) Cluster_Cluster {
-	var x Cluster_Cluster
+func respond(flds *apiutil.FieldMap, r *repr.Cluster) Cluster {
+	var x Cluster
 	if flds.Has("Name") {
 		x.Name = r.Name
 	}
