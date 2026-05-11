@@ -72,7 +72,7 @@ export const useTableState = ({
           api.setFilterModel(savedState.filterModel)
         }
         if (savedState.pageSize) {
-          api.paginationSetPageSize(savedState.pageSize)
+          api.setGridOption('paginationPageSize', savedState.pageSize)
         }
       }
     },
