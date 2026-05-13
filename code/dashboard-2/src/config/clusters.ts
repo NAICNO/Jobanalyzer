@@ -90,7 +90,8 @@ function validateClustersJson(json: unknown): asserts json is ClustersJson {
 export async function loadClusterConfig(): Promise<ClusterConfig[]> {
   if (_loaded) return AVAILABLE_CLUSTERS
 
-  const response = await fetch(`${APP_BASE_PREFIX}clusters.json`)
+  const configFile = import.meta.env.VITE_DEMO_MODE === 'true' ? 'clusters.demo.json' : 'clusters.json'
+  const response = await fetch(`${APP_BASE_PREFIX}${configFile}`)
   if (!response.ok) {
     throw new Error(`Failed to load clusters.json: ${response.status} ${response.statusText}`)
   }

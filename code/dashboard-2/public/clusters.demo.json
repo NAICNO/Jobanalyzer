@@ -1,0 +1,13 @@
+{
+  "clusters": [
+    {
+      "id": "demo.hpc.example.org",
+      "name": "Demo HPC Cluster",
+      "shortName": "Demo",
+      "description": "High-Performance Computing Cluster",
+      "icon": "LuServer",
+      "apiBaseUrl": "https://demo.hpc.example.org/api/v2",
+      "requiresAuth": false
+    }
+  ]
+}
