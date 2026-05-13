@@ -107,6 +107,7 @@ type databaseConnection struct {
 	lock       sync.Mutex
 }
 
+// NOTE!  That the Rows object must be closed after use.
 func (cdb *databaseConnection) Query(cx context.Context, q string, arg ...any) (pgx.Rows, error) {
 	cdb.lock.Lock()
 	defer cdb.lock.Unlock()
@@ -116,6 +117,7 @@ func (cdb *databaseConnection) Query(cx context.Context, q string, arg ...any) (
 func (cdb *databaseConnection) QueryRowAndScan(cx context.Context, q string, args []any, slots []any) error {
 	cdb.lock.Lock()
 	defer cdb.lock.Unlock()
+	// The single row does not need to be closed explicitly.
 	return cdb.connection.QueryRow(cx, q, args...).Scan(slots...)
 }
 
@@ -135,6 +137,7 @@ func (cdb *databaseConnection) EnumerateClusters() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	rawClusters, err := pgx.CollectRows(rows, pgx.RowTo[string])
 	if err != nil {
 		return nil, err
@@ -1094,6 +1097,7 @@ func querySlice[T any](
 	if err != nil {
 		return
 	}
+	defer rows.Close()
 	dataRows := make([]*T, 0)
 	_, err = pgx.ForEachRow(rows, q.boxes, func() error {
 		dataRows = append(dataRows, unbox())
