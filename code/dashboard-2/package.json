@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc && vite build --mode production",
+    "demo": "vite --mode demo",
     "dev": "vite --mode development",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
@@ -58,11 +59,17 @@
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.9.0",
     "jsdom": "^29.1.1",
+    "msw": "^2.13.3",
     "react-test-renderer": "^19.2.8",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.65.0",
     "vite": "8.0.16",
     "vitest": "^4.1.1"
   },
-  "packageManager": "yarn@4.13.0"
+  "packageManager": "yarn@4.13.0",
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
 }

@@ -27,7 +27,15 @@ ModuleRegistry.registerModules([AllCommunityModule])
 
 const queryClient = new QueryClient()
 
-loadClusterConfig()
+async function enableDemoMode() {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    const { worker } = await import('./mocks/browser')
+    await worker.start({ onUnhandledRequest: 'warn' })
+  }
+}
+
+enableDemoMode()
+  .then(() => loadClusterConfig())
   .then(() => {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
@@ -37,7 +45,7 @@ loadClusterConfig()
               <AuthProvider>
                 <ClusterProvider>
                   <App/>
-                  {import.meta.env.DEV && (
+                  {import.meta.env.DEV && import.meta.env.VITE_DEMO_MODE !== 'true' && (
                     <React.Suspense fallback={null}>
                       <ReactQueryDevtools initialIsOpen={false}/>
                     </React.Suspense>
