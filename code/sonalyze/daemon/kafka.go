@@ -22,12 +22,12 @@ const (
 
 // This runs on a goroutine - one goroutine per cluster, just to be a little resilient.
 
-func runKafka(kafkaBroker, cluster string, ds db.AppendablePersistentDataProvider) {
+func runKafka(kafkaBroker, cluster, consumerGroup string, ds db.AppendablePersistentDataProvider) {
 	defer ds.Close()
 	handler := newClusterHandler(cluster, ds)
 	cl, err := kgo.NewClient(
 		kgo.SeedBrokers(kafkaBroker),
-		kgo.ConsumerGroup("jobanalyzer-ingest"),
+		kgo.ConsumerGroup(consumerGroup),
 		kgo.ConsumeTopics(
 			handler.add(tySample),
 			handler.add(tySysinfo),

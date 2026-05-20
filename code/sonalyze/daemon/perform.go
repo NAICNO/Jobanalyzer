@@ -50,7 +50,7 @@ func (dc *DaemonCommand) RunDaemon(_ io.Reader, _, stderr io.Writer) error {
 			if Verbose {
 				Log.Infof("Starting listener for %s", cl.Name)
 			}
-			go runKafka(dc.kafkaBroker, cl.Name, ds)
+			go runKafka(dc.kafkaBroker, cl.Name, dc.consumerGroup, ds)
 		}
 	}
 
