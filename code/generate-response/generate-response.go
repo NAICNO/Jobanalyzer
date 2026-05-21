@@ -97,7 +97,7 @@ func end() {
 			ptrName := indir.Value
 			fmt.Fprintf(out, "\t\t\tif (r.%s) != nil {\n", ptrName)
 			fmt.Fprintf(
-				out, "\t\t\t\treturn r.%s.%s\n", ptrName, actualFieldName)
+				out, "\t\t\t\tx.%s = r.%s.%s\n", f.Name, ptrName, actualFieldName)
 			fmt.Fprintf(out, "\t\t\t}\n")
 		} else {
 			fmt.Fprintf(out, "\t\tx.%s = r.%s\n", f.Name, actualFieldName)

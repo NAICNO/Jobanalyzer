@@ -4,13 +4,11 @@ package jobs
 
 import (
 	"go-utils/gpuset"
-	"sonalyze/cmd/jobs"
+	. "sonalyze/cmd/jobs"
 	. "sonalyze/common"
 	"sonalyze/daemon/apiutil"
 	. "sonalyze/table"
 )
-
-type JobSummary = jobs.JobSummary
 
 const responseDefaults = "Job,User,Duration,Hosts,CpuTime,ResidentMemAvgGB,GpuTime,GpuMemAvgGB,Cmd"
 
@@ -123,82 +121,82 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 		x.End = r.End
 	}
 	if flds.Has("CpuAvgPct") {
-		x.CpuAvgPct = r.Computed[kCpuPctAvg]
+		x.CpuAvgPct = r.Computed[KCpuPctAvg]
 	}
 	if flds.Has("CpuPeakPct") {
-		x.CpuPeakPct = r.Computed[kCpuPctPeak]
+		x.CpuPeakPct = r.Computed[KCpuPctPeak]
 	}
 	if flds.Has("RelativeCpuAvgPct") {
-		x.RelativeCpuAvgPct = r.Computed[kRcpuPctAvg]
+		x.RelativeCpuAvgPct = r.Computed[KRcpuPctAvg]
 	}
 	if flds.Has("RelativeCpuPeakPct") {
-		x.RelativeCpuPeakPct = r.Computed[kRcpuPctPeak]
+		x.RelativeCpuPeakPct = r.Computed[KRcpuPctPeak]
 	}
 	if flds.Has("MemAvgGB") {
-		x.MemAvgGB = r.Computed[kCpuGBAvg]
+		x.MemAvgGB = r.Computed[KCpuGBAvg]
 	}
 	if flds.Has("MemPeakGB") {
-		x.MemPeakGB = r.Computed[kCpuGBPeak]
+		x.MemPeakGB = r.Computed[KCpuGBPeak]
 	}
 	if flds.Has("RelativeMemAvgPct") {
-		x.RelativeMemAvgPct = r.Computed[kRcpuGBAvg]
+		x.RelativeMemAvgPct = r.Computed[KRcpuGBAvg]
 	}
 	if flds.Has("RelativeMemPeakPct") {
-		x.RelativeMemPeakPct = r.Computed[kRcpuGBPeak]
+		x.RelativeMemPeakPct = r.Computed[KRcpuGBPeak]
 	}
 	if flds.Has("ResidentMemAvgGB") {
-		x.ResidentMemAvgGB = r.Computed[kRssAnonGBAvg]
+		x.ResidentMemAvgGB = r.Computed[KRssAnonGBAvg]
 	}
 	if flds.Has("ResidentMemPeakGB") {
-		x.ResidentMemPeakGB = r.Computed[kRssAnonGBPeak]
+		x.ResidentMemPeakGB = r.Computed[KRssAnonGBPeak]
 	}
 	if flds.Has("RelativeResidentMemAvgPct") {
-		x.RelativeResidentMemAvgPct = r.Computed[kRrssAnonGBAvg]
+		x.RelativeResidentMemAvgPct = r.Computed[KRrssAnonGBAvg]
 	}
 	if flds.Has("RelativeResidentMemPeakPct") {
-		x.RelativeResidentMemPeakPct = r.Computed[kRrssAnonGBPeak]
+		x.RelativeResidentMemPeakPct = r.Computed[KRrssAnonGBPeak]
 	}
 	if flds.Has("GpuAvgPct") {
-		x.GpuAvgPct = r.Computed[kGpuPctAvg]
+		x.GpuAvgPct = r.Computed[KGpuPctAvg]
 	}
 	if flds.Has("GpuPeakPct") {
-		x.GpuPeakPct = r.Computed[kGpuPctPeak]
+		x.GpuPeakPct = r.Computed[KGpuPctPeak]
 	}
 	if flds.Has("RelativeGpuAvgPct") {
-		x.RelativeGpuAvgPct = r.Computed[kRgpuPctAvg]
+		x.RelativeGpuAvgPct = r.Computed[KRgpuPctAvg]
 	}
 	if flds.Has("RelativeGpuPeakPct") {
-		x.RelativeGpuPeakPct = r.Computed[kRgpuPctPeak]
+		x.RelativeGpuPeakPct = r.Computed[KRgpuPctPeak]
 	}
 	if flds.Has("OccupiedRelativeGpuAvgPct") {
-		x.OccupiedRelativeGpuAvgPct = r.Computed[kSgpuPctAvg]
+		x.OccupiedRelativeGpuAvgPct = r.Computed[KSgpuPctAvg]
 	}
 	if flds.Has("OccupiedRelativeGpuPeakPct") {
-		x.OccupiedRelativeGpuPeakPct = r.Computed[kSgpuPctPeak]
+		x.OccupiedRelativeGpuPeakPct = r.Computed[KSgpuPctPeak]
 	}
 	if flds.Has("GpuMemAvgGB") {
-		x.GpuMemAvgGB = r.Computed[kGpuGBAvg]
+		x.GpuMemAvgGB = r.Computed[KGpuGBAvg]
 	}
 	if flds.Has("GpuMemPeakGB") {
-		x.GpuMemPeakGB = r.Computed[kGpuGBPeak]
+		x.GpuMemPeakGB = r.Computed[KGpuGBPeak]
 	}
 	if flds.Has("RelativeGpuMemAvgPct") {
-		x.RelativeGpuMemAvgPct = r.Computed[kRgpuGBAvg]
+		x.RelativeGpuMemAvgPct = r.Computed[KRgpuGBAvg]
 	}
 	if flds.Has("RelativeGpuMemPeakPct") {
-		x.RelativeGpuMemPeakPct = r.Computed[kRgpuGBPeak]
+		x.RelativeGpuMemPeakPct = r.Computed[KRgpuGBPeak]
 	}
 	if flds.Has("OccupiedRelativeGpuMemAvgPct") {
-		x.OccupiedRelativeGpuMemAvgPct = r.Computed[kSgpuGBAvg]
+		x.OccupiedRelativeGpuMemAvgPct = r.Computed[KSgpuGBAvg]
 	}
 	if flds.Has("OccupiedRelativeGpuMemPeakPct") {
-		x.OccupiedRelativeGpuMemPeakPct = r.Computed[kSgpuGBPeak]
+		x.OccupiedRelativeGpuMemPeakPct = r.Computed[KSgpuGBPeak]
 	}
 	if flds.Has("ThreadAvg") {
-		x.ThreadAvg = r.Computed[kThreadAvg]
+		x.ThreadAvg = r.Computed[KThreadAvg]
 	}
 	if flds.Has("ThreadPeak") {
-		x.ThreadPeak = r.Computed[kThreadPeak]
+		x.ThreadPeak = r.Computed[KThreadPeak]
 	}
 	if flds.Has("Gpus") {
 		x.Gpus = r.Gpus
@@ -225,210 +223,210 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 		x.GpuTime = r.GpuTime
 	}
 	if flds.Has("ReadGB") {
-		x.ReadGB = r.u64[uReadGBTotal]
+		x.ReadGB = r.U64[UReadGBTotal]
 	}
 	if flds.Has("WrittenGB") {
-		x.WrittenGB = r.u64[uWrittenGBTotal]
+		x.WrittenGB = r.U64[UWrittenGBTotal]
 	}
 	if flds.Has("SomeGpu") {
-		x.SomeGpu = r.computedFlags&kUsesGpu != 0
+		x.SomeGpu = r.ComputedFlags&KUsesGpu != 0
 	}
 	if flds.Has("NoGpu") {
-		x.NoGpu = r.computedFlags&kDoesNotUseGpu != 0
+		x.NoGpu = r.ComputedFlags&KDoesNotUseGpu != 0
 	}
 	if flds.Has("Running") {
-		x.Running = r.computedFlags&kIsLiveAtEnd != 0
+		x.Running = r.ComputedFlags&KIsLiveAtEnd != 0
 	}
 	if flds.Has("Completed") {
-		x.Completed = r.computedFlags&kIsNotLiveAtEnd != 0
+		x.Completed = r.ComputedFlags&KIsNotLiveAtEnd != 0
 	}
 	if flds.Has("Zombie") {
-		x.Zombie = r.computedFlags&kIsZombie != 0
+		x.Zombie = r.ComputedFlags&KIsZombie != 0
 	}
 	if flds.Has("Primordial") {
-		x.Primordial = r.computedFlags&kIsLiveAtStart != 0
+		x.Primordial = r.ComputedFlags&KIsLiveAtStart != 0
 	}
 	if flds.Has("BornLater") {
-		x.BornLater = r.computedFlags&kIsNotLiveAtStart != 0
+		x.BornLater = r.ComputedFlags&KIsNotLiveAtStart != 0
 	}
 	if flds.Has("Account") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.Account
+		if (r.SacctInfo) != nil {
+			x.Account = r.SacctInfo.Account
 		}
 	}
 	if flds.Has("ArrayJobID") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.ArrayJobID
+		if (r.SacctInfo) != nil {
+			x.ArrayJobID = r.SacctInfo.ArrayJobID
 		}
 	}
 	if flds.Has("ArrayStep") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.ArrayStep
+		if (r.SacctInfo) != nil {
+			x.ArrayStep = r.SacctInfo.ArrayStep
 		}
 	}
 	if flds.Has("ArrayTaskID") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.ArrayTaskID
+		if (r.SacctInfo) != nil {
+			x.ArrayTaskID = r.SacctInfo.ArrayTaskID
 		}
 	}
 	if flds.Has("AveCPU") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.AveCPU
+		if (r.SacctInfo) != nil {
+			x.AveCPU = r.SacctInfo.AveCPU
 		}
 	}
 	if flds.Has("AveDiskRead") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.AveDiskRead
+		if (r.SacctInfo) != nil {
+			x.AveDiskRead = r.SacctInfo.AveDiskRead
 		}
 	}
 	if flds.Has("AveDiskWrite") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.AveDiskWrite
+		if (r.SacctInfo) != nil {
+			x.AveDiskWrite = r.SacctInfo.AveDiskWrite
 		}
 	}
 	if flds.Has("AveRSS") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.AveRSS
+		if (r.SacctInfo) != nil {
+			x.AveRSS = r.SacctInfo.AveRSS
 		}
 	}
 	if flds.Has("AveVMSize") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.AveVMSize
+		if (r.SacctInfo) != nil {
+			x.AveVMSize = r.SacctInfo.AveVMSize
 		}
 	}
 	if flds.Has("ElapsedRaw") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.ElapsedRaw
+		if (r.SacctInfo) != nil {
+			x.ElapsedRaw = r.SacctInfo.ElapsedRaw
 		}
 	}
 	if flds.Has("ExitCode") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.ExitCode
+		if (r.SacctInfo) != nil {
+			x.ExitCode = r.SacctInfo.ExitCode
 		}
 	}
 	if flds.Has("HetJobID") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.HetJobID
+		if (r.SacctInfo) != nil {
+			x.HetJobID = r.SacctInfo.HetJobID
 		}
 	}
 	if flds.Has("HetJobOffset") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.HetJobOffset
+		if (r.SacctInfo) != nil {
+			x.HetJobOffset = r.SacctInfo.HetJobOffset
 		}
 	}
 	if flds.Has("HetStep") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.HetStep
+		if (r.SacctInfo) != nil {
+			x.HetStep = r.SacctInfo.HetStep
 		}
 	}
 	if flds.Has("JobName") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.JobName
+		if (r.SacctInfo) != nil {
+			x.JobName = r.SacctInfo.JobName
 		}
 	}
 	if flds.Has("JobStep") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.JobStep
+		if (r.SacctInfo) != nil {
+			x.JobStep = r.SacctInfo.JobStep
 		}
 	}
 	if flds.Has("Layout") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.Layout
+		if (r.SacctInfo) != nil {
+			x.Layout = r.SacctInfo.Layout
 		}
 	}
 	if flds.Has("MaxRSS") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.MaxRSS
+		if (r.SacctInfo) != nil {
+			x.MaxRSS = r.SacctInfo.MaxRSS
 		}
 	}
 	if flds.Has("MaxVMSize") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.MaxVMSize
+		if (r.SacctInfo) != nil {
+			x.MaxVMSize = r.SacctInfo.MaxVMSize
 		}
 	}
 	if flds.Has("MinCPU") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.MinCPU
+		if (r.SacctInfo) != nil {
+			x.MinCPU = r.SacctInfo.MinCPU
 		}
 	}
 	if flds.Has("NodeList") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.NodeList
+		if (r.SacctInfo) != nil {
+			x.NodeList = r.SacctInfo.NodeList
 		}
 	}
 	if flds.Has("Partition") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.Partition
+		if (r.SacctInfo) != nil {
+			x.Partition = r.SacctInfo.Partition
 		}
 	}
 	if flds.Has("Priority") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.Priority
+		if (r.SacctInfo) != nil {
+			x.Priority = r.SacctInfo.Priority
 		}
 	}
 	if flds.Has("ReqCPUS") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.ReqCPUS
+		if (r.SacctInfo) != nil {
+			x.ReqCPUS = r.SacctInfo.ReqCPUS
 		}
 	}
 	if flds.Has("ReqGPUS") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.ReqGPUS
+		if (r.SacctInfo) != nil {
+			x.ReqGPUS = r.SacctInfo.ReqGPUS
 		}
 	}
 	if flds.Has("ReqMem") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.ReqMem
+		if (r.SacctInfo) != nil {
+			x.ReqMem = r.SacctInfo.ReqMem
 		}
 	}
 	if flds.Has("ReqNodes") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.ReqNodes
+		if (r.SacctInfo) != nil {
+			x.ReqNodes = r.SacctInfo.ReqNodes
 		}
 	}
 	if flds.Has("Reservation") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.Reservation
+		if (r.SacctInfo) != nil {
+			x.Reservation = r.SacctInfo.Reservation
 		}
 	}
 	if flds.Has("State") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.State
+		if (r.SacctInfo) != nil {
+			x.State = r.SacctInfo.State
 		}
 	}
 	if flds.Has("Submit") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.Submit
+		if (r.SacctInfo) != nil {
+			x.Submit = r.SacctInfo.Submit
 		}
 	}
 	if flds.Has("Suspended") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.Suspended
+		if (r.SacctInfo) != nil {
+			x.Suspended = r.SacctInfo.Suspended
 		}
 	}
 	if flds.Has("SystemCPU") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.SystemCPU
+		if (r.SacctInfo) != nil {
+			x.SystemCPU = r.SacctInfo.SystemCPU
 		}
 	}
 	if flds.Has("Time") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.Time
+		if (r.SacctInfo) != nil {
+			x.Time = r.SacctInfo.Time
 		}
 	}
 	if flds.Has("TimelimitRaw") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.TimelimitRaw
+		if (r.SacctInfo) != nil {
+			x.TimelimitRaw = r.SacctInfo.TimelimitRaw
 		}
 	}
 	if flds.Has("UserCPU") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.UserCPU
+		if (r.SacctInfo) != nil {
+			x.UserCPU = r.SacctInfo.UserCPU
 		}
 	}
 	if flds.Has("Version") {
-		if (r.sacctInfo) != nil {
-			return r.sacctInfo.Version
+		if (r.SacctInfo) != nil {
+			x.Version = r.SacctInfo.Version
 		}
 	}
 	return x

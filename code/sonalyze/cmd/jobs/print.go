@@ -25,52 +25,52 @@ FIELDS *JobSummary
   Duration           DurationValue desc:"Time of last observation minus time of first" alias:"duration"
   Start              DateTimeValue desc:"Time of first observation" alias:"start"
   End                DateTimeValue desc:"Time of last observation" alias:"end"
-  CpuAvgPct          F64Ceil       desc:"Average CPU utilization in percent (100% = 1 core)" field:"Computed[kCpuPctAvg]" alias:"cpu-avg"
-  CpuPeakPct         F64Ceil       desc:"Peak CPU utilization in percent (100% = 1 core)" field:"Computed[kCpuPctPeak]" alias:"cpu-peak"
-  RelativeCpuAvgPct  F64Ceil       desc:"Average relative CPU utilization in percent (100% = all cores)" field:"Computed[kRcpuPctAvg]" alias:"rcpu-avg"
-  RelativeCpuPeakPct F64Ceil       desc:"Peak relative CPU utilization in percent (100% = all cores)" field:"Computed[kRcpuPctPeak]" alias:"rcpu-peak"
-  MemAvgGB           F64Ceil       desc:"Average main virtual memory utilization in GB" field:"Computed[kCpuGBAvg]" alias:"mem-avg"
-  MemPeakGB          F64Ceil       desc:"Peak main virtual memory utilization in GB" field:"Computed[kCpuGBPeak]" alias:"mem-peak"
+  CpuAvgPct          F64Ceil       desc:"Average CPU utilization in percent (100% = 1 core)" field:"Computed[KCpuPctAvg]" alias:"cpu-avg"
+  CpuPeakPct         F64Ceil       desc:"Peak CPU utilization in percent (100% = 1 core)" field:"Computed[KCpuPctPeak]" alias:"cpu-peak"
+  RelativeCpuAvgPct  F64Ceil       desc:"Average relative CPU utilization in percent (100% = all cores)" field:"Computed[KRcpuPctAvg]" alias:"rcpu-avg"
+  RelativeCpuPeakPct F64Ceil       desc:"Peak relative CPU utilization in percent (100% = all cores)" field:"Computed[KRcpuPctPeak]" alias:"rcpu-peak"
+  MemAvgGB           F64Ceil       desc:"Average main virtual memory utilization in GB" field:"Computed[KCpuGBAvg]" alias:"mem-avg"
+  MemPeakGB          F64Ceil       desc:"Peak main virtual memory utilization in GB" field:"Computed[KCpuGBPeak]" alias:"mem-peak"
   RelativeMemAvgPct  F64Ceil       desc:"Average relative main virtual memory utilization in percent (100% = system RAM)" \
-                                   field:"Computed[kRcpuGBAvg]" alias:"rmem-avg"
+                                   field:"Computed[KRcpuGBAvg]" alias:"rmem-avg"
   RelativeMemPeakPct F64Ceil       desc:"Peak relative main virtual memory utilization in percent (100% = system RAM)" \
-                                   field:"Computed[kRcpuGBPeak]" alias:"rmem-peak"
-  ResidentMemAvgGB   F64Ceil       desc:"Average main resident memory utilization in GB" field:"Computed[kRssAnonGBAvg]" alias:"res-avg"
-  ResidentMemPeakGB  F64Ceil       desc:"Peak main resident memory utilization in GB" field:"Computed[kRssAnonGBPeak]" alias:"res-peak"
+                                   field:"Computed[KRcpuGBPeak]" alias:"rmem-peak"
+  ResidentMemAvgGB   F64Ceil       desc:"Average main resident memory utilization in GB" field:"Computed[KRssAnonGBAvg]" alias:"res-avg"
+  ResidentMemPeakGB  F64Ceil       desc:"Peak main resident memory utilization in GB" field:"Computed[KRssAnonGBPeak]" alias:"res-peak"
   RelativeResidentMemAvgPct \
                      F64Ceil       desc:"Average relative main resident memory utilization in percent (100% = all RAM)" \
-                                   field:"Computed[kRrssAnonGBAvg]" alias:"rres-avg"
+                                   field:"Computed[KRrssAnonGBAvg]" alias:"rres-avg"
   RelativeResidentMemPeakPct \
                      F64Ceil       desc:"Peak relative main resident memory utilization in percent (100% = all RAM)" \
-                                   field:"Computed[kRrssAnonGBPeak]" alias:"rres-peak"
-  GpuAvgPct          F64Ceil       desc:"Average GPU utilization in percent (100% = 1 card)" field:"Computed[kGpuPctAvg]" alias:"gpu-avg"
-  GpuPeakPct         F64Ceil       desc:"Peak GPU utilization in percent (100% = 1 card)" field:"Computed[kGpuPctPeak]" alias:"gpu-peak"
-  RelativeGpuAvgPct  F64Ceil       desc:"Average relative GPU utilization in percent (100% = all cards)" field:"Computed[kRgpuPctAvg]" alias:"rgpu-avg"
-  RelativeGpuPeakPct F64Ceil       desc:"Peak relative GPU utilization in percent (100% = all cards)" field:"Computed[kRgpuPctPeak]" alias:"rgpu-peak"
+                                   field:"Computed[KRrssAnonGBPeak]" alias:"rres-peak"
+  GpuAvgPct          F64Ceil       desc:"Average GPU utilization in percent (100% = 1 card)" field:"Computed[KGpuPctAvg]" alias:"gpu-avg"
+  GpuPeakPct         F64Ceil       desc:"Peak GPU utilization in percent (100% = 1 card)" field:"Computed[KGpuPctPeak]" alias:"gpu-peak"
+  RelativeGpuAvgPct  F64Ceil       desc:"Average relative GPU utilization in percent (100% = all cards)" field:"Computed[KRgpuPctAvg]" alias:"rgpu-avg"
+  RelativeGpuPeakPct F64Ceil       desc:"Peak relative GPU utilization in percent (100% = all cards)" field:"Computed[KRgpuPctPeak]" alias:"rgpu-peak"
   OccupiedRelativeGpuAvgPct \
                      F64Ceil       desc:"Average relative GPU utilization in percent (100% = all cards used by job)" \
-                                   field:"Computed[kSgpuPctAvg]" alias:"sgpu-avg"
+                                   field:"Computed[KSgpuPctAvg]" alias:"sgpu-avg"
   OccupiedRelativeGpuPeakPct \
                      F64Ceil       desc:"Peak relative GPU utilization in percent (100% = all cards used by job)" \
-                                   field:"Computed[kSgpuPctPeak]" alias:"sgpu-peak"
-  GpuMemAvgGB        F64Ceil       desc:"Average resident GPU memory utilization in GB" field:"Computed[kGpuGBAvg]" alias:"gpumem-avg"
-  GpuMemPeakGB       F64Ceil       desc:"Peak resident GPU memory utilization in GB" field:"Computed[kGpuGBPeak]" alias:"gpumem-peak"
+                                   field:"Computed[KSgpuPctPeak]" alias:"sgpu-peak"
+  GpuMemAvgGB        F64Ceil       desc:"Average resident GPU memory utilization in GB" field:"Computed[KGpuGBAvg]" alias:"gpumem-avg"
+  GpuMemPeakGB       F64Ceil       desc:"Peak resident GPU memory utilization in GB" field:"Computed[KGpuGBPeak]" alias:"gpumem-peak"
   RelativeGpuMemAvgPct \
                      F64Ceil       desc:"Average relative GPU resident memory utilization in percent (100% = all GPU RAM)" \
-                                   field:"Computed[kRgpuGBAvg]" alias:"rgpumem-avg"
+                                   field:"Computed[KRgpuGBAvg]" alias:"rgpumem-avg"
   RelativeGpuMemPeakPct \
                      F64Ceil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)" \
-                                   field:"Computed[kRgpuGBPeak]" alias:"rgpumem-peak"
+                                   field:"Computed[KRgpuGBPeak]" alias:"rgpumem-peak"
   OccupiedRelativeGpuMemAvgPct \
                      F64Ceil       desc:"Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
-                                   field:"Computed[kSgpuGBAvg]" alias:"sgpumem-avg"
+                                   field:"Computed[KSgpuGBAvg]" alias:"sgpumem-avg"
   OccupiedRelativeGpuMemPeakPct \
                      F64Ceil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
-                                   field:"Computed[kSgpuGBPeak]" alias:"sgpumem-peak"
+                                   field:"Computed[KSgpuGBPeak]" alias:"sgpumem-peak"
   ThreadAvg          F64Ceil       desc:"Average number of active threads summed across all processes" \
-                                   field:"Computed[kThreadAvg]" alias:"thread-avg"
+                                   field:"Computed[KThreadAvg]" alias:"thread-avg"
   ThreadPeak         F64Ceil       desc:"Peak number of active threads summed across all processes" \
-                                   field:"Computed[kThreadPeak]" alias:"thread-peak"
+                                   field:"Computed[KThreadPeak]" alias:"thread-peak"
   Gpus               gpuset.GpuSet desc:"GPU device numbers used by the job, 'none' if none or 'unknown' in error states" alias:"gpus"
   GpuFail            int           desc:"Flag indicating GPU status (0=Ok, 1=Failing)" alias:"gpufail"
   Cmd                string        desc:"The commands invoking the processes of the job" alias:"cmd"
@@ -79,29 +79,29 @@ FIELDS *JobSummary
   Classification     int           desc:"Bit vector of live-at-start (2) and live-at-end (1) flags" alias:"classification"
   CpuTime            DurationValue desc:"Total CPU time of the job across all cores" alias:"cputime"
   GpuTime            DurationValue desc:"Total GPU time of the job across all cards" alias:"gputime"
-  ReadGB             uint64        desc:"Total read traffic" field:"u64[uReadGBTotal]" alias:"read"
-  WrittenGB          uint64        desc:"Total read traffic" field:"u64[uWrittenGBTotal]" alias:"written"
+  ReadGB             uint64        desc:"Total read traffic" field:"U64[UReadGBTotal]" alias:"read"
+  WrittenGB          uint64        desc:"Total read traffic" field:"U64[UWrittenGBTotal]" alias:"written"
 
   # The expressions extracting bit flags happen to work for well-understood reasons, but this is
   # brittle and works in Go only because the operator precedence is right (in C it would not work).
   # See TODO in generate-table/README.md.
 
   SomeGpu            bool          desc:"True iff process was seen to use some GPU" \
-                                   field:"computedFlags & kUsesGpu != 0"
+                                   field:"ComputedFlags & KUsesGpu != 0"
   NoGpu              bool          desc:"True iff process was seen to use no GPU" \
-                                   field:"computedFlags & kDoesNotUseGpu != 0"
+                                   field:"ComputedFlags & KDoesNotUseGpu != 0"
   Running            bool          desc:"True iff process appears to still be running at end of time window" \
-                                   field:"computedFlags & kIsLiveAtEnd != 0"
+                                   field:"ComputedFlags & KIsLiveAtEnd != 0"
   Completed          bool          desc:"True iff process appears not to be running at end of time window" \
-                                   field:"computedFlags & kIsNotLiveAtEnd != 0"
+                                   field:"ComputedFlags & KIsNotLiveAtEnd != 0"
   Zombie             bool          desc:"True iff the process looks like a zombie" \
-                                   field:"computedFlags & kIsZombie != 0"
+                                   field:"ComputedFlags & KIsZombie != 0"
   Primordial         bool          desc:"True iff the process appears to have been alive at the start of the time window" \
-                                   field:"computedFlags & kIsLiveAtStart != 0"
+                                   field:"ComputedFlags & KIsLiveAtStart != 0"
   BornLater          bool          desc:"True iff the process appears not to have been alive at the start of the time window" \
-                                   field:"computedFlags & kIsNotLiveAtStart != 0"
+                                   field:"ComputedFlags & KIsNotLiveAtStart != 0"
 
-  # NOTE!  The slurm fields (via *sacctInfo) are checked for in perform.go.  We can add more slurm
+  # NOTE!  The slurm fields (via *SacctInfo) are checked for in perform.go.  We can add more slurm
   # fields here but if so they must also be added there.
   #
   # Alpha order please and prefer the field names *and units* in Sonar's SlurmJob and SacctData definitions.
@@ -111,49 +111,49 @@ FIELDS *JobSummary
   # Depending on whether the data truly come from Slurm or are synthesized by Sonar, some fields may be
   # real, synthesized, or absent.  UTSL when in doubt.
 
-  Account            Ustr          desc:"Name of job's account (Slurm)" indirect:"sacctInfo"
-  ArrayJobID         uint32        desc:"The overarching ID of an array job, or 0 (Slurm)" indirect:"sacctInfo"
-  ArrayStep          Ustr          desc:"The name of the step, or empty string (Slurm)" indirect:"sacctInfo"
-  ArrayTaskID        uint32        desc:"The index of the array element (Slurm)" indirect:"sacctInfo"
+  Account            Ustr          desc:"Name of job's account (Slurm)" indirect:"SacctInfo"
+  ArrayJobID         uint32        desc:"The overarching ID of an array job, or 0 (Slurm)" indirect:"SacctInfo"
+  ArrayStep          Ustr          desc:"The name of the step, or empty string (Slurm)" indirect:"SacctInfo"
+  ArrayTaskID        uint32        desc:"The index of the array element (Slurm)" indirect:"SacctInfo"
   AveCPU             uint64        desc:"Average (system + user) CPU time of all tasks in job (sec) (Slurm)" \
-                                   indirect:"sacctInfo"
-  AveDiskRead        uint64        desc:"Average number of KB read by all tasks in job (Slurm)" indirect:"sacctInfo"
-  AveDiskWrite       uint64        desc:"Average number of KB written by all tasks in job (Slurm)" indirect:"sacctInfo"
-  AveRSS             uint64        desc:"Average resident set size of all tasks in job (KB) (Slurm)" indirect:"sacctInfo"
-  AveVMSize          uint64        desc:"Average Virtual Memory size of all tasks in job (KB) (Slurm)" indirect:"sacctInfo"
-  ElapsedRaw         uint32        desc:"The job's elapsed time (sec) (Slurm)" indirect:"sacctInfo"
+                                   indirect:"SacctInfo"
+  AveDiskRead        uint64        desc:"Average number of KB read by all tasks in job (Slurm)" indirect:"SacctInfo"
+  AveDiskWrite       uint64        desc:"Average number of KB written by all tasks in job (Slurm)" indirect:"SacctInfo"
+  AveRSS             uint64        desc:"Average resident set size of all tasks in job (KB) (Slurm)" indirect:"SacctInfo"
+  AveVMSize          uint64        desc:"Average Virtual Memory size of all tasks in job (KB) (Slurm)" indirect:"SacctInfo"
+  ElapsedRaw         uint32        desc:"The job's elapsed time (sec) (Slurm)" indirect:"SacctInfo"
   # End above
-  ExitCode           uint8         desc:"Exit code of job (Slurm)" indirect:"sacctInfo"
-  HetJobID           uint32        desc:"The overarching ID of a heterogenous job, or 0 (Slurm)." indirect:"sacctInfo"
-  HetJobOffset       uint32        desc:"The het job element's index (Slurm)" indirect:"sacctInfo"
-  HetStep            Ustr          desc:"The name of the step, or empty string (Slurm)" indirect:"sacctInfo"
+  ExitCode           uint8         desc:"Exit code of job (Slurm)" indirect:"SacctInfo"
+  HetJobID           uint32        desc:"The overarching ID of a heterogenous job, or 0 (Slurm)." indirect:"SacctInfo"
+  HetJobOffset       uint32        desc:"The het job element's index (Slurm)" indirect:"SacctInfo"
+  HetStep            Ustr          desc:"The name of the step, or empty string (Slurm)" indirect:"SacctInfo"
   # JobID above
-  JobName            Ustr          desc:"Name of the job (Slurm)" indirect:"sacctInfo"
-  JobStep            Ustr          desc:"Name of step if any (Slurm)" indirect:"sacctInfo"
-  Layout             Ustr          desc:"Layout spec of job (Slurm)" indirect:"sacctInfo"
-  MaxRSS             uint64        desc:"Maximum resident set size of all tasks in job (KB) (Slurm)" indirect:"sacctInfo"
-  MaxVMSize          uint64        desc:"Maximum Virtual Memory size of all tasks in job (KB) (Slurm)" indirect:"sacctInfo"
-  MinCPU             uint64        desc:"Minimum (system + user) CPU time of all tasks in job (KB) (Slurm)" indirect:"sacctInfo"
-  NodeList           Ustr          desc:"The nodes allocated to the job or step (Slurm)" indirect:"sacctInfo"
-  Partition          Ustr          desc:"Partition of job (Slurm)" indirect:"sacctInfo"
-  Priority           uint64        desc:"Job priority (Slurm)" indirect:"sacctInfo"
-  ReqCPUS            uint32        desc:"Number of requested CPUs (Slurm)" indirect:"sacctInfo"
-  ReqGPUS            Ustr          desc:"Names of requested GPUs (Slurm AllocTRES)" indirect:"sacctInfo"
-  ReqMem             uint64        desc:"Requested memory in KB (Slurm)" indirect:"sacctInfo"
-  ReqNodes           uint32        desc:"Number of requested nodes (Slurm)" indirect:"sacctInfo"
-  Reservation        Ustr          desc:"Name of job's reservation (Slurm)" indirect:"sacctInfo"
+  JobName            Ustr          desc:"Name of the job (Slurm)" indirect:"SacctInfo"
+  JobStep            Ustr          desc:"Name of step if any (Slurm)" indirect:"SacctInfo"
+  Layout             Ustr          desc:"Layout spec of job (Slurm)" indirect:"SacctInfo"
+  MaxRSS             uint64        desc:"Maximum resident set size of all tasks in job (KB) (Slurm)" indirect:"SacctInfo"
+  MaxVMSize          uint64        desc:"Maximum Virtual Memory size of all tasks in job (KB) (Slurm)" indirect:"SacctInfo"
+  MinCPU             uint64        desc:"Minimum (system + user) CPU time of all tasks in job (KB) (Slurm)" indirect:"SacctInfo"
+  NodeList           Ustr          desc:"The nodes allocated to the job or step (Slurm)" indirect:"SacctInfo"
+  Partition          Ustr          desc:"Partition of job (Slurm)" indirect:"SacctInfo"
+  Priority           uint64        desc:"Job priority (Slurm)" indirect:"SacctInfo"
+  ReqCPUS            uint32        desc:"Number of requested CPUs (Slurm)" indirect:"SacctInfo"
+  ReqGPUS            Ustr          desc:"Names of requested GPUs (Slurm AllocTRES)" indirect:"SacctInfo"
+  ReqMem             uint64        desc:"Requested memory in KB (Slurm)" indirect:"SacctInfo"
+  ReqNodes           uint32        desc:"Number of requested nodes (Slurm)" indirect:"SacctInfo"
+  Reservation        Ustr          desc:"Name of job's reservation (Slurm)" indirect:"SacctInfo"
   # Start above
-  State              Ustr          desc:"Completion state of job (Slurm)" indirect:"sacctInfo"
-  Submit             DateTimeValue desc:"Submit time of job (Slurm)" indirect:"sacctInfo"
-  Suspended          uint32        desc:"Number of seconds the job was suspended (Slurm)" indirect:"sacctInfo"
+  State              Ustr          desc:"Completion state of job (Slurm)" indirect:"SacctInfo"
+  Submit             DateTimeValue desc:"Submit time of job (Slurm)" indirect:"SacctInfo"
+  Suspended          uint32        desc:"Number of seconds the job was suspended (Slurm)" indirect:"SacctInfo"
   SystemCPU          uint64        desc:"The amount of system CPU time used by the job or job step (sec) (Slurm)" \
-                                   indirect:"sacctInfo"
-  Time               DateTimeValue desc:"Time stamp of reading (Slurm)" indirect:"sacctInfo"
-  TimelimitRaw       U32Duration   desc:"Elapsed time limit (Slurm)" indirect:"sacctInfo"
+                                   indirect:"SacctInfo"
+  Time               DateTimeValue desc:"Time stamp of reading (Slurm)" indirect:"SacctInfo"
+  TimelimitRaw       U32Duration   desc:"Elapsed time limit (Slurm)" indirect:"SacctInfo"
   UserCPU            uint64        desc:"The amount of user CPU time used by the job or job step (sec) (Slurm)" \
-                                   indirect:"sacctInfo"
+                                   indirect:"SacctInfo"
   # User above
-  Version            Ustr          desc:"" indirect:"sacctInfo"
+  Version            Ustr          desc:"" indirect:"SacctInfo"
 
 SUMMARY JobsCommand
 

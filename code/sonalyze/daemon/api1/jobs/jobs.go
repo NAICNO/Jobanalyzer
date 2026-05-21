@@ -5,7 +5,6 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	. "sonalyze/daemon/api1/common"
 	"sonalyze/daemon/apiutil"
 	_ "sonalyze/db/special"
 )
@@ -21,13 +20,11 @@ package jobs
 
 import (
 	"go-utils/gpuset"
-	"sonalyze/cmd/jobs"
+	. "sonalyze/cmd/jobs"
 	. "sonalyze/common"
 	"sonalyze/daemon/apiutil"
 	. "sonalyze/table"
 )
-
-type JobSummary = jobs.JobSummary
 
 %%
 
