@@ -120,33 +120,38 @@ type JobAggregate struct {
 	Hosts       *Hostnames
 }
 
-func (jc *JobsCommand) Perform(
-	out io.Writer,
+type QueryFilter = common.QueryFilter
+
+func Query(meta types.Context, f QueryFilter, parsedQuery PNode) ([]*JobSummary, error) {
+	rf := &sample.SampleFilter{To: math.MaxInt64}
+	return query(meta, f, parsedQuery, rf)
+}
+
+func query(
 	meta types.Context,
-	filter sample.QueryFilter,
-	hosts *Hosts,
-	recordFilter *sample.SampleFilter,
-) error {
+	filter QueryFilter,
+	parsedQuery PNode,
+ 	recordFilter *sample.SampleFilter,
+) ([]*JobSummary, error) {
 	sdp, err := sample.OpenSampleDataProvider(meta)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	// TODO: Should just accept the filter!!
 	streams, bounds, read, dropped, err :=
 		sdp.Query(
 			filter.FromDate,
 			filter.ToDate,
 			hosts,
-			recordFilter,
 			true,
 		)
 	if err != nil {
-		return fmt.Errorf("Failed to read log records: %v", err)
+		return nil, fmt.Errorf("Failed to read log records: %v", err)
 	}
 	if Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
 		UstrStats(out, false)
 	}
-
 	if Verbose {
 		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
 		numSamples := 0
@@ -162,7 +167,7 @@ func (jc *JobsCommand) Perform(
 		var err error
 		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -171,11 +176,20 @@ func (jc *JobsCommand) Perform(
 		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
 
-	summaries, err = ApplyQuery(jc.ParsedQuery, jobsFormatters, jobsPredicates, summaries)
+	return ApplyQuery(jc.ParsedQuery, jobsFormatters, jobsPredicates, summaries)
+}
+
+func (jc *JobsCommand) Perform(
+	out io.Writer,
+	meta types.Context,
+	filter sample.QueryFilter,	// Why not our own QueryFilter?
+	hosts *Hosts,				// Why not in the QueryFilter??!?!
+	recordFilter *sample.SampleFilter,
+) error {
+	summaries, err = query(meta, filter.QueryFilter, jc.ParsedQuery, recordFilter)
 	if err != nil {
 		return err
 	}
-
 	return jc.printJobSummaries(out, summaries)
 }
 

@@ -5,6 +5,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"sonalyze/cmd/jobs"
+	"sonalyze/daemon/api1/common"
 	"sonalyze/daemon/apiutil"
 	_ "sonalyze/db/special"
 )
@@ -43,22 +45,42 @@ type JobsResponse struct {
 func AddJobs(api huma.API) {
 	huma.Get(api, jobsCommandName, func(
 		ctx context.Context,
-		input *struct {
-			apiutil.AuthHeader
-			Fields string `query:"fields" doc:"List of JSON field names"`
-		},
+		input *common.StandardQueryFields,
 	) (*JobsResponse, error) {
-		panic("NYI")
-		// Query, which requires a bit of refactoring in the jobs code
+		meta, from, to, nodes, query, hErr := input.Parameters(jobsCommandName)
+		if hErr != nil {
+			return nil, hErr
+		}
+		// This is different from the sonalyze command line in that there are no command-line record
+		// filters other than the date range and hosts.  All other filtering must be expressed in
+		// terms of the query filter.
 		//
-		// And then formatting
+		// TODO: This is much too simplistic, there are many more parameters that control how jobs
+		// are created.
 		//
-		// TODO: Lots of internal types in the generated code, which really
-		// must be mapped (somewhere) to something else.  And that will
-		// require casts in the copy code.
-		//
-		// Notably Ustr fields require actual computation.  The others may or may
-		// not be transparent to the JSON code.  Hostnames may not be.
-		// Gpu set may not be.
+		// TODO: We *probably* want to improve that: query by job ID and user ID will be very common
+		// and will greatly reduce the load on the back-end if we can filter those quickly at the
+		// record level.
+		records, err := jobs.Query(
+			meta,
+			jobs.QueryFilter{
+				HaveFrom: true,
+				FromDate: from,
+				HaveTo:   true,
+				ToDate:   to,
+				Host:     nodes.Patterns(),
+			},
+			query,
+		)
+		if err != nil {
+			return nil, huma.Error500InternalServerError(
+				jobsCommandName+": Failed to query jobs data", err)
+		}
+		flds := apiutil.Fields(input.Fields, responseDefaults)
+		jobs := make([]Jobs_Job, 0, len(records))
+		for _, r := range records {
+			jobs = append(jobs, respond(flds, r))
+		}
+		return &JobsResponse{Body: jobs}, nil
 	})
 }
