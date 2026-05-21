@@ -77,249 +77,249 @@ var jobsFormatters = map[string]Formatter[*JobSummary]{
 	},
 	"CpuAvgPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kCpuPctAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kCpuPctAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kCpuPctAvg]
+			return d.Computed[kCpuPctAvg]
 		},
 		Help: "(int) Average CPU utilization in percent (100% = 1 core)",
 	},
 	"CpuPeakPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kCpuPctPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kCpuPctPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kCpuPctPeak]
+			return d.Computed[kCpuPctPeak]
 		},
 		Help: "(int) Peak CPU utilization in percent (100% = 1 core)",
 	},
 	"RelativeCpuAvgPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRcpuPctAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kRcpuPctAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRcpuPctAvg]
+			return d.Computed[kRcpuPctAvg]
 		},
 		Help:        "(int) Average relative CPU utilization in percent (100% = all cores)",
 		NeedsConfig: true,
 	},
 	"RelativeCpuPeakPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRcpuPctPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kRcpuPctPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRcpuPctPeak]
+			return d.Computed[kRcpuPctPeak]
 		},
 		Help:        "(int) Peak relative CPU utilization in percent (100% = all cores)",
 		NeedsConfig: true,
 	},
 	"MemAvgGB": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kCpuGBAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kCpuGBAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kCpuGBAvg]
+			return d.Computed[kCpuGBAvg]
 		},
 		Help: "(int) Average main virtual memory utilization in GB",
 	},
 	"MemPeakGB": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kCpuGBPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kCpuGBPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kCpuGBPeak]
+			return d.Computed[kCpuGBPeak]
 		},
 		Help: "(int) Peak main virtual memory utilization in GB",
 	},
 	"RelativeMemAvgPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRcpuGBAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kRcpuGBAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRcpuGBAvg]
+			return d.Computed[kRcpuGBAvg]
 		},
 		Help:        "(int) Average relative main virtual memory utilization in percent (100% = system RAM)",
 		NeedsConfig: true,
 	},
 	"RelativeMemPeakPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRcpuGBPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kRcpuGBPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRcpuGBPeak]
+			return d.Computed[kRcpuGBPeak]
 		},
 		Help:        "(int) Peak relative main virtual memory utilization in percent (100% = system RAM)",
 		NeedsConfig: true,
 	},
 	"ResidentMemAvgGB": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRssAnonGBAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kRssAnonGBAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRssAnonGBAvg]
+			return d.Computed[kRssAnonGBAvg]
 		},
 		Help: "(int) Average main resident memory utilization in GB",
 	},
 	"ResidentMemPeakGB": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRssAnonGBPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kRssAnonGBPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRssAnonGBPeak]
+			return d.Computed[kRssAnonGBPeak]
 		},
 		Help: "(int) Peak main resident memory utilization in GB",
 	},
 	"RelativeResidentMemAvgPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRrssAnonGBAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kRrssAnonGBAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRrssAnonGBAvg]
+			return d.Computed[kRrssAnonGBAvg]
 		},
 		Help:        "(int) Average relative main resident memory utilization in percent (100% = all RAM)",
 		NeedsConfig: true,
 	},
 	"RelativeResidentMemPeakPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRrssAnonGBPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kRrssAnonGBPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRrssAnonGBPeak]
+			return d.Computed[kRrssAnonGBPeak]
 		},
 		Help:        "(int) Peak relative main resident memory utilization in percent (100% = all RAM)",
 		NeedsConfig: true,
 	},
 	"GpuAvgPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kGpuPctAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kGpuPctAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kGpuPctAvg]
+			return d.Computed[kGpuPctAvg]
 		},
 		Help: "(int) Average GPU utilization in percent (100% = 1 card)",
 	},
 	"GpuPeakPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kGpuPctPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kGpuPctPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kGpuPctPeak]
+			return d.Computed[kGpuPctPeak]
 		},
 		Help: "(int) Peak GPU utilization in percent (100% = 1 card)",
 	},
 	"RelativeGpuAvgPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRgpuPctAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kRgpuPctAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRgpuPctAvg]
+			return d.Computed[kRgpuPctAvg]
 		},
 		Help:        "(int) Average relative GPU utilization in percent (100% = all cards)",
 		NeedsConfig: true,
 	},
 	"RelativeGpuPeakPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRgpuPctPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kRgpuPctPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRgpuPctPeak]
+			return d.Computed[kRgpuPctPeak]
 		},
 		Help:        "(int) Peak relative GPU utilization in percent (100% = all cards)",
 		NeedsConfig: true,
 	},
 	"OccupiedRelativeGpuAvgPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kSgpuPctAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kSgpuPctAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kSgpuPctAvg]
+			return d.Computed[kSgpuPctAvg]
 		},
 		Help:        "(int) Average relative GPU utilization in percent (100% = all cards used by job)",
 		NeedsConfig: true,
 	},
 	"OccupiedRelativeGpuPeakPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kSgpuPctPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kSgpuPctPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kSgpuPctPeak]
+			return d.Computed[kSgpuPctPeak]
 		},
 		Help:        "(int) Peak relative GPU utilization in percent (100% = all cards used by job)",
 		NeedsConfig: true,
 	},
 	"GpuMemAvgGB": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kGpuGBAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kGpuGBAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kGpuGBAvg]
+			return d.Computed[kGpuGBAvg]
 		},
 		Help: "(int) Average resident GPU memory utilization in GB",
 	},
 	"GpuMemPeakGB": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kGpuGBPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kGpuGBPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kGpuGBPeak]
+			return d.Computed[kGpuGBPeak]
 		},
 		Help: "(int) Peak resident GPU memory utilization in GB",
 	},
 	"RelativeGpuMemAvgPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRgpuGBAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kRgpuGBAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRgpuGBAvg]
+			return d.Computed[kRgpuGBAvg]
 		},
 		Help:        "(int) Average relative GPU resident memory utilization in percent (100% = all GPU RAM)",
 		NeedsConfig: true,
 	},
 	"RelativeGpuMemPeakPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kRgpuGBPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kRgpuGBPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kRgpuGBPeak]
+			return d.Computed[kRgpuGBPeak]
 		},
 		Help:        "(int) Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)",
 		NeedsConfig: true,
 	},
 	"OccupiedRelativeGpuMemAvgPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kSgpuGBAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kSgpuGBAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kSgpuGBAvg]
+			return d.Computed[kSgpuGBAvg]
 		},
 		Help:        "(int) Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
 		NeedsConfig: true,
 	},
 	"OccupiedRelativeGpuMemPeakPct": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kSgpuGBPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kSgpuGBPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kSgpuGBPeak]
+			return d.Computed[kSgpuGBPeak]
 		},
 		Help:        "(int) Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)",
 		NeedsConfig: true,
 	},
 	"ThreadAvg": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kThreadAvg]), ctx)
+			return FormatF64Ceil((d.Computed[kThreadAvg]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kThreadAvg]
+			return d.Computed[kThreadAvg]
 		},
 		Help: "(int) Average number of active threads summed across all processes",
 	},
 	"ThreadPeak": {
 		Fmt: func(d *JobSummary, ctx PrintMods) string {
-			return FormatF64Ceil((d.computed[kThreadPeak]), ctx)
+			return FormatF64Ceil((d.Computed[kThreadPeak]), ctx)
 		},
 		Xtract: func(d *JobSummary) any {
-			return d.computed[kThreadPeak]
+			return d.Computed[kThreadPeak]
 		},
 		Help: "(int) Peak number of active threads summed across all processes",
 	},
@@ -1103,157 +1103,157 @@ var jobsPredicates = map[string]Predicate[*JobSummary]{
 	"CpuAvgPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kCpuPctAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kCpuPctAvg]), v.(F64Ceil))
 		},
 	},
 	"CpuPeakPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kCpuPctPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kCpuPctPeak]), v.(F64Ceil))
 		},
 	},
 	"RelativeCpuAvgPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRcpuPctAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRcpuPctAvg]), v.(F64Ceil))
 		},
 	},
 	"RelativeCpuPeakPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRcpuPctPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRcpuPctPeak]), v.(F64Ceil))
 		},
 	},
 	"MemAvgGB": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kCpuGBAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kCpuGBAvg]), v.(F64Ceil))
 		},
 	},
 	"MemPeakGB": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kCpuGBPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kCpuGBPeak]), v.(F64Ceil))
 		},
 	},
 	"RelativeMemAvgPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRcpuGBAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRcpuGBAvg]), v.(F64Ceil))
 		},
 	},
 	"RelativeMemPeakPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRcpuGBPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRcpuGBPeak]), v.(F64Ceil))
 		},
 	},
 	"ResidentMemAvgGB": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRssAnonGBAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRssAnonGBAvg]), v.(F64Ceil))
 		},
 	},
 	"ResidentMemPeakGB": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRssAnonGBPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRssAnonGBPeak]), v.(F64Ceil))
 		},
 	},
 	"RelativeResidentMemAvgPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRrssAnonGBAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRrssAnonGBAvg]), v.(F64Ceil))
 		},
 	},
 	"RelativeResidentMemPeakPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRrssAnonGBPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRrssAnonGBPeak]), v.(F64Ceil))
 		},
 	},
 	"GpuAvgPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kGpuPctAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kGpuPctAvg]), v.(F64Ceil))
 		},
 	},
 	"GpuPeakPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kGpuPctPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kGpuPctPeak]), v.(F64Ceil))
 		},
 	},
 	"RelativeGpuAvgPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRgpuPctAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRgpuPctAvg]), v.(F64Ceil))
 		},
 	},
 	"RelativeGpuPeakPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRgpuPctPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRgpuPctPeak]), v.(F64Ceil))
 		},
 	},
 	"OccupiedRelativeGpuAvgPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kSgpuPctAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kSgpuPctAvg]), v.(F64Ceil))
 		},
 	},
 	"OccupiedRelativeGpuPeakPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kSgpuPctPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kSgpuPctPeak]), v.(F64Ceil))
 		},
 	},
 	"GpuMemAvgGB": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kGpuGBAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kGpuGBAvg]), v.(F64Ceil))
 		},
 	},
 	"GpuMemPeakGB": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kGpuGBPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kGpuGBPeak]), v.(F64Ceil))
 		},
 	},
 	"RelativeGpuMemAvgPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRgpuGBAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRgpuGBAvg]), v.(F64Ceil))
 		},
 	},
 	"RelativeGpuMemPeakPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kRgpuGBPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kRgpuGBPeak]), v.(F64Ceil))
 		},
 	},
 	"OccupiedRelativeGpuMemAvgPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kSgpuGBAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kSgpuGBAvg]), v.(F64Ceil))
 		},
 	},
 	"OccupiedRelativeGpuMemPeakPct": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kSgpuGBPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kSgpuGBPeak]), v.(F64Ceil))
 		},
 	},
 	"ThreadAvg": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kThreadAvg]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kThreadAvg]), v.(F64Ceil))
 		},
 	},
 	"ThreadPeak": Predicate[*JobSummary]{
 		Convert: CvtString2Float64,
 		Compare: func(d *JobSummary, v any) int {
-			return cmp.Compare((d.computed[kThreadPeak]), v.(F64Ceil))
+			return cmp.Compare((d.Computed[kThreadPeak]), v.(F64Ceil))
 		},
 	},
 	"Gpus": Predicate[*JobSummary]{

@@ -25,52 +25,52 @@ FIELDS *JobSummary
   Duration           DurationValue desc:"Time of last observation minus time of first" alias:"duration"
   Start              DateTimeValue desc:"Time of first observation" alias:"start"
   End                DateTimeValue desc:"Time of last observation" alias:"end"
-  CpuAvgPct          F64Ceil       desc:"Average CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctAvg]" alias:"cpu-avg"
-  CpuPeakPct         F64Ceil       desc:"Peak CPU utilization in percent (100% = 1 core)" field:"computed[kCpuPctPeak]" alias:"cpu-peak"
-  RelativeCpuAvgPct  F64Ceil       desc:"Average relative CPU utilization in percent (100% = all cores)" field:"computed[kRcpuPctAvg]" alias:"rcpu-avg"
-  RelativeCpuPeakPct F64Ceil       desc:"Peak relative CPU utilization in percent (100% = all cores)" field:"computed[kRcpuPctPeak]" alias:"rcpu-peak"
-  MemAvgGB           F64Ceil       desc:"Average main virtual memory utilization in GB" field:"computed[kCpuGBAvg]" alias:"mem-avg"
-  MemPeakGB          F64Ceil       desc:"Peak main virtual memory utilization in GB" field:"computed[kCpuGBPeak]" alias:"mem-peak"
+  CpuAvgPct          F64Ceil       desc:"Average CPU utilization in percent (100% = 1 core)" field:"Computed[kCpuPctAvg]" alias:"cpu-avg"
+  CpuPeakPct         F64Ceil       desc:"Peak CPU utilization in percent (100% = 1 core)" field:"Computed[kCpuPctPeak]" alias:"cpu-peak"
+  RelativeCpuAvgPct  F64Ceil       desc:"Average relative CPU utilization in percent (100% = all cores)" field:"Computed[kRcpuPctAvg]" alias:"rcpu-avg"
+  RelativeCpuPeakPct F64Ceil       desc:"Peak relative CPU utilization in percent (100% = all cores)" field:"Computed[kRcpuPctPeak]" alias:"rcpu-peak"
+  MemAvgGB           F64Ceil       desc:"Average main virtual memory utilization in GB" field:"Computed[kCpuGBAvg]" alias:"mem-avg"
+  MemPeakGB          F64Ceil       desc:"Peak main virtual memory utilization in GB" field:"Computed[kCpuGBPeak]" alias:"mem-peak"
   RelativeMemAvgPct  F64Ceil       desc:"Average relative main virtual memory utilization in percent (100% = system RAM)" \
-                                   field:"computed[kRcpuGBAvg]" alias:"rmem-avg"
+                                   field:"Computed[kRcpuGBAvg]" alias:"rmem-avg"
   RelativeMemPeakPct F64Ceil       desc:"Peak relative main virtual memory utilization in percent (100% = system RAM)" \
-                                   field:"computed[kRcpuGBPeak]" alias:"rmem-peak"
-  ResidentMemAvgGB   F64Ceil       desc:"Average main resident memory utilization in GB" field:"computed[kRssAnonGBAvg]" alias:"res-avg"
-  ResidentMemPeakGB  F64Ceil       desc:"Peak main resident memory utilization in GB" field:"computed[kRssAnonGBPeak]" alias:"res-peak"
+                                   field:"Computed[kRcpuGBPeak]" alias:"rmem-peak"
+  ResidentMemAvgGB   F64Ceil       desc:"Average main resident memory utilization in GB" field:"Computed[kRssAnonGBAvg]" alias:"res-avg"
+  ResidentMemPeakGB  F64Ceil       desc:"Peak main resident memory utilization in GB" field:"Computed[kRssAnonGBPeak]" alias:"res-peak"
   RelativeResidentMemAvgPct \
                      F64Ceil       desc:"Average relative main resident memory utilization in percent (100% = all RAM)" \
-                                   field:"computed[kRrssAnonGBAvg]" alias:"rres-avg"
+                                   field:"Computed[kRrssAnonGBAvg]" alias:"rres-avg"
   RelativeResidentMemPeakPct \
                      F64Ceil       desc:"Peak relative main resident memory utilization in percent (100% = all RAM)" \
-                                   field:"computed[kRrssAnonGBPeak]" alias:"rres-peak"
-  GpuAvgPct          F64Ceil       desc:"Average GPU utilization in percent (100% = 1 card)" field:"computed[kGpuPctAvg]" alias:"gpu-avg"
-  GpuPeakPct         F64Ceil       desc:"Peak GPU utilization in percent (100% = 1 card)" field:"computed[kGpuPctPeak]" alias:"gpu-peak"
-  RelativeGpuAvgPct  F64Ceil       desc:"Average relative GPU utilization in percent (100% = all cards)" field:"computed[kRgpuPctAvg]" alias:"rgpu-avg"
-  RelativeGpuPeakPct F64Ceil       desc:"Peak relative GPU utilization in percent (100% = all cards)" field:"computed[kRgpuPctPeak]" alias:"rgpu-peak"
+                                   field:"Computed[kRrssAnonGBPeak]" alias:"rres-peak"
+  GpuAvgPct          F64Ceil       desc:"Average GPU utilization in percent (100% = 1 card)" field:"Computed[kGpuPctAvg]" alias:"gpu-avg"
+  GpuPeakPct         F64Ceil       desc:"Peak GPU utilization in percent (100% = 1 card)" field:"Computed[kGpuPctPeak]" alias:"gpu-peak"
+  RelativeGpuAvgPct  F64Ceil       desc:"Average relative GPU utilization in percent (100% = all cards)" field:"Computed[kRgpuPctAvg]" alias:"rgpu-avg"
+  RelativeGpuPeakPct F64Ceil       desc:"Peak relative GPU utilization in percent (100% = all cards)" field:"Computed[kRgpuPctPeak]" alias:"rgpu-peak"
   OccupiedRelativeGpuAvgPct \
                      F64Ceil       desc:"Average relative GPU utilization in percent (100% = all cards used by job)" \
-                                   field:"computed[kSgpuPctAvg]" alias:"sgpu-avg"
+                                   field:"Computed[kSgpuPctAvg]" alias:"sgpu-avg"
   OccupiedRelativeGpuPeakPct \
                      F64Ceil       desc:"Peak relative GPU utilization in percent (100% = all cards used by job)" \
-                                   field:"computed[kSgpuPctPeak]" alias:"sgpu-peak"
-  GpuMemAvgGB        F64Ceil       desc:"Average resident GPU memory utilization in GB" field:"computed[kGpuGBAvg]" alias:"gpumem-avg"
-  GpuMemPeakGB       F64Ceil       desc:"Peak resident GPU memory utilization in GB" field:"computed[kGpuGBPeak]" alias:"gpumem-peak"
+                                   field:"Computed[kSgpuPctPeak]" alias:"sgpu-peak"
+  GpuMemAvgGB        F64Ceil       desc:"Average resident GPU memory utilization in GB" field:"Computed[kGpuGBAvg]" alias:"gpumem-avg"
+  GpuMemPeakGB       F64Ceil       desc:"Peak resident GPU memory utilization in GB" field:"Computed[kGpuGBPeak]" alias:"gpumem-peak"
   RelativeGpuMemAvgPct \
                      F64Ceil       desc:"Average relative GPU resident memory utilization in percent (100% = all GPU RAM)" \
-                                   field:"computed[kRgpuGBAvg]" alias:"rgpumem-avg"
+                                   field:"Computed[kRgpuGBAvg]" alias:"rgpumem-avg"
   RelativeGpuMemPeakPct \
                      F64Ceil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM)" \
-                                   field:"computed[kRgpuGBPeak]" alias:"rgpumem-peak"
+                                   field:"Computed[kRgpuGBPeak]" alias:"rgpumem-peak"
   OccupiedRelativeGpuMemAvgPct \
                      F64Ceil       desc:"Average relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
-                                   field:"computed[kSgpuGBAvg]" alias:"sgpumem-avg"
+                                   field:"Computed[kSgpuGBAvg]" alias:"sgpumem-avg"
   OccupiedRelativeGpuMemPeakPct \
                      F64Ceil       desc:"Peak relative GPU resident memory utilization in percent (100% = all GPU RAM on cards used by job)" \
-                                   field:"computed[kSgpuGBPeak]" alias:"sgpumem-peak"
+                                   field:"Computed[kSgpuGBPeak]" alias:"sgpumem-peak"
   ThreadAvg          F64Ceil       desc:"Average number of active threads summed across all processes" \
-                                   field:"computed[kThreadAvg]" alias:"thread-avg"
+                                   field:"Computed[kThreadAvg]" alias:"thread-avg"
   ThreadPeak         F64Ceil       desc:"Peak number of active threads summed across all processes" \
-                                   field:"computed[kThreadPeak]" alias:"thread-peak"
+                                   field:"Computed[kThreadPeak]" alias:"thread-peak"
   Gpus               gpuset.GpuSet desc:"GPU device numbers used by the job, 'none' if none or 'unknown' in error states" alias:"gpus"
   GpuFail            int           desc:"Flag indicating GPU status (0=Ok, 1=Failing)" alias:"gpufail"
   Cmd                string        desc:"The commands invoking the processes of the job" alias:"cmd"

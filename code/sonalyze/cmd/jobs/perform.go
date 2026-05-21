@@ -112,7 +112,7 @@ type JobSummary struct {
 type JobAggregate struct {
 	GpuFail     int
 	Gpus        gpuset.GpuSet
-	computed    [numF64Fields]float64
+	Computed    [numF64Fields]float64
 	u64         [numU64Fields]uint64
 	IsZombie    bool
 	InContainer bool
@@ -344,7 +344,7 @@ func summarizeSingleJobFromSonarData(
 		JobAndMark:     jobAndMark,
 		User:           user,
 		CpuTime:        DurationValue(aggregate.u64[uCpuTimeSecTotal]),
-		GpuTime:        DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(duration) / 100)),
+		GpuTime:        DurationValue(math.Round(aggregate.Computed[kGpuPctAvg] * float64(duration) / 100)),
 		Duration:       DurationValue(duration),
 		Now:            DateTimeValue(now),
 		Start:          DateTimeValue(first),
@@ -489,37 +489,37 @@ func aggregateSingleJobFromSonarData(
 		IsZombie:    isZombie,
 		InContainer: inContainer,
 	}
-	a.computed[kCpuPctAvg] = cpuPctAvg / n
-	a.computed[kCpuPctPeak] = cpuPctPeak
-	a.computed[kRcpuPctAvg] = rCpuPctAvg / n
-	a.computed[kRcpuPctPeak] = rCpuPctPeak
+	a.Computed[kCpuPctAvg] = cpuPctAvg / n
+	a.Computed[kCpuPctPeak] = cpuPctPeak
+	a.Computed[kRcpuPctAvg] = rCpuPctAvg / n
+	a.Computed[kRcpuPctPeak] = rCpuPctPeak
 
-	a.computed[kCpuGBAvg] = cpuGBAvg / n
-	a.computed[kCpuGBPeak] = cpuGBPeak
-	a.computed[kRcpuGBAvg] = rCpuGBAvg / n
-	a.computed[kRcpuGBPeak] = rCpuGBPeak
+	a.Computed[kCpuGBAvg] = cpuGBAvg / n
+	a.Computed[kCpuGBPeak] = cpuGBPeak
+	a.Computed[kRcpuGBAvg] = rCpuGBAvg / n
+	a.Computed[kRcpuGBPeak] = rCpuGBPeak
 
-	a.computed[kRssAnonGBAvg] = rssAnonGBAvg / n
-	a.computed[kRssAnonGBPeak] = rssAnonGBPeak
-	a.computed[kRrssAnonGBAvg] = rRssAnonGBAvg / n
-	a.computed[kRrssAnonGBPeak] = rRssAnonGBPeak
+	a.Computed[kRssAnonGBAvg] = rssAnonGBAvg / n
+	a.Computed[kRssAnonGBPeak] = rssAnonGBPeak
+	a.Computed[kRrssAnonGBAvg] = rRssAnonGBAvg / n
+	a.Computed[kRrssAnonGBPeak] = rRssAnonGBPeak
 
-	a.computed[kGpuPctAvg] = gpuPctAvg / n
-	a.computed[kGpuPctPeak] = gpuPctPeak
-	a.computed[kRgpuPctAvg] = rGpuPctAvg / n
-	a.computed[kRgpuPctPeak] = rGpuPctPeak
-	a.computed[kSgpuPctAvg] = sGpuPctAvg / n
-	a.computed[kSgpuPctPeak] = sGpuPctPeak
+	a.Computed[kGpuPctAvg] = gpuPctAvg / n
+	a.Computed[kGpuPctPeak] = gpuPctPeak
+	a.Computed[kRgpuPctAvg] = rGpuPctAvg / n
+	a.Computed[kRgpuPctPeak] = rGpuPctPeak
+	a.Computed[kSgpuPctAvg] = sGpuPctAvg / n
+	a.Computed[kSgpuPctPeak] = sGpuPctPeak
 
-	a.computed[kGpuGBAvg] = gpuGBAvg / n
-	a.computed[kGpuGBPeak] = gpuGBPeak
-	a.computed[kRgpuGBAvg] = rGpuGBAvg / n
-	a.computed[kRgpuGBPeak] = rGpuGBPeak
-	a.computed[kSgpuGBAvg] = sGpuGBAvg / n
-	a.computed[kSgpuGBPeak] = sGpuGBPeak
+	a.Computed[kGpuGBAvg] = gpuGBAvg / n
+	a.Computed[kGpuGBPeak] = gpuGBPeak
+	a.Computed[kRgpuGBAvg] = rGpuGBAvg / n
+	a.Computed[kRgpuGBPeak] = rGpuGBPeak
+	a.Computed[kSgpuGBAvg] = sGpuGBAvg / n
+	a.Computed[kSgpuGBPeak] = sGpuGBPeak
 
-	a.computed[kThreadAvg] = float64(threadAvg) / n
-	a.computed[kThreadPeak] = float64(threadPeak)
+	a.Computed[kThreadAvg] = float64(threadAvg) / n
+	a.Computed[kThreadPeak] = float64(threadPeak)
 
 	a.u64[uReadGBTotal] = dataReadGB
 	a.u64[uReadKBTotal] = dataReadKB
@@ -591,7 +591,7 @@ func synthesizeSacctDataFromSonarData(
 			MaxVMSize:    maxVM,
 			MinCPU:       minCpu,
 			NodeList:     StringToUstr(FormatHostnames(s.Hosts, PrintModFixed)),
-			ReqCPUS:      uint32(s.computed[kThreadPeak]), // Requested = peak threads observed, not great
+			ReqCPUS:      uint32(s.Computed[kThreadPeak]), // Requested = peak threads observed, not great
 			ReqGPUS:      StringToUstr(requestedGpus),
 			ReqRes:       StringToUstr(requestedGpus),
 			ReqMem:       maxVM, // Requested = max of any task at any time
@@ -824,7 +824,7 @@ type aggregationFilter struct {
 
 func (f *aggregationFilter) apply(s *JobSummary) bool {
 	for _, v := range f.fminFilters {
-		if s.computed[v.ix] < v.limit {
+		if s.Computed[v.ix] < v.limit {
 			return false
 		}
 	}
@@ -834,7 +834,7 @@ func (f *aggregationFilter) apply(s *JobSummary) bool {
 		}
 	}
 	for _, v := range f.fmaxFilters {
-		if s.computed[v.ix] > v.limit {
+		if s.Computed[v.ix] > v.limit {
 			return false
 		}
 	}

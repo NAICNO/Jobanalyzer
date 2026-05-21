@@ -123,82 +123,82 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 		x.End = r.End
 	}
 	if flds.Has("CpuAvgPct") {
-		x.CpuAvgPct = r.computed[kCpuPctAvg]
+		x.CpuAvgPct = r.Computed[kCpuPctAvg]
 	}
 	if flds.Has("CpuPeakPct") {
-		x.CpuPeakPct = r.computed[kCpuPctPeak]
+		x.CpuPeakPct = r.Computed[kCpuPctPeak]
 	}
 	if flds.Has("RelativeCpuAvgPct") {
-		x.RelativeCpuAvgPct = r.computed[kRcpuPctAvg]
+		x.RelativeCpuAvgPct = r.Computed[kRcpuPctAvg]
 	}
 	if flds.Has("RelativeCpuPeakPct") {
-		x.RelativeCpuPeakPct = r.computed[kRcpuPctPeak]
+		x.RelativeCpuPeakPct = r.Computed[kRcpuPctPeak]
 	}
 	if flds.Has("MemAvgGB") {
-		x.MemAvgGB = r.computed[kCpuGBAvg]
+		x.MemAvgGB = r.Computed[kCpuGBAvg]
 	}
 	if flds.Has("MemPeakGB") {
-		x.MemPeakGB = r.computed[kCpuGBPeak]
+		x.MemPeakGB = r.Computed[kCpuGBPeak]
 	}
 	if flds.Has("RelativeMemAvgPct") {
-		x.RelativeMemAvgPct = r.computed[kRcpuGBAvg]
+		x.RelativeMemAvgPct = r.Computed[kRcpuGBAvg]
 	}
 	if flds.Has("RelativeMemPeakPct") {
-		x.RelativeMemPeakPct = r.computed[kRcpuGBPeak]
+		x.RelativeMemPeakPct = r.Computed[kRcpuGBPeak]
 	}
 	if flds.Has("ResidentMemAvgGB") {
-		x.ResidentMemAvgGB = r.computed[kRssAnonGBAvg]
+		x.ResidentMemAvgGB = r.Computed[kRssAnonGBAvg]
 	}
 	if flds.Has("ResidentMemPeakGB") {
-		x.ResidentMemPeakGB = r.computed[kRssAnonGBPeak]
+		x.ResidentMemPeakGB = r.Computed[kRssAnonGBPeak]
 	}
 	if flds.Has("RelativeResidentMemAvgPct") {
-		x.RelativeResidentMemAvgPct = r.computed[kRrssAnonGBAvg]
+		x.RelativeResidentMemAvgPct = r.Computed[kRrssAnonGBAvg]
 	}
 	if flds.Has("RelativeResidentMemPeakPct") {
-		x.RelativeResidentMemPeakPct = r.computed[kRrssAnonGBPeak]
+		x.RelativeResidentMemPeakPct = r.Computed[kRrssAnonGBPeak]
 	}
 	if flds.Has("GpuAvgPct") {
-		x.GpuAvgPct = r.computed[kGpuPctAvg]
+		x.GpuAvgPct = r.Computed[kGpuPctAvg]
 	}
 	if flds.Has("GpuPeakPct") {
-		x.GpuPeakPct = r.computed[kGpuPctPeak]
+		x.GpuPeakPct = r.Computed[kGpuPctPeak]
 	}
 	if flds.Has("RelativeGpuAvgPct") {
-		x.RelativeGpuAvgPct = r.computed[kRgpuPctAvg]
+		x.RelativeGpuAvgPct = r.Computed[kRgpuPctAvg]
 	}
 	if flds.Has("RelativeGpuPeakPct") {
-		x.RelativeGpuPeakPct = r.computed[kRgpuPctPeak]
+		x.RelativeGpuPeakPct = r.Computed[kRgpuPctPeak]
 	}
 	if flds.Has("OccupiedRelativeGpuAvgPct") {
-		x.OccupiedRelativeGpuAvgPct = r.computed[kSgpuPctAvg]
+		x.OccupiedRelativeGpuAvgPct = r.Computed[kSgpuPctAvg]
 	}
 	if flds.Has("OccupiedRelativeGpuPeakPct") {
-		x.OccupiedRelativeGpuPeakPct = r.computed[kSgpuPctPeak]
+		x.OccupiedRelativeGpuPeakPct = r.Computed[kSgpuPctPeak]
 	}
 	if flds.Has("GpuMemAvgGB") {
-		x.GpuMemAvgGB = r.computed[kGpuGBAvg]
+		x.GpuMemAvgGB = r.Computed[kGpuGBAvg]
 	}
 	if flds.Has("GpuMemPeakGB") {
-		x.GpuMemPeakGB = r.computed[kGpuGBPeak]
+		x.GpuMemPeakGB = r.Computed[kGpuGBPeak]
 	}
 	if flds.Has("RelativeGpuMemAvgPct") {
-		x.RelativeGpuMemAvgPct = r.computed[kRgpuGBAvg]
+		x.RelativeGpuMemAvgPct = r.Computed[kRgpuGBAvg]
 	}
 	if flds.Has("RelativeGpuMemPeakPct") {
-		x.RelativeGpuMemPeakPct = r.computed[kRgpuGBPeak]
+		x.RelativeGpuMemPeakPct = r.Computed[kRgpuGBPeak]
 	}
 	if flds.Has("OccupiedRelativeGpuMemAvgPct") {
-		x.OccupiedRelativeGpuMemAvgPct = r.computed[kSgpuGBAvg]
+		x.OccupiedRelativeGpuMemAvgPct = r.Computed[kSgpuGBAvg]
 	}
 	if flds.Has("OccupiedRelativeGpuMemPeakPct") {
-		x.OccupiedRelativeGpuMemPeakPct = r.computed[kSgpuGBPeak]
+		x.OccupiedRelativeGpuMemPeakPct = r.Computed[kSgpuGBPeak]
 	}
 	if flds.Has("ThreadAvg") {
-		x.ThreadAvg = r.computed[kThreadAvg]
+		x.ThreadAvg = r.Computed[kThreadAvg]
 	}
 	if flds.Has("ThreadPeak") {
-		x.ThreadPeak = r.computed[kThreadPeak]
+		x.ThreadPeak = r.Computed[kThreadPeak]
 	}
 	if flds.Has("Gpus") {
 		x.Gpus = r.Gpus
