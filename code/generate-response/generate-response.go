@@ -87,7 +87,6 @@ func end() {
 	fmt.Fprintf(out, "\tvar x %s\n", tyname)
 	for _, f := range fields {
 		fmt.Fprintf(out, "\tif flds.Has(\"%s\") {\n", f.Name)
-		// This will need to become more complex with more attributes, notably "indirect"
 		actualFieldName := f.Name
 		if fattr, found := attr(f.Attrs, "field"); found {
 			actualFieldName = fattr.Value
@@ -95,10 +94,10 @@ func end() {
 		indir, isIndirect := attr(f.Attrs, "indirect")
 		if isIndirect {
 			ptrName := indir.Value
-			fmt.Fprintf(out, "\t\t\tif (r.%s) != nil {\n", ptrName)
+			fmt.Fprintf(out, "\t\tif (r.%s) != nil {\n", ptrName)
 			fmt.Fprintf(
-				out, "\t\t\t\tx.%s = r.%s.%s\n", f.Name, ptrName, actualFieldName)
-			fmt.Fprintf(out, "\t\t\t}\n")
+				out, "\t\t\tx.%s = r.%s.%s\n", f.Name, ptrName, actualFieldName)
+			fmt.Fprintf(out, "\t\t}\n")
 		} else {
 			fmt.Fprintf(out, "\t\tx.%s = r.%s\n", f.Name, actualFieldName)
 		}
