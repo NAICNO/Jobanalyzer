@@ -11,7 +11,7 @@ import (
 	"go-utils/gpuset"
 	"go-utils/sonalyze"
 
-	. "sonalyze/cmd"
+	//. "sonalyze/cmd"
 	. "sonalyze/common"
 	"sonalyze/data/common"
 	"sonalyze/data/config"
@@ -122,6 +122,7 @@ type JobAggregate struct {
 
 type QueryFilter = common.QueryFilter
 
+/*
 func Query(meta types.Context, f QueryFilter, parsedQuery PNode) ([]*JobSummary, error) {
 	rf := &sample.SampleFilter{To: math.MaxInt64}
 	return query(meta, f, parsedQuery, rf)
@@ -178,7 +179,7 @@ func query(
 
 	return ApplyQuery(jc.ParsedQuery, jobsFormatters, jobsPredicates, summaries)
 }
-
+*/
 func (jc *JobsCommand) Perform(
 	out io.Writer,
 	meta types.Context,
@@ -186,11 +187,14 @@ func (jc *JobsCommand) Perform(
 	hosts *Hosts,				// Why not in the QueryFilter??!?!
 	recordFilter *sample.SampleFilter,
 ) error {
+	/*
 	summaries, err = query(meta, filter.QueryFilter, jc.ParsedQuery, recordFilter)
 	if err != nil {
 		return err
 	}
 	return jc.printJobSummaries(out, summaries)
+	*/
+	panic("NYI")
 }
 
 // A sample stream is a quadruple (host, command, job-related-id, record-list).  A stream is only

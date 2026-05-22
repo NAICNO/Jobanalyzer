@@ -11,9 +11,6 @@ import (
 	_ "sonalyze/db/special"
 )
 
-// TODO: And here we might also want a "job" that always takes an ID, to just look at one,
-// instead of passing the job ID as a query parameter?
-
 //go:generate ../../../../generate-response/generate-response jobs.go
 
 /*RESPONSE

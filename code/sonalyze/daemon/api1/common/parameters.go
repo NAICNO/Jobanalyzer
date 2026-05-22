@@ -32,8 +32,13 @@ type StandardQueryFields struct {
 	apiutil.AuthHeader
 }
 
-func (input *StandardQueryFields) Parameters(opName string) (
-	meta types.Context, from time.Time, to time.Time, nodes *Hosts, query PNode, hErr huma.StatusError,
+func (input *StandardQueryFields) Parameters(opName, defaultFields string) (
+	meta types.Context,
+	from time.Time, to time.Time,
+	nodes *Hosts,
+	query PNode,
+	fields *apiutil.FieldMap,
+	hErr huma.StatusError,
 ) {
 	if hErr = apiutil.CheckAuth(opName, GetAuthenticator, input.Auth); hErr != nil {
 		return
@@ -64,6 +69,7 @@ func (input *StandardQueryFields) Parameters(opName string) (
 	if hErr != nil {
 		return
 	}
+	fields = apiutil.Fields(input.Fields, defaultFields)
 	// TODO: Can in principle take canonical field list as input and vet the field list against
 	// that, though the benefits are probably only slight.
 	//

@@ -58,7 +58,7 @@ import (
 	"sonalyze/daemon/api1/clusters"
 	"sonalyze/daemon/api1/common"
 	"sonalyze/daemon/api1/insert"
-	"sonalyze/daemon/api1/jobs"
+	//"sonalyze/daemon/api1/jobs"
 )
 
 func SetupAPI(
@@ -73,7 +73,7 @@ func SetupAPI(
 
 	cards.AddCard(grp)
 	clusters.AddCluster(grp)
-	jobs.AddJobs(grp)
+	//jobs.AddJobs(grp)
 
 	if insertAPI {
 		insert.AddInsertSysinfoData(grp)

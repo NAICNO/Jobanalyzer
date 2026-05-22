@@ -8,7 +8,6 @@ import (
 
 	"sonalyze/cmd/cards"
 	"sonalyze/daemon/api1/common"
-	"sonalyze/daemon/apiutil"
 	"sonalyze/data/card"
 )
 
@@ -55,7 +54,7 @@ func handleCard(
 	ctx context.Context,
 	input *common.StandardQueryFields,
 ) (*CardResponse, error) {
-	meta, from, to, nodes, query, hErr := input.Parameters(cardCommandName)
+	meta, from, to, nodes, query, flds, hErr := input.Parameters(cardCommandName, responseDefaults)
 	if hErr != nil {
 		return nil, hErr
 	}
@@ -76,7 +75,6 @@ func handleCard(
 			cardCommandName+": Failed to query card data", err)
 	}
 
-	flds := apiutil.Fields(input.Fields, responseDefaults)
 	cards := make([]Card_Card, 0, len(records))
 	for _, r := range records {
 		cards = append(cards, respond(flds, r))
