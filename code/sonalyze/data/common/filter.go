@@ -23,19 +23,10 @@ type QueryFilter struct {
 	FromDate time.Time
 	HaveTo   bool // ToDate was user input, not default; see below
 	ToDate   time.Time
-	Host     []string
+	Host     *Hosts // may be nil
 }
 
 func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
-	var hostFilter *Hosts
-	if len(filter.Host) > 0 {
-		var err error
-		hostFilter, err = NewHosts(true, filter.Host)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// This is an idiom.  The from/to dates may be defaulted and are in any case used to find
 	// records in a directory database by ingestion time.  If the from/to dates are given
 	// explicitly, then those dates are also used to filter data within that window (since data
@@ -53,21 +44,25 @@ func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
 		scanTo = filter.ToDate.Unix()
 	}
 	var globber *hostglob.HostGlobber
-	if hostFilter != nil {
-		globber = hostFilter.HostnameGlobber()
+	if filter.Host == nil {
+		globber = filter.Host.HostnameGlobber()
+	}
+	hostFilter := filter.Host
+	if hostFilter == nil {
+		hostFilter = EmptyHosts()
 	}
 	return &CompiledFilter{
-		hostFilter,
 		scanFrom,
 		scanTo,
+		hostFilter,
 		globber,
 	}, nil
 }
 
 type CompiledFilter struct {
-	hostFilter       *Hosts
 	scanFrom, scanTo int64
-	globber          *hostglob.HostGlobber
+	hostFilter       *Hosts                // never nil
+	globber          *hostglob.HostGlobber // never nil
 }
 
 func (c *CompiledFilter) HostFilter() *Hosts {

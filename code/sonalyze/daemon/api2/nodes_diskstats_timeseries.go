@@ -92,9 +92,13 @@ func handleNodesDiskstatsTimeseries(
 		return nil, huma.Error500InternalServerError(
 			nodesDiskstatsTimeseriesName+": Failed to open disk sample store", err)
 	}
-	var hostList []string
+	var hostList *Hosts
 	if input.Nodename != "" {
-		hostList = []string{input.Nodename}
+		hostList, err = NewHosts(true, []string{input.Nodename})
+		if err != nil {
+			return nil, huma.Error500InternalServerError(
+				nodesDiskstatsTimeseriesName+": Bad node in query", err)
+		}
 	}
 	samples, err := dsdp.Query(
 		common.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: hostList},

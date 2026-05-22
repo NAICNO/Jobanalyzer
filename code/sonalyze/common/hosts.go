@@ -11,15 +11,18 @@ import (
 // or file names (based on a set of patterns), depending on need.
 type Hosts struct {
 	prefix   bool
-	patterns []string
-	globber  *hostglob.HostGlobber
+	patterns []string              // never nil
+	globber  *hostglob.HostGlobber // never nil
 }
 
 // Create a new Hosts from the list of patterns.  For pattern syntax, see the HostGlobber
 // documentation.
 func NewHosts(prefix bool, patterns []string) (*Hosts, error) {
-	// This performs the necessary syntax checking.  In most cases, we're going to want this globber
-	// anyway so it's not a disaster to construct it always.
+	if patterns == nil {
+		patterns = make([]string, 0)
+	}
+	// NewGlobber performs the necessary syntax checking.  In most cases, we're going to want this
+	// globber anyway so it's not a disaster to construct it always.
 	globber, err := hostglob.NewGlobber(prefix, patterns)
 	if err != nil {
 		return nil, err
@@ -29,6 +32,11 @@ func NewHosts(prefix bool, patterns []string) (*Hosts, error) {
 		patterns: slices.Clone(patterns),
 		globber:  globber,
 	}, nil
+}
+
+func EmptyHosts() *Hosts {
+	hosts, _ := NewHosts(false, nil)
+	return hosts
 }
 
 func (h *Hosts) String() string {

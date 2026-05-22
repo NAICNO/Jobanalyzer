@@ -181,7 +181,7 @@ type QueryArgs struct {
 // hosts that have data in the time range.
 
 func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
-	if len(qa.Host) == 0 {
+	if qa.Host == nil {
 		hosts, err := cdp.AvailableHosts(qa.FromDate, qa.ToDate)
 		if err != nil {
 			return nil, err
@@ -189,7 +189,7 @@ func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
 		qa.Host = umaps.Keys(hosts)
 	}
 
-	if !cdp.valid || len(qa.Host) == 0 {
+	if !cdp.valid || qa.Host == nil {
 		return make([]*NodeConfig, 0), nil
 	}
 
