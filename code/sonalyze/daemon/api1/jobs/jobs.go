@@ -36,7 +36,7 @@ DEFAULTS Job,User,Duration,Hosts,CpuTime,ResidentMemAvgGB,GpuTime,GpuMemAvgGB,Cm
 
 ESNOPSER*/
 
-const jobsCommandName = "/cluster/{cluster}/jobs"
+const jobsCommandName = "/jobs/{cluster}"
 
 type JobsResponse struct {
 	Body []Jobs_Job

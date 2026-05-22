@@ -31,7 +31,7 @@ DEFAULTS Time,Node,Manufacturer,Model,Memory
 
 ESNOPSER*/
 
-const cardCommandName = "/cluster/{cluster}/card"
+const cardCommandName = "/cards/{cluster}"
 
 type CardResponse struct {
 	// List of card data.  (Time,UUID) pairs are unique.

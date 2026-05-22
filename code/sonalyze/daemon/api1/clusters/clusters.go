@@ -29,7 +29,7 @@ DEFAULTS Name,Description
 
 ESNOPSER*/
 
-const clusterCommandName = "/cluster"
+const clusterCommandName = "/clusters"
 
 type ClusterResponse struct {
 	Body []Cluster
