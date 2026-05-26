@@ -17,7 +17,7 @@ import (
 
 	"go-utils/gpuset"
 	"go-utils/hostglob"
-	"go-utils/maps"
+	umaps "go-utils/maps"
 	uslices "go-utils/slices"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
@@ -85,11 +85,12 @@ func MergeByHostAndJob(streams InputStreamSet) MergedJobs {
 				merged = append(merged, MergedJob{
 					Samples:  slices.Clone(*v),
 					NumTasks: 1,
+					Hosts:    make(map[Ustr]bool),
 					Tasks:    []SampleStream{SampleStream{}},
 				})
 			}
 		}
-		commands := maps.Keys(cmdsAndStreams.commands)
+		commands := umaps.Keys(cmdsAndStreams.commands)
 		UstrSortAscending(commands)
 		username := mergedUserName(cmdsAndStreams.streams)
 		merged = append(merged, mergeStreams(
@@ -112,7 +113,7 @@ func mergedUserName(streams indirectStreams) Ustr {
 	for _, s := range streams {
 		nameset[(*s)[0].User] = true
 	}
-	names := maps.Keys(nameset)
+	names := umaps.Keys(nameset)
 	UstrSortAscending(names)
 	return UstrJoin(names, StringToUstr(","))
 }
@@ -183,6 +184,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timeboun
 		newStreams = append(newStreams, MergedJob{
 			Samples:  slices.Clone(*z),
 			NumTasks: 1,
+			Hosts:    map[Ustr]bool{(*z)[0].Hostname: true},
 			Tasks:    []SampleStream{*z},
 		})
 	}
@@ -190,7 +192,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timeboun
 	// Iterate across the non-zero jobs and update newBounds with merged bounds and newStreams with
 	// merged streams.
 	for jobId, jobData := range collections {
-		names := maps.MapKeys(jobData.hosts, Ustr.String)
+		names := umaps.MapKeys(jobData.hosts, Ustr.String)
 		hostname := StringToUstr(strings.Join(hostglob.CompressHostnames(names), ","))
 		if _, found := newBounds[hostname]; !found {
 			if len(jobData.hosts) == 0 {
@@ -205,7 +207,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timeboun
 			}
 			newBounds[hostname] = Timebound{Earliest: earliest, Latest: latest}
 		}
-		commands := maps.Keys(jobData.commands)
+		commands := umaps.Keys(jobData.commands)
 		UstrSortAscending(commands)
 		user := mergedUserName(jobData.streams)
 		newStreams = append(newStreams, mergeStreams(
@@ -598,12 +600,18 @@ func mergeStreams(
 		selected = selected[0:0]
 	}
 
+	tasks := uslices.Map(streams, func(s *SampleStream) SampleStream {
+		return *s
+	})
+	hosts := make(map[Ustr]bool)
+	for _, s := range streams {
+		hosts[(*s)[0].Hostname] = true
+	}
 	return MergedJob{
 		Samples:  records,
 		NumTasks: len(streams),
-		Tasks: uslices.Map(streams, func(s *SampleStream) SampleStream {
-			return *s
-		}),
+		Hosts:    hosts,
+		Tasks:    tasks,
 	}
 }
 
@@ -744,6 +752,7 @@ func foldSamples(samples SampleStream, truncTime func(int64) int64) MergedJob {
 	return MergedJob{
 		Samples:  result,
 		NumTasks: 1,
+		Hosts:    map[Ustr]bool{samples[0].Hostname: true},
 		Tasks:    []SampleStream{samples},
 	}
 }

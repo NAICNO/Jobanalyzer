@@ -22,10 +22,12 @@ type SampleStream []Sample
 type MergedJobs []MergedJob
 
 // A job merged from individual streams.  The constraints on the samples in terms of uniqueness and
-// so on depends on how they were merged and are not implied by the type.
+// so on depends on how they were merged and are not implied by the type.  The host name in a merged
+// stream is a compressed host list.
 type MergedJob struct {
 	Samples  SampleStream   // Synthesized/merged samples
 	NumTasks int            // The number of tasks that went into the merge
+	Hosts    map[Ustr]bool  // The individual host names
 	Tasks    []SampleStream // The individual input streams
 }
 
