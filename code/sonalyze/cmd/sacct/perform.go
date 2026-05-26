@@ -23,6 +23,10 @@ func (sc *SacctCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr 
 		return err
 	}
 
+	hosts, err := NewHosts(true, sc.Host)
+	if err != nil {
+		return err
+	}
 	jobs, err := sdp.Query(
 		slurmjob.QueryFilter{
 			QueryFilter: common.QueryFilter{
@@ -30,7 +34,7 @@ func (sc *SacctCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr 
 				FromDate: sc.FromDate,
 				HaveTo:   sc.HaveTo,
 				ToDate:   sc.ToDate,
-				Host:     sc.Host,
+				Host:     hosts,
 			},
 			State:      sc.State,
 			User:       sc.User,

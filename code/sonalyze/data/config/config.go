@@ -96,6 +96,8 @@ func MaybeOpenConfigDataProvider(meta types.Context) *ConfigDataProvider {
 // in, but will never revert to older data.  New data that replace a prior non-nil result may or may
 // not be honored in a timely manner.  A static cluster configuration, should it exist, will be
 // consulted only if the information can't be found in the database.
+//
+// The host name must be for a single host, no ranges.
 func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSummary {
 	if !cdp.valid {
 		return nil
@@ -107,7 +109,7 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 			FromDate: time.Unix(t-(60*60*24*14), 0).UTC(),
 			HaveTo:   true,
 			ToDate:   time.Unix(t, 0).UTC(),
-			Host:     []string{host.String()}, // groan!!!
+			Host:     SingleHostInfallible(host.String()),
 		},
 	})
 	if err == nil {
@@ -126,9 +128,9 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 
 // This is a primitive API that provides a set of all nodes that are present in the data in the
 // given time interval, or in the backing config file if there is one and there are no nodes in the
-// data base.
+// data base.  The set may be large.  All elements in the set are single host names (no ranges).
 //
-// Noe this cannot be taken from computed config data because need this list to compute the config
+// Note this cannot be taken from computed config data because need this list to compute the config
 // data for an open set of hosts.
 //
 // This needs a cache and/or lazy computation, too.  The right way to think about it, I think, is to
@@ -141,7 +143,6 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 // same effect.  And it's not necessary for the return value to be a map, both current consumers
 // really want a list of names, neither uses the map as a map.  But maps.Equal runs in O(n) time, so
 // maps are no worse than slices locally.
-
 func (cdb *ConfigDataProvider) AvailableHosts(fromDate, toDate time.Time) (map[string]bool, error) {
 	recordBlobs, _, err := cdb.nodes.QueryRaw(
 		fromDate,
@@ -179,17 +180,19 @@ type QueryArgs struct {
 //
 // As for all other query operators, if the host set is empty (the common case) then we find all
 // hosts that have data in the time range.
-
+//
+// Note that here the host set, if present, can have ranges.
 func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
-	if qa.Host == nil {
+	all := qa.Host == nil || qa.Host.IsEmpty()
+	if all {
 		hosts, err := cdp.AvailableHosts(qa.FromDate, qa.ToDate)
 		if err != nil {
 			return nil, err
 		}
-		qa.Host = umaps.Keys(hosts)
+		qa.Host = ExpandedHostsInfallible(umaps.Keys(hosts))
 	}
 
-	if !cdp.valid || qa.Host == nil {
+	if !cdp.valid {
 		return make([]*NodeConfig, 0), nil
 	}
 
@@ -202,7 +205,7 @@ func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
 
 	// Fallback code to old-style static node config, this will likely disappear.
 	if len(records) == 0 && cdp.meta.HaveConfig() {
-		for _, host := range qa.Host {
+		for host := range qa.Host.ExpandedPatterns() {
 			if probe := cdp.meta.Config().LookupHost(host); probe != nil {
 				records = append(records, &NodeConfig{
 					NodeSummary: *probe,
@@ -239,7 +242,7 @@ type RawConfigData struct {
 	Cards []*repr.SysinfoCardData
 }
 
-// Raw query against the database.  Use with care.
+// Raw query against the database.  Use with care.  The host set, if present, can have ranges.
 
 func (cdp *ConfigDataProvider) RawQuery(qa QueryFilter) ([]*RawConfigData, error) {
 	nodes, err := cdp.nodes.Query(
@@ -460,7 +463,7 @@ func (cdp *ConfigDataProvider) populateCache(qa QueryArgs) error {
 
 	now := time.Now().UTC().Unix()
 	for _, c := range chunks {
-		hn := c.workItem.Host[0]
+		hn := c.workItem.Host.SingleHostInfallible()
 		perHost := perCluster.hostTable[hn]
 		if perHost == nil {
 			panic("Inconsistent table: no entry for host " + hn)
@@ -492,7 +495,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 	toTime = qa.ToDate.Unix()
 	fromTime = qa.FromDate.Unix()
 	worklist := make([]QueryArgs, 0)
-	for _, hn := range qa.Host {
+	for hn := range qa.Host.ExpandedPatterns() {
 		perHost := perCluster.hostTable[hn]
 		var newRecord bool
 		if perHost == nil {
@@ -503,6 +506,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 			newRecord = true
 		}
 
+		host := SingleHostInfallible(hn)
 		if fromTime < perHost.oldestScannedTime {
 			worklist = append(worklist, QueryArgs{
 				QueryFilter: common.QueryFilter{
@@ -510,7 +514,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 					FromDate: time.Unix(fromTime-twoWeeks, 0).UTC(),
 					HaveTo:   true,
 					ToDate:   time.Unix(perHost.oldestScannedTime, 0).UTC(),
-					Host:     []string{hn},
+					Host:     host,
 				},
 			})
 		}
@@ -521,7 +525,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 					FromDate: time.Unix(perHost.youngestRecord, 0).UTC(),
 					HaveTo:   true,
 					ToDate:   nowt,
-					Host:     []string{hn},
+					Host:     host,
 				},
 			})
 		}
@@ -537,7 +541,7 @@ func (cdp *ConfigDataProvider) obtainAllFromCache(qa QueryArgs) (result []*NodeC
 	perCluster.hostTableLock.Lock()
 	defer perCluster.hostTableLock.Unlock()
 
-	for _, hn := range qa.Host {
+	for hn := range qa.Host.ExpandedPatterns() {
 		perHost := perCluster.hostTable[hn]
 		if perHost == nil {
 			// Should we panic?

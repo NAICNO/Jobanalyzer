@@ -1,6 +1,7 @@
 package common
 
 import (
+	"iter"
 	"slices"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 // or file names (based on a set of patterns), depending on need.
 type Hosts struct {
 	prefix   bool
+	expanded bool                  // true iff patterns has only plain names, no ranges
 	patterns []string              // never nil
 	globber  *hostglob.HostGlobber // never nil
 }
@@ -18,6 +20,10 @@ type Hosts struct {
 // Create a new Hosts from the list of patterns.  For pattern syntax, see the HostGlobber
 // documentation.
 func NewHosts(prefix bool, patterns []string) (*Hosts, error) {
+	return newHosts(prefix, patterns, false)
+}
+
+func newHosts(prefix bool, patterns []string, knownSingle bool) (*Hosts, error) {
 	if patterns == nil {
 		patterns = make([]string, 0)
 	}
@@ -27,16 +33,48 @@ func NewHosts(prefix bool, patterns []string) (*Hosts, error) {
 	if err != nil {
 		return nil, err
 	}
+	expanded := true
+	if !knownSingle {
+		for _, p := range patterns {
+			if !IsPlainName(p) {
+				expanded = false
+				break
+			}
+		}
+	}
 	return &Hosts{
 		prefix:   prefix,
+		expanded: expanded,
 		patterns: slices.Clone(patterns),
 		globber:  globber,
 	}, nil
 }
 
+func IsPlainName(n string) bool {
+	return !strings.ContainsAny(n, "[]*")
+}
+
 func EmptyHosts() *Hosts {
-	hosts, _ := NewHosts(false, nil)
+	hosts, _ := newHosts(false, nil, true)
 	return hosts
+}
+
+func SingleHostInfallible(hn string) *Hosts {
+	if !IsPlainName(hn) {
+		panic("BUG: Not a single host name: " + hn)
+	}
+	hs, _ := newHosts(true, []string{hn}, true)
+	return hs
+}
+
+func ExpandedHostsInfallible(hns []string) *Hosts {
+	for _, hn := range hns {
+		if !IsPlainName(hn) {
+			panic("BUG: Not a single host name: " + hn)
+		}
+	}
+	hs, _ := newHosts(true, hns, true)
+	return hs
 }
 
 func (h *Hosts) String() string {
@@ -50,6 +88,43 @@ func (h *Hosts) String() string {
 // Return true if the set of patterns is empty.
 func (h *Hosts) IsEmpty() bool {
 	return h.globber.IsEmpty()
+}
+
+func (h *Hosts) ExpandedPatterns() iter.Seq[string] {
+	if h.expanded {
+		return slices.Values(h.patterns)
+	}
+	ps := h.patterns
+	return func(yield func(string) bool) {
+		for _, p := range ps {
+			if IsPlainName(p) {
+				if !yield(p) {
+					return
+				}
+			} else {
+				// Oh boy.  This is pretty creaky - a mix of lazy and eager expansion, no caching,
+				// etc.  There are several uses of ExpandPattern, all could probably be smarter.
+				xs, err := hostglob.ExpandPattern(p)
+				if err != nil {
+					// The patterns comes from a compiled globber, so they are well-formed, but
+					// ExpandPattern can't do "*", so expansion might still fail.
+					continue
+				}
+				for _, hn := range xs {
+					if !yield(hn) {
+						return
+					}
+				}
+			}
+		}
+	}
+}
+
+func (h *Hosts) SingleHostInfallible() string {
+	if !h.expanded || len(h.patterns) != 1 {
+		panic("BUG: Not a single host name in hosts bag")
+	}
+	return h.patterns[0]
 }
 
 func (h *Hosts) Patterns() []string {

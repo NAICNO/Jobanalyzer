@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	. "sonalyze/cmd"
+	. "sonalyze/common"
 	"sonalyze/data/card"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
@@ -97,6 +98,10 @@ func (nc *CardCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr i
 		return err
 	}
 
+	hosts, err := NewHosts(true, nc.HostArgs.Host)
+	if err != nil {
+		return err
+	}
 	records, err :=
 		cdp.Query(
 			card.QueryFilter{
@@ -104,7 +109,7 @@ func (nc *CardCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr i
 				FromDate: nc.FromDate,
 				HaveTo:   nc.HaveTo,
 				ToDate:   nc.ToDate,
-				Host:     nc.HostArgs.Host,
+				Host:     hosts,
 			},
 		)
 	if err != nil {

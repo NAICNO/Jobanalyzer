@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	. "sonalyze/cmd"
+	. "sonalyze/common"
 	"sonalyze/data/nodesample"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
@@ -97,13 +98,17 @@ func (nc *NodeProfCommand) Perform(meta types.Context, _ io.Reader, stdout, stde
 		return err
 	}
 
+	hosts, err := NewHosts(true, nc.Host)
+	if err != nil {
+		return err
+	}
 	records, err := nsd.Query(
 		nodesample.QueryFilter{
 			HaveFrom: nc.HaveFrom,
 			FromDate: nc.FromDate,
 			HaveTo:   nc.HaveTo,
 			ToDate:   nc.ToDate,
-			Host:     nc.HostArgs.Host,
+			Host:     hosts,
 		},
 	)
 	if err != nil {

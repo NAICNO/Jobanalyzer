@@ -44,7 +44,7 @@ func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
 		scanTo = filter.ToDate.Unix()
 	}
 	var globber *hostglob.HostGlobber
-	if filter.Host == nil {
+	if filter.Host != nil {
 		globber = filter.Host.HostnameGlobber()
 	}
 	hostFilter := filter.Host

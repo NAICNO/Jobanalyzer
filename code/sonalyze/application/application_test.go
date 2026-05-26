@@ -63,11 +63,14 @@ func testSampleAnalysisCommand(t *testing.T, command cmd.SampleAnalysisCommand, 
 }
 
 func checkTestOutput(t *testing.T, tag, stdout, fields string, expect []string) {
+	t.Log(stdout)
 	lines := strings.Split(stdout, "\n")
 	if lines[0] != fields {
 		t.Fatalf("%s Header: got %s wanted %s", tag, lines[0], fields)
 	}
 	if len(lines) != len(expect)+1 {
+		t.Logf("%q", lines)
+		t.Logf("%q", expect)
 		t.Fatalf("%s Length: got %d wanted %d", tag, len(lines), len(expect)+1)
 	}
 	for i, e := range expect {

@@ -144,12 +144,14 @@ func NewClusterConfig(
 	}
 }
 
-// Finds the node configuration closest in time to the time stamp.  Returns nil if not found.
+// Finds the node configuration closest in time to the time stamp.  Returns nil if not found.  The
+// host name must be a single host, no ranges.
 func (cc *ClusterConfig) LookupHostByTime(hostname string, timestamp string) *NodeConfigRecord {
 	panic("No support for the time dimension of config yet")
 }
 
-// Returns the most recent node configuration for the node.  Returns nil if not found.
+// Returns the most recent node configuration for the node.  Returns nil if not found.  The host
+// name must be a single host, no ranges.
 func (cc *ClusterConfig) LookupHost(hostname string) *NodeConfigRecord {
 	if probe, found := cc.nodes[hostname]; found {
 		return probe
