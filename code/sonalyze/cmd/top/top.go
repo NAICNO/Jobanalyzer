@@ -68,16 +68,11 @@ func (tc *TopCommand) Perform(meta types.Context, stdin io.Reader, stdout, stder
 	cdp, err := cpusample.OpenCpuSampleDataProvider(meta)
 
 	// TODO: Use standard query interface with standard QueryFilter here.
-
-	hostGlobber, err := NewHosts(true, tc.Host)
-	if err != nil {
-		return err
-	}
 	streams, _, read, dropped, err :=
 		cdp.Query(
 			tc.FromDate,
 			tc.ToDate,
-			hostGlobber,
+			tc.Host,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)

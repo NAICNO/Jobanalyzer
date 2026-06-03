@@ -10,7 +10,6 @@ import (
 	"slices"
 
 	. "sonalyze/cmd"
-	. "sonalyze/common"
 	"sonalyze/data/common"
 	"sonalyze/data/config"
 	"sonalyze/db/types"
@@ -117,17 +116,13 @@ func (nc *NodeCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr i
 	if err != nil {
 		return err
 	}
-	hosts, err := NewHosts(true, nc.Host)
-	if err != nil {
-		return err
-	}
 	records, err := cdp.Query(config.QueryArgs{
 		QueryFilter: common.QueryFilter{
 			HaveFrom: nc.HaveFrom,
 			FromDate: nc.FromDate,
 			HaveTo:   nc.HaveTo,
 			ToDate:   nc.ToDate,
-			Host:     hosts,
+			Host:     nc.Host,
 		},
 		Newest: nc.Newest,
 		Query: func(records []*config.NodeConfig) ([]*config.NodeConfig, error) {

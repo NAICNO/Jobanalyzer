@@ -104,15 +104,11 @@ func (gc *GpuCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io
 	}
 
 	// TODO: Use standard query interface
-	hostGlobber, err := NewHosts(true, gc.Host)
-	if err != nil {
-		return err
-	}
 	perHostStreams, _, read, dropped, err :=
 		gsd.Query(
 			gc.FromDate,
 			gc.ToDate,
-			hostGlobber,
+			gc.Host,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)
