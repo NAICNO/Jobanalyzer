@@ -183,8 +183,7 @@ type QueryArgs struct {
 //
 // Note that here the host set, if present, can have ranges.
 func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
-	all := qa.Host == nil || qa.Host.IsEmpty()
-	if all {
+	if AllHosts(qa.Host) {
 		hosts, err := cdp.AvailableHosts(qa.FromDate, qa.ToDate)
 		if err != nil {
 			return nil, err

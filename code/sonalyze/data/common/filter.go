@@ -72,7 +72,7 @@ func (c *CompiledFilter) HostFilter() *Hosts {
 func ApplyFilter[T repr.Filterable](filter *CompiledFilter, records []T) []T {
 	return slices.DeleteFunc(records, func(s T) bool {
 		timeVal, nodeStr := s.TimeAndNode()
-		if filter.globber != nil && !filter.globber.IsEmpty() && !filter.globber.Match(nodeStr) {
+		if !filter.globber.IsEmpty() && !filter.globber.Match(nodeStr) {
 			return true
 		}
 		var parsed time.Time

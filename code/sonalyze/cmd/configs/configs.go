@@ -121,8 +121,6 @@ func (cc *ConfigCommand) Validate() error {
 // Analysis
 
 func (cc *ConfigCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.Writer) error {
-	includeHosts := cc.HostArgs.Host.HostnameGlobber()
-
 	cdp, err := config.OpenConfigDataProvider(meta)
 	if err != nil {
 		return err
@@ -134,6 +132,7 @@ func (cc *ConfigCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.W
 				FromDate: cc.FromDate,
 				HaveTo:   cc.HaveTo,
 				ToDate:   cc.ToDate,
+				Host:     cc.HostArgs.Host,
 			},
 			Newest: true,
 		},
@@ -144,13 +143,6 @@ func (cc *ConfigCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.W
 	records := make([]*repr.NodeSummary, 0, len(ns))
 	for _, n := range ns {
 		records = append(records, &n.NodeSummary)
-	}
-	// TODO: Why would this not be included in the query?  It would make the most sense.  Probably
-	// old code.
-	if !includeHosts.IsEmpty() {
-		records = slices.DeleteFunc(records, func(r *repr.NodeSummary) bool {
-			return !includeHosts.Match(r.Hostname)
-		})
 	}
 	records, err = ApplyQuery(cc.ParsedQuery, configFormatters, configPredicates, records)
 	if err != nil {

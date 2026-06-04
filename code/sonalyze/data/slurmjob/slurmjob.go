@@ -67,17 +67,13 @@ func (sdp *SlurmjobDataProvider) Query(
 			jobs[j] = true
 		}
 	}
-	node := filter.Host
-	if node == nil {
-		node = EmptyHosts()
-	}
 	recordBlobs, dropped, err := sdp.theLog.ReadSacctData(
 		types.DataProviderFilter{
 			FromDate: filter.FromDate,
 			ToDate:   filter.ToDate,
 			Users:    users,
 			Jobs:     jobs,
-			Node:     node,
+			Node:     filter.Host,
 		},
 	)
 	if err != nil {
@@ -222,7 +218,7 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter) error {
 
 	toDelete := make(map[uint32]bool, 0)
 	var prior int
-	if filter.Host != nil {
+	if !AllHosts(filter.Host) {
 		prior = len(toDelete)
 		hosts := filter.Host
 		includeHosts := hosts.HostnameGlobber()

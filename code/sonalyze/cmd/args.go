@@ -561,7 +561,7 @@ func (args *SourceArgs) InterpretFromToWithBounds(bounds Timebounds) (int64, int
 
 type HostArgs struct {
 	HostNames []string
-	Host *Hosts
+	Host      *Hosts
 }
 
 func (h *HostArgs) Add(fs *CLI) {

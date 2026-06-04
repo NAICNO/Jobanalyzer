@@ -690,7 +690,7 @@ func (pc *PersistentCluster) findFilesLocked(
 
 		// Retain only files whose names match the filter, if present
 
-		if hosts != nil && !hosts.IsEmpty() {
+		if !AllHosts(hosts) {
 			matcher := hosts.FilenameGlobber(globs)
 			for _, c := range fa.getFiles(d) {
 				if matcher.Match(c.Basename) {

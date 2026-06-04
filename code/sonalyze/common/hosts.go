@@ -10,6 +10,9 @@ import (
 
 // Hosts is a wrapper for a hostglob.HostGlobber that can be used to glob either straight host names
 // or file names (based on a set of patterns), depending on need.
+//
+// An "empty" set always means "all hosts", as does a nil *Hosts; use AllHosts() to test for this.
+// There is no way of expressing "no hosts".
 type Hosts struct {
 	prefix   bool
 	expanded bool                  // true iff patterns has only plain names, no ranges
@@ -75,6 +78,10 @@ func ExpandedHostsInfallible(hns []string) *Hosts {
 	}
 	hs, _ := newHosts(true, hns, true)
 	return hs
+}
+
+func AllHosts(h *Hosts) bool {
+	return h == nil || h.IsEmpty()
 }
 
 func (h *Hosts) String() string {
