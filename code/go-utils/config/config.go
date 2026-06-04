@@ -146,7 +146,7 @@ func NewClusterConfig(
 
 // Finds the node configuration closest in time to the time stamp.  Returns nil if not found.  The
 // host name must be a single host, no ranges.
-func (cc *ClusterConfig) LookupHostByTime(hostname string, timestamp string) *NodeConfigRecord {
+func (cc *ClusterConfig) LookupSingleHostByTime(hostname string, timestamp string) *NodeConfigRecord {
 	panic("No support for the time dimension of config yet")
 }
 

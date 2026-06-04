@@ -357,7 +357,7 @@ func summarizeSingleJobFromSonarData(
 // duplicated timestamps, return a JobAggregate for the job, with values that are computed from all
 // log entries.
 func aggregateSingleJobFromSonarData(
-	cfg *config.ConfigDataProvider,
+	cdp *config.ConfigDataProvider,
 	host Ustr,
 	job []sample.Sample,
 	fb flagBag,
@@ -417,7 +417,7 @@ func aggregateSingleJobFromSonarData(
 	}
 	usesGpu := !gpus.IsEmpty()
 
-	if sys := cfg.LookupHostByTime(host, job[0].Timestamp); sys != nil {
+	if sys := cdp.LookupMergedHostByTime(host, job[0].Timestamp); sys != nil {
 		// Quantities can be zero in surprising ways, so always guard divisions
 		if cores := float64(sys.CpuCores); cores > 0 {
 			rCpuPctAvg = cpuPctAvg / cores

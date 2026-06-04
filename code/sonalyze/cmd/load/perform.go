@@ -53,11 +53,11 @@ func (lc *LoadCommand) Perform(
 	}
 
 	fromIncl, toIncl := lc.InterpretFromToWithBounds(bounds)
-	cfg := config.MaybeOpenConfigDataProvider(meta)
+	cdp := config.MaybeOpenConfigDataProvider(meta)
 
 	if NeedsConfig(loadFormatters, lc.PrintFields) {
 		var err error
-		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
+		streams, err = EnsureConfigForInputStreams(cdp, streams, "relative format arguments")
 		if err != nil {
 			return err
 		}
@@ -97,7 +97,7 @@ func (lc *LoadCommand) Perform(
 	var mergedConf *repr.NodeSummary
 	if lc.Group {
 		for _, stream := range mergedStreams {
-			probe := cfg.LookupHostByTime(stream.Samples[0].Hostname, stream.Samples[0].Timestamp)
+			probe := cdp.LookupMergedHostByTime(stream.Samples[0].Hostname, stream.Samples[0].Timestamp)
 			if probe == nil {
 				continue
 			}
@@ -140,7 +140,7 @@ func (lc *LoadCommand) Perform(
 		ts := stream.Samples[0].Timestamp
 		conf := mergedConf
 		if conf == nil {
-			conf = cfg.LookupHostByTime(hn, ts)
+			conf = cdp.LookupMergedHostByTime(hn, ts)
 		}
 		rs := generateReport(stream.Samples, time.Now().Unix(), conf)
 		if queryNeg != nil {

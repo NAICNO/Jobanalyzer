@@ -98,7 +98,7 @@ func MaybeOpenConfigDataProvider(meta types.Context) *ConfigDataProvider {
 // consulted only if the information can't be found in the database.
 //
 // The host name must be for a single host, no ranges.
-func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSummary {
+func (cdp *ConfigDataProvider) LookupSingleHostByTime(host Ustr, t int64) *repr.NodeSummary {
 	if !cdp.valid {
 		return nil
 	}
@@ -124,6 +124,10 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 	}
 
 	return nil
+}
+
+func (cdp *ConfigDataProvider) LookupMergedHostByTime(host Ustr, t int64) *repr.NodeSummary {
+	panic("NYI")
 }
 
 // This is a primitive API that provides a set of all nodes that are present in the data in the
