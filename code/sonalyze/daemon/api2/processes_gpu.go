@@ -69,7 +69,7 @@ func handleProcessesGpu(
 	if hErr != nil {
 		return nil, hErr
 	}
-	hostFilter, hErr := apiutil.NewHostFilter(processesGpuName, input.Nodename)
+	hostFilter, hErr := apiutil.NewHostFilter(processesGpuName, meta, input.Nodename, from, to)
 	if hErr != nil {
 		return nil, hErr
 	}
@@ -89,7 +89,7 @@ func handleProcessesGpu(
 		return nil, huma.Error500InternalServerError(
 			processesGpuName+": Failed to query sample data", err)
 	}
-	cardsByNode, hErr := getCardInfoByNodeAt(nodesInfoName, meta, to, hostFilter.Patterns())
+	cardsByNode, hErr := getCardInfoByNodeAt(nodesInfoName, meta, to, hostFilter)
 	if hErr != nil {
 		return nil, hErr
 	}

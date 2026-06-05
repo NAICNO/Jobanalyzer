@@ -64,7 +64,7 @@ func handleProcesses(
 	if hErr != nil {
 		return nil, hErr
 	}
-	hostFilter, hErr := apiutil.NewHostFilter(processesName, input.Nodename)
+	hostFilter, hErr := apiutil.NewHostFilter(processesName, meta, input.Nodename, from, to)
 	if hErr != nil {
 		return nil, hErr
 	}
@@ -84,7 +84,7 @@ func handleProcesses(
 		return nil, huma.Error500InternalServerError(
 			processesName+": Failed to query sample data", err)
 	}
-	cardsByNode, hErr := getCardInfoByNodeAt(nodesInfoName, meta, to, hostFilter.Patterns())
+	cardsByNode, hErr := getCardInfoByNodeAt(nodesInfoName, meta, to, hostFilter)
 	if hErr != nil {
 		return nil, hErr
 	}

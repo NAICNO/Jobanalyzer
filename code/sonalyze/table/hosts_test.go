@@ -128,9 +128,9 @@ func TestSetInequality(t *testing.T) {
 func TestHostnames(t *testing.T) {
 	// Basic test
 	h := NewHostnames()
-	h.Add("a.b.c")
-	h.Add("x.b.c")
-	h.Add("y.c")
+	h.AddSingle("a.b.c")
+	h.AddSingle("x.b.c")
+	h.AddSingle("y.c")
 	n := h.FormatBrief()
 	if n != "a,x,y" {
 		t.Fatal(n)
@@ -147,17 +147,17 @@ func TestHostnames(t *testing.T) {
 
 	// Add something that was there, data should not change
 	x := h.serial
-	h.Add("a.b.c")
+	h.AddSingle("a.b.c")
 	n = h.FormatFull()
 	if n != "a.b.c,x.b.c,y.c" {
 		t.Fatal(n)
 	}
-	h.Add("a.b")
+	h.AddSingle("a.b")
 	n = h.FormatFull()
 	if n != "a.b.c,x.b.c,y.c" {
 		t.Fatal(n)
 	}
-	h.Add("a")
+	h.AddSingle("a")
 	n = h.FormatFull()
 	if n != "a.b.c,x.b.c,y.c" {
 		t.Fatal(n)
@@ -168,7 +168,7 @@ func TestHostnames(t *testing.T) {
 
 	// Add a longer name, it replaces the existing entry
 	x = h.serial
-	h.Add("a.b.c.d")
+	h.AddSingle("a.b.c.d")
 	if h.serial == x {
 		t.Fatal("Unchanged")
 	}
@@ -182,7 +182,7 @@ func TestHostnames(t *testing.T) {
 
 	// Add a new name, it creates a new entry
 	x = h.serial
-	h.Add("a.b.c.e")
+	h.AddSingle("a.b.c.e")
 	if h.serial == x {
 		t.Fatal("Unchanged")
 	}
@@ -200,10 +200,10 @@ func TestHostnames(t *testing.T) {
 
 	{
 		lhs := NewHostnames()
-		lhs.Add("a.b.c")
-		lhs.Add("a.b.d")
+		lhs.AddSingle("a.b.c")
+		lhs.AddSingle("a.b.d")
 		rhs := NewHostnames()
-		rhs.Add("a.b")
+		rhs.AddSingle("a.b")
 		if !lhs.Equal(rhs) {
 			t.Fatal("Equal")
 		}
@@ -220,10 +220,10 @@ func TestHostnames(t *testing.T) {
 
 	{
 		lhs := NewHostnames()
-		lhs.Add("a.b.c")
-		lhs.Add("a.b.d")
+		lhs.AddSingle("a.b.c")
+		lhs.AddSingle("a.b.d")
 		rhs := NewHostnames()
-		rhs.Add("a.b.c")
+		rhs.AddSingle("a.b.c")
 
 		if lhs.Equal(rhs) {
 			t.Fatal("Unequal")
@@ -239,9 +239,9 @@ func TestHostnames(t *testing.T) {
 
 func TestEnumerate(t *testing.T) {
 	h := NewHostnames()
-	h.Add("a.b.c")
-	h.Add("x.b.c")
-	h.Add("y.c")
+	h.AddSingle("a.b.c")
+	h.AddSingle("x.b.c")
+	h.AddSingle("y.c")
 	names := slices.Collect(h.FullNames)
 	slices.Sort(names)
 	if strings.Join(names, ",") != "a.b.c,x.b.c,y.c" {

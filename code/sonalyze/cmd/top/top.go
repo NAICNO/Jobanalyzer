@@ -28,6 +28,7 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/common"
 	"sonalyze/data/cpusample"
 	"sonalyze/db/types"
 	. "sonalyze/table"
@@ -60,24 +61,26 @@ func (tc *TopCommand) ReifyForRemote(x *ArgReifier) error {
 }
 
 func (tc *TopCommand) MaybeFormatHelp() *FormatHelp {
-	// FIXME, but currently no format options at all
+	// TODO, but currently no format options at all
 	return nil
 }
 
 func (tc *TopCommand) Perform(meta types.Context, stdin io.Reader, stdout, stderr io.Writer) error {
 	cdp, err := cpusample.OpenCpuSampleDataProvider(meta)
-
-	// TODO: Use standard query interface with standard QueryFilter here.
-
-	hostGlobber, err := NewHosts(true, tc.Host)
 	if err != nil {
 		return err
 	}
+	host, err := common.ResolveWildcard(meta, tc.Host, tc.FromDate, tc.ToDate)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Use standard query interface with standard QueryFilter here.
 	streams, _, read, dropped, err :=
 		cdp.Query(
 			tc.FromDate,
 			tc.ToDate,
-			hostGlobber,
+			host,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)

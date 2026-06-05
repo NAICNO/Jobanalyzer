@@ -9,6 +9,7 @@ import (
 
 	. "sonalyze/cmd"
 	. "sonalyze/common"
+	"sonalyze/data/common"
 	"sonalyze/data/gpusample"
 	"sonalyze/db/types"
 	. "sonalyze/table"
@@ -102,17 +103,17 @@ func (gc *GpuCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io
 	if err != nil {
 		return err
 	}
-
-	// TODO: Use standard query interface
-	hostGlobber, err := NewHosts(true, gc.Host)
+	host, err := common.ResolveWildcard(meta, gc.Host, gc.FromDate, gc.ToDate)
 	if err != nil {
 		return err
 	}
+
+	// TODO: Use standard query interface
 	perHostStreams, _, read, dropped, err :=
 		gsd.Query(
 			gc.FromDate,
 			gc.ToDate,
-			hostGlobber,
+			host,
 		)
 	if err != nil {
 		return fmt.Errorf("Failed to read log records: %v", err)

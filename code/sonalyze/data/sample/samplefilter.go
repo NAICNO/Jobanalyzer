@@ -338,16 +338,13 @@ func BuildSampleFilter(
 	meta types.Context,
 	filter QueryFilter,
 ) (
-	*Hosts,
+	Multihost,
 	*SampleFilter,
 	error,
 ) {
 	// Included host set, empty means "all"
 
-	includeHosts, err := NewHosts(true, filter.Host)
-	if err != nil {
-		return nil, nil, err
-	}
+	includeHosts := filter.Host
 
 	// Included job numbers, empty means "all"
 
@@ -391,7 +388,7 @@ func BuildSampleFilter(
 		} else if name := os.Getenv("USER"); name != "" {
 			includeUsers[StringToUstr(name)] = true
 		} else {
-			return nil, nil, errors.New("Not able to determine user, none given and $LOGNAME and $USER are empty")
+			return Multihost{}, nil, errors.New("Not able to determine user, none given and $LOGNAME and $USER are empty")
 		}
 	}
 
@@ -486,7 +483,7 @@ func BuildSampleFilter(
 		if len(includeUsers) > 0 {
 			Log.Infof("Including records with users %v", umaps.Keys(includeUsers))
 		}
-		if !includeHosts.IsEmpty() {
+		if !includeHosts.All {
 			Log.Infof("Including records with hosts matching %s", includeHosts)
 		}
 		if len(includeJobs) > 0 {

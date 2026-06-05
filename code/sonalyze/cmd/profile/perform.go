@@ -18,7 +18,7 @@ func (pc *ProfileCommand) Perform(
 	out io.Writer,
 	meta types.Context,
 	filter sample.QueryFilter,
-	hosts *Hosts,
+	hosts Multihost,
 	recordFilter *sample.SampleFilter,
 ) error {
 	sdp, err := sample.OpenSampleDataProvider(meta)
@@ -63,7 +63,7 @@ func (pc *ProfileCommand) Perform(
 		for _, v := range *vs {
 			hasRolledup = hasRolledup || v.Rolledup > 0
 		}
-		hostnames.Add(k.Host.String())
+		hostnames.AddSingle(k.Host.String())
 	}
 
 	var hostName = "unknown"

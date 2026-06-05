@@ -111,7 +111,7 @@ func TestFilenames(t *testing.T) {
 
 	from, _ := time.Parse(time.RFC3339, "2025-04-12T07:16:00+02:00")
 	to, _ := time.Parse(time.RFC3339, "2025-05-03T12:13:14+02:00")
-	globber, _ := NewHosts(true, []string{"n[1-2].cluster1"})
+	globber := MultihostFromNonWildcardPattern("n[1-2].cluster1")
 
 	fs, err := theDB.SampleFilenames(types.DataProviderFilter{
 		FromDate: from,
@@ -246,7 +246,7 @@ func TestData(t *testing.T) {
 	theDB := getPersistentDB(t, "cluster1.uio.no")
 	from, _ := time.Parse(time.RFC3339, "2025-04-12T07:16:00+02:00")
 	to, _ := time.Parse(time.RFC3339, "2025-05-03T12:13:14+02:00")
-	globber, _ := NewHosts(true, []string{"n[1-2].cluster1"})
+	globber := MultihostFromNonWildcardPattern("n[1-2].cluster1")
 
 	var softErrors int
 	var err error

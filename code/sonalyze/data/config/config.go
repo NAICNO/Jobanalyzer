@@ -90,13 +90,66 @@ func MaybeOpenConfigDataProvider(meta types.Context) *ConfigDataProvider {
 	}
 }
 
+// This can return nil.  It may be very expensive.  We expand the host set and aggregate the data
+// from all the nodes in the set.  To defray the expense, we cache.  The cache can grow large and
+// may need to be purged.  See end.
+func (cdp *ConfigDataProvider) LookupMergedHostByTime(host Multihost, t int64) *repr.NodeSummary {
+	hostname := host.CanonicalName()
+	perCluster := cdp.data
+	perCluster.hostTableLock.Lock()
+	info := perCluster.multihostTable[hostname]
+	perCluster.hostTableLock.Unlock()
+	if info != nil {
+		return info
+	}
+
+	var result *repr.NodeSummary
+	var count int
+	for hn := range host.ExpandNames() {
+		x := cdp.LookupSingleHostByTime(hn, t)
+		if x == nil {
+			continue
+		}
+		if result == nil {
+			result = &repr.NodeSummary{}
+			*result = *x
+		} else {
+			if x.Timestamp > result.Timestamp {
+				result.Timestamp = x.Timestamp
+			}
+			result.CrossNodeJobs = result.CrossNodeJobs || x.CrossNodeJobs
+			result.CpuCores += x.CpuCores
+			result.MemGB += x.MemGB
+			result.GpuCards += x.GpuCards
+			result.GpuMemGB += x.GpuMemGB
+			result.GpuMemPct = result.GpuMemPct || x.GpuMemPct
+		}
+		count++
+	}
+	if count > 1 {
+		result.Hostname = hostname
+		result.Description = "merged data"
+	}
+
+	perCluster.hostTableLock.Lock()
+	// Might have appeared while we were busy
+	if info := perCluster.multihostTable[hostname]; info != nil {
+		result = info
+	} else if result != nil {
+		perCluster.multihostTable[hostname] = result
+	}
+	perCluster.hostTableLock.Unlock()
+
+	return result
+}
+
 // This can return nil.  We want the latest host information at or before the given time, which is
 // seconds since Unix epoch UTC.  If the database has to be queried, the query window into the past
 // may be limited to 14 days.  The result is not necessarily stable, it may change if new data come
 // in, but will never revert to older data.  New data that replace a prior non-nil result may or may
 // not be honored in a timely manner.  A static cluster configuration, should it exist, will be
 // consulted only if the information can't be found in the database.
-func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSummary {
+func (cdp *ConfigDataProvider) LookupSingleHostByTime(host string, t int64) *repr.NodeSummary {
 	if !cdp.valid {
 		return nil
 	}
@@ -107,18 +160,18 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 			FromDate: time.Unix(t-(60*60*24*14), 0).UTC(),
 			HaveTo:   true,
 			ToDate:   time.Unix(t, 0).UTC(),
-			Host:     []string{host.String()}, // groan!!!
+			Host:     MultihostFromSingle(host),
 		},
 	})
 	if err == nil {
-		if tmp := cdp.obtainOneFromCache(host.String(), t); tmp != nil {
+		if tmp := cdp.obtainOneFromCache(host, t); tmp != nil {
 			return &tmp.NodeSummary
 		}
 	}
 
 	// Fallback code to old-style static node config, this will likely disappear.
 	if cdp.meta.HaveConfig() {
-		return cdp.meta.Config().LookupHost(host.String())
+		return cdp.meta.Config().LookupHost(host)
 	}
 
 	return nil
@@ -128,14 +181,14 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 // given time interval, or in the backing config file if there is one and there are no nodes in the
 // data base.
 //
-// Noe this cannot be taken from computed config data because need this list to compute the config
+// Note this cannot be taken from computed config data because need this list to compute the config
 // data for an open set of hosts.
 //
-// This needs a cache and/or lazy computation, too.  The right way to think about it, I think, is to
-// ignore the toDate, and to populate the lazy table from the fromDate to the youngest date not
-// covered, which could be today's date.  The table should have one entry per calendar day (this is
-// good enough) and should be careful to share data where possible, because the host sets can be
-// quite large but have tremendous stability over time, so there will be a lot of sharing.
+// FIXME: This needs a cache and/or lazy computation, too.  The right way to think about it, I
+// think, is to ignore the toDate, and to populate the lazy table from the fromDate to the youngest
+// date not covered, which could be today's date.  The table should have one entry per calendar day
+// (this is good enough) and should be careful to share data where possible, because the host sets
+// can be quite large but have tremendous stability over time, so there will be a lot of sharing.
 //
 // This API can be made internal, the only external user can use ConfigDataProvider.Query for the
 // same effect.  And it's not necessary for the return value to be a map, both current consumers
@@ -146,7 +199,7 @@ func (cdb *ConfigDataProvider) AvailableHosts(fromDate, toDate time.Time) (map[s
 	recordBlobs, _, err := cdb.nodes.QueryRaw(
 		fromDate,
 		toDate,
-		nil,
+		Multihost{},
 	)
 	if err != nil {
 		return nil, err
@@ -181,15 +234,7 @@ type QueryArgs struct {
 // hosts that have data in the time range.
 
 func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
-	if len(qa.Host) == 0 {
-		hosts, err := cdp.AvailableHosts(qa.FromDate, qa.ToDate)
-		if err != nil {
-			return nil, err
-		}
-		qa.Host = umaps.Keys(hosts)
-	}
-
-	if !cdp.valid || len(qa.Host) == 0 {
+	if !cdp.valid {
 		return make([]*NodeConfig, 0), nil
 	}
 
@@ -202,7 +247,7 @@ func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
 
 	// Fallback code to old-style static node config, this will likely disappear.
 	if len(records) == 0 && cdp.meta.HaveConfig() {
-		for _, host := range qa.Host {
+		for host := range qa.Host.ExpandNames() {
 			if probe := cdp.meta.Config().LookupHost(host); probe != nil {
 				records = append(records, &NodeConfig{
 					NodeSummary: *probe,
@@ -241,7 +286,7 @@ type RawConfigData struct {
 
 // Raw query against the database.  Use with care.
 
-func (cdp *ConfigDataProvider) RawQuery(qa QueryFilter) ([]*RawConfigData, error) {
+func (cdp *ConfigDataProvider) rawQuery(qa QueryFilter) ([]*RawConfigData, error) {
 	nodes, err := cdp.nodes.Query(
 		node.QueryFilter{
 			HaveFrom: qa.HaveFrom,
@@ -284,7 +329,7 @@ func (cdp *ConfigDataProvider) RawQuery(qa QueryFilter) ([]*RawConfigData, error
 // run for each host.
 
 func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) {
-	rawRecords, err := cdp.RawQuery(qa.QueryFilter)
+	rawRecords, err := cdp.rawQuery(qa.QueryFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -381,15 +426,17 @@ func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) 
 // per-host-info : always-sorted timestamp-unique list of records + metadata
 
 type perClusterInfo struct {
-	name          string
-	hostTableLock sync.Mutex
-	hostTable     map[string]*hostInfo
+	name           string
+	hostTableLock  sync.Mutex
+	hostTable      map[string]*hostInfo
+	multihostTable map[string]*repr.NodeSummary
 }
 
 func makePerClusterInfo(name string) *perClusterInfo {
 	return &perClusterInfo{
-		name:      name,
-		hostTable: make(map[string]*hostInfo),
+		name:           name,
+		hostTable:      make(map[string]*hostInfo),
+		multihostTable: make(map[string]*repr.NodeSummary),
 	}
 }
 
@@ -460,7 +507,7 @@ func (cdp *ConfigDataProvider) populateCache(qa QueryArgs) error {
 
 	now := time.Now().UTC().Unix()
 	for _, c := range chunks {
-		hn := c.workItem.Host[0]
+		hn := c.workItem.Host.SingleNameInfallible()
 		perHost := perCluster.hostTable[hn]
 		if perHost == nil {
 			panic("Inconsistent table: no entry for host " + hn)
@@ -492,7 +539,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 	toTime = qa.ToDate.Unix()
 	fromTime = qa.FromDate.Unix()
 	worklist := make([]QueryArgs, 0)
-	for _, hn := range qa.Host {
+	for hn := range qa.Host.ExpandNames() {
 		perHost := perCluster.hostTable[hn]
 		var newRecord bool
 		if perHost == nil {
@@ -510,7 +557,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 					FromDate: time.Unix(fromTime-twoWeeks, 0).UTC(),
 					HaveTo:   true,
 					ToDate:   time.Unix(perHost.oldestScannedTime, 0).UTC(),
-					Host:     []string{hn},
+					Host:     MultihostFromSingle(hn),
 				},
 			})
 		}
@@ -521,7 +568,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 					FromDate: time.Unix(perHost.youngestRecord, 0).UTC(),
 					HaveTo:   true,
 					ToDate:   nowt,
-					Host:     []string{hn},
+					Host:     MultihostFromSingle(hn),
 				},
 			})
 		}
@@ -537,7 +584,7 @@ func (cdp *ConfigDataProvider) obtainAllFromCache(qa QueryArgs) (result []*NodeC
 	perCluster.hostTableLock.Lock()
 	defer perCluster.hostTableLock.Unlock()
 
-	for _, hn := range qa.Host {
+	for hn := range qa.Host.ExpandNames() {
 		perHost := perCluster.hostTable[hn]
 		if perHost == nil {
 			// Should we panic?

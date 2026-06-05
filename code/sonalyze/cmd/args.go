@@ -560,21 +560,27 @@ func (args *SourceArgs) InterpretFromToWithBounds(bounds Timebounds) (int64, int
 // record filters.
 
 type HostArgs struct {
-	Host []string
+	HostStrings []string
+	Host        Hosts
 }
 
 func (h *HostArgs) Add(fs *CLI) {
 	fs.Group("record-filter")
-	fs.Var(NewRepeatableSemiSeparated(&h.Host), "host",
+	fs.Var(NewRepeatableSemiSeparated(&h.HostStrings), "host",
 		"Select records for this `host` (repeatable) [default: all]")
 }
 
 func (h *HostArgs) ReifyForRemote(x *ArgReifier) error {
-	x.RepeatableSemiSeparated("host", h.Host)
+	x.RepeatableSemiSeparated("host", h.HostStrings)
 	return nil
 }
 
 func (h *HostArgs) Validate() error {
+	hosts, err := NewHostsFromMultiPatterns(h.HostStrings...)
+	if err != nil {
+		return err
+	}
+	h.Host = hosts
 	return nil
 }
 

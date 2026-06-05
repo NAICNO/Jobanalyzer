@@ -65,11 +65,11 @@ import (
 
 // SplitMultiPattern takes a <multi-pattern> according to the grammar above and returns a list of
 // individual <pattern>s in that list.  It requires a bit of logic because each pattern may contain
-// a fragment that contains a comma.
+// a fragment that contains a comma.  Resulting patterns are trimmed.
 func SplitMultiPattern(s string) ([]string, error) {
-	strings := make([]string, 0)
+	patterns := make([]string, 0)
 	if s == "" {
-		return strings, nil
+		return patterns, nil
 	}
 	insideBrackets := false
 	start := -1
@@ -88,7 +88,7 @@ func SplitMultiPattern(s string) ([]string, error) {
 			if start == -1 {
 				return nil, fmt.Errorf("Illegal pattern: Empty host name")
 			}
-			strings = append(strings, s[start:ix])
+			patterns = append(patterns, strings.TrimSpace(s[start:ix]))
 			start = -1
 		} else if start == -1 {
 			start = ix
@@ -100,8 +100,58 @@ func SplitMultiPattern(s string) ([]string, error) {
 	if start == len(s) || start == -1 {
 		return nil, fmt.Errorf("Illegal pattern: Empty host name")
 	}
-	strings = append(strings, s[start:])
-	return strings, nil
+	patterns = append(patterns, strings.TrimSpace(s[start:]))
+	return patterns, nil
+}
+
+func SyntaxCheckPattern(p string) error {
+	if p == "" {
+		return errors.New("Empty pattern")
+	}
+	elements := strings.Split(p, ".")
+
+	// The first element can have wildcards and so on
+	{
+		r := strings.NewReader(elements[0])
+		var fragments int
+		for {
+			_, err := parseFragment(r)
+			if err != nil {
+				if err == noMoreFragments {
+					break
+				}
+				return err
+			}
+			fragments++
+		}
+		if fragments == 0 {
+			return errors.New("Empty element")
+		}
+		if fragments > 100 {
+			return errors.New("Unlikely hostname pattern: too many parts")
+		}
+	}
+
+	// Remaining elements must be plain
+	for _, e := range elements[1:] {
+		r := strings.NewReader(e)
+		fragment, err := parseFragment(r)
+		if err != nil {
+			if err == noMoreFragments {
+				return errors.New("Empty hostname element")
+			}
+			return err
+		}
+		if _, ok := fragment.(string); !ok {
+			return errors.New("Trailing host name elements must not have wildcard or range")
+		}
+		fragment, err = parseFragment(r)
+		if err != noMoreFragments {
+			return errors.New("Trailing host name elements must not have wildcard or range")
+		}
+	}
+
+	return nil
 }
 
 // ExpandPattern takes a single <pattern> from the grammar above and expands it.  Restriction: The pattern
@@ -243,6 +293,7 @@ func parseFragment(r *strings.Reader) (any, error) {
 				ungetc(r, c)
 				break
 			}
+			// TODO: restrictions on spaces?
 			literal = literal + string(c)
 		}
 		return literal, nil

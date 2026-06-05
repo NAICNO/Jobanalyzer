@@ -165,7 +165,7 @@ func NewTransientSysinfoCluster(
 func (tsc *TransientSysinfoCluster) SysinfoFilenames(
 	_,
 	_ time.Time,
-	_ *Hosts,
+	_ Hosts,
 ) ([]string, error) {
 	return tsc.Filenames()
 }
