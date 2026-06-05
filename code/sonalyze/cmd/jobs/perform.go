@@ -272,13 +272,15 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 // Aggregate and summarize but do not attach any sacct data.
 func summarizeSingleJobFromSonarData(
 	cfg *config.ConfigDataProvider,
+	// Bounds is keyed by merged host name for streams merged across hosts
 	bounds Timebounds,
 	job sample.MergedJob,
 	now int64,
 	fb flagBag,
 ) *jobSummary {
 	samples := job.Samples
-	host := samples[0].Hostname
+	host := job.Hosts
+	hostname := samples[0].Hostname
 	jobId := samples[0].Job
 	user := samples[0].User
 	first := samples[0].Timestamp
@@ -296,7 +298,7 @@ func summarizeSingleJobFromSonarData(
 	if aggregate.GpuFail != 0 {
 		flags |= kGpuFail
 	}
-	bound, haveBound := bounds[host]
+	bound, haveBound := bounds[hostname]
 	if !haveBound {
 		panic("Expected to find bound")
 	}
@@ -358,7 +360,7 @@ func summarizeSingleJobFromSonarData(
 // log entries.
 func aggregateSingleJobFromSonarData(
 	cdp *config.ConfigDataProvider,
-	host Ustr,
+	hosts *MergedHostnames,
 	job []sample.Sample,
 	fb flagBag,
 ) jobAggregate {
@@ -417,7 +419,8 @@ func aggregateSingleJobFromSonarData(
 	}
 	usesGpu := !gpus.IsEmpty()
 
-	if sys := cdp.LookupMergedHostByTime(host, job[0].Timestamp); sys != nil {
+	// Not what we want
+	if sys := cdp.LookupMergedHostByTime(hosts, job[0].Timestamp); sys != nil {
 		// Quantities can be zero in surprising ways, so always guard divisions
 		if cores := float64(sys.CpuCores); cores > 0 {
 			rCpuPctAvg = cpuPctAvg / cores
@@ -468,6 +471,7 @@ func aggregateSingleJobFromSonarData(
 		}
 	}
 
+	// WTF?
 	var hosts *Hostnames
 	if fb.needHosts {
 		hosts = NewHostnames()

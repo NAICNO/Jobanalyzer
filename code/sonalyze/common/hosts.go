@@ -168,3 +168,17 @@ func (h *Hosts) FilenameGlobber(globs []string) *hostglob.HostGlobber {
 	globber := hostglob.Join(globbers)
 	return globber
 }
+
+type MergedHostnames struct {
+	Names      map[Ustr]bool
+	MergedName Ustr
+}
+
+
+func NewMergedHostnames(name... Ustr) *MergedHostnames {
+	panic("NYI")
+}
+
+func NewMergedHostnamesFromMap(names map[Ustr]bool) *MergedHostnames {
+	panic("NYI")
+}

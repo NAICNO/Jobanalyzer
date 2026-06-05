@@ -27,7 +27,7 @@ type MergedJobs []MergedJob
 type MergedJob struct {
 	Samples  SampleStream   // Synthesized/merged samples
 	NumTasks int            // The number of tasks that went into the merge
-	Hosts    map[Ustr]bool  // The individual host names
+	Hosts    *MergedHostnames // The individual host names
 	Tasks    []SampleStream // The individual input streams
 }
 

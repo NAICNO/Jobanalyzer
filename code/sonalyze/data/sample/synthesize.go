@@ -85,7 +85,7 @@ func MergeByHostAndJob(streams InputStreamSet) MergedJobs {
 				merged = append(merged, MergedJob{
 					Samples:  slices.Clone(*v),
 					NumTasks: 1,
-					Hosts:    make(map[Ustr]bool),
+					Hosts:    NewMergedHostnames(),
 					Tasks:    []SampleStream{SampleStream{}},
 				})
 			}
@@ -184,7 +184,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timeboun
 		newStreams = append(newStreams, MergedJob{
 			Samples:  slices.Clone(*z),
 			NumTasks: 1,
-			Hosts:    map[Ustr]bool{(*z)[0].Hostname: true},
+			Hosts:    NewMergedHostnames((*z)[0].Hostname),
 			Tasks:    []SampleStream{*z},
 		})
 	}
@@ -603,9 +603,13 @@ func mergeStreams(
 	tasks := uslices.Map(streams, func(s *SampleStream) SampleStream {
 		return *s
 	})
-	hosts := make(map[Ustr]bool)
-	for _, s := range streams {
-		hosts[(*s)[0].Hostname] = true
+	var hosts *MergedHostnames
+	{
+		hs := make(map[Ustr]bool)
+		for _, s := range streams {
+			hs[(*s)[0].Hostname] = true
+		}
+		hosts = NewMergedHostnamesFromMap(hs)
 	}
 	return MergedJob{
 		Samples:  records,
@@ -752,7 +756,7 @@ func foldSamples(samples SampleStream, truncTime func(int64) int64) MergedJob {
 	return MergedJob{
 		Samples:  result,
 		NumTasks: 1,
-		Hosts:    map[Ustr]bool{samples[0].Hostname: true},
+		Hosts:    NewMergedHostnames(samples[0].Hostname),
 		Tasks:    []SampleStream{samples},
 	}
 }

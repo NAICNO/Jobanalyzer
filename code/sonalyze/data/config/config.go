@@ -126,7 +126,8 @@ func (cdp *ConfigDataProvider) LookupSingleHostByTime(host Ustr, t int64) *repr.
 	return nil
 }
 
-func (cdp *ConfigDataProvider) LookupMergedHostByTime(host Ustr, t int64) *repr.NodeSummary {
+// FIXME: NOt the api we want, we want to start with a host set.
+func (cdp *ConfigDataProvider) LookupMergedHostByTime(hosts *MergedHostnames, t int64) *repr.NodeSummary {
 	panic("NYI")
 }
 

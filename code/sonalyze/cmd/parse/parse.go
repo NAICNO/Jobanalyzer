@@ -215,7 +215,7 @@ func (pc *ParseCommand) Perform(
 					sample.MergedJob{
 						Samples:  slices.Clone(*v),
 						NumTasks: 1,
-						Hosts:    map[Ustr]bool{(*v)[0].Hostname: true},
+						Hosts:    NewMergedHostnames((*v)[0].Hostname),
 						Tasks:    []sample.SampleStream{*v},
 					})
 			}

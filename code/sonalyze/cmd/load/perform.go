@@ -97,6 +97,7 @@ func (lc *LoadCommand) Perform(
 	var mergedConf *repr.NodeSummary
 	if lc.Group {
 		for _, stream := range mergedStreams {
+			// FIXME: Not the hostname we want
 			probe := cdp.LookupMergedHostByTime(stream.Samples[0].Hostname, stream.Samples[0].Timestamp)
 			if probe == nil {
 				continue
@@ -140,6 +141,7 @@ func (lc *LoadCommand) Perform(
 		ts := stream.Samples[0].Timestamp
 		conf := mergedConf
 		if conf == nil {
+			// FIXME: Not the hostname we want
 			conf = cdp.LookupMergedHostByTime(hn, ts)
 		}
 		rs := generateReport(stream.Samples, time.Now().Unix(), conf)
