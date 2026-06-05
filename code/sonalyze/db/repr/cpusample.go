@@ -23,6 +23,9 @@ import (
 // that can vary based on the underlying data representation (older and newer on-disk data encode
 // these differently).  A simple time series table of per-CPU samples can be obtained by decoding
 // the encoded data and prepending the host and time to each resulting row.
+//
+// This ought to be pointer-free but is not.  The win is in the encoded samples being pointer-free,
+// and they largely are, when they are a []byte, but the []byte representation is no longer used.
 type CpuSamples struct {
 	Timestamp int64
 	Hostname  Ustr
