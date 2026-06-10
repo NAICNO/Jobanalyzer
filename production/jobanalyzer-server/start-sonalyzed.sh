@@ -15,8 +15,10 @@ rm -f $pidfile
 $sonalyzed_dir/sonalyze daemon \
     -cache 12G \
     -jobanalyzer-dir $sonalyzed_dir \
-    -port $sonalyzed_port \
-    -match-user-and-cluster \
+    -v0 \
+    -v1 \
+    -insert \
+    -rest-api :$sonalyzed_port \
     -analysis-auth $sonalyzed_analysis_auth_file \
     -upload-auth $sonalyzed_upload_auth_file &
 sonalyzed_pid=$!
