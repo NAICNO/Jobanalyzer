@@ -38,17 +38,17 @@ sleep 1
 
 # First, try to insert some data and verify that the data have been added as expected
 
-curl --fail-with-body --data-binary @cluster1-samples.json -H 'Content-Type: application/json' -u cluster1.naic.com:hohoho \
-     http://$testapi/api/v1/insert/sample
+curl --silent --fail-with-body --data-binary @cluster1-samples.json -H 'Content-Type: application/json' -u cluster1.naic.com:hohoho \
+     http://$testapi/api/v1/insert/sample > /dev/null
 
-curl --fail-with-body --data-binary @cluster1-sysinfo.json -H 'Content-Type: application/json' -u cluster1.naic.com:hohoho \
-     http://$testapi/api/v1/insert/sysinfo
+curl --silent --fail-with-body --data-binary @cluster1-sysinfo.json -H 'Content-Type: application/json' -u cluster1.naic.com:hohoho \
+     http://$testapi/api/v1/insert/sysinfo > /dev/null
 
-curl --fail-with-body --data-binary @cluster2-samples.json -H 'Content-Type: application/json' -u cluster2.naic.com:hahaha \
-     http://$testapi/api/v1/insert/sample
+curl --silent --fail-with-body --data-binary @cluster2-samples.json -H 'Content-Type: application/json' -u cluster2.naic.com:hahaha \
+     http://$testapi/api/v1/insert/sample > /dev/null
 
-curl --fail-with-body --data-binary @cluster2-sysinfo.json -H 'Content-Type: application/json' -u cluster2.naic.com:hahaha \
-     http://$testapi/api/v1/insert/sysinfo
+curl --silent --fail-with-body --data-binary @cluster2-sysinfo.json -H 'Content-Type: application/json' -u cluster2.naic.com:hahaha \
+     http://$testapi/api/v1/insert/sysinfo > /dev/null
 
 sleep 1
 
