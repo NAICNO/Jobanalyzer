@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	. "sonalyze/cmd"
+	"sonalyze/data/common"
 	"sonalyze/data/disksample"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
@@ -89,14 +90,17 @@ func (nc *DiskProfCommand) Perform(meta types.Context, _ io.Reader, stdout, stde
 	if err != nil {
 		return err
 	}
-
+	host, err := common.ResolveHostQuery(meta, nc.Host, nc.FromDate, nc.ToDate)
+	if err != nil {
+		return err
+	}
 	records, err := dsd.Query(
 		disksample.QueryFilter{
 			HaveFrom: nc.HaveFrom,
 			FromDate: nc.FromDate,
 			HaveTo:   nc.HaveTo,
 			ToDate:   nc.ToDate,
-			Host:     nc.HostArgs.Host,
+			Host:     host,
 		},
 	)
 	if err != nil {

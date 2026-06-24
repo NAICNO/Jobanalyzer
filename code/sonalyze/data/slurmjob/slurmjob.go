@@ -67,17 +67,13 @@ func (sdp *SlurmjobDataProvider) Query(
 			jobs[j] = true
 		}
 	}
-	node, err := NewHosts(filter.Host)
-	if err != nil {
-		return nil, err
-	}
 	recordBlobs, dropped, err := sdp.theLog.ReadSacctData(
 		types.DataProviderFilter{
 			FromDate: filter.FromDate,
 			ToDate:   filter.ToDate,
 			Users:    users,
 			Jobs:     jobs,
-			Node:     node,
+			Node:     filter.Host,
 		},
 	)
 	if err != nil {
@@ -222,12 +218,9 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter) error {
 
 	toDelete := make(map[uint32]bool, 0)
 	var prior int
-	if len(filter.Host) > 0 {
+	if !filter.Host.IsEmpty() {
 		prior = len(toDelete)
-		hosts, err := NewHosts(filter.Host)
-		if err != nil {
-			return err
-		}
+		hosts := filter.Host
 		includeHosts := hosts.HostnameGlobber()
 		// We delete a job if none of its nodes match the globber.  It feels like this is a pretty
 		// expensive test, the cost is more or less the product of the number of patterns/nodes in

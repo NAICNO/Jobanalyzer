@@ -7,6 +7,7 @@ import (
 	"io"
 
 	. "sonalyze/cmd"
+	"sonalyze/data/common"
 	"sonalyze/data/sample"
 	"sonalyze/db/types"
 )
@@ -23,6 +24,10 @@ func LocalSampleOperation(
 	stdout, stderr io.Writer,
 ) error {
 	args := command.SampleAnalysisFlags()
+	host, err := common.ResolveHostQuery(meta, args.Host, args.FromDate, args.ToDate)
+	if err != nil {
+		return err
+	}
 
 	var filter sample.QueryFilter
 	filter.AllUsers, filter.SkipSystemUsers, filter.ExcludeSystemCommands, filter.ExcludeHeartbeat =
@@ -31,7 +36,7 @@ func LocalSampleOperation(
 	filter.FromDate = args.SourceArgs.FromDate
 	filter.HaveTo = args.SourceArgs.HaveTo
 	filter.ToDate = args.SourceArgs.ToDate
-	filter.Host = args.HostArgs.Host
+	filter.Host = host
 	filter.ExcludeSystemJobs = args.RecordFilterArgs.ExcludeSystemJobs
 	filter.User = args.RecordFilterArgs.User
 	filter.ExcludeUser = args.RecordFilterArgs.ExcludeUser

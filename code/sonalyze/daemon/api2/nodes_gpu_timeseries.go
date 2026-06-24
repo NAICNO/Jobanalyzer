@@ -82,7 +82,7 @@ func handleNodesGpuTimeseries(
 		return nil, huma.Error500InternalServerError(
 			nodesGpuTimeseriesName+": failed to open gpu sample store", err)
 	}
-	hostGlobber, hErr := apiutil.NewHostFilter(nodesGpuTimeseriesName, input.Nodename)
+	hostGlobber, hErr := apiutil.NewHostFilter(nodesGpuTimeseriesName, meta, input.Nodename, from, to)
 	if err != nil {
 		return nil, hErr
 

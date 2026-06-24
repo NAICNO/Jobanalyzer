@@ -71,7 +71,7 @@ func handleNodesProcessGpuUtil(
 	from = from.Add(-w)
 	to = to.Add(w)
 
-	hostFilter, hErr := apiutil.NewHostFilter(nodesProcessGpuUtilName, input.Nodename)
+	hostFilter, hErr := apiutil.NewHostFilter(nodesProcessGpuUtilName, meta, input.Nodename, from, to)
 	if hErr != nil {
 		return nil, hErr
 	}

@@ -104,6 +104,56 @@ func SplitMultiPattern(s string) ([]string, error) {
 	return strings, nil
 }
 
+func SyntaxCheckPattern(p string) error {
+	if p == "" {
+		return errors.New("Empty pattern")
+	}
+	elements := strings.Split(p, ".")
+
+	// The first element can have wildcards and so on
+	{
+		r := strings.NewReader(elements[0])
+		var fragments int
+		for {
+			_, err := parseFragment(r)
+			if err != nil {
+				if err == noMoreFragments {
+					break
+				}
+				return err
+			}
+			fragments++
+		}
+		if fragments == 0 {
+			return errors.New("Empty element")
+		}
+		if fragments > 100 {
+			return errors.New("Unlikely hostname pattern: too many parts")
+		}
+	}
+
+	// Remaining elements must be plain
+	for _, e := range elements[1:] {
+		r := strings.NewReader(e)
+		fragment, err := parseFragment(r)
+		if err != nil {
+			if err == noMoreFragments {
+				return errors.New("Empty hostname element")
+			}
+			return err
+		}
+		if _, ok := fragment.(string); !ok {
+			return errors.New("Trailing host name elements must not have wildcard or range")
+		}
+		fragment, err = parseFragment(r)
+		if err != noMoreFragments {
+			return errors.New("Trailing host name elements must not have wildcard or range")
+		}
+	}
+
+	return nil
+}
+
 // ExpandPattern takes a single <pattern> from the grammar above and expands it.  Restriction: The pattern
 // must contain no "*" wildcards.
 func ExpandPattern(s string) ([]string, error) {

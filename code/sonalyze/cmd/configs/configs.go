@@ -18,7 +18,6 @@ import (
 	"slices"
 
 	. "sonalyze/cmd"
-	. "sonalyze/common"
 	"sonalyze/data/common"
 	"sonalyze/data/config"
 	"sonalyze/db/repr"
@@ -122,7 +121,7 @@ func (cc *ConfigCommand) Validate() error {
 // Analysis
 
 func (cc *ConfigCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.Writer) error {
-	hosts, err := NewHosts(cc.HostArgs.Host)
+	hosts, err := common.ResolveHostQuery(meta, cc.Host, cc.FromDate, cc.ToDate)
 	if err != nil {
 		return err
 	}

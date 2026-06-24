@@ -134,7 +134,7 @@ func TestPersistentSampleFilenames(t *testing.T) {
 		t.Fatal(names, expect)
 	}
 
-	h, _ := NewHosts([]string{"a"})
+	h := NewHostsFromSingle("a")
 	names, err = pc.SampleFilenames(types.DataProviderFilter{
 		FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		ToDate:   time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
@@ -577,7 +577,7 @@ func TestCaching(t *testing.T) {
 	_ = ul.GetMsgs()
 
 	// This should read 2023/05/31/a.csv
-	glob, _ := NewHosts([]string{"a"})
+	glob := NewHostsFromSingle("a")
 	_, _, err = pc.ReadProcessSamples(
 		types.DataProviderFilter{
 			FromDate: time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),

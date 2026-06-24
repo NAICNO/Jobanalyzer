@@ -344,10 +344,7 @@ func BuildSampleFilter(
 ) {
 	// Included host set, empty means "all"
 
-	includeHosts, err := NewHosts(filter.Host)
-	if err != nil {
-		return Hosts{}, nil, err
-	}
+	includeHosts := filter.Host
 
 	// Included job numbers, empty means "all"
 

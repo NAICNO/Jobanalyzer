@@ -2,13 +2,13 @@ package apiutil
 
 import (
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 
 	. "sonalyze/common"
+	"sonalyze/data/common"
 	"sonalyze/db"
 	"sonalyze/db/special"
 	"sonalyze/db/types"
@@ -127,11 +127,19 @@ func TimeWindowFromData(
 	return
 }
 
-func NewHostFilter(opName string, patternList ...string) (Hosts, huma.StatusError) {
-	patternList = slices.DeleteFunc(patternList, func(s string) bool { return s == "" })
-	hostFilter, err := NewHosts(patternList)
+func NewHostFilter(
+	opName string,
+	meta types.Context,
+	multiPatterns string,
+	from, to time.Time,
+) (Hosts, huma.StatusError) {
+	hostFilter, err := NewHostQueryFromMultiPatterns(multiPatterns)
 	if err != nil {
 		return Hosts{}, huma.Error400BadRequest(opName+": Bad host list", err)
 	}
-	return hostFilter, nil
+	host, err := common.ResolveHostQuery(meta, hostFilter, from, to)
+	if err != nil {
+		return Hosts{}, huma.Error400BadRequest(opName+": Bad host list", err)
+	}
+	return host, nil
 }
