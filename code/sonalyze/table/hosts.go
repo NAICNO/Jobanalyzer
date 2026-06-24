@@ -242,7 +242,8 @@ func NewHostnames() *Hostnames {
 	}
 }
 
-func (h *Hostnames) Add(hostname string) {
+// A single name a.b.c, no ranges and no comma-separated lists
+func (h *Hostnames) AddSingle(hostname string) {
 	if h.s.addNames(hostname) {
 		h.serial++
 	}
@@ -260,7 +261,7 @@ func (h *Hostnames) AddCompressed(nodelist string) error {
 			return err
 		}
 		for _, n := range names {
-			h.Add(n)
+			h.AddSingle(n)
 		}
 	}
 	return nil

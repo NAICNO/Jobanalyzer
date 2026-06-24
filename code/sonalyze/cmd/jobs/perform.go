@@ -472,7 +472,7 @@ func aggregateSingleJobFromSonarData(
 	if fb.needHosts {
 		hosts = NewHostnames()
 		for _, s := range job {
-			hosts.Add(s.Hostname.String())
+			hosts.AddSingle(s.Hostname.String())
 		}
 	}
 	n := float64(len(job))

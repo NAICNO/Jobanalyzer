@@ -63,7 +63,7 @@ func (pc *ProfileCommand) Perform(
 		for _, v := range *vs {
 			hasRolledup = hasRolledup || v.Rolledup > 0
 		}
-		hostnames.Add(k.Host.String())
+		hostnames.AddSingle(k.Host.String())
 	}
 
 	var hostName = "unknown"
