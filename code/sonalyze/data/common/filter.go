@@ -30,7 +30,7 @@ func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
 	var hostFilter Hosts
 	if len(filter.Host) > 0 {
 		var err error
-		hostFilter, err = NewHosts(true, filter.Host)
+		hostFilter, err = NewHosts(filter.Host)
 		if err != nil {
 			return nil, err
 		}

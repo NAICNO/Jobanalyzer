@@ -10,7 +10,6 @@ import (
 // Hosts is a wrapper for a hostglob.HostGlobber that can be used to glob either straight host names
 // or file names (based on a set of patterns), depending on need.
 type Hosts struct {
-	prefix   bool
 	patterns []string
 	globber  *hostglob.HostGlobber
 }
@@ -26,15 +25,14 @@ func init() {
 
 // Create a new Hosts from the list of patterns.  For pattern syntax, see the HostGlobber
 // documentation.
-func NewHosts(prefix bool, patterns []string) (Hosts, error) {
+func NewHosts(patterns []string) (Hosts, error) {
 	// This performs the necessary syntax checking.  In most cases, we're going to want this globber
 	// anyway so it's not a disaster to construct it always.
-	globber, err := hostglob.NewGlobber(prefix, patterns)
+	globber, err := hostglob.NewGlobber(true, patterns)
 	if err != nil {
 		return Hosts{}, err
 	}
 	return Hosts{
-		prefix:   prefix,
 		patterns: slices.Clone(patterns),
 		globber:  globber,
 	}, nil
@@ -42,9 +40,6 @@ func NewHosts(prefix bool, patterns []string) (Hosts, error) {
 
 func (h *Hosts) String() string {
 	s := strings.Join(h.patterns, ",")
-	if h.prefix {
-		s = "prefix: " + s
-	}
 	return s
 }
 
@@ -58,10 +53,6 @@ func (h *Hosts) IsEmpty() bool {
 
 func (h *Hosts) Patterns() []string {
 	return h.patterns
-}
-
-func (h *Hosts) IsPrefix() bool {
-	return h.prefix
 }
 
 // Return the cached globber that matches strings against the hosts in the set.
@@ -84,7 +75,7 @@ func (h *Hosts) FilenameGlobber(globs []string) *hostglob.HostGlobber {
 			panic("Host glob must have exactly one '*'")
 		}
 		before, after, _ := strings.Cut(glob, "*")
-		globber, err := hostglob.NewGlobberWithFix(h.prefix, before, h.patterns, after)
+		globber, err := hostglob.NewGlobberWithFix(true, before, h.patterns, after)
 		if err != nil {
 			panic("Host glob compilation should not have failed")
 		}

@@ -104,7 +104,7 @@ func (gc *GpuCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io
 	}
 
 	// TODO: Use standard query interface
-	hostGlobber, err := NewHosts(true, gc.Host)
+	hostGlobber, err := NewHosts(gc.Host)
 	if err != nil {
 		return err
 	}

@@ -69,7 +69,7 @@ func (tc *TopCommand) Perform(meta types.Context, stdin io.Reader, stdout, stder
 
 	// TODO: Use standard query interface with standard QueryFilter here.
 
-	hostGlobber, err := NewHosts(true, tc.Host)
+	hostGlobber, err := NewHosts(tc.Host)
 	if err != nil {
 		return err
 	}

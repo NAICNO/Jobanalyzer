@@ -67,7 +67,7 @@ func (sdp *SlurmjobDataProvider) Query(
 			jobs[j] = true
 		}
 	}
-	node, err := NewHosts(true, filter.Host)
+	node, err := NewHosts(filter.Host)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,7 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter) error {
 	var prior int
 	if len(filter.Host) > 0 {
 		prior = len(toDelete)
-		hosts, err := NewHosts(true, filter.Host)
+		hosts, err := NewHosts(filter.Host)
 		if err != nil {
 			return err
 		}

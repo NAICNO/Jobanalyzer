@@ -80,23 +80,6 @@ func TestOpenClose(t *testing.T) {
 	unsafeResetClusterStore()
 }
 
-func TestTransientSampleFilenames(t *testing.T) {
-	fs, err := OpenFileListSampleDB(nil, theFiles)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var d time.Time
-	h, _ := NewHosts(false, []string{"a"})
-	names, _ := fs.SampleFilenames(types.DataProviderFilter{
-		FromDate: d,
-		ToDate:   d,
-		Node:     h,
-	})
-	if !reflect.DeepEqual(names, theFiles) {
-		t.Fatal(names, theFiles)
-	}
-}
-
 func TestTransientSampleRead(t *testing.T) {
 	fs, err := OpenFileListSampleDB(nil, theFiles)
 	if err != nil {
@@ -151,7 +134,7 @@ func TestPersistentSampleFilenames(t *testing.T) {
 		t.Fatal(names, expect)
 	}
 
-	h, _ := NewHosts(true, []string{"a"})
+	h, _ := NewHosts([]string{"a"})
 	names, err = pc.SampleFilenames(types.DataProviderFilter{
 		FromDate: time.Date(2023, 05, 28, 12, 37, 55, 0, time.UTC),
 		ToDate:   time.Date(2023, 05, 31, 23, 0, 12, 0, time.UTC),
@@ -594,7 +577,7 @@ func TestCaching(t *testing.T) {
 	_ = ul.GetMsgs()
 
 	// This should read 2023/05/31/a.csv
-	glob, _ := NewHosts(false, []string{"a"})
+	glob, _ := NewHosts([]string{"a"})
 	_, _, err = pc.ReadProcessSamples(
 		types.DataProviderFilter{
 			FromDate: time.Date(2023, 05, 31, 0, 0, 0, 0, time.UTC),

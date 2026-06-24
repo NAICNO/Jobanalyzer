@@ -122,7 +122,7 @@ func (cc *ConfigCommand) Validate() error {
 // Analysis
 
 func (cc *ConfigCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.Writer) error {
-	hosts, err := NewHosts(true, cc.HostArgs.Host)
+	hosts, err := NewHosts(cc.HostArgs.Host)
 	if err != nil {
 		return err
 	}
