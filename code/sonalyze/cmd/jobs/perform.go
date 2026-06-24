@@ -156,17 +156,17 @@ func (jc *JobsCommand) Perform(
 		Log.Infof("Samples retained after filtering: %d", numSamples)
 	}
 
-	cfg := config.MaybeOpenConfigDataProvider(meta)
+	cdp := config.MaybeOpenConfigDataProvider(meta)
 
 	if NeedsConfig(jobsFormatters, jc.PrintFields) {
 		var err error
-		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
+		streams, err = EnsureConfigForInputStreams(cdp, streams, "relative format arguments")
 		if err != nil {
 			return err
 		}
 	}
 
-	summaries := jc.summarizeAndFilterJobs(meta, cfg, streams, bounds)
+	summaries := jc.summarizeAndFilterJobs(meta, cdp, streams, bounds)
 	if Verbose {
 		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
@@ -187,7 +187,7 @@ func (jc *JobsCommand) Perform(
 
 func (jc *JobsCommand) summarizeAndFilterJobs(
 	meta types.Context,
-	cfg *config.ConfigDataProvider,
+	cdp *config.ConfigDataProvider,
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) []*jobSummary {
@@ -210,7 +210,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 		needZombie:    jc.Zombie,
 	}
 	summaries, discarded, fb :=
-		jc.summarizeJobsFromSonarData(cfg, bounds, jobs, summaryFilter, fb)
+		jc.summarizeJobsFromSonarData(cdp, bounds, jobs, summaryFilter, fb)
 	if Verbose {
 		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
 	}
@@ -228,7 +228,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 }
 
 func (jc *JobsCommand) summarizeJobsFromSonarData(
-	cfg *config.ConfigDataProvider,
+	cdp *config.ConfigDataProvider,
 	bounds Timebounds,
 	jobs sample.MergedJobs,
 	summaryFilter *aggregationFilter,
@@ -256,7 +256,7 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	discarded := 0
 	for _, job := range jobs {
 		if uint(len(job.Samples)) >= minSamples {
-			summary := summarizeSingleJobFromSonarData(cfg, bounds, job, now, fb)
+			summary := summarizeSingleJobFromSonarData(cdp, bounds, job, now, fb)
 			if summaryFilter == nil || summaryFilter.apply(summary) {
 				summaries = append(summaries, summary)
 			} else {
@@ -271,7 +271,7 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 
 // Aggregate and summarize but do not attach any sacct data.
 func summarizeSingleJobFromSonarData(
-	cfg *config.ConfigDataProvider,
+	cdp *config.ConfigDataProvider,
 	bounds Timebounds,
 	job sample.MergedJob,
 	now int64,
@@ -284,7 +284,7 @@ func summarizeSingleJobFromSonarData(
 	first := samples[0].Timestamp
 	last := samples[len(samples)-1].Timestamp
 	duration := last - first
-	aggregate := aggregateSingleJobFromSonarData(cfg, host, samples, fb)
+	aggregate := aggregateSingleJobFromSonarData(cdp, host, samples, fb)
 	aggregate.u64[uDurationSec] = uint64(duration)
 	usesGpu := !aggregate.Gpus.IsEmpty()
 	flags := 0
@@ -357,7 +357,7 @@ func summarizeSingleJobFromSonarData(
 // duplicated timestamps, return a JobAggregate for the job, with values that are computed from all
 // log entries.
 func aggregateSingleJobFromSonarData(
-	cfg *config.ConfigDataProvider,
+	cdp *config.ConfigDataProvider,
 	host Ustr,
 	job []sample.Sample,
 	fb flagBag,
@@ -417,7 +417,7 @@ func aggregateSingleJobFromSonarData(
 	}
 	usesGpu := !gpus.IsEmpty()
 
-	if sys := cfg.LookupHostByTime(host, job[0].Timestamp); sys != nil {
+	if sys := cdp.LookupHostByTime(host, job[0].Timestamp); sys != nil {
 		// Quantities can be zero in surprising ways, so always guard divisions
 		if cores := float64(sys.CpuCores); cores > 0 {
 			rCpuPctAvg = cpuPctAvg / cores

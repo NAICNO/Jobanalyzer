@@ -14,7 +14,7 @@ import (
 //
 // Over time this may become more complicated, as the config becomes time-dependent.
 func EnsureConfigForInputStreams(
-	cfg *config.ConfigDataProvider,
+	cdp *config.ConfigDataProvider,
 	streams sample.InputStreamSet,
 	reason string,
 ) (sample.InputStreamSet, error) {
@@ -23,7 +23,7 @@ func EnsureConfigForInputStreams(
 	for key, stream := range streams {
 		hn := (*stream)[0].Hostname
 		ts := (*stream)[0].Timestamp
-		if cfg.LookupHostByTime(hn, ts) == nil {
+		if cdp.LookupHostByTime(hn, ts) == nil {
 			bad[key] = true
 			Log.Infof("Warning: Missing host configuration for %s", hn.String())
 		}
