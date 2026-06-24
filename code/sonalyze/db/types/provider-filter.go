@@ -32,7 +32,7 @@ import (
 type DataProviderFilter struct {
 	FromDate time.Time       // Earliest date
 	ToDate   time.Time       // Latest date, inclusive
-	Node     *Hosts          // Names matching a single node in the data
+	Node     Hosts           // Names matching a single node in the data
 	Jobs     map[uint32]bool // Job IDs (exact match)
 	Users    map[Ustr]bool   // User names (exact match)
 	// Nodes, when we match a set against another set

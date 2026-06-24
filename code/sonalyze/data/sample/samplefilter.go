@@ -338,7 +338,7 @@ func BuildSampleFilter(
 	meta types.Context,
 	filter QueryFilter,
 ) (
-	*Hosts,
+	Hosts,
 	*SampleFilter,
 	error,
 ) {
@@ -346,7 +346,7 @@ func BuildSampleFilter(
 
 	includeHosts, err := NewHosts(true, filter.Host)
 	if err != nil {
-		return nil, nil, err
+		return Hosts{}, nil, err
 	}
 
 	// Included job numbers, empty means "all"
@@ -391,7 +391,7 @@ func BuildSampleFilter(
 		} else if name := os.Getenv("USER"); name != "" {
 			includeUsers[StringToUstr(name)] = true
 		} else {
-			return nil, nil, errors.New("Not able to determine user, none given and $LOGNAME and $USER are empty")
+			return Hosts{}, nil, errors.New("Not able to determine user, none given and $LOGNAME and $USER are empty")
 		}
 	}
 

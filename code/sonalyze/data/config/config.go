@@ -146,7 +146,7 @@ func (cdb *ConfigDataProvider) AvailableHosts(fromDate, toDate time.Time) (map[s
 	recordBlobs, _, err := cdb.nodes.QueryRaw(
 		fromDate,
 		toDate,
-		nil,
+		Hosts{},
 	)
 	if err != nil {
 		return nil, err

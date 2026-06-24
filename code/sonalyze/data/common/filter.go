@@ -27,7 +27,7 @@ type QueryFilter struct {
 }
 
 func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
-	var hostFilter *Hosts
+	var hostFilter Hosts
 	if len(filter.Host) > 0 {
 		var err error
 		hostFilter, err = NewHosts(true, filter.Host)
@@ -52,10 +52,7 @@ func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
 	if filter.HaveTo {
 		scanTo = filter.ToDate.Unix()
 	}
-	var globber *hostglob.HostGlobber
-	if hostFilter != nil {
-		globber = hostFilter.HostnameGlobber()
-	}
+	globber := hostFilter.HostnameGlobber()
 	return &CompiledFilter{
 		hostFilter,
 		scanFrom,
@@ -65,12 +62,12 @@ func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
 }
 
 type CompiledFilter struct {
-	hostFilter       *Hosts
+	hostFilter       Hosts
 	scanFrom, scanTo int64
 	globber          *hostglob.HostGlobber
 }
 
-func (c *CompiledFilter) HostFilter() *Hosts {
+func (c *CompiledFilter) HostFilter() Hosts {
 	return c.hostFilter
 }
 

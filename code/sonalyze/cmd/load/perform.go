@@ -20,7 +20,7 @@ func (lc *LoadCommand) Perform(
 	out io.Writer,
 	meta types.Context,
 	filter sample.QueryFilter,
-	hosts *Hosts,
+	hosts Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
 	sdp, err := sample.OpenSampleDataProvider(meta)

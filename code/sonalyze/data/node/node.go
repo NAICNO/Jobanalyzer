@@ -50,7 +50,7 @@ func (ndp *NodeDataProvider) Query(
 
 func (ndp *NodeDataProvider) QueryRaw(
 	fromDate, toDate time.Time,
-	hosts *Hosts,
+	hosts Hosts,
 ) (recordBlobs [][]*repr.SysinfoNodeData, dropped int, err error) {
 	return ndp.theLog.ReadSysinfoNodeData(
 		types.DataProviderFilter{

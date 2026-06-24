@@ -15,16 +15,25 @@ type Hosts struct {
 	globber  *hostglob.HostGlobber
 }
 
+var (
+	// MT: immutable after initialization
+	emptyGlobber *hostglob.HostGlobber
+)
+
+func init() {
+	emptyGlobber, _ = hostglob.NewGlobber(false, []string{})
+}
+
 // Create a new Hosts from the list of patterns.  For pattern syntax, see the HostGlobber
 // documentation.
-func NewHosts(prefix bool, patterns []string) (*Hosts, error) {
+func NewHosts(prefix bool, patterns []string) (Hosts, error) {
 	// This performs the necessary syntax checking.  In most cases, we're going to want this globber
 	// anyway so it's not a disaster to construct it always.
 	globber, err := hostglob.NewGlobber(prefix, patterns)
 	if err != nil {
-		return nil, err
+		return Hosts{}, err
 	}
-	return &Hosts{
+	return Hosts{
 		prefix:   prefix,
 		patterns: slices.Clone(patterns),
 		globber:  globber,
@@ -41,6 +50,9 @@ func (h *Hosts) String() string {
 
 // Return true if the set of patterns is empty.
 func (h *Hosts) IsEmpty() bool {
+	if h.globber == nil {
+		return true
+	}
 	return h.globber.IsEmpty()
 }
 
@@ -54,6 +66,9 @@ func (h *Hosts) IsPrefix() bool {
 
 // Return the cached globber that matches strings against the hosts in the set.
 func (h *Hosts) HostnameGlobber() *hostglob.HostGlobber {
+	if h.globber == nil {
+		return emptyGlobber
+	}
 	return h.globber
 }
 

@@ -23,7 +23,7 @@ func OpenSampleDataProvider(meta types.Context) (*SampleDataProvider, error) {
 
 func (sdp *SampleDataProvider) Query(
 	fromDate, toDate time.Time,
-	hostGlobber *Hosts,
+	hostGlobber Hosts,
 	recordFilter *SampleFilter,
 	wantBounds bool,
 ) (
@@ -44,7 +44,7 @@ func (sdp *SampleDataProvider) Query(
 
 func (sdp *SampleDataProvider) QueryRaw(
 	fromDate, toDate time.Time,
-	hosts *Hosts,
+	hosts Hosts,
 ) (sampleBlobs [][]*repr.Sample, dropped int, err error) {
 	return sdp.theLog.ReadProcessSamples(
 		types.DataProviderFilter{

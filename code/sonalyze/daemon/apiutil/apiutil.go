@@ -127,11 +127,11 @@ func TimeWindowFromData(
 	return
 }
 
-func NewHostFilter(opName string, patternList ...string) (*Hosts, huma.StatusError) {
+func NewHostFilter(opName string, patternList ...string) (Hosts, huma.StatusError) {
 	patternList = slices.DeleteFunc(patternList, func(s string) bool { return s == "" })
 	hostFilter, err := NewHosts(true, patternList)
 	if err != nil {
-		return nil, huma.Error400BadRequest(opName+": Bad host list", err)
+		return Hosts{}, huma.Error400BadRequest(opName+": Bad host list", err)
 	}
 	return hostFilter, nil
 }

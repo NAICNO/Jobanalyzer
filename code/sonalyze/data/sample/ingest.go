@@ -25,7 +25,7 @@ import (
 func ReadSampleStreamsAndMaybeBounds(
 	c db.ProcessSampleDataProvider,
 	fromDate, toDate time.Time,
-	hostGlobber *Hosts,
+	hostGlobber Hosts,
 	recordFilter *SampleFilter,
 	wantBounds bool,
 ) (

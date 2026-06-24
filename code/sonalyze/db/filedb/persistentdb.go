@@ -642,7 +642,7 @@ func (_ cluzterFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
 
 func (pc *PersistentCluster) findFilesLocked(
 	fromDate, toDate time.Time,
-	hosts *Hosts,
+	hosts Hosts,
 	fa filesAdapter,
 ) []*LogFile {
 	globs := fa.globs()
@@ -690,7 +690,7 @@ func (pc *PersistentCluster) findFilesLocked(
 
 		// Retain only files whose names match the filter, if present
 
-		if hosts != nil && !hosts.IsEmpty() {
+		if !hosts.IsEmpty() {
 			matcher := hosts.FilenameGlobber(globs)
 			for _, c := range fa.getFiles(d) {
 				if matcher.Match(c.Basename) {
