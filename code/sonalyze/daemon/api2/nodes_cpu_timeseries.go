@@ -42,7 +42,7 @@ func handleNodesCpuTimeseries(
 		StartTimeInS  uint64 `query:"start_time_in_s" doc:"Posix timestamp"`
 		EndTimeInS    uint64 `query:"end_time_in_s" doc:"Posix timestamp"`
 		ResolutionInS uint64 `query:"resolution_in_s" doc:"Default is 300"`
-		Nodename      string `query:"nodename" doc:"Compressed node name list"`
+		Nodenames     string `query:"nodename" doc:"Compressed node name list"`
 	},
 ) (*NodesCpuTimeseriesResponse, error) {
 	prof, hErr := computeProfile(
@@ -51,7 +51,7 @@ func handleNodesCpuTimeseries(
 		input.StartTimeInS,
 		input.EndTimeInS,
 		input.ResolutionInS,
-		input.Nodename,
+		input.Nodenames,
 	)
 	if hErr != nil {
 		return nil, hErr
@@ -86,7 +86,7 @@ type profStepData struct {
 func computeProfile(
 	opName, clusterName string,
 	startTimeInS, endTimeInS, resolutionInS uint64,
-	nodename string,
+	nodenames string,
 ) (map[string][]profStepData, huma.StatusError) {
 	meta, hErr := apiutil.GetClusterContext(opName, clusterName)
 	if hErr != nil {
@@ -101,11 +101,11 @@ func computeProfile(
 		bucket = int64(resolutionInS)
 	}
 
-	hostFilter, hErr := apiutil.NewHostFilter(opName, nodename)
+	hostFilter, hErr := apiutil.NewHostFilter(opName, meta, nodenames, from, to)
 	if hErr != nil {
 		return nil, hErr
 	}
-	sysinfo, hErr := getSysinfoAt(opName, meta, to, hostFilter.Patterns())
+	sysinfo, hErr := getSysinfoAt(opName, meta, to, hostFilter)
 	if hErr != nil {
 		return nil, hErr
 	}

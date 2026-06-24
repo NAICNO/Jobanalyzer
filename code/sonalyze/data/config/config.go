@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"slices"
 	"sync"
@@ -107,7 +108,7 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 			FromDate: time.Unix(t-(60*60*24*14), 0).UTC(),
 			HaveTo:   true,
 			ToDate:   time.Unix(t, 0).UTC(),
-			Host:     []string{host.String()}, // groan!!!
+			Host:     NewHostsFromSingle(host.String()),
 		},
 	})
 	if err == nil {
@@ -146,7 +147,7 @@ func (cdb *ConfigDataProvider) AvailableHosts(fromDate, toDate time.Time) (map[s
 	recordBlobs, _, err := cdb.nodes.QueryRaw(
 		fromDate,
 		toDate,
-		nil,
+		Hosts{},
 	)
 	if err != nil {
 		return nil, err
@@ -181,15 +182,15 @@ type QueryArgs struct {
 // hosts that have data in the time range.
 
 func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
-	if len(qa.Host) == 0 {
+	if qa.Host.IsEmpty() {
 		hosts, err := cdp.AvailableHosts(qa.FromDate, qa.ToDate)
 		if err != nil {
 			return nil, err
 		}
-		qa.Host = umaps.Keys(hosts)
+		qa.Host = NewHostsFromSingle(slices.Collect(maps.Keys(hosts))...)
 	}
 
-	if !cdp.valid || len(qa.Host) == 0 {
+	if !cdp.valid || qa.Host.IsEmpty() {
 		return make([]*NodeConfig, 0), nil
 	}
 
@@ -202,7 +203,7 @@ func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
 
 	// Fallback code to old-style static node config, this will likely disappear.
 	if len(records) == 0 && cdp.meta.HaveConfig() {
-		for _, host := range qa.Host {
+		for host := range qa.Host.ExpandNames() {
 			if probe := cdp.meta.Config().LookupHost(host); probe != nil {
 				records = append(records, &NodeConfig{
 					NodeSummary: *probe,
@@ -241,7 +242,7 @@ type RawConfigData struct {
 
 // Raw query against the database.  Use with care.
 
-func (cdp *ConfigDataProvider) RawQuery(qa QueryFilter) ([]*RawConfigData, error) {
+func (cdp *ConfigDataProvider) rawQuery(qa QueryFilter) ([]*RawConfigData, error) {
 	nodes, err := cdp.nodes.Query(
 		node.QueryFilter{
 			HaveFrom: qa.HaveFrom,
@@ -284,7 +285,7 @@ func (cdp *ConfigDataProvider) RawQuery(qa QueryFilter) ([]*RawConfigData, error
 // run for each host.
 
 func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) {
-	rawRecords, err := cdp.RawQuery(qa.QueryFilter)
+	rawRecords, err := cdp.rawQuery(qa.QueryFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -460,7 +461,7 @@ func (cdp *ConfigDataProvider) populateCache(qa QueryArgs) error {
 
 	now := time.Now().UTC().Unix()
 	for _, c := range chunks {
-		hn := c.workItem.Host[0]
+		hn := c.workItem.Host.SingleNameInfallible()
 		perHost := perCluster.hostTable[hn]
 		if perHost == nil {
 			panic("Inconsistent table: no entry for host " + hn)
@@ -492,7 +493,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 	toTime = qa.ToDate.Unix()
 	fromTime = qa.FromDate.Unix()
 	worklist := make([]QueryArgs, 0)
-	for _, hn := range qa.Host {
+	for hn := range qa.Host.ExpandNames() {
 		perHost := perCluster.hostTable[hn]
 		var newRecord bool
 		if perHost == nil {
@@ -510,7 +511,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 					FromDate: time.Unix(fromTime-twoWeeks, 0).UTC(),
 					HaveTo:   true,
 					ToDate:   time.Unix(perHost.oldestScannedTime, 0).UTC(),
-					Host:     []string{hn},
+					Host:     NewHostsFromSingle(hn),
 				},
 			})
 		}
@@ -521,7 +522,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 					FromDate: time.Unix(perHost.youngestRecord, 0).UTC(),
 					HaveTo:   true,
 					ToDate:   nowt,
-					Host:     []string{hn},
+					Host:     NewHostsFromSingle(hn),
 				},
 			})
 		}
@@ -537,7 +538,7 @@ func (cdp *ConfigDataProvider) obtainAllFromCache(qa QueryArgs) (result []*NodeC
 	perCluster.hostTableLock.Lock()
 	defer perCluster.hostTableLock.Unlock()
 
-	for _, hn := range qa.Host {
+	for hn := range qa.Host.ExpandNames() {
 		perHost := perCluster.hostTable[hn]
 		if perHost == nil {
 			// Should we panic?

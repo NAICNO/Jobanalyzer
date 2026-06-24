@@ -994,7 +994,7 @@ func querySlice[T any](
 	// generating data.  Note in particular that we can apply lossy abbreviations as long as they
 	// find everything a precise match would find.
 
-	if q.Node != nil && !q.Node.IsEmpty() {
+	if !q.Node.IsEmpty() {
 		fieldname := mapField("node", q.fieldMap)
 		if fieldname == "nodes" {
 			// As a special hack, when "node" maps to "nodes" then the selector turns into set
@@ -1026,30 +1026,26 @@ func querySlice[T any](
 			nextIx := len(qarg) + 1
 			for _, p := range q.Node.Patterns() {
 				loc := strings.IndexAny(p, "[*")
-				if !q.Node.IsPrefix() && loc == -1 {
-					conds = append(conds, fmt.Sprintf("\"%s\" = $%d", fieldname, nextIx))
-				} else {
-					// TODO: We can and should do more here:
-					//
-					// Some ranges can usefully be expanded into prefixes but it can be tricky:
-					// c1-[10-15] becomes c1-1 but c1-[9-20] becomes c1-1 OR c1-2 OR c1-9, among other
-					// things.  Yet simple cases of this are important, as e.g. gpu-[8,9] is a common
-					// thing.
-					//
-					// We could do 'c1-*.fox' as 'like c1-%.fox' and it may be worthwhile to do so,
-					// ditto c1-[10-40].fox could be 'like c1-%.fox'.  We could do c1-[2-8] as 'like
-					// 'c1-_' and it might be worthwhile (% matches zero or more, _ matches one).
-					//
-					// A perf hint for % is to avoid leading wildcards.
-					//
-					// We should get the hostglobber involved since it has an exact parse of the pattern
-					// set and is already in q.hosts.
-					conds = append(conds, fmt.Sprintf("\"%s\" like $%d", fieldname, nextIx))
-					if loc != -1 {
-						p = p[:loc]
-					}
-					p += "%"
+				// TODO: We can and should do more here:
+				//
+				// Some ranges can usefully be expanded into prefixes but it can be tricky:
+				// c1-[10-15] becomes c1-1 but c1-[9-20] becomes c1-1 OR c1-2 OR c1-9, among other
+				// things.  Yet simple cases of this are important, as e.g. gpu-[8,9] is a common
+				// thing.
+				//
+				// We could do 'c1-*.fox' as 'like c1-%.fox' and it may be worthwhile to do so,
+				// ditto c1-[10-40].fox could be 'like c1-%.fox'.  We could do c1-[2-8] as 'like
+				// 'c1-_' and it might be worthwhile (% matches zero or more, _ matches one).
+				//
+				// A perf hint for % is to avoid leading wildcards.
+				//
+				// We should get the hostglobber involved since it has an exact parse of the pattern
+				// set and is already in q.hosts.
+				conds = append(conds, fmt.Sprintf("\"%s\" like $%d", fieldname, nextIx))
+				if loc != -1 {
+					p = p[:loc]
 				}
+				p += "%"
 				args = append(args, p)
 				nextIx++
 			}

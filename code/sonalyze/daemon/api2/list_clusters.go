@@ -9,6 +9,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	. "sonalyze/common"
 	"sonalyze/daemon/apiutil"
 	"sonalyze/data/common"
 	"sonalyze/data/slurmpart"
@@ -89,7 +90,7 @@ func handleListClusters(
 
 		var nodes []string
 		{
-			sysinfo, hErr := getSysinfoAt(listClustersName, meta, to, nil)
+			sysinfo, hErr := getSysinfoAt(listClustersName, meta, to, Hosts{})
 			if hErr != nil {
 				return nil, hErr
 			}

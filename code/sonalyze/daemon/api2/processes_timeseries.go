@@ -70,7 +70,7 @@ func handleProcessesTimeseries(
 	if input.ResolutionInS != 0 {
 		bucket = int64(input.ResolutionInS)
 	}
-	hostFilter, hErr := apiutil.NewHostFilter(processesTimeseriesName, input.Nodename)
+	hostFilter, hErr := apiutil.NewHostFilter(processesTimeseriesName, meta, input.Nodename, from, to)
 	if hErr != nil {
 		return nil, hErr
 	}
