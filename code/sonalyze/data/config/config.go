@@ -242,7 +242,7 @@ type RawConfigData struct {
 
 // Raw query against the database.  Use with care.
 
-func (cdp *ConfigDataProvider) RawQuery(qa QueryFilter) ([]*RawConfigData, error) {
+func (cdp *ConfigDataProvider) rawQuery(qa QueryFilter) ([]*RawConfigData, error) {
 	nodes, err := cdp.nodes.Query(
 		node.QueryFilter{
 			HaveFrom: qa.HaveFrom,
@@ -285,7 +285,7 @@ func (cdp *ConfigDataProvider) RawQuery(qa QueryFilter) ([]*RawConfigData, error
 // run for each host.
 
 func (cdp *ConfigDataProvider) materialize(qa QueryArgs) ([]*NodeConfig, error) {
-	rawRecords, err := cdp.RawQuery(qa.QueryFilter)
+	rawRecords, err := cdp.rawQuery(qa.QueryFilter)
 	if err != nil {
 		return nil, err
 	}
