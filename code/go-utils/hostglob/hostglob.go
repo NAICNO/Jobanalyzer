@@ -65,11 +65,11 @@ import (
 
 // SplitMultiPattern takes a <multi-pattern> according to the grammar above and returns a list of
 // individual <pattern>s in that list.  It requires a bit of logic because each pattern may contain
-// a fragment that contains a comma.
+// a fragment that contains a comma.  Resulting patterns are trimmed.
 func SplitMultiPattern(s string) ([]string, error) {
-	strings := make([]string, 0)
+	patterns := make([]string, 0)
 	if s == "" {
-		return strings, nil
+		return patterns, nil
 	}
 	insideBrackets := false
 	start := -1
@@ -88,7 +88,7 @@ func SplitMultiPattern(s string) ([]string, error) {
 			if start == -1 {
 				return nil, fmt.Errorf("Illegal pattern: Empty host name")
 			}
-			strings = append(strings, s[start:ix])
+			patterns = append(patterns, strings.TrimSpace(s[start:ix]))
 			start = -1
 		} else if start == -1 {
 			start = ix
@@ -100,8 +100,8 @@ func SplitMultiPattern(s string) ([]string, error) {
 	if start == len(s) || start == -1 {
 		return nil, fmt.Errorf("Illegal pattern: Empty host name")
 	}
-	strings = append(strings, s[start:])
-	return strings, nil
+	patterns = append(patterns, strings.TrimSpace(s[start:]))
+	return patterns, nil
 }
 
 func SyntaxCheckPattern(p string) error {
@@ -293,6 +293,7 @@ func parseFragment(r *strings.Reader) (any, error) {
 				ungetc(r, c)
 				break
 			}
+			// TODO: restrictions on spaces?
 			literal = literal + string(c)
 		}
 		return literal, nil
