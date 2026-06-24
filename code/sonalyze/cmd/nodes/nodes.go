@@ -116,13 +116,17 @@ func (nc *NodeCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr i
 	if err != nil {
 		return err
 	}
+	host, err := common.ResolveWildcard(meta, nc.Host, nc.FromDate, nc.ToDate)
+	if err != nil {
+		return err
+	}
 	records, err := cdp.Query(config.QueryArgs{
 		QueryFilter: common.QueryFilter{
 			HaveFrom: nc.HaveFrom,
 			FromDate: nc.FromDate,
 			HaveTo:   nc.HaveTo,
 			ToDate:   nc.ToDate,
-			Host:     nc.Host,
+			Host:     host,
 		},
 		Newest: nc.Newest,
 		Query: func(records []*config.NodeConfig) ([]*config.NodeConfig, error) {

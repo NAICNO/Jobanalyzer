@@ -37,7 +37,7 @@ func handleNodesMemoryTimeseries(
 		StartTimeInS  uint64 `query:"start_time_in_s" doc:"Posix timestamp"`
 		EndTimeInS    uint64 `query:"end_time_in_s" doc:"Posix timestamp"`
 		ResolutionInS uint64 `query:"resolution_in_s" doc:"Default is 300"`
-		Nodename      string `query:"nodename" doc:"Compressed node name list"`
+		Nodenames     string `query:"nodename" doc:"Compressed node name list"`
 	},
 ) (*NodesMemoryTimeseriesResponse, error) {
 	prof, hErr := computeProfile(
@@ -46,7 +46,7 @@ func handleNodesMemoryTimeseries(
 		input.StartTimeInS,
 		input.EndTimeInS,
 		input.ResolutionInS,
-		input.Nodename,
+		input.Nodenames,
 	)
 	if hErr != nil {
 		return nil, hErr

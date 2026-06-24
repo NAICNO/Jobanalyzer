@@ -114,7 +114,7 @@ type SampleAnalysisCommand interface {
 		out io.Writer,
 		meta types.Context,
 		filter sample.QueryFilter,
-		hosts *Hosts,
+		hosts Multihost,
 		recordFilter *sample.SampleFilter,
 	) error
 

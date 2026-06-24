@@ -171,7 +171,7 @@ func (pc *ParseCommand) Perform(
 	out io.Writer,
 	meta types.Context,
 	filter sample.QueryFilter,
-	hosts *Hosts,
+	hosts Multihost,
 	recordFilter *sample.SampleFilter,
 ) error {
 	sdp, err := sample.OpenSampleDataProvider(meta)
@@ -216,6 +216,7 @@ func (pc *ParseCommand) Perform(
 						Samples:  slices.Clone(*v),
 						NumTasks: 1,
 						Tasks:    []sample.SampleStream{*v},
+						Host:     MultihostFromSingle((*v)[0].Hostname.String()),
 					})
 			}
 

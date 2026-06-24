@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"go-utils/gpuset"
+	. "sonalyze/common"
 	"sonalyze/data/card"
 	"sonalyze/data/common"
 	"sonalyze/data/node"
@@ -96,7 +97,7 @@ func getSysinfoAt(
 	opName string,
 	meta types.Context,
 	to time.Time,
-	hostList []string,
+	host Multihost,
 ) (map[string]*repr.SysinfoNodeData, huma.StatusError) {
 	ndp, err := node.OpenNodeDataProvider(meta)
 	if err != nil {
@@ -104,7 +105,7 @@ func getSysinfoAt(
 	}
 	from := to.Add(-sysinfoWindow)
 	nodes, err := ndp.Query(
-		common.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: hostList},
+		common.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: host},
 	)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(opName+": Failed to query node data", err)
@@ -125,7 +126,7 @@ func getCardInfoByUUIDAt(
 	opName string,
 	meta types.Context,
 	to time.Time,
-	hostList []string,
+	host Multihost,
 ) (map[string]*repr.SysinfoCardData, huma.StatusError) {
 	cdp, err := card.OpenCardDataProvider(meta)
 	if err != nil {
@@ -134,7 +135,7 @@ func getCardInfoByUUIDAt(
 	from := to.Add(-sysinfoWindow)
 	records, err :=
 		cdp.Query(
-			card.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: hostList},
+			card.QueryFilter{HaveFrom: true, FromDate: from, HaveTo: true, ToDate: to, Host: host},
 		)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(opName+": Failed to query card data", err)
@@ -156,9 +157,9 @@ func getCardInfoByNodeAt(
 	opName string,
 	meta types.Context,
 	to time.Time,
-	hostList []string,
+	host Multihost,
 ) (map[string][]*repr.SysinfoCardData, huma.StatusError) {
-	cardInfo, hErr := getCardInfoByUUIDAt(opName, meta, to, hostList)
+	cardInfo, hErr := getCardInfoByUUIDAt(opName, meta, to, host)
 	if hErr != nil {
 		return nil, hErr
 	}

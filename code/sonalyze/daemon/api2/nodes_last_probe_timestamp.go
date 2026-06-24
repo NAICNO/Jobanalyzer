@@ -14,6 +14,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	. "sonalyze/common"
 	"sonalyze/daemon/apiutil"
 	"sonalyze/data/sample"
 )
@@ -63,7 +64,7 @@ func handleNodesLastProbeTimestamp(
 		sdp.Query(
 			from,
 			to,
-			nil, // hosts
+			Multihost{},
 			&sample.SampleFilter{From: from.Unix(), To: to.Unix()},
 			true, // bounds
 		)

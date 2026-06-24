@@ -66,7 +66,7 @@ func (uc *UptimeCommand) Perform(
 	out io.Writer,
 	meta types.Context,
 	filter sample.QueryFilter,
-	hosts *Hosts,
+	hosts Multihost,
 	recordFilter *sample.SampleFilter,
 ) error {
 	sdp, err := sample.OpenSampleDataProvider(meta)
@@ -112,7 +112,7 @@ func (uc *UptimeCommand) computeReports(
 	samples sample.SampleStream,
 	bounds Timebounds,
 	meta types.Context,
-	hostGlobber *Hosts,
+	hostGlobber Multihost,
 ) []*UptimeLine {
 	reports := make([]*UptimeLine, 0)
 	fromIncl, toIncl := uc.InterpretFromToWithBounds(bounds)
@@ -258,7 +258,7 @@ func (uc *UptimeCommand) computeReports(
 
 func (uc *UptimeCommand) computeHostWindows(
 	samples sample.SampleStream,
-	hosts *Hosts,
+	hosts Multihost,
 	fromIncl, toIncl int64,
 ) []window {
 	hostGlobber := hosts.HostnameGlobber()
@@ -310,7 +310,7 @@ func (uc *UptimeCommand) computeAlwaysDown(
 	reports *[]*UptimeLine,
 	samples sample.SampleStream,
 	meta types.Context,
-	hosts *Hosts,
+	hosts Multihost,
 	fromIncl, toIncl int64,
 ) {
 	if !uc.OnlyUp {

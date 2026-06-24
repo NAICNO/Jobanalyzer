@@ -6,6 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	. "sonalyze/common"
 	"sonalyze/daemon/apiutil"
 )
 
@@ -63,19 +64,22 @@ func handleNodesInfo(
 	if hErr != nil {
 		return nil, hErr
 	}
-	_, to, hErr := apiutil.TimeWindowFromData(nodesInfoName, meta, 0, input.TimeInS)
+	from, to, hErr := apiutil.TimeWindowFromData(nodesInfoName, meta, 0, input.TimeInS)
 	if hErr != nil {
 		return nil, hErr
 	}
-	var hostList []string
+	var host Multihost
 	if input.Nodename != "" {
-		hostList = []string{input.Nodename}
+		host, hErr = apiutil.NewHostFilter(nodesInfoName, meta, input.Nodename, from, to)
+		if hErr != nil {
+			return nil, hErr
+		}
 	}
-	sysinfo, hErr := getSysinfoAt(nodesInfoName, meta, to, hostList)
+	sysinfo, hErr := getSysinfoAt(nodesInfoName, meta, to, host)
 	if hErr != nil {
 		return nil, hErr
 	}
-	cardInfo, hErr := getCardInfoByUUIDAt(nodesInfoName, meta, to, hostList)
+	cardInfo, hErr := getCardInfoByUUIDAt(nodesInfoName, meta, to, host)
 	if hErr != nil {
 		return nil, hErr
 	}

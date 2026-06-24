@@ -27,6 +27,7 @@ type MergedJob struct {
 	Samples  SampleStream   // Synthesized/merged samples
 	NumTasks int            // The number of tasks that went into the merge
 	Tasks    []SampleStream // The individual input streams
+	Host     Multihost      // The set of hosts in the streams
 }
 
 type indirectStreams []*SampleStream

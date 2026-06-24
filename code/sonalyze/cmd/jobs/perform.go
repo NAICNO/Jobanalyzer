@@ -124,7 +124,7 @@ func (jc *JobsCommand) Perform(
 	out io.Writer,
 	meta types.Context,
 	filter sample.QueryFilter,
-	hosts *Hosts,
+	hosts Multihost,
 	recordFilter *sample.SampleFilter,
 ) error {
 	sdp, err := sample.OpenSampleDataProvider(meta)
@@ -156,17 +156,17 @@ func (jc *JobsCommand) Perform(
 		Log.Infof("Samples retained after filtering: %d", numSamples)
 	}
 
-	cfg := config.MaybeOpenConfigDataProvider(meta)
+	cdp := config.MaybeOpenConfigDataProvider(meta)
 
 	if NeedsConfig(jobsFormatters, jc.PrintFields) {
 		var err error
-		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
+		streams, err = EnsureConfigForInputStreams(cdp, streams, "relative format arguments")
 		if err != nil {
 			return err
 		}
 	}
 
-	summaries := jc.summarizeAndFilterJobs(meta, cfg, streams, bounds)
+	summaries := jc.summarizeAndFilterJobs(meta, cdp, streams, bounds)
 	if Verbose {
 		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
@@ -187,7 +187,7 @@ func (jc *JobsCommand) Perform(
 
 func (jc *JobsCommand) summarizeAndFilterJobs(
 	meta types.Context,
-	cfg *config.ConfigDataProvider,
+	cdp *config.ConfigDataProvider,
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) []*jobSummary {
@@ -210,7 +210,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 		needZombie:    jc.Zombie,
 	}
 	summaries, discarded, fb :=
-		jc.summarizeJobsFromSonarData(cfg, bounds, jobs, summaryFilter, fb)
+		jc.summarizeJobsFromSonarData(cdp, bounds, jobs, summaryFilter, fb)
 	if Verbose {
 		Log.Infof("Jobs discarded by aggregation filtering: %d", discarded)
 	}
@@ -228,7 +228,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 }
 
 func (jc *JobsCommand) summarizeJobsFromSonarData(
-	cfg *config.ConfigDataProvider,
+	cdp *config.ConfigDataProvider,
 	bounds Timebounds,
 	jobs sample.MergedJobs,
 	summaryFilter *aggregationFilter,
@@ -256,7 +256,7 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	discarded := 0
 	for _, job := range jobs {
 		if uint(len(job.Samples)) >= minSamples {
-			summary := summarizeSingleJobFromSonarData(cfg, bounds, job, now, fb)
+			summary := summarizeSingleJobFromSonarData(cdp, bounds, job, now, fb)
 			if summaryFilter == nil || summaryFilter.apply(summary) {
 				summaries = append(summaries, summary)
 			} else {
@@ -271,20 +271,19 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 
 // Aggregate and summarize but do not attach any sacct data.
 func summarizeSingleJobFromSonarData(
-	cfg *config.ConfigDataProvider,
+	cdp *config.ConfigDataProvider,
 	bounds Timebounds,
 	job sample.MergedJob,
 	now int64,
 	fb flagBag,
 ) *jobSummary {
 	samples := job.Samples
-	host := samples[0].Hostname
 	jobId := samples[0].Job
 	user := samples[0].User
 	first := samples[0].Timestamp
 	last := samples[len(samples)-1].Timestamp
 	duration := last - first
-	aggregate := aggregateSingleJobFromSonarData(cfg, host, samples, fb)
+	aggregate := aggregateSingleJobFromSonarData(cdp, job.Host, samples, fb)
 	aggregate.u64[uDurationSec] = uint64(duration)
 	usesGpu := !aggregate.Gpus.IsEmpty()
 	flags := 0
@@ -296,7 +295,8 @@ func summarizeSingleJobFromSonarData(
 	if aggregate.GpuFail != 0 {
 		flags |= kGpuFail
 	}
-	bound, haveBound := bounds[host]
+	// Note or merged streams the bounds also are keyed on merged names.
+	bound, haveBound := bounds[StringToUstr(job.Host.CanonicalName())]
 	if !haveBound {
 		panic("Expected to find bound")
 	}
@@ -357,8 +357,8 @@ func summarizeSingleJobFromSonarData(
 // duplicated timestamps, return a JobAggregate for the job, with values that are computed from all
 // log entries.
 func aggregateSingleJobFromSonarData(
-	cfg *config.ConfigDataProvider,
-	host Ustr,
+	cdp *config.ConfigDataProvider,
+	host Multihost,
 	job []sample.Sample,
 	fb flagBag,
 ) jobAggregate {
@@ -417,7 +417,7 @@ func aggregateSingleJobFromSonarData(
 	}
 	usesGpu := !gpus.IsEmpty()
 
-	if sys := cfg.LookupHostByTime(host, job[0].Timestamp); sys != nil {
+	if sys := cdp.LookupMergedHostByTime(host, job[0].Timestamp); sys != nil {
 		// Quantities can be zero in surprising ways, so always guard divisions
 		if cores := float64(sys.CpuCores); cores > 0 {
 			rCpuPctAvg = cpuPctAvg / cores
@@ -471,8 +471,10 @@ func aggregateSingleJobFromSonarData(
 	var hosts *Hostnames
 	if fb.needHosts {
 		hosts = NewHostnames()
+		// FIXME: Does this even make sense?  Would not every sample in the job have the same host
+		// name?
 		for _, s := range job {
-			hosts.Add(s.Hostname.String())
+			hosts.AddCompressed(s.Hostname.String())
 		}
 	}
 	n := float64(len(job))
