@@ -13,10 +13,8 @@ package sample
 import (
 	"math"
 	"slices"
-	"strings"
 
 	"go-utils/gpuset"
-	"go-utils/hostglob"
 	"go-utils/maps"
 	uslices "go-utils/slices"
 	. "sonalyze/common"
@@ -93,7 +91,7 @@ func MergeByHostAndJob(streams InputStreamSet) MergedJobs {
 		UstrSortAscending(commands)
 		username := mergedUserName(cmdsAndStreams.streams)
 		merged = append(merged, mergeStreams(
-			key.host,
+			NewHostsFromSingle(key.host.String()),
 			UstrJoin(commands, StringToUstr(",")),
 			username,
 			key.job,
@@ -129,7 +127,8 @@ func mergedUserName(streams indirectStreams) Ustr {
 // This must also merge the metadata from the different hosts: the time bounds.  For a merged
 // stream, the "earliest" time is the min across the earliest times for the different host streams
 // that go into the merged stream, and the "latest" time is the max across the latest times ditto.
-
+//
+// Merged bounds are indexed by the merged Multihost's canonical name (always).
 func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timebounds) {
 	type jobDataTy struct {
 		commands map[Ustr]bool
@@ -184,6 +183,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timeboun
 			Samples:  slices.Clone(*z),
 			NumTasks: 1,
 			Tasks:    []SampleStream{*z},
+			Host:     NewHostsFromSingle((*z)[0].Hostname.String()),
 		})
 	}
 
@@ -191,7 +191,10 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timeboun
 	// merged streams.
 	for jobId, jobData := range collections {
 		names := maps.MapKeys(jobData.hosts, Ustr.String)
-		hostname := StringToUstr(strings.Join(hostglob.CompressHostnames(names), ","))
+		hosts := NewHostsFromSingle(names...)
+		// FIXME: It would be desirable, here and in the consumer, to hash on the hosts structure
+		// somehow, and not on the canonical name, since that may be expensive to construct.
+		hostname := hosts.CanonicalNameUstr()
 		if _, found := newBounds[hostname]; !found {
 			if len(jobData.hosts) == 0 {
 				panic("Host list should not be empty")
@@ -209,7 +212,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timeboun
 		UstrSortAscending(commands)
 		user := mergedUserName(jobData.streams)
 		newStreams = append(newStreams, mergeStreams(
-			hostname,
+			hosts,
 			UstrJoin(commands, StringToUstr(",")),
 			user,
 			jobId,
@@ -249,28 +252,31 @@ func MergeByHost(streams InputStreamSet) MergedJobs {
 	username := cmdname
 	jobId := uint32(0)
 	for hostname, streams := range collections {
-		vs = append(vs, mergeStreams(hostname, cmdname, username, jobId, streams))
+		vs = append(
+			vs,
+			mergeStreams(NewHostsFromSingle(hostname.String()), cmdname, username, jobId, streams),
+		)
 	}
 
 	return vs
 }
 
-// TODO: DOCUMENTME
+// TODO: DOCUMENTME.  There's an assumption here that the merged jobs all come from disjoint hosts.
 
 func MergeAcrossHostsByTime(streams MergedJobs) MergedJobs {
 	if len(streams) == 0 {
 		return streams
 	}
-	names := uslices.Map(streams, func(s MergedJob) string {
-		return s.Samples[0].Hostname.String()
-	})
-	hostname := StringToUstr(strings.Join(hostglob.CompressHostnames(names), ","))
 	istreams := make(indirectStreams, 0, len(streams))
 	for _, v := range streams {
 		istreams = append(istreams, &v.Samples)
 	}
+	hosts := make([]Hosts, 0, len(streams))
+	for _, m := range streams {
+		hosts = append(hosts, m.Host)
+	}
 	tmp := mergeStreams(
-		hostname,
+		HostsMerge(hosts),
 		StringToUstr("_merged_"),
 		StringToUstr("_merged_"),
 		0,
@@ -366,7 +372,7 @@ func MergeAcrossHostsByTime(streams MergedJobs) MergedJobs {
 // - records may be obtained from the same host and the streams may therefore be synchronized
 
 func mergeStreams(
-	hostname Ustr,
+	hosts Hosts,
 	command Ustr,
 	username Ustr,
 	jobId uint32,
@@ -589,7 +595,7 @@ func mergeStreams(
 		records = append(records, sumRecords(
 			v000,
 			minTime,
-			hostname,
+			hosts,
 			username,
 			jobId,
 			command,
@@ -604,6 +610,7 @@ func mergeStreams(
 		Tasks: uslices.Map(streams, func(s *SampleStream) SampleStream {
 			return *s
 		}),
+		Host: hosts,
 	}
 }
 
@@ -617,7 +624,7 @@ func MergeGpuFail(a, b uint8) uint8 {
 func sumRecords(
 	version Ustr,
 	timestamp int64,
-	hostname Ustr,
+	hosts Hosts,
 	username Ustr,
 	jobId uint32,
 	command Ustr,
@@ -655,12 +662,15 @@ func sumRecords(
 	// at the end to maintain the invariant.
 	rolledup -= uint32(len(selected) + 1)
 
-	// Synthesize the record.
+	// Synthesize the record.  FIXME: It would be desirable for the Hostname here to be a constant
+	// string, eg "_merged_" or "", and for merged host names to be synthesized during presentation
+	// from the hosts structure itself, present in the merged stream.  The reason is that
+	// constructing the canonical name can be expensive.
 	return Sample{
 		Sample: &repr.Sample{
 			Version:           version,
 			Timestamp:         timestamp,
-			Hostname:          hostname,
+			Hostname:          hosts.CanonicalNameUstr(),
 			User:              username,
 			Job:               jobId,
 			Cmd:               command,
@@ -685,27 +695,27 @@ func sumRecords(
 	}
 }
 
-func FoldSamplesHalfHourly(samples SampleStream) MergedJob {
-	return foldSamples(samples, TruncateToHalfHour)
+func FoldSamplesHalfHourly(samples SampleStream, hosts Hosts) MergedJob {
+	return foldSamples(samples, hosts, TruncateToHalfHour)
 }
 
-func FoldSamplesHourly(samples SampleStream) MergedJob {
-	return foldSamples(samples, TruncateToHour)
+func FoldSamplesHourly(samples SampleStream, hosts Hosts) MergedJob {
+	return foldSamples(samples, hosts, TruncateToHour)
 }
 
-func FoldSamplesHalfDaily(samples SampleStream) MergedJob {
-	return foldSamples(samples, TruncateToHalfDay)
+func FoldSamplesHalfDaily(samples SampleStream, hosts Hosts) MergedJob {
+	return foldSamples(samples, hosts, TruncateToHalfDay)
 }
 
-func FoldSamplesDaily(samples SampleStream) MergedJob {
-	return foldSamples(samples, TruncateToDay)
+func FoldSamplesDaily(samples SampleStream, hosts Hosts) MergedJob {
+	return foldSamples(samples, hosts, TruncateToDay)
 }
 
-func FoldSamplesWeekly(samples SampleStream) MergedJob {
-	return foldSamples(samples, TruncateToWeek)
+func FoldSamplesWeekly(samples SampleStream, hosts Hosts) MergedJob {
+	return foldSamples(samples, hosts, TruncateToWeek)
 }
 
-func foldSamples(samples SampleStream, truncTime func(int64) int64) MergedJob {
+func foldSamples(samples SampleStream, hosts Hosts, truncTime func(int64) int64) MergedJob {
 	result := make(SampleStream, 0)
 	i := 0
 	v000 := StringToUstr("0.0.0")
@@ -722,7 +732,7 @@ func foldSamples(samples SampleStream, truncTime func(int64) int64) MergedJob {
 		r := sumRecords(
 			v000,
 			t0,
-			s0.Hostname,
+			hosts,
 			merged,
 			0,
 			merged,

@@ -2,7 +2,9 @@ package common
 
 import (
 	"iter"
+	"maps"
 	"slices"
+	"strings"
 
 	"go-utils/hostglob"
 )
@@ -43,13 +45,48 @@ func NewHostsFromPatterns(patterns ...string) (Hosts, error) {
 		return Hosts{}, err
 	}
 	patterns = slices.Clone(patterns)
-	// TODO: Sorting is insufficient for canonicalizing names, but it's a start.
+	// FIXME: Sorting is insufficient for canonicalizing names, but it's a start.
 	slices.Sort(patterns)
 	return Hosts{
 		ranges:   true,
 		patterns: patterns,
 		globber:  globber,
 	}, nil
+}
+
+func HostsMerge(hs []Hosts) Hosts {
+	if len(hs) == 0 {
+		panic("Empty set of hosts in merging")
+	}
+	uniquePatterns := make(map[string]bool, 0)
+	var ranges bool
+	for _, h := range hs {
+		for _, p := range h.patterns {
+			uniquePatterns[p] = true
+		}
+		ranges = ranges || h.ranges
+	}
+	patterns := slices.Collect(maps.Keys(uniquePatterns))
+	globber, _ := hostglob.NewGlobber(true, patterns)
+	// FIXME: Sorting is insufficient for canonicalizing names, but it's a start.
+	slices.Sort(patterns)
+	return Hosts{
+		ranges:   ranges,
+		patterns: patterns,
+		globber:  globber,
+	}
+}
+
+func (h *Hosts) CanonicalName() string {
+	// FIXME: Must be cached.
+	compressed := hostglob.CompressHostnames(h.patterns)
+	slices.Sort(compressed)
+	return strings.Join(compressed, ",")
+}
+
+func (h *Hosts) CanonicalNameUstr() Ustr {
+	// FIXME: Should be cached maybe.
+	return StringToUstr(h.CanonicalName())
 }
 
 func (h *Hosts) SingleNameInfallible() string {

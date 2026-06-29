@@ -23,7 +23,7 @@ func EnsureConfigForInputStreams(
 	for key, stream := range streams {
 		hn := (*stream)[0].Hostname
 		ts := (*stream)[0].Timestamp
-		if cdp.LookupHostByTime(hn, ts) == nil {
+		if cdp.LookupSingleHostByTime(hn.String(), ts) == nil {
 			bad[key] = true
 			Log.Infof("Warning: Missing host configuration for %s", hn.String())
 		}
