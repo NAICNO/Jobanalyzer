@@ -263,9 +263,9 @@ func FormatIsoUtc(t int64) string {
 
 func FormatHostnames(x *Hostnames, ctx PrintMods) string {
 	if ctx&PrintModFixed != 0 {
-		return x.FormatBrief()
+		return x.FormatBriefCompressed()
 	}
-	return x.FormatFull()
+	return x.FormatFullCompressed()
 }
 
 // This returns error to conform to an interface but never returns non-nil error.
