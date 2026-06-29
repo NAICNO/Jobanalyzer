@@ -297,6 +297,12 @@ func (h *Hostnames) FormatBrief() string {
 	return strings.Join(xs, ",")
 }
 
+func (h *Hostnames) FormatBriefCompressed() string {
+	xs := slices.Collect(maps.Keys(h.s.sources.next))
+	slices.Sort(xs)
+	return strings.Join(hostglob.CompressHostnames(xs), ",")
+}
+
 // Returns a string that is a comma-separated lists of the hosts in the set, in sorted order,
 // without compression.  For this, we need the sinks.  From each sink we walk the graph backward to
 // the root, constructing full names as we go.
@@ -305,6 +311,12 @@ func (h *Hostnames) FormatFull() string {
 	xs := slices.Collect(h.FullNames)
 	slices.Sort(xs)
 	return strings.Join(xs, ",")
+}
+
+func (h *Hostnames) FormatFullCompressed() string {
+	xs := slices.Collect(h.FullNames)
+	slices.Sort(xs)
+	return strings.Join(hostglob.CompressHostnames(xs), ",")
 }
 
 func (h *Hostnames) FullNames(yield func(string) bool) {
