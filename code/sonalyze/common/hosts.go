@@ -2,10 +2,18 @@ package common
 
 import (
 	"iter"
+	"maps"
 	"slices"
+	"strings"
+	"sync/atomic"
 
 	"go-utils/hostglob"
 )
+
+type nameInfo struct {
+	name  string
+	uname Ustr
+}
 
 // Hosts is a wrapper for a hostglob.HostGlobber that can be used to glob either straight host names
 // or file names (based on a set of patterns), depending on need.
@@ -13,6 +21,7 @@ type Hosts struct {
 	ranges   bool
 	patterns []string
 	globber  *hostglob.HostGlobber
+	name     *atomic.Value // can be nil.  If not, holds nameInfo or (any)nil.
 }
 
 var (
@@ -37,19 +46,67 @@ func NewHostsFromSingle(names ...string) Hosts {
 // allowed!  For pattern syntax, see the HostGlobber documentation.
 func NewHostsFromPatterns(patterns ...string) (Hosts, error) {
 	// Globber compilation performs some syntax checking (but allows *).  In most cases, we're going
-	// to want this globber anyway so it's not a disaster to construct it always.
+	// to want this globber anyway so it's not a disaster to construct it always.  But it could be
+	// cached in the same way the canonicalName is.
 	globber, err := hostglob.NewGlobber(true, patterns)
 	if err != nil {
 		return Hosts{}, err
 	}
 	patterns = slices.Clone(patterns)
-	// TODO: Sorting is insufficient for canonicalizing names, but it's a start.
-	slices.Sort(patterns)
 	return Hosts{
 		ranges:   true,
 		patterns: patterns,
 		globber:  globber,
+		name:     new(atomic.Value),
 	}, nil
+}
+
+func HostsMerge(hs []Hosts) Hosts {
+	if len(hs) == 0 {
+		panic("Empty set of hosts in merging")
+	}
+	uniquePatterns := make(map[string]bool, 0)
+	var ranges bool
+	for _, h := range hs {
+		for _, p := range h.patterns {
+			uniquePatterns[p] = true
+		}
+		ranges = ranges || h.ranges
+	}
+	patterns := slices.Collect(maps.Keys(uniquePatterns))
+	globber, _ := hostglob.NewGlobber(true, patterns)
+	return Hosts{
+		ranges:   ranges,
+		patterns: patterns,
+		globber:  globber,
+		name:     new(atomic.Value),
+	}
+}
+
+func (h *Hosts) CanonicalName() string {
+	if h.name == nil {
+		return ""
+	}
+	if v := h.name.Load(); v != nil {
+		return v.(nameInfo).name
+	}
+	compressed := hostglob.CompressHostnames(h.patterns)
+	slices.Sort(compressed)
+	n := strings.Join(compressed, ",")
+	u := StringToUstr(n)
+	h.name.Store(nameInfo{n, u})
+	return n
+}
+
+func (h *Hosts) CanonicalNameUstr() Ustr {
+	if h.name == nil {
+		return UstrEmpty
+	}
+	if v := h.name.Load(); v != nil {
+		return v.(nameInfo).uname
+	}
+	_ = h.CanonicalName()
+	return h.name.Load().(nameInfo).uname
 }
 
 func (h *Hosts) SingleNameInfallible() string {

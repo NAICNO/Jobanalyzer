@@ -91,13 +91,51 @@ func MaybeOpenConfigDataProvider(meta types.Context) *ConfigDataProvider {
 	}
 }
 
+// This can return nil.  It may be very expensive.  We expand the host set and aggregate the data
+// from all the nodes in the set.
+//
+// FIXME: To defray the expense, we must cache.
+func (cdp *ConfigDataProvider) LookupMergedHostByTime(host Hosts, t int64) *repr.NodeSummary {
+	hostname := host.CanonicalName()
+
+	var result *repr.NodeSummary
+	var count int
+	for hn := range host.ExpandNames() {
+		x := cdp.LookupSingleHostByTime(hn, t)
+		if x == nil {
+			continue
+		}
+		if result == nil {
+			result = &repr.NodeSummary{}
+			*result = *x
+		} else {
+			if x.Timestamp > result.Timestamp {
+				result.Timestamp = x.Timestamp
+			}
+			result.CrossNodeJobs = result.CrossNodeJobs || x.CrossNodeJobs
+			result.CpuCores += x.CpuCores
+			result.MemGB += x.MemGB
+			result.GpuCards += x.GpuCards
+			result.GpuMemGB += x.GpuMemGB
+			result.GpuMemPct = result.GpuMemPct || x.GpuMemPct
+		}
+		count++
+	}
+	if count > 1 {
+		result.Hostname = hostname
+		result.Description = "merged data"
+	}
+
+	return result
+}
+
 // This can return nil.  We want the latest host information at or before the given time, which is
 // seconds since Unix epoch UTC.  If the database has to be queried, the query window into the past
 // may be limited to 14 days.  The result is not necessarily stable, it may change if new data come
 // in, but will never revert to older data.  New data that replace a prior non-nil result may or may
 // not be honored in a timely manner.  A static cluster configuration, should it exist, will be
 // consulted only if the information can't be found in the database.
-func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSummary {
+func (cdp *ConfigDataProvider) LookupSingleHostByTime(host string, t int64) *repr.NodeSummary {
 	if !cdp.valid {
 		return nil
 	}
@@ -108,18 +146,18 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 			FromDate: time.Unix(t-(60*60*24*14), 0).UTC(),
 			HaveTo:   true,
 			ToDate:   time.Unix(t, 0).UTC(),
-			Host:     NewHostsFromSingle(host.String()),
+			Host:     NewHostsFromSingle(host),
 		},
 	})
 	if err == nil {
-		if tmp := cdp.obtainOneFromCache(host.String(), t); tmp != nil {
+		if tmp := cdp.obtainOneFromCache(host, t); tmp != nil {
 			return &tmp.NodeSummary
 		}
 	}
 
 	// Fallback code to old-style static node config, this will likely disappear.
 	if cdp.meta.HaveConfig() {
-		return cdp.meta.Config().LookupHost(host.String())
+		return cdp.meta.Config().LookupHost(host)
 	}
 
 	return nil
@@ -129,14 +167,14 @@ func (cdp *ConfigDataProvider) LookupHostByTime(host Ustr, t int64) *repr.NodeSu
 // given time interval, or in the backing config file if there is one and there are no nodes in the
 // data base.
 //
-// Noe this cannot be taken from computed config data because need this list to compute the config
+// Note this cannot be taken from computed config data because need this list to compute the config
 // data for an open set of hosts.
 //
-// This needs a cache and/or lazy computation, too.  The right way to think about it, I think, is to
-// ignore the toDate, and to populate the lazy table from the fromDate to the youngest date not
-// covered, which could be today's date.  The table should have one entry per calendar day (this is
-// good enough) and should be careful to share data where possible, because the host sets can be
-// quite large but have tremendous stability over time, so there will be a lot of sharing.
+// FIXME: This needs a cache and/or lazy computation, too.  The right way to think about it, I
+// think, is to ignore the toDate, and to populate the lazy table from the fromDate to the youngest
+// date not covered, which could be today's date.  The table should have one entry per calendar day
+// (this is good enough) and should be careful to share data where possible, because the host sets
+// can be quite large but have tremendous stability over time, so there will be a lot of sharing.
 //
 // This API can be made internal, the only external user can use ConfigDataProvider.Query for the
 // same effect.  And it's not necessary for the return value to be a map, both current consumers

@@ -71,6 +71,7 @@ import (
 	"strings"
 
 	"go-utils/hostglob"
+	. "sonalyze/common"
 )
 
 // The data structure implements the tree literally, with backlinks so that it's possible to walk
@@ -242,6 +243,14 @@ func NewHostnames() *Hostnames {
 	}
 }
 
+func NewHostnamesFromHosts(hosts Hosts) *Hostnames {
+	hns := NewHostnames()
+	for _, p := range hosts.Patterns() {
+		_ = hns.addPattern(p)
+	}
+	return hns
+}
+
 // A single name a.b.c, no ranges and no comma-separated lists
 func (h *Hostnames) AddSingle(hostname string) {
 	if h.s.addNames(hostname) {
@@ -256,13 +265,21 @@ func (h *Hostnames) AddCompressed(nodelist string) error {
 		return err
 	}
 	for _, p := range patterns {
-		names, err := hostglob.ExpandPattern(p)
+		err := h.addPattern(p)
 		if err != nil {
 			return err
 		}
-		for _, n := range names {
-			h.AddSingle(n)
-		}
+	}
+	return nil
+}
+
+func (h *Hostnames) addPattern(p string) error {
+	names, err := hostglob.ExpandPattern(p)
+	if err != nil {
+		return err
+	}
+	for _, n := range names {
+		h.AddSingle(n)
 	}
 	return nil
 }

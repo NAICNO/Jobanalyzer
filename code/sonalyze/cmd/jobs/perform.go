@@ -191,7 +191,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) []*jobSummary {
-	var jobs sample.MergedJobs
+	var jobs []sample.MergedJob
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
 	} else if !jc.MergeNone {
@@ -230,7 +230,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 func (jc *JobsCommand) summarizeJobsFromSonarData(
 	cdp *config.ConfigDataProvider,
 	bounds Timebounds,
-	jobs sample.MergedJobs,
+	jobs []sample.MergedJob,
 	summaryFilter *aggregationFilter,
 	fb flagBag,
 ) ([]*jobSummary, int, flagBag) {
@@ -278,13 +278,12 @@ func summarizeSingleJobFromSonarData(
 	fb flagBag,
 ) *jobSummary {
 	samples := job.Samples
-	host := samples[0].Hostname
 	jobId := samples[0].Job
 	user := samples[0].User
 	first := samples[0].Timestamp
 	last := samples[len(samples)-1].Timestamp
 	duration := last - first
-	aggregate := aggregateSingleJobFromSonarData(cdp, host, samples, fb)
+	aggregate := aggregateSingleJobFromSonarData(cdp, job.Host, samples, fb)
 	aggregate.u64[uDurationSec] = uint64(duration)
 	usesGpu := !aggregate.Gpus.IsEmpty()
 	flags := 0
@@ -296,7 +295,11 @@ func summarizeSingleJobFromSonarData(
 	if aggregate.GpuFail != 0 {
 		flags |= kGpuFail
 	}
-	bound, haveBound := bounds[host]
+	// Note, for merged streams the bounds also are keyed on merged names.
+	//
+	// FIXME: As noted in the synthesis code, it would be desirable for us to hash on the hosts
+	// structure itself, and not on the canonical name.
+	bound, haveBound := bounds[job.Host.CanonicalNameUstr()]
 	if !haveBound {
 		panic("Expected to find bound")
 	}
@@ -358,7 +361,7 @@ func summarizeSingleJobFromSonarData(
 // log entries.
 func aggregateSingleJobFromSonarData(
 	cdp *config.ConfigDataProvider,
-	host Ustr,
+	host Hosts,
 	job []sample.Sample,
 	fb flagBag,
 ) jobAggregate {
@@ -417,7 +420,7 @@ func aggregateSingleJobFromSonarData(
 	}
 	usesGpu := !gpus.IsEmpty()
 
-	if sys := cdp.LookupHostByTime(host, job[0].Timestamp); sys != nil {
+	if sys := cdp.LookupMergedHostByTime(host, job[0].Timestamp); sys != nil {
 		// Quantities can be zero in surprising ways, so always guard divisions
 		if cores := float64(sys.CpuCores); cores > 0 {
 			rCpuPctAvg = cpuPctAvg / cores
@@ -470,10 +473,7 @@ func aggregateSingleJobFromSonarData(
 
 	var hosts *Hostnames
 	if fb.needHosts {
-		hosts = NewHostnames()
-		for _, s := range job {
-			hosts.AddCompressed(s.Hostname.String())
-		}
+		hosts = NewHostnamesFromHosts(host)
 	}
 	n := float64(len(job))
 	a := jobAggregate{
@@ -737,7 +737,7 @@ func (jc *JobsCommand) joinSacctData(
 func mergeAcrossSomeNodes(
 	streams sample.InputStreamSet,
 	bounds Timebounds,
-) (sample.MergedJobs, Timebounds) {
+) ([]sample.MergedJob, Timebounds) {
 	mergeable := make(sample.InputStreamSet)
 	mBounds := make(Timebounds)
 	solo := make(sample.InputStreamSet)

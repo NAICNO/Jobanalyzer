@@ -74,15 +74,15 @@ func (lc *LoadCommand) Perform(
 			var newS sample.MergedJob
 			switch lc.bucketing {
 			case bHalfHourly:
-				newS = sample.FoldSamplesHalfHourly(s.Samples)
+				newS = sample.FoldSamplesHalfHourly(s.Samples, s.Host)
 			case bHourly:
-				newS = sample.FoldSamplesHourly(s.Samples)
+				newS = sample.FoldSamplesHourly(s.Samples, s.Host)
 			case bHalfDaily:
-				newS = sample.FoldSamplesHalfDaily(s.Samples)
+				newS = sample.FoldSamplesHalfDaily(s.Samples, s.Host)
 			case bDaily:
-				newS = sample.FoldSamplesDaily(s.Samples)
+				newS = sample.FoldSamplesDaily(s.Samples, s.Host)
 			case bWeekly:
-				newS = sample.FoldSamplesWeekly(s.Samples)
+				newS = sample.FoldSamplesWeekly(s.Samples, s.Host)
 			default:
 				panic("Unexpected case")
 			}
@@ -97,7 +97,7 @@ func (lc *LoadCommand) Perform(
 	var mergedConf *repr.NodeSummary
 	if lc.Group {
 		for _, stream := range mergedStreams {
-			probe := cfg.LookupHostByTime(stream.Samples[0].Hostname, stream.Samples[0].Timestamp)
+			probe := cfg.LookupMergedHostByTime(stream.Host, stream.Samples[0].Timestamp)
 			if probe == nil {
 				continue
 			}
@@ -136,18 +136,17 @@ func (lc *LoadCommand) Perform(
 	// Generate data to be printed
 	reports := make([]LoadReport, 0)
 	for _, stream := range mergedStreams {
-		hn := stream.Samples[0].Hostname
 		ts := stream.Samples[0].Timestamp
 		conf := mergedConf
 		if conf == nil {
-			conf = cfg.LookupHostByTime(hn, ts)
+			conf = cfg.LookupMergedHostByTime(stream.Host, ts)
 		}
 		rs := generateReport(stream.Samples, time.Now().Unix(), conf)
 		if queryNeg != nil {
 			rs = slices.DeleteFunc(rs, queryNeg)
 		}
 		reports = append(reports, LoadReport{
-			hostname: hn.String(),
+			hostname: stream.Host.CanonicalName(),
 			records:  rs,
 			conf:     conf,
 		})
