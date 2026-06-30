@@ -191,7 +191,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	streams sample.InputStreamSet,
 	bounds Timebounds,
 ) []*jobSummary {
-	var jobs sample.MergedJobs
+	var jobs []sample.MergedJob
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
 	} else if !jc.MergeNone {
@@ -230,7 +230,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 func (jc *JobsCommand) summarizeJobsFromSonarData(
 	cdp *config.ConfigDataProvider,
 	bounds Timebounds,
-	jobs sample.MergedJobs,
+	jobs []sample.MergedJob,
 	summaryFilter *aggregationFilter,
 	fb flagBag,
 ) ([]*jobSummary, int, flagBag) {
@@ -741,7 +741,7 @@ func (jc *JobsCommand) joinSacctData(
 func mergeAcrossSomeNodes(
 	streams sample.InputStreamSet,
 	bounds Timebounds,
-) (sample.MergedJobs, Timebounds) {
+) ([]sample.MergedJob, Timebounds) {
 	mergeable := make(sample.InputStreamSet)
 	mBounds := make(Timebounds)
 	solo := make(sample.InputStreamSet)

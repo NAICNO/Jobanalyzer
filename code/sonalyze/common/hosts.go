@@ -45,8 +45,6 @@ func NewHostsFromPatterns(patterns ...string) (Hosts, error) {
 		return Hosts{}, err
 	}
 	patterns = slices.Clone(patterns)
-	// FIXME: Sorting is insufficient for canonicalizing names, but it's a start.
-	slices.Sort(patterns)
 	return Hosts{
 		ranges:   true,
 		patterns: patterns,
@@ -68,8 +66,6 @@ func HostsMerge(hs []Hosts) Hosts {
 	}
 	patterns := slices.Collect(maps.Keys(uniquePatterns))
 	globber, _ := hostglob.NewGlobber(true, patterns)
-	// FIXME: Sorting is insufficient for canonicalizing names, but it's a start.
-	slices.Sort(patterns)
 	return Hosts{
 		ranges:   ranges,
 		patterns: patterns,
@@ -78,14 +74,14 @@ func HostsMerge(hs []Hosts) Hosts {
 }
 
 func (h *Hosts) CanonicalName() string {
-	// FIXME: Must be cached.
+	// FIXME: Must be cached or pre-computed
 	compressed := hostglob.CompressHostnames(h.patterns)
 	slices.Sort(compressed)
 	return strings.Join(compressed, ",")
 }
 
 func (h *Hosts) CanonicalNameUstr() Ustr {
-	// FIXME: Should be cached maybe.
+	// FIXME: Should be cached or pre-computed
 	return StringToUstr(h.CanonicalName())
 }
 

@@ -33,7 +33,7 @@ const (
 // The command name for synthesized data collects all the commands that went into the synthesized
 // stream.
 
-func MergeByHostAndJob(streams InputStreamSet) MergedJobs {
+func MergeByHostAndJob(streams InputStreamSet) []MergedJob {
 	type HostAndJob struct {
 		host Ustr
 		job  uint32
@@ -75,7 +75,7 @@ func MergeByHostAndJob(streams InputStreamSet) MergedJobs {
 		}
 	}
 
-	merged := make(MergedJobs, 0)
+	merged := make([]MergedJob, 0)
 	for key, cmdsAndStreams := range collections {
 		if zeroes, found := zero[key.host]; found {
 			delete(zero, key.host)
@@ -84,6 +84,7 @@ func MergeByHostAndJob(streams InputStreamSet) MergedJobs {
 					Samples:  slices.Clone(*v),
 					NumTasks: 1,
 					Tasks:    []SampleStream{SampleStream{}},
+					Host:     NewHostsFromSingle(key.host.String()),
 				})
 			}
 		}
@@ -129,7 +130,7 @@ func mergedUserName(streams indirectStreams) Ustr {
 // that go into the merged stream, and the "latest" time is the max across the latest times ditto.
 //
 // Merged bounds are indexed by the merged Multihost's canonical name (always).
-func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timebounds) {
+func MergeByJob(streams InputStreamSet, bounds Timebounds) ([]MergedJob, Timebounds) {
 	type jobDataTy struct {
 		commands map[Ustr]bool
 		hosts    map[Ustr]bool
@@ -177,7 +178,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timeboun
 	}
 
 	// Initialize the set of result streams with the zero jobs
-	newStreams := make(MergedJobs, 0, len(zero)+len(collections))
+	newStreams := make([]MergedJob, 0, len(zero)+len(collections))
 	for _, z := range zero {
 		newStreams = append(newStreams, MergedJob{
 			Samples:  slices.Clone(*z),
@@ -234,7 +235,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) (MergedJobs, Timeboun
 // The job ID for synthesized data is 0, which is not ideal but probably OK so long as the consumer
 // knows it.
 
-func MergeByHost(streams InputStreamSet) MergedJobs {
+func MergeByHost(streams InputStreamSet) []MergedJob {
 	// The key is the host name.
 	collections := make(map[Ustr]indirectStreams)
 
@@ -247,7 +248,7 @@ func MergeByHost(streams InputStreamSet) MergedJobs {
 		}
 	}
 
-	vs := make(MergedJobs, 0)
+	vs := make([]MergedJob, 0)
 	cmdname := StringToUstr("_merged_")
 	username := cmdname
 	jobId := uint32(0)
@@ -263,7 +264,7 @@ func MergeByHost(streams InputStreamSet) MergedJobs {
 
 // TODO: DOCUMENTME.  There's an assumption here that the merged jobs all come from disjoint hosts.
 
-func MergeAcrossHostsByTime(streams MergedJobs) MergedJobs {
+func MergeAcrossHostsByTime(streams []MergedJob) []MergedJob {
 	if len(streams) == 0 {
 		return streams
 	}
@@ -282,7 +283,7 @@ func MergeAcrossHostsByTime(streams MergedJobs) MergedJobs {
 		0,
 		istreams,
 	)
-	return MergedJobs([]MergedJob{tmp})
+	return []MergedJob{tmp}
 }
 
 // What does it mean to sample a job that runs on multiple hosts, or to sample a host that runs
@@ -755,5 +756,6 @@ func foldSamples(samples SampleStream, hosts Hosts, truncTime func(int64) int64)
 		Samples:  result,
 		NumTasks: 1,
 		Tasks:    []SampleStream{samples},
+		Host:     hosts,
 	}
 }

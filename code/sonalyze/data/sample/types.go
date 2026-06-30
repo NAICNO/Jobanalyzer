@@ -19,8 +19,6 @@ type Sample struct {
 
 type SampleStream []Sample
 
-type MergedJobs []MergedJob
-
 // A job merged from individual streams.  The constraints on the samples in terms of uniqueness and
 // so on depends on how they were merged and are not implied by the type.
 type MergedJob struct {
