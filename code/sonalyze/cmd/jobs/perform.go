@@ -473,11 +473,7 @@ func aggregateSingleJobFromSonarData(
 
 	var hosts *Hostnames
 	if fb.needHosts {
-		hosts = NewHostnames()
-		// FIXME: Does this make sense?  Would not every sample in the job have the same host name?
-		for _, s := range job {
-			hosts.AddCompressed(s.Hostname.String())
-		}
+		hosts = NewHostnamesFromHosts(host)
 	}
 	n := float64(len(job))
 	a := jobAggregate{
