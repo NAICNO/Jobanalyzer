@@ -22,68 +22,68 @@ import (
 	. "sonalyze/table"
 )
 
-// Computed float64 fields in jobAggregate.f64.  These are for the job as a whole, being
+// Computed float64 fields in JobAggregate.f64.  These are for the job as a whole, being
 // computed from the single stream that is the synthesized / merged job.
 const (
-	kCpuPctAvg      = iota // Average CPU utilization, 1 core == 100%
-	kCpuPctPeak            // Peak CPU utilization ditto
-	kRcpuPctAvg            // Average CPU utilization, all cores == 100%
-	kRcpuPctPeak           // Peak CPU utilization ditto
-	kCpuGBAvg              // Average main memory utilization, GiB
-	kCpuGBPeak             // Peak memory utilization ditto
-	kRcpuGBAvg             // Average main memory utilization, all memory = 100%
-	kRcpuGBPeak            // Peak memory utilization ditto
-	kRssAnonGBAvg          // Average resident main memory utilization, GiB
-	kRssAnonGBPeak         // Peak memory utilization ditto
-	kRrssAnonGBAvg         // Average resident main memory utilization, all memory = 100%
-	kRrssAnonGBPeak        // Peak memory utilization ditto
-	kGpuPctAvg             // Average GPU utilization, 1 card == 100%
-	kGpuPctPeak            // Peak GPU utilization ditto
-	kRgpuPctAvg            // Average GPU utilization, all cards == 100%
-	kRgpuPctPeak           // Peak GPU utilization ditto
-	kGpuGBAvg              // Average GPU memory utilization, GiB
-	kGpuGBPeak             // Peak memory utilization ditto
-	kRgpuGBAvg             // Average GPU memory utilization, all cards == 100%
-	kRgpuGBPeak            // Peak GPU memory utilization ditto
-	kSgpuPctAvg            // Average GPU utilization, all cards used by job == 100%
-	kSgpuPctPeak           // Peak GPU utilization, all cards used by job == 100%
-	kSgpuGBAvg             // Average GPU memory utilization, all cards used by job == 100%
-	kSgpuGBPeak            // Peak GPU memory utilization ditto
-	kThreadAvg             // Average number of active threads (summed across all processes)
-	kThreadPeak            // Peak number of active threads (ditto)
+	KCpuPctAvg      = iota // Average CPU utilization, 1 core == 100%
+	KCpuPctPeak            // Peak CPU utilization ditto
+	KRcpuPctAvg            // Average CPU utilization, all cores == 100%
+	KRcpuPctPeak           // Peak CPU utilization ditto
+	KCpuGBAvg              // Average main memory utilization, GiB
+	KCpuGBPeak             // Peak memory utilization ditto
+	KRcpuGBAvg             // Average main memory utilization, all memory = 100%
+	KRcpuGBPeak            // Peak memory utilization ditto
+	KRssAnonGBAvg          // Average resident main memory utilization, GiB
+	KRssAnonGBPeak         // Peak memory utilization ditto
+	KRrssAnonGBAvg         // Average resident main memory utilization, all memory = 100%
+	KRrssAnonGBPeak        // Peak memory utilization ditto
+	KGpuPctAvg             // Average GPU utilization, 1 card == 100%
+	KGpuPctPeak            // Peak GPU utilization ditto
+	KRgpuPctAvg            // Average GPU utilization, all cards == 100%
+	KRgpuPctPeak           // Peak GPU utilization ditto
+	KGpuGBAvg              // Average GPU memory utilization, GiB
+	KGpuGBPeak             // Peak memory utilization ditto
+	KRgpuGBAvg             // Average GPU memory utilization, all cards == 100%
+	KRgpuGBPeak            // Peak GPU memory utilization ditto
+	KSgpuPctAvg            // Average GPU utilization, all cards used by job == 100%
+	KSgpuPctPeak           // Peak GPU utilization, all cards used by job == 100%
+	KSgpuGBAvg             // Average GPU memory utilization, all cards used by job == 100%
+	KSgpuGBPeak            // Peak GPU memory utilization ditto
+	KThreadAvg             // Average number of active threads (summed across all processes)
+	KThreadPeak            // Peak number of active threads (ditto)
 	numF64Fields
 )
 
 // Both GB and KB as we use both sometimes.
 const (
-	uReadGBTotal = iota
-	uReadKBTotal
-	uWrittenGBTotal
-	uWrittenKBTotal
-	uResidentKBPeak
-	uVirtualKBPeak
-	uCpuTimeSecTotal
-	uDurationSec
+	UReadGBTotal = iota
+	UReadKBTotal
+	UWrittenGBTotal
+	UWrittenKBTotal
+	UResidentKBPeak
+	UVirtualKBPeak
+	UCpuTimeSecTotal
+	UDurationSec
 	numU64Fields
 )
 
-// Computed flag bits in jobAggregate.computedFlags
+// Computed flag bits in JobAggregate.ComputedFlags
 const (
-	kUsesGpu          = (1 << iota) // True if there's reason to believe a gpu was used by job
-	kDoesNotUseGpu                  // Opposite
-	kGpuFail                        // GPU failed
-	kIsLiveAtStart                  // Job had record at earliest timestamp of input set for host
-	kIsNotLiveAtStart               // Opposite
-	kIsLiveAtEnd                    // Job had record at latest timestamp of input set for host
-	kIsNotLiveAtEnd                 // Opposite
-	kIsZombie                       // Command contains <defunct> or user starts with _zombie_
+	KUsesGpu          = (1 << iota) // True if there's reason to believe a gpu was used by job
+	KDoesNotUseGpu                  // Opposite
+	KGpuFail                        // GPU failed
+	KIsLiveAtStart                  // Job had record at earliest timestamp of input set for host
+	KIsNotLiveAtStart               // Opposite
+	KIsLiveAtEnd                    // Job had record at latest timestamp of input set for host
+	KIsNotLiveAtEnd                 // Opposite
+	KIsZombie                       // Command contains <defunct> or user starts with _zombie_
 )
 
 const kb2gb = 1.0 / (1024 * 1024)
 
 // Package for results from aggregation and summation.
-type jobSummary struct {
-	jobAggregate
+type JobSummary struct {
+	JobAggregate
 	JobId          uint32
 	User           Ustr
 	JobAndMark     string
@@ -95,13 +95,13 @@ type jobSummary struct {
 	GpuTime        DurationValue
 	Classification int // Bit vector of flags
 	job            sample.MergedJob
-	computedFlags  int
+	ComputedFlags  int
 	selected       bool // Initially true, used to deselect the record before printing
-	sacctInfo      *repr.SacctInfo
+	SacctInfo      *repr.SacctInfo
 }
 
 // Aggregate figures for a job.  For some cross-job data like user and host, go to the sample stream
-// in the jobSummary that owns this aggregate.
+// in the JobSummary that owns this aggregate.
 //
 // The float fields of this are *not* rounded in any way.
 //
@@ -109,11 +109,11 @@ type jobSummary struct {
 // from the recorded percentage figure, otherwise kRgpuGB* are derived from the recorded absolute
 // figures.  If a system config is not present then all fields will represent the recorded values
 // (kRgpuKB * the recorded percentages).
-type jobAggregate struct {
+type JobAggregate struct {
 	GpuFail     int
 	Gpus        gpuset.GpuSet
-	computed    [numF64Fields]float64
-	u64         [numU64Fields]uint64
+	Computed    [numF64Fields]float64
+	U64         [numU64Fields]uint64
 	IsZombie    bool
 	InContainer bool
 	Cmd         string
@@ -190,7 +190,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	cdp *config.ConfigDataProvider,
 	streams sample.InputStreamSet,
 	bounds Timebounds,
-) []*jobSummary {
+) []*JobSummary {
 	var jobs []sample.MergedJob
 	if jc.MergeAll {
 		jobs, bounds = sample.MergeByJob(streams, bounds)
@@ -233,9 +233,9 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	jobs []sample.MergedJob,
 	summaryFilter *aggregationFilter,
 	fb flagBag,
-) ([]*jobSummary, int, flagBag) {
+) ([]*JobSummary, int, flagBag) {
 	var now = time.Now().UTC().Unix()
-	summaries := make([]*jobSummary, 0)
+	summaries := make([]*JobSummary, 0)
 	minSamples := jc.lookupUint("min-samples")
 	if Verbose && minSamples > 1 {
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
@@ -276,7 +276,7 @@ func summarizeSingleJobFromSonarData(
 	job sample.MergedJob,
 	now int64,
 	fb flagBag,
-) *jobSummary {
+) *JobSummary {
 	samples := job.Samples
 	jobId := samples[0].Job
 	user := samples[0].User
@@ -284,16 +284,16 @@ func summarizeSingleJobFromSonarData(
 	last := samples[len(samples)-1].Timestamp
 	duration := last - first
 	aggregate := aggregateSingleJobFromSonarData(cdp, job.Host, samples, fb)
-	aggregate.u64[uDurationSec] = uint64(duration)
+	aggregate.U64[UDurationSec] = uint64(duration)
 	usesGpu := !aggregate.Gpus.IsEmpty()
 	flags := 0
 	if usesGpu {
-		flags |= kUsesGpu
+		flags |= KUsesGpu
 	} else {
-		flags |= kDoesNotUseGpu
+		flags |= KDoesNotUseGpu
 	}
 	if aggregate.GpuFail != 0 {
-		flags |= kGpuFail
+		flags |= KGpuFail
 	}
 	// Note, for merged streams the bounds also are keyed on merged names.
 	//
@@ -304,45 +304,45 @@ func summarizeSingleJobFromSonarData(
 		panic("Expected to find bound")
 	}
 	if first == bound.Earliest {
-		flags |= kIsLiveAtStart
+		flags |= KIsLiveAtStart
 	} else {
-		flags |= kIsNotLiveAtStart
+		flags |= KIsNotLiveAtStart
 	}
 	if last == bound.Latest {
-		flags |= kIsLiveAtEnd
+		flags |= KIsLiveAtEnd
 	} else {
-		flags |= kIsNotLiveAtEnd
+		flags |= KIsNotLiveAtEnd
 	}
 	if aggregate.IsZombie {
-		flags |= kIsZombie
+		flags |= KIsZombie
 	}
 	jobAndMark := ""
 	if fb.needJobAndMark {
 		mark := ""
 		switch {
-		case flags&(kIsLiveAtStart|kIsLiveAtEnd) == (kIsLiveAtStart | kIsLiveAtEnd):
+		case flags&(KIsLiveAtStart|KIsLiveAtEnd) == (KIsLiveAtStart | KIsLiveAtEnd):
 			mark = "!"
-		case flags&kIsLiveAtStart != 0:
+		case flags&KIsLiveAtStart != 0:
 			mark = "<"
-		case flags&kIsLiveAtEnd != 0:
+		case flags&KIsLiveAtEnd != 0:
 			mark = ">"
 		}
 		jobAndMark = fmt.Sprint(jobId, mark)
 	}
 	classification := 0
-	if (flags & kIsLiveAtStart) != 0 {
+	if (flags & KIsLiveAtStart) != 0 {
 		classification |= sonalyze.LIVE_AT_START
 	}
-	if (flags & kIsLiveAtEnd) != 0 {
+	if (flags & KIsLiveAtEnd) != 0 {
 		classification |= sonalyze.LIVE_AT_END
 	}
-	return &jobSummary{
-		jobAggregate:   aggregate,
+	return &JobSummary{
+		JobAggregate:   aggregate,
 		JobId:          jobId,
 		JobAndMark:     jobAndMark,
 		User:           user,
-		CpuTime:        DurationValue(aggregate.u64[uCpuTimeSecTotal]),
-		GpuTime:        DurationValue(math.Round(aggregate.computed[kGpuPctAvg] * float64(duration) / 100)),
+		CpuTime:        DurationValue(aggregate.U64[UCpuTimeSecTotal]),
+		GpuTime:        DurationValue(math.Round(aggregate.Computed[KGpuPctAvg] * float64(duration) / 100)),
 		Duration:       DurationValue(duration),
 		Now:            DateTimeValue(now),
 		Start:          DateTimeValue(first),
@@ -350,8 +350,8 @@ func summarizeSingleJobFromSonarData(
 		selected:       true,
 		Classification: classification,
 		job:            job,
-		computedFlags:  flags,
-		// sacctInfo is attached later, if it is needed
+		ComputedFlags:  flags,
+		// SacctInfo is attached later, if it is needed
 	}
 }
 
@@ -364,7 +364,7 @@ func aggregateSingleJobFromSonarData(
 	host Hosts,
 	job []sample.Sample,
 	fb flagBag,
-) jobAggregate {
+) JobAggregate {
 	gpus := gpuset.EmptyGpuSet()
 	var (
 		gpuFail                          uint8
@@ -476,7 +476,7 @@ func aggregateSingleJobFromSonarData(
 		hosts = NewHostnamesFromHosts(host)
 	}
 	n := float64(len(job))
-	a := jobAggregate{
+	a := JobAggregate{
 		Gpus:        gpus,
 		GpuFail:     int(gpuFail),
 		Cmd:         cmd,
@@ -484,59 +484,59 @@ func aggregateSingleJobFromSonarData(
 		IsZombie:    isZombie,
 		InContainer: inContainer,
 	}
-	a.computed[kCpuPctAvg] = cpuPctAvg / n
-	a.computed[kCpuPctPeak] = cpuPctPeak
-	a.computed[kRcpuPctAvg] = rCpuPctAvg / n
-	a.computed[kRcpuPctPeak] = rCpuPctPeak
+	a.Computed[KCpuPctAvg] = cpuPctAvg / n
+	a.Computed[KCpuPctPeak] = cpuPctPeak
+	a.Computed[KRcpuPctAvg] = rCpuPctAvg / n
+	a.Computed[KRcpuPctPeak] = rCpuPctPeak
 
-	a.computed[kCpuGBAvg] = cpuGBAvg / n
-	a.computed[kCpuGBPeak] = cpuGBPeak
-	a.computed[kRcpuGBAvg] = rCpuGBAvg / n
-	a.computed[kRcpuGBPeak] = rCpuGBPeak
+	a.Computed[KCpuGBAvg] = cpuGBAvg / n
+	a.Computed[KCpuGBPeak] = cpuGBPeak
+	a.Computed[KRcpuGBAvg] = rCpuGBAvg / n
+	a.Computed[KRcpuGBPeak] = rCpuGBPeak
 
-	a.computed[kRssAnonGBAvg] = rssAnonGBAvg / n
-	a.computed[kRssAnonGBPeak] = rssAnonGBPeak
-	a.computed[kRrssAnonGBAvg] = rRssAnonGBAvg / n
-	a.computed[kRrssAnonGBPeak] = rRssAnonGBPeak
+	a.Computed[KRssAnonGBAvg] = rssAnonGBAvg / n
+	a.Computed[KRssAnonGBPeak] = rssAnonGBPeak
+	a.Computed[KRrssAnonGBAvg] = rRssAnonGBAvg / n
+	a.Computed[KRrssAnonGBPeak] = rRssAnonGBPeak
 
-	a.computed[kGpuPctAvg] = gpuPctAvg / n
-	a.computed[kGpuPctPeak] = gpuPctPeak
-	a.computed[kRgpuPctAvg] = rGpuPctAvg / n
-	a.computed[kRgpuPctPeak] = rGpuPctPeak
-	a.computed[kSgpuPctAvg] = sGpuPctAvg / n
-	a.computed[kSgpuPctPeak] = sGpuPctPeak
+	a.Computed[KGpuPctAvg] = gpuPctAvg / n
+	a.Computed[KGpuPctPeak] = gpuPctPeak
+	a.Computed[KRgpuPctAvg] = rGpuPctAvg / n
+	a.Computed[KRgpuPctPeak] = rGpuPctPeak
+	a.Computed[KSgpuPctAvg] = sGpuPctAvg / n
+	a.Computed[KSgpuPctPeak] = sGpuPctPeak
 
-	a.computed[kGpuGBAvg] = gpuGBAvg / n
-	a.computed[kGpuGBPeak] = gpuGBPeak
-	a.computed[kRgpuGBAvg] = rGpuGBAvg / n
-	a.computed[kRgpuGBPeak] = rGpuGBPeak
-	a.computed[kSgpuGBAvg] = sGpuGBAvg / n
-	a.computed[kSgpuGBPeak] = sGpuGBPeak
+	a.Computed[KGpuGBAvg] = gpuGBAvg / n
+	a.Computed[KGpuGBPeak] = gpuGBPeak
+	a.Computed[KRgpuGBAvg] = rGpuGBAvg / n
+	a.Computed[KRgpuGBPeak] = rGpuGBPeak
+	a.Computed[KSgpuGBAvg] = sGpuGBAvg / n
+	a.Computed[KSgpuGBPeak] = sGpuGBPeak
 
-	a.computed[kThreadAvg] = float64(threadAvg) / n
-	a.computed[kThreadPeak] = float64(threadPeak)
+	a.Computed[KThreadAvg] = float64(threadAvg) / n
+	a.Computed[KThreadPeak] = float64(threadPeak)
 
-	a.u64[uReadGBTotal] = dataReadGB
-	a.u64[uReadKBTotal] = dataReadKB
-	a.u64[uWrittenGBTotal] = dataWrittenGB
-	a.u64[uWrittenKBTotal] = dataWrittenKB
-	a.u64[uCpuTimeSecTotal] = cpuTime
-	a.u64[uResidentKBPeak] = residentSizeKBPeak
-	a.u64[uVirtualKBPeak] = vmSizeKBPeak
+	a.U64[UReadGBTotal] = dataReadGB
+	a.U64[UReadKBTotal] = dataReadKB
+	a.U64[UWrittenGBTotal] = dataWrittenGB
+	a.U64[UWrittenKBTotal] = dataWrittenKB
+	a.U64[UCpuTimeSecTotal] = cpuTime
+	a.U64[UResidentKBPeak] = residentSizeKBPeak
+	a.U64[UVirtualKBPeak] = vmSizeKBPeak
 
 	return a
 }
 
 // The synthesis is imperfect, and would be so even if the Slurm documentation were better.
 func synthesizeSacctDataFromSonarData(
-	summaries []*jobSummary,
+	summaries []*JobSummary,
 	slurmFilter *slurmjob.QueryFilter,
 ) int {
 	// TODO: This needs to apply the slurmFilter if it is defined.
 	var discarded int
 	for _, s := range summaries {
 		var state Ustr
-		if (s.computedFlags & kIsNotLiveAtEnd) != 0 {
+		if (s.ComputedFlags & KIsNotLiveAtEnd) != 0 {
 			state = StringToUstr("COMPLETED")
 		} else {
 			state = StringToUstr("RUNNING")
@@ -571,14 +571,14 @@ func synthesizeSacctDataFromSonarData(
 		}
 		aveVM /= uint64(len(s.job.Tasks))
 		aveRSS /= uint64(len(s.job.Tasks))
-		s.sacctInfo = &repr.SacctInfo{
+		s.SacctInfo = &repr.SacctInfo{
 			Account:      s.User,
-			AveCPU:       s.u64[uCpuTimeSecTotal] / uint64(s.job.NumTasks),
-			AveDiskRead:  s.u64[uReadKBTotal] / uint64(s.job.NumTasks),
-			AveDiskWrite: s.u64[uWrittenKBTotal] / uint64(s.job.NumTasks),
+			AveCPU:       s.U64[UCpuTimeSecTotal] / uint64(s.job.NumTasks),
+			AveDiskRead:  s.U64[UReadKBTotal] / uint64(s.job.NumTasks),
+			AveDiskWrite: s.U64[UWrittenKBTotal] / uint64(s.job.NumTasks),
 			AveRSS:       aveRSS,
 			AveVMSize:    aveVM,
-			ElapsedRaw:   uint32(s.u64[uDurationSec]),
+			ElapsedRaw:   uint32(s.U64[UDurationSec]),
 			End:          s.End,
 			JobID:        s.JobId,
 			JobName:      StringToUstr(s.User.String() + ": " + s.Cmd),
@@ -586,7 +586,7 @@ func synthesizeSacctDataFromSonarData(
 			MaxVMSize:    maxVM,
 			MinCPU:       minCpu,
 			NodeList:     StringToUstr(FormatHostnames(s.Hosts, PrintModFixed)),
-			ReqCPUS:      uint32(s.computed[kThreadPeak]), // Requested = peak threads observed, not great
+			ReqCPUS:      uint32(s.Computed[KThreadPeak]), // Requested = peak threads observed, not great
 			ReqGPUS:      StringToUstr(requestedGpus),
 			ReqRes:       StringToUstr(requestedGpus),
 			ReqMem:       maxVM, // Requested = max of any task at any time
@@ -623,7 +623,7 @@ func synthesizeSacctDataFromSonarData(
 
 func (jc *JobsCommand) joinSacctData(
 	meta types.Context,
-	summaries []*jobSummary,
+	summaries []*JobSummary,
 	slurmFilter *slurmjob.QueryFilter,
 ) int {
 	// TODO: If we have slurm data then those data may have precise measurements for some of the
@@ -703,7 +703,7 @@ func (jc *JobsCommand) joinSacctData(
 						cullSet[a.Id] = true
 					}
 				}
-				summaries = slices.DeleteFunc(summaries, func(s *jobSummary) bool {
+				summaries = slices.DeleteFunc(summaries, func(s *JobSummary) bool {
 					return cullSet[s.JobId]
 				})
 			}
@@ -720,7 +720,7 @@ func (jc *JobsCommand) joinSacctData(
 
 		for _, summary := range summaries {
 			if probe, found := bMap[summary.JobId]; found {
-				summary.sacctInfo = probe.Main // Hm
+				summary.SacctInfo = probe.Main // Hm
 			}
 		}
 	} else {
@@ -817,23 +817,23 @@ type aggregationFilter struct {
 	flags       int
 }
 
-func (f *aggregationFilter) apply(s *jobSummary) bool {
+func (f *aggregationFilter) apply(s *JobSummary) bool {
 	for _, v := range f.fminFilters {
-		if s.computed[v.ix] < v.limit {
+		if s.Computed[v.ix] < v.limit {
 			return false
 		}
 	}
 	for _, v := range f.uminFilters {
-		if s.u64[v.ix] < v.limit {
+		if s.U64[v.ix] < v.limit {
 			return false
 		}
 	}
 	for _, v := range f.fmaxFilters {
-		if s.computed[v.ix] > v.limit {
+		if s.Computed[v.ix] > v.limit {
 			return false
 		}
 	}
-	return (f.flags & s.computedFlags) == f.flags
+	return (f.flags & s.ComputedFlags) == f.flags
 }
 
 func (jc *JobsCommand) buildFilters() (*aggregationFilter, *slurmjob.QueryFilter) {
@@ -867,26 +867,26 @@ func (jc *JobsCommand) buildFilters() (*aggregationFilter, *slurmjob.QueryFilter
 		if Verbose {
 			Log.Infof("Excluding jobs: Min-filtering by elapsed time < %ds", jc.MinRuntimeSec)
 		}
-		uminFilters = append(uminFilters, ufilterVal{uint64(jc.MinRuntimeSec), uDurationSec})
+		uminFilters = append(uminFilters, ufilterVal{uint64(jc.MinRuntimeSec), UDurationSec})
 	}
 
 	// For the flags, set all the conditions we care about.  They must all be set in the summary's
 	// computed flags.
 	flags := 0
 	if jc.NoGpu {
-		flags |= kDoesNotUseGpu
+		flags |= KDoesNotUseGpu
 	}
 	if jc.SomeGpu {
-		flags |= kUsesGpu
+		flags |= KUsesGpu
 	}
 	if jc.Completed {
-		flags |= kIsNotLiveAtEnd
+		flags |= KIsNotLiveAtEnd
 	}
 	if jc.Running {
-		flags |= kIsLiveAtEnd
+		flags |= KIsLiveAtEnd
 	}
 	if jc.Zombie {
-		flags |= kIsZombie
+		flags |= KIsZombie
 	}
 	if Verbose && flags != 0 {
 		Log.Infof("Flag-filtering (UTSL): %x", flags)

@@ -78,6 +78,22 @@ func (parser *Parser) Parse() (*TableBlock, error) {
 	return parser.table, nil
 }
 
+var validAttr = map[string]bool{
+	"desc":     true,
+	"alias":    true,
+	"field":    true,
+	"indirect": true,
+	"config":   true,
+}
+
+func (parser *Parser) validateAttrs(fieldName string, attrs []NV) {
+	for _, attr := range attrs {
+		if !validAttr[attr.Name] {
+			parser.Error(fmt.Sprintf("Field %s: Invalid attribute name %s", fieldName, attr.Name))
+		}
+	}
+}
+
 %}
 
 %union {
@@ -147,7 +163,7 @@ Fields     : tFields { yylex.(*Parser).doTokenize = true } TypeName tEol
 FieldLines : { $$ = make([]Field, 0) }
            | FieldLines FieldLine {	$$ = append($1, $2) }
            ;
-FieldLine  : tIdent TypeName Attributes tEol { $$ = Field{ $1, $2, $3 } } ;
+FieldLine  : tIdent TypeName Attributes tEol { yylex.(*Parser).validateAttrs($1, $3); $$ = Field{ $1, $2, $3 } } ;
 Attributes : { $$ = make([]NV, 0) }
            | Attributes Attribute { $$ = append($1, $2) }
            ;

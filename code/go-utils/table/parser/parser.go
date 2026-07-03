@@ -82,7 +82,23 @@ func (parser *Parser) Parse() (*TableBlock, error) {
 	return parser.table, nil
 }
 
-//line parser.y:83
+var validAttr = map[string]bool{
+	"desc":     true,
+	"alias":    true,
+	"field":    true,
+	"indirect": true,
+	"config":   true,
+}
+
+func (parser *Parser) validateAttrs(fieldName string, attrs []NV) {
+	for _, attr := range attrs {
+		if !validAttr[attr.Name] {
+			parser.Error(fmt.Sprintf("Field %s: Invalid attribute name %s", fieldName, attr.Name))
+		}
+	}
+}
+
+//line parser.y:99
 type yySymType struct {
 	yys         int
 	s           string
@@ -150,7 +166,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line parser.y:202
+//line parser.y:218
 
 type token struct {
 	tok  int
@@ -801,13 +817,13 @@ yydefault:
 
 	case 1:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:115
+//line parser.y:131
 		{
 			yylex.(*Parser).table = nil
 		}
 	case 2:
 		yyDollar = yyS[yypt-12 : yypt+1]
-//line parser.y:126
+//line parser.y:142
 		{
 			yylex.(*Parser).table = &TableBlock{
 				TableName: yyDollar[2].s,
@@ -822,205 +838,206 @@ yydefault:
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line parser.y:142
+//line parser.y:158
 		{
 			yylex.(*Parser).doTokenize = true
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line parser.y:144
+//line parser.y:160
 		{
 			yylex.(*Parser).doTokenize = true
 		}
 	case 7:
 		yyDollar = yyS[yypt-5 : yypt+1]
-//line parser.y:145
+//line parser.y:161
 		{
 			yyVAL.fieldSect = FieldSect{yyDollar[3].s, yyDollar[5].fields}
 		}
 	case 8:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:147
+//line parser.y:163
 		{
 			yyVAL.fields = make([]Field, 0)
 		}
 	case 9:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line parser.y:148
+//line parser.y:164
 		{
 			yyVAL.fields = append(yyDollar[1].fields, yyDollar[2].field)
 		}
 	case 10:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line parser.y:150
+//line parser.y:166
 		{
+			yylex.(*Parser).validateAttrs(yyDollar[1].s, yyDollar[3].nvs)
 			yyVAL.field = Field{yyDollar[1].s, yyDollar[2].s, yyDollar[3].nvs}
 		}
 	case 11:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:151
+//line parser.y:167
 		{
 			yyVAL.nvs = make([]NV, 0)
 		}
 	case 12:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line parser.y:152
+//line parser.y:168
 		{
 			yyVAL.nvs = append(yyDollar[1].nvs, yyDollar[2].nv)
 		}
 	case 13:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line parser.y:154
+//line parser.y:170
 		{
 			yyVAL.nv = NV{yyDollar[1].s, yyDollar[3].s}
 		}
 	case 14:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:156
+//line parser.y:172
 		{
 			yyVAL.s = ""
 		}
 	case 15:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line parser.y:157
+//line parser.y:173
 		{
 			yylex.(*Parser).doTokenize = true
 		}
 	case 16:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line parser.y:157
+//line parser.y:173
 		{
 			yyVAL.s = yyDollar[3].s
 		}
 	case 17:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:160
+//line parser.y:176
 		{
 			yyVAL.helpSect = nil
 		}
 	case 18:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line parser.y:161
+//line parser.y:177
 		{
 			yylex.(*Parser).doTokenize = false
 		}
 	case 19:
 		yyDollar = yyS[yypt-5 : yypt+1]
-//line parser.y:162
+//line parser.y:178
 		{
 			yyVAL.helpSect = &HelpSect{yyDollar[3].s, yyDollar[5].ss}
 		}
 	case 20:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:165
+//line parser.y:181
 		{
 			yyVAL.helpSect = nil
 		}
 	case 21:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line parser.y:166
+//line parser.y:182
 		{
 			yylex.(*Parser).doTokenize = false
 		}
 	case 22:
 		yyDollar = yyS[yypt-5 : yypt+1]
-//line parser.y:167
+//line parser.y:183
 		{
 			yyVAL.helpSect = &HelpSect{yyDollar[3].s, yyDollar[5].ss}
 		}
 	case 23:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:170
+//line parser.y:186
 		{
 			yyVAL.as = make([]Alias, 0)
 		}
 	case 24:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line parser.y:171
+//line parser.y:187
 		{
 			yylex.(*Parser).doTokenize = true
 		}
 	case 25:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line parser.y:172
+//line parser.y:188
 		{
 			yyVAL.as = yyDollar[4].as
 		}
 	case 26:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:174
+//line parser.y:190
 		{
 			yyVAL.as = make([]Alias, 0)
 		}
 	case 27:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line parser.y:175
+//line parser.y:191
 		{
 			yyVAL.as = append(yyDollar[1].as, Alias{yyDollar[2].s, yyDollar[3].ss})
 		}
 	case 28:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:178
+//line parser.y:194
 		{
 			yyVAL.ss = nil
 		}
 	case 29:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line parser.y:179
+//line parser.y:195
 		{
 			yylex.(*Parser).doTokenize = true
 		}
 	case 30:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line parser.y:179
+//line parser.y:195
 		{
 			yyVAL.ss = yyDollar[3].ss
 		}
 	case 31:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line parser.y:182
+//line parser.y:198
 		{
 			yyVAL.s = "*" + yyDollar[2].s
 		}
 	case 32:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line parser.y:183
+//line parser.y:199
 		{
 			yyVAL.s = "[]" + yyDollar[3].s
 		}
 	case 34:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:187
+//line parser.y:203
 		{
 			yyVAL.ss = make([]string, 0)
 		}
 	case 35:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line parser.y:188
+//line parser.y:204
 		{
 			yyVAL.ss = append(yyDollar[1].ss, yyDollar[2].s)
 		}
 	case 37:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line parser.y:192
+//line parser.y:208
 		{
 			yyVAL.s = ""
 		}
 	case 39:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line parser.y:195
+//line parser.y:211
 		{
 			yyVAL.ss = []string{yyDollar[1].s}
 		}
 	case 40:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line parser.y:196
+//line parser.y:212
 		{
 			yyVAL.ss = append(yyDollar[1].ss, yyDollar[3].s)
 		}
 	case 42:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line parser.y:199
+//line parser.y:215
 		{
 			yyVAL.s = yyDollar[1].s + "." + yyDollar[3].s
 		}

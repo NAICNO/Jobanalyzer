@@ -1,201 +1,82 @@
-// The v1 API follows the old v0 API but GET requests returns proper JSON objects instead of strings, and the JSON
-// objects can have non-string values.
+// The v1 API follows the old v0 API but:
 //
-// The v1 API also has new insertion points for the new data, represented as JSON.  The result of a
-// POST is a JSON object with some data about the data that were received.
+//  - there's better adherence to REST API design principles in the API names, see below
+//  - GET requests return JSON objects instead of strings
+//  - the returned JSON objects carry non-string values for non-string fields
+//  - there are new/different insertion points for the "new data format", represented as JSON
+//  - the result of a POST is a JSON object with some data about the data that were received
+//
+// Regarding the API naming, the operations are all sensible plural nouns:
+//
+//   /clusters        cluster data (from metadata)
+//   /cards/{cluster} card data (from sysinfo data)
+//   /jobs/{cluster}  job data (from samples, slurm and sysinfo data)
+//
+// Apart from the cluster name, all request parameters are HTTP query parameters.  For initial
+// record selection, there are the "coarse" query parameters:
+//
+//   start_time_in_s   Start of query window, seconds since Posix epoch, default now-1h
+//   end_time_in_s     End of query window, seconds since Posix epoch, default now
+//   start_date        Start of query window, date in local time zone, no default
+//   end_date          End of query window, date in local time zone, no default
+//   node              Comma-separated list of SLURM-style compressed node names and ranges
+//
+// The start/end date, if present, are translated to start/end times, and then checked/clamped.
+//
+// The entities produced by the initial query and subsequent processing can be further filtered by
+// including a query term (there are currently no ad-hoc / per-operation record filters as in the v0
+// API) selecting certain values of the JSON response fields:
+//
+//   query             Expression in the query language, see the manual or ../../table/queryexpr.y
+//
+// Finally, it is possible to ask for specific output fields (instead of all fields), to keep the
+// data volume down:
+//
+//   fields            Comma-separated list of JSON field names
+//
+// For example (formatted for readability and ignoring proper HTTP escaping):
+//
+//   /api/v0/jobs/fox.educloud.no?
+//     start_date=2026-05-17&
+//     end_date=2026-05-19&
+//     node=gpu-[1,2,8,9],c1-[12-15]&
+//     query=User=larstha and SomeGpu=true&
+//     fields=Job,CpuAvgPct,GpuAvgPct,Cmd
+//
+// The list of JSON field names in each response (for query and fields) can be obtained by reading
+// the source in each `respond.go` file in each subdirectory here, or by examining the REST API spec
+// that is obtained by asking for openapi.json or openapi.yaml on the root interface.
 
 package api1
 
 import (
-	"context"
-	"encoding/json"
-
 	"go-utils/auth"
 
-	"github.com/NordicHPC/sonar/util/formats/newfmt"
 	"github.com/danielgtaylor/huma/v2"
 
-	"sonalyze/daemon/apiutil"
-	"sonalyze/db"
-)
-
-var (
-	postAuthenticator *auth.Authenticator
+	"sonalyze/daemon/api1/cards"
+	"sonalyze/daemon/api1/clusters"
+	"sonalyze/daemon/api1/common"
+	"sonalyze/daemon/api1/insert"
 )
 
 func SetupAPI(
 	api huma.API,
 	insertAPI bool,
+	getAuthenticator_ *auth.Authenticator,
 	postAuthenticator_ *auth.Authenticator,
 ) {
-	postAuthenticator = postAuthenticator_
+	common.GetAuthenticator = getAuthenticator_
+	common.PostAuthenticator = postAuthenticator_
 	grp := huma.NewGroup(api, "/api/v1")
 
-	// v1 get apis go here, when we've implemented them
+	cards.AddCard(grp)
+	clusters.AddCluster(grp)
 
 	if insertAPI {
-		addInsertSysinfoData(grp)
-		addInsertSampleData(grp)
-		addInsertJobData(grp)
-		addInsertClusterData(grp)
+		insert.AddInsertSysinfoData(grp)
+		insert.AddInsertSampleData(grp)
+		insert.AddInsertJobData(grp)
+		insert.AddInsertClusterData(grp)
 	}
-}
-
-// Insertion.
-//
-// Sonar does not require a specific return structure beyond the HTTP code.  Here, on successful
-// insertion, echo the cluster/node/topic/time back, since sonar assumes these will be unique.
-//
-// Insertion ops must return `error` to be API compatible with Huma, but the error return is always
-// a huma.StatusError.
-
-type InsertionResponse struct {
-	Body InsertionResponseBody
-}
-
-type InsertionResponseBody struct {
-	Cluster string `json:"cluster"`
-	Node    string `json:"node,omitempty"` // There's no node for jobs and cluster data
-	Topic   string `json:"topic"`
-	Time    string `json:"time"`
-}
-
-const (
-	insertSampleName  = "/insert/" + string(newfmt.DataTagSample)
-	insertSysinfoName = "/insert/" + string(newfmt.DataTagSysinfo)
-	insertJobsName    = "/insert/" + string(newfmt.DataTagJobs)
-	insertClusterName = "/insert/" + string(newfmt.DataTagCluster)
-)
-
-func addInsertSysinfoData(api huma.API) {
-	huma.Post(api, insertSysinfoName, func(
-		ctx context.Context,
-		input *struct {
-			apiutil.AuthHeader
-			Body newfmt.SysinfoEnvelope
-		},
-	) (*InsertionResponse, error) {
-		cluster := string(input.Body.Data.Attributes.Cluster)
-		ds, hErr := insertionSetup(insertSysinfoName, cluster, input.Auth)
-		if hErr != nil {
-			return nil, hErr
-		}
-		defer ds.FlushAsync()
-		nodename := string(input.Body.Data.Attributes.Node)
-		timestamp := string(input.Body.Data.Attributes.Time)
-		payload, _ := json.Marshal(input.Body)
-		err := ds.AppendSysinfoAsync(db.DataSysinfoV0JSON, nodename, timestamp, payload)
-		if err != nil {
-			return nil, huma.Error400BadRequest("insert: " + err.Error())
-		}
-		return insertionResponse(cluster, nodename, timestamp, newfmt.DataTagSysinfo), nil
-	})
-}
-
-func addInsertSampleData(api huma.API) {
-	huma.Post(api, insertSampleName, func(
-		ctx context.Context,
-		input *struct {
-			apiutil.AuthHeader
-			Body newfmt.SampleEnvelope
-		},
-	) (*InsertionResponse, error) {
-		cluster := string(input.Body.Data.Attributes.Cluster)
-		ds, hErr := insertionSetup(insertSampleName, cluster, input.Auth)
-		if hErr != nil {
-			return nil, hErr
-		}
-		defer ds.FlushAsync()
-		nodename := string(input.Body.Data.Attributes.Node)
-		timestamp := string(input.Body.Data.Attributes.Time)
-		payload, _ := json.Marshal(input.Body)
-		err := ds.AppendSamplesAsync(db.DataSampleV0JSON, nodename, timestamp, payload)
-		if err != nil {
-			return nil, huma.Error400BadRequest("insert: " + err.Error())
-		}
-		return insertionResponse(cluster, nodename, timestamp, newfmt.DataTagSample), nil
-	})
-}
-
-func addInsertJobData(api huma.API) {
-	huma.Post(api, insertJobsName, func(
-		ctx context.Context,
-		input *struct {
-			apiutil.AuthHeader
-			Body newfmt.JobsEnvelope
-		},
-	) (*InsertionResponse, error) {
-		cluster := string(input.Body.Data.Attributes.Cluster)
-		ds, hErr := insertionSetup(insertJobsName, cluster, input.Auth)
-		if hErr != nil {
-			return nil, hErr
-		}
-		defer ds.FlushAsync()
-		timestamp := string(input.Body.Data.Attributes.Time)
-		payload, _ := json.Marshal(input.Body)
-		err := ds.AppendSlurmSacctAsync(db.DataSlurmV0JSON, timestamp, payload)
-		if err != nil {
-			return nil, huma.Error400BadRequest("insert: " + err.Error())
-		}
-		return insertionResponse(cluster, "", timestamp, newfmt.DataTagJobs), nil
-	})
-}
-
-func addInsertClusterData(api huma.API) {
-	huma.Post(api, insertClusterName, func(
-		ctx context.Context,
-		input *struct {
-			apiutil.AuthHeader
-			Body newfmt.ClusterEnvelope
-		},
-	) (*InsertionResponse, error) {
-		cluster := string(input.Body.Data.Attributes.Cluster)
-		ds, hErr := insertionSetup(insertClusterName, cluster, input.Auth)
-		if hErr != nil {
-			return nil, hErr
-		}
-		defer ds.FlushAsync()
-		timestamp := string(input.Body.Data.Attributes.Time)
-		payload, _ := json.Marshal(input.Body)
-		err := ds.AppendCluzterAsync(db.DataCluzterV0JSON, timestamp, payload)
-		if err != nil {
-			return nil, huma.Error400BadRequest("insert: " + err.Error())
-		}
-		return insertionResponse(cluster, "", timestamp, newfmt.DataTagCluster), nil
-	})
-}
-
-func insertionResponse(
-	cluster, nodename, timestamp string,
-	datatype newfmt.DataType,
-) *InsertionResponse {
-	return &InsertionResponse{
-		Body: InsertionResponseBody{
-			Cluster: cluster,
-			Node:    nodename,
-			Topic:   string(newfmt.DataTagSysinfo),
-			Time:    timestamp,
-		},
-	}
-}
-
-func insertionSetup(path, cluster, auth string) (db.AppendablePersistentDataProvider, huma.StatusError) {
-	if postAuthenticator != nil {
-		user, pass := apiutil.DecodeAuth(auth)
-		if user != cluster {
-			return nil, huma.Error401Unauthorized("insert: Cluster in data does not match user in auth")
-		}
-		if !postAuthenticator.Authenticate(user, pass) {
-			return nil, huma.Error401Unauthorized("insert: Unknown user/pass combination")
-		}
-	}
-	meta, hErr := apiutil.GetClusterContext(insertSysinfoName, cluster)
-	if hErr != nil {
-		return nil, hErr
-	}
-	ds, err := db.OpenAppendablePersistentDirectoryDB(meta)
-	if err != nil {
-		return nil, huma.Error500InternalServerError("insert: incompatible database")
-	}
-	return ds, nil
 }
