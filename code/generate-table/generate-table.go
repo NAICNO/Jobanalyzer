@@ -15,7 +15,8 @@ import (
 	"os"
 	"strings"
 
-	"generate-table/parser"
+	"go-utils/table"
+	"go-utils/table/parser"
 )
 
 var (
@@ -73,131 +74,6 @@ func main() {
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Types we know about and information about them.
-//
-// The formatter for type Ty is usually FormatTy(Ty, PrintMods) -> string, but the name can be
-// overridden by registering the type.
-//
-// The user-facing type name for type Ty is usually Ty but it can be overridden. BEWARE that this
-// override has implications for the applicable query operators: if a type is "string" then string
-// operators apply; if a type is "GpuSet" then some kind of set operators apply (TBD).
-//
-// The setComparer is func(a,b set, op int) -> bool s.t. the return value is true iff the operation
-// is satisfied.  The operation is opaque to the generated code: it originates within the query
-// logic, and is consumed there by the setComparer.
-
-type typeInfo struct {
-	helpName    string // default is the name as given
-	comparer    string // setType == false: default is cmp.Compare
-	formatter   string // default is Format<Typename>
-	parser      string // default is CvtString2<Typename>
-	setComparer string // if "", not a set; otherwise a function
-}
-
-var knownTypes = map[string]typeInfo{
-	"bool": typeInfo{
-		comparer: "CompareBool",
-	},
-	"[]string": typeInfo{
-		helpName:    "string list",
-		formatter:   "FormatStrings",
-		parser:      "CvtString2Strings",
-		setComparer: "SetCompareStrings",
-	},
-	"F64Ceil": typeInfo{
-		helpName: "int",
-		parser:   "CvtString2Float64",
-	},
-	"U64Div1M": typeInfo{
-		helpName: "int",
-		parser:   "CvtString2Uint64",
-	},
-	"IntOrEmpty": typeInfo{
-		helpName: "int",
-		parser:   "CvtString2Int",
-	},
-	"DateTimeValueOrBlank": typeInfo{
-		helpName: "DateTimeValue",
-		parser:   "CvtString2DateTimeValue",
-	},
-	"IsoDateTimeOrUnknown": typeInfo{helpName: "IsoDateTimeValue"},
-	"Ustr":                 typeInfo{helpName: "string"},
-	"UstrMax30":            typeInfo{helpName: "string"},
-	"gpuset.GpuSet": typeInfo{
-		helpName:    "GpuSet",
-		formatter:   "FormatGpuSet",
-		parser:      "CvtString2GpuSet",
-		setComparer: "SetCompareGpuSets",
-	},
-	"*Hostnames": typeInfo{
-		helpName:    "Hostnames",
-		formatter:   "FormatHostnames",
-		parser:      "CvtString2Hostnames",
-		setComparer: "SetCompareHostnames",
-	},
-}
-
-func isComparable(ty string) bool {
-	if probe, found := knownTypes[ty]; found {
-		return probe.setComparer == ""
-	}
-	return true
-}
-
-func fieldComparer(ty string) string {
-	if probe, found := knownTypes[ty]; found && probe.comparer != "" {
-		return probe.comparer
-	}
-	return "cmp.Compare"
-}
-
-func setComparer(ty string) string {
-	if probe, found := knownTypes[ty]; found && probe.setComparer != "" {
-		return probe.setComparer
-	}
-	log.Fatalf("Not a set: %s", ty)
-	return ""
-}
-
-func isSetType(ty string) bool {
-	if probe, found := knownTypes[ty]; found {
-		return probe.setComparer != ""
-	}
-	return false
-}
-
-func formatName(ty string) string {
-	if probe := knownTypes[ty]; probe.formatter != "" {
-		return probe.formatter
-	}
-	return "Format" + capitalize(ty)
-}
-
-func parseName(ty string) string {
-	if probe := knownTypes[ty]; probe.parser != "" {
-		return probe.parser
-	}
-	return "CvtString2" + capitalize(ty)
-}
-
-func userFacingTypeName(ty string) string {
-	if probe := knownTypes[ty]; probe.helpName != "" {
-		return probe.helpName
-	}
-	// TODO: Strip suffix size information
-	return ty
-}
-
-// We know we're dealing with ASCII so this is good enough
-func capitalize(s string) string {
-	if s == "" {
-		return s
-	}
-	return strings.ToUpper(string(s[0])) + s[1:]
-}
-
 type fieldSpec struct {
 	name, ty string
 }
@@ -242,9 +118,6 @@ var (
 	}
 }
 
-// Arguable whether we should be checking for valid attribute names here or in the parser, I'm
-// thinking it's better to do it here.
-
 func fieldSection(tableName string, fields *parser.FieldSect) (fieldList []fieldSpec) {
 	fieldList = fieldFormatters(tableName, fields)
 	fieldPredicates(tableName, fields)
@@ -264,9 +137,6 @@ func fieldFormatters(tableName string, fields *parser.FieldSect) (fieldList []fi
 	for _, field := range fields.Fields {
 		attrs := make(map[string]string)
 		for _, attr := range field.Attrs {
-			if !validAttr[attr.Name] {
-				log.Fatalf("Field %s: Invalid attribute name %s", field.Name, attr.Name)
-			}
 			attrs[attr.Name] = attr.Value
 		}
 
@@ -293,7 +163,7 @@ func fieldFormatters(tableName string, fields *parser.FieldSect) (fieldList []fi
 
 		fmt.Fprintf(output, "\t\"%s\": {\n", field.Name)
 		fmt.Fprintf(output, "\t\tFmt: func(d %s, ctx PrintMods) string {\n", fields.Type)
-		formatter := formatName(field.Type)
+		formatter := table.FormatName(field.Type)
 		if ptrName := attrs["indirect"]; ptrName != "" {
 			fmt.Fprintf(output, "\t\t\tif (d.%s) != nil {\n", ptrName)
 			fmt.Fprintf(
@@ -316,7 +186,7 @@ func fieldFormatters(tableName string, fields *parser.FieldSect) (fieldList []fi
 		}
 		fmt.Fprintf(output, "\t\t},\n")
 		if d := attrs["desc"]; d != "" {
-			fmt.Fprintf(output, "\t\tHelp: \"(%s) %s\",\n", userFacingTypeName(field.Type), d)
+			fmt.Fprintf(output, "\t\tHelp: \"(%s) %s\",\n", table.UserFacingTypeName(field.Type), d)
 		}
 		if needsConfig {
 			fmt.Fprintf(output, "\t\tNeedsConfig: true,\n")
@@ -366,12 +236,12 @@ func fieldPredicates(tableName string, fields *parser.FieldSect) {
 
 		fmt.Fprintf(output, "\t\"%s\": Predicate[%s]{\n", field.Name, fields.Type)
 		if field.Type != "string" {
-			fmt.Fprintf(output, "\t\tConvert: %s,\n", parseName(field.Type))
+			fmt.Fprintf(output, "\t\tConvert: %s,\n", table.ParseName(field.Type))
 		}
 		switch {
-		case isComparable(field.Type):
+		case table.IsComparable(field.Type):
 			fmt.Fprintf(output, "\t\tCompare: func(d %s, v any) int {\n", fields.Type)
-			comparator := fieldComparer(field.Type)
+			comparator := table.FieldComparer(field.Type)
 			if ptrName := attrs["indirect"]; ptrName != "" {
 				fmt.Fprintf(output, "\t\t\tif (d.%s) != nil {\n", ptrName)
 				fmt.Fprintf(output, "\t\t\t\treturn %s((d.%s.%s), v.(%s))\n",
@@ -383,17 +253,17 @@ func fieldPredicates(tableName string, fields *parser.FieldSect) {
 					comparator, actualFieldName, field.Type)
 			}
 			fmt.Fprintf(output, "\t\t},\n")
-		case isSetType(field.Type):
+		case table.IsSetType(field.Type):
 			fmt.Fprintf(output, "\t\tSetCompare: func(d %s, v any, op int) bool {\n", fields.Type)
 			if ptrName := attrs["indirect"]; ptrName != "" {
 				fmt.Fprintf(output, "\t\t\tif (d.%s) != nil {\n", ptrName)
 				fmt.Fprintf(output, "\t\t\t\treturn %s((d.%s.%s), v.(%s), op)\n",
-					setComparer(field.Type), ptrName, actualFieldName, field.Type)
+					table.SetComparer(field.Type), ptrName, actualFieldName, field.Type)
 				fmt.Fprintf(output, "\t\t\t}\n")
 				fmt.Fprintf(output, "\t\t\treturn false\n")
 			} else {
 				fmt.Fprintf(output, "\t\t\treturn %s((d.%s), v.(%s), op)\n",
-					setComparer(field.Type), actualFieldName, field.Type)
+					table.SetComparer(field.Type), actualFieldName, field.Type)
 			}
 			fmt.Fprintf(output, "\t\t},\n")
 		default:
@@ -402,14 +272,6 @@ func fieldPredicates(tableName string, fields *parser.FieldSect) {
 		fmt.Fprintf(output, "\t},\n")
 	}
 	fmt.Fprintf(output, "}\n\n")
-}
-
-var validAttr = map[string]bool{
-	"desc":     true,
-	"alias":    true,
-	"field":    true,
-	"indirect": true,
-	"config":   true,
 }
 
 func generateSection(recordName string, fieldList []fieldSpec) {
