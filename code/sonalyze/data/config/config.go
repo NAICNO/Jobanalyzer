@@ -220,7 +220,7 @@ type QueryArgs struct {
 // hosts that have data in the time range.
 
 func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
-	if qa.Host.IsEmpty() {
+	if qa.Host.IsAll() {
 		hosts, err := cdp.AvailableHosts(qa.FromDate, qa.ToDate)
 		if err != nil {
 			return nil, err
@@ -228,7 +228,7 @@ func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
 		qa.Host = NewHostsFromSingle(slices.Collect(maps.Keys(hosts))...)
 	}
 
-	if !cdp.valid || qa.Host.IsEmpty() {
+	if !cdp.valid || qa.Host.IsAll() {
 		return make([]*NodeConfig, 0), nil
 	}
 

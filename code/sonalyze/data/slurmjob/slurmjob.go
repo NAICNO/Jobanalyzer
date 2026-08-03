@@ -218,10 +218,9 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter) error {
 
 	toDelete := make(map[uint32]bool, 0)
 	var prior int
-	if !filter.Host.IsEmpty() {
+	if !filter.Host.IsAll() {
 		prior = len(toDelete)
 		hosts := filter.Host
-		includeHosts := hosts.HostnameGlobber()
 		// We delete a job if none of its nodes match the globber.  It feels like this is a pretty
 		// expensive test, the cost is more or less the product of the number of patterns/nodes in
 		// the globber and the number of nodes in the expanded nodelist - per job!  Esp the nodelist
@@ -245,7 +244,7 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter) error {
 					continue
 				}
 				for _, node := range nodes {
-					if includeHosts.Match(node) {
+					if hosts.Match(node) {
 						continue Outer
 					}
 				}
