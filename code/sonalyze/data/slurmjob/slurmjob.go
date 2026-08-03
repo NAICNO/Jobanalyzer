@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"go-utils/hostglob"
 	umaps "go-utils/maps"
 	uslices "go-utils/slices"
 
@@ -232,13 +231,13 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter) error {
 		// to see some evidence.
 	Outer:
 		for id, r := range byjob {
-			patterns, err := hostglob.SplitMultiPattern(r.Main.NodeList.String())
+			patterns, err := SplitMultiPattern(r.Main.NodeList.String())
 			if err != nil {
 				// Ignore the error here because it is in the input
 				break
 			}
 			for _, pattern := range patterns {
-				nodes, err := hostglob.ExpandPattern(pattern)
+				nodes, err := ExpandPattern(pattern)
 				if err != nil {
 					// Ditto
 					continue

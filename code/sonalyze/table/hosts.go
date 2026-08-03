@@ -70,7 +70,6 @@ import (
 	"slices"
 	"strings"
 
-	"go-utils/hostglob"
 	. "sonalyze/common"
 )
 
@@ -258,9 +257,8 @@ func (h *Hostnames) AddSingle(hostname string) {
 	}
 }
 
-// The nodelist is a "multi-pattern" according to the grammar in ../../go-utils/hostglob.
-func (h *Hostnames) AddCompressed(nodelist string) error {
-	patterns, err := hostglob.SplitMultiPattern(nodelist)
+func (h *Hostnames) AddCompressed(nodesMultipattern string) error {
+	patterns, err := SplitMultiPattern(nodesMultipattern)
 	if err != nil {
 		return err
 	}
@@ -274,7 +272,7 @@ func (h *Hostnames) AddCompressed(nodelist string) error {
 }
 
 func (h *Hostnames) addPattern(p string) error {
-	names, err := hostglob.ExpandPattern(p)
+	names, err := ExpandPattern(p)
 	if err != nil {
 		return err
 	}
@@ -317,7 +315,7 @@ func (h *Hostnames) FormatBrief() string {
 func (h *Hostnames) FormatBriefCompressed() string {
 	xs := slices.Collect(maps.Keys(h.s.sources.next))
 	slices.Sort(xs)
-	return strings.Join(hostglob.CompressHostnames(xs), ",")
+	return strings.Join(CompressHostnames(xs), ",")
 }
 
 // Returns a string that is a comma-separated lists of the hosts in the set, in sorted order,
@@ -333,7 +331,7 @@ func (h *Hostnames) FormatFull() string {
 func (h *Hostnames) FormatFullCompressed() string {
 	xs := slices.Collect(h.FullNames)
 	slices.Sort(xs)
-	return strings.Join(hostglob.CompressHostnames(xs), ",")
+	return strings.Join(CompressHostnames(xs), ",")
 }
 
 func (h *Hostnames) FullNames(yield func(string) bool) {

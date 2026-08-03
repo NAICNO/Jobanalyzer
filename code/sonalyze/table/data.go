@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"go-utils/gpuset"
-	"go-utils/hostglob"
 	. "sonalyze/common"
 )
 
@@ -436,13 +435,13 @@ func CvtString2Float64(s string) (any, error) {
 }
 
 func CvtString2Hostnames(s string) (any, error) {
-	ps, err := hostglob.SplitMultiPattern(s)
+	ps, err := SplitMultiPattern(s)
 	if err != nil {
 		return nil, err
 	}
 	xs := make([]string, 0)
 	for _, p := range ps {
-		ss, err := hostglob.ExpandPattern(p)
+		ss, err := ExpandPattern(p)
 		if err != nil {
 			return nil, err
 		}
