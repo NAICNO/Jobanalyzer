@@ -10,6 +10,12 @@ import (
 	"go-utils/hostglob"
 )
 
+var (
+	CompressHostnames = hostglob.CompressHostnames
+	ExpandPattern     = hostglob.ExpandPattern
+	SplitMultiPattern = hostglob.SplitMultiPattern
+)
+
 type nameInfo struct {
 	name  string
 	uname Ustr

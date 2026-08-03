@@ -83,7 +83,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go-utils/gpuset"
-	"go-utils/hostglob"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
@@ -1006,7 +1005,7 @@ func querySlice[T any](
 			var x, expanded []string
 			var err error
 			for _, p := range q.Node.Patterns() {
-				x, err = hostglob.ExpandPattern(p)
+				x, err = ExpandPattern(p)
 				if err != nil {
 					break
 				}
