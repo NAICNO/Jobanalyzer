@@ -261,7 +261,6 @@ func (uc *UptimeCommand) computeHostWindows(
 	hosts Hosts,
 	fromIncl, toIncl int64,
 ) []window {
-	hostGlobber := hosts.HostnameGlobber()
 	windows := make([]window, 0)
 	i := 0
 	lim := len(samples)
@@ -286,7 +285,7 @@ func (uc *UptimeCommand) computeHostWindows(
 			i++
 		}
 		// If the host is excluded, we'll skip it
-		if !hostGlobber.IsEmpty() && !hostGlobber.Match(hostStr) {
+		if !hosts.Match(hostStr) {
 			continue
 		}
 
@@ -314,7 +313,6 @@ func (uc *UptimeCommand) computeAlwaysDown(
 	fromIncl, toIncl int64,
 ) {
 	if !uc.OnlyUp {
-		hostGlobber := hosts.HostnameGlobber()
 		cdp, err := config.OpenConfigDataProvider(meta)
 		if err != nil {
 			return
@@ -338,7 +336,7 @@ func (uc *UptimeCommand) computeAlwaysDown(
 			delete(hs, sample.Hostname)
 		}
 		for h := range hs {
-			if !hostGlobber.IsEmpty() && !hostGlobber.Match(h.String()) {
+			if !hosts.Match(h.String()) {
 				continue
 			}
 			// `h` is down in the entire window.

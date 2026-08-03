@@ -24,15 +24,6 @@ type Hosts struct {
 	name     *atomic.Value // can be nil.  If not, holds nameInfo or (any)nil.
 }
 
-var (
-	// MT: immutable after initialization
-	emptyGlobber *hostglob.HostGlobber
-)
-
-func init() {
-	emptyGlobber, _ = hostglob.NewGlobber(false, []string{})
-}
-
 // The host names *must* be single names: No ranges or sets or *; names must not be empty; there
 // must be no duplicates.  If a slice is passed, the caller must not retain it.  The API is for use
 // only where those conditions are known to hold.
@@ -136,8 +127,15 @@ func (h *Hosts) ExpandNames() iter.Seq[string] {
 	}
 }
 
+func (h *Hosts) Match(hostname string) bool {
+	if h.IsAll() {
+		return true
+	}
+	return h.globber.Match(hostname)
+}
+
 // Return true if the set of patterns is empty.
-func (h *Hosts) IsEmpty() bool {
+func (h *Hosts) IsAll() bool {
 	if h.globber == nil {
 		return true
 	}
@@ -146,14 +144,6 @@ func (h *Hosts) IsEmpty() bool {
 
 func (h *Hosts) Patterns() []string {
 	return h.patterns
-}
-
-// Return the cached globber that matches strings against the hosts in the set.
-func (h *Hosts) HostnameGlobber() *hostglob.HostGlobber {
-	if h.globber == nil {
-		return emptyGlobber
-	}
-	return h.globber
 }
 
 // The HostQuery is a box that holds user input.  These are separate patterns but they may contain *

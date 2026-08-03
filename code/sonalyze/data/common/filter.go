@@ -5,7 +5,6 @@ import (
 	"slices"
 	"time"
 
-	"go-utils/hostglob"
 	. "sonalyze/common"
 	"sonalyze/db/repr"
 )
@@ -43,19 +42,16 @@ func (filter *QueryFilter) Instantiate() (*CompiledFilter, error) {
 	if filter.HaveTo {
 		scanTo = filter.ToDate.Unix()
 	}
-	globber := filter.Host.HostnameGlobber()
 	return &CompiledFilter{
 		filter.Host,
 		scanFrom,
 		scanTo,
-		globber,
 	}, nil
 }
 
 type CompiledFilter struct {
 	hostFilter       Hosts
 	scanFrom, scanTo int64
-	globber          *hostglob.HostGlobber
 }
 
 func (c *CompiledFilter) HostFilter() Hosts {
@@ -65,7 +61,7 @@ func (c *CompiledFilter) HostFilter() Hosts {
 func ApplyFilter[T repr.Filterable](filter *CompiledFilter, records []T) []T {
 	return slices.DeleteFunc(records, func(s T) bool {
 		timeVal, nodeStr := s.TimeAndNode()
-		if filter.globber != nil && !filter.globber.IsEmpty() && !filter.globber.Match(nodeStr) {
+		if !filter.hostFilter.Match(nodeStr) {
 			return true
 		}
 		var parsed time.Time

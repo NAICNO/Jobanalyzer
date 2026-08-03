@@ -125,7 +125,6 @@ func (cc *ConfigCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.W
 	if err != nil {
 		return err
 	}
-	includeHosts := hosts.HostnameGlobber()
 
 	cdp, err := config.OpenConfigDataProvider(meta)
 	if err != nil {
@@ -151,9 +150,9 @@ func (cc *ConfigCommand) Perform(meta types.Context, _ io.Reader, stdout, _ io.W
 	}
 	// TODO: Why would this not be included in the query?  It would make the most sense.  Probably
 	// old code.
-	if !includeHosts.IsEmpty() {
+	if !hosts.IsAll() {
 		records = slices.DeleteFunc(records, func(r *repr.NodeSummary) bool {
-			return !includeHosts.Match(r.Hostname)
+			return !hosts.Match(r.Hostname)
 		})
 	}
 	records, err = ApplyQuery(cc.ParsedQuery, configFormatters, configPredicates, records)

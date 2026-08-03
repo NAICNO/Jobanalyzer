@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 
-	"go-utils/hostglob"
 	umaps "go-utils/maps"
 	uslices "go-utils/slices"
 
@@ -30,7 +29,7 @@ import (
 
 type SampleFilter struct {
 	IncludeUsers    map[Ustr]bool
-	IncludeHosts    *hostglob.HostGlobber
+	IncludeHosts    Hosts
 	IncludeJobs     map[uint32]bool
 	IncludeCommands map[Ustr]bool
 	ExcludeUsers    map[Ustr]bool
@@ -188,7 +187,7 @@ func InstantiateSampleFilter(recordFilter *SampleFilter) func(*repr.Sample) bool
 		instr = append(instr, testIncludeUsers)
 	}
 
-	if recordFilter.IncludeHosts != nil && !recordFilter.IncludeHosts.IsEmpty() {
+	if !recordFilter.IncludeHosts.IsAll() {
 		instr = append(instr, testIncludeHosts)
 	}
 
@@ -462,7 +461,7 @@ func BuildSampleFilter(
 
 	var recordFilter = &SampleFilter{
 		IncludeUsers:    includeUsers,
-		IncludeHosts:    includeHosts.HostnameGlobber(),
+		IncludeHosts:    includeHosts,
 		IncludeJobs:     includeJobs,
 		IncludeCommands: includeCommands,
 		ExcludeUsers:    excludeUsers,
@@ -483,7 +482,7 @@ func BuildSampleFilter(
 		if len(includeUsers) > 0 {
 			Log.Infof("Including records with users %v", umaps.Keys(includeUsers))
 		}
-		if !includeHosts.IsEmpty() {
+		if !includeHosts.IsAll() {
 			Log.Infof("Including records with hosts matching %s", includeHosts)
 		}
 		if len(includeJobs) > 0 {

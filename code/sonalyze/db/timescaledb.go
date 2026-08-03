@@ -994,7 +994,7 @@ func querySlice[T any](
 	// generating data.  Note in particular that we can apply lossy abbreviations as long as they
 	// find everything a precise match would find.
 
-	if !q.Node.IsEmpty() {
+	if !q.Node.IsAll() {
 		fieldname := mapField("node", q.fieldMap)
 		if fieldname == "nodes" {
 			// As a special hack, when "node" maps to "nodes" then the selector turns into set
