@@ -10,10 +10,13 @@ import (
 	"go-utils/hostglob"
 )
 
+// TODO: Eventually I think these functions may all get lifted into this package, and more primitive
+// parsing functionality in hostglob may be exposed.
 var (
-	CompressHostnames = hostglob.CompressHostnames
-	ExpandPattern     = hostglob.ExpandPattern
-	SplitMultiPattern = hostglob.SplitMultiPattern
+	CompressHostnames  = hostglob.CompressHostnames
+	ExpandPattern      = hostglob.ExpandPattern
+	SplitMultiPattern  = hostglob.SplitMultiPattern
+	SyntaxCheckPattern = hostglob.SyntaxCheckPattern
 )
 
 type nameInfo struct {
@@ -87,7 +90,7 @@ func (h *Hosts) CanonicalName() string {
 	if v := h.name.Load(); v != nil {
 		return v.(nameInfo).name
 	}
-	compressed := hostglob.CompressHostnames(h.patterns)
+	compressed := CompressHostnames(h.patterns)
 	slices.Sort(compressed)
 	n := strings.Join(compressed, ",")
 	u := StringToUstr(n)
@@ -117,10 +120,10 @@ func (h *Hosts) ExpandNames() iter.Seq[string] {
 	if !h.ranges {
 		return slices.Values(h.patterns)
 	}
-	// Annoying that hostglob.ExpandPattern returns a slice and not an iterator.
+	// Annoying that ExpandPattern returns a slice and not an iterator.
 	return func(yield func(string) bool) {
 		for _, p := range h.patterns {
-			ss, err := hostglob.ExpandPattern(p)
+			ss, err := ExpandPattern(p)
 			if err != nil {
 				continue
 			}
@@ -163,7 +166,7 @@ type HostQuery struct {
 func NewHostQueryFromMultiPatterns(multiPatterns ...string) (HostQuery, error) {
 	var patterns []string
 	for _, mp := range multiPatterns {
-		ps, err := hostglob.SplitMultiPattern(mp)
+		ps, err := SplitMultiPattern(mp)
 		if err != nil {
 			return HostQuery{}, err
 		}
@@ -173,7 +176,7 @@ func NewHostQueryFromMultiPatterns(multiPatterns ...string) (HostQuery, error) {
 		return HostQuery{}, nil
 	}
 	for _, p := range patterns {
-		if err := hostglob.SyntaxCheckPattern(p); err != nil {
+		if err := SyntaxCheckPattern(p); err != nil {
 			return HostQuery{}, err
 		}
 	}

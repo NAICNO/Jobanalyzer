@@ -692,7 +692,7 @@ func (pc *PersistentCluster) findFilesLocked(
 		// Retain only files whose names match the filter, if present
 
 		if !hosts.IsAll() {
-			matcher := FilenameGlobber(hosts, globs)
+			matcher := filenameGlobber(hosts, globs)
 			for _, c := range fa.getFiles(d) {
 				if matcher.Match(c.Basename) {
 					files = append(files, c)
@@ -713,7 +713,7 @@ func (pc *PersistentCluster) findFilesLocked(
 // FilenameGlobber expands those patterns into sets of file name patterns by substituting the host
 // name patterns that are in this Hosts object for the *, and returns a matcher that can be used to
 // match against file names.
-func FilenameGlobber(h Hosts, globs []string) *hostglob.HostGlobber {
+func filenameGlobber(h Hosts, globs []string) *hostglob.HostGlobber {
 	globbers := make([]*hostglob.HostGlobber, 0)
 	for _, glob := range globs {
 		if strings.Count(glob, "*") != 1 {
