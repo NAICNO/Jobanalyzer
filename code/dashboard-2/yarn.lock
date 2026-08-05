@@ -1676,15 +1676,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/dompurify@npm:^3.2.0":
-  version: 3.2.0
-  resolution: "@types/dompurify@npm:3.2.0"
-  dependencies:
-    dompurify: "npm:*"
-  checksum: 10c0/e83fec586ffbb1b43f7c8479f2a99c223814d240db912d53fb126aaeea52a4091deceeb75632b5d76004d88ef0fbf444984887b121dece6fa69f4172ed4b2b07
-  languageName: node
-  linkType: hard
-
 "@types/estree@npm:^1.0.0, @types/estree@npm:^1.0.6":
   version: 1.0.8
   resolution: "@types/estree@npm:1.0.8"
@@ -1757,13 +1748,6 @@ __metadata:
   dependencies:
     csstype: "npm:^3.2.2"
   checksum: 10c0/d04216172b4b4362b310017c210dfbe019fb4f4e7dffd0313e70b3acb3051d5c3e76e7e84e3cf4c6a3c824993ffadfe3949e589a6398a09d4200e7670e2962de
-  languageName: node
-  linkType: hard
-
-"@types/trusted-types@npm:^2.0.7":
-  version: 2.0.7
-  resolution: "@types/trusted-types@npm:2.0.7"
-  checksum: 10c0/4c4855f10de7c6c135e0d32ce462419d8abbbc33713b31d294596c0cc34ae1fa6112a2f9da729c8f7a20707782b0d69da3b1f8df6645b0366d08825ca1522e0c
   languageName: node
   linkType: hard
 
@@ -3995,30 +3979,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dompurify@npm:*":
-  version: 3.3.3
-  resolution: "dompurify@npm:3.3.3"
-  dependencies:
-    "@types/trusted-types": "npm:^2.0.7"
-  dependenciesMeta:
-    "@types/trusted-types":
-      optional: true
-  checksum: 10c0/097c14a21a3f6cb95beded9ecd255f7c3512c42767b048390c747b0fe35736f6a71e02320fc50a9ac2be645834b463e4760915d595d502a56452daf339d0ea9c
-  languageName: node
-  linkType: hard
-
-"dompurify@npm:^3.4.12":
-  version: 3.4.12
-  resolution: "dompurify@npm:3.4.12"
-  dependencies:
-    "@types/trusted-types": "npm:^2.0.7"
-  dependenciesMeta:
-    "@types/trusted-types":
-      optional: true
-  checksum: 10c0/127a13817353d4e20e75a991a9022a04c3af12af7479f68e2b8bee6dbc7330a96edfb8f4ebff96f4f0f24cd43e8dbba46214131f510c3aa87a843bd8b610d0ab
-  languageName: node
-  linkType: hard
-
 "dotenv@npm:^17.3.1":
   version: 17.4.2
   resolution: "dotenv@npm:17.4.2"
@@ -5370,7 +5330,6 @@ __metadata:
     "@testing-library/jest-dom": "npm:^6.9.1"
     "@testing-library/react": "npm:^16.3.2"
     "@testing-library/user-event": "npm:^14.6.1"
-    "@types/dompurify": "npm:^3.2.0"
     "@types/react": "npm:^19.2.18"
     "@types/react-dom": "npm:^19.2.4"
     "@types/react-test-renderer": "npm:^19.1.0"
@@ -5381,7 +5340,6 @@ __metadata:
     ag-grid-react: "npm:^36.0.2"
     axios: "npm:1.19.0"
     dayjs: "npm:^1.11.21"
-    dompurify: "npm:^3.4.12"
     eslint: "npm:^9.39.5"
     eslint-plugin-react: "npm:^7.37.5"
     eslint-plugin-react-hooks: "npm:^7.1.1"
