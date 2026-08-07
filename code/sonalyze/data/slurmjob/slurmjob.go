@@ -226,26 +226,16 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter) error {
 		// can be large; the globber will tend to have a very short list (if the query is
 		// constructed by a human).  There's a risk here for a DOS, but at least the longer input -
 		// the nodelist - is from a controlled source.
-		//
-		// Possibly caching the (pattern, ExpandPattern(pattern)) pair is worthwhile, but I'd want
-		// to see some evidence.
 	Outer:
 		for id, r := range byjob {
-			patterns, err := SplitMultiPattern(r.Main.NodeList.String())
+			hs, err := NewHostsFromMultiPattern(r.Main.NodeList.String())
 			if err != nil {
 				// Ignore the error here because it is in the input
 				break
 			}
-			for _, pattern := range patterns {
-				nodes, err := ExpandPattern(pattern)
-				if err != nil {
-					// Ditto
-					continue
-				}
-				for _, node := range nodes {
-					if hosts.Match(node) {
-						continue Outer
-					}
+			for n := range hs.ExpandNames() {
+				if hosts.Match(n) {
+					continue Outer
 				}
 			}
 			toDelete[id] = true

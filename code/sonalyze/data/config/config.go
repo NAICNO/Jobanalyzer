@@ -96,7 +96,7 @@ func MaybeOpenConfigDataProvider(meta types.Context) *ConfigDataProvider {
 //
 // FIXME: To defray the expense, we must cache.
 func (cdp *ConfigDataProvider) LookupMergedHostByTime(host Hosts, t int64) *repr.NodeSummary {
-	hostname := host.CanonicalName()
+	hostname := host.CanonicalMultiname()
 
 	var result *repr.NodeSummary
 	var count int
@@ -146,7 +146,7 @@ func (cdp *ConfigDataProvider) LookupSingleHostByTime(host string, t int64) *rep
 			FromDate: time.Unix(t-(60*60*24*14), 0).UTC(),
 			HaveTo:   true,
 			ToDate:   time.Unix(t, 0).UTC(),
-			Host:     NewHostsFromSingle(host),
+			Host:     NewHostsFromSingleInfallible(host),
 		},
 	})
 	if err == nil {
@@ -225,7 +225,7 @@ func (cdp *ConfigDataProvider) Query(qa QueryArgs) ([]*NodeConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		qa.Host = NewHostsFromSingle(slices.Collect(maps.Keys(hosts))...)
+		qa.Host = NewHostsFromSingleInfallible(slices.Collect(maps.Keys(hosts))...)
 	}
 
 	if !cdp.valid || qa.Host.IsAll() {
@@ -549,7 +549,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 					FromDate: time.Unix(fromTime-twoWeeks, 0).UTC(),
 					HaveTo:   true,
 					ToDate:   time.Unix(perHost.oldestScannedTime, 0).UTC(),
-					Host:     NewHostsFromSingle(hn),
+					Host:     NewHostsFromSingleInfallible(hn),
 				},
 			})
 		}
@@ -560,7 +560,7 @@ func (cdp *ConfigDataProvider) computeWorklist(qa QueryArgs) []QueryArgs {
 					FromDate: time.Unix(perHost.youngestRecord, 0).UTC(),
 					HaveTo:   true,
 					ToDate:   nowt,
-					Host:     NewHostsFromSingle(hn),
+					Host:     NewHostsFromSingleInfallible(hn),
 				},
 			})
 		}

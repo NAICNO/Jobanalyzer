@@ -146,7 +146,7 @@ func (lc *LoadCommand) Perform(
 			rs = slices.DeleteFunc(rs, queryNeg)
 		}
 		reports = append(reports, LoadReport{
-			hostname: stream.Host.CanonicalName(),
+			hostname: stream.Host.CanonicalMultiname(),
 			records:  rs,
 			conf:     conf,
 		})

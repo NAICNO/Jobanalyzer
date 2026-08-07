@@ -299,7 +299,7 @@ func summarizeSingleJobFromSonarData(
 	//
 	// FIXME: As noted in the synthesis code, it would be desirable for us to hash on the hosts
 	// structure itself, and not on the canonical name.
-	bound, haveBound := bounds[job.Host.CanonicalNameUstr()]
+	bound, haveBound := bounds[job.Host.CanonicalMultinameUstr()]
 	if !haveBound {
 		panic("Expected to find bound")
 	}
