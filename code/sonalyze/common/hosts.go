@@ -31,8 +31,7 @@ type Hosts struct {
 }
 
 // The host names *must* be single names: No ranges or sets or *; names must not be empty; there
-// must be no duplicates.  If a slice is passed, the caller must not retain it.  The API is for use
-// only where those conditions are known to hold.
+// must be no duplicates.  If a slice is passed, the caller must not retain it.
 func NewHostsFromSingleInfallible(names ...string) Hosts {
 	hosts, _ := NewHostsFromPatterns(names...)
 	hosts.ranges = false
@@ -69,13 +68,6 @@ func NewHostsFromPatterns(patterns ...string) (Hosts, error) {
 		globber:  globber,
 		name:     new(atomic.Value),
 	}, nil
-}
-
-// The hostnames must be single-host names - no sets, no wildcards.  Returns a *canonical*
-// multi-pattern for the set of hosts in the input.
-func CompressHostnamesInfallible(hostnames ...string) string {
-	h := NewHostsFromSingleInfallible(hostnames...)
-	return h.CanonicalMultiname()
 }
 
 // Union a list of Hosts sets and return a fresh set.

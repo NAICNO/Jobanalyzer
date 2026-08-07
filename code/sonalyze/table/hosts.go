@@ -288,6 +288,13 @@ func (a *Hostnames) HasSubset(b *Hostnames, proper bool) bool {
 	return r <= 0
 }
 
+// TODO: This is where Hostnames meets Hosts.  If Hostnames used Hosts more effectively (or were
+// merged into Hosts) then this would look a lot less silly.
+func compressHostnamesInfallible(hostnames ...string) string {
+	h := NewHostsFromSingleInfallible(hostnames...)
+	return h.CanonicalMultiname()
+}
+
 // Returns a string that is a comma-separated lists of the first elements of all the hosts in the
 // set, in sorted order, without compression.  This is precisely the set of names in the map of
 // the head node.
@@ -300,7 +307,7 @@ func (h *Hostnames) FormatBrief() string {
 
 func (h *Hostnames) FormatBriefCompressed() string {
 	xs := slices.Collect(maps.Keys(h.s.sources.next))
-	return CompressHostnamesInfallible(xs...)
+	return compressHostnamesInfallible(xs...)
 }
 
 // Returns a string that is a comma-separated lists of the hosts in the set, in sorted order,
@@ -315,7 +322,7 @@ func (h *Hostnames) FormatFull() string {
 
 func (h *Hostnames) FormatFullCompressed() string {
 	xs := slices.Collect(h.FullNames)
-	return CompressHostnamesInfallible(xs...)
+	return compressHostnamesInfallible(xs...)
 }
 
 func (h *Hostnames) FullNames(yield func(string) bool) {
