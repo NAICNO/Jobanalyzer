@@ -1,12 +1,10 @@
 // A concrete hostname is a string matching the <hostname> non-terminal of the grammar below.
 // Hostnames can be merged into sets for fast matching and compact representation.  Those sets can
-// be represented as, and parsed according to, the <multi-pattern> and <pattern> non-terminals.
+// be printed and parsed according to the <multi-pattern>, <pattern>, and <hostname> non-terminals.
 //
 //	multi-pattern              ::= pattern ("," pattern)*
 //	pattern                    ::= initial-pattern-element ("." subsequent-pattern-element)*
-//	initial-pattern-element    ::= literal multi literal
-//                               | literal multi
-//                               | multi literal
+//	initial-pattern-element    ::= (literal | multi)+
 //  multi                      ::= range | wildcard
 //  subsequent-pattern-element ::= literal
 //	literal                    ::= <longest nonempty string of characters not containing "[" or "," or "*" or ".">
@@ -19,14 +17,27 @@
 //	hostname                   ::= host-element ("." host-element)*
 //	host-element               ::= literal
 //
+// Restrictions:
+// - In a <range-elt> A-B, A must be no greater than B or the pattern is invalid.
+// - No more than one wildcard or range may be used in the initial element (after range reduction).
+// - Ranges and wildcards may not be used together.
+//
 // Note the grammar is ambiguous as it stands: the <number> "37" could be part of a <literal> or it
-// could be an <implied-range>.  When parsing, preference is given to <implied-range>.  Then, the
-// last <implied-range> in the parse reduces to a <range>, while earlier <implied-range>s reduce to
-// <literal>s.
+// could be an <implied-range>.  When parsing, preference is given to <implied-range>.
 //
-// Adjacent <literals>, should there be any, are then merged.
+// After parsing, the last <implied-range> in the parse reduces to a <range>, while earlier
+// <implied-range>s reduce to <literal>s.  (This is intended to match clusters that use the
+// <prefix><island>-<node><suffix> node naming scheme: we capture the node number in a set but the
+// island becomes part of the prefix.  It would be easy to generalize the parsing so that it doesn't
+// have to be the last <implied-range> that is converted to a range, but (say) the first, should
+// clusters use that host name scheme.)
 //
-// In a <range-elt> A-B, A must be no greater than B or the pattern is invalid.
+// After range reduction, adjacent <literals>, should there be any, are merged.
+//
+// This leaves a prefix, at most a single range or wildcard, a suffix for the initial element and a
+// tail sequence of strings for the subsequent elements.
+//
+// Note: by construction, no elements are empty.
 //
 // ---
 //
@@ -67,28 +78,62 @@
 //   - We can *expand* a pattern or multi-pattern into a set of concrete host names
 //   - We can *compress* a set of concrete host names into a pattern or multi-pattern
 //   - We can *split* a multi-pattern into a set of patterns
-//
 
 package common
 
-// This is a set of names with the same prefix, wildcard, and suffix.
+// An intset can be empty, be a combination of individual bits and ranges, or be "all" bits.  For
+// anything but "all" bits we could use https://github.com/bits-and-blooms/bitset for simplicity.
+// Then intset becomes union(false | bitset.Bitset) maybe.
+
+type intSet struct {
+
+}
+
+// To match a host name hn against a HostnameSet x, first call ParseHostname on hn to get a
+// HostnameSet h that represents hn (hn must have no * or range, at most implied-range).  Then the
+// matching of h against x must test whether the suffix and prefix match and whether the integer (if
+// any) in the nums of h is in the nums of x.  If so, then the tails must match: either exactly, or
+// the tail of h matches a prefix of the tail of x.
+
+// HostnameSets with no * can be intersected and unioned but that is logic that does not necessarily
+// belong in this file.
+
+// A list of HostnameSets with no * can be canonicalized by successively merging elements a and b
+// with the same prefix, suffix, and tail, by unioning the nums of a and b.  As prefix, suffix, and
+// tail are all string data, a matching key can be built as the string
+// "prefix|suffix|tail[0]|tail[1]|...".  (This can be cached with the HostnameSet.)
+
+// This is a simple set of names with the same prefix, wildcard, and suffix.
 type HostnameSet struct {
 	prefix string
-	nums   IntSet				// AnyIntSet for *
+	nums   intSet				// AnyIntSet for *, EmptyIntSet for nothing
 	suffix string
 	tail   []string
 }
 
-// This parses a multi-pattern and returns a set of HostnameSets, where each set is for a unique
+// This parses a multi-pattern and returns a list of HostnameSets, where each set is for a unique
 // sequence of prefix-wildcard-suffix and unique tail.  The construction of the sets is such that
-// they are merged: a[1-5]b.foo,a6b.foo,a7.foo => [{{a, [1-6], b}, [foo]}, {{a, [7], ""}, [foo]}]
-
-func ParseMultiPattern(mp string) ([]HostnameRange, error) {
-	patterns, error := SplitMultiPattern(mp)
+// they are *not* merged, but each pattern in the multi-pattern is represented, and they are in order:
+//
+//   a[1-5]b.foo,a6b.foo,a7.foo,a3b.foo.bar,b*.x
+// =>
+//   [{{a, [1-5], b}, [foo]},
+//    {{a, [6], b}, [foo]},
+//    {{a, [7], ""}, [foo]},
+//    {{a, [3], b}, [foo, bar]},
+//    {{b, *, ""}, [x]}]
+//
+// If any parse fails, the whole parse fails.
+func ParseMultiPattern(mp string) ([]HostnameSet, error) {
+	patterns, err := SplitMultiPattern(mp)
+	if err != nil {
+		return nil, err
+	}
 	var s HostnameSet
 	for _, p := range patterns {
 		elts := strings.Split(p, ".")
-		if pp, err := parseInitialElt(elts[0]); err != nil {
+		pp, err := parseInitialElt(elts[0])
+		if err != nil {
 			return nil, err
 		}
 		// now convert all but the last implied-range to a literal, join any adjacent literals,
