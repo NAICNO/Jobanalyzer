@@ -231,6 +231,7 @@ func filterJobs(byjob map[uint32]*SlurmJob, filter QueryFilter) error {
 		// to see some evidence.
 	Outer:
 		for id, r := range byjob {
+			// FIXME: Convert node list to Hosts, then use ExpandNames
 			patterns, err := SplitMultiPattern(r.Main.NodeList.String())
 			if err != nil {
 				// Ignore the error here because it is in the input

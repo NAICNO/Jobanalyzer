@@ -14,8 +14,11 @@ import (
 // parsing functionality in hostglob may be exposed.
 var (
 	CompressHostnames  = hostglob.CompressHostnames
+	// FIXME: ExpandPattern need not be exported
 	ExpandPattern      = hostglob.ExpandPattern
+	// FIXME: SplitMultiPattern need not be exported
 	SplitMultiPattern  = hostglob.SplitMultiPattern
+	// FIXME: SyntaxCheckPattern need not be exported
 	SyntaxCheckPattern = hostglob.SyntaxCheckPattern
 )
 

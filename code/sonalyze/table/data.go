@@ -435,6 +435,7 @@ func CvtString2Float64(s string) (any, error) {
 }
 
 func CvtString2Hostnames(s string) (any, error) {
+	// FIXME: Convert s to Hosts, then use ExpandNames
 	ps, err := SplitMultiPattern(s)
 	if err != nil {
 		return nil, err

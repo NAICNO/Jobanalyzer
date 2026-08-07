@@ -258,6 +258,7 @@ func (h *Hostnames) AddSingle(hostname string) {
 }
 
 func (h *Hostnames) AddCompressed(nodesMultipattern string) error {
+	// FIXME: Convert input to Hosts, then use ExpandNames
 	patterns, err := SplitMultiPattern(nodesMultipattern)
 	if err != nil {
 		return err

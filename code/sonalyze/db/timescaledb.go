@@ -1004,6 +1004,7 @@ func querySlice[T any](
 			// anyway it is probably the right thing.
 			var x, expanded []string
 			var err error
+			// FIXME: Use ExpandNames?
 			for _, p := range q.Node.Patterns() {
 				x, err = ExpandPattern(p)
 				if err != nil {

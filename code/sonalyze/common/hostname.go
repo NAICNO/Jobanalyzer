@@ -104,11 +104,15 @@ type intSet struct {
 // "prefix|suffix|tail[0]|tail[1]|...".  (This can be cached with the HostnameSet.)
 
 // This is a simple set of names with the same prefix, wildcard, and suffix.
-type HostnameSet struct {
+type CompressedHostname struct {
+	head   CompressedHostnameHead
+	tail   []string
+}
+
+type CompressedHostnameHead struct {
 	prefix string
 	nums   intSet				// AnyIntSet for *, EmptyIntSet for nothing
 	suffix string
-	tail   []string
 }
 
 // This parses a multi-pattern and returns a list of HostnameSets, where each set is for a unique
@@ -124,7 +128,7 @@ type HostnameSet struct {
 //    {{b, *, ""}, [x]}]
 //
 // If any parse fails, the whole parse fails.
-func ParseMultiPattern(mp string) ([]HostnameSet, error) {
+func ParseMultiPattern(mp string) ([]CompressedHostname, error) {
 	patterns, err := SplitMultiPattern(mp)
 	if err != nil {
 		return nil, err
