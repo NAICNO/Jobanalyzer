@@ -10,22 +10,19 @@ import (
 	"go-utils/hostglob"
 )
 
-// TODO: Eventually I think these functions may all get lifted into this package, and more primitive
-// parsing functionality in hostglob may be exposed.
-var (
-	CompressHostnames  = hostglob.CompressHostnames
-	ExpandPattern      = hostglob.ExpandPattern
-	SplitMultiPattern  = hostglob.SplitMultiPattern
-	SyntaxCheckPattern = hostglob.SyntaxCheckPattern
-)
-
 type nameInfo struct {
 	name  string
 	uname Ustr
 }
 
-// Hosts is a wrapper for a hostglob.HostGlobber that can be used to glob either straight host names
-// or file names (based on a set of patterns), depending on need.
+// Hosts represents a set of host names from a cluster.  Hosts structures can be unioned.  One can
+// also match host names against a Hosts set, or extract compressed canonical names or uncompressed
+// names (individual host names) from it.
+//
+// For multi-pattern, pattern, and hostname syntax, see the go-utils/hostglob documentation.
+//
+// TODO: At the moment, this does not have a representation that allows compressed names to be
+// canonical.  See TODO comments below.
 type Hosts struct {
 	ranges   bool
 	patterns []string
@@ -36,18 +33,31 @@ type Hosts struct {
 // The host names *must* be single names: No ranges or sets or *; names must not be empty; there
 // must be no duplicates.  If a slice is passed, the caller must not retain it.  The API is for use
 // only where those conditions are known to hold.
-func NewHostsFromSingle(names ...string) Hosts {
+func NewHostsFromSingleInfallible(names ...string) Hosts {
 	hosts, _ := NewHostsFromPatterns(names...)
 	hosts.ranges = false
 	return hosts
 }
 
+// Create a new Hosts from a multi-pattern -- but no * wildcards are allowed!
+func NewHostsFromMultiPattern(s string) (Hosts, error) {
+	ps, err := hostglob.SplitMultiPattern(s)
+	if err != nil {
+		return Hosts{}, err
+	}
+	return NewHostsFromPatterns(ps...)
+}
+
 // Create a new Hosts from the list of patterns -- but not multi-patterns, and no * wildcards are
-// allowed!  For pattern syntax, see the HostGlobber documentation.
+// allowed!
 func NewHostsFromPatterns(patterns ...string) (Hosts, error) {
 	// Globber compilation performs some syntax checking (but allows *).  In most cases, we're going
 	// to want this globber anyway so it's not a disaster to construct it always.  But it could be
 	// cached in the same way the canonicalName is.
+	//
+	// TODO: This must change in various ways.  The patterns must be compiled into HostnameSet
+	// values that can be merged, we must merge them here, and then represent them directly, not as
+	// a globber - the globber is probably obsolete at that point.
 	globber, err := hostglob.NewGlobber(true, patterns)
 	if err != nil {
 		return Hosts{}, err
@@ -61,7 +71,17 @@ func NewHostsFromPatterns(patterns ...string) (Hosts, error) {
 	}, nil
 }
 
-func HostsMerge(hs []Hosts) Hosts {
+// The hostnames must be single-host names - no sets, no wildcards.  Returns a *canonical*
+// multi-pattern for the set of hosts in the input.
+func CompressHostnamesInfallible(hostnames ...string) string {
+	h := NewHostsFromSingleInfallible(hostnames...)
+	return h.CanonicalMultiname()
+}
+
+// Union a list of Hosts sets and return a fresh set.
+func HostsUnion(hs []Hosts) Hosts {
+	// TODO: This must change - merging must perform proper unioning of HostnameSet values
+	// represented in the Hosts, see comment in NewHostsFromPatterns.
 	if len(hs) == 0 {
 		panic("Empty set of hosts in merging")
 	}
@@ -83,14 +103,17 @@ func HostsMerge(hs []Hosts) Hosts {
 	}
 }
 
-func (h *Hosts) CanonicalName() string {
+func (h *Hosts) CanonicalMultiname() string {
 	if h.name == nil {
 		return ""
 	}
 	if v := h.name.Load(); v != nil {
 		return v.(nameInfo).name
 	}
-	compressed := CompressHostnames(h.patterns)
+	// TODO: Not what we want, but this will probably be fixed by itself once NewHostsFromPatterns
+	// and HostsUnion are changed, we'll probably just join the individual string conversions of
+	// HostnameSet values here.
+	compressed := hostglob.CompressHostnames(h.patterns)
 	slices.Sort(compressed)
 	n := strings.Join(compressed, ",")
 	u := StringToUstr(n)
@@ -98,17 +121,25 @@ func (h *Hosts) CanonicalName() string {
 	return n
 }
 
-func (h *Hosts) CanonicalNameUstr() Ustr {
+func (h *Hosts) CanonicalMultinameUstr() Ustr {
 	if h.name == nil {
 		return UstrEmpty
 	}
 	if v := h.name.Load(); v != nil {
 		return v.(nameInfo).uname
 	}
-	_ = h.CanonicalName()
+	_ = h.CanonicalMultiname()
 	return h.name.Load().(nameInfo).uname
 }
 
+// Return the string representations of the individual HostnameSets in the Hosts, that is, this is
+// like CanonicalMultiname but without joining the resulting strings by ",".
+func (h *Hosts) CanonicalNames() []string {
+	// We don't cache this currently b/c it's not used much.
+	return h.patterns
+}
+
+// The Hosts must contain a single host name; return it.
 func (h *Hosts) SingleNameInfallible() string {
 	if h.ranges || len(h.patterns) != 1 {
 		panic("Invalid use of SingleNameInfallible")
@@ -123,7 +154,7 @@ func (h *Hosts) ExpandNames() iter.Seq[string] {
 	// Annoying that ExpandPattern returns a slice and not an iterator.
 	return func(yield func(string) bool) {
 		for _, p := range h.patterns {
-			ss, err := ExpandPattern(p)
+			ss, err := hostglob.ExpandPattern(p)
 			if err != nil {
 				continue
 			}
@@ -149,36 +180,4 @@ func (h *Hosts) IsAll() bool {
 		return true
 	}
 	return h.globber.IsEmpty()
-}
-
-func (h *Hosts) Patterns() []string {
-	return h.patterns
-}
-
-// The HostQuery is a box that holds user input.  These are separate patterns but they may contain *
-// and must be resolved to concrete host sets by data/common.ResolveHostQuery before they are useful
-// for querying data.
-
-type HostQuery struct {
-	Patterns []string
-}
-
-func NewHostQueryFromMultiPatterns(multiPatterns ...string) (HostQuery, error) {
-	var patterns []string
-	for _, mp := range multiPatterns {
-		ps, err := SplitMultiPattern(mp)
-		if err != nil {
-			return HostQuery{}, err
-		}
-		patterns = append(patterns, ps...)
-	}
-	if len(patterns) == 0 {
-		return HostQuery{}, nil
-	}
-	for _, p := range patterns {
-		if err := SyntaxCheckPattern(p); err != nil {
-			return HostQuery{}, err
-		}
-	}
-	return HostQuery{patterns}, nil
 }

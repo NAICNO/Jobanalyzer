@@ -435,19 +435,11 @@ func CvtString2Float64(s string) (any, error) {
 }
 
 func CvtString2Hostnames(s string) (any, error) {
-	ps, err := SplitMultiPattern(s)
+	hs, err := NewHostsFromMultiPattern(s)
 	if err != nil {
 		return nil, err
 	}
-	xs := make([]string, 0)
-	for _, p := range ps {
-		ss, err := ExpandPattern(p)
-		if err != nil {
-			return nil, err
-		}
-		xs = append(xs, ss...)
-	}
-	return xs, nil
+	return slices.Collect(hs.ExpandNames()), nil
 }
 
 // true > false

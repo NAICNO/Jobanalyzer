@@ -1002,16 +1002,8 @@ func querySlice[T any](
 			// meaning is always that the sets overlap, not that the lhs is contained in the rhs.
 			// This is debatable but since this is an optimization and post-filtering must happen
 			// anyway it is probably the right thing.
-			var x, expanded []string
-			var err error
-			for _, p := range q.Node.Patterns() {
-				x, err = ExpandPattern(p)
-				if err != nil {
-					break
-				}
-				expanded = append(expanded, x...)
-			}
-			if err == nil && len(expanded) > 0 && len(expanded) <= dosCutoff {
+			expanded := slices.Collect(q.Node.ExpandNames())
+			if len(expanded) > 0 && len(expanded) <= dosCutoff {
 				elements := make([]string, 0, len(expanded))
 				for _, e := range expanded {
 					elements = append(elements, fmt.Sprintf("$%d::character varying", len(qarg)+1))
@@ -1023,7 +1015,7 @@ func querySlice[T any](
 			conds := make([]string, 0)
 			args := make([]any, 0)
 			nextIx := len(qarg) + 1
-			for _, p := range q.Node.Patterns() {
+			for _, p := range q.Node.CanonicalNames() {
 				loc := strings.IndexAny(p, "[*")
 				// TODO: We can and should do more here:
 				//

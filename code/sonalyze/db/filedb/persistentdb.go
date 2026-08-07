@@ -720,7 +720,7 @@ func filenameGlobber(h Hosts, globs []string) *hostglob.HostGlobber {
 			panic("Host glob must have exactly one '*'")
 		}
 		before, after, _ := strings.Cut(glob, "*")
-		globber, err := hostglob.NewGlobberWithFix(true, before, h.Patterns(), after)
+		globber, err := hostglob.NewGlobberWithFix(true, before, h.CanonicalNames(), after)
 		if err != nil {
 			panic("Host glob compilation should not have failed")
 		}

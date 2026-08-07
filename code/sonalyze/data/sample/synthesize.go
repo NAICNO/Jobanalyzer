@@ -84,7 +84,7 @@ func MergeByHostAndJob(streams InputStreamSet) []MergedJob {
 					Samples:  slices.Clone(*v),
 					NumTasks: 1,
 					Tasks:    []SampleStream{SampleStream{}},
-					Host:     NewHostsFromSingle(key.host.String()),
+					Host:     NewHostsFromSingleInfallible(key.host.String()),
 				})
 			}
 		}
@@ -92,7 +92,7 @@ func MergeByHostAndJob(streams InputStreamSet) []MergedJob {
 		UstrSortAscending(commands)
 		username := mergedUserName(cmdsAndStreams.streams)
 		merged = append(merged, mergeStreams(
-			NewHostsFromSingle(key.host.String()),
+			NewHostsFromSingleInfallible(key.host.String()),
 			UstrJoin(commands, StringToUstr(",")),
 			username,
 			key.job,
@@ -184,7 +184,7 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) ([]MergedJob, Timebou
 			Samples:  slices.Clone(*z),
 			NumTasks: 1,
 			Tasks:    []SampleStream{*z},
-			Host:     NewHostsFromSingle((*z)[0].Hostname.String()),
+			Host:     NewHostsFromSingleInfallible((*z)[0].Hostname.String()),
 		})
 	}
 
@@ -192,10 +192,10 @@ func MergeByJob(streams InputStreamSet, bounds Timebounds) ([]MergedJob, Timebou
 	// merged streams.
 	for jobId, jobData := range collections {
 		names := maps.MapKeys(jobData.hosts, Ustr.String)
-		hosts := NewHostsFromSingle(names...)
+		hosts := NewHostsFromSingleInfallible(names...)
 		// FIXME: It would be desirable, here and in the consumer, to hash on the hosts structure
 		// somehow, and not on the canonical name, since that may be expensive to construct.
-		hostname := hosts.CanonicalNameUstr()
+		hostname := hosts.CanonicalMultinameUstr()
 		if _, found := newBounds[hostname]; !found {
 			if len(jobData.hosts) == 0 {
 				panic("Host list should not be empty")
@@ -255,7 +255,7 @@ func MergeByHost(streams InputStreamSet) []MergedJob {
 	for hostname, streams := range collections {
 		vs = append(
 			vs,
-			mergeStreams(NewHostsFromSingle(hostname.String()), cmdname, username, jobId, streams),
+			mergeStreams(NewHostsFromSingleInfallible(hostname.String()), cmdname, username, jobId, streams),
 		)
 	}
 
@@ -277,7 +277,7 @@ func MergeAcrossHostsByTime(streams []MergedJob) []MergedJob {
 		hosts = append(hosts, m.Host)
 	}
 	tmp := mergeStreams(
-		HostsMerge(hosts),
+		HostsUnion(hosts),
 		StringToUstr("_merged_"),
 		StringToUstr("_merged_"),
 		0,
@@ -671,7 +671,7 @@ func sumRecords(
 		Sample: &repr.Sample{
 			Version:           version,
 			Timestamp:         timestamp,
-			Hostname:          hosts.CanonicalNameUstr(),
+			Hostname:          hosts.CanonicalMultinameUstr(),
 			User:              username,
 			Job:               jobId,
 			Cmd:               command,

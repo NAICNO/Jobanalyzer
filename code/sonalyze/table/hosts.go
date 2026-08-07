@@ -244,8 +244,8 @@ func NewHostnames() *Hostnames {
 
 func NewHostnamesFromHosts(hosts Hosts) *Hostnames {
 	hns := NewHostnames()
-	for _, p := range hosts.Patterns() {
-		_ = hns.addPattern(p)
+	for n := range hosts.ExpandNames() {
+		hns.AddSingle(n)
 	}
 	return hns
 }
@@ -258,25 +258,11 @@ func (h *Hostnames) AddSingle(hostname string) {
 }
 
 func (h *Hostnames) AddCompressed(nodesMultipattern string) error {
-	patterns, err := SplitMultiPattern(nodesMultipattern)
+	hs, err := NewHostsFromMultiPattern(nodesMultipattern)
 	if err != nil {
 		return err
 	}
-	for _, p := range patterns {
-		err := h.addPattern(p)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (h *Hostnames) addPattern(p string) error {
-	names, err := ExpandPattern(p)
-	if err != nil {
-		return err
-	}
-	for _, n := range names {
+	for n := range hs.ExpandNames() {
 		h.AddSingle(n)
 	}
 	return nil
@@ -314,8 +300,7 @@ func (h *Hostnames) FormatBrief() string {
 
 func (h *Hostnames) FormatBriefCompressed() string {
 	xs := slices.Collect(maps.Keys(h.s.sources.next))
-	slices.Sort(xs)
-	return strings.Join(CompressHostnames(xs), ",")
+	return CompressHostnamesInfallible(xs...)
 }
 
 // Returns a string that is a comma-separated lists of the hosts in the set, in sorted order,
@@ -330,8 +315,7 @@ func (h *Hostnames) FormatFull() string {
 
 func (h *Hostnames) FormatFullCompressed() string {
 	xs := slices.Collect(h.FullNames)
-	slices.Sort(xs)
-	return strings.Join(CompressHostnames(xs), ",")
+	return CompressHostnamesInfallible(xs...)
 }
 
 func (h *Hostnames) FullNames(yield func(string) bool) {
