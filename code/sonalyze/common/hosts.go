@@ -156,5 +156,5 @@ func (h *Hosts) Match(hostname string) bool {
 
 // Return true if the Hosts is empty.
 func (h *Hosts) IsAll() bool {
-	return h.patterns == nil
+	return len(h.patterns) == 0
 }

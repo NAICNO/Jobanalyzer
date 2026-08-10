@@ -36,7 +36,7 @@ type HostnameSet struct {
 // syntax.
 func (self *HostnameSet) String() string {
 	var tail string
-	if self.tail != nil {
+	if len(self.tail) > 0 {
 		tail = "." + strings.Join(self.tail, ".")
 	}
 	switch (self.nodes.size()) {
@@ -54,7 +54,7 @@ func (self *HostnameSet) String() string {
 // ascending order.
 func (self *HostnameSet) Expand() iter.Seq[string] {
 	var tail string
-	if self.tail != nil {
+	if len(self.tail) > 0 {
 		tail = "." + strings.Join(self.tail, ".")
 	}
 	switch (self.nodes.size()) {
