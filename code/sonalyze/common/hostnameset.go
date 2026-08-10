@@ -29,20 +29,20 @@ import (
 // Hostnames can be merged into sets for fast matching and compact representation.  Those sets can
 // be printed and parsed according to the <multi-pattern>, <pattern>, and <hostname> non-terminals.
 //
-//		multi-pattern              ::= pattern ("," pattern)*
-//		pattern                    ::= initial-pattern-element ("." subsequent-pattern-element)*
-//		initial-pattern-element    ::= (literal | multi)+
-//	 multi                      ::= range | wildcard
-//	 subsequent-pattern-element ::= literal
-//		literal                    ::= <longest nonempty string of characters not containing "[" or "," or "*" or ".">
-//		range                      ::= actual-range | implied-range
-//	 actual-range               ::= "[" range-elt ("," range-elt)* "]"
-//		range-elt                  ::= number | number "-" number
-//	 implied-range              ::= number
-//		number                     ::= <longest nonempty string of 0..9, to be interpreted as decimal>
-//		wildcard                   ::= "*"
-//		hostname                   ::= host-element ("." host-element)*
-//		host-element               ::= literal
+//	multi-pattern              ::= pattern ("," pattern)*
+//	pattern                    ::= initial-pattern-element ("." subsequent-pattern-element)*
+//	initial-pattern-element    ::= (literal | multi)+
+//	multi                      ::= range | wildcard
+//	subsequent-pattern-element ::= literal
+//	literal                    ::= <longest nonempty string of characters not containing "[" or "," or "*" or ".">
+//	range                      ::= actual-range | implied-range
+//	actual-range               ::= "[" range-elt ("," range-elt)* "]"
+//	range-elt                  ::= number | number "-" number
+//	implied-range              ::= number
+//	number                     ::= <longest nonempty string of 0..9, to be interpreted as decimal>
+//	wildcard                   ::= "*"
+//	hostname                   ::= host-element ("." host-element)*
+//	host-element               ::= literal
 //
 // Restrictions:
 // - In a <range-elt> A-B, A must be no greater than B or the pattern is invalid.
