@@ -50,7 +50,8 @@ func (self *HostnameSet) String() string {
 }
 
 // Expand returns an iterator that will yield the individual host names in the set, without any
-// range syntax.
+// range syntax.  If there's a set with more than one element, they are generated in numerically
+// ascending order.
 func (self *HostnameSet) Expand() iter.Seq[string] {
 	var tail string
 	if self.tail != nil {
@@ -100,7 +101,9 @@ func (self *HostnameSet) Match(other HostnameSet) bool {
 	return true
 }
 
-func unionHostnameSets(hss []HostnameSet) []HostnameSet {
+// UnionHostnameSets unions the unionable sets in the input list, returning a list of unions.  Two
+// sets are unionable if they have the same prefix, suffix, and tail.
+func UnionHostnameSets(hss []HostnameSet) []HostnameSet {
 	type hnsInfo struct {
 		base   *HostnameSet
 		nodes *nodeset
@@ -180,13 +183,17 @@ func parsePattern(s string, allowRange bool) (HostnameSet, error) {
 		prefix = s
 		i++
 	}
-	if ns, ok := head[i].(nodeset); ok {
-		nodes = ns
-		i++
+	if i < len(head) {
+		if ns, ok := head[i].(nodeset); ok {
+			nodes = ns
+			i++
+		}
 	}
-	if s, ok := head[i].(string); ok {
-		suffix = s
-		i++
+	if i < len(head) {
+		if s, ok := head[i].(string); ok {
+			suffix = s
+			i++
+		}
 	}
 	if i != len(head) {
 		return HostnameSet{}, errors.New("Malformed host name head")
@@ -330,9 +337,9 @@ func tokenizeFragment(r *strings.Reader) (any, error) {
 				if n > m {
 					return nil, errors.New("Bad range")
 				}
-				nodes.ranges = append(nodes.ranges, nrange{n, m})
+				nodes.insertRange(nrange{n, m})
 			} else {
-				nodes.ranges = append(nodes.ranges, nrange{n, n})
+				nodes.insertRange(nrange{n, n})
 			}
 			count++
 			if eatc(r, ',') {
@@ -402,9 +409,15 @@ func ungetc(r io.RuneScanner, c rune) {
 	}
 }
 
-// Numeric sets of nodes.  Various ways to represent this, but normally there's a small set of
-// ranges and individual nodes, so just use a slice of ranges.  Ranges are from..to inclusive, no
-// ranges are empty.
+// Numeric sets of nodes.
+//
+// Various ways to represent this, but normally there's a small set of ranges and individual nodes,
+// so just use a slice of ranges.  Ranges are from..to inclusive, no ranges can be empty.
+//
+// Invariants:
+// - ranges are sorted in ascending 'from' order
+// - all 'from' values are distinct
+// - no two ranges are adjacent or overlapping: if b directly follows a then b.from > a.to + 1
 
 type nrange struct {
 	from, to int
@@ -431,35 +444,42 @@ func (n *nodeset) size() int {
 	return sz
 }
 
-func (n *nodeset) insertAll(other *nodeset) {
-	xs := n.ranges
-	ys := other.ranges
-	zs := make([]nrange, 0)
+func (n *nodeset) insertRange(r nrange) {
+	// note that a new range can cover many existing ranges which may need to be
+	// absorbed into it.
 	i := 0
-	j := 0
-	for i < len(xs) && j < len(ys) {
-		// Take the range with the lowest from value from one of the lists.  It can be merged into
-		// the last range in the list (extending the range) or it can be appended to the list
-		// (adding a new range).
-		var candidate nrange
-		if xs[i].from < ys[j].from {
-			candidate = xs[i]
-			i++
-		} else {
-			candidate = ys[j]
-			j++
-		}
-		var last *nrange
-		if len(zs) > 0 {
-			last = &zs[len(zs)-1]
-		}
-		if last != nil && last.to >= candidate.from-1 {
-			last.to = max(last.to, candidate.to)
-		} else {
-			zs = append(zs, candidate)
-		}
+	for i < len(n.ranges) && n.ranges[i].to < r.from-1 {
+		i++
 	}
-	n.ranges = zs
+	j := i
+	for j < len(n.ranges) && r.to >= n.ranges[j].from-1 {
+		j++
+	}
+	// Affected ranges are from i..j-1 inclusive.  These can be removed and their bounds folded into
+	// the bounds of r.  Note there may be none of them.
+	//
+	// TODO: Suboptimal for sure, because commonly r has no overlap and follows all existing ranges.
+	result := make([]nrange, i+len(n.ranges)-j+1)
+	copy(result[:i], n.ranges[:i])
+	if j < len(n.ranges) {
+		copy(result[i+1:], n.ranges[j:])
+	}
+	if i < len(n.ranges) {
+		r.from = min(r.from, n.ranges[i].from)
+	}
+	if j > 0 {
+		r.to = max(r.to, n.ranges[j-1].to)
+	}
+	result[i] = r
+	//fmt.Println(i, j, len(n.ranges), r, result)
+	n.ranges = result
+}
+
+func (n *nodeset) insertAll(other *nodeset) {
+	// TODO: suboptimal for sure, since they are sorted.
+	for _, o := range other.ranges {
+		n.insertRange(o)
+	}
 }
 
 func (n *nodeset) member(i int) bool {

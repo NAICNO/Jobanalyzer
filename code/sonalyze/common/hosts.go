@@ -53,7 +53,7 @@ func NewHostsFromPatterns(patterns ...string) (Hosts, error) {
 	if err != nil {
 		return Hosts{}, err
 	}
-	merged := unionHostnameSets(parsed)
+	merged := UnionHostnameSets(parsed)
 	return Hosts{
 		patterns: merged,
 		name:     new(atomic.Value),
@@ -73,7 +73,7 @@ func HostsUnion(hs []Hosts) Hosts {
 	for _, x := range hs {
 		patterns = append(patterns, x.patterns...)
 	}
-	merged := unionHostnameSets(patterns)
+	merged := UnionHostnameSets(patterns)
 	return Hosts{
 		patterns: merged,
 		name:     new(atomic.Value),
