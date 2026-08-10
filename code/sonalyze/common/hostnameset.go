@@ -13,7 +13,7 @@ import (
 // A HostnameSet is never empty, and it is immutable.  It represent a set of host names a . b . ...
 // where the first element can contain a node range (hence "set").  The node range is either a node
 // set represented explicitly as [ a-b, x, y, ... ] or an implied range of size 1, the last digit
-// string in a.
+// string in a.  See below for details.
 //
 // The set can be constructed by parsing a string or by unioning existing sets.
 //
@@ -23,7 +23,50 @@ import (
 // The "nodes" can be empty (for host names that contain no implied-ranges); then the suffix is also
 // empty and the name is <prefix "." tail[0] "."  tail[1] ...>.
 //
-// TODO: There is a grammar for this, which needs to be included here.
+// Grammar:
+//
+// A concrete hostname is a string matching the <hostname> non-terminal of the grammar below.
+// Hostnames can be merged into sets for fast matching and compact representation.  Those sets can
+// be printed and parsed according to the <multi-pattern>, <pattern>, and <hostname> non-terminals.
+//
+//		multi-pattern              ::= pattern ("," pattern)*
+//		pattern                    ::= initial-pattern-element ("." subsequent-pattern-element)*
+//		initial-pattern-element    ::= (literal | multi)+
+//	 multi                      ::= range | wildcard
+//	 subsequent-pattern-element ::= literal
+//		literal                    ::= <longest nonempty string of characters not containing "[" or "," or "*" or ".">
+//		range                      ::= actual-range | implied-range
+//	 actual-range               ::= "[" range-elt ("," range-elt)* "]"
+//		range-elt                  ::= number | number "-" number
+//	 implied-range              ::= number
+//		number                     ::= <longest nonempty string of 0..9, to be interpreted as decimal>
+//		wildcard                   ::= "*"
+//		hostname                   ::= host-element ("." host-element)*
+//		host-element               ::= literal
+//
+// Restrictions:
+// - In a <range-elt> A-B, A must be no greater than B or the pattern is invalid.
+// - No more than one wildcard or range may be used in the initial element (after range reduction).
+// - Ranges and wildcards may not be used together.
+// - An implied-range will not start with 0; the 0 will be parsed as part of the preceding literal
+// - A number in a range-elt should not start with 0, as it is confusing
+//
+// Note the grammar is ambiguous as it stands: the <number> "37" could be part of a <literal> or it
+// could be an <implied-range>.  When parsing, preference is given to <implied-range>.
+//
+// After parsing, the last <implied-range> in the parse reduces to a <range>, while earlier
+// <implied-range>s reduce to <literal>s.  (This is intended to match clusters that use the
+// <prefix><island>-<node><suffix> node naming scheme: we capture the node number in a set but the
+// island becomes part of the prefix.  It would be easy to generalize the parsing so that it doesn't
+// have to be the last <implied-range> that is converted to a range, but (say) the first, should
+// clusters use that host name scheme.)
+//
+// After range reduction, adjacent <literals>, should there be any, are merged.
+//
+// This leaves a prefix, at most a single range or wildcard, a suffix for the initial element and a
+// tail sequence of strings for the subsequent elements.
+//
+// Note: by construction, no elements are empty.
 type HostnameSet struct {
 	prefix string
 	suffix string
@@ -302,10 +345,6 @@ func mergeAdjacentStrings(xs []any) []any {
 	return result
 }
 
-// Note that an implied-range or a value in a range cannot start with zero, this is an interesting
-// wrinkle.  It's most interesting for implied-range: the 0 becomes part of the preceding literal.
-// Surely something will break somewhere because of this, but I think it's inevitable.
-
 func tokenizeFragment(r *strings.Reader) (any, error) {
 	switch c := getc(r); c {
 	case 0:
@@ -455,8 +494,11 @@ func (n *nodeset) size() int {
 }
 
 func (n *nodeset) insertRange(r nrange) {
-	// note that a new range can cover many existing ranges which may need to be
-	// absorbed into it.
+	// TODO: Suboptimal for sure, because commonly r has no overlap and follows all existing ranges,
+	// which are sorted; we need not search all, nor allocate a new slice every time.
+
+	// A new range can cover many existing ranges which may need to be absorbed into it, so search
+	// for those that will be replaced.
 	i := 0
 	for i < len(n.ranges) && n.ranges[i].to < r.from-1 {
 		i++
@@ -465,10 +507,9 @@ func (n *nodeset) insertRange(r nrange) {
 	for j < len(n.ranges) && r.to >= n.ranges[j].from-1 {
 		j++
 	}
-	// Affected ranges are from i..j-1 inclusive.  These can be removed and their bounds folded into
-	// the bounds of r.  Note there may be none of them.
-	//
-	// TODO: Suboptimal for sure, because commonly r has no overlap and follows all existing ranges.
+
+	// Affected ranges are from i..j-1 inclusive.  These are removed and their bounds folded into
+	// the bounds of r, which is inserted.  Note there may be no existing ranges to remove.
 	result := make([]nrange, i+len(n.ranges)-j+1)
 	copy(result[:i], n.ranges[:i])
 	if j < len(n.ranges) {
@@ -481,12 +522,12 @@ func (n *nodeset) insertRange(r nrange) {
 		r.to = max(r.to, n.ranges[j-1].to)
 	}
 	result[i] = r
-	//fmt.Println(i, j, len(n.ranges), r, result)
 	n.ranges = result
 }
 
 func (n *nodeset) insertAll(other *nodeset) {
-	// TODO: suboptimal for sure, since they are sorted.
+	// TODO: suboptimal for sure, since they are sorted, and the current structure will lead to
+	// quadratic behavior.
 	for _, o := range other.ranges {
 		n.insertRange(o)
 	}
