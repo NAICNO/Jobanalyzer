@@ -24,7 +24,7 @@ type Hosts struct {
 	// others.
 	patterns []HostnameSet
 	// Name can be nil.  If not, *name holds nameInfo | (any)nil.
-	name     *atomic.Value
+	name *atomic.Value
 }
 
 // The host names *must* be single names: No ranges or sets or *; names must not be empty; there
@@ -138,6 +138,8 @@ func (h *Hosts) ExpandNames() iter.Seq[string] {
 	}
 }
 
+// Match this hostname set against a concrete hostname.  The match succeeds if the hostname is in
+// the set.  The match is prefix matching in both directions, see the documentation at HostnameSet.
 func (h *Hosts) Match(hostname string) bool {
 	if h.IsAll() {
 		return true
@@ -147,7 +149,7 @@ func (h *Hosts) Match(hostname string) bool {
 		return false
 	}
 	for _, p := range h.patterns {
-		if p.Match(other) {
+		if p.PrefixMatch(other) {
 			return true
 		}
 	}

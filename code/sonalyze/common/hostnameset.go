@@ -39,7 +39,7 @@ func (self *HostnameSet) String() string {
 	if len(self.tail) > 0 {
 		tail = "." + strings.Join(self.tail, ".")
 	}
-	switch (self.nodes.size()) {
+	switch self.nodes.size() {
 	case 0:
 		return self.prefix + tail
 	case 1:
@@ -57,7 +57,7 @@ func (self *HostnameSet) Expand() iter.Seq[string] {
 	if len(self.tail) > 0 {
 		tail = "." + strings.Join(self.tail, ".")
 	}
-	switch (self.nodes.size()) {
+	switch self.nodes.size() {
 	case 0:
 		return func(yield func(string) bool) {
 			yield(self.prefix + tail)
@@ -85,10 +85,20 @@ func (self *HostnameSet) IsSingle() bool {
 }
 
 // Match matches the other set against self, which means that every host in the other set must be in
-// the self set, ie, it is a subset query.
-func (self *HostnameSet) Match(other HostnameSet) bool {
-	if self.prefix != other.prefix || self.suffix != other.suffix || !slices.Equal(self.tail, other.tail) {
+// the self set, ie, it is a subset query.  The prefix and suffix of the first head must match
+// exactly, but for the tails, we succeed if one is a (possibly improper) prefix of the other.
+func (self *HostnameSet) PrefixMatch(other HostnameSet) bool {
+	if self.prefix != other.prefix || self.suffix != other.suffix {
 		return false
+	}
+	i := 0
+	j := 0
+	for i < len(self.tail) && j < len(other.tail) {
+		if self.tail[i] != other.tail[j] {
+			return false
+		}
+		i++
+		j++
 	}
 	if !self.nodes.empty() && other.nodes.empty() {
 		return false
@@ -105,7 +115,7 @@ func (self *HostnameSet) Match(other HostnameSet) bool {
 // sets are unionable if they have the same prefix, suffix, and tail.
 func UnionHostnameSets(hss []HostnameSet) []HostnameSet {
 	type hnsInfo struct {
-		base   *HostnameSet
+		base  *HostnameSet
 		nodes *nodeset
 	}
 	fixed := make(map[string]*hnsInfo)
@@ -115,8 +125,8 @@ func UnionHostnameSets(hss []HostnameSet) []HostnameSet {
 			probe.nodes.insertAll(&x.nodes)
 		} else {
 			fixed[key] = &hnsInfo{
-				base:   &x,
-				nodes:  x.nodes.clone(),
+				base:  &x,
+				nodes: x.nodes.clone(),
 			}
 		}
 	}
@@ -156,14 +166,14 @@ func parsePattern(s string, allowRange bool) (HostnameSet, error) {
 	elements := strings.Split(s, ".")
 
 	// Parse head element
-	head, err := parsePatternElement(elements[0], allowRange, /*allowImpliedRange=*/ true)
+	head, err := parsePatternElement(elements[0], allowRange, true /*allowImpliedRange*/)
 	if err != nil {
 		return HostnameSet{}, err
 	}
 
 	// Convert the last implied range to a node set, the rest to string
 	convert := false
-	for j := len(head)-1 ; j >= 0 ; j-- {
+	for j := len(head) - 1; j >= 0; j-- {
 		if r, ok := head[j].(impliedRange); ok {
 			if convert {
 				head[j] = strconv.Itoa(int(r))
@@ -203,7 +213,7 @@ func parsePattern(s string, allowRange bool) (HostnameSet, error) {
 	tail := make([]string, len(elements)-1)
 	for i, e := range elements[1:] {
 		var err error
-		xs, err := parsePatternElement(e, false, /*allowImpliedRange=*/ false)
+		xs, err := parsePatternElement(e, false /*allowRange*/, false /*allowImpliedRange*/)
 		if err != nil {
 			return HostnameSet{}, err
 		}
@@ -220,8 +230,8 @@ func parsePattern(s string, allowRange bool) (HostnameSet, error) {
 	return HostnameSet{
 		prefix: prefix,
 		suffix: suffix,
-		nodes: nodes,
-		tail: tail,
+		nodes:  nodes,
+		tail:   tail,
 	}, nil
 }
 
@@ -429,7 +439,7 @@ type nodeset struct {
 }
 
 func (n *nodeset) clone() *nodeset {
-	return &nodeset{ ranges: slices.Clone(n.ranges) }
+	return &nodeset{ranges: slices.Clone(n.ranges)}
 }
 
 func (n *nodeset) empty() bool {
@@ -519,7 +529,7 @@ func (n *nodeset) compressedName() string {
 func (n *nodeset) iter() iter.Seq[int] {
 	return func(yield func(int) bool) {
 		for _, r := range n.ranges {
-			for v := r.from ; v <= r.to ; v++ {
+			for v := r.from; v <= r.to; v++ {
 				if !yield(v) {
 					return
 				}
@@ -527,4 +537,3 @@ func (n *nodeset) iter() iter.Seq[int] {
 		}
 	}
 }
-

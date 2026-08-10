@@ -20,11 +20,11 @@ func TestNodeset(t *testing.T) {
 	for v := range n.iter() {
 		t.Fatal(v)
 	}
-	n.ranges = []nrange{nrange{1,1}}
+	n.ranges = []nrange{nrange{1, 1}}
 	if s := n.singletonName(); s != "1" {
 		t.Fatal(s)
 	}
-	n.ranges = []nrange{nrange{1,1}, nrange{3,5}}
+	n.ranges = []nrange{nrange{1, 1}, nrange{3, 5}}
 	if n.empty() {
 		t.Fatal("not empty")
 	}
@@ -54,17 +54,17 @@ func TestNodeset(t *testing.T) {
 		t.Fatal(m)
 	}
 	var o nodeset
-	o.insertRange(nrange{1,5})
-	o.insertRange(nrange{5,8})
-	o.insertRange(nrange{10,10})
-	if !reflect.DeepEqual(o.ranges, []nrange{nrange{1,8}, nrange{10,10}}) {
+	o.insertRange(nrange{1, 5})
+	o.insertRange(nrange{5, 8})
+	o.insertRange(nrange{10, 10})
+	if !reflect.DeepEqual(o.ranges, []nrange{nrange{1, 8}, nrange{10, 10}}) {
 		t.Fatal(o)
 	}
 	var p nodeset
-	for _, r := range []nrange{nrange{2,3}, nrange{4,5}, nrange{2,4}, nrange{9,10}, nrange{6,7}, nrange{1,3}} {
+	for _, r := range []nrange{nrange{2, 3}, nrange{4, 5}, nrange{2, 4}, nrange{9, 10}, nrange{6, 7}, nrange{1, 3}} {
 		p.insertRange(r)
 	}
-	if !reflect.DeepEqual(p.ranges, []nrange{nrange{1,7}, nrange{9,10}}) {
+	if !reflect.DeepEqual(p.ranges, []nrange{nrange{1, 7}, nrange{9, 10}}) {
 		t.Fatal(p)
 	}
 }
@@ -78,11 +78,11 @@ func TestHostnameSetBasic(t *testing.T) {
 		t.Fatal("Single")
 	}
 	m := map[string]bool{
-		"a9b.c":true,
-		"a10b.c":true,
-		"a11b.c":true,
-		"a12b.c":true,
-		"a7b.c":true,
+		"a9b.c":  true,
+		"a10b.c": true,
+		"a11b.c": true,
+		"a12b.c": true,
+		"a7b.c":  true,
 	}
 	for n := range hs.Expand() {
 		if !m[n] {
@@ -105,21 +105,21 @@ func TestHostnameSetBasic(t *testing.T) {
 	if s != "a11b.c" {
 		t.Fatal(s)
 	}
-	if !hs.Match(h) {
+	if !hs.PrefixMatch(h) {
 		t.Fatal("Should have matched")
 	}
 	h2, _ := parseHostname("a1b.c")
-	if hs.Match(h2) {
+	if hs.PrefixMatch(h2) {
 		t.Fatal("Should not have matched")
 	}
 	hs2, _ := parseConcretePattern("a[3-5]b.c")
 	hs3, _ := parseConcretePattern("a[14].x")
 	hs4, _ := parseConcretePattern("a17.x")
-	xs := UnionHostnameSets([]HostnameSet{hs,hs3,hs2,hs4})
+	xs := UnionHostnameSets([]HostnameSet{hs, hs3, hs2, hs4})
 	fmt.Println(xs)
 	m = map[string]bool{
-		"a[3-5,7,9-12]b.c":true,
-		"a[14,17].x":true,
+		"a[3-5,7,9-12]b.c": true,
+		"a[14,17].x":       true,
 	}
 	for _, x := range xs {
 		n := x.String()
