@@ -2,7 +2,6 @@ package common
 
 import (
 	"iter"
-	"maps"
 	"slices"
 	"strings"
 	"sync/atomic"
@@ -20,21 +19,21 @@ type nameInfo struct {
 // names (individual host names) from it.
 //
 // For multi-pattern, pattern, and hostname syntax, see the go-utils/hostglob documentation.
-//
-// TODO: At the moment, this does not have a representation that allows compressed names to be
-// canonical.  See TODO comments below.
 type Hosts struct {
-	ranges   bool
-	patterns []string
-	globber  *hostglob.HostGlobber
-	name     *atomic.Value // can be nil.  If not, holds nameInfo or (any)nil.
+	// The patterns are always canonical, ie, disjoint: none of the patterns union with any of the
+	// others.
+	patterns []HostnameSet
+	// Name can be nil.  If not, *name holds nameInfo | (any)nil.
+	name *atomic.Value
 }
 
 // The host names *must* be single names: No ranges or sets or *; names must not be empty; there
 // must be no duplicates.  If a slice is passed, the caller must not retain it.
 func NewHostsFromSingleInfallible(names ...string) Hosts {
-	hosts, _ := NewHostsFromPatterns(names...)
-	hosts.ranges = false
+	hosts, err := NewHostsFromPatterns(names...)
+	if err != nil {
+		panic("Internal: bad hostname(s)")
+	}
 	return hosts
 }
 
@@ -50,47 +49,33 @@ func NewHostsFromMultiPattern(s string) (Hosts, error) {
 // Create a new Hosts from the list of patterns -- but not multi-patterns, and no * wildcards are
 // allowed!
 func NewHostsFromPatterns(patterns ...string) (Hosts, error) {
-	// Globber compilation performs some syntax checking (but allows *).  In most cases, we're going
-	// to want this globber anyway so it's not a disaster to construct it always.  But it could be
-	// cached in the same way the canonicalName is.
-	//
-	// TODO: This must change in various ways.  The patterns must be compiled into HostnameSet
-	// values that can be merged, we must merge them here, and then represent them directly, not as
-	// a globber - the globber is probably obsolete at that point.
-	globber, err := hostglob.NewGlobber(true, patterns)
+	parsed, err := parseConcretePatterns(patterns)
 	if err != nil {
 		return Hosts{}, err
 	}
-	patterns = slices.Clone(patterns)
+	merged := UnionHostnameSets(parsed)
 	return Hosts{
-		ranges:   true,
-		patterns: patterns,
-		globber:  globber,
+		patterns: merged,
 		name:     new(atomic.Value),
 	}, nil
 }
 
 // Union a list of Hosts sets and return a fresh set.
 func HostsUnion(hs []Hosts) Hosts {
-	// TODO: This must change - merging must perform proper unioning of HostnameSet values
-	// represented in the Hosts, see comment in NewHostsFromPatterns.
 	if len(hs) == 0 {
 		panic("Empty set of hosts in merging")
 	}
-	uniquePatterns := make(map[string]bool, 0)
-	var ranges bool
-	for _, h := range hs {
-		for _, p := range h.patterns {
-			uniquePatterns[p] = true
-		}
-		ranges = ranges || h.ranges
+	l := 0
+	for _, x := range hs {
+		l += len(x.patterns)
 	}
-	patterns := slices.Collect(maps.Keys(uniquePatterns))
-	globber, _ := hostglob.NewGlobber(true, patterns)
+	patterns := make([]HostnameSet, 0, l)
+	for _, x := range hs {
+		patterns = append(patterns, x.patterns...)
+	}
+	merged := UnionHostnameSets(patterns)
 	return Hosts{
-		ranges:   ranges,
-		patterns: patterns,
-		globber:  globber,
+		patterns: merged,
 		name:     new(atomic.Value),
 	}
 }
@@ -102,12 +87,9 @@ func (h *Hosts) CanonicalMultiname() string {
 	if v := h.name.Load(); v != nil {
 		return v.(nameInfo).name
 	}
-	// TODO: Not what we want, but this will probably be fixed by itself once NewHostsFromPatterns
-	// and HostsUnion are changed, we'll probably just join the individual string conversions of
-	// HostnameSet values here.
-	compressed := hostglob.CompressHostnames(h.patterns)
-	slices.Sort(compressed)
-	n := strings.Join(compressed, ",")
+	names := h.CanonicalNames()
+	slices.Sort(names)
+	n := strings.Join(names, ",")
 	u := StringToUstr(n)
 	h.name.Store(nameInfo{n, u})
 	return n
@@ -127,31 +109,28 @@ func (h *Hosts) CanonicalMultinameUstr() Ustr {
 // Return the string representations of the individual HostnameSets in the Hosts, that is, this is
 // like CanonicalMultiname but without joining the resulting strings by ",".
 func (h *Hosts) CanonicalNames() []string {
-	// We don't cache this currently b/c it's not used much.
-	return h.patterns
+	// We don't cache this currently b/c it's not used much except via CanonicalMultiname, which
+	// caches the result and more.
+	names := make([]string, len(h.patterns))
+	for i, p := range h.patterns {
+		names[i] = p.String()
+	}
+	return names
 }
 
 // The Hosts must contain a single host name; return it.
 func (h *Hosts) SingleNameInfallible() string {
-	if h.ranges || len(h.patterns) != 1 {
+	if len(h.patterns) != 1 || !h.patterns[0].IsSingle() {
 		panic("Invalid use of SingleNameInfallible")
 	}
-	return h.patterns[0]
+	return h.patterns[0].String()
 }
 
 func (h *Hosts) ExpandNames() iter.Seq[string] {
-	if !h.ranges {
-		return slices.Values(h.patterns)
-	}
-	// Annoying that ExpandPattern returns a slice and not an iterator.
 	return func(yield func(string) bool) {
 		for _, p := range h.patterns {
-			ss, err := hostglob.ExpandPattern(p)
-			if err != nil {
-				continue
-			}
-			for _, hn := range ss {
-				if !yield(hn) {
+			for s := range p.Expand() {
+				if !yield(s) {
 					return
 				}
 			}
@@ -159,17 +138,25 @@ func (h *Hosts) ExpandNames() iter.Seq[string] {
 	}
 }
 
+// Match this hostname set against a concrete hostname.  The match succeeds if the hostname is in
+// the set.  The match is prefix matching in both directions, see the documentation at HostnameSet.
 func (h *Hosts) Match(hostname string) bool {
 	if h.IsAll() {
 		return true
 	}
-	return h.globber.Match(hostname)
+	other, err := parseHostname(hostname)
+	if err != nil {
+		return false
+	}
+	for _, p := range h.patterns {
+		if p.PrefixMatch(other) {
+			return true
+		}
+	}
+	return false
 }
 
-// Return true if the set of patterns is empty.
+// Return true if the Hosts is empty.
 func (h *Hosts) IsAll() bool {
-	if h.globber == nil {
-		return true
-	}
-	return h.globber.IsEmpty()
+	return len(h.patterns) == 0
 }
