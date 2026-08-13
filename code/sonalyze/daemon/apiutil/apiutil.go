@@ -1,7 +1,9 @@
 package apiutil
 
 import (
+	"maps"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -152,6 +154,10 @@ type FieldMap struct {
 
 func (fm *FieldMap) Has(name string) bool {
 	return fm.all || fm.keys[name]
+}
+
+func (fm *FieldMap) Names() []string {
+	return slices.Collect(maps.Keys(fm.keys))
 }
 
 func Fields(fields, defaults string) *FieldMap {

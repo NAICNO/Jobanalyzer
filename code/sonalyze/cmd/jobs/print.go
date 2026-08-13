@@ -5,6 +5,7 @@ import (
 	"io"
 	"slices"
 
+	. "sonalyze/cmd"
 	. "sonalyze/common"
 	. "sonalyze/table"
 )
@@ -236,7 +237,7 @@ DEFAULTS default
 
 ELBAT*/
 
-func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*JobSummary) error {
+func printJobSummaries(out io.Writer, fa FormatArgs, numJobs uint, summaries []*JobSummary) error {
 	// Sort ascending by lowest beginning timestamp, and if those are equal, by job number.
 	slices.SortStableFunc(summaries, func(a, b *JobSummary) int {
 		c := cmp.Compare(a.Start, b.Start)
@@ -249,16 +250,16 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*JobSummary)
 	// Select a number of jobs per user, if applicable.  This means working from the bottom up
 	// in the vector and marking the numJobs first per user.
 	numRemoved := 0
-	if jc.NumJobs > 0 {
+	if numJobs > 0 {
 		if Verbose {
-			Log.Infof("Selecting only %d top jobs per user", jc.NumJobs)
+			Log.Infof("Selecting only %d top jobs per user", numJobs)
 		}
 		counts := make(map[Ustr]uint)
 		for i := len(summaries) - 1; i >= 0; i-- {
 			u := summaries[i].job.Samples[0].User
 			c := counts[u] + 1
 			counts[u] = c
-			if c > jc.NumJobs {
+			if c > numJobs {
 				if summaries[i].selected {
 					numRemoved++
 					summaries[i].selected = false
@@ -275,9 +276,9 @@ func (jc *JobsCommand) printJobSummaries(out io.Writer, summaries []*JobSummary)
 
 	FormatData(
 		out,
-		jc.PrintFields,
+		fa.PrintFields,
 		jobsFormatters,
-		jc.PrintOpts,
+		fa.PrintOpts,
 		summaries,
 	)
 

@@ -228,10 +228,7 @@ var uintArgs = []uintArg{
 	},
 }
 
-type JobsCommand struct /* implements SampleAnalysisCommand */ {
-	SampleAnalysisArgs
-	FormatArgs
-
+type JobsFilterConfig struct {
 	// Filter args
 	Uints         map[string]*uint
 	NoGpu         bool
@@ -258,14 +255,20 @@ type JobsCommand struct /* implements SampleAnalysisCommand */ {
 	minRuntimeStr string
 }
 
-var _ = SampleAnalysisCommand((*JobsCommand)(nil))
-
-func (jc *JobsCommand) lookupUint(s string) uint {
+func (jc *JobsFilterConfig) lookupUint(s string) uint {
 	if v, ok := jc.Uints[s]; ok {
 		return *v
 	}
 	panic("Unknown parameter key " + s)
 }
+
+type JobsCommand struct /* implements SampleAnalysisCommand */ {
+	SampleAnalysisArgs
+	FormatArgs
+	JobsFilterConfig
+}
+
+var _ = SampleAnalysisCommand((*JobsCommand)(nil))
 
 func (jc *JobsCommand) Add(fs *CLI) {
 	jc.SampleAnalysisArgs.Add(fs)

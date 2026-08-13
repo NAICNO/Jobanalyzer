@@ -713,9 +713,20 @@ func ValidateFormatArgs[T any](
 	return err
 }
 
-func NeedsConfig[T any](formatters map[string]Formatter[T], fields []FieldSpec) bool {
+func NeedsConfigFromSpecs[T any](formatters map[string]Formatter[T], fields []FieldSpec) bool {
 	for _, f := range fields {
 		if probe, found := formatters[f.Name]; found {
+			if probe.NeedsConfig {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func NeedsConfigFromNames[T any](formatters map[string]Formatter[T], fields []string) bool {
+	for _, f := range fields {
+		if probe, found := formatters[f]; found {
 			if probe.NeedsConfig {
 				return true
 			}

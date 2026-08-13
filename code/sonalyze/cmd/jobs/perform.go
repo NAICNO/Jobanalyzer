@@ -120,6 +120,60 @@ type JobAggregate struct {
 	Hosts       *Hostnames
 }
 
+// This is ad-hoc, in the spirit of the ad-hocness of Query() at present.
+type QueryFilter struct {
+	common.QueryFilter
+	MergeAll           bool
+	MergeNone          bool
+	SacctFromSonar     bool
+	Zombie             bool
+	Jobs               []uint32 // nil or empty for no filter
+	Users              []string // nil or empty for no filter
+	Commands           []string // nil or empty for no filter
+	ExcludeSystemUsers bool
+	ExcludeSystemJobs  bool
+}
+
+func Query(meta types.Context, qfilter QueryFilter, parsedQuery PNode, fields []string) ([]*JobSummary, error) {
+	sampleFilter := sample.QueryFilter{
+		QueryFilter:           qfilter.QueryFilter,
+		AllUsers:              len(qfilter.Users) == 0,
+		SkipSystemUsers:       qfilter.ExcludeSystemUsers,
+		ExcludeSystemCommands: true,
+		ExcludeHeartbeat:      true,
+		ExcludeSystemJobs:     qfilter.ExcludeSystemJobs,
+		User:                  qfilter.Users,
+		Command:               qfilter.Commands,
+		Job:                   qfilter.Jobs,
+	}
+	hosts, recordFilter, err := sample.BuildSampleFilter(meta, sampleFilter)
+	if err != nil {
+		return nil, err
+	}
+	jff := &JobsFilterAndFormat{
+		QueryFilter: qfilter.QueryFilter,
+		JobsFilterConfig: JobsFilterConfig{
+			Zombie:         qfilter.Zombie,
+			MergeAll:       qfilter.MergeAll,
+			MergeNone:      qfilter.MergeNone,
+			SacctFromSonar: qfilter.SacctFromSonar,
+			// Lots more are possible but are not surfaced in the API
+		},
+		NeedsConfig: NeedsConfigFromNames(jobsFormatters, fields),
+	}
+	for _, n := range fields {
+		jff.FlagsFromFieldNames.setFromFieldName(n)
+	}
+	if parsedQuery != nil {
+		names := make(map[string]bool)
+		QueryNames(parsedQuery, names)
+		for name := range names {
+			jff.FlagsFromFieldNames.setFromFieldName(name)
+		}
+	}
+	return jff.QueryAndCompute(meta, sampleFilter, hosts, recordFilter)
+}
+
 func (jc *JobsCommand) Perform(
 	out io.Writer,
 	meta types.Context,
@@ -127,9 +181,53 @@ func (jc *JobsCommand) Perform(
 	hosts Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
-	sdp, err := sample.OpenSampleDataProvider(meta)
+	jff := &JobsFilterAndFormat{
+		QueryFilter: common.QueryFilter{
+			HaveFrom: jc.HaveFrom,
+			FromDate: jc.FromDate,
+			HaveTo:   jc.HaveTo,
+			ToDate:   jc.ToDate,
+		},
+		JobsFilterConfig: jc.JobsFilterConfig,
+		NeedsConfig:      NeedsConfigFromSpecs(jobsFormatters, jc.PrintFields),
+	}
+	for _, f := range jc.PrintFields {
+		jff.FlagsFromFieldNames.setFromFieldName(f.Name)
+	}
+	if jc.ParsedQuery != nil {
+		names := make(map[string]bool)
+		QueryNames(jc.ParsedQuery, names)
+		for name := range names {
+			jff.FlagsFromFieldNames.setFromFieldName(name)
+		}
+	}
+
+	summaries, err := jff.QueryAndCompute(meta, filter, hosts, recordFilter)
 	if err != nil {
 		return err
+	}
+	if Verbose {
+		UstrStats(out, false)
+	}
+	return printJobSummaries(out, jc.FormatArgs, jc.NumJobs, summaries)
+}
+
+type JobsFilterAndFormat struct {
+	common.QueryFilter
+	JobsFilterConfig
+	NeedsConfig         bool
+	FlagsFromFieldNames flagBag
+}
+
+func (jc *JobsFilterAndFormat) QueryAndCompute(
+	meta types.Context,
+	filter sample.QueryFilter,
+	hosts Hosts,
+	recordFilter *sample.SampleFilter,
+) ([]*JobSummary, error) {
+	sdp, err := sample.OpenSampleDataProvider(meta)
+	if err != nil {
+		return nil, err
 	}
 	streams, bounds, read, dropped, err :=
 		sdp.Query(
@@ -140,11 +238,10 @@ func (jc *JobsCommand) Perform(
 			true,
 		)
 	if err != nil {
-		return fmt.Errorf("Failed to read log records: %v", err)
+		return nil, fmt.Errorf("Failed to read log records: %v", err)
 	}
 	if Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
-		UstrStats(out, false)
 	}
 
 	if Verbose {
@@ -158,11 +255,11 @@ func (jc *JobsCommand) Perform(
 
 	cdp := config.MaybeOpenConfigDataProvider(meta)
 
-	if NeedsConfig(jobsFormatters, jc.PrintFields) {
+	if jc.NeedsConfig {
 		var err error
 		streams, err = EnsureConfigForInputStreams(cdp, streams, "relative format arguments")
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -171,7 +268,7 @@ func (jc *JobsCommand) Perform(
 		Log.Infof("Jobs after aggregation filtering: %d", len(summaries))
 	}
 
-	return jc.printJobSummaries(out, summaries)
+	return summaries, nil
 }
 
 // A sample stream is a quadruple (host, command, job-related-id, record-list).  A stream is only
@@ -185,7 +282,7 @@ func (jc *JobsCommand) Perform(
 // --merge-none we do not merge; otherwise the config file can specify the hosts to merge across;
 // otherwise if there is no config we do not merge.
 
-func (jc *JobsCommand) summarizeAndFilterJobs(
+func (jc *JobsFilterAndFormat) summarizeAndFilterJobs(
 	meta types.Context,
 	cdp *config.ConfigDataProvider,
 	streams sample.InputStreamSet,
@@ -227,7 +324,7 @@ func (jc *JobsCommand) summarizeAndFilterJobs(
 	return summaries
 }
 
-func (jc *JobsCommand) summarizeJobsFromSonarData(
+func (jc *JobsFilterAndFormat) summarizeJobsFromSonarData(
 	cdp *config.ConfigDataProvider,
 	bounds Timebounds,
 	jobs []sample.MergedJob,
@@ -240,18 +337,7 @@ func (jc *JobsCommand) summarizeJobsFromSonarData(
 	if Verbose && minSamples > 1 {
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
 	}
-	if !jc.SacctFromSonar {
-		for _, f := range jc.PrintFields {
-			fb.setFromFieldName(f.Name)
-		}
-	}
-	if jc.ParsedQuery != nil {
-		names := make(map[string]bool)
-		QueryNames(jc.ParsedQuery, names)
-		for name := range names {
-			fb.setFromFieldName(name)
-		}
-	}
+	fb.or(&jc.FlagsFromFieldNames)
 
 	discarded := 0
 	for _, job := range jobs {
@@ -621,7 +707,7 @@ func synthesizeSacctDataFromSonarData(
 	return discarded
 }
 
-func (jc *JobsCommand) joinSacctData(
+func (jc *JobsFilterAndFormat) joinSacctData(
 	meta types.Context,
 	summaries []*JobSummary,
 	slurmFilter *slurmjob.QueryFilter,
@@ -663,13 +749,8 @@ func (jc *JobsCommand) joinSacctData(
 		)
 		aJobs, err = sdp.Query(
 			slurmjob.QueryFilter{
-				QueryFilter: common.QueryFilter{
-					HaveFrom: jc.HaveFrom,
-					FromDate: jc.FromDate,
-					HaveTo:   jc.HaveTo,
-					ToDate:   jc.ToDate,
-				},
-				Job: jobIds,
+				QueryFilter: jc.QueryFilter,
+				Job:         jobIds,
 			},
 		)
 		if err != nil {
@@ -790,6 +871,14 @@ func (nt *flagBag) setFromFieldName(name string) {
 	}
 }
 
+func (nt *flagBag) or(other *flagBag) {
+	nt.needCmd = nt.needCmd || other.needCmd
+	nt.needHosts = nt.needHosts || other.needHosts
+	nt.needJobAndMark = nt.needJobAndMark || other.needJobAndMark
+	nt.needSacctInfo = nt.needSacctInfo || other.needSacctInfo
+	nt.needZombie = nt.needZombie || other.needZombie
+}
+
 // Aggregation filters.
 //
 // Filtering is mostly wasted work.  Very frequently, all the filters will pass because the coarse
@@ -836,7 +925,7 @@ func (f *aggregationFilter) apply(s *JobSummary) bool {
 	return (f.flags & s.ComputedFlags) == f.flags
 }
 
-func (jc *JobsCommand) buildFilters() (*aggregationFilter, *slurmjob.QueryFilter) {
+func (jc *JobsFilterConfig) buildFilters() (*aggregationFilter, *slurmjob.QueryFilter) {
 	fminFilters := make([]ffilterVal, 0)
 	uminFilters := make([]ufilterVal, 0)
 	fmaxFilters := make([]ffilterVal, 0)
