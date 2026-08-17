@@ -255,11 +255,11 @@ type JobsFilterConfig struct {
 	minRuntimeStr string
 }
 
-func (jc *JobsFilterConfig) lookupUint(s string) uint {
+func (jc *JobsFilterConfig) lookupUint(s string) (uint, bool) {
 	if v, ok := jc.Uints[s]; ok {
-		return *v
+		return *v, true
 	}
-	panic("Unknown parameter key " + s)
+	return 0, false
 }
 
 type JobsCommand struct /* implements SampleAnalysisCommand */ {

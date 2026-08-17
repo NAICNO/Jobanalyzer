@@ -333,7 +333,8 @@ func (jc *JobsFilterAndFormat) summarizeJobsFromSonarData(
 ) ([]*JobSummary, int, flagBag) {
 	var now = time.Now().UTC().Unix()
 	summaries := make([]*JobSummary, 0)
-	minSamples := jc.lookupUint("min-samples")
+	// if !found then minSamples will be zero
+	minSamples, _ /*found*/ := jc.lookupUint("min-samples")
 	if Verbose && minSamples > 1 {
 		Log.Infof("Excluding jobs with fewer than %d samples", minSamples)
 	}
@@ -936,18 +937,20 @@ func (jc *JobsFilterConfig) buildFilters() (*aggregationFilter, *slurmjob.QueryF
 		// node config - properly.  This is not strictly true: config data for a node can be missing
 		// when we're running on a file list, especially.  Buyer beware.
 		if v.aggregateIx != -1 {
-			val := jc.lookupUint(v.name)
-			if strings.HasPrefix(v.name, "min-") && val != 0 {
-				if Verbose {
-					Log.Infof("Excluding jobs: Min-filtering %s for %d", v.name, val)
+			val, found := jc.lookupUint(v.name)
+			if found {
+				if strings.HasPrefix(v.name, "min-") && val != 0 {
+					if Verbose {
+						Log.Infof("Excluding jobs: Min-filtering %s for %d", v.name, val)
+					}
+					fminFilters = append(fminFilters, ffilterVal{float64(val), v.aggregateIx})
 				}
-				fminFilters = append(fminFilters, ffilterVal{float64(val), v.aggregateIx})
-			}
-			if strings.HasPrefix(v.name, "max-") && val != v.initial {
-				if Verbose {
-					Log.Infof("Excluding jobs: Max-filtering %s for %d", v.name, val)
+				if strings.HasPrefix(v.name, "max-") && val != v.initial {
+					if Verbose {
+						Log.Infof("Excluding jobs: Max-filtering %s for %d", v.name, val)
+					}
+					fmaxFilters = append(fmaxFilters, ffilterVal{float64(val), v.aggregateIx})
 				}
-				fmaxFilters = append(fmaxFilters, ffilterVal{float64(val), v.aggregateIx})
 			}
 		}
 	}
