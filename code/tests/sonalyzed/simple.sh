@@ -19,7 +19,7 @@ cp cluster2.naic.com-config.json $rootdir/cluster-config/cluster2.naic.com-confi
 
 # Run the server in the background against that directory
 
-$SONALYZE daemon -v \
+$SONALYZE daemon \
            -jobanalyzer-dir $rootdir \
            -rest-api $testapi \
            -v0 \
@@ -82,5 +82,21 @@ output=$(curl --silent --fail-with-body -G -u john:jj \
               "http://127.0.0.1:4545/api/v0/node?from=2026-04-29&cluster=cluster1.naic.com&fmt=default,csv,noheader" \
              | jq -r)
 CHECK "node_1" 'slurm-monitor.uio.no,4,47,0,0,"4x1 Intel(R) Xeon(R) Gold 6448Y, 47 GiB"' "$output"
+
+# FIXME: The output order is not constant here, we may need to extract individual clusters and then sort the lines
+output=$(curl --silent --fail-with-body -G -u john:jj http://127.0.0.1:4545/api/v1/clusters | jq -c -r)
+CHECK "v1_clusters" \
+      "[{\"Name\":\"cluster1.naic.com\",\"Description\":\"UiO 'CLUSTER1' supercomputer\"},{\"Name\":\"cluster2.naic.com\",\"Description\":\"UiO 'CLUSTER2' supercomputer\"}]" \
+      "$output"
+
+# FIXME: Need cards in the DB
+output=$(curl --silent --fail-with-body -G -u john:jj http://127.0.0.1:4545/api/v1/cards/cluster1.naic.com | jq -c -r)
+CHECK "v1_cards" \
+      "[]" \
+      "$output"
+
+# FIXME: Need proper jobs in the DB
+output=$(curl --silent --fail-with-body -G -u john:jj 'http://127.0.0.1:4545/api/v1/jobs/cluster1.naic.com?start_date=2026-04-29&end_date=2026-04-29')
+echo $output
 
 rm -rf $rootdir
