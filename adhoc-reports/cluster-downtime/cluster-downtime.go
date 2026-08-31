@@ -2,25 +2,30 @@
 //
 // Run as:
 //
-//   go run cluster-downtime.go [options] input-file
+//	go run cluster-downtime.go [options] input-file
 //
 // where the input-file is a csv with five fields: junk, hostname, junk, start, end (ie, the default
 // output from `sonalyze uptime`).
 //
-// Timestamps are rounded to 10 minutes by default.
-//
 // Run with -h to see the options.
+//
+// Timestamps are rounded to 10 minutes by default.  Usually you want neither -hour or -day, and
+// -day can be tricky to interpret in maintenance windows as nodes bounce down and up again.
+//
+// NOTE, if the histogram does not show 0 then some nodes are down; on large clusters, it may be
+// that the histogram never shows 0.  When you have a floor like that you'll need to process the
+// data further to compute, say, downtime per node.
 //
 // A typical sonalyze command line to generate the input-file might be this:
 //
-//   sonalyze uptime \
-//       -data-dir ../data/betzy.sigma2.no \
-//       -f 2025-01-01 -t 2025-09-01 \
-//       -host 'b[4101-4396]' \
-//       -interval 60 \
-//       -only-down \
-//       -fmt csv,default \
-//   | grep '^host'
+//	sonalyze uptime \
+//	    -data-dir ../data/betzy.sigma2.no \
+//	    -f 2025-01-01 -t 2025-09-01 \
+//	    -host 'b[4101-4396]' \
+//	    -interval 60 \
+//	    -only-down \
+//	    -fmt csv,default \
+//	| grep '^host'
 //
 // Obviously the code in this script is easily adapted to other output fields, just hack the constants below.
 package main
@@ -41,9 +46,9 @@ import (
 
 // CSV field offsets
 const (
-	HostOffs = 1
+	HostOffs      = 1
 	StartTimeOffs = 3
-	EndTimeOffs = 4
+	EndTimeOffs   = 4
 )
 
 // CSV time format
@@ -63,12 +68,13 @@ const (
 
 var (
 	histo = flag.Bool("histo", false, "Print histogram scaled by 10")
-	round = flag.Int("round", 10, "Round times to `minutes`")
+	hour  = flag.Bool("hour", false, "Round times to the closest hour")
+	day   = flag.Bool("day", false, "Round times to the closest day")
 	scale = flag.Int("scale", 10, "Scale histogram by `factor`")
 )
 
 func main() {
-	flag.Usage = func () {
+	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "cluster-downtime [options] inputfile\nOptions:\n")
 		flag.PrintDefaults()
@@ -76,6 +82,10 @@ func main() {
 	flag.Parse()
 	rest := flag.Args()
 	if len(rest) != 1 {
+		flag.Usage()
+		os.Exit(2)
+	}
+	if *hour && *day {
 		flag.Usage()
 		os.Exit(2)
 	}
@@ -98,12 +108,12 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		start = start.Round(10*time.Minute)
+		start = adjust(start, true)
 		end, err := time.Parse(TimeFmt, record[EndTimeOffs])
 		if err != nil {
 			log.Fatal(err)
 		}
-		end = end.Round(time.Duration(*round) * time.Minute)
+		end = adjust(end, false)
 		events = append(events, event{start.Unix(), Down}, event{end.Unix(), Up})
 	}
 	slices.SortFunc(events, func(a, b event) int {
@@ -128,6 +138,32 @@ func main() {
 			fmt.Println(time.Unix(ev.t, 0).Format(TimeFmt), "     ", downCount)
 		}
 	}
+}
+
+func adjust(t time.Time, down bool) time.Time {
+	// If rounded components overflow they will be normalized by the constructor
+	if *day {
+		d := t.Day()
+		if !down && (t.Hour() > 0 || t.Minute() > 0) {
+			d++
+		}
+		return time.Date(t.Year(), t.Month(), d, 0, 0, 0, 0, t.Location())
+	}
+	if *hour {
+		h := t.Hour()
+		if !down && t.Minute() > 0 {
+			h++
+		}
+		return time.Date(t.Year(), t.Month(), t.Day(), h, 0, 0, 0, t.Location())
+	}
+	// 10 minutes
+	m := t.Minute()
+	if down {
+		m = m / 10 * 10
+	} else {
+		m = ((m + 9) / 10) * 10
+	}
+	return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), m, 0, 0, t.Location())
 }
 
 func stars(n int) string {
