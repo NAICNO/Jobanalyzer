@@ -14,7 +14,7 @@
 //
 // NOTE, if the histogram does not show 0 then some nodes are down; on large clusters, it may be
 // that the histogram never shows 0.  When you have a floor like that you'll need to process the
-// data further to compute, say, downtime per node.
+// data further to compute, say, downtime per node.  See node-downtime.go for this.
 //
 // A typical sonalyze command line to generate the input-file might be this:
 //
