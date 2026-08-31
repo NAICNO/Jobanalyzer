@@ -4,8 +4,8 @@
 //
 //	go run cluster-downtime.go [options] input-file
 //
-// where the input-file is a csv with five fields: junk, hostname, junk, start, end (ie, the default
-// output from `sonalyze uptime`).
+// where the input-file is a csv with five fields: "host", hostname, "down", start, end (ie, the default
+// output fields from `sonalyze uptime`).
 //
 // Run with -h to see the options.
 //
@@ -25,7 +25,11 @@
 //	    -interval 60 \
 //	    -only-down \
 //	    -fmt csv,default \
-//	| grep '^host'
+//	| grep '^host' \
+//	> betzy-4xxx-2025-jan-aug.csv
+//
+// The grep is necessary because these nodes also have GPUs and there's no sonalyze switch to only show
+// the nodes themselves in this case.  (We could have added that logic in this script instead.)
 //
 // Obviously the code in this script is easily adapted to other output fields, just hack the constants below.
 package main
