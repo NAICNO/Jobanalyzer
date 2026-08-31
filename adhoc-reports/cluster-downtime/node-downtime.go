@@ -78,9 +78,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		hn := record[HostOffs]
-		probe := down[hn]
-		down[hn] = probe + (end.Unix() - start.Unix())
+		down[record[HostOffs]] += (end.Unix() - start.Unix())
 	}
 	type entry struct {
 		hostname string
