@@ -2,7 +2,7 @@
 //
 // Run as:
 //
-//	go run cluster-downtime.go csv.go [options] input-file
+//	go run cluster-downtime.go csv.go flag.go [options] input-file
 //
 // where the input-file is a csv with five fields: "host", hostname, "down", start, end (ie, the default
 // output fields from `sonalyze uptime`).
@@ -39,7 +39,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"slices"
 	"time"
 )
@@ -76,20 +75,9 @@ var (
 )
 
 func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
-		fmt.Fprintf(flag.CommandLine.Output(), "cluster-downtime [options] inputfile\nOptions:\n")
-		flag.PrintDefaults()
-	}
-	flag.Parse()
-	rest := flag.Args()
-	if len(rest) != 1 {
-		flag.Usage()
-		os.Exit(2)
-	}
+	rest := FlagParse("cluster-downtime", []string{"inputfile"})
 	if *hour && *day {
-		flag.Usage()
-		os.Exit(2)
+		FlagFail("Can't have both -hour and -day")
 	}
 	var events []event
 	CsvLines(rest[0], func(record []string) {

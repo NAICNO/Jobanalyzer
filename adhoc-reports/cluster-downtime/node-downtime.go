@@ -3,7 +3,7 @@
 //
 // Run as:
 //
-//	go run node-downtime.go csv.go [options] input-file
+//	go run node-downtime.go csv.go flag.go [options] input-file
 //
 // where the input-file is a csv with five fields: "host", hostname, "down", start, end (ie, the
 // default output from `sonalyze uptime`).
@@ -19,7 +19,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"slices"
 	"time"
 )
@@ -43,17 +42,7 @@ var (
 )
 
 func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
-		fmt.Fprintf(flag.CommandLine.Output(), "node-downtime [options] inputfile\nOptions:\n")
-		flag.PrintDefaults()
-	}
-	flag.Parse()
-	rest := flag.Args()
-	if len(rest) != 1 {
-		flag.Usage()
-		os.Exit(2)
-	}
+	rest := FlagParse("node-downtime", []string{"inputfile"})
 	down := make(map[string]int64)
 	CsvLines(rest[0], func(record []string) {
 		start, err := time.Parse(TimeFmt, record[StartTimeOffs])
