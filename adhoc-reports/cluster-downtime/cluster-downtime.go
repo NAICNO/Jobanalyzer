@@ -2,7 +2,7 @@
 //
 // Run as:
 //
-//	go run cluster-downtime.go [options] input-file
+//	go run cluster-downtime.go csv.go [options] input-file
 //
 // where the input-file is a csv with five fields: "host", hostname, "down", start, end (ie, the default
 // output fields from `sonalyze uptime`).
@@ -36,10 +36,8 @@ package main
 
 import (
 	"cmp"
-	"encoding/csv"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"slices"
@@ -93,20 +91,8 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
-	inf, err := os.Open(rest[0])
-	if err != nil {
-		log.Fatal(err)
-	}
-	r := csv.NewReader(inf)
 	var events []event
-	for {
-		record, err := r.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
+	CsvLines(rest[0], func(record []string) {
 		// We round every time to the nearest 10 minute
 		start, err := time.Parse(TimeFmt, record[StartTimeOffs])
 		if err != nil {
@@ -119,7 +105,7 @@ func main() {
 		}
 		end = adjust(end, false)
 		events = append(events, event{start.Unix(), Down}, event{end.Unix(), Up})
-	}
+	})
 	slices.SortFunc(events, func(a, b event) int {
 		return cmp.Compare(a.t, b.t)
 	})

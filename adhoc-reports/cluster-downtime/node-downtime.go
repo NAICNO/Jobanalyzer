@@ -3,10 +3,10 @@
 //
 // Run as:
 //
-//	go run node-downtime.go [options] input-file
+//	go run node-downtime.go csv.go [options] input-file
 //
-// where the input-file is a csv with five fields: junk, hostname, junk, start, end (ie, the default
-// output from `sonalyze uptime`).
+// where the input-file is a csv with five fields: "host", hostname, "down", start, end (ie, the
+// default output from `sonalyze uptime`).
 //
 // Run with -h to see the options.
 //
@@ -16,10 +16,8 @@ package main
 
 import (
 	"cmp"
-	"encoding/csv"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"slices"
@@ -56,20 +54,8 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
-	inf, err := os.Open(rest[0])
-	if err != nil {
-		log.Fatal(err)
-	}
-	r := csv.NewReader(inf)
 	down := make(map[string]int64)
-	for {
-		record, err := r.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
+	CsvLines(rest[0], func(record []string) {
 		start, err := time.Parse(TimeFmt, record[StartTimeOffs])
 		if err != nil {
 			log.Fatal(err)
@@ -79,7 +65,7 @@ func main() {
 			log.Fatal(err)
 		}
 		down[record[HostOffs]] += (end.Unix() - start.Unix())
-	}
+	})
 	type entry struct {
 		hostname string
 		time     int64
