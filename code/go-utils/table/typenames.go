@@ -23,6 +23,8 @@ type TypeInfo struct {
 	HelpName    string // default is the name as given
 	Comparer    string // setType == false: default is cmp.Compare
 	Formatter   string // default is Format<Typename>
+	JSONty      string // default is the name as given
+	JSONer      string // default is the empty string
 	Parser      string // default is CvtString2<Typename>
 	SetComparer string // if "", not a set; otherwise a function
 }
@@ -53,20 +55,38 @@ var KnownTypes = map[string]TypeInfo{
 		HelpName: "DateTimeValue",
 		Parser:   "CvtString2DateTimeValue",
 	},
-	"IsoDateTimeOrUnknown": TypeInfo{HelpName: "IsoDateTimeValue"},
-	"Ustr":                 TypeInfo{HelpName: "string"},
-	"UstrMax30":            TypeInfo{HelpName: "string"},
+	"DateTimeValue": TypeInfo{
+		JSONty: "string",
+		JSONer: "JSONFromDateTimeValue",
+	},
+	"IsoDateTimeOrUnknown": TypeInfo{
+		HelpName: "IsoDateTimeValue",
+	},
+	"Ustr": TypeInfo{
+		HelpName: "string",
+		JSONty:   "string",
+		JSONer:   "JSONFromUstr",
+	},
+	"UstrMax30": TypeInfo{
+		HelpName: "string",
+		JSONty:   "string",
+		JSONer:   "JSONFromUstr",
+	},
 	"gpuset.GpuSet": TypeInfo{
 		HelpName:    "GpuSet",
 		Formatter:   "FormatGpuSet",
 		Parser:      "CvtString2GpuSet",
 		SetComparer: "SetCompareGpuSets",
+		JSONty:      "[]int",
+		JSONer:      "JSONFromGpuSet",
 	},
 	"*Hostnames": TypeInfo{
 		HelpName:    "Hostnames",
 		Formatter:   "FormatHostnames",
 		Parser:      "CvtString2Hostnames",
 		SetComparer: "SetCompareHostnames",
+		JSONty:      "[]string",
+		JSONer:      "JSONFromHostnames",
 	},
 }
 
@@ -104,6 +124,20 @@ func FormatName(ty string) string {
 		return probe.Formatter
 	}
 	return "Format" + Capitalize(ty)
+}
+
+func JSONTypeName(ty string) string {
+	if probe := KnownTypes[ty]; probe.JSONty != "" {
+		return probe.JSONty
+	}
+	return ty
+}
+
+func JSONFormatName(ty string) string {
+	if probe := KnownTypes[ty]; probe.JSONer != "" {
+		return probe.JSONer
+	}
+	return ""
 }
 
 func ParseName(ty string) string {

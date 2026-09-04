@@ -541,3 +541,23 @@ Again:
 		panic("Bad operation")
 	}
 }
+
+func JSONFromUstr(s Ustr) string {
+	return s.String()
+}
+
+func JSONFromString(s string) string {
+	return s
+}
+
+func JSONFromGpuSet(xs gpuset.GpuSet) []int {
+	return xs.AsSlice()
+}
+
+func JSONFromHostnames(xs *Hostnames) []string {
+	return xs.FullCompressedSlice()
+}
+
+func JSONFromDateTimeValue(d DateTimeValue) string {
+	return time.Unix(int64(d), 0).UTC().Format(time.RFC3339)
+}

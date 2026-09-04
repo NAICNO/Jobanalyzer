@@ -3,9 +3,7 @@
 package jobs
 
 import (
-	"go-utils/gpuset"
 	. "sonalyze/cmd/jobs"
-	. "sonalyze/common"
 	"sonalyze/daemon/apiutil"
 	. "sonalyze/table"
 )
@@ -15,10 +13,10 @@ const responseDefaults = "Job,User,Duration,Hosts,CpuTime,ResidentMemAvgGB,GpuTi
 type Jobs_Job struct {
 	JobAndMark                    string        `json:"JobAndMark,omitempty"`
 	Job                           uint32        `json:"Job,omitempty"`
-	User                          Ustr          `json:"User,omitempty"`
+	User                          string        `json:"User,omitempty"`
 	Duration                      DurationValue `json:"Duration,omitempty"`
-	Start                         DateTimeValue `json:"Start,omitempty"`
-	End                           DateTimeValue `json:"End,omitempty"`
+	Start                         string        `json:"Start,omitempty"`
+	End                           string        `json:"End,omitempty"`
 	CpuAvgPct                     F64Ceil       `json:"CpuAvgPct,omitempty"`
 	CpuPeakPct                    F64Ceil       `json:"CpuPeakPct,omitempty"`
 	RelativeCpuAvgPct             F64Ceil       `json:"RelativeCpuAvgPct,omitempty"`
@@ -45,11 +43,11 @@ type Jobs_Job struct {
 	OccupiedRelativeGpuMemPeakPct F64Ceil       `json:"OccupiedRelativeGpuMemPeakPct,omitempty"`
 	ThreadAvg                     F64Ceil       `json:"ThreadAvg,omitempty"`
 	ThreadPeak                    F64Ceil       `json:"ThreadPeak,omitempty"`
-	Gpus                          gpuset.GpuSet `json:"Gpus,omitempty"`
+	Gpus                          []int         `json:"Gpus,omitempty"`
 	GpuFail                       int           `json:"GpuFail,omitempty"`
 	Cmd                           string        `json:"Cmd,omitempty"`
-	Hosts                         *Hostnames    `json:"Hosts,omitempty"`
-	Now                           DateTimeValue `json:"Now,omitempty"`
+	Hosts                         []string      `json:"Hosts,omitempty"`
+	Now                           string        `json:"Now,omitempty"`
 	Classification                int           `json:"Classification,omitempty"`
 	CpuTime                       DurationValue `json:"CpuTime,omitempty"`
 	GpuTime                       DurationValue `json:"GpuTime,omitempty"`
@@ -62,9 +60,9 @@ type Jobs_Job struct {
 	Zombie                        bool          `json:"Zombie,omitempty"`
 	Primordial                    bool          `json:"Primordial,omitempty"`
 	BornLater                     bool          `json:"BornLater,omitempty"`
-	Account                       Ustr          `json:"Account,omitempty"`
+	Account                       string        `json:"Account,omitempty"`
 	ArrayJobID                    uint32        `json:"ArrayJobID,omitempty"`
-	ArrayStep                     Ustr          `json:"ArrayStep,omitempty"`
+	ArrayStep                     string        `json:"ArrayStep,omitempty"`
 	ArrayTaskID                   uint32        `json:"ArrayTaskID,omitempty"`
 	AveCPU                        uint64        `json:"AveCPU,omitempty"`
 	AveDiskRead                   uint64        `json:"AveDiskRead,omitempty"`
@@ -75,29 +73,29 @@ type Jobs_Job struct {
 	ExitCode                      uint8         `json:"ExitCode,omitempty"`
 	HetJobID                      uint32        `json:"HetJobID,omitempty"`
 	HetJobOffset                  uint32        `json:"HetJobOffset,omitempty"`
-	HetStep                       Ustr          `json:"HetStep,omitempty"`
-	JobName                       Ustr          `json:"JobName,omitempty"`
-	JobStep                       Ustr          `json:"JobStep,omitempty"`
-	Layout                        Ustr          `json:"Layout,omitempty"`
+	HetStep                       string        `json:"HetStep,omitempty"`
+	JobName                       string        `json:"JobName,omitempty"`
+	JobStep                       string        `json:"JobStep,omitempty"`
+	Layout                        string        `json:"Layout,omitempty"`
 	MaxRSS                        uint64        `json:"MaxRSS,omitempty"`
 	MaxVMSize                     uint64        `json:"MaxVMSize,omitempty"`
 	MinCPU                        uint64        `json:"MinCPU,omitempty"`
-	NodeList                      Ustr          `json:"NodeList,omitempty"`
-	Partition                     Ustr          `json:"Partition,omitempty"`
+	NodeList                      string        `json:"NodeList,omitempty"`
+	Partition                     string        `json:"Partition,omitempty"`
 	Priority                      uint64        `json:"Priority,omitempty"`
 	ReqCPUS                       uint32        `json:"ReqCPUS,omitempty"`
-	ReqGPUS                       Ustr          `json:"ReqGPUS,omitempty"`
+	ReqGPUS                       string        `json:"ReqGPUS,omitempty"`
 	ReqMem                        uint64        `json:"ReqMem,omitempty"`
 	ReqNodes                      uint32        `json:"ReqNodes,omitempty"`
-	Reservation                   Ustr          `json:"Reservation,omitempty"`
-	State                         Ustr          `json:"State,omitempty"`
-	Submit                        DateTimeValue `json:"Submit,omitempty"`
+	Reservation                   string        `json:"Reservation,omitempty"`
+	State                         string        `json:"State,omitempty"`
+	Submit                        string        `json:"Submit,omitempty"`
 	Suspended                     uint32        `json:"Suspended,omitempty"`
 	SystemCPU                     uint64        `json:"SystemCPU,omitempty"`
-	Time                          DateTimeValue `json:"Time,omitempty"`
+	Time                          string        `json:"Time,omitempty"`
 	TimelimitRaw                  U32Duration   `json:"TimelimitRaw,omitempty"`
 	UserCPU                       uint64        `json:"UserCPU,omitempty"`
-	Version                       Ustr          `json:"Version,omitempty"`
+	Version                       string        `json:"Version,omitempty"`
 }
 
 func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
@@ -109,16 +107,16 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 		x.Job = r.JobId
 	}
 	if flds.Has("User") {
-		x.User = r.User
+		x.User = JSONFromUstr(r.User)
 	}
 	if flds.Has("Duration") {
 		x.Duration = r.Duration
 	}
 	if flds.Has("Start") {
-		x.Start = r.Start
+		x.Start = JSONFromDateTimeValue(r.Start)
 	}
 	if flds.Has("End") {
-		x.End = r.End
+		x.End = JSONFromDateTimeValue(r.End)
 	}
 	if flds.Has("CpuAvgPct") {
 		x.CpuAvgPct = r.Computed[KCpuPctAvg]
@@ -199,7 +197,7 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 		x.ThreadPeak = r.Computed[KThreadPeak]
 	}
 	if flds.Has("Gpus") {
-		x.Gpus = r.Gpus
+		x.Gpus = JSONFromGpuSet(r.Gpus)
 	}
 	if flds.Has("GpuFail") {
 		x.GpuFail = r.GpuFail
@@ -208,10 +206,10 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 		x.Cmd = r.Cmd
 	}
 	if flds.Has("Hosts") {
-		x.Hosts = r.Hosts
+		x.Hosts = JSONFromHostnames(r.Hosts)
 	}
 	if flds.Has("Now") {
-		x.Now = r.Now
+		x.Now = JSONFromDateTimeValue(r.Now)
 	}
 	if flds.Has("Classification") {
 		x.Classification = r.Classification
@@ -251,7 +249,7 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 	}
 	if flds.Has("Account") {
 		if (r.SacctInfo) != nil {
-			x.Account = r.SacctInfo.Account
+			x.Account = JSONFromUstr(r.SacctInfo.Account)
 		}
 	}
 	if flds.Has("ArrayJobID") {
@@ -261,7 +259,7 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 	}
 	if flds.Has("ArrayStep") {
 		if (r.SacctInfo) != nil {
-			x.ArrayStep = r.SacctInfo.ArrayStep
+			x.ArrayStep = JSONFromUstr(r.SacctInfo.ArrayStep)
 		}
 	}
 	if flds.Has("ArrayTaskID") {
@@ -316,22 +314,22 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 	}
 	if flds.Has("HetStep") {
 		if (r.SacctInfo) != nil {
-			x.HetStep = r.SacctInfo.HetStep
+			x.HetStep = JSONFromUstr(r.SacctInfo.HetStep)
 		}
 	}
 	if flds.Has("JobName") {
 		if (r.SacctInfo) != nil {
-			x.JobName = r.SacctInfo.JobName
+			x.JobName = JSONFromUstr(r.SacctInfo.JobName)
 		}
 	}
 	if flds.Has("JobStep") {
 		if (r.SacctInfo) != nil {
-			x.JobStep = r.SacctInfo.JobStep
+			x.JobStep = JSONFromUstr(r.SacctInfo.JobStep)
 		}
 	}
 	if flds.Has("Layout") {
 		if (r.SacctInfo) != nil {
-			x.Layout = r.SacctInfo.Layout
+			x.Layout = JSONFromUstr(r.SacctInfo.Layout)
 		}
 	}
 	if flds.Has("MaxRSS") {
@@ -351,12 +349,12 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 	}
 	if flds.Has("NodeList") {
 		if (r.SacctInfo) != nil {
-			x.NodeList = r.SacctInfo.NodeList
+			x.NodeList = JSONFromUstr(r.SacctInfo.NodeList)
 		}
 	}
 	if flds.Has("Partition") {
 		if (r.SacctInfo) != nil {
-			x.Partition = r.SacctInfo.Partition
+			x.Partition = JSONFromUstr(r.SacctInfo.Partition)
 		}
 	}
 	if flds.Has("Priority") {
@@ -371,7 +369,7 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 	}
 	if flds.Has("ReqGPUS") {
 		if (r.SacctInfo) != nil {
-			x.ReqGPUS = r.SacctInfo.ReqGPUS
+			x.ReqGPUS = JSONFromUstr(r.SacctInfo.ReqGPUS)
 		}
 	}
 	if flds.Has("ReqMem") {
@@ -386,17 +384,17 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 	}
 	if flds.Has("Reservation") {
 		if (r.SacctInfo) != nil {
-			x.Reservation = r.SacctInfo.Reservation
+			x.Reservation = JSONFromUstr(r.SacctInfo.Reservation)
 		}
 	}
 	if flds.Has("State") {
 		if (r.SacctInfo) != nil {
-			x.State = r.SacctInfo.State
+			x.State = JSONFromUstr(r.SacctInfo.State)
 		}
 	}
 	if flds.Has("Submit") {
 		if (r.SacctInfo) != nil {
-			x.Submit = r.SacctInfo.Submit
+			x.Submit = JSONFromDateTimeValue(r.SacctInfo.Submit)
 		}
 	}
 	if flds.Has("Suspended") {
@@ -411,7 +409,7 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 	}
 	if flds.Has("Time") {
 		if (r.SacctInfo) != nil {
-			x.Time = r.SacctInfo.Time
+			x.Time = JSONFromDateTimeValue(r.SacctInfo.Time)
 		}
 	}
 	if flds.Has("TimelimitRaw") {
@@ -426,7 +424,7 @@ func respond(flds *apiutil.FieldMap, r *JobSummary) Jobs_Job {
 	}
 	if flds.Has("Version") {
 		if (r.SacctInfo) != nil {
-			x.Version = r.SacctInfo.Version
+			x.Version = JSONFromUstr(r.SacctInfo.Version)
 		}
 	}
 	return x

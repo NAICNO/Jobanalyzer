@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"go-utils/table"
 	"go-utils/table/parser"
 )
 
@@ -80,7 +81,7 @@ func end() {
 	}
 	fmt.Fprintf(out, "type %s struct {\n", tyname)
 	for _, f := range fields {
-		fmt.Fprintf(out, "\t%s %s `json:\"%s,omitempty\"`\n", f.Name, f.Type, f.Name)
+		fmt.Fprintf(out, "\t%s %s `json:\"%s,omitempty\"`\n", f.Name, table.JSONTypeName(f.Type), f.Name)
 	}
 	fmt.Fprintf(out, "}\n\n")
 	fmt.Fprintf(out, "func respond(flds *apiutil.FieldMap, r %s) %s {\n", basety, tyname)
@@ -96,15 +97,26 @@ func end() {
 			ptrName := indir.Value
 			fmt.Fprintf(out, "\t\tif (r.%s) != nil {\n", ptrName)
 			fmt.Fprintf(
-				out, "\t\t\tx.%s = r.%s.%s\n", f.Name, ptrName, actualFieldName)
+				out,
+				"\t\t\tx.%s = %s\n",
+				f.Name,
+				jsonFmt(f.Type, fmt.Sprintf("r.%s.%s", ptrName, actualFieldName)))
 			fmt.Fprintf(out, "\t\t}\n")
 		} else {
-			fmt.Fprintf(out, "\t\tx.%s = r.%s\n", f.Name, actualFieldName)
+			fmt.Fprintf(out, "\t\tx.%s = %s\n", f.Name, jsonFmt(f.Type, fmt.Sprintf("r.%s", actualFieldName)))
 		}
 		fmt.Fprintf(out, "\t}\n")
 	}
 	fmt.Fprintf(out, "\treturn x\n")
 	fmt.Fprintf(out, "}\n\n")
+}
+
+func jsonFmt(ty, field string) string {
+	formatter := table.JSONFormatName(ty)
+	if formatter == "" {
+		return field
+	}
+	return fmt.Sprintf("%s(%s)", formatter, field)
 }
 
 func attr(attrs []parser.NV, name string) (parser.NV, bool) {

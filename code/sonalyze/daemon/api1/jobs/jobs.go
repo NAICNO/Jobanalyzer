@@ -19,9 +19,7 @@ import (
 package jobs
 
 import (
-	"go-utils/gpuset"
 	. "sonalyze/cmd/jobs"
-	. "sonalyze/common"
 	"sonalyze/daemon/apiutil"
 	. "sonalyze/table"
 )
