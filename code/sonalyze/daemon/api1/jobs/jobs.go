@@ -46,14 +46,12 @@ func AddJobs(api huma.API) {
 			// Extra record filter fields for sample data.  (The old CLI has ExcludeUser,
 			// ExcludeJob, ExcludeCommand but they never were useful.)
 			//
-			// TODO: Is it substring or prefix or exact match for Command?  Document!
-			//
 			// TODO: Does huma have some kind of list-of functionality?  Investigate!
 			Job                string `query:"job" doc:"List of job IDs"`
-			User               string `query:"user" doc:"List of user names"`
-			Command            string `query:"command" doc:"List of commands"`
+			User               string `query:"user" doc:"List of user names (exact match)"`
+			Command            string `query:"command" doc:"List of commands (exact match)"`
 			ExcludeSystemJobs  bool   `query:"exclude_system_jobs" doc:"Exclude processes with UID < 1000"`
-			ExcludeSystemUsers bool   `query:"exclude_system_jobs" doc:"Exclude users with UID < 1000"`
+			ExcludeSystemUsers bool   `query:"exclude_system_users" doc:"Exclude a few 'system' user names (root, etc)"`
 			MergeAll           bool   `query:"merge_all" doc:"Specialized: Merge all sample streams"`
 			MergeNone          bool   `query:"merge_none" doc:"Specialized: Merge no sample streams"`
 			SacctFromSonar     bool   `query:"sacct_from_sonar" doc:"Specialized: synthesize sacct data from sonar data"`
