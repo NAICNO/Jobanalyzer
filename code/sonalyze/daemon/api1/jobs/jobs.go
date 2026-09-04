@@ -2,8 +2,6 @@ package jobs
 
 import (
 	"context"
-	"strconv"
-	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -43,33 +41,29 @@ func AddJobs(api huma.API) {
 		ctx context.Context,
 		input *struct {
 			common.StandardQueryFields
-			// Extra record filter fields for sample data.  (The old CLI has ExcludeUser,
-			// ExcludeJob, ExcludeCommand but they never were useful.)
-			//
-			// TODO: Does huma have some kind of list-of functionality?  Investigate!
-			Job                string `query:"job" doc:"List of job IDs"`
-			User               string `query:"user" doc:"List of user names (exact match)"`
-			Command            string `query:"command" doc:"List of commands (exact match)"`
-			ExcludeSystemJobs  bool   `query:"exclude_system_jobs" doc:"Exclude processes with UID < 1000"`
-			ExcludeSystemUsers bool   `query:"exclude_system_users" doc:"Exclude a few 'system' user names (root, etc)"`
-			MergeAll           bool   `query:"merge_all" doc:"Specialized: Merge all sample streams"`
-			MergeNone          bool   `query:"merge_none" doc:"Specialized: Merge no sample streams"`
-			SacctFromSonar     bool   `query:"sacct_from_sonar" doc:"Specialized: synthesize sacct data from sonar data"`
+			// Extra record filter fields for sample data.  (The CLI also has ExcludeJob,
+			// ExcludeCommand, ExcludeSystemUsers but they never were useful and sometimes were not
+			// well-defined.  ExcludeSystemJobs + ExcludeUser covers most of it.)
+			Job               string `query:"job" doc:"List of job IDs"`
+			User              string `query:"user" doc:"List of user names to include (exact match)"`
+			ExcludeUser       string `query:"exclude_user" doc:"List of user names to exclude (exact match)"`
+			Command           string `query:"command" doc:"List of commands (exact match)"`
+			ExcludeSystemJobs bool   `query:"exclude_system_jobs" doc:"Exclude processes with UID < 1000"`
+			MergeAll          bool   `query:"merge_all" doc:"Specialized: Merge all sample streams"`
+			MergeNone         bool   `query:"merge_none" doc:"Specialized: Merge no sample streams"`
+			SacctFromSonar    bool   `query:"sacct_from_sonar" doc:"Specialized: synthesize sacct data from Sonar data"`
 		},
 	) (*JobsResponse, error) {
 		meta, from, to, nodes, query, flds, hErr := input.Parameters(jobsCommandName, responseDefaults)
 		if hErr != nil {
 			return nil, hErr
 		}
-		users := stringList(input.User)
-		commands := stringList(input.Command)
-		var jobIds []uint32
-		for _, jn := range stringList(input.Job) {
-			n, err := strconv.ParseUint(jn, 10, 32)
-			if err != nil {
-				return nil, huma.Error400BadRequest("Not a numeric job ID: " + jn)
-			}
-			jobIds = append(jobIds, uint32(n))
+		users := common.StringList(input.User)
+		excludeUsers := common.StringList(input.ExcludeUser)
+		commands := common.StringList(input.Command)
+		jobIds, err := common.UintList[uint32](input.Job)
+		if err != nil {
+			return nil, huma.Error400BadRequest("Non-numeric job ID: " + err.Error())
 		}
 		// This is different from the sonalyze command line in that there are fewer command-line
 		// filters.  Fine-grained (jobs) filtering must be expressed in terms of the query filter
@@ -85,14 +79,14 @@ func AddJobs(api huma.API) {
 					ToDate:   to,
 					Host:     nodes,
 				},
-				MergeAll:           input.MergeAll,
-				MergeNone:          input.MergeNone,
-				SacctFromSonar:     input.SacctFromSonar,
-				Jobs:               jobIds,
-				Users:              users,
-				Commands:           commands,
-				ExcludeSystemJobs:  input.ExcludeSystemJobs,
-				ExcludeSystemUsers: input.ExcludeSystemUsers,
+				MergeAll:          input.MergeAll,
+				MergeNone:         input.MergeNone,
+				SacctFromSonar:    input.SacctFromSonar,
+				Jobs:              jobIds,
+				Users:             users,
+				ExcludeUsers:      excludeUsers,
+				Commands:          commands,
+				ExcludeSystemJobs: input.ExcludeSystemJobs,
 			},
 			query,
 			flds.Names(),
@@ -107,15 +101,4 @@ func AddJobs(api huma.API) {
 		}
 		return &JobsResponse{Body: jobs}, nil
 	})
-}
-
-func stringList(s string) []string {
-	var xs []string
-	for _, x := range strings.Split(s, ",") {
-		x = strings.TrimSpace(x)
-		if x != "" {
-			xs = append(xs, x)
-		}
-	}
-	return xs
 }

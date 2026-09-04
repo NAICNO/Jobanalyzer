@@ -129,6 +129,7 @@ type QueryFilter struct {
 	Zombie             bool
 	Jobs               []uint32 // nil or empty for no filter
 	Users              []string // nil or empty for no filter
+	ExcludeUsers       []string // nil or empty for no filter
 	Commands           []string // nil or empty for no filter
 	ExcludeSystemUsers bool
 	ExcludeSystemJobs  bool
@@ -143,6 +144,7 @@ func Query(meta types.Context, qfilter QueryFilter, parsedQuery PNode, fields []
 		ExcludeHeartbeat:      true,
 		ExcludeSystemJobs:     qfilter.ExcludeSystemJobs,
 		User:                  qfilter.Users,
+		ExcludeUser:           qfilter.ExcludeUsers,
 		Command:               qfilter.Commands,
 		Job:                   qfilter.Jobs,
 	}
