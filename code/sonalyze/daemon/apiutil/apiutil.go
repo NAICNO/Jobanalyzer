@@ -1,7 +1,9 @@
 package apiutil
 
 import (
+	"maps"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -67,6 +69,16 @@ func TimeWindowFromData(
 	meta types.Context,
 	startTimeInS, endTimeInS uint64,
 ) (from time.Time, to time.Time, hErr huma.StatusError) {
+	return FlexibleTimeWindowFromData(opName, meta, startTimeInS, endTimeInS, defaultTimeWindow, maxTimeWindow)
+}
+
+func FlexibleTimeWindowFromData(
+	opName string,
+	meta types.Context,
+	startTimeInS, endTimeInS uint64,
+	defaultTimeWindow, maxTimeWindow time.Duration,
+) (from time.Time, to time.Time, hErr huma.StatusError) {
+
 	// TODO: Want to somehow document default timespan.
 	//
 	// Can we attach that to the api somehow without repeating it for every API?
@@ -125,6 +137,9 @@ func TimeWindowFromData(
 		to = maxTime
 	}
 
+	if Verbose {
+		Log.Infof("Final from/to time: %v %v", from, to)
+	}
 	return
 }
 
@@ -152,6 +167,10 @@ type FieldMap struct {
 
 func (fm *FieldMap) Has(name string) bool {
 	return fm.all || fm.keys[name]
+}
+
+func (fm *FieldMap) Names() []string {
+	return slices.Collect(maps.Keys(fm.keys))
 }
 
 func Fields(fields, defaults string) *FieldMap {

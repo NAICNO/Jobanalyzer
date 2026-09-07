@@ -87,12 +87,18 @@ func (h *Hosts) CanonicalMultiname() string {
 	if v := h.name.Load(); v != nil {
 		return v.(nameInfo).name
 	}
-	names := h.CanonicalNames()
-	slices.Sort(names)
+	names := h.CanonicalMultinameAsSlice()
 	n := strings.Join(names, ",")
 	u := StringToUstr(n)
 	h.name.Store(nameInfo{n, u})
 	return n
+}
+
+func (h *Hosts) CanonicalMultinameAsSlice() []string {
+	// TODO: Would be useful for this to cache the slice
+	names := h.CanonicalNames()
+	slices.Sort(names)
+	return names
 }
 
 func (h *Hosts) CanonicalMultinameUstr() Ustr {

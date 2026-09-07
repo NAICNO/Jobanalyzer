@@ -27,7 +27,7 @@ type StandardQueryFields struct {
 	StartDate  string `query:"start_date" doc:"Date yyyy-mm-dd, overrides start_time_s"`
 	EndDate    string `query:"end_date" doc:"Date yyyy-mm-dd, overrides end_time_s"`
 	Node       string `query:"node" doc:"List of compressed node names"`
-	Fields     string `query:"fields" doc:"List of JSON field names"`
+	Fields     string `query:"fields" doc:"List of JSON field names to include in output"`
 	Query      string `query:"query" doc:"Query term"`
 	apiutil.AuthHeader
 }
@@ -50,18 +50,24 @@ func (input *StandardQueryFields) Parameters(opName, defaultFields string) (
 	if input.StartDate != "" {
 		probe, err := time.Parse(time.DateOnly, input.StartDate)
 		if err == nil {
+			// Start of that day
+			probe = time.Date(probe.Year(), probe.Month(), probe.Day(), 0, 0, 0, 0, probe.Location())
 			input.StartTimeS = uint64(probe.Unix())
 		}
 	}
 	if input.EndDate != "" {
-		// TODO: should be careful here: may need to interpret this as end-of-day or
-		// start-of-next-day for some queries to work.  This ties into the HaveFrom/HaveTo logic.
 		probe, err := time.Parse(time.DateOnly, input.EndDate)
 		if err == nil {
+			// End of that day
+			probe = time.Date(probe.Year(), probe.Month(), probe.Day(), 23, 59, 59, 999999999, probe.Location())
 			input.EndTimeS = uint64(probe.Unix())
 		}
 	}
-	from, to, hErr = apiutil.TimeWindowFromData(opName, meta, input.StartTimeS, input.EndTimeS)
+	from, to, hErr = apiutil.FlexibleTimeWindowFromData(
+		opName, meta, input.StartTimeS, input.EndTimeS,
+		24*time.Hour,     // defaultTimeWindow
+		24*time.Hour*180, // maxTimeWindow
+	)
 	if hErr != nil {
 		return
 	}

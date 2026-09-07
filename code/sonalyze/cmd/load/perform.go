@@ -55,7 +55,7 @@ func (lc *LoadCommand) Perform(
 	fromIncl, toIncl := lc.InterpretFromToWithBounds(bounds)
 	cfg := config.MaybeOpenConfigDataProvider(meta)
 
-	if NeedsConfig(loadFormatters, lc.PrintFields) {
+	if NeedsConfigFromSpecs(loadFormatters, lc.PrintFields) {
 		var err error
 		streams, err = EnsureConfigForInputStreams(cfg, streams, "relative format arguments")
 		if err != nil {

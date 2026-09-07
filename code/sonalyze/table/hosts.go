@@ -325,6 +325,12 @@ func (h *Hostnames) FormatFullCompressed() string {
 	return compressHostnamesInfallible(xs...)
 }
 
+func (h *Hostnames) FullCompressedSlice() []string {
+	xs := slices.Collect(h.FullNames)
+	hosts := NewHostsFromSingleInfallible(xs...)
+	return hosts.CanonicalMultinameAsSlice()
+}
+
 func (h *Hostnames) FullNames(yield func(string) bool) {
 	for _, n := range h.s.sinks() {
 		x := ""
