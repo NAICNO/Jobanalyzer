@@ -83,8 +83,8 @@ output=$(curl --silent --fail-with-body -G -u john:jj \
              | jq -r)
 CHECK "node_1" 'slurm-monitor.uio.no,4,47,0,0,"4x1 Intel(R) Xeon(R) Gold 6448Y, 47 GiB"' "$output"
 
-# FIXME: The output order is not constant here, we may need to extract individual clusters and then sort the lines
-output=$(curl --silent --fail-with-body -G -u john:jj http://127.0.0.1:4545/api/v1/clusters | jq -c -r)
+output=$(curl --silent --fail-with-body -G -u john:jj http://127.0.0.1:4545/api/v1/clusters | jq -c -r sort)
+echo $output
 CHECK "v1_clusters" \
       "[{\"Name\":\"cluster1.naic.com\",\"Description\":\"UiO 'CLUSTER1' supercomputer\"},{\"Name\":\"cluster2.naic.com\",\"Description\":\"UiO 'CLUSTER2' supercomputer\"}]" \
       "$output"
