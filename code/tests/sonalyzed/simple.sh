@@ -84,19 +84,79 @@ output=$(curl --silent --fail-with-body -G -u john:jj \
 CHECK "node_1" 'slurm-monitor.uio.no,4,47,0,0,"4x1 Intel(R) Xeon(R) Gold 6448Y, 47 GiB"' "$output"
 
 output=$(curl --silent --fail-with-body -G -u john:jj http://127.0.0.1:4545/api/v1/clusters | jq -c -r sort)
-echo $output
 CHECK "v1_clusters" \
       "[{\"Name\":\"cluster1.naic.com\",\"Description\":\"UiO 'CLUSTER1' supercomputer\"},{\"Name\":\"cluster2.naic.com\",\"Description\":\"UiO 'CLUSTER2' supercomputer\"}]" \
       "$output"
 
-# FIXME: Need cards in the DB
+# Smoketest.  See dbtest for a better one.
 output=$(curl --silent --fail-with-body -G -u john:jj http://127.0.0.1:4545/api/v1/cards/cluster1.naic.com | jq -c -r)
 CHECK "v1_cards" \
       "[]" \
       "$output"
 
-# FIXME: Need proper jobs in the DB
+# Smoketest.  See dbtest for a better one.
 output=$(curl --silent --fail-with-body -G -u john:jj 'http://127.0.0.1:4545/api/v1/jobs/cluster1.naic.com?start_date=2026-04-29&end_date=2026-04-29')
-echo $output
+CHECK "v1_jobs" \
+      "[]" \
+      "$output"
+
+# Test that we can extract the API spec (superficially).  This will need to be updated if we add keys.
+output=$(curl --silent --fail-with-body -G "$testapi/openapi.json" | jq -r '.components.schemas|keys[]')
+CHECK "openapi_schemas" \
+      "Card_Card
+Cluster
+ClusterAttributes
+ClusterData
+ClusterEnvelope
+ClusterNodes
+ClusterPartition
+ErrorDetail
+ErrorModel
+ErrorObject
+InsertionResponseBody
+JobsAttributes
+JobsData
+JobsEnvelope
+Jobs_Job
+KVPair
+MetadataObject
+SacctData
+SampleAttributes
+SampleData
+SampleDisk
+SampleEnvelope
+SampleGpu
+SampleJob
+SampleProcess
+SampleProcessGpu
+SampleSystem
+SlurmJob
+SysinfoAttributes
+SysinfoData
+SysinfoEnvelope
+SysinfoGpuCard" \
+      "$output"
+
+# Same, for the cards schema
+output=$(curl --silent --fail-with-body -G "$testapi/openapi.json" | \
+             jq -r '.components.schemas.Card_Card.properties|keys[]')
+CHECK "openapi_cards" \
+      "Address
+Architecture
+Driver
+Firmware
+Index
+Manufacturer
+MaxCEClock
+MaxMemoryClock
+MaxPowerLimit
+Memory
+MinPowerLimit
+Model
+Node
+PowerLimit
+Time
+UUID" \
+      "$output"
 
 rm -rf $rootdir
