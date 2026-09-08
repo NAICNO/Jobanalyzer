@@ -58,6 +58,7 @@ import (
 	"sonalyze/daemon/api1/clusters"
 	"sonalyze/daemon/api1/common"
 	"sonalyze/daemon/api1/insert"
+	"sonalyze/daemon/api1/jobprof"
 	"sonalyze/daemon/api1/jobs"
 	"sonalyze/daemon/api1/nodes"
 )
@@ -74,6 +75,7 @@ func SetupAPI(
 
 	cards.AddCards(grp)
 	clusters.AddCluster(grp)
+	jobprof.AddJobProfile(grp)
 	jobs.AddJobs(grp)
 	nodes.AddNodes(grp)
 
