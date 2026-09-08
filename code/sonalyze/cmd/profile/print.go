@@ -501,25 +501,46 @@ func formatJson(
 	pif *processIndexFactory,
 	noMemory bool,
 ) {
-	type jsonPoint struct {
-		Command    string `json:"command"`
-		Host       string `json:"host,omitempty"`
-		Pid        uint32 `json:"pid"`
-		CpuUtilPct int    `json:"cpu"`
-		CpuGB      uint64 `json:"mem"`
-		RssAnonGB  uint64 `json:"res"`
-		GpuPct     int    `json:"gpu"`
-		GpuMemGB   uint64 `json:"gpumem"`
-		Nproc      int    `json:"nproc"`
+	objects = computeJSONFromSamples(m, processes, pif, noMemory)
+	e := json.NewEncoder(out)
+	e.SetEscapeHTML(false)
+	err := e.Encode(objects)
+	if err != nil {
+		panic("JSON encoding")
 	}
-	type jsonJob struct {
-		Time   string      `json:"time"`
-		Job    uint32      `json:"job"`
-		Points []jsonPoint `json:"points"`
-	}
-	objects := make([]jsonJob, 0)
+}
+
+func formatTime(t int64) string {
+	return FormatYyyyMmDdHhMmUtc(t)
+}
+
+type JsonPoint struct {
+	Command    string `json:"command"`
+	Host       string `json:"host,omitempty"`
+	Pid        uint32 `json:"pid"`
+	CpuUtilPct int    `json:"cpu"`
+	CpuGB      uint64 `json:"mem"`
+	RssAnonGB  uint64 `json:"res"`
+	GpuPct     int    `json:"gpu"`
+	GpuMemGB   uint64 `json:"gpumem"`
+	Nproc      int    `json:"nproc"`
+}
+
+type JsonJob struct {
+	Time   string      `json:"time"`  // TODO: Is this right?
+	Job    uint32      `json:"job"`
+	Points []JsonPoint `json:"points"`
+}
+
+func computeJSONFromSamples(
+	m *profData,
+	processes []sample.SampleStream,
+	pif *processIndexFactory,
+	noMemory bool,
+) []JsonJob {
+	objects := make([]JsonJob, 0)
 	for _, rn := range m.rows() {
-		points := make([]jsonPoint, 0)
+		points := make([]JsonPoint, 0)
 		var e *profDatum
 		for _, p := range processes {
 			cn := pif.indexFor(p[0])
@@ -540,7 +561,7 @@ func formatJson(
 			if pif.isMultiHost() {
 				hostname = hn.String()
 			}
-			points = append(points, jsonPoint{
+			points = append(points, JsonPoint{
 				Command:    entry.s.Cmd.String(),
 				Host:       hostname,
 				Pid:        pid,
@@ -552,20 +573,11 @@ func formatJson(
 				Nproc:      int(entry.s.Rolledup) + 1,
 			})
 		}
-		objects = append(objects, jsonJob{
+		objects = append(objects, JsonJob{
 			Time:   formatTime(rn),
 			Job:    e.s.Job,
 			Points: points,
 		})
 	}
-	e := json.NewEncoder(out)
-	e.SetEscapeHTML(false)
-	err := e.Encode(objects)
-	if err != nil {
-		panic("JSON encoding")
-	}
-}
-
-func formatTime(t int64) string {
-	return FormatYyyyMmDdHhMmUtc(t)
+	return objects
 }

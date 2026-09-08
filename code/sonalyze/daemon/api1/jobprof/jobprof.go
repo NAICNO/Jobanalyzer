@@ -28,8 +28,13 @@ DEFAULTS Time,Node,Command,Pid,CpuPct,ResidentMemGB
 
 ESNOPSER*/
 
-// There's no suitable table in the cmd/profile code itself but probably this code
-// needs to move in there somehow?
+// There's no suitable table in the cmd/profile code itself.
+//
+// Really, instead of ProfileStep what we're looking for is probably the jsonJob private
+// struct in the printing code...
+//
+// Although that code generates a time line with an array holding one datum per process
+// at the time point.  That may be good enough?
 
 /*TABLE profile
 
