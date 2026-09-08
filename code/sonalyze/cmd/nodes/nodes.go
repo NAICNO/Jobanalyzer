@@ -112,27 +112,24 @@ func (nc *NodeCommand) Validate() error {
 // Processing
 
 func (nc *NodeCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io.Writer) error {
-	cdp, err := config.OpenConfigDataProvider(meta)
-	if err != nil {
-		return err
-	}
 	host, err := common.ResolveHostQuery(meta, nc.Host, nc.FromDate, nc.ToDate)
 	if err != nil {
 		return err
 	}
-	records, err := cdp.Query(config.QueryArgs{
-		QueryFilter: common.QueryFilter{
-			HaveFrom: nc.HaveFrom,
-			FromDate: nc.FromDate,
-			HaveTo:   nc.HaveTo,
-			ToDate:   nc.ToDate,
-			Host:     host,
+	records, err := Query(
+		meta,
+		QueryFilter{
+			QueryFilter: common.QueryFilter{
+				HaveFrom: nc.HaveFrom,
+				FromDate: nc.FromDate,
+				HaveTo:   nc.HaveTo,
+				ToDate:   nc.ToDate,
+				Host:     host,
+			},
+			Newest: nc.Newest,
 		},
-		Newest: nc.Newest,
-		Query: func(records []*config.NodeConfig) ([]*config.NodeConfig, error) {
-			return ApplyQuery(nc.ParsedQuery, nodeFormatters, nodePredicates, records)
-		},
-	})
+		nc.ParsedQuery,
+	)
 	if err != nil {
 		return err
 	}
@@ -154,4 +151,23 @@ func (nc *NodeCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr i
 	)
 
 	return nil
+}
+
+type QueryFilter struct {
+	common.QueryFilter
+	Newest bool
+}
+
+func Query(meta types.Context, qf QueryFilter, parsedQuery PNode) ([]*config.NodeConfig, error) {
+	cdp, err := config.OpenConfigDataProvider(meta)
+	if err != nil {
+		return nil, err
+	}
+	return cdp.Query(config.QueryArgs{
+		QueryFilter: qf.QueryFilter,
+		Newest:      qf.Newest,
+		Query: func(records []*config.NodeConfig) ([]*config.NodeConfig, error) {
+			return ApplyQuery(parsedQuery, nodeFormatters, nodePredicates, records)
+		},
+	})
 }

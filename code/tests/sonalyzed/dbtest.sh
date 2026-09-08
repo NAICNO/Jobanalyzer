@@ -127,3 +127,24 @@ CHECK "dbtest_jobs_2" \
      76 c1-8
     221 c1-9' \
       "$output"
+
+output=$(curl --silent --fail-with-body -G "$testapi/api/v1/nodes/fox.educloud.no?start_date=2026-06-03" |
+             jq '.[]|.Description' | sort | uniq --count)
+CHECK "dbtest_nodes" \
+      '      4 "2x32 (hyperthreaded) AMD EPYC 7452 32-Core Processor, 503 GiB, 4x NVIDIA GeForce RTX 3090 @ 24GiB"
+      2 "2x48 (hyperthreaded) AMD EPYC 7552 48-Core Processor, 1007 GiB, 4x NVIDIA A100-PCIE-40GB @ 40GiB"
+      2 "2x48 (hyperthreaded) AMD EPYC 7642 48-Core Processor, 1007 GiB, 2x NVIDIA H100 PCIe @ 79GiB"
+      6 "2x48 (hyperthreaded) AMD EPYC 7642 48-Core Processor, 1007 GiB, 4x NVIDIA A100 80GB PCIe @ 80GiB"
+      4 "2x48 (hyperthreaded) AMD EPYC 7642 48-Core Processor, 1007 GiB, 4x NVIDIA A100-PCIE-40GB @ 40GiB"
+      2 "2x48 (hyperthreaded) AMD EPYC 7642 48-Core Processor, 2003 GiB, 4x NVIDIA A40 @ 44GiB"
+      2 "2x48 (hyperthreaded) AMD EPYC 7642 48-Core Processor, 2003 GiB, 8x NVIDIA GeForce RTX 3090 @ 24GiB"
+      2 "2x64 AMD EPYC 7702 64-Core Processor, 1007 GiB"
+     48 "2x64 AMD EPYC 7702 64-Core Processor, 503 GiB"
+      2 "2x64 (hyperthreaded) AMD EPYC 7702 64-Core Processor, 2003 GiB"
+      2 "2x64 (hyperthreaded) AMD EPYC 7713 64-Core Processor, 2003 GiB"
+      2 "2x64 (hyperthreaded) AMD EPYC 7713 64-Core Processor, 2003 GiB, 1x NVIDIA L40S @ 44GiB"
+      2 "2x64 (hyperthreaded) AMD EPYC 7H12 64-Core Processor, 1007 GiB, 4x NVIDIA L40S @ 44GiB"
+      2 "2x64 (hyperthreaded) AMD EPYC 7H12 64-Core Processor, 2003 GiB, 4x NVIDIA H100 NVL @ 93GiB"
+      2 "2x96 (hyperthreaded) AMD EPYC 9655 96-Core Processor, 1511 GiB, 8x NVIDIA H200 NVL @ 140GiB"' \
+          "$output"
+

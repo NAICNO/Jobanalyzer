@@ -24,37 +24,37 @@ import (
 
 %%
 
-TYPE     Card_Card
+TYPE     Cards_Card
 TABLE    ../../../cmd/cards/cards.go
 DEFAULTS Time,Node,Manufacturer,Model,Memory
 
 ESNOPSER*/
 
-const cardCommandName = "/cards/{cluster}"
+const cardsCommandName = "/cards/{cluster}"
 
-type CardResponse struct {
+type CardsResponse struct {
 	// List of card data.  (Time,UUID) pairs are unique.
-	Body []Card_Card
+	Body []Cards_Card
 }
 
-func AddCard(api huma.API) {
+func AddCards(api huma.API) {
 	huma.Register(
 		api,
 		huma.Operation{
-			OperationID: "card-command",
+			OperationID: "cards-command",
 			Method:      http.MethodGet,
-			Path:        cardCommandName,
+			Path:        cardsCommandName,
 			Summary:     "Retrieve card information",
 		},
-		handleCard,
+		handleCards,
 	)
 }
 
-func handleCard(
+func handleCards(
 	ctx context.Context,
 	input *common.StandardQueryFields,
-) (*CardResponse, error) {
-	meta, from, to, nodes, query, flds, hErr := input.Parameters(cardCommandName, responseDefaults)
+) (*CardsResponse, error) {
+	meta, from, to, nodes, query, flds, hErr := input.Parameters(cardsCommandName, responseDefaults)
 	if hErr != nil {
 		return nil, hErr
 	}
@@ -72,12 +72,12 @@ func handleCard(
 	)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(
-			cardCommandName+": Failed to query card data", err)
+			cardsCommandName+": Failed to query card data", err)
 	}
 
-	cards := make([]Card_Card, 0, len(records))
+	cards := make([]Cards_Card, 0, len(records))
 	for _, r := range records {
 		cards = append(cards, respond(flds, r))
 	}
-	return &CardResponse{Body: cards}, nil
+	return &CardsResponse{Body: cards}, nil
 }
