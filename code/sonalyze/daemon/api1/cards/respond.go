@@ -9,7 +9,7 @@ import (
 
 const responseDefaults = "Time,Node,Manufacturer,Model,Memory"
 
-type Card_Card struct {
+type Cards_Card struct {
 	Time           string `json:"Time,omitempty"`
 	Node           string `json:"Node,omitempty"`
 	Index          uint64 `json:"Index,omitempty"`
@@ -28,8 +28,8 @@ type Card_Card struct {
 	MaxMemoryClock uint64 `json:"MaxMemoryClock,omitempty"`
 }
 
-func respond(flds *apiutil.FieldMap, r *repr.SysinfoCardData) Card_Card {
-	var x Card_Card
+func respond(flds *apiutil.FieldMap, r *repr.SysinfoCardData) Cards_Card {
+	var x Cards_Card
 	if flds.Has("Time") {
 		x.Time = r.Time
 	}

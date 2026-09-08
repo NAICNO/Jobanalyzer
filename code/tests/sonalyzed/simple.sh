@@ -103,7 +103,7 @@ CHECK "v1_jobs" \
 # Test that we can extract the API spec (superficially).  This will need to be updated if we add keys.
 output=$(curl --silent --fail-with-body -G "$testapi/openapi.json" | jq -r '.components.schemas|keys[]')
 CHECK "openapi_schemas" \
-      "Card_Card
+      "Cards_Card
 Cluster
 ClusterAttributes
 ClusterData
@@ -120,6 +120,7 @@ JobsEnvelope
 Jobs_Job
 KVPair
 MetadataObject
+Nodes_Node
 SacctData
 SampleAttributes
 SampleData
@@ -137,9 +138,9 @@ SysinfoEnvelope
 SysinfoGpuCard" \
       "$output"
 
-# Same, for the cards schema
+# Cards schema
 output=$(curl --silent --fail-with-body -G "$testapi/openapi.json" | \
-             jq -r '.components.schemas.Card_Card.properties|keys[]')
+             jq -r '.components.schemas.Cards_Card.properties|keys[]')
 CHECK "openapi_cards" \
       "Address
 Architecture
@@ -157,6 +158,115 @@ Node
 PowerLimit
 Time
 UUID" \
+      "$output"
+
+# Nodes schema
+output=$(curl --silent --fail-with-body -G "$testapi/openapi.json" | \
+             jq -r '.components.schemas.Nodes_Node.properties|keys[]')
+CHECK "openapi_nodes" \
+      "CpuCores
+Description
+Distances
+GpuCards
+GpuMemGB
+GpuMemPct
+Hostname
+MemGB
+NumaNodes
+Timestamp
+TopoSVG
+TopoText" \
+      "$output"
+
+# Jobs schema
+output=$(curl --silent --fail-with-body -G "$testapi/openapi.json" | \
+             jq -r '.components.schemas.Jobs_Job.properties|keys[]')
+CHECK "openapi_jobs" \
+      "Account
+ArrayJobID
+ArrayStep
+ArrayTaskID
+AveCPU
+AveDiskRead
+AveDiskWrite
+AveRSS
+AveVMSize
+BornLater
+Classification
+Cmd
+Completed
+CpuAvgPct
+CpuPeakPct
+CpuTime
+Duration
+ElapsedRaw
+End
+ExitCode
+GpuAvgPct
+GpuFail
+GpuMemAvgGB
+GpuMemPeakGB
+GpuPeakPct
+GpuTime
+Gpus
+HetJobID
+HetJobOffset
+HetStep
+Hosts
+Job
+JobAndMark
+JobName
+JobStep
+Layout
+MaxRSS
+MaxVMSize
+MemAvgGB
+MemPeakGB
+MinCPU
+NoGpu
+NodeList
+Now
+OccupiedRelativeGpuAvgPct
+OccupiedRelativeGpuMemAvgPct
+OccupiedRelativeGpuMemPeakPct
+OccupiedRelativeGpuPeakPct
+Partition
+Primordial
+Priority
+ReadGB
+RelativeCpuAvgPct
+RelativeCpuPeakPct
+RelativeGpuAvgPct
+RelativeGpuMemAvgPct
+RelativeGpuMemPeakPct
+RelativeGpuPeakPct
+RelativeMemAvgPct
+RelativeMemPeakPct
+RelativeResidentMemAvgPct
+RelativeResidentMemPeakPct
+ReqCPUS
+ReqGPUS
+ReqMem
+ReqNodes
+Reservation
+ResidentMemAvgGB
+ResidentMemPeakGB
+Running
+SomeGpu
+Start
+State
+Submit
+Suspended
+SystemCPU
+ThreadAvg
+ThreadPeak
+Time
+TimelimitRaw
+User
+UserCPU
+Version
+WrittenGB
+Zombie" \
       "$output"
 
 rm -rf $rootdir

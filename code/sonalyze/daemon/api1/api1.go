@@ -59,6 +59,7 @@ import (
 	"sonalyze/daemon/api1/common"
 	"sonalyze/daemon/api1/insert"
 	"sonalyze/daemon/api1/jobs"
+	"sonalyze/daemon/api1/nodes"
 )
 
 func SetupAPI(
@@ -71,9 +72,10 @@ func SetupAPI(
 	common.PostAuthenticator = postAuthenticator_
 	grp := huma.NewGroup(api, "/api/v1")
 
-	cards.AddCard(grp)
+	cards.AddCards(grp)
 	clusters.AddCluster(grp)
 	jobs.AddJobs(grp)
+	nodes.AddNodes(grp)
 
 	if insertAPI {
 		insert.AddInsertSysinfoData(grp)

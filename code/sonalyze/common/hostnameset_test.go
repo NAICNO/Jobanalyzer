@@ -1,7 +1,7 @@
 package common
 
 import (
-	"fmt"
+	//"fmt"
 	"reflect"
 	"testing"
 )
@@ -116,7 +116,7 @@ func TestHostnameSetBasic(t *testing.T) {
 	hs3, _ := parseConcretePattern("a[14].x")
 	hs4, _ := parseConcretePattern("a17.x")
 	xs := UnionHostnameSets([]HostnameSet{hs, hs3, hs2, hs4})
-	fmt.Println(xs)
+	//fmt.Println(xs)
 	m = map[string]bool{
 		"a[3-5,7,9-12]b.c": true,
 		"a[14,17].x":       true,
