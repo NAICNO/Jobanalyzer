@@ -9,52 +9,47 @@ import (
 	"sonalyze/daemon/api1/common"
 )
 
-//go:generate ../../../../generate-response/generate-response jobprof.go
-
-/*RESPONSE
-
-package jobprof
-
-import (
-	"sonalyze/daemon/apiutil"
-	"sonalyze/db/repr"
-)
-
-%%
-
-TYPE     Jobprof_Process
-TABLE    jobprof.go
-DEFAULTS Time,Node,Command,Pid,CpuPct,ResidentMemGB
-
-ESNOPSER*/
-
-// There's no suitable table in the cmd/profile code itself.
+// The response is a timeline: an array of objects where each object is a point in time, sorted
+// ascending, carrying an inner array of per-process information at that point in time.  The fields
+// of each profile point represent the various quantities (cpu, gpu, memory, etc) and are omitted
+// unless requested.  Processes in the job not running at that time are omitted entirely.
 //
-// Really, instead of ProfileStep what we're looking for is probably the jsonJob private
-// struct in the printing code...
+// As this is a 2d sparse grid of data points, it could have been represented differently, notably
+// with Pid as the primary index (list of rows rather than list of columns).
 //
-// Although that code generates a time line with an array holding one datum per process
-// at the time point.  That may be good enough?
+// I elected not to generate the response structure from any table since no table existed for the
+// source.  This may change.
+//
+// The most important redundancy here is the mapping from (Node,Pid) to Command name.  The Command
+// will almost never change for that pair (it can change if the job runs long enough for the pid to
+// be recycled on the system, and the pid is assigned to two different commands in the same job, at
+// different times), and some command names are very long: this inflates the data size, possibly
+// significantly.  This could be fixed by including a map at the high level of the body and then
+// using the map key for the command name in each data point, ie, by interning command names.  But
+// if data are compressed in transit then that'll just happen by itself anyway, so is it worth it?
 
-/*TABLE profile
+type JobProfile_Response struct {
+	Body []Jobprof_Timestep
+}
 
-package jobprof
+type Jobprof_Timestep struct {
+	Time string           `json:"Time,omitempty" doc:"The time at this time step (ISO)"`
+	Data []Jobprof_Point  `json:"Data,omitempty" doc:"Per-process data at this time"`
+}
 
-%%
+type Jobprof_Point struct {
+	Pid       uint64 `json:"Pid,omitempty" doc:"Process ID for process"`
+	Command   string `json:"Command,omitempty" doc:"Command name for process"`
+	Node      string `json:"Node,omitempty" doc:"Name of node for process"`
+	CpuPct    int    `json:"CpuPct,omitempty" doc:"CPU utilization in percent, 100% = 1 core (except for HTML)"`
+	VirtMemGB int    `json:"VirtMemGB,omitempty" doc:"Main virtual memory usage in GiB"`
+	ResMemGB  int    `json:"ResMemGB,omitempty" doc:"Main resident memory usage in GiB"`
+	GpuPct    int    `json:"GpuPct,omitempty" doc:"GPU utilization in percent, 100% = 1 card (except for HTML)"`
+	GpuMemGB  int    `json:"GpuMemGB,omitempty" doc:"GPU resident memory usage in GiB (across all cards)"`
+	NumProcs  int    `json:"NumProcs,omitempty" doc:"Number of rolled-up processes"`
+}
 
-FIELDS *profile.ProfileStep
-
- Time      IsoDateTimeValue desc:"Time of the start of the profiling bucket"
- Node      Ustr             desc:"Host on which process ran"
- Command   Ustr             desc:"Name of executable starting the process"
- CpuPct    int              desc:"CPU utilization in percent, 100% = 1 core (except for HTML)"
- VirtMemGB int              desc:"Main virtual memory usage in GiB"
- ResMemGB  int              desc:"Main resident memory usage in GiB"
- GpuPct    int              desc:"GPU utilization in percent, 100% = 1 card (except for HTML)"
- GpuMemGB  int              desc:"GPU resident memory usage in GiB (across all cards)"
- NumProcs  int              desc:"Number of rolled-up processes"
-
-ELBAT*/
+const responseDefaults = "Node,Command,Pid,CpuPct,ResMemGB"
 
 const jobprofCommandName = "/job-profile/{cluster}/{jobid}"
 
@@ -84,4 +79,38 @@ func handleJobProfile(
 	},
 ) (*JobProfileResponse, error) {
 	panic("NYI")
+}
+
+// This is wrong but hints at the solution
+
+func respond(flds *apiutil.FieldMap, r *ProfileStep) Jobprof_Process {
+	var x Jobprof_Process
+	if flds.Has("Time") {
+		x.Time = r.Time
+	}
+	if flds.Has("Node") {
+		x.Node = JSONFromUstr(r.Node)
+	}
+	if flds.Has("Command") {
+		x.Command = JSONFromUstr(r.Command)
+	}
+	if flds.Has("CpuUtilPct") {
+		x.CpuUtilPct = r.CpuUtilPct
+	}
+	if flds.Has("VirtualMemGB") {
+		x.VirtualMemGB = r.VirtualMemGB
+	}
+	if flds.Has("ResidentMemGB") {
+		x.ResidentMemGB = r.ResidentMemGB
+	}
+	if flds.Has("Gpu") {
+		x.Gpu = r.Gpu
+	}
+	if flds.Has("GpuMemGB") {
+		x.GpuMemGB = r.GpuMemGB
+	}
+	if flds.Has("NumProcs") {
+		x.NumProcs = r.NumProcs
+	}
+	return x
 }
