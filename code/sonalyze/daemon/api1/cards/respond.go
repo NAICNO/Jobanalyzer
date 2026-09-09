@@ -10,22 +10,22 @@ import (
 const responseDefaults = "Time,Node,Manufacturer,Model,Memory"
 
 type Cards_Card struct {
-	Time           string `json:"Time,omitempty"`
-	Node           string `json:"Node,omitempty"`
-	Index          uint64 `json:"Index,omitempty"`
-	UUID           string `json:"UUID,omitempty"`
-	Address        string `json:"Address,omitempty"`
-	Manufacturer   string `json:"Manufacturer,omitempty"`
-	Model          string `json:"Model,omitempty"`
-	Architecture   string `json:"Architecture,omitempty"`
-	Driver         string `json:"Driver,omitempty"`
-	Firmware       string `json:"Firmware,omitempty"`
-	Memory         uint64 `json:"Memory,omitempty"`
-	PowerLimit     uint64 `json:"PowerLimit,omitempty"`
-	MaxPowerLimit  uint64 `json:"MaxPowerLimit,omitempty"`
-	MinPowerLimit  uint64 `json:"MinPowerLimit,omitempty"`
-	MaxCEClock     uint64 `json:"MaxCEClock,omitempty"`
-	MaxMemoryClock uint64 `json:"MaxMemoryClock,omitempty"`
+	Time           string `json:"Time,omitempty" doc:"Full ISO timestamp of when the reading was taken"`
+	Node           string `json:"Node,omitempty" doc:"Card's node at this time"`
+	Index          uint64 `json:"Index,omitempty" doc:"Card's index on its node at this time"`
+	UUID           string `json:"UUID,omitempty" doc:"Card's unique identifier (but not necessarily its only unique identifier)"`
+	Address        string `json:"Address,omitempty" doc:"Card's address on its node at this time"`
+	Manufacturer   string `json:"Manufacturer,omitempty" doc:"Card's manufacturer's name"`
+	Model          string `json:"Model,omitempty" doc:"Card model"`
+	Architecture   string `json:"Architecture,omitempty" doc:"Card's architecture name"`
+	Driver         string `json:"Driver,omitempty" doc:"Card driver's version at this time"`
+	Firmware       string `json:"Firmware,omitempty" doc:"Card firmware's version at this time"`
+	Memory         uint64 `json:"Memory,omitempty" doc:"Card's memory in KB"`
+	PowerLimit     uint64 `json:"PowerLimit,omitempty" doc:"Card's power limit at this time"`
+	MaxPowerLimit  uint64 `json:"MaxPowerLimit,omitempty" doc:"Card's maximum power limit"`
+	MinPowerLimit  uint64 `json:"MinPowerLimit,omitempty" doc:"Card's minimum power limit"`
+	MaxCEClock     uint64 `json:"MaxCEClock,omitempty" doc:"Card's maximum compute element clock speed"`
+	MaxMemoryClock uint64 `json:"MaxMemoryClock,omitempty" doc:"Card's maximum memory clock speed"`
 }
 
 func respond(flds *apiutil.FieldMap, r *repr.SysinfoCardData) Cards_Card {

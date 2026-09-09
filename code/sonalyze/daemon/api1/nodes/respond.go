@@ -10,18 +10,18 @@ import (
 const responseDefaults = "Hostname,CpuCores,MemGB,GpuCards,GpuMemGB,Description"
 
 type Nodes_Node struct {
-	Timestamp   string `json:"Timestamp,omitempty"`
-	Hostname    string `json:"Hostname,omitempty"`
-	Description string `json:"Description,omitempty"`
-	CpuCores    int    `json:"CpuCores,omitempty"`
-	NumaNodes   int    `json:"NumaNodes,omitempty"`
-	MemGB       int    `json:"MemGB,omitempty"`
-	GpuCards    int    `json:"GpuCards,omitempty"`
-	GpuMemGB    int    `json:"GpuMemGB,omitempty"`
-	GpuMemPct   bool   `json:"GpuMemPct,omitempty"`
-	Distances   string `json:"Distances,omitempty"`
-	TopoSVG     string `json:"TopoSVG,omitempty"`
-	TopoText    string `json:"TopoText,omitempty"`
+	Timestamp   string `json:"Timestamp,omitempty" doc:"Full ISO timestamp of when the reading was taken"`
+	Hostname    string `json:"Hostname,omitempty" doc:"Name that host is known by on the cluster"`
+	Description string `json:"Description,omitempty" doc:"End-user description, not parseable"`
+	CpuCores    int    `json:"CpuCores,omitempty" doc:"Total number of cores x threads"`
+	NumaNodes   int    `json:"NumaNodes,omitempty" doc:"NUMA nodes"`
+	MemGB       int    `json:"MemGB,omitempty" doc:"GB of installed main RAM"`
+	GpuCards    int    `json:"GpuCards,omitempty" doc:"Number of installed cards"`
+	GpuMemGB    int    `json:"GpuMemGB,omitempty" doc:"Total GPU memory across all cards"`
+	GpuMemPct   bool   `json:"GpuMemPct,omitempty" doc:"True if GPUs report accurate memory usage in percent"`
+	Distances   string `json:"Distances,omitempty" doc:"NUMA distance matrix"`
+	TopoSVG     string `json:"TopoSVG,omitempty" doc:"SVG encoding of node topology"`
+	TopoText    string `json:"TopoText,omitempty" doc:"Text encoding of node topology"`
 }
 
 func respond(flds *apiutil.FieldMap, r *config.NodeConfig) Nodes_Node {
