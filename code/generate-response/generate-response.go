@@ -81,7 +81,11 @@ func end() {
 	}
 	fmt.Fprintf(out, "type %s struct {\n", tyname)
 	for _, f := range fields {
-		fmt.Fprintf(out, "\t%s %s `json:\"%s,omitempty\"`\n", f.Name, table.JSONTypeName(f.Type), f.Name)
+		var doc string
+		if dattr, found := attr(f.Attrs, "desc"); found {
+			doc = " doc:\"" + dattr.Value + "\""
+		}
+		fmt.Fprintf(out, "\t%s %s `json:\"%s,omitempty\"%s`\n", f.Name, table.JSONTypeName(f.Type), f.Name, doc)
 	}
 	fmt.Fprintf(out, "}\n\n")
 	fmt.Fprintf(out, "func respond(flds *apiutil.FieldMap, r %s) %s {\n", basety, tyname)
