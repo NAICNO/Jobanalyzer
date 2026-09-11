@@ -95,14 +95,14 @@ CHECK "v1_cards" \
       "$output"
 
 # Smoketest.  See dbtest for a better one.
-output=$(curl --silent --fail-with-body -G -u john:jj 'http://127.0.0.1:4545/api/v1/jobs/cluster1.naic.com?start_date=2026-04-29&end_date=2026-04-29' | jq -r '.[]|.User' | sort | uniq --count)
+output=$(curl --silent --fail-with-body -G -u john:jj 'http://127.0.0.1:4545/api/v1/jobs/cluster1.naic.com?start_date=2026-04-29&end_date=2026-04-29' | jq -r '.[]|.User' | LC_ALL=C sort | uniq --count)
 CHECK "v1_jobs" \
-      '     17 avahi
+      '      1 _user_100
+      2 _user_1000
+     17 avahi
       3 larstha
       1 root
-      8 systemd-coredump
-      1 _user_100
-      2 _user_1000' \
+      8 systemd-coredump' \
       "$output"
 
 # Test that we can extract the API spec (superficially).  This will need to be updated if we add keys.
