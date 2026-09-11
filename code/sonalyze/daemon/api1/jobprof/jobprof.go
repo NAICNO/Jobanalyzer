@@ -40,10 +40,10 @@ type JobProfilePoint struct {
 	Pid       uint64 `json:"Pid,omitempty" doc:"Process ID for process"`
 	Command   string `json:"Command,omitempty" doc:"Command name for process"`
 	Node      string `json:"Node,omitempty" doc:"Name of node for process"`
-	CpuPct    int    `json:"CpuPct,omitempty" doc:"CPU utilization in percent, 100% = 1 core (except for HTML)"`
+	CpuPct    int    `json:"CpuPct,omitempty" doc:"CPU utilization in percent, 100% = 1 core"`
 	VirtMemGB int    `json:"VirtMemGB,omitempty" doc:"Main virtual memory usage in GiB"`
 	ResMemGB  int    `json:"ResMemGB,omitempty" doc:"Main resident memory usage in GiB"`
-	GpuPct    int    `json:"GpuPct,omitempty" doc:"GPU utilization in percent, 100% = 1 card (except for HTML)"`
+	GpuPct    int    `json:"GpuPct,omitempty" doc:"GPU utilization in percent, 100% = 1 card"`
 	GpuMemGB  int    `json:"GpuMemGB,omitempty" doc:"GPU resident memory usage in GiB (across all cards)"`
 	NumProcs  int    `json:"NumProcs,omitempty" doc:"Number of rolled-up processes"`
 }
