@@ -6,9 +6,10 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	_ "sonalyze/cmd/profile"
+	"sonalyze/cmd/profile"
 	"sonalyze/daemon/api1/common"
-	_ "sonalyze/daemon/apiutil"
+	dcommon "sonalyze/data/common"
+	"sonalyze/data/sample"
 )
 
 // The response is a timeline: an array of objects where each object is a point in time, sorted
@@ -72,45 +73,49 @@ func handleJobProfile(
 	ctx context.Context,
 	input *struct {
 		// TODO: Not obvious that "node" and "query" from the std fields are sensible here?
+		// The "node" might be...
 		common.StandardQueryFields
-		Job int `path:"jobid" example:"12345" doc:"Job ID"`
+		Job uint `path:"jobid" example:"12345" doc:"Job ID"`
 	},
 ) (*JobProfileResponse, error) {
-	panic("NYI")
+	meta, from, to, nodes, _, flds, hErr := input.Parameters(jobprofCommandName, responseDefaults)
+	if hErr != nil {
+		return nil, hErr
+	}
+	qFilter := dcommon.QueryFilter{
+		HaveFrom: true,
+		FromDate: from,
+		HaveTo:   true,
+		ToDate:   to,
+	}
+	rFilter := sample.SampleFilter{
+		IncludeHosts: nodes,
+		IncludeJobs:  map[uint32]bool{uint32(input.Job): true},
+		From:         from.UTC().Unix(),
+		To:           to.UTC().Unix(),
+	}
+	// TODO: Bucketing probably important
+	pd, err := profile.ComputeProfileData(meta, qFilter, nodes, &rFilter, uint32(input.Job), 0, 1)
+	if err != nil {
+		// FIXME: Wrap the error
+		return nil, err
+	}
+	jd := profile.ComputeJSONFromSamples(pd.M, pd.Processes, pd.Pif, false)
+	timeline := make([]JobProfileTimestep, len(jd))
+	for _, jt := range jd {
+		points := make([]JobProfilePoint, len(jt.Points))
+		for _, p := range jt.Points {
+			var pp JobProfilePoint
+			// TODO: More
+			if flds.Has("Command") {
+				pp.Command = p.Command
+			}
+			points = append(points, pp)
+		}
+		timeline = append(timeline, JobProfileTimestep{
+			Time: jt.Time,
+			Data: points,
+		})
+	}
+	return &JobProfileResponse{timeline}, nil
 }
-
-// This is wrong but hints at the solution
-
-/*
-func respond(flds *apiutil.FieldMap, r *profile.JsonPoint) Jobprof_Point {
-	var x Jobprof_Point
-	if flds.Has("Time") {
-		x.Time = r.Time
-	}
-	if flds.Has("Node") {
-		x.Node = JSONFromUstr(r.Node)
-	}
-	if flds.Has("Command") {
-		x.Command = JSONFromUstr(r.Command)
-	}
-	if flds.Has("CpuUtilPct") {
-		x.CpuUtilPct = r.CpuUtilPct
-	}
-	if flds.Has("VirtualMemGB") {
-		x.VirtualMemGB = r.VirtualMemGB
-	}
-	if flds.Has("ResidentMemGB") {
-		x.ResidentMemGB = r.ResidentMemGB
-	}
-	if flds.Has("Gpu") {
-		x.Gpu = r.Gpu
-	}
-	if flds.Has("GpuMemGB") {
-		x.GpuMemGB = r.GpuMemGB
-	}
-	if flds.Has("NumProcs") {
-		x.NumProcs = r.NumProcs
-	}
-	return x
-}
-*/

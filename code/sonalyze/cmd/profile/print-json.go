@@ -32,7 +32,7 @@ func formatJson(
 	pif *processIndexFactory,
 	noMemory bool,
 ) {
-	objects := computeJSONFromSamples(m, processes, pif, noMemory)
+	objects := ComputeJSONFromSamples(m, processes, pif, noMemory)
 	e := json.NewEncoder(out)
 	e.SetEscapeHTML(false)
 	err := e.Encode(objects)
@@ -59,7 +59,7 @@ type JsonTimestep struct {
 	Points []JsonPoint `json:"points"`
 }
 
-func computeJSONFromSamples(
+func ComputeJSONFromSamples(
 	m *profData,
 	processes []sample.SampleStream,
 	pif *processIndexFactory,

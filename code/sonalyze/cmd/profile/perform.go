@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	. "sonalyze/common"
+	"sonalyze/data/common"
 	"sonalyze/data/sample"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
@@ -21,7 +22,7 @@ func (pc *ProfileCommand) Perform(
 	hosts Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
-	pd, err := pc.ComputeProfileData(meta, filter, hosts, recordFilter)
+	pd, err := ComputeProfileData(meta, filter.QueryFilter, hosts, recordFilter, pc.Job[0], pc.Max, pc.Bucket)
 	if err != nil {
 		return err
 	}
@@ -38,11 +39,15 @@ type ProfileData struct {
 	Pif         *processIndexFactory
 }
 
-func (pc *ProfileCommand) ComputeProfileData(
+// TODO: This API is an absolute mess
+func ComputeProfileData(
 	meta types.Context,
-	filter sample.QueryFilter,
+	filter common.QueryFilter,
 	hosts Hosts,
 	recordFilter *sample.SampleFilter,
+	jobId uint32,
+	maxMem float64,
+	bucket uint,
 ) (ProfileData, error) {
 	sdp, err := sample.OpenSampleDataProvider(meta)
 	if err != nil {
@@ -71,10 +76,8 @@ func (pc *ProfileCommand) ComputeProfileData(
 		Log.Infof("Samples retained after filtering: %d", numSamples)
 	}
 
-	jobId := pc.Job[0]
-
 	if len(streams) == 0 {
-		return ProfileData{}, fmt.Errorf("No processes matching job ID(s): %v", pc.Job)
+		return ProfileData{}, fmt.Errorf("No processes matching job ID(s)")
 	}
 
 	// Precompute: check whether we need to print the `nproc` field.
@@ -170,7 +173,7 @@ func (pc *ProfileCommand) ComputeProfileData(
 			if indices[i] < len(p) {
 				r := p[indices[i]]
 				if roundToMinute(r.Timestamp) == currentTime {
-					m.set(currentTime, pif.indexFor(r), newProfDatum(r, pc.Max))
+					m.set(currentTime, pif.indexFor(r), newProfDatum(r, maxMem))
 					indices[i]++
 					if indices[i] == len(p) {
 						nonempty--
@@ -184,8 +187,8 @@ func (pc *ProfileCommand) ComputeProfileData(
 	// (within the same process).  We count only present entries in the divisor for the average.
 	// The time value will be the midpoint in the chunk.
 
-	if pc.Bucket > 1 {
-		b := int(pc.Bucket)
+	if bucket > 1 {
+		b := int(bucket)
 		m2 := newProfData()
 		// row names are timestamps
 		rowNames := m.rows()
