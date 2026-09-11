@@ -888,6 +888,7 @@ func findMinMaxDatesFromDirectories(dataDir string) (low, high time.Time) {
 		}
 		return nil
 	})
+	high = time.Date(high.Year(), high.Month(), high.Day(), 23, 59, 59, 999999, high.Location())
 	return
 }
 

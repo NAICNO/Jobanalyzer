@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	. "sonalyze/common"
+	"sonalyze/data/common"
 	"sonalyze/data/sample"
 	"sonalyze/db/repr"
 	"sonalyze/db/types"
@@ -21,9 +22,36 @@ func (pc *ProfileCommand) Perform(
 	hosts Hosts,
 	recordFilter *sample.SampleFilter,
 ) error {
-	sdp, err := sample.OpenSampleDataProvider(meta)
+	pd, err := ComputeProfileData(meta, filter.QueryFilter, hosts, recordFilter, pc.Job[0], pc.Max, pc.Bucket)
 	if err != nil {
 		return err
+	}
+	return pc.printProfile(out, pd.JobId, pd.HostName, pd.UserName, pd.HasRolledup, pd.M, pd.Processes, pd.Pif)
+}
+
+type ProfileData struct {
+	JobId       uint32
+	HostName    string
+	UserName    string
+	HasRolledup bool
+	M           *profData
+	Processes   []sample.SampleStream
+	Pif         *processIndexFactory
+}
+
+// TODO: This API is an absolute mess
+func ComputeProfileData(
+	meta types.Context,
+	filter common.QueryFilter,
+	hosts Hosts,
+	recordFilter *sample.SampleFilter,
+	jobId uint32,
+	maxMem float64,
+	bucket uint,
+) (ProfileData, error) {
+	sdp, err := sample.OpenSampleDataProvider(meta)
+	if err != nil {
+		return ProfileData{}, err
 	}
 	streams, _, read, dropped, err :=
 		sdp.Query(
@@ -34,11 +62,10 @@ func (pc *ProfileCommand) Perform(
 			false,
 		)
 	if err != nil {
-		return fmt.Errorf("Failed to read log records: %v", err)
+		return ProfileData{}, fmt.Errorf("Failed to read log records: %v", err)
 	}
 	if Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
-		UstrStats(out, false)
 	}
 	if Verbose {
 		Log.Infof("Streams constructed by postprocessing: %d", len(streams))
@@ -49,10 +76,8 @@ func (pc *ProfileCommand) Perform(
 		Log.Infof("Samples retained after filtering: %d", numSamples)
 	}
 
-	jobId := pc.Job[0]
-
 	if len(streams) == 0 {
-		return fmt.Errorf("No processes matching job ID(s): %v", pc.Job)
+		return ProfileData{}, fmt.Errorf("No processes matching job ID(s)")
 	}
 
 	// Precompute: check whether we need to print the `nproc` field.
@@ -148,7 +173,7 @@ func (pc *ProfileCommand) Perform(
 			if indices[i] < len(p) {
 				r := p[indices[i]]
 				if roundToMinute(r.Timestamp) == currentTime {
-					m.set(currentTime, pif.indexFor(r), newProfDatum(r, pc.Max))
+					m.set(currentTime, pif.indexFor(r), newProfDatum(r, maxMem))
 					indices[i]++
 					if indices[i] == len(p) {
 						nonempty--
@@ -162,8 +187,8 @@ func (pc *ProfileCommand) Perform(
 	// (within the same process).  We count only present entries in the divisor for the average.
 	// The time value will be the midpoint in the chunk.
 
-	if pc.Bucket > 1 {
-		b := int(pc.Bucket)
+	if bucket > 1 {
+		b := int(bucket)
 		m2 := newProfData()
 		// row names are timestamps
 		rowNames := m.rows()
@@ -209,7 +234,15 @@ func (pc *ProfileCommand) Perform(
 		Log.Infof("Number of time steps: %d", timesteps)
 	}
 
-	return pc.printProfile(out, uint32(jobId), hostName, userName, hasRolledup, m, processes, pif)
+	return ProfileData{
+		JobId:       uint32(jobId),
+		HostName:    hostName,
+		UserName:    userName,
+		HasRolledup: hasRolledup,
+		M:           m,
+		Processes:   processes,
+		Pif:         pif,
+	}, nil
 }
 
 // TODO: IMPROVEME: Pids are not unique b/c rolled-up and merged pids are zero and there may be
