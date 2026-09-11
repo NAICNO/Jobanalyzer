@@ -53,7 +53,7 @@ type JsonPoint struct {
 	Nproc      int    `json:"nproc"`
 }
 
-type JsonJob struct {
+type JsonTimestep struct {
 	Time   string      `json:"time"` // TODO: Is this right?
 	Job    uint32      `json:"job"`
 	Points []JsonPoint `json:"points"`
@@ -64,8 +64,8 @@ func computeJSONFromSamples(
 	processes []sample.SampleStream,
 	pif *processIndexFactory,
 	noMemory bool,
-) []JsonJob {
-	objects := make([]JsonJob, 0)
+) []JsonTimestep {
+	objects := make([]JsonTimestep, 0)
 	for _, rn := range m.rows() {
 		points := make([]JsonPoint, 0)
 		var e *profDatum
@@ -100,7 +100,7 @@ func computeJSONFromSamples(
 				Nproc:      int(entry.s.Rolledup) + 1,
 			})
 		}
-		objects = append(objects, JsonJob{
+		objects = append(objects, JsonTimestep{
 			Time:   formatTime(rn),
 			Job:    e.s.Job,
 			Points: points,
