@@ -114,6 +114,8 @@ ErrorDetail
 ErrorModel
 ErrorObject
 InsertionResponseBody
+JobProfilePoint
+JobProfileTimestep
 JobsAttributes
 JobsData
 JobsEnvelope

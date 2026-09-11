@@ -6,7 +6,9 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	_ "sonalyze/cmd/profile"
 	"sonalyze/daemon/api1/common"
+	_ "sonalyze/daemon/apiutil"
 )
 
 // The response is a timeline: an array of objects where each object is a point in time, sorted
@@ -28,16 +30,12 @@ import (
 // using the map key for the command name in each data point, ie, by interning command names.  But
 // if data are compressed in transit then that'll just happen by itself anyway, so is it worth it?
 
-type JobProfile_Response struct {
-	Body []Jobprof_Timestep
+type JobProfileTimestep struct {
+	Time string            `json:"Time,omitempty" doc:"The time at this time step (ISO)"`
+	Data []JobProfilePoint `json:"Data,omitempty" doc:"Per-process data at this time"`
 }
 
-type Jobprof_Timestep struct {
-	Time string           `json:"Time,omitempty" doc:"The time at this time step (ISO)"`
-	Data []Jobprof_Point  `json:"Data,omitempty" doc:"Per-process data at this time"`
-}
-
-type Jobprof_Point struct {
+type JobProfilePoint struct {
 	Pid       uint64 `json:"Pid,omitempty" doc:"Process ID for process"`
 	Command   string `json:"Command,omitempty" doc:"Command name for process"`
 	Node      string `json:"Node,omitempty" doc:"Name of node for process"`
@@ -54,7 +52,7 @@ const responseDefaults = "Node,Command,Pid,CpuPct,ResMemGB"
 const jobprofCommandName = "/job-profile/{cluster}/{jobid}"
 
 type JobProfileResponse struct {
-	Body []Jobprof_Process
+	Body []JobProfileTimestep
 }
 
 func AddJobProfile(api huma.API) {
@@ -83,8 +81,9 @@ func handleJobProfile(
 
 // This is wrong but hints at the solution
 
-func respond(flds *apiutil.FieldMap, r *ProfileStep) Jobprof_Process {
-	var x Jobprof_Process
+/*
+func respond(flds *apiutil.FieldMap, r *profile.JsonPoint) Jobprof_Point {
+	var x Jobprof_Point
 	if flds.Has("Time") {
 		x.Time = r.Time
 	}
@@ -114,3 +113,4 @@ func respond(flds *apiutil.FieldMap, r *ProfileStep) Jobprof_Process {
 	}
 	return x
 }
+*/
