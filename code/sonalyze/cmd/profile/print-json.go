@@ -55,7 +55,7 @@ type JsonPoint struct {
 }
 
 type JsonTimestep struct {
-	Timestamp time.Time
+	Timestamp time.Time   `json:"-"`
 	Time      string      `json:"time"` // TODO: Is this right?
 	Job       uint32      `json:"job"`
 	Points    []JsonPoint `json:"points"`
