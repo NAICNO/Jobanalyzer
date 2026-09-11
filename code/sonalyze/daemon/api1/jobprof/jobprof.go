@@ -21,7 +21,7 @@ import (
 // with Pid as the primary index (list of rows rather than list of columns).
 //
 // I elected not to generate the response structure from any table since no table existed for the
-// source.  This may change.
+// source.  This could change.
 //
 // The most important redundancy here is the mapping from (Node,Pid) to Command name.  The Command
 // will almost never change for that pair (it can change if the job runs long enough for the pid to
@@ -72,10 +72,10 @@ func AddJobProfile(api huma.API) {
 func handleJobProfile(
 	ctx context.Context,
 	input *struct {
-		// TODO: Not obvious that "node" and "query" from the std fields are sensible here?
-		// The "node" might be...
+		// TODO: Not obvious that "query" from the std fields is sensible here.
 		common.StandardQueryFields
-		Job uint `path:"jobid" example:"12345" doc:"Job ID"`
+		Job    uint `path:"jobid" example:"12345" doc:"Job ID"`
+		Bucket uint `query:"bucket" example:"5" doc:"Number of adjacent samples to average"`
 	},
 ) (*JobProfileResponse, error) {
 	meta, from, to, nodes, _, flds, hErr := input.Parameters(jobprofCommandName, responseDefaults)
@@ -94,11 +94,10 @@ func handleJobProfile(
 		From:         from.UTC().Unix(),
 		To:           to.UTC().Unix(),
 	}
-	// TODO: Bucketing probably important
-	pd, err := profile.ComputeProfileData(meta, qFilter, nodes, &rFilter, uint32(input.Job), 0, 1)
+	maxMem := 0.0
+	pd, err := profile.ComputeProfileData(meta, qFilter, nodes, &rFilter, uint32(input.Job), maxMem, input.Bucket)
 	if err != nil {
-		// FIXME: Wrap the error
-		return nil, err
+		return nil, huma.Error400BadRequest(jobprofCommandName + ": " + err.Error())
 	}
 	jd := profile.ComputeJSONFromSamples(pd.M, pd.Processes, pd.Pif, false)
 	timeline := make([]JobProfileTimestep, len(jd))
@@ -106,9 +105,32 @@ func handleJobProfile(
 		points := make([]JobProfilePoint, len(jt.Points))
 		for _, p := range jt.Points {
 			var pp JobProfilePoint
-			// TODO: More
+			if flds.Has("Pid") {
+				pp.Pid = uint64(p.Pid)
+			}
 			if flds.Has("Command") {
 				pp.Command = p.Command
+			}
+			if flds.Has("Node") {
+				pp.Node = p.Host
+			}
+			if flds.Has("CpuPct") {
+				pp.CpuPct = p.CpuUtilPct
+			}
+			if flds.Has("VirtMemGB") {
+				pp.VirtMemGB = int(p.CpuGB)
+			}
+			if flds.Has("ResMemGB") {
+				pp.ResMemGB = int(p.RssAnonGB)
+			}
+			if flds.Has("GpuPct") {
+				pp.GpuPct = p.GpuPct
+			}
+			if flds.Has("GpuMemGB") {
+				pp.GpuMemGB = int(p.GpuMemGB)
+			}
+			if flds.Has("NumProcs") {
+				pp.NumProcs = p.Nproc
 			}
 			points = append(points, pp)
 		}
