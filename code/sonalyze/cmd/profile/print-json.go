@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"io"
 	"math"
+	"time"
 
 	"sonalyze/data/sample"
 )
@@ -54,9 +55,10 @@ type JsonPoint struct {
 }
 
 type JsonTimestep struct {
-	Time   string      `json:"time"` // TODO: Is this right?
-	Job    uint32      `json:"job"`
-	Points []JsonPoint `json:"points"`
+	Timestamp time.Time
+	Time      string      `json:"time"` // TODO: Is this right?
+	Job       uint32      `json:"job"`
+	Points    []JsonPoint `json:"points"`
 }
 
 func ComputeJSONFromSamples(
@@ -101,9 +103,10 @@ func ComputeJSONFromSamples(
 			})
 		}
 		objects = append(objects, JsonTimestep{
-			Time:   formatTime(rn),
-			Job:    e.s.Job,
-			Points: points,
+			Timestamp: time.Unix(rn, 0),
+			Time:      formatTime(rn),
+			Job:       e.s.Job,
+			Points:    points,
 		})
 	}
 	return objects

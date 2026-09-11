@@ -3,6 +3,7 @@ package jobprof
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -82,27 +83,35 @@ func handleJobProfile(
 	if hErr != nil {
 		return nil, hErr
 	}
-	qFilter := dcommon.QueryFilter{
-		HaveFrom: true,
-		FromDate: from,
-		HaveTo:   true,
-		ToDate:   to,
+	sFilter := sample.QueryFilter{
+		QueryFilter: dcommon.QueryFilter{
+			HaveFrom: true,
+			FromDate: from,
+			HaveTo:   true,
+			ToDate:   to,
+			Host:     nodes,
+		},
+		AllUsers: true,
+		Job:      []uint32{uint32(input.Job)},
 	}
-	rFilter := sample.SampleFilter{
-		IncludeHosts: nodes,
-		IncludeJobs:  map[uint32]bool{uint32(input.Job): true},
-		From:         from.UTC().Unix(),
-		To:           to.UTC().Unix(),
-	}
+	_, rFilter, err := sample.BuildSampleFilter(meta, sFilter)
 	maxMem := 0.0
-	pd, err := profile.ComputeProfileData(meta, qFilter, nodes, &rFilter, uint32(input.Job), maxMem, input.Bucket)
+	pd, err := profile.ComputeProfileData(
+		meta,
+		sFilter.QueryFilter,
+		nodes,
+		rFilter,
+		uint32(input.Job),
+		maxMem,
+		input.Bucket,
+	)
 	if err != nil {
 		return nil, huma.Error400BadRequest(jobprofCommandName + ": " + err.Error())
 	}
 	jd := profile.ComputeJSONFromSamples(pd.M, pd.Processes, pd.Pif, false)
-	timeline := make([]JobProfileTimestep, len(jd))
+	timeline := make([]JobProfileTimestep, 0, len(jd))
 	for _, jt := range jd {
-		points := make([]JobProfilePoint, len(jt.Points))
+		points := make([]JobProfilePoint, 0, len(jt.Points))
 		for _, p := range jt.Points {
 			var pp JobProfilePoint
 			if flds.Has("Pid") {
@@ -135,7 +144,7 @@ func handleJobProfile(
 			points = append(points, pp)
 		}
 		timeline = append(timeline, JobProfileTimestep{
-			Time: jt.Time,
+			Time: jt.Timestamp.Format(time.RFC3339),
 			Data: points,
 		})
 	}
