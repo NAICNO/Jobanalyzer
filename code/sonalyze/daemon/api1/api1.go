@@ -54,6 +54,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"sonalyze/daemon/api1/cardprof"
 	"sonalyze/daemon/api1/cards"
 	"sonalyze/daemon/api1/clusters"
 	"sonalyze/daemon/api1/common"
@@ -73,6 +74,7 @@ func SetupAPI(
 	common.PostAuthenticator = postAuthenticator_
 	grp := huma.NewGroup(api, "/api/v1")
 
+	cardprof.AddCardProfile(grp)
 	cards.AddCards(grp)
 	clusters.AddCluster(grp)
 	jobprof.AddJobProfile(grp)

@@ -8,7 +8,7 @@ SUBDIRS=application \
 	common \
 	daemon daemon/api0 daemon/api1 daemon/api2 daemon/apiutil \
 	daemon/api1/common \
-	daemon/api1/cards \
+	daemon/api1/cards daemon/api1/cardprof \
 	daemon/api1/clusters \
 	daemon/api1/jobs daemon/api1/jobprof \
 	daemon/api1/nodes \
