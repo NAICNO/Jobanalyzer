@@ -22,7 +22,7 @@ import (
 // TODO: Should the derivation of fixedLine data be lifted to perform.go?
 // TODO: Merge fixed formatting with JSON-formatting logic somehow?
 
-//go:generate ../../../generate-table/generate-table -o profile-table.go print.go
+//go:generate ../../../generate-table/generate-table -o profile-table.go print-fixed.go
 
 /*TABLE profile
 

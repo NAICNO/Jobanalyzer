@@ -10,9 +10,9 @@ import (
 const responseDefaults = "Name,Description"
 
 type Cluster struct {
-	Name        string   `json:"Name,omitempty"`
-	Description string   `json:"Description,omitempty"`
-	Aliases     []string `json:"Aliases,omitempty"`
+	Name        string   `json:"Name,omitempty" doc:"Cluster name"`
+	Description string   `json:"Description,omitempty" doc:"Human-consumable cluster summary"`
+	Aliases     []string `json:"Aliases,omitempty" doc:"Aliases of cluster"`
 }
 
 func respond(flds *apiutil.FieldMap, r *repr.Cluster) Cluster {

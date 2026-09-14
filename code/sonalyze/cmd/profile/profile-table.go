@@ -1,4 +1,4 @@
-// DO NOT EDIT.  Generated from print.go by generate-table
+// DO NOT EDIT.  Generated from print-fixed.go by generate-table
 
 package profile
 
