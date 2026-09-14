@@ -20,7 +20,7 @@ var (
 
 // Queries
 
-type StandardQueryFields struct {
+type MinimalQueryFields struct {
 	Cluster    string `path:"cluster" example:"my.cluster.name" doc:"Name of cluster"`
 	StartTimeS uint64 `query:"start_time_s" doc:"Posix timestamp"`
 	EndTimeS   uint64 `query:"end_time_s" doc:"Posix timestamp"`
@@ -28,11 +28,15 @@ type StandardQueryFields struct {
 	EndDate    string `query:"end_date" doc:"Date yyyy-mm-dd, overrides end_time_s"`
 	Node       string `query:"node" doc:"List of compressed node names"`
 	Fields     string `query:"fields" doc:"List of JSON field names to include in output"`
-	Query      string `query:"query" doc:"Query term"`
 	apiutil.AuthHeader
 }
 
-func (input *StandardQueryFields) Parameters(opName, defaultFields string) (
+type StandardQueryFields struct {
+	MinimalQueryFields
+	Query string `query:"query" doc:"Query term"`
+}
+
+func (input *MinimalQueryFields) Parameters(opName, defaultFields string) (
 	meta types.Context,
 	from time.Time, to time.Time,
 	nodes Hosts,

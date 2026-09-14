@@ -22,7 +22,9 @@ import (
 // with Pid as the primary index (list of rows rather than list of columns).
 //
 // I elected not to generate the response structure from any table since no table existed for the
-// source.  This could change.
+// source.  This could change.  It would need to change if we were to include the Query field in the
+// input parameters, because in that case field names in the output must match field names used in
+// the Query and the names used below don't always match those used by the cmd/profile code.
 //
 // The most important redundancy here is the mapping from (Node,Pid) to Command name.  The Command
 // will almost never change for that pair (it can change if the job runs long enough for the pid to
@@ -73,8 +75,7 @@ func AddJobProfile(api huma.API) {
 func handleJobProfile(
 	ctx context.Context,
 	input *struct {
-		// TODO: Not obvious that "query" from the std fields is sensible here.
-		common.StandardQueryFields
+		common.MinimalQueryFields
 		Job    uint `path:"jobid" example:"12345" doc:"Job ID"`
 		Bucket uint `query:"bucket" example:"5" doc:"Number of adjacent samples to average"`
 	},
