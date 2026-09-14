@@ -101,34 +101,65 @@ type ReportLine struct {
 }
 
 func (gc *GpuCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io.Writer) error {
-	gsd, err := gpusample.OpenGpuSampleDataProvider(meta)
-	if err != nil {
-		return err
-	}
 	host, err := common.ResolveHostQuery(meta, gc.Host, gc.FromDate, gc.ToDate)
 	if err != nil {
 		return err
 	}
+	reports, err := Query(
+		meta,
+		QueryFilter{
+			common.QueryFilter{
+				HaveFrom: true,
+				FromDate: gc.FromDate,
+				HaveTo:   true,
+				ToDate:   gc.ToDate,
+				Host:     host,
+			},
+			gc.Gpu,
+		},
+		gc.ParsedQuery,
+	)
+
+	FormatData(
+		stdout,
+		gc.PrintFields,
+		gpuFormatters,
+		gc.PrintOpts,
+		reports,
+	)
+
+	return nil
+}
+
+type QueryFilter struct {
+	common.QueryFilter
+	Index int // -1 or the index of the GPU to select
+}
+
+func Query(meta types.Context, qf QueryFilter, parsedQuery PNode) ([]*ReportLine, error) {
+	gsd, err := gpusample.OpenGpuSampleDataProvider(meta)
+	if err != nil {
+		return nil, err
+	}
 	// TODO: Use standard query interface
 	perHostStreams, _, read, dropped, err :=
 		gsd.Query(
-			gc.FromDate,
-			gc.ToDate,
-			host,
+			qf.FromDate,
+			qf.ToDate,
+			qf.Host,
 		)
 	if err != nil {
-		return fmt.Errorf("Failed to read log records: %v", err)
+		return nil, fmt.Errorf("Failed to read log records: %v", err)
 	}
 	if Verbose {
 		Log.Infof("%d records read + %d dropped\n", read, dropped)
-		UstrStats(stderr, false)
 	}
 
 	reports := make([]*ReportLine, 0)
 	for _, s := range perHostStreams {
 		for _, d := range s.Data {
 			for _, gpu := range d.Decoded {
-				if gc.Gpu == -1 || gc.Gpu == int(gpu.Index) {
+				if qf.Index == -1 || qf.Index == int(gpu.Index) {
 					var r ReportLine
 					r.Timestamp = DateTimeValue(d.Time)
 					r.Hostname = s.Hostname
@@ -140,18 +171,10 @@ func (gc *GpuCommand) Perform(meta types.Context, _ io.Reader, stdout, stderr io
 		}
 	}
 
-	reports, err = ApplyQuery(gc.ParsedQuery, gpuFormatters, gpuPredicates, reports)
+	reports, err = ApplyQuery(parsedQuery, gpuFormatters, gpuPredicates, reports)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	FormatData(
-		stdout,
-		gc.PrintFields,
-		gpuFormatters,
-		gc.PrintOpts,
-		reports,
-	)
-
-	return nil
+	return reports, nil
 }
