@@ -52,7 +52,7 @@ CHECK "dbtest_cards" \
       "$output"
 
 output=$(curl --silent --fail-with-body -G \
-              "$testapi/api/v1/jobs/fox.educloud.no?start_date=2026-06-03&user=ec-eged,ec-markushs" |
+              "$testapi/api/v1/jobs/fox.educloud.no?start_date=2026-06-03&user=user_000127,user_000068" |
              jq -r '.[]|.Cmd' | sort | uniq)
 CHECK "dbtest_jobs" \
       "bedpostx_gpu,bedpostx_postpr,dwi_pre_tractog,post_proc_matri,python,python3.11,qunex,run_matrix1.sh,run_matrix3.sh,sh
@@ -99,7 +99,7 @@ xfibres_gpu10.2" \
       "$output"
 
 output=$(curl --silent --fail-with-body -G \
-              "$testapi/api/v1/jobs/fox.educloud.no?start_date=2026-06-03&user=ec-emilp&fields=Hosts" |
+              "$testapi/api/v1/jobs/fox.educloud.no?start_date=2026-06-03&user=user_000101&fields=Hosts" |
              jq -r '.[]|.Hosts[]' | sort | uniq --count)
 CHECK "dbtest_jobs_2" \
       '    108 c1-10
