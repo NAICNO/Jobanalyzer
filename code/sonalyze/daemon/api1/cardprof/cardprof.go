@@ -1,8 +1,3 @@
-// FIXME: It is clearly a bug that CE utilization is not among the default fields or indeed among
-// the available fields.  The reason for that is that it is not exposed by the underlying "gpus"
-// code.  That is a bug: the SampleGpu structure coming from Sonar definitely has this information.
-// Probably the gpus code is so experimental that this was never seen.
-
 // FIXME: It is arguably a bug that the timeline is flattened here and not nested as it is for the
 // job profile (similar things should look similar).  This needs to be fixed in the "gpus" query
 // code, which actually has the nested timeline but flattens it in the query result, probably to
