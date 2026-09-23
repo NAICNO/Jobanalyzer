@@ -8,7 +8,7 @@ import (
 	. "sonalyze/table"
 )
 
-const responseDefaults = "Timestamp,Hostname,Memory,Power"
+const responseDefaults = "Timestamp,Hostname,CEUtil,Memory,Power"
 
 type CardProfile_Timestep struct {
 	Timestamp   string `json:"Timestamp,omitempty" doc:"Timestamp of when the reading was taken"`
@@ -16,11 +16,13 @@ type CardProfile_Timestep struct {
 	Index       uint64 `json:"Index,omitempty" doc:"Card index on the host"`
 	Fan         uint64 `json:"Fan,omitempty" doc:"Fan speed in percent of max"`
 	Memory      uint64 `json:"Memory,omitempty" doc:"Amount of memory in use"`
+	MemoryUtil  uint64 `json:"MemoryUtil,omitempty" doc:"Current memory utilization in percent"`
+	MemoryClock uint64 `json:"MemoryClock,omitempty" doc:"Current memory clock in MHz"`
 	Temperature int64  `json:"Temperature,omitempty" doc:"Card temperature in degrees C"`
 	Power       uint64 `json:"Power,omitempty" doc:"Current power draw in Watts"`
 	PowerLimit  uint64 `json:"PowerLimit,omitempty" doc:"Current power limit in Watts"`
+	CEUtil      uint64 `json:"CEUtil,omitempty" doc:"Current compute element utilization in percent"`
 	CEClock     uint64 `json:"CEClock,omitempty" doc:"Current compute element clock in MHz"`
-	MemoryClock uint64 `json:"MemoryClock,omitempty" doc:"Current memory clock in MHz"`
 }
 
 func respond(flds *apiutil.FieldMap, r *ReportLine) CardProfile_Timestep {
@@ -40,6 +42,12 @@ func respond(flds *apiutil.FieldMap, r *ReportLine) CardProfile_Timestep {
 	if flds.Has("Memory") {
 		x.Memory = r.Memory
 	}
+	if flds.Has("MemoryUtil") {
+		x.MemoryUtil = r.MemoryUtil
+	}
+	if flds.Has("MemoryClock") {
+		x.MemoryClock = r.MemoryClock
+	}
 	if flds.Has("Temperature") {
 		x.Temperature = r.Temperature
 	}
@@ -49,11 +57,11 @@ func respond(flds *apiutil.FieldMap, r *ReportLine) CardProfile_Timestep {
 	if flds.Has("PowerLimit") {
 		x.PowerLimit = r.PowerLimit
 	}
+	if flds.Has("CEUtil") {
+		x.CEUtil = r.CEUtil
+	}
 	if flds.Has("CEClock") {
 		x.CEClock = r.CEClock
-	}
-	if flds.Has("MemoryClock") {
-		x.MemoryClock = r.MemoryClock
 	}
 	return x
 }

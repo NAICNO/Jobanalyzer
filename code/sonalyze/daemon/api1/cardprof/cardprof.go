@@ -2,6 +2,11 @@
 // job profile (similar things should look similar).  This needs to be fixed in the "gpus" query
 // code, which actually has the nested timeline but flattens it in the query result, probably to
 // simplify subsequent fixed-format printing.
+//
+// FIXME: Also, similar fields should have similar names.  "Time" not "Timestamp", "Node" not
+// "Hostname", *possibly* "GpuPct", "GpuMemGB" and not "CEUtil", "Memory".  Also, Index probably
+// must be part of the default set?  UUID can be more useful than index but is not actually in the
+// card profile data even though it is in the Sonar data, another oversight.
 
 package cardprof
 
@@ -32,7 +37,7 @@ import (
 
 TYPE     CardProfile_Timestep
 TABLE    ../../../cmd/gpus/gpus.go
-DEFAULTS Timestamp,Hostname,Memory,Power
+DEFAULTS Timestamp,Hostname,Index,CEUtil,Memory,Power
 
 ESNOPSER*/
 
