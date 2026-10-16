@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/NordicHPC/sonar/util/formats/newfmt"
+	newfmt "github.com/NordicHPC/sonar/util/formats/generated/sonar_huma"
 	"go-utils/gpuset"
 
 	. "sonalyze/common"
@@ -119,9 +119,9 @@ func ParseSamplesV0JSON(
 			Boot:             boot,
 			Hostname:         node,
 			UsedMemory:       data.System.UsedMemory,
-			Load1:            data.System.Load1,
-			Load5:            data.System.Load5,
-			Load15:           data.System.Load15,
+			Load1:            float64(data.System.Load1),
+			Load5:            float64(data.System.Load5),
+			Load15:           float64(data.System.Load15),
 			RunnableEntities: data.System.RunnableEntities,
 			ExistingEntities: data.System.ExistingEntities,
 		})
@@ -144,8 +144,8 @@ func ParseSamplesV0JSON(
 				var gpuFail uint8
 				for _, g := range process.Gpus {
 					pgpus, _ = gpuset.Adjoin(pgpus, uint32(g.Index))
-					gpuPct += g.GpuUtil
-					gpuMemPct += g.GpuMemoryUtil
+					gpuPct += float64(g.GpuUtil)
+					gpuMemPct += float64(g.GpuMemoryUtil)
 					gpuKib += g.GpuMemory
 					if failing[g.Index] {
 						gpuFail = 1

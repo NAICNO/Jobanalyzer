@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NordicHPC/sonar/util/formats/newfmt"
+	newfmt "github.com/NordicHPC/sonar/util/formats/generated/sonar_huma"
 
 	. "sonalyze/common"
 	"sonalyze/db/repr"

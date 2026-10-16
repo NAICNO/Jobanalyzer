@@ -3,7 +3,7 @@ package parse
 import (
 	"io"
 
-	"github.com/NordicHPC/sonar/util/formats/newfmt"
+	newfmt "github.com/NordicHPC/sonar/util/formats/generated/sonar_huma"
 	"sonalyze/db/repr"
 )
 
