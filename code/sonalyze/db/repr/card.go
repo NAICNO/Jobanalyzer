@@ -5,7 +5,7 @@ package repr
 import (
 	"unsafe"
 
-	"github.com/NordicHPC/sonar/util/formats/newfmt"
+	newfmt "github.com/NordicHPC/sonar/util/formats/generated/sonar_huma"
 )
 
 type SysinfoCardData struct {

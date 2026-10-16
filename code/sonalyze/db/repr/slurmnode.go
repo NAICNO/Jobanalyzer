@@ -8,7 +8,7 @@ package repr
 import (
 	"unsafe"
 
-	"github.com/NordicHPC/sonar/util/formats/newfmt"
+	newfmt "github.com/NordicHPC/sonar/util/formats/generated/sonar_huma"
 )
 
 // A 3D volume where each node entry has a node range and a state set

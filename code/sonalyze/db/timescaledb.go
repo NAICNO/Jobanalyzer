@@ -79,7 +79,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NordicHPC/sonar/util/formats/newfmt"
+	newfmt "github.com/NordicHPC/sonar/util/formats/generated/sonar_huma"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go-utils/gpuset"

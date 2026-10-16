@@ -24,8 +24,8 @@ type MinimalQueryFields struct {
 	Cluster    string `path:"cluster" example:"my.cluster.name" doc:"Name of cluster"`
 	StartTimeS uint64 `query:"start_time_s" doc:"Posix timestamp"`
 	EndTimeS   uint64 `query:"end_time_s" doc:"Posix timestamp"`
-	StartDate  string `query:"start_date" doc:"Date yyyy-mm-dd, overrides start_time_s"`
-	EndDate    string `query:"end_date" doc:"Date yyyy-mm-dd, overrides end_time_s"`
+	StartDate  string `query:"start_date" format:"date" doc:"Date yyyy-mm-dd, overrides start_time_s"`
+	EndDate    string `query:"end_date" format:"date" doc:"Date yyyy-mm-dd, overrides end_time_s"`
 	Node       string `query:"node" doc:"List of compressed node names"`
 	Fields     string `query:"fields" doc:"List of JSON field names to include in output"`
 	apiutil.AuthHeader

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/NordicHPC/sonar/util/formats/newfmt"
+	newfmt "github.com/NordicHPC/sonar/util/formats/generated/sonar_huma"
 	"github.com/danielgtaylor/huma/v2"
 
 	. "sonalyze/daemon/api1/common"
