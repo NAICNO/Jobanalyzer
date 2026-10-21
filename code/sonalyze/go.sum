@@ -1,5 +1,7 @@
 github.com/NordicHPC/sonar/util/formats v0.18.4 h1:qA2diV8iWPQGQHGtF8v+xdNCg0Lpb/AW4HadlnsKPEM=
 github.com/NordicHPC/sonar/util/formats v0.18.4/go.mod h1:6cRx0fr1M91WiFkRCyFRlelOQ0TZ/M7w+dOzj1crrtI=
+github.com/NordicHPC/sonar/util/formats v0.19.0-pre3 h1:tKXVhZBs3p3nOLSfDjFT5qaTbigMxEx4cBmVUhHQCIw=
+github.com/NordicHPC/sonar/util/formats v0.19.0-pre3/go.mod h1:MM7WjzSUqTyRydSKTIECose7muHVU8tiTLpdUldrwUY=
 github.com/danielgtaylor/huma/v2 v2.39.1 h1:0kwF4ltQoYZ+IU55VPy+BcGekzgF44R64daTGde1H+g=
 github.com/danielgtaylor/huma/v2 v2.39.1/go.mod h1:zcnQ38duIJ3VUHwFaBoZ6x8T+KN/mr33oyqxcj0HTug=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
