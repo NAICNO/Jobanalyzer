@@ -3,7 +3,7 @@ module sonalyze
 go 1.25.13
 
 require (
-	github.com/NordicHPC/sonar/util/formats v0.18.4
+	github.com/NordicHPC/sonar/util/formats v0.19.0-pre3
 	github.com/danielgtaylor/huma/v2 v2.39.1
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/lars-t-hansen/ini v0.3.0
