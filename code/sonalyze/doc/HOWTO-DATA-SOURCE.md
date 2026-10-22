@@ -111,3 +111,9 @@ documentation, and Sonalyze directory trees are also organized in the way descri
 
 Sonalyze can handle older-format Sonar JSON and CSV files, which are organized differently but have
 a looser naming scheme; UTSL.
+
+Sonalyze can also read (though not append to) Zstd-compressed files for the "new" data formats (of
+the form `0+*-*.json`).  Just use zstd to compress a json file and then remove the json file, once
+the json file is complete.  Typically this means it hasn't been updated in a couple of days.  The
+.zst file that results will be picked up by sonalyze and decompressed on the fly.  Zstd will
+compress Sonar data by about an order of magnitude, on average.
