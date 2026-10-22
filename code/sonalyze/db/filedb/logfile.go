@@ -54,6 +54,8 @@ import (
 	"path"
 	"sync"
 
+	"github.com/klauspost/compress/zstd"
+
 	. "sonalyze/common"
 )
 
@@ -104,6 +106,9 @@ const (
 	FileSlurmCSV
 	FileSlurmV0JSON
 	FileCluzterV0JSON
+
+	// Other attributes
+	FileZstdCompressed
 )
 
 // The components of the Fullname are broken out so as to allow strings to be shared as much as
@@ -151,7 +156,7 @@ func NewLogFile(fn Fullname, attrs FileAttr) *LogFile {
 }
 
 func (lf *LogFile) AppendAsync(payload any) error {
-	if (lf.attrs & FileAppendable) == 0 {
+	if (lf.attrs&FileZstdCompressed) == 1 || (lf.attrs&FileAppendable) == 0 {
 		panic("Read-only file")
 	}
 	switch x := payload.(type) {
@@ -221,7 +226,19 @@ func (lf *LogFile) ReadSync(
 			return
 		}
 		defer inputFile.Close()
-		payload, softErrors, err = reader.ReadDataLocked(lf.attrs, inputFile, uf)
+		var input io.Reader = inputFile
+
+		if (lf.attrs & FileZstdCompressed) != 0 {
+			var zInput *zstd.Decoder
+			zInput, err = zstd.NewReader(input)
+			if err != nil {
+				return
+			}
+			defer zInput.Close()
+			input = zInput
+		}
+
+		payload, softErrors, err = reader.ReadDataLocked(lf.attrs, input, uf)
 		if err != nil {
 			return
 		}
