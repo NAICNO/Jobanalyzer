@@ -748,6 +748,7 @@ func filenameGlobber(h Hosts, globs []string) *hostglob.HostGlobber {
 
 // Pre: LOCK HELD
 // Pre: !ld.closed
+// Pre: filename is not a .zst name
 // Post if !error: directory exits on disk
 // Post if !error: directory exists in cluster's tree
 func (pc *PersistentCluster) findFileByTimeLocked(

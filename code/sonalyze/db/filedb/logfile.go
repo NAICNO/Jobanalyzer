@@ -157,6 +157,8 @@ func NewLogFile(fn Fullname, attrs FileAttr) *LogFile {
 
 func (lf *LogFile) AppendAsync(payload any) error {
 	if (lf.attrs&FileZstdCompressed) == 1 || (lf.attrs&FileAppendable) == 0 {
+		// The code that creates the LogFile for appending must always produce an uncompressed and
+		// appendable file.
 		panic("Read-only file")
 	}
 	switch x := payload.(type) {
