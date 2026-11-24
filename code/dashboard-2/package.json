@@ -24,7 +24,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@xyflow/react": "^12.11.2",
     "ag-grid-react": "^36.0.2",
-    "axios": "1.19.0",
+    "axios": "1.20.0",
     "dayjs": "^1.11.21",
     "dompurify": "^3.4.12",
     "formik": "^2.4.9",
