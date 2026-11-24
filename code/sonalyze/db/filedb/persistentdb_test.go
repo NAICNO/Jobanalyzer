@@ -108,6 +108,7 @@ func TestFilenames(t *testing.T) {
 	// There are proscribed files in various spots (bughunt.csv, cpuhog.csv)
 	// There are both new and old file name schemes
 	// There are files for all file types in all directories
+	// Some files are compressed
 
 	from, _ := time.Parse(time.RFC3339, "2025-04-12T07:16:00+02:00")
 	to, _ := time.Parse(time.RFC3339, "2025-05-03T12:13:14+02:00")
@@ -125,7 +126,7 @@ func TestFilenames(t *testing.T) {
 		"testdata/data/cluster1.uio.no/2025/04/12/0+sample-n2.cluster1.uio.no.json",
 		"testdata/data/cluster1.uio.no/2025/04/12/n1.cluster1.uio.no.csv",
 		"testdata/data/cluster1.uio.no/2025/04/12/n3.cluster1.uio.no.csv",
-		"testdata/data/cluster1.uio.no/2025/04/13/0+sample-n1.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/04/13/0+sample-n1.cluster1.uio.no.json.zst",
 		"testdata/data/cluster1.uio.no/2025/04/13/0+sample-n3.cluster1.uio.no.json",
 		"testdata/data/cluster1.uio.no/2025/05/02/0+sample-n2.cluster1.uio.no.json",
 		"testdata/data/cluster1.uio.no/2025/05/02/0+sample-n3.cluster1.uio.no.json",
@@ -148,7 +149,7 @@ func TestFilenames(t *testing.T) {
 	expect = []string{
 		"testdata/data/cluster1.uio.no/2025/04/12/0+sample-n2.cluster1.uio.no.json",
 		"testdata/data/cluster1.uio.no/2025/04/12/n1.cluster1.uio.no.csv",
-		"testdata/data/cluster1.uio.no/2025/04/13/0+sample-n1.cluster1.uio.no.json",
+		"testdata/data/cluster1.uio.no/2025/04/13/0+sample-n1.cluster1.uio.no.json.zst",
 		"testdata/data/cluster1.uio.no/2025/05/02/0+sample-n2.cluster1.uio.no.json",
 		"testdata/data/cluster1.uio.no/2025/05/02/n1.cluster1.uio.no.csv",
 		"testdata/data/cluster1.uio.no/2025/05/03/n1.cluster1.uio.no.csv",

@@ -30,11 +30,13 @@ FIELDS *ReportLine
  Index       uint64        desc:"Card index on the host"
  Fan         uint64        desc:"Fan speed in percent of max"
  Memory      uint64        desc:"Amount of memory in use"
+ MemoryUtil  uint64        desc:"Current memory utilization in percent"
+ MemoryClock uint64        desc:"Current memory clock in MHz"
  Temperature int64         desc:"Card temperature in degrees C"
  Power       uint64        desc:"Current power draw in Watts"
  PowerLimit  uint64        desc:"Current power limit in Watts"
+ CEUtil      uint64        desc:"Current compute element utilization in percent"
  CEClock     uint64        desc:"Current compute element clock in MHz"
- MemoryClock uint64        desc:"Current memory clock in MHz"
 
 SUMMARY GpuCommand
 
@@ -47,9 +49,9 @@ HELP GpuCommand
 
 ALIASES
 
-  default   Hostname,Gpu,Timestamp,Memory,PowerDraw
-  Default   Hostname,Gpu,Timestamp,Memory,PowerDraw
-  All       Timestamp,Hostname,Index,Fan,Memory,Temperature,PowerDraw,\
+  default   Hostname,Gpu,Timestamp,CEUtil,Memory,PowerDraw
+  Default   Hostname,Gpu,Timestamp,CEUtil,Memory,PowerDraw
+  All       Timestamp,Hostname,Index,Fan,CEUtil,Memory,MemoryUtil,Temperature,PowerDraw,\
             PowerLimit,CEClock,MemoryClock
 
 DEFAULTS default

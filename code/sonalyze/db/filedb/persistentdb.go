@@ -535,7 +535,7 @@ type sampleFilesAdapter struct {
 }
 
 func (_ sampleFilesAdapter) globs() []string {
-	return []string{"*.csv", "0+sample-*.json"}
+	return []string{"*.csv", "0+sample-*.json", "0+sample-*.json.zst"}
 }
 
 func (_ sampleFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
@@ -557,7 +557,11 @@ func (_ sampleFilesAdapter) proscribedBasename(fn string) bool {
 
 func (_ sampleFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
 	if strings.HasPrefix(basename, "0+sample-") {
-		return FileSampleV0JSON
+		var compressed FileAttr
+		if strings.HasSuffix(basename, ".zst") {
+			compressed = FileZstdCompressed
+		}
+		return FileSampleV0JSON | compressed
 	}
 	return FileSampleCSV
 }
@@ -566,7 +570,7 @@ type sysinfoFilesAdapter struct {
 }
 
 func (_ sysinfoFilesAdapter) globs() []string {
-	return []string{"sysinfo-*.json", "0+sysinfo-*.json"}
+	return []string{"sysinfo-*.json", "0+sysinfo-*.json", "0+sysinfo-*.json.zst"}
 }
 
 func (_ sysinfoFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
@@ -583,7 +587,11 @@ func (_ sysinfoFilesAdapter) proscribedBasename(fn string) bool {
 
 func (_ sysinfoFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
 	if strings.HasPrefix(basename, "0+sysinfo-") {
-		return FileSysinfoV0JSON
+		var compressed FileAttr
+		if strings.HasSuffix(basename, ".zst") {
+			compressed = FileZstdCompressed
+		}
+		return FileSysinfoV0JSON | compressed
 	}
 	return FileSysinfoOldJSON
 }
@@ -592,7 +600,7 @@ type sacctFilesAdapter struct {
 }
 
 func (_ sacctFilesAdapter) globs() []string {
-	return []string{"slurm-sacct.csv", "0+job-slurm.json"}
+	return []string{"slurm-sacct.csv", "0+job-slurm.json", "0+job-slurm.json.zst"}
 }
 
 func (_ sacctFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
@@ -611,14 +619,18 @@ func (_ sacctFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
 	if basename == "slurm-sacct.csv" {
 		return FileSlurmCSV
 	}
-	return FileSlurmV0JSON
+	var compressed FileAttr
+	if strings.HasSuffix(basename, ".zst") {
+		compressed = FileZstdCompressed
+	}
+	return FileSlurmV0JSON | compressed
 }
 
 type cluzterFilesAdapter struct {
 }
 
 func (_ cluzterFilesAdapter) globs() []string {
-	return []string{"0+cluzter-slurm.json"}
+	return []string{"0+cluzter-slurm.json", "0+cluzter-slurm.json.zst"}
 }
 
 func (_ cluzterFilesAdapter) getFiles(d *persistentDir) map[string]*LogFile {
@@ -634,7 +646,11 @@ func (_ cluzterFilesAdapter) proscribedBasename(fn string) bool {
 }
 
 func (_ cluzterFilesAdapter) fileTypeFromBasename(basename string) FileAttr {
-	return FileCluzterV0JSON
+	var compressed FileAttr
+	if strings.HasSuffix(basename, ".zst") {
+		compressed = FileZstdCompressed
+	}
+	return compressed | FileCluzterV0JSON
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -732,6 +748,7 @@ func filenameGlobber(h Hosts, globs []string) *hostglob.HostGlobber {
 
 // Pre: LOCK HELD
 // Pre: !ld.closed
+// Pre: filename is not a .zst name
 // Post if !error: directory exits on disk
 // Post if !error: directory exists in cluster's tree
 func (pc *PersistentCluster) findFileByTimeLocked(
